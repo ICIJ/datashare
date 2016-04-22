@@ -37,7 +37,7 @@ public class Main {
     public static void main(String[] args) {
 
         try {
-            Language                  language  = FRENCH;
+            Language                  language  = ENGLISH;
             List<String>              pipelines = Arrays.asList("OpenNLP", "CoreNLP");
             List<NLPStage>            stages    = new ArrayList<>(Arrays.asList(SENTENCE, TOKEN, POS, NER));
             List<NamedEntityCategory> entities  = new ArrayList<>(Arrays.asList(PERSON, ORGANIZATION, LOCATION));
