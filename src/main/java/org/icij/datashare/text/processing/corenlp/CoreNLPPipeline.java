@@ -24,6 +24,9 @@ import org.icij.datashare.text.processing.NLPStage;
 
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.processing.NLPStage.*;
+import static org.icij.datashare.util.function.ThrowingFunctions.parseStages;
+import static org.icij.datashare.util.function.ThrowingFunctions.removeSpaces;
+import static org.icij.datashare.util.function.ThrowingFunctions.splitComma;
 
 
 /**

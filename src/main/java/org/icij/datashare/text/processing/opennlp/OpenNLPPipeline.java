@@ -70,9 +70,6 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
         supportedStages.get(FRENCH) .addAll(Arrays.asList(SENTENCE, TOKEN, POS, NER));
         supportedStages.get(GERMAN) .addAll(Arrays.asList(SENTENCE, TOKEN, POS));
 
-        stages = getProperty("stages", removeSpaces.andThen(splitComma).andThen(parseStages))
-                .orElse(new ArrayList<>());
-
         if (stages == null || stages.isEmpty()) {
             stages = supportedStages.get(language);
         }
