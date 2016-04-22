@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import java.util.logging.Logger;
 import static java.util.logging.Level.SEVERE;
 
+import javafx.stage.Stage;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntityCategory;
 import org.icij.datashare.util.function.ThrowingFunction;
@@ -84,6 +85,9 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
         annotatorsCaching = getProperty("annotatorsCaching", trim.andThen(Boolean::parseBoolean))
                 .orElse(DEFAULT_MODELCACHING);
 
+        stages = getProperty("stages", removeSpaces.andThen(splitComma).andThen(parseStages))
+                .orElse(new ArrayList<>());
+
         stageDependencies = new HashMap<NLPStage, List<NLPStage>>(){{
             put(TOKEN,    new ArrayList<>());
             put(SENTENCE, new ArrayList<>());
@@ -134,7 +138,7 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
 
 
     public boolean supports(NLPStage stage, Language language){
-        return supportedStages.get(stage).contains(language);
+        return supportedStages.get(language).contains(stage);
     }
 
 
