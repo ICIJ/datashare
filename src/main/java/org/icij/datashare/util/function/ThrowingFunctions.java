@@ -51,10 +51,10 @@ public class ThrowingFunctions {
             .map(NamedEntityCategory::parse)
             .collect(Collectors.toSet());
 
-    public static final ThrowingFunction<List<String>, List<NLPStage>> parseStages = lst -> lst
+    public static final ThrowingFunction<List<String>, Set<NLPStage>> parseStages = lst -> lst
             .stream()
             .map(NLPStage::parse)
-            .collect(Collectors.toList());
+            .collect(Collectors.toSet());
 
     public static final ThrowingFunction<String, ThrowingFunction<List<?>, String>> joinList = sep ->
             (lst) -> String.join(sep, lst
