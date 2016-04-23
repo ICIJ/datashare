@@ -21,7 +21,7 @@ DatasShare is currently based on the following projects:
  (Apache licence)
  
  
-## Overview of Current Release 
+## Overview
 
 Currently, this project mainly allows for **named entities extraction**.
 
@@ -40,13 +40,11 @@ Supported named entity categories: **Person**, **Organization**, **Location**.
 
 Supported languages: **English**, **Spanish**, **French** and **German**.
 
-- OpenNLP 
-   - NER: English, Spanish and French  
-   - POS: English, Spanish, French and German
+|  Pipeline \\ Stage  | Token            | Sentence        | PoS             | NER             |
+|---------------------|:-----------------|:----------------|:----------------|:----------------|
+|  CoreNLP            | en, es, fr, de   | en, es, fr, de  | en, es, fr, de  | en, es, --, de  |
+|  OpenNLP            | en, --, fr, de   | en, --, fr, de  | en, es, fr, de  | en, es, fr, --  |
 
-- CoreNLP 
-  - NER: English, Spanish and German
-  - POS: English, Spanish, French and German
 
 
 ## Usage Example
@@ -63,6 +61,8 @@ Requires [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-do
 
  - Integrate a `GATENLPPipeline`
 
+ - Add data structure holding processing results
+ 
  - Add command-line interface
 
  - Process all documents from folder / corpus
@@ -71,6 +71,17 @@ Requires [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-do
  
  - Make external NLP projects optional
  
+ - Build Web-based GUI
+ 
+ - Allow for monitoring of processing
+ 
+ - Allow for entity management (add, remove)
+ 
+ - Index documents and (hashed) entities
+ 
+ - Networking module
+ 
+ - Data Sharing and Requesting module
 
 ## License
 
