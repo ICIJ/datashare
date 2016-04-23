@@ -38,28 +38,22 @@ public class Main {
 
         try {
             Language                  language  = ENGLISH;
-            List<String>              pipelines = Arrays.asList("OpenNLP", "CoreNLP");
-            List<NLPStage>            stages    = new ArrayList<>(Arrays.asList(SENTENCE, TOKEN, POS, NER));
+            List<NLPStage>            stages    = new ArrayList<>(Arrays.asList(POS, NER));
             List<NamedEntityCategory> entities  = new ArrayList<>(Arrays.asList(PERSON, ORGANIZATION, LOCATION));
-
-            String   text = PARAGRAPH.get(language);
-            //Path     path = Paths.get(filepath);
+            List<String>              pipelines = Arrays.asList("OpenNLP", "CoreNLP");
+            String                    text      = PARAGRAPH.get(language);
+            //Path                      path      = Paths.get(filepath);
 
             Properties props = new Properties();
             props.setProperty("language", language.toString());
-            props.setProperty("entityCategories", joinListComma.apply(entities));
+            props.setProperty("stages",   joinListComma.apply(stages));
+            props.setProperty("entities", joinListComma.apply(entities));
 
-            props.setProperty("stages", joinListComma.apply(stages));
-            Optional<NLPPipeline> openNLP = NLPPipelineFactory.build("OpenNLP", logger, props);
-            if (openNLP.isPresent()) {
-                openNLP.get().run(text);
-            }
-
-            stages.add(LEMMA);
-            props.setProperty("stages", joinListComma.apply(stages));
-            Optional<NLPPipeline> coreNLP = NLPPipelineFactory.build("CoreNLP", logger, props);
-            if (coreNLP.isPresent()) {
-                coreNLP.get().run(text);
+            for (String name : pipelines) {
+                Optional<NLPPipeline> pipeline = NLPPipelineFactory.build(logger, name, props);
+                if (pipeline.isPresent()) {
+                    pipeline.get().run(text);
+                }
             }
 
         } catch (IOException e) {

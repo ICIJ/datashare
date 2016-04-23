@@ -44,17 +44,16 @@ public class CoreNLPPipeline extends AbstractNLPPipeline {
         super(logger, properties);
 
         stageDependencies.get(SENTENCE).add(TOKEN);
-        stageDependencies.get(POS)     .addAll(Arrays.asList(SENTENCE, TOKEN));
-        stageDependencies.get(LEMMA)   .addAll(Arrays.asList(SENTENCE, TOKEN, POS));
-        stageDependencies.get(NER)     .addAll(Arrays.asList(SENTENCE, TOKEN, LEMMA));
+        stageDependencies.get(POS)     .add(SENTENCE);
+        stageDependencies.get(LEMMA)   .add(POS);
+        stageDependencies.get(NER)     .add(LEMMA);
 
         supportedStages.get(ENGLISH).addAll(Arrays.asList(SENTENCE, TOKEN, POS, LEMMA, NER));
         supportedStages.get(SPANISH).addAll(Arrays.asList(SENTENCE, TOKEN, POS, LEMMA, NER));
         supportedStages.get(GERMAN) .addAll(Arrays.asList(SENTENCE, TOKEN, POS, LEMMA, NER));
         supportedStages.get(FRENCH) .addAll(Arrays.asList(SENTENCE, TOKEN, POS, LEMMA));
-
-        if (stages == null || stages.isEmpty()) {
-            stages = supportedStages.get(language);
+        if (targetStages.isEmpty()) {
+            targetStages = supportedStages.get(language);
         }
 
         pipeline = new HashMap<>();
@@ -65,7 +64,6 @@ public class CoreNLPPipeline extends AbstractNLPPipeline {
         if ( ! super.initialize()) {
             return false;
         }
-
         // Load stage- and language-specific models, wrt to props
         if ( ! pipeline.containsKey(language)) {
             Properties props = new Properties();
@@ -77,7 +75,6 @@ public class CoreNLPPipeline extends AbstractNLPPipeline {
 
             pipeline.put(language, new StanfordCoreNLP(props, true));
         }
-
         return true;
     }
 
@@ -99,7 +96,7 @@ public class CoreNLPPipeline extends AbstractNLPPipeline {
                 String word = token.get(TextAnnotation.class);
                 String pos  = token.get(PartOfSpeechAnnotation.class);
                 String ne   = token.get(NamedEntityTagAnnotation.class);
-                sent.add(new String[]{word, pos, ne});
+                sent.add( new String[]{word, pos, ne} );
             }
             sentences.add(sent);
         }
@@ -116,17 +113,13 @@ public class CoreNLPPipeline extends AbstractNLPPipeline {
         }
     }
 
-
-    private String getAnnotatorName(NLPStage stage) {
-        return stageToAnnotatorNameMap.get(stage);
-    }
-
     private List<String> getAnnotators() {
         return getStages()
                 .stream()
-                .map(s -> getAnnotatorName(s))
+                .map(CoreNLPPipeline::getAnnotatorName)
                 .collect(Collectors.toList());
     }
+
 
     private static final Map<NLPStage, String> stageToAnnotatorNameMap =
             new HashMap<NLPStage, String>(){{
@@ -136,6 +129,10 @@ public class CoreNLPPipeline extends AbstractNLPPipeline {
                 put(POS,      "pos");
                 put(NER,      "ner");
             }};
+
+    public static String getAnnotatorName(NLPStage stage) {
+        return stageToAnnotatorNameMap.get(stage);
+    }
 
     private static final String MODELS_BASEDIR = "edu/stanford/nlp/models";
 

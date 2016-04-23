@@ -17,7 +17,7 @@ import static java.util.logging.Level.WARNING;
  */
 public class NLPPipelineFactory {
 
-    public static Optional<NLPPipeline> build(String name, Logger logger, Properties props)  {
+    public static Optional<NLPPipeline> build(Logger logger, String name, Properties props)  {
         if (name == null || name.isEmpty()) {
             return Optional.empty();
         }

@@ -1,6 +1,5 @@
 package org.icij.datashare.text.processing.opennlp;
 
-
 import java.io.InputStream;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -8,10 +7,15 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Function;
 import java.util.logging.Logger;
+
 import static java.util.logging.Level.INFO;
 
+import opennlp.tools.postag.POSTagger;
+import opennlp.tools.sentdetect.SentenceDetector;
+import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.util.*;
-import opennlp.tools.tokenize.*;
+import opennlp.tools.tokenize.TokenizerModel;
+import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.sentdetect.SentenceModel;
 import opennlp.tools.sentdetect.SentenceDetectorME;
 import opennlp.tools.postag.POSModel;
@@ -35,8 +39,6 @@ import static org.icij.datashare.text.processing.NLPStage.NER;
 import org.icij.datashare.text.processing.AbstractNLPPipeline;
 import org.icij.datashare.text.processing.NLPStage;
 
-import static org.icij.datashare.util.function.ThrowingFunctions.*;
-
 
 /**
  * OpenNLP pipeline
@@ -46,13 +48,13 @@ import static org.icij.datashare.util.function.ThrowingFunctions.*;
 public class OpenNLPPipeline extends AbstractNLPPipeline {
 
     // Sentence annotators (split string into sentences)
-    private Map<Language, SentenceDetectorME> sentencer;
+    private Map<Language, SentenceDetector> sentencer;
 
     // Token annotators (split string into tokens)
     private Map<Language, Tokenizer> tokenizer;
 
     // Part-of-Speech annotators (associate pos with tokens)
-    private Map<Language, POSTaggerME> postagger;
+    private Map<Language, POSTagger> postagger;
 
     // Named Entity Recognition annotators (associate entity category with tokens)
     private Map<Language, Map<NamedEntityCategory, NameFinderME>> ner;
@@ -62,19 +64,16 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
         super(logger, properties);
 
         stageDependencies.get(TOKEN).add(SENTENCE);
-        stageDependencies.get(POS)  .addAll(Arrays.asList(SENTENCE, TOKEN));
-        stageDependencies.get(NER)  .addAll(Arrays.asList(SENTENCE, TOKEN));
+        stageDependencies.get(POS)  .add(TOKEN);
+        stageDependencies.get(NER)  .add(TOKEN);
 
         supportedStages.get(ENGLISH).addAll(Arrays.asList(SENTENCE, TOKEN, POS, NER));
         supportedStages.get(SPANISH).addAll(Arrays.asList(SENTENCE, TOKEN, POS, NER));
         supportedStages.get(FRENCH) .addAll(Arrays.asList(SENTENCE, TOKEN, POS, NER));
         supportedStages.get(GERMAN) .addAll(Arrays.asList(SENTENCE, TOKEN, POS));
-
-        if (stages == null || stages.isEmpty()) {
-            stages = supportedStages.get(language);
+        if (targetStages.isEmpty()) {
+            targetStages = supportedStages.get(language);
         }
-
-        //getStageDependenciesTC();
 
         sentencer = new HashMap<>();
         tokenizer = new HashMap<>();
@@ -95,7 +94,6 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
             if ( ! sentencer.containsKey(language) || sentencer.get(language) == null) {
                 logger.log(INFO, "Loading " + SENTENCE + " model for " + language +
                         " from file " + MODELS_PATH_SENT.get(language).toString());
-
                 InputStream   sModelIS = loader.getResourceAsStream(MODELS_PATH_SENT.get(language).toString());
                 SentenceModel smodel   = new SentenceModel(sModelIS);
                 sModelIS.close();
@@ -108,7 +106,6 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
             if ( ! tokenizer.containsKey(language) || tokenizer.get(language) == null) {
                 logger.log(INFO, "Loading " + TOKEN + " model for " + language +
                         " from file " + MODELS_PATH_TOK.get(language).toString());
-
                 InputStream    tagModelIS = loader.getResourceAsStream(MODELS_PATH_TOK.get(language).toString());
                 TokenizerModel tmodel     = new TokenizerModel(tagModelIS);
                 tagModelIS.close();
@@ -121,7 +118,6 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
             if ( ! postagger.containsKey(language) || postagger.get(language) == null) {
                 logger.log(INFO, "Loading " + POS + " model for " + language +
                         " from file " + MODELS_PATH_POS.get(language).toString());
-
                 InputStream posModelIS = loader.getResourceAsStream(MODELS_PATH_POS.get(language).toString());
                 POSModel    pmodel     = new POSModel(posModelIS);
                 posModelIS.close();
@@ -129,13 +125,12 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
             }
         }
 
-        // Load language-specific named entityCategories recognition model
+        // Load language-specific named targetEntities recognition model
         if (stages.contains(NER)) {
-            for (NamedEntityCategory ne : entityCategories) {
+            for (NamedEntityCategory ne : targetEntities) {
                 if ( ! ner.containsKey(language) || ! ner.get(language).containsKey(ne) || ner.get(language).get(ne) == null) {
                     logger.log(INFO, "Loading " + ne + " model for " + language +
                             " from file " + MODELS_PATH_NER.get(language).get(ne).toString());
-
                     InputStream nerModelIS        = loader.getResourceAsStream(MODELS_PATH_NER.get(language).get(ne).toString());
                     TokenNameFinderModel nerModel = new TokenNameFinderModel(nerModelIS);
                     nerModelIS.close();
@@ -178,7 +173,6 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
             sentences.add(sent);
         }
         String out = formatAnnotations(sentences);
-
         logger.log(INFO, out);
     }
 
@@ -218,7 +212,7 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
         return new String[0];
     }
 
-    // Recognize ne entityCategories from tokens
+    // Recognize ne targetEntities from tokens
     private Span[] recognize(String[] tokens, NamedEntityCategory ne) {
         if (ner.containsKey(language) && ner.get(language).containsKey(ne) && ner.get(language).get(ne) != null) {
             return ner.get(language).get(ne).find(tokens);
@@ -226,10 +220,10 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
         return new Span[0];
     }
 
-    // Recognize all specified entityCategories from tokens
+    // Recognize all specified targetEntities from tokens
     private Map<Integer, NamedEntityCategory> recognize(String[] tokens) {
         Map<Integer, NamedEntityCategory> nes = new HashMap<>();
-        for (NamedEntityCategory ne : getEntityCategories()) {
+        for (NamedEntityCategory ne : getTargetEntities()) {
             Span[] spans = recognize(tokens, ne);
             for (Span span : spans) {
                 for (int i = span.getStart(); i < span.getEnd(); i++) {
@@ -240,7 +234,7 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
         return nes;
 /*
     Map<NamedEntityCategory, Span[]> entitySpans = new HashMap<>();
-    for (NamedEntityCategory ne: getEntityCategories()) {
+    for (NamedEntityCategory ne: getTargetEntities()) {
         Span[] spans = recognize(tokens, ne);
         for (Span span : spans) {
             for (int i = span.getStart(); i < span.getEnd(); i++) {
