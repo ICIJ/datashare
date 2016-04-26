@@ -6,23 +6,20 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
 import static java.util.logging.Level.SEVERE;
 
+import static org.icij.datashare.util.function.ThrowingFunctions.*;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntityCategory;
-import org.icij.datashare.util.function.ThrowingFunction;
-import static org.icij.datashare.util.function.ThrowingFunctions.*;
-
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntityCategory.*;
 import static org.icij.datashare.text.processing.NLPStage.*;
 
 
 /**
- * Base class of NLP pipelines.
+ * Base class of NLP pipelines
  *
  * Created by julien on 3/29/16.
  */
@@ -49,7 +46,7 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
     // Content charset
     protected Charset encoding;
 
-    // Keep annotators in memory (and their model) from an execution to the next one?
+    // Keep annotators (with model) in memory from a run to the next one?
     protected boolean annotatorsCaching;
 
     // Properties holding pipeline configuration / options
@@ -73,19 +70,19 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
 
         properties = props;
 
-        language = getProperty("language", removeSpaces.andThen(Language::parse))
+        language = getProperty("language", properties, removeSpaces.andThen(Language::parse))
                 .orElse(DEFAULT_LANGUAGE);
 
-        targetStages = getProperty("stages", removeSpaces.andThen(splitComma).andThen(parseStages))
+        targetStages = getProperty("stages", properties, removeSpaces.andThen(splitComma).andThen(parseStages))
                 .orElse(new HashSet<>());
 
-        targetEntities = getProperty("entities", removeSpaces.andThen(splitComma).andThen(parseEntities))
+        targetEntities = getProperty("entities", properties, removeSpaces.andThen(splitComma).andThen(parseEntities))
                 .orElse(DEFAULT_ENTITY_CATEGORIES);
 
-        encoding = getProperty("encoding", parseCharset.compose(String::trim))
+        encoding = getProperty("encoding", properties, parseCharset.compose(String::trim))
                 .orElse(DEFAULT_ENCODING);
 
-        annotatorsCaching = getProperty("annotatorsCaching", trim.andThen(Boolean::parseBoolean))
+        annotatorsCaching = getProperty("annotatorsCaching", properties, trim.andThen(Boolean::parseBoolean))
                 .orElse(DEFAULT_MODELCACHING);
 
         stageDependencies = new HashMap<NLPStage, List<NLPStage>>(){{
@@ -138,7 +135,12 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
         return supportedStages.get(language).contains(stage);
     }
 
-
+    /**
+     * Run the specified NLPPipeline on a File
+     *
+     * @param filepath is the document's Path to process
+     * @throws IOException
+     */
     @Override
     public void run(Path filepath) throws IOException {
         byte[] encoded = Files.readAllBytes(filepath);
@@ -146,24 +148,42 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
         run(text);
     }
 
+    /**
+     * Run the specified NLPPipeline on a String
+     *
+     * @param input is the String to process
+     * @throws IOException
+     */
     @Override
-    public void run(String text) throws IOException {
-        if (initialize()) {
-            process(text);
-        } else {
+    public void run(String input) throws IOException {
+        if (initialize())
+            process(input);
+        else
             logger.log(SEVERE, "Failed to initialize");
-        }
         terminate();
     }
 
+    /**
+     * Initialize and check NLPPipeline stages
+     *
+     * @return true if initialization succeeded, false otherwise
+     * @throws IOException
+     */
     protected boolean initialize() throws IOException {
         initStages();
-        orderStages();
         return checkStages();
     }
 
+    /**
+     * Apply all specified stage annotators
+     *
+     * @param input is the source String to annotate
+     */
     protected abstract void process(String input);
 
+    /**
+     * Release annotators after processing iff annotatorsCaching == true*
+     */
     protected abstract void terminate();
 
 
@@ -179,80 +199,53 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
                 ).collect(Collectors.toList()));
     }
 
-    private Optional<String> getProperty(String key) {
-        if (properties == null) {
-            return Optional.empty();
-        }
-        String val = properties.getProperty(key);
-        return Optional.ofNullable( (val == null || val.isEmpty()) ? null : val );
-    }
-
-    protected <T> Optional<T> getProperty(String key, Function<String, ? extends T> func) {
-        return getProperty(key).map(func);
-    }
-
-    protected <T> Optional<T> getProperty(String key, ThrowingFunction<String, ? extends T> func) {
-        return getProperty(key).map(val -> {
-            try {
-                return func.apply(val);
-            } catch (Exception e) {
-                logger.log(SEVERE, "Invalid property transformation; has to default now", e);
-                return null;
-            }
-        });
-    }
-
-
-    // Init stages with target stages and all their dependencies
+    /**
+     * Initialize stages with the topological sort of transitive closure of target stages dependencies
+     */
     private void initStages() {
-        stages = new ArrayList<>(targetStages
-                .stream()
-                .flatMap(stg -> stageDependenciesTC(stg).stream())
-                .collect(Collectors.toSet()));
+        stages = stagesDependenciesTC(targetStages);
     }
 
-    // Order stages wrt dependencies
-    private void orderStages() {
-        Comparator<NLPStage> comparator = (s1, s2) -> {
-            Set<NLPStage> s1DepsTC = stageDependenciesTC(s1);
-            Set<NLPStage> s2DepsTC = stageDependenciesTC(s2);
-            boolean s1HasDeps = s1DepsTC.size() > 1;
-            boolean s2HasDeps = s2DepsTC.size() > 1;
-            if ( ! s1HasDeps && ! s2HasDeps) { return 0; }
-            if ( ! s1HasDeps) { return -1; }
-            if ( ! s2HasDeps) { return  1; }
-            if (s1DepsTC.contains(s2))      { return  1; }
-            else if (s2DepsTC.contains(s1)) { return -1; }
-            return 0;
-        };
-        Collections.sort(stages, comparator);
-    }
-
-    // Check each stage is supported
+    /**
+     * Check if every stage supports language
+     * @return true if every stage supports language, false otherwise
+     */
     private boolean checkStages() {
-        for (NLPStage stage : getStages()) {
-            if ( ! supports(stage, language)) {
+        for (NLPStage stage : getStages())
+            if ( ! supports(stage, language))
                 return false;
-            }
-        }
         return true;
     }
 
-    // Transitive closure of stage dependencies
-    protected Set<NLPStage> stageDependenciesTC(NLPStage stage) {
-        if (stage == null){
-            return new HashSet<>();
-        }
-        return stageDependenciesTCRec(stage, new HashSet<>());
+    /**
+     * Transitive closure and topological sort of stage dependencies
+     *
+     * @param coreStages is the stage Set to expand
+     * @return the topological sort of all depending stages
+     */
+    protected List<NLPStage> stagesDependenciesTC(Set<NLPStage> coreStages) {
+        Set<NLPStage> visited = new HashSet<>();
+        List<NLPStage> tc = new ArrayList<>();
+        for (NLPStage stage : coreStages)
+            if ( ! visited.contains(stage))
+                dfs(stage, visited, tc, stageDependencies);
+        return tc;
     }
 
-    private Set<NLPStage> stageDependenciesTCRec(NLPStage stage, Set<NLPStage> tc) {
-        tc.add(stage);
-        for (NLPStage stageDep : stageDependencies.getOrDefault(stage, new ArrayList<>())) {
-            Set<NLPStage> stageDepTC = stageDependenciesTCRec(stageDep, tc);
-            tc.addAll(stageDepTC);
-        }
-        return tc;
+    /**
+     * Depth-First Search traversal of stage dependencies
+     *
+     * @param stage is the current stage being traversed
+     * @param visited keeps the set of already seen stages currently in traversal
+     * @param sorted represents the stages in post-fix DFS traversal order
+     * @param stagesMap holds stages dependencies
+     */
+    private void dfs(NLPStage stage, Set<NLPStage> visited, List<NLPStage> sorted, Map<NLPStage, List<NLPStage>> stagesMap) {
+        visited.add(stage);
+        for (NLPStage stageDep : stagesMap.get(stage))
+            if ( ! visited.contains(stageDep))
+                dfs(stageDep, visited, sorted, stagesMap);
+        sorted.add(stage);
     }
 
 }

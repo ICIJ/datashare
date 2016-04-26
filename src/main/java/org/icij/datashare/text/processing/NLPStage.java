@@ -19,9 +19,8 @@ public enum NLPStage {
     }
 
     public static NLPStage parse(final String stage) throws IllegalArgumentException {
-        if (stage== null || stage.isEmpty()) {
+        if (stage== null || stage.isEmpty())
             return NONE;
-        }
         try {
             return valueOf(stage.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {

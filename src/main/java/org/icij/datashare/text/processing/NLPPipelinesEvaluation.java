@@ -1,12 +1,5 @@
 package org.icij.datashare.text.processing;
 
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.reading.DocumentParser;
-import org.icij.datashare.text.reading.DocumentParserException;
-import org.icij.datashare.text.reading.DocumentParserFactory;
-import org.icij.datashare.util.function.ThrowingFunction;
-import org.icij.datashare.util.io.FileSystem;
-
 import java.io.*;
 import java.nio.file.*;
 
@@ -18,6 +11,17 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static java.util.logging.Level.*;
+
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.reading.DocumentParser;
+import org.icij.datashare.text.reading.DocumentParserException;
+import org.icij.datashare.text.reading.DocumentParserFactory;
+import org.icij.datashare.util.function.ThrowingFunction;
+import org.icij.datashare.util.io.FileSystem;
+
+import static org.icij.datashare.util.function.ThrowingFunctions.getProperty;
+import static org.icij.datashare.util.function.ThrowingFunctions.path;
+import static org.icij.datashare.util.function.ThrowingFunctions.splitComma;
 
 
 /**
@@ -36,7 +40,6 @@ public class NLPPipelinesEvaluation {
     private List<String> entityTypes;
 
     private DocumentParser parser;
-
 
     private static final Logger logger = Logger.getLogger(NLPPipelinesEvaluation.class.getName());
 
@@ -65,24 +68,18 @@ public class NLPPipelinesEvaluation {
     private void initialize() throws IOException {
 
         properties = new Properties();
-
-        properties.load(this.getClass().getResourceAsStream(this.getClass().getName() + ".properties"));
-
-        ThrowingFunction<String, String> identity = val -> val;
-        ThrowingFunction<String, Path> toPath   = val -> Paths.get(val.trim());
-        ThrowingFunction<String, List<String>> split    = val ->
-                Arrays.asList(val.replaceAll("(\\s+)", "").split(","));
+        properties.load( this.getClass().getResourceAsStream(this.getClass().getName() + ".properties") );
 
         String userDir = System.getProperty("user.dir");
 
-        entityTypes   = getProperty("eval.entity.types", split).orElse(new ArrayList<>());
-        corporaDir    = getProperty("eval.corpus.basedir", toPath).orElse(Paths.get(userDir));
-        sourceDir     = getProperty("eval.corpus.srcdir", String::trim).orElse("");
-        resultDir     = getProperty("eval.corpus.procdir", String::trim).orElse("");
-        corpora       = getProperty("eval.corpus.names", split).orElse(new ArrayList<>())
+        entityTypes   = getProperty("eval.entity.types", properties, splitComma).orElse(new ArrayList<>());
+        corporaDir    = getProperty("eval.corpus.basedir", properties, path).orElse(Paths.get(userDir));
+        sourceDir     = getProperty("eval.corpus.srcdir", properties, String::trim).orElse("");
+        resultDir     = getProperty("eval.corpus.procdir", properties, String::trim).orElse("");
+        corpora       = getProperty("eval.corpus.names", properties, splitComma).orElse(new ArrayList<>())
                 .stream()
                 .collect(Collectors.toMap(c -> c, c -> corporaDir + "/" + c));
-        loggerLevel   = getProperty("eval.logger.level", Level::parse).orElse(INFO);
+        loggerLevel   = getProperty("eval.logger.level", properties, Level::parse).orElse(INFO);
 
         initializeLogger();
 
@@ -90,22 +87,6 @@ public class NLPPipelinesEvaluation {
         logger.config( "Source files directory: " + sourceDir   );
         logger.config( "Result files directory: " + resultDir);
         logger.config( "Entity types: " + entityTypes);
-    }
-
-    private Optional<String> getProperty(String key) {
-        return Optional.ofNullable(properties.getProperty(key));
-    }
-
-    private <T> Optional<T> getProperty(String key, ThrowingFunction<String, ? extends T> func) {
-        return getProperty(key).map(
-                val -> {
-                    try {
-                        return func.apply(val);
-                    } catch (Exception e) {
-                        logger.log(SEVERE, "Invalid property transformation; has to default now", e);
-                        return null;
-                    }
-                });
     }
 
     private void initializeLogger() {
@@ -241,6 +222,5 @@ public class NLPPipelinesEvaluation {
         }
         return lines;
     }
-
 
 }

@@ -52,18 +52,16 @@ public class CoreNLPPipeline extends AbstractNLPPipeline {
         supportedStages.get(SPANISH).addAll(Arrays.asList(SENTENCE, TOKEN, POS, LEMMA, NER));
         supportedStages.get(GERMAN) .addAll(Arrays.asList(SENTENCE, TOKEN, POS, LEMMA, NER));
         supportedStages.get(FRENCH) .addAll(Arrays.asList(SENTENCE, TOKEN, POS, LEMMA));
-        if (targetStages.isEmpty()) {
+        if (targetStages.isEmpty())
             targetStages = supportedStages.get(language);
-        }
 
         pipeline = new HashMap<>();
     }
 
     @Override
     protected boolean initialize() throws IOException {
-        if ( ! super.initialize()) {
+        if ( ! super.initialize())
             return false;
-        }
         // Load stage- and language-specific models, wrt to props
         if ( ! pipeline.containsKey(language)) {
             Properties props = new Properties();
@@ -108,9 +106,8 @@ public class CoreNLPPipeline extends AbstractNLPPipeline {
     @Override
     protected void terminate() {
         // Don't keep models in memory (to GC)
-       if ( !annotatorsCaching) {
-            pipeline.remove(language);
-        }
+       if ( !annotatorsCaching)
+           pipeline.remove(language);
     }
 
     private List<String> getAnnotators() {
