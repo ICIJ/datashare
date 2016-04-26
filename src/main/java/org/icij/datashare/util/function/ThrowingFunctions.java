@@ -1,9 +1,10 @@
 package org.icij.datashare.util.function;
 
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.icij.datashare.text.Language;
@@ -22,9 +23,7 @@ public class ThrowingFunctions {
             (str) -> Arrays.asList(str.split(val));
 
     public static final ThrowingFunction<String, List<String>> splitComma     = split.apply(",");
-
     public static final ThrowingFunction<String, List<String>> splitSemicolon = split.apply(";");
-
     public static final ThrowingFunction<String, List<String>> splitColon     = split.apply(":");
 
 
@@ -35,6 +34,8 @@ public class ThrowingFunctions {
 
 
     public static final ThrowingFunction<String, String> trim = String::trim;
+
+    public static final ThrowingFunction<String, Path> path = val -> Paths.get(trim.apply(val));
 
 
     public static final ThrowingFunction<String, Language> parseLanguage = Language::parse;
@@ -62,5 +63,28 @@ public class ThrowingFunctions {
                     .map(Object::toString)
                     .collect(Collectors.toList()));
     public static final ThrowingFunction<List<?>, String> joinListComma = joinList.apply(",");
+
+
+    private static Optional<String> getProperty(final String key, final Properties properties) {
+        if (properties == null) {
+            return Optional.empty();
+        }
+        String val = properties.getProperty(key);
+        return Optional.ofNullable( (val == null || val.isEmpty()) ? null : val );
+    }
+
+    public static <T> Optional<T> getProperty(final String key, final Properties properties, Function<String, ? extends T> func) {
+        return getProperty(key, properties).map(func);
+    }
+
+    public static <T> Optional<T> getProperty(final String key, final Properties properties, ThrowingFunction<String, ? extends T> func) {
+        return getProperty(key, properties).map(val -> {
+            try {
+                return func.apply(val);
+            } catch (Exception e) {
+                return null;
+            }
+        });
+    }
 
 }
