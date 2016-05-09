@@ -24,19 +24,16 @@ import org.icij.datashare.text.processing.NLPStage;
 
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.processing.NLPStage.*;
-import static org.icij.datashare.util.function.ThrowingFunctions.parseStages;
-import static org.icij.datashare.util.function.ThrowingFunctions.removeSpaces;
-import static org.icij.datashare.util.function.ThrowingFunctions.splitComma;
 
 
 /**
- * CoreNLP pipeline
+ * CORENLP pipeline
  *
  * Created by julien on 3/24/16.
  */
 public class CoreNLPPipeline extends AbstractNLPPipeline {
 
-    // Pipelines of CoreNLP annotators (Tokens, Sentence, PoS, NER)
+    // Pipelines of CORENLP annotators (Tokens, Sentence, PoS, NER)
     private Map<Language, StanfordCoreNLP> pipeline;
 
 
@@ -65,7 +62,7 @@ public class CoreNLPPipeline extends AbstractNLPPipeline {
         // Load stage- and language-specific models, wrt to props
         if ( ! pipeline.containsKey(language)) {
             Properties props = new Properties();
-            // Set chain stages (CoreNLP annotators)
+            // Set chain stages (CORENLP annotators)
             props.setProperty("annotators", String.join(", ", getAnnotators()));
             // Set stage-specific properties
             props.setProperty("pos.model", MODELS_PATH_POS.get(language).toString());

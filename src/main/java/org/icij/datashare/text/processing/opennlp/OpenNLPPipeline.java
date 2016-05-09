@@ -29,8 +29,8 @@ import static org.icij.datashare.text.Language.SPANISH;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.Language.GERMAN;
 
-import org.icij.datashare.text.NamedEntityCategory;
-import static org.icij.datashare.text.NamedEntityCategory.*;
+import org.icij.datashare.text.processing.NamedEntityCategory;
+import static org.icij.datashare.text.processing.NamedEntityCategory.*;
 
 import static org.icij.datashare.text.processing.NLPStage.SENTENCE;
 import static org.icij.datashare.text.processing.NLPStage.TOKEN;
@@ -41,7 +41,7 @@ import org.icij.datashare.text.processing.NLPStage;
 
 
 /**
- * OpenNLP pipeline
+ * OPENNLP pipeline
  *
  * Created by julien on 3/29/16.
  */
