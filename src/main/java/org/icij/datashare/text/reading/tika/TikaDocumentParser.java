@@ -73,9 +73,8 @@ public class TikaDocumentParser implements DocumentParser {
         parser = new AutoDetectParser(config);
 
         context = new ParseContext();
-        if ( ! ocrDisabled) {
+        if ( ! ocrDisabled)
             context.set(TesseractOCRConfig.class, ocrConfig);
-        }
         context.set(PDFParserConfig.class, pdfConfig);
         parser.setFallback(new ErrorParser(parser, excludedTypes));
         context.set(Parser.class, parser);
@@ -96,17 +95,15 @@ public class TikaDocumentParser implements DocumentParser {
 
     @Override
     public Optional<Language> getLanguage() {
-        if (metadata == null ) {
+        if (metadata == null )
             return Optional.empty();
-        }
         return Optional.of(Language.parse(metadata.get(Metadata.CONTENT_LANGUAGE)));
     }
 
     @Override
     public OptionalInt getLength() {
-        if (metadata == null || ! Arrays.asList(metadata.names()).contains(Metadata.CONTENT_LENGTH)) {
+        if (metadata == null || ! Arrays.asList(metadata.names()).contains(Metadata.CONTENT_LENGTH))
             return OptionalInt.empty();
-        }
         try {
             return OptionalInt.of(Integer.parseInt(metadata.get(Metadata.CONTENT_LENGTH)));
         } catch (NumberFormatException e) {
@@ -116,17 +113,15 @@ public class TikaDocumentParser implements DocumentParser {
 
     @Override
     public Optional<Charset> getEncoding() {
-        if (metadata == null || ! Arrays.asList(metadata.names()).contains(Metadata.CONTENT_ENCODING)) {
+        if (metadata == null || ! Arrays.asList(metadata.names()).contains(Metadata.CONTENT_ENCODING))
             return Optional.empty();
-        }
         return Optional.of(StandardCharsets.UTF_8);
     }
 
     @Override
     public Optional<String> getName() {
-        if (metadata == null || ! Arrays.asList(metadata.names()).contains(Metadata.RESOURCE_NAME_KEY)) {
+        if (metadata == null || ! Arrays.asList(metadata.names()).contains(Metadata.RESOURCE_NAME_KEY))
             return Optional.empty();
-        }
         return Optional.of(metadata.get(Metadata.RESOURCE_NAME_KEY));
     }
 
@@ -158,7 +153,7 @@ public class TikaDocumentParser implements DocumentParser {
 
         LanguageIdentifier identifier = profiler.getLanguage();
         this.metadata.set(Metadata.CONTENT_LANGUAGE, identifier.getLanguage());
-        String langBelief = identifier.isReasonablyCertain() ? "high" : "low" ;
+        String langBelief = identifier.isReasonablyCertain() ? "strong" : "weak" ;
         this.metadata.set(CONTENT_LANGUAGE_BELIEF, langBelief);
 
         for (String name : this.metadata.names()) {
