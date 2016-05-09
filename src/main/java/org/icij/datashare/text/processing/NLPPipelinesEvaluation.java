@@ -16,12 +16,11 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.reading.DocumentParser;
 import org.icij.datashare.text.reading.DocumentParserException;
 import org.icij.datashare.text.reading.DocumentParserFactory;
-import org.icij.datashare.util.function.ThrowingFunction;
-import org.icij.datashare.util.io.FileSystem;
+import org.icij.datashare.util.io.FileSystemUtils;
 
-import static org.icij.datashare.util.function.ThrowingFunctions.getProperty;
-import static org.icij.datashare.util.function.ThrowingFunctions.path;
-import static org.icij.datashare.util.function.ThrowingFunctions.splitComma;
+import static org.icij.datashare.util.function.ThrowingFunctionUtils.getProperty;
+import static org.icij.datashare.util.function.ThrowingFunctionUtils.path;
+import static org.icij.datashare.util.function.ThrowingFunctionUtils.splitComma;
 
 
 /**
@@ -117,15 +116,15 @@ public class NLPPipelinesEvaluation {
             NLPPipeline              corenlpNER;
 
             // List and filter all files in corpus source directory to be processed
-            for (Path sourceFilePath : FileSystem.listFilesInDirectory(corpusSourcePath)) {
+            for (Path sourceFilePath : FileSystemUtils.listFilesInDirectory(corpusSourcePath)) {
                 Path resultFilePath = getProcessedFilePath(corpus, sourceFilePath);
                 if (Files.exists(resultFilePath)) {
-                    // Skip if processed file already exists
+                    // Skip, processed file already exists
                     logger.log(FINE, "Skipped " + sourceFilePath);
                     logger.log(FINE, "        " + resultFilePath + " exists)");
 
                 } else {
-                    // Parse source file
+                    // Process file
                     Optional<String> content = parse(sourceFilePath);
                     if (content.isPresent()) {
                         String cont = content.get().replaceAll("[\\n\\s]+", " ");
@@ -150,7 +149,7 @@ public class NLPPipelinesEvaluation {
                         result = run(extractor, content);
                         lines.addAll( formatProcessed(corpus, sourceFilePath, extractorName, result) );
                     }
-                    FileSystem.write(resultFilePath, lines, StandardCharsets.UTF_8);
+                    FileSystemUtils.write(resultFilePath, lines, StandardCharsets.UTF_8);
                     */
                     }
                 }
@@ -186,7 +185,7 @@ public class NLPPipelinesEvaluation {
 
     private Optional<String> parse(Path filePath) throws DocumentParserException {
         try {
-            Optional<DocumentParser> optParser = DocumentParserFactory.create("Tika", logger);
+            Optional<DocumentParser> optParser = DocumentParserFactory.build(logger);
             if ( ! optParser.isPresent()) {
                 logger.log(WARNING, "No valid parser set. Did not parse anything");
                 return Optional.empty();

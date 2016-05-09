@@ -1,6 +1,6 @@
 package org.icij.datashare.text.processing;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -8,13 +8,14 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
+
 import static java.util.logging.Level.SEVERE;
 
-import static org.icij.datashare.util.function.ThrowingFunctions.*;
+import static org.icij.datashare.util.function.ThrowingFunctionUtils.*;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.NamedEntityCategory;
+
 import static org.icij.datashare.text.Language.*;
-import static org.icij.datashare.text.NamedEntityCategory.*;
+import static org.icij.datashare.text.processing.NamedEntityCategory.*;
 import static org.icij.datashare.text.processing.NLPStage.*;
 
 
@@ -136,14 +137,14 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
     }
 
     /**
-     * Run the specified NLPPipeline on a File
+     * Run the specified NLPPipeline on a (plain text) File
      *
-     * @param filepath is the document's Path to process
+     * @param filePath is the document's Path to process
      * @throws IOException
      */
     @Override
-    public void run(Path filepath) throws IOException {
-        byte[] encoded = Files.readAllBytes(filepath);
+    public void run(Path filePath) throws IOException {
+        byte[] encoded = Files.readAllBytes(filePath);
         String text = new String(encoded, StandardCharsets.UTF_8);
         run(text);
     }
