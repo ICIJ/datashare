@@ -1,4 +1,4 @@
-package org.icij.datashare.text;
+package org.icij.datashare.text.processing;
 
 import java.util.Locale;
 
@@ -12,8 +12,6 @@ public enum NamedEntityCategory {
     DATE         ("DATE"),
     MONEY        ("MON"),
     NUMBER       ("NUM"),
-
-    ALL          ("ALL"),
     NONE         ("NONE");
 
     private final String abbreviation;
