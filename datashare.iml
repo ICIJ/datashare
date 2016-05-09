@@ -27,9 +27,6 @@
     <orderEntry type="library" name="Maven: org.apache.pdfbox:pdfbox:1.8.10" level="project" />
     <orderEntry type="library" name="Maven: org.apache.pdfbox:fontbox:1.8.10" level="project" />
     <orderEntry type="library" name="Maven: org.apache.pdfbox:jempbox:1.8.10" level="project" />
-    <orderEntry type="library" name="Maven: org.bouncycastle:bcmail-jdk15on:1.52" level="project" />
-    <orderEntry type="library" name="Maven: org.bouncycastle:bcpkix-jdk15on:1.52" level="project" />
-    <orderEntry type="library" name="Maven: org.bouncycastle:bcprov-jdk15on:1.52" level="project" />
     <orderEntry type="library" name="Maven: org.apache.poi:poi:3.13" level="project" />
     <orderEntry type="library" name="Maven: org.apache.poi:poi-scratchpad:3.13" level="project" />
     <orderEntry type="library" name="Maven: org.apache.poi:poi-ooxml:3.13" level="project" />
@@ -115,6 +112,10 @@
     <orderEntry type="library" name="Maven: edu.stanford.nlp:stanford-corenlp:models-spanish:3.6.0" level="project" />
     <orderEntry type="library" name="Maven: edu.stanford.nlp:stanford-corenlp:models-french:3.6.0" level="project" />
     <orderEntry type="library" name="Maven: edu.stanford.nlp:stanford-corenlp:models-german:3.6.0" level="project" />
+    <orderEntry type="library" name="Maven: org.bouncycastle:bcprov-jdk15on:1.54" level="project" />
+    <orderEntry type="library" name="Maven: org.bouncycastle:bcpkix-jdk15on:1.54" level="project" />
+    <orderEntry type="library" name="Maven: org.bouncycastle:bcmail-jdk15on:1.54" level="project" />
+    <orderEntry type="library" name="Maven: org.bouncycastle:bcpg-jdk15on:1.54" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: junit:junit:4.12" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.hamcrest:hamcrest-core:1.3" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-log4j12:1.7.18" level="project" />
