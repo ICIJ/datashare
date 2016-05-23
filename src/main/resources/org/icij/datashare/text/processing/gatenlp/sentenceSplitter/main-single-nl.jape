@@ -1,0 +1,12 @@
+// SplitMain
+// Valentin Tablan 17/05/2001
+
+
+//A sentence splitter
+MultiPhase:	main
+Phases: 
+
+prepare
+find-single-nl
+split
+cleanup

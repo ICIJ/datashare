@@ -1,0 +1,33 @@
+/*
+*  cleanup.jape
+*
+* Copyright (c) 1998-2007, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Valentin Tablan, March 7th, 2007 
+* 
+*  $Id$
+*/
+
+Phase:	cleanup
+Input: Token
+Options: control = once
+
+//Removes temporary data created by the sentence splitter
+Rule: cleanUp
+{Token}
+-->
+{
+  //if there were any sentences created, then we need to remove the document
+  //feature -> useful for future runs
+  doc.getFeatures().remove("temp-last-sentence-end");
+  //remove all lookups used for abbreviations
+  FeatureMap constraints = Factory.newFeatureMap();
+  constraints.put("majorType", "splitter_abbreviation");
+  AnnotationSet toRemove = inputAS.get("Lookup", constraints);
+  if(toRemove != null) inputAS.removeAll(toRemove);
+}

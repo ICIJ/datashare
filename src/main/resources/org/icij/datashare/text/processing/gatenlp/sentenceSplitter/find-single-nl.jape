@@ -1,0 +1,134 @@
+/*
+*  cr.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: find-single-nl.jape 9798 2008-08-07 15:26:51Z ian_roberts $
+*/
+
+Phase:	find
+Input: Token SpaceToken Lookup DEFAULT_TOKEN
+Options: control = appelt
+
+Macro: FULLSTOP
+(
+ {Token.string=="."}
+)
+
+//we'll allow two, three or four dots 
+Macro: THREEDOTS
+(
+ {Token.string=="."}
+ {Token.string=="."}
+ ({Token.string=="."})?
+ ({Token.string=="."})?
+)
+
+Macro: PUNCT
+(
+  {Token.string == "!"} | 
+  {Token.string == "?"}
+)
+
+Macro: NEWLINE
+(
+  {SpaceToken.string == "\n"} |
+  {SpaceToken.string=="\n\r"} |
+  ({SpaceToken.string=="\n"}{SpaceToken.string=="\r"}) |
+  {SpaceToken.string=="\r\n"} |
+  ({SpaceToken.string=="\r"}{SpaceToken.string=="\n"})
+)
+
+
+//normal sentence split 
+Rule: Split1
+(
+ (PUNCT)+ |
+ FULLSTOP |
+ THREEDOTS
+)
+:split
+-->
+:split.Split = {kind = "internal"}
+
+//a single new line generates an external split
+Rule: CR
+(
+  NEWLINE
+  ({SpaceToken.kind == space})*
+):cr
+-->
+:cr.Split = {kind = "external"}
+  
+//Anything more than four dots is a line of dots (e.g. in tables of contents)
+Rule: Ldots
+  FULLSTOP
+  FULLSTOP
+  FULLSTOP
+  FULLSTOP
+  (FULLSTOP)+
+-->
+{}
+
+//Java class names
+Rule:dottedName
+  {Token.kind == word}
+  (FULLSTOP {Token.kind == word})+
+-->
+{}
+
+// numbers with decimal part or IP addresses
+Rule:Number
+  {Token.kind == number}
+  (FULLSTOP {Token.kind == number})+
+-->
+{}
+
+//full stops in .net, .NET, .Net
+Rule:DotNetStop
+ FULLSTOP
+ (
+   {Token.string == "NET"} |
+   {Token.string == "net"} |
+   {Token.string == "Net"}
+ )
+-->
+{}
+
+//file extensions like .exe or .EXE
+//unfortunately we can't avoid .Exe as this might be a legitimate split
+//even if there is no space after the full stop.
+Rule:DotFileName
+  FULLSTOP
+  (
+    {Token.orth == "lowercase"} | 
+    {Token.orth == "allCaps"} |
+    {Token.orth == "mixedCaps"}
+  )
+-->
+{}
+
+//Known abbreviations like "Prof."
+//this relies on the gazetteer which has a funny sense of whole words
+//hence we need to check for a space before
+//otherwise things like "640p." would not be identitfied (because p is a
+//known abbreviation).
+Rule: Abbrev1
+ {SpaceToken}
+ {Lookup.majorType == "splitter_abbreviation"}
+ {Token.string == "."}
+-->
+{}
+
+//Abbreviations like "B.B.C."
+Rule: Abbrev2
+({Token.orth=="upperInitial", Token.length=="1"} FULLSTOP)+
+-->
+{}

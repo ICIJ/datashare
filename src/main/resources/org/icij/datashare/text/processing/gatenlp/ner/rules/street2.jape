@@ -1,0 +1,28 @@
+/////////////////////////////////////////////// PATRON PARA RECONOCIMIENTO DE CALLES
+Phase: StreetPhase2
+Input: Token SpaceToken Country Lookup
+Options: control = appelt
+
+
+Rule:StreetPattern2
+(
+	
+	(
+	
+	(
+	({Token.kind == number })
+	({Token} | {SpaceToken})[0,2])?
+	({Token.kind == number }{Token.string == "-" }{Token.kind == number })?
+	
+	
+	({Token.kind == word} |{Token.kind == punctuation} | {SpaceToken})[0,10]
+	{Lookup.majorType == "place"}
+
+	({Token} | {SpaceToken})[4,12]
+	({Country})
+	):st
+
+)
+
+-->
+:st.Street = {kind = "StreetPattern2",string = :st@cleanString}

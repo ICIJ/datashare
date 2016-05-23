@@ -1,0 +1,22 @@
+/////////////////////////////
+Phase: StreetPhase3
+Input: Token Country Lookup
+Options: control = appelt
+
+
+Rule:StreetPattern3
+(
+	
+	(
+	({Token.kind == number })
+	({Token})[0,4]
+	{Lookup.majorType == "place"}
+	
+	({Token})[0,12]
+	({Country})
+	):st
+
+)
+
+-->
+:st.Street = {kind = "StreetPattern3",string = :st@cleanString}

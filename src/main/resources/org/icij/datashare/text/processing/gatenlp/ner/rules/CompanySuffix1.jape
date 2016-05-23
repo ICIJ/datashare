@@ -1,0 +1,32 @@
+/////////////////////////////////////////////// PATTERN FOR SUFFIX S.AR.L - COMPLEX MODE
+Phase: CompanySuffixPhase1
+Input: Token
+Options: control = appelt
+
+
+Rule:SuffixPattern1 
+(
+
+(
+
+
+({Token.string== "S"} | {Token.string== "s"} )
+({Token.string== "."})?
+({Token.string== "a"} | {Token.string== "A"} |  {Token.string== "Ã"})
+({Token.string== "."})?
+({Token.string== "r"} | {Token.string== "R"})
+{Token.string== "."}
+({Token.string== "l"} | {Token.string== "I"} | {Token.string== "L"} | {Token.string== "1"} | {Token.string== "J"} | {Token.string== "j"} | {Token.string== "f"} )
+{Token.string== "."}
+
+
+
+):comp
+
+
+)
+
+-->
+:comp.CompanySuffix = {kind = "SuffixPattern1",string = :comp@cleanString}
+
+

@@ -1,0 +1,17 @@
+/////////////////////////////////////////////// PATTERN TO TRANSFORM LOOKUP SUFFIX INTO THE ANNOTATION REQUIRED
+Phase: CompanySuffixLookup
+Input: Token Lookup
+Options: control = appelt
+
+
+Rule:CompanySuffixLookupPattern 
+(
+(
+{Lookup.minorType=="companySuffix"}
+):comp
+)
+
+-->
+:comp.CompanySuffix = {kind = "CompanySuffixLookupPattern",string = :comp@cleanString}
+
+
