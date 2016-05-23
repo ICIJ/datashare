@@ -15,18 +15,20 @@ import static java.util.logging.Level.*;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.reading.DocumentParser;
 import org.icij.datashare.text.reading.DocumentParserException;
-import org.icij.datashare.text.reading.DocumentParserFactory;
 import org.icij.datashare.util.io.FileSystemUtils;
 
-import static org.icij.datashare.util.function.ThrowingFunctionUtils.getProperty;
-import static org.icij.datashare.util.function.ThrowingFunctionUtils.path;
-import static org.icij.datashare.util.function.ThrowingFunctionUtils.splitComma;
+import static org.icij.datashare.util.function.ThrowingFunctions.getProperty;
+import static org.icij.datashare.util.function.ThrowingFunctions.path;
+import static org.icij.datashare.util.function.ThrowingFunctions.splitComma;
 
 
 /**
  * Created by julien on 3/11/16.
  */
 public class NLPPipelinesEvaluation {
+
+    private static final Logger logger = Logger.getLogger(NLPPipelinesEvaluation.class.getName());
+
 
     private Path corporaDir;
 
@@ -39,8 +41,6 @@ public class NLPPipelinesEvaluation {
     private List<String> entityTypes;
 
     private DocumentParser parser;
-
-    private static final Logger logger = Logger.getLogger(NLPPipelinesEvaluation.class.getName());
 
     private Level loggerLevel;
 
@@ -154,27 +154,22 @@ public class NLPPipelinesEvaluation {
                     }
                 }
             }
-        } catch (DocumentParserException  | IOException e) {
+        } catch (IOException e) {
             logger.log(SEVERE, "Failed to process " + corpus, e);
         }
         logger.log(FINE, "< Corpus " + corpus + "Evaluated");
     }
 
     private Optional<Map<String, List<String>>> run(NLPPipeline extractor, Path filePath) {
-        try {
-            Optional<String> content = parse(filePath);
-            if (content.isPresent()) {
-                return Optional.of(run(extractor, content.get()));
-            }
-        } catch (DocumentParserException e) {
-            logger.log(SEVERE, "Failed to parse " + filePath);
-        }
+        Optional<String> content = parse(filePath);
+        if (content.isPresent())
+            return Optional.of(run(extractor, content.get()));
         return Optional.empty();
     }
 
     private Map<String, List<String>> run(NLPPipeline extractor, String content) {
         try {
-            // NOTHING RETURNED YET
+            // ! NOTHING RETURNED YET
             extractor.run(content);
             return new HashMap();
         } catch (Exception e) {
@@ -183,22 +178,17 @@ public class NLPPipelinesEvaluation {
         return new HashMap<>();
     }
 
-    private Optional<String> parse(Path filePath) throws DocumentParserException {
-        try {
-            Optional<DocumentParser> optParser = DocumentParserFactory.build(logger);
-            if ( ! optParser.isPresent()) {
-                logger.log(WARNING, "No valid parser set. Did not parse anything");
-                return Optional.empty();
-            }
-            parser = optParser.get();
-            logger.log(INFO, "|> Parsing " + filePath);
-            String parsed = parser.parse(filePath);
-            logger.log(INFO, "<| Parsed " + filePath);
-            return Optional.of(parsed);
-        } catch (DocumentParserException e) {
-            logger.log(SEVERE, "Failed to parse " + filePath, e);
+    private Optional<String> parse(Path filePath) {
+        Optional<DocumentParser> parserOpt = DocumentParser.create();
+        if ( ! parserOpt.isPresent()) {
+            logger.log(WARNING, "No valid parser set. Did not parse anything");
             return Optional.empty();
         }
+        parser = parserOpt.get();
+        logger.log(INFO, "|> Parsing " + filePath);
+        Optional<String> parsed = parser.parse(filePath);
+        logger.log(INFO, "<| Parsed " + filePath);
+        return parsed;
     }
 
     private Path getProcessedFilePath(String corpus, Path sourceFilePath) {

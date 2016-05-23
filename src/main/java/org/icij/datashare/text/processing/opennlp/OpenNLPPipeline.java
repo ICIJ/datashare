@@ -6,8 +6,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Function;
-import java.util.logging.Logger;
-
+import static java.util.Arrays.asList;
+import static java.util.Arrays.copyOfRange;
 import static java.util.logging.Level.INFO;
 
 import opennlp.tools.postag.POSTagger;
@@ -24,268 +24,38 @@ import opennlp.tools.namefind.TokenNameFinderModel;
 import opennlp.tools.namefind.NameFinderME;
 
 import org.icij.datashare.text.Language;
+
+import static java.util.logging.Level.SEVERE;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Language.SPANISH;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.Language.GERMAN;
 
+import org.icij.datashare.text.processing.NamedEntity;
 import org.icij.datashare.text.processing.NamedEntityCategory;
 import static org.icij.datashare.text.processing.NamedEntityCategory.*;
 
+import org.icij.datashare.text.processing.NLPStage;
 import static org.icij.datashare.text.processing.NLPStage.SENTENCE;
 import static org.icij.datashare.text.processing.NLPStage.TOKEN;
 import static org.icij.datashare.text.processing.NLPStage.POS;
 import static org.icij.datashare.text.processing.NLPStage.NER;
+
 import org.icij.datashare.text.processing.AbstractNLPPipeline;
-import org.icij.datashare.text.processing.NLPStage;
 
 
 /**
- * OPENNLP pipeline
+ * OpenNLP pipeline
  *
  * Created by julien on 3/29/16.
  */
-public class OpenNLPPipeline extends AbstractNLPPipeline {
-
-    // Sentence annotators (split string into sentences)
-    private Map<Language, SentenceDetector> sentencer;
-
-    // Token annotators (split string into tokens)
-    private Map<Language, Tokenizer> tokenizer;
-
-    // Part-of-Speech annotators (associate pos with tokens)
-    private Map<Language, POSTagger> postagger;
-
-    // Named Entity Recognition annotators (associate entity category with tokens)
-    private Map<Language, Map<NamedEntityCategory, NameFinderME>> ner;
-
-
-    public OpenNLPPipeline(final Logger logger, final Properties properties) {
-        super(logger, properties);
-
-        stageDependencies.get(TOKEN).add(SENTENCE);
-        stageDependencies.get(POS)  .add(TOKEN);
-        stageDependencies.get(NER)  .add(TOKEN);
-
-        supportedStages.get(ENGLISH).addAll(Arrays.asList(SENTENCE, TOKEN, POS, NER));
-        supportedStages.get(SPANISH).addAll(Arrays.asList(SENTENCE, TOKEN, POS, NER));
-        supportedStages.get(FRENCH) .addAll(Arrays.asList(SENTENCE, TOKEN, POS, NER));
-        supportedStages.get(GERMAN) .addAll(Arrays.asList(SENTENCE, TOKEN, POS));
-        if (targetStages.isEmpty())
-            targetStages = supportedStages.get(language);
-
-        sentencer = new HashMap<>();
-        tokenizer = new HashMap<>();
-        postagger = new HashMap<>();
-        ner       = new HashMap<>();
-    }
-
-    @Override
-    protected boolean initialize() throws IOException {
-        if ( ! super.initialize()) {
-            return false;
-        }
-
-        ClassLoader loader =  this.getClass().getClassLoader();
-
-        // Load sentence splitting model (language-specific)
-        if (stages.contains(SENTENCE)) {
-            if ( ! sentencer.containsKey(language) || sentencer.get(language) == null) {
-                logger.log(INFO, "Loading " + language + " " + SENTENCE + " model" +
-                        " from file " + MODELS_PATH_SENT.get(language).toString());
-                InputStream   sModelIS = loader.getResourceAsStream(MODELS_PATH_SENT.get(language).toString());
-                SentenceModel smodel   = new SentenceModel(sModelIS);
-                sModelIS.close();
-                sentencer.put(language, new SentenceDetectorME(smodel));
-            }
-        }
-
-        // Load tokenization model (language-specific)
-        if (stages.contains(TOKEN)) {
-            if ( ! tokenizer.containsKey(language) || tokenizer.get(language) == null) {
-                logger.log(INFO, "Loading " + language + " " + TOKEN + " model" +
-                        " from file " + MODELS_PATH_TOK.get(language).toString());
-                InputStream    tagModelIS = loader.getResourceAsStream(MODELS_PATH_TOK.get(language).toString());
-                TokenizerModel tmodel     = new TokenizerModel(tagModelIS);
-                tagModelIS.close();
-                tokenizer.put(language, new TokenizerME(tmodel));
-            }
-        }
-
-        // Load part-of-speech tagging model (language-specific)
-        if (stages.contains(POS)) {
-            if ( ! postagger.containsKey(language) || postagger.get(language) == null) {
-                logger.log(INFO, "Loading " + language + " " + POS + " model" +
-                        " from file " + MODELS_PATH_POS.get(language).toString());
-                InputStream posModelIS = loader.getResourceAsStream(MODELS_PATH_POS.get(language).toString());
-                POSModel    pmodel     = new POSModel(posModelIS);
-                posModelIS.close();
-                postagger.put(language, new POSTaggerME(pmodel));
-            }
-        }
-
-        // Load language-specific named targetEntities recognition model
-        if (stages.contains(NER)) {
-            for (NamedEntityCategory ne : targetEntities) {
-                if ( ! ner.containsKey(language) || ! ner.get(language).containsKey(ne) || ner.get(language).get(ne) == null) {
-                    logger.log(INFO, "Loading " +  language + " " + ne + " model" +
-                            " from file " + MODELS_PATH_NER.get(language).get(ne).toString());
-                    InputStream nerModelIS        = loader.getResourceAsStream(MODELS_PATH_NER.get(language).get(ne).toString());
-                    TokenNameFinderModel nerModel = new TokenNameFinderModel(nerModelIS);
-                    nerModelIS.close();
-                    if ( ! ner.containsKey(language)) {
-                        ner.put(language,
-                                new HashMap<NamedEntityCategory, NameFinderME>() {{
-                                    put(ne, new NameFinderME(nerModel));
-                                }});
-                    } else {
-                        ner.get(language).put(ne, new NameFinderME(nerModel));
-                    }
-                }
-            }
-        }
-
-        return true;
-    }
-
-    @Override
-    protected void process(String input) {
-        logger.log(INFO, "Processing language: " + language);
-
-        List<List<String[]>> sentences = new ArrayList<>();
-        // Split input into sentences
-        for (String sentence : sentencize(input)) {
-            // Tokenize sentence
-            String[] tokens  = tokenize(sentence);
-            // Tag tokens with their part-of-speech
-            String[] postags = postag(tokens);
-            // Tag tokens with their recognized named entity category
-            Map<Integer, NamedEntityCategory> nes = recognize(tokens);
-
-            List<String[]> sent  =  new ArrayList<>();
-            for (int i = 0; i < tokens.length; i++) {
-                String word = tokens[i];
-                String pos  = postags[i];
-                String ne   = nes.getOrDefault(i, NONE).toString();
-                sent.add(new String[]{word, pos, ne});
-            }
-            sentences.add(sent);
-        }
-        String out = formatAnnotations(sentences);
-        logger.log(INFO, out);
-    }
-
-    @Override
-    protected void terminate() {
-        // Don't keep models in memory (to GC)
-        if ( ! annotatorsCaching) {
-            sentencer.remove(language);
-            tokenizer.remove(language);
-            postagger.remove(language);
-            ner.remove(language);
-        }
-    }
-
-
-    /**
-     * Split input string into sentences
-     *
-     * @param input
-     * @return
-     */
-    private String[] sentencize(String input) {
-        if (sentencer.containsKey(language) && sentencer.get(language) != null) {
-            return sentencer.get(language).sentDetect(input);
-        }
-        return new String[0];
-    }
-
-    /**
-     * Tokenize input string
-     *
-     * @param input
-     * @return
-     */
-    private String[] tokenize(String input) {
-        if (tokenizer.containsKey(language) && tokenizer.get(language) != null) {
-            return tokenizer.get(language).tokenize(input);
-        }
-        return new String[0];
-    }
-
-    /**
-     * Get part-of-speech from tokens
-     *
-     * @param tokens
-     * @return
-     */
-    private String[] postag(String[] tokens) {
-        if (postagger.containsKey(language) && postagger.get(language) != null) {
-            return postagger.get(language).tag(tokens);
-        }
-        return new String[0];
-    }
-
-    /**
-     * Recognize ne entity category
-     *
-     * @param tokens is the sequence of tokens to annotate
-     * @param ne is the named entity category to recognize
-     * @return
-     */
-    private Span[] recognize(String[] tokens, NamedEntityCategory ne) {
-        if (ner.containsKey(language) && ner.get(language).containsKey(ne) && ner.get(language).get(ne) != null) {
-            return ner.get(language).get(ne).find(tokens);
-        }
-        return new Span[0];
-    }
-
-    /**
-     * Recognize all specified list of targetEntities categories
-     *
-     * @param tokens is the sequence of tokens to annotate
-     * @return
-     */
-    private Map<Integer, NamedEntityCategory> recognize(String[] tokens) {
-        Map<Integer, NamedEntityCategory> nes = new HashMap<>();
-        for (NamedEntityCategory ne : getTargetEntities()) {
-            Span[] spans = recognize(tokens, ne);
-            for (Span span : spans) {
-                for (int i = span.getStart(); i < span.getEnd(); i++) {
-                    nes.put(i, ne);
-                }
-            }
-        }
-        return nes;
-/*
-    Map<NamedEntityCategory, Span[]> entitySpans = new HashMap<>();
-    for (NamedEntityCategory ne: getTargetEntities()) {
-        Span[] spans = recognize(tokens, ne);
-        for (Span span : spans) {
-            for (int i = span.getStart(); i < span.getEnd(); i++) {
-                nes.put(i, ne);
-            }
-        }
-        entitySpans.put(ne, spans);
-    }
-    for (Span span : entitySpans.get(PERSON)) {
-        for (int i = span.getStart(); i < span.getEnd(); i++) {
-            System.out.print(tokens[i]);
-            if (i < span.getEnd()) {
-                System.out.print(" ");
-            }
-        }
-        System.out.println();
-    }
-*/
-    }
-
+public final class OpenNLPPipeline extends AbstractNLPPipeline {
 
     private static final Path MODELS_BASEDIR =
             Paths.get( OpenNLPPipeline.class.getPackage().getName().replace(".", "/"), "models" );
 
     private static final Function<NLPStage, Path> MODELS_DIR =
-            (s) -> MODELS_BASEDIR.resolve(s.toString());
+            (stage) -> MODELS_BASEDIR.resolve(stage.toString());
 
     private static final Map<Language, Path> MODELS_PATH_SENT =
             new HashMap<Language, Path>(){{
@@ -329,5 +99,250 @@ public class OpenNLPPipeline extends AbstractNLPPipeline {
                     put(LOCATION,     MODELS_DIR.apply(NER).resolve("en-ner-location.bin"));
                 }});
             }};
+
+
+    // Sentence annotators (split string into sentences)
+    private Map<Language, SentenceDetector> sentencer;
+
+    // Token annotators (split string into tokens)
+    private Map<Language, Tokenizer> tokenizer;
+
+    // Part-of-Speech annotators (associate pos with tokens)
+    private Map<Language, POSTagger> postagger;
+
+    // Named Entity Recognition annotators (associate entity category with tokens)
+    private Map<Language, Map<NamedEntityCategory, NameFinderME>> ner;
+
+
+    public OpenNLPPipeline(final Properties properties) {
+        super(properties);
+
+        stageDependencies.get(TOKEN).add(SENTENCE);
+        stageDependencies.get(POS)  .add(TOKEN);
+        stageDependencies.get(NER)  .add(TOKEN);
+
+        supportedStages.get(ENGLISH).addAll(asList(SENTENCE, TOKEN, POS, NER));
+        supportedStages.get(SPANISH).addAll(asList(SENTENCE, TOKEN, POS, NER));
+        supportedStages.get(FRENCH) .addAll(asList(SENTENCE, TOKEN, POS, NER));
+        supportedStages.get(GERMAN) .addAll(asList(SENTENCE, TOKEN, POS));
+
+        if (targetStages.isEmpty())
+            targetStages = supportedStages.get(language);
+
+        sentencer = new HashMap<>();
+        tokenizer = new HashMap<>();
+        postagger = new HashMap<>();
+        ner       = new HashMap<>();
+    }
+
+    @Override
+    protected boolean initialize() {
+        if ( ! super.initialize())
+            return false;
+
+        ClassLoader loader = this.getClass().getClassLoader();
+        // Load sentence splitting model (language-specific)
+        if (stages.contains(SENTENCE)) {
+            if ( ! sentencer.containsKey(language) || sentencer.get(language) == null) {
+                LOGGER.log(INFO, "Loading " + language + " " + SENTENCE + " model" +
+                        " from file " + MODELS_PATH_SENT.get(language).toString());
+                try(InputStream sModelIS = loader.getResourceAsStream(MODELS_PATH_SENT.get(language).toString())) {
+                    SentenceModel smodel = new SentenceModel(sModelIS);
+                    sentencer.put(language, new SentenceDetectorME(smodel));
+                } catch (Exception e) {
+                    LOGGER.log(SEVERE, "Failed to load SentenceDetector", e);
+                    return false;
+                }
+            }
+        }
+        // Load tokenization model (language-specific)
+        if (stages.contains(TOKEN)) {
+            if ( ! tokenizer.containsKey(language) || tokenizer.get(language) == null) {
+                LOGGER.log(INFO, "Loading " + language + " " + TOKEN + " model" +
+                        " from file " + MODELS_PATH_TOK.get(language).toString());
+                try (InputStream tagModelIS = loader.getResourceAsStream(MODELS_PATH_TOK.get(language).toString())) {
+                    TokenizerModel tmodel = new TokenizerModel(tagModelIS);
+                    tokenizer.put(language, new TokenizerME(tmodel));
+                } catch (IOException e) {
+                    LOGGER.log(SEVERE, "Failed to load Tokenizer", e);
+                    return false;
+                }
+            }
+        }
+        // Load part-of-speech tagging model (language-specific)
+        if (stages.contains(POS)) {
+            if ( ! postagger.containsKey(language) || postagger.get(language) == null) {
+                LOGGER.log(INFO, "Loading " + language + " " + POS + " model" +
+                        " from file " + MODELS_PATH_POS.get(language).toString());
+                try (InputStream posModelIS = loader.getResourceAsStream(MODELS_PATH_POS.get(language).toString())) {
+                    POSModel pmodel = new POSModel(posModelIS);
+                    postagger.put(language, new POSTaggerME(pmodel));
+                } catch (IOException e) {
+                    LOGGER.log(SEVERE, "Failed to load Part-of-Speech Tagger", e);
+                    return false;
+                }
+            }
+        }
+        // Load language-specific named targetEntityCategories recognition model
+        if (stages.contains(NER)) {
+            for (NamedEntityCategory cat : targetEntityCategories) {
+                if ( ! ner.containsKey(language) || ! ner.get(language).containsKey(cat) || ner.get(language).get(cat) == null) {
+                    LOGGER.log(INFO, "Loading " +  language + " " + cat + " model" +
+                            " from file " + MODELS_PATH_NER.get(language).get(cat).toString());
+                    try (InputStream nerModelIS = loader.getResourceAsStream(MODELS_PATH_NER.get(language).get(cat).toString())) {
+                        TokenNameFinderModel nerModel = new TokenNameFinderModel(nerModelIS);
+                        if ( ! ner.containsKey(language))
+                            ner.put(language, new HashMap<NamedEntityCategory, NameFinderME>() {{
+                                put(cat, new NameFinderME(nerModel));
+                            }});
+                        else
+                            ner.get(language).put(cat, new NameFinderME(nerModel));
+                    } catch (IOException e) {
+                        LOGGER.log(SEVERE, "Failed to load Named Entity Recognizer", e);
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
+    protected void process(String input) {
+
+        Optional<String> docHash = (document != null) ? document.getHash()              : Optional.empty();
+        Optional<Path>   docPath = (document != null) ? Optional.of(document.getPath()) : Optional.empty();
+
+        // Distance to beginning of document in chars
+        int offset = 0;
+
+        // Split input into sentences
+        for (String sentence : sentencize(input)) {
+
+            // Tokenize sentence
+            Span[] tokenSpans = tokenize(sentence);
+            String[] tokens = tokens(tokenSpans, sentence);
+
+            // Part-of-Speech tags
+            String[] postags;
+            if (stages.contains(POS))
+                postags = postag(tokens);
+
+            // Extract Named Entities
+            if (stages.contains(NER)) {
+                List<NamedEntity> nes = extractEntities(tokens, tokenSpans, offset);
+                for (NamedEntity entity : nes) {
+                    docHash.ifPresent(entity::setDocument);
+                    docPath.ifPresent(entity::setDocumentPath);
+                    entity.setExtractor(NLPPipelineType.OPENNLP);
+                    entities.add(entity);
+                }
+            }
+
+            // Update offset with end of last token position
+            offset += tokenSpans[tokenSpans.length-1].getEnd();
+        }
+
+    }
+
+    @Override
+    protected void terminate() {
+        super.terminate();
+        // Don't keep models in memory (to GC)
+        if ( ! annotatorsCaching) {
+            sentencer.remove(language);
+            tokenizer.remove(language);
+            postagger.remove(language);
+            ner.remove(language);
+        }
+    }
+
+    /**
+     * Split input string into sentences
+     *
+     * @param input is the String to split
+     * @return Detected sentences as an array of String
+     */
+    private String[] sentencize(String input) {
+        if (sentencer.containsKey(language) && sentencer.get(language) != null)
+            return sentencer.get(language).sentDetect(input);
+        return new String[0];
+    }
+
+    /**
+     * Tokenize input string
+     *
+     * @param input is the String to tokenize
+     * @return Detected token Spans (tokens boundaries)
+     */
+    private Span[] tokenize(String input) {
+        if (tokenizer.containsKey(language) && tokenizer.get(language) != null)
+            return tokenizer.get(language).tokenizePos(input);
+        return new Span[0];
+    }
+
+    /**
+     * Get actual tokens from Spans in the context of sentence
+     *
+     * @param spans represent the tokens boundaries
+     * @param sentence is the String in which Spans apply
+     * @return Detected tokens
+     */
+    private String[] tokens(Span[] spans, String sentence) {
+        return Span.spansToStrings(spans, sentence);
+    }
+
+    /**
+     * Get part-of-speech from tokens
+     *
+     * @param tokens is the sequence of tokens to annotate
+     * @return Detected PoS as an array of String
+     */
+    private String[] postag(String[] tokens) {
+        if (postagger.containsKey(language) && postagger.get(language) != null)
+            return postagger.get(language).tag(tokens);
+        return new String[0];
+    }
+
+    /**
+     * Recognize ne entity category
+     *
+     * @param tokens is the sequence of tokens to annotate
+     * @param cat is the named entity category to recognize
+     * @return Spans (boundaries) of recognized entities
+     */
+    private Span[] recognize(String[] tokens, NamedEntityCategory cat) {
+        if (ner.containsKey(language) && ner.get(language).containsKey(cat) && ner.get(language).get(cat) != null)
+            return ner.get(language).get(cat).find(tokens);
+        return new Span[0];
+    }
+
+    /**
+     * Extract all specified targetEntityCategories categories
+     *
+     * @param tokens is the sequence of tokens to annotate
+     * @param offset is the (global) number of chars from beginning of input
+     * @return List of extracted Named Entities
+     */
+    private List<NamedEntity> extractEntities(String[] tokens, Span[] tokenSpans, int offset) {
+        List<NamedEntity> entities = new ArrayList<>();
+
+        // For each Named Entity Category
+        for (NamedEntityCategory category : getTargetEntityCategories()) {
+
+            // Recognize Named Entity mentions in sentence (as tokens)
+            Span[] spans = recognize(tokens, category);
+
+            // Create List of NamedEntity
+            for (Span span : spans) {
+                String mention = String.join(" ", asList(copyOfRange(tokens, span.getStart(), span.getEnd())));
+                int mentionOffset = offset + tokenSpans[span.getStart()].getStart();
+
+                Optional<NamedEntity> optEntity = NamedEntity.create(category, mention, mentionOffset);
+                optEntity.ifPresent(entities::add);
+            }
+        }
+        return entities;
+    }
 
 }
