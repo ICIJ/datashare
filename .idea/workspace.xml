@@ -7,59 +7,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d5e5fbf8-0c92-482b-8e9b-085fc76981c4" name="Default" comment="Added getType and Optional as return type">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/log4j.properties" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/creole.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.session" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/README.md" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/companySuffix.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countries.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countriesFrench.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryEEUU.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryUK.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.utf8.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/departments.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/domains.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/jobs.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/list.def" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/person.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/places.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/telephonePrefix.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffix1.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffixLookup.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/README.md" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company1.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company2.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company3.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company4.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/country.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/email.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/main.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person1.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person2.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person3.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person4.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street1.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street2.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street3.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone2.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended2.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/abbreviations.lst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/cleanup.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find-single-nl.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/lists.def" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main-single-nl.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/no-splits.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/prepare.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/split.jape" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/DefaultTokeniser.rules" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/abbreviations.lst" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/DocumentParserFactory.java" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="datashare.iws" />
@@ -96,11 +43,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="FileSystemUtils.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="FileSystemUtils.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="210">
               <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="workspace.xml" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/.idea/workspace.xml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-315">
+              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -328,52 +285,6 @@
               <option name="myItemId" value="src" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="test" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="text" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="test" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="test" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
           </PATH>
           <PATH>
             <PATH_ELEMENT>
@@ -390,198 +301,6 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="resources" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="resources" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="processing" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="resources" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="processing" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="opennlp" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="resources" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="processing" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="gatenlp" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="tokeniser" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="resources" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="processing" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="gatenlp" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="sentenceSplitter" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="resources" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="processing" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="gatenlp" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="resources" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="processing" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="gatenlp" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="conf" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -960,46 +679,6 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="hashing" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="out" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="artifacts" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="out" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="artifacts" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare_jar" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -1686,7 +1365,14 @@
       <option name="project" value="LOCAL" />
       <updated>1463996560137</updated>
     </task>
-    <option name="localTasksCounter" value="31" />
+    <task id="LOCAL-00031" summary="Updated workspace">
+      <created>1463996590927</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1463996590927</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -1708,7 +1394,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-1" y="24" width="1922" height="1057" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32928178" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
@@ -1722,7 +1408,7 @@
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33958104" sideWeight="0.4796356" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33333334" sideWeight="0.49014086" order="4" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.33333334" sideWeight="0.49014086" order="4" side_tool="false" content_ui="combo" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.6666667" sideWeight="0.48136315" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23216188" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -1804,9 +1490,9 @@
     <MESSAGE value="Added CLI; Run NLPPipelines wrt command line arguments." />
     <MESSAGE value="Added GateNLP libraries; Added JOptSimple for CLI; Added jar building" />
     <MESSAGE value="Updated Libraries; Updated jar packaging; Updated README" />
-    <MESSAGE value="Updated workspace" />
     <MESSAGE value="Updated project workspace" />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated project workspace" />
+    <MESSAGE value="Updated workspace" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated workspace" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1822,20 +1508,6 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="jar:///usr/lib/jvm/jdk-8-oracle-x64/src.zip!/java/net/URLClassLoader.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="368">
-          <caret line="380" column="0" selection-start-line="380" selection-start-column="0" selection-end-line="380" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///usr/lib/jvm/jdk-8-oracle-x64/jre/lib/rt.jar!/sun/launcher/LauncherHelper.class">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="367">
-          <caret line="385" column="0" selection-start-line="385" selection-start-column="0" selection-end-line="385" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="jar:///usr/lib/jvm/jdk-8-oracle-x64/src.zip!/java/lang/ClassLoader.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="136">
@@ -2250,10 +1922,26 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/.idea/.name">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="210">
           <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.idea/workspace.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-315">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
