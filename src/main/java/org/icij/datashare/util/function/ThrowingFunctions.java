@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.codec.language.bm.Lang;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.processing.NamedEntityCategory;
 import org.icij.datashare.text.processing.NLPStage;
@@ -17,10 +18,10 @@ import org.icij.datashare.text.processing.NLPStage;
  *
  * Created by julien on 4/21/16.
  */
-public class ThrowingFunctionUtils {
+public class ThrowingFunctions {
 
     public static final ThrowingFunction<String, ThrowingFunction<List<?>, String>> join = sep ->
-            (lst) -> String.join(sep, lst
+            (list) -> String.join(sep, list
                     .stream()
                     .map(Object::toString)
                     .collect(Collectors.toList()));
@@ -44,19 +45,23 @@ public class ThrowingFunctionUtils {
 
     public static final ThrowingFunction<String, Path> path = val -> Paths.get(trim.apply(val));
 
-    public static final ThrowingFunction<String, Language> parseLanguage = Language::parse;
+
+    public static final ThrowingFunction<String, Charset>  parseCharset  = Charset::forName;
     public static final ThrowingFunction<String, Boolean>  parseBoolean  = Boolean::parseBoolean;
     public static final ThrowingFunction<String, Integer>  parseInt      = Integer::parseInt;
-    public static final ThrowingFunction<String, Charset>  parseCharset  = Charset::forName;
 
     public static final ThrowingFunction<List<String>, Set<NamedEntityCategory>> parseEntities = lst -> lst
             .stream()
             .map(NamedEntityCategory::parse)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
             .collect(Collectors.toSet());
 
     public static final ThrowingFunction<List<String>, Set<NLPStage>> parseStages = lst -> lst
             .stream()
             .map(NLPStage::parse)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
             .collect(Collectors.toSet());
 
 
