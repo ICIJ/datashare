@@ -6,6 +6,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 import org.apache.tika.config.TikaConfig;
@@ -32,11 +33,36 @@ import org.icij.datashare.text.reading.DocumentParser;
 import org.icij.datashare.text.reading.DocumentParserException;
 import org.xml.sax.SAXException;
 
+import static java.util.logging.Level.SEVERE;
+import static org.icij.datashare.text.Language.*;
+
 
 /**
  * Created by julien on 3/9/16.
  */
-public class TikaDocumentParser implements DocumentParser {
+public final class TikaDocumentParser implements DocumentParser {
+
+    private static final Logger LOGGER = Logger.getLogger(TikaDocumentParser.class.getName());
+
+
+    public static final String RESOURCE_NAME = Metadata.RESOURCE_NAME_KEY;
+
+    public static final String CONTENT_TYPE = Metadata.CONTENT_TYPE;
+
+    public static final String CONTENT_LENGTH = Metadata.CONTENT_LENGTH;
+
+    public static final String CONTENT_LANGUAGE = Metadata.CONTENT_LANGUAGE;
+
+    public static final String CONTENT_LANGUAGE_BELIEF = "Content-Language-Belief";
+
+    public static final Function<Language, Language> LANGUAGE_MAP = (lang) -> {
+        if (lang.equals(FRENCH) || lang.equals(SPANISH) || lang.equals(GERMAN))
+            return lang;
+        if (lang.equals(GALICIAN))
+            return SPANISH;
+        return ENGLISH;
+    };
+
 
     private final TikaConfig config = TikaConfig.getDefaultConfig();
 
@@ -45,12 +71,12 @@ public class TikaDocumentParser implements DocumentParser {
     private final TesseractOCRConfig ocrConfig = new TesseractOCRConfig();
 
 
-    private boolean ocrDisabled = false;
-
     private final Set<MediaType> excludedTypes = new HashSet<>();
 
-
     private final AutoDetectParser parser;
+
+
+    private boolean ocrDisabled = false;
 
     private ParseContext context;
 
@@ -58,20 +84,12 @@ public class TikaDocumentParser implements DocumentParser {
 
     private Metadata metadata;
 
-    public static final String CONTENT_LANGUAGE_BELIEF = "Content-Language-Belief";
 
-
-    private final Logger logger;
-
-    public TikaDocumentParser(Logger log) {
-        logger = log;
-
+    public TikaDocumentParser() {
         pdfConfig.setExtractInlineImages(true);
         pdfConfig.setExtractUniqueInlineImagesOnly(false);
         pdfConfig.setUseNonSequentialParser(true);
-
-        parser = new AutoDetectParser(config);
-
+        parser  = new AutoDetectParser(config);
         context = new ParseContext();
         if ( ! ocrDisabled)
             context.set(TesseractOCRConfig.class, ocrConfig);
@@ -84,6 +102,7 @@ public class TikaDocumentParser implements DocumentParser {
         ocrConfig.setLanguage(ocrLanguage);
     }
 
+    @Override
     public void disableOcr() {
         if ( ! ocrDisabled) {
             excludeParser(TesseractOCRParser.class);
@@ -95,17 +114,17 @@ public class TikaDocumentParser implements DocumentParser {
 
     @Override
     public Optional<Language> getLanguage() {
-        if (metadata == null )
+        if (metadata == null)
             return Optional.empty();
-        return Optional.of(Language.parse(metadata.get(Metadata.CONTENT_LANGUAGE)));
+        return Language.parse(metadata.get(CONTENT_LANGUAGE));
     }
 
     @Override
     public OptionalInt getLength() {
-        if (metadata == null || ! Arrays.asList(metadata.names()).contains(Metadata.CONTENT_LENGTH))
+        if (metadata == null || ! Arrays.asList(metadata.names()).contains(CONTENT_LENGTH))
             return OptionalInt.empty();
         try {
-            return OptionalInt.of(Integer.parseInt(metadata.get(Metadata.CONTENT_LENGTH)));
+            return OptionalInt.of(Integer.parseInt(metadata.get(CONTENT_LENGTH)));
         } catch (NumberFormatException e) {
             return OptionalInt.empty();
         }
@@ -120,25 +139,42 @@ public class TikaDocumentParser implements DocumentParser {
 
     @Override
     public Optional<String> getName() {
-        if (metadata == null || ! Arrays.asList(metadata.names()).contains(Metadata.RESOURCE_NAME_KEY))
+        if (metadata == null || ! Arrays.asList(metadata.names()).contains(RESOURCE_NAME))
             return Optional.empty();
-        return Optional.of(metadata.get(Metadata.RESOURCE_NAME_KEY));
+        return Optional.of(metadata.get(RESOURCE_NAME));
     }
 
     @Override
-    public String parse(Path filePath) throws DocumentParserException {
-        try {
-            Metadata metadata = new Metadata();
-            TikaInputStream input = TikaInputStream.get(filePath, metadata);
-            String parsed = parse(input, metadata);
-            input.close();
-            return parsed;
-        } catch (IOException e) {
-            throw new DocumentParserException(e.getMessage(), e.getCause());
+    public Optional<String> getType() {
+        if (metadata == null)
+            return Optional.empty();
+        return Optional.of(metadata.get(CONTENT_TYPE));
+    }
+
+    @Override
+    public Optional<Map<String, String>> getMetadata() {
+        if (metadata == null)
+            return Optional.empty();
+        Map<String, String> map = new HashMap<>();
+        for(String key : metadata.names()) {
+            map.put(key, metadata.get(key));
+        }
+        return Optional.of(map);
+    }
+
+    @Override
+    public Optional<String> parse(Path filePath) {
+        Metadata metadata = new Metadata();
+        try (TikaInputStream input = TikaInputStream.get(filePath, metadata)) {
+            return Optional.of(parse(input, metadata));
+        } catch (DocumentParserException | IOException e) {
+            //throw new DocumentParserException(e.getMessage(), e.getCause());
+            LOGGER.log(SEVERE, "Failed to parse " + filePath, e);
+            return Optional.empty();
         }
     }
 
-    private String parse(final InputStream input, final Metadata md) throws DocumentParserException {
+    private String parse(final InputStream is, final Metadata md) throws DocumentParserException {
         BodyContentHandler textHandler = new BodyContentHandler(-1);
         LinkContentHandler linkHandler = new LinkContentHandler();
         ProfilingHandler   profiler    = new ProfilingHandler();
@@ -146,21 +182,20 @@ public class TikaDocumentParser implements DocumentParser {
         metadata = md;
 
         try {
-            this.parser.parse(input, handler, metadata, context);
+            parser.parse(is, handler, metadata, context);
         } catch (IOException | SAXException | TikaException e) {
             throw new DocumentParserException(e.getMessage(), e.getCause());
         }
 
         LanguageIdentifier identifier = profiler.getLanguage();
-        this.metadata.set(Metadata.CONTENT_LANGUAGE, identifier.getLanguage());
-        String langBelief = identifier.isReasonablyCertain() ? "strong" : "weak" ;
-        this.metadata.set(CONTENT_LANGUAGE_BELIEF, langBelief);
+        metadata.set(CONTENT_LANGUAGE, identifier.getLanguage());
 
-        for (String name : this.metadata.names()) {
-            System.out.println("Metadata[" + name + "]" + " \t= " + this.metadata.get(name));
-        }
+        String langBelief = identifier.isReasonablyCertain() ? "strong" : "weak" ;
+        metadata.set(CONTENT_LANGUAGE_BELIEF, langBelief);
+
         return textHandler.toString();
     }
+
 
     private void excludeParser(final Class exclude) {
         final CompositeParser composite = (CompositeParser) config.getParser();
@@ -176,7 +211,7 @@ public class TikaDocumentParser implements DocumentParser {
                 excludedTypes.addAll(parser.getSupportedTypes(context));
             }
         }
-
         composite.setParsers(parsers);
     }
+
 }
