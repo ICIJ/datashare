@@ -1,6 +1,7 @@
 package org.icij.datashare.text;
 
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Created by julien on 3/30/16.
@@ -32,8 +33,7 @@ public enum Language {
     BELARUSIAN ("bel", "be"),
     ICELANDIC  ("isl", "is"),
 
-    ALL        ("all",     "all"),
-    NONE       ("none",    "none"),
+    NONE       ("none", "none"),
     UNKNOWN    ("unknown", "unknown");
 
     private final String iso6391Code;
@@ -44,27 +44,30 @@ public enum Language {
         iso6391Code = iso1Code;
     }
 
-    @Override
-    public String toString() { return getISO6391Code(); }
-
     public String getISO6392Code() { return iso6392Code; }
 
     public String getISO6391Code() { return iso6391Code; }
 
-    public static Language parse(final String lang) {
-        if (lang == null || lang.isEmpty()) {
-            return NONE;
-        }
+
+    @Override
+    public String toString() { return getISO6391Code(); }
+
+
+    public static Optional<Language> parse(final String lang) {
+        if (    lang == null ||
+                lang.isEmpty() ||
+                lang.equalsIgnoreCase(NONE.toString()) ||
+                lang.equalsIgnoreCase(UNKNOWN.toString()))
+            return Optional.empty();
         for (Language l : Language.values()) {
-            if (lang.equalsIgnoreCase(l.toString()) || lang.equalsIgnoreCase(l.getISO6392Code())) {
-                return l;
-            }
+            if (lang.equalsIgnoreCase(l.toString()) || lang.equalsIgnoreCase(l.getISO6392Code()))
+                return Optional.of(l);
         }
         try {
-            return valueOf(lang.toUpperCase(Locale.ROOT));
+            return Optional.of(valueOf(lang.toUpperCase(Locale.ROOT)));
         } catch (IllegalArgumentException e) {
-            //throw new IllegalArgumentException(String.format("\"%s\" is not a valid language code.", lang));
-            return UNKNOWN;
+            // throw new IllegalArgumentException(String.format("\"%s\" is not a valid language code.", lang));
+            return Optional.empty();
         }
     }
 }
