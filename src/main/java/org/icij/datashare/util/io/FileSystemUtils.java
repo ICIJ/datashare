@@ -1,27 +1,48 @@
 package org.icij.datashare.util.io;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
+
+import static java.util.Arrays.asList;
+import static java.util.logging.Level.INFO;
 
 /**
  * Created by julien on 4/22/16.
  */
 public class FileSystemUtils {
 
+    private static final Logger LOGGER = Logger.getLogger(FileSystemUtils.class.getName());
+
+
+    public static final String FILE_SEP = File.separator;
+
+    public static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
+
     public static final int CHAR_BUFFER_SIZE = 8192;
+
+    private static final List<String> FILE_EXTS = asList(
+            "txt", "rtf", "doc", "docx", "pdf", "html", "xml", "msg", "eml", "xls", "xlsx", "pptx", "tif"
+    );
 
 
     public static List<Path> listFilesInDirectory(Path directory) throws IOException {
+        return listFilesInDirectory(directory, FILE_EXTS);
+    }
+
+    public static List<Path> listFilesInDirectory(Path directory, List<String> filterFileExts) {
         List<Path> paths = new ArrayList<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory, "*.{txt,pdf,doc,docx,rtf,msg,eml,tif}")) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory, "*.{" + String.join(",", filterFileExts) + "}")) {
             for (Path entry: stream) {
                 paths.add(entry);
             }
         } catch (DirectoryIteratorException | IOException e) {
-            throw new IOException("Failed to list directory " + directory + e.getMessage(), e.getCause());
+            LOGGER.log(INFO, "Failed to list directory " + directory, e);
+            //throw new IOException("Failed to list directory " + directory + e.getMessage(), e.getCause());
         }
         return paths;
     }
@@ -46,4 +67,5 @@ public class FileSystemUtils {
         }
         return inBuilder.toString();
     }
+
 }
