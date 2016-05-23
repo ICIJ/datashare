@@ -99,8 +99,8 @@
       <file leaf-file-name="FileSystemUtils.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="168">
-              <caret line="29" column="6" selection-start-line="27" selection-start-column="4" selection-end-line="29" selection-end-column="6" />
+            <state relative-caret-position="210">
+              <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -1679,7 +1679,14 @@
       <option name="project" value="LOCAL" />
       <updated>1463996536611</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="Updated project workspace">
+      <created>1463996560137</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1463996560137</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -1774,7 +1781,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <confirmMoveToFailedCommit value="1" />
-    <MESSAGE value="Dependencies list layout" />
     <MESSAGE value="Share IntelliJ project settings" />
     <MESSAGE value="Put supported languages / stage into table&#10;Added Todos" />
     <MESSAGE value="- Centralized Optional getProperty functions in ThrowingFunctions for reuse&#10;- Simplified stage dependencies handling&#10;" />
@@ -1799,7 +1805,8 @@
     <MESSAGE value="Added GateNLP libraries; Added JOptSimple for CLI; Added jar building" />
     <MESSAGE value="Updated Libraries; Updated jar packaging; Updated README" />
     <MESSAGE value="Updated workspace" />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated workspace" />
+    <MESSAGE value="Updated project workspace" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated project workspace" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -2245,8 +2252,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="29" column="6" selection-start-line="27" selection-start-column="4" selection-end-line="29" selection-end-column="6" />
+        <state relative-caret-position="210">
+          <caret line="31" column="0" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
           <folding />
         </state>
       </provider>
