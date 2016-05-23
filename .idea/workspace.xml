@@ -1672,7 +1672,14 @@
       <option name="project" value="LOCAL" />
       <updated>1463996511934</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="Updated workspace">
+      <created>1463996536611</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1463996536611</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -1767,7 +1774,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <confirmMoveToFailedCommit value="1" />
-    <MESSAGE value="Stage parsing produces Set&lt;NLPStage&gt;" />
     <MESSAGE value="Dependencies list layout" />
     <MESSAGE value="Share IntelliJ project settings" />
     <MESSAGE value="Put supported languages / stage into table&#10;Added Todos" />
@@ -1792,7 +1798,8 @@
     <MESSAGE value="Added CLI; Run NLPPipelines wrt command line arguments." />
     <MESSAGE value="Added GateNLP libraries; Added JOptSimple for CLI; Added jar building" />
     <MESSAGE value="Updated Libraries; Updated jar packaging; Updated README" />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated Libraries; Updated jar packaging; Updated README" />
+    <MESSAGE value="Updated workspace" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated workspace" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
