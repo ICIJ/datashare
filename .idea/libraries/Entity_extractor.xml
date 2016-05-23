@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Entity-extractor">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../entity-extractor/dist/Entity-extractor.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
