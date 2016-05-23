@@ -9,7 +9,7 @@ crime and abuse of power.
 
 [DataShare: connecting local data with a global collective intelligence](https://www.newschallenge.org/challenge/data/refinement/datashare-connecting-local-data-with-a-global-collective-intelligence)
 
-DatasShare is currently based on the following projects:
+DatasShare is currently and notably based on the following projects:
 
  - [Apache Tika](https://tika.apache.org/) v1.12
  (Apache licence)
@@ -25,7 +25,7 @@ DatasShare is currently based on the following projects:
 
 Currently, this project mainly allows for **named entities extraction**.
 
-More precisely, it consists in running `NLPPipeline`s (`CoreNLPPipeline`, `OpenNLPPipeline`)
+More precisely, it consists in running `NLPPipeline`s (`CoreNLPPipeline`, `OpenNLPPipeline`, `GateNLPPipeline`)
 
 - **Input**: `String` or document `Path` of which mime-type is supported by (Tika) `DocumentParser`
 
