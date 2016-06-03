@@ -2,21 +2,28 @@ package org.icij.datashare.text.reading;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
+import java.util.*;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.reading.tika.TikaDocumentParser;
 
+import static java.util.Arrays.asList;
 import static java.util.logging.Level.WARNING;
+import static org.icij.datashare.text.Language.*;
 
 /**
  * Created by julien on 3/9/16.
  */
 public interface DocumentParser {
+
+    DocumentParserType DEFAULT_PARSER_TYPE = DocumentParserType.TIKA;
+
+    List<String> SUPPORTED_FILE_EXTS = asList(
+            "txt", "rtf", "doc", "docx", "pdf", "html", "xml", "msg", "eml", "xls", "xlsx", "pptx", "tif"
+    );
+
 
     enum DocumentParserType {
         TIKA;
@@ -33,7 +40,6 @@ public interface DocumentParser {
         }
     }
 
-    DocumentParserType DEFAULT_PARSER_TYPE = DocumentParserType.TIKA;
 
     static Optional<DocumentParser> create(DocumentParserType type) {
         if (type == null)
