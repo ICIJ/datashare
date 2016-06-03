@@ -4,16 +4,32 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare</artifactId>
-    <packaging>pom</packaging>
-    <version>0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <version>0.1</version>
+
+
+    <properties>
+        <tika.version>1.12</tika.version>
+        <corenlp.version>3.6.0</corenlp.version>
+        <opennlp.version>1.6.0</opennlp.version>
+        <unidecode.version>0.0.7</unidecode.version>
+        <bouncycastle.version>1.54</bouncycastle.version>
+        <joptsimple.version>5.0.1</joptsimple.version>
+        <slf4j.version>1.7.18</slf4j.version>
+        <junit.version>4.12</junit.version>
+    </properties>
+
 
     <build>
         <plugins>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.5.1</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -22,23 +38,25 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
+                <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.6</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.icij.datashare.DataShare</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
                 <executions>
                     <execution>
-                        <id>unpack-dependencies</id>
+                        <id>make-assembly</id>
                         <phase>package</phase>
                         <goals>
-                            <goal>unpack-dependencies</goal>
+                            <goal>single</goal>
                         </goals>
-                        <configuration>
-                            <excludeScope>system</excludeScope>
-                            <excludes>META-INF/*.SF</excludes>
-                            <excludes>META-INF/*.DSA</excludes>
-                            <excludes>META-INF/*.RSA</excludes>
-                            <excludeGroupIds>junit,org.mockito,org.hamcrest</excludeGroupIds>
-                            <outputDirectory>${project.build.directory}/classes</outputDirectory>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -46,17 +64,22 @@
         </plugins>
     </build>
 
-    <properties>
-        <tika.version>1.12</tika.version>
-        <slf4j.version>1.7.18</slf4j.version>
-        <corenlp.version>3.6.0</corenlp.version>
-        <opennlp.version>1.6.0</opennlp.version>
-        <bouncycastle.version>1.54</bouncycastle.version>
-        <unidecode.version>0.0.7</unidecode.version>
-        <junit.version>4.12</junit.version>
-    </properties>
-
+    <!-- Project Dependencies -->
     <dependencies>
+
+        <dependency>
+            <groupId>es.upm.oeg</groupId>
+            <artifactId>entity-extractor</artifactId>
+            <version>0.1</version>
+            <type>jar</type>
+        </dependency>
+
+        <dependency>
+            <groupId>es.upm.oeg</groupId>
+            <artifactId>entity-extractor-lib</artifactId>
+            <version>0.1</version>
+            <type>jar</type>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.tika</groupId>
@@ -148,7 +171,7 @@
         <dependency>
             <groupId>net.sf.jopt-simple</groupId>
             <artifactId>jopt-simple</artifactId>
-            <version></version>
+            <version>${joptsimple.version}</version>
         </dependency>
 
     </dependencies>
