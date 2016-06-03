@@ -26,13 +26,18 @@ public enum Hasher {
     MD5     ("MD5"),
     SHA_1   ("SHA-1"),
     SHA_256 ("SHA-256"),
+    SHA_384 ("SHA-384"),
     SHA_512 ("SHA-512");
+
+    public static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
+
 
     private final String algorithm;
 
     Hasher(String algo) {
         algorithm = algo;
     }
+
 
     @Override
     public String toString() {
@@ -75,7 +80,7 @@ public enum Hasher {
     /**
      * Hash file from Path with algorithm
      *
-     * @param filePath reprensenting the message to hash
+     * @param filePath representing the message to hash
      * @return the corresponding hash Optional<String>, which might be
      * empty if algorithm is UNKNOWN or NONE or nothing to read from stream.
      */
@@ -115,8 +120,6 @@ public enum Hasher {
         }
     }
 
-
-    public static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
 
     public static Optional<Hasher> parse(final String algo) {
         if (algo == null || algo.isEmpty())
