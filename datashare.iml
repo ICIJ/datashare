@@ -13,6 +13,8 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Entity-extractor" level="project" />
     <orderEntry type="library" name="Entity-extractor-lib" level="project" />
+    <orderEntry type="library" name="Maven: es.upm.oeg:entity-extractor:0.1" level="project" />
+    <orderEntry type="library" name="Maven: es.upm.oeg:entity-extractor-lib:0.1" level="project" />
     <orderEntry type="library" name="Maven: org.apache.tika:tika-core:1.12" level="project" />
     <orderEntry type="library" name="Maven: org.apache.tika:tika-parsers:1.12" level="project" />
     <orderEntry type="library" name="Maven: org.gagravarr:vorbis-java-tika:0.6" level="project" />
@@ -123,6 +125,6 @@
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-log4j12:1.7.18" level="project" />
     <orderEntry type="library" name="Maven: log4j:log4j:1.2.17" level="project" />
     <orderEntry type="library" name="Maven: me.xuender:unidecode:0.0.7" level="project" />
-    <orderEntry type="library" name="Maven: net.sf.jopt-simple:jopt-simple:4.3" level="project" />
+    <orderEntry type="library" name="Maven: net.sf.jopt-simple:jopt-simple:5.0.1" level="project" />
   </component>
 </module>
