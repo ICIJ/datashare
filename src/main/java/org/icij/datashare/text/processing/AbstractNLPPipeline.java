@@ -4,7 +4,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.INFO;
@@ -12,7 +11,6 @@ import static java.util.logging.Level.SEVERE;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.reading.DocumentParserException;
 
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.processing.NamedEntityCategory.*;
@@ -36,18 +34,16 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
 
     public static final Charset  DEFAULT_ENCODING = StandardCharsets.UTF_8;
 
-    public static final boolean DEFAULT_MODEL_CACHING = true;
+    public static final boolean DEFAULT_MODEL_CACHING = false;
+
 
     protected final Logger LOGGER = Logger.getLogger(getClass().getName());
 
-    // Processing stages dependencies
-    protected final Map<NLPStage, List<NLPStage>> stageDependencies;
-
-    // Supported processing stages for each language
+    // Supported stages for each language
     protected final Map<Language, Set<NLPStage>> supportedStages;
 
-    // Properties holding pipeline configuration / options
-    protected final Properties properties;
+    // Processing stages dependencies
+    protected final Map<NLPStage, List<NLPStage>> stageDependencies;
 
 
     // Content language to process
@@ -56,11 +52,11 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
     // Final processing stages
     protected Set<NLPStage> targetStages;
 
-    // Complete set of processing stages to actually run (transitive closure of targetStages dependencies)
+    // Complete set of processing stages to actually run (dependencies included)
     protected List<NLPStage> stages;
 
     // Named entity categories to recognize
-    protected Set<NamedEntityCategory> targetEntityCategories;
+    protected Set<NamedEntityCategory> targetEntities;
 
     // Recognized named entities
     protected List<NamedEntity> entities;
@@ -71,17 +67,19 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
     // Keep annotators (with model) in memory from a run to the next one?
     protected boolean annotatorsCaching;
 
-    // Document being processed by pipeline
-    protected Document document;
+    // Content Hash of document being processed by pipeline
+    protected String documentHash;
+
+    // Path of document being processed by pipeline
+    protected Path documentPath;
 
 
-    protected AbstractNLPPipeline(final Properties props) {
-        properties = props;
+    protected AbstractNLPPipeline(final Properties properties) {
 
         language = getProperty("language", properties, removeSpaces.andThen(Language::parse).andThen(Optional::get))
                 .orElse(DEFAULT_LANGUAGE);
 
-        targetEntityCategories = getProperty("entities", properties, removeSpaces.andThen(splitComma).andThen(parseEntities))
+        targetEntities = getProperty("entities", properties, removeSpaces.andThen(splitComma).andThen(parseEntities))
                 .orElse(DEFAULT_ENTITY_CATEGORIES);
 
         targetStages = getProperty("stages", properties, removeSpaces.andThen(splitComma).andThen(parseStages))
@@ -120,40 +118,25 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
         this.language = language;
     }
 
+    @Override
+    public List<NamedEntity> getEntities() { return entities; }
+
 
     public List<NLPStage> getStages() { return stages; }
 
 
-    public Set<NamedEntityCategory> getTargetEntityCategories() {
-        return targetEntityCategories;
+    public Set<NamedEntityCategory> getTargetEntities() {
+        return targetEntities;
     }
 
-    public void setTargetEntityCategories(Set<NamedEntityCategory> targetEntityCategories) {
-        this.targetEntityCategories = targetEntityCategories;
-    }
+    public void setTargetEntities(Set<NamedEntityCategory> targetEntities) { this.targetEntities = targetEntities; }
+
 
     public boolean isAnnotatorsCaching() {
         return annotatorsCaching;
     }
 
-    public void setAnnotatorsCaching(boolean annotatorsCaching) {
-        this.annotatorsCaching = annotatorsCaching;
-    }
-
-    @Override
-    public List<NamedEntity> getEntities() { return entities; }
-
-
-    /**
-     * Is stage supported for language?
-     *
-     * @param stage
-     * @param lang
-     * @return
-     */
-    public boolean supports(NLPStage stage, Language lang){
-        return supportedStages.get(lang).contains(stage);
-    }
+    public void setAnnotatorsCaching(boolean annotatorsCaching) { this.annotatorsCaching = annotatorsCaching; }
 
 
     /**
@@ -165,7 +148,7 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
     public void run(Path path) {
         Optional<Document> optDoc = Document.create(path);
         if ( ! optDoc.isPresent()) {
-            LOGGER.log(SEVERE, "Failed to run pipeline; failed to create new Document " + path);
+            LOGGER.log(SEVERE, "Failed to create new Document " + path);
             return;
         }
         Document document = optDoc.get();
@@ -175,28 +158,37 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
     /**
      * Run the specified NLPPipeline from a Document
      *
-     * @param doc is the document to process
+     * @param document is the document to process
      */
     @Override
-    public void run(Document doc) {
-        document = doc;
+    public void run(Document document) {
+        // Read document
         if ( ! document.read()) {
             LOGGER.log(SEVERE, "Failed to read Document");
             return;
         }
-
-        Optional<String> optCont = document.getContent();
-        if ( ! optCont.isPresent()) {
+        // Get read content
+        Optional<String> contOpt = document.getContent();
+        if ( ! contOpt.isPresent()) {
             LOGGER.log(SEVERE, "Failed to get content from Document " + path);
             return;
         }
+        // Get read content hash
+        Optional<String> hashOpt = document.getHash();
+        if ( ! hashOpt.isPresent()) {
+            LOGGER.log(SEVERE, "Failed to get document's content hash");
+            return;
+        }
 
-        String content = optCont.get();
-        run(content);
+        documentHash = hashOpt.get();
+        documentPath = document.getPath();
+
+        // Run on read content
+        run(contOpt.get());
     }
 
     /**
-     * Run the specified NLPPipeline from a String
+     * Running scheme from a String
      *
      * @param input is the String to process
      */
@@ -211,35 +203,64 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
     }
 
     /**
+     * Is stage supported for language?
+     *
+     * @param stage is the stage to test for support
+     * @param lang is the language for which stage is tested
+     * @return true if stage supports language; false otherwise
+     */
+    public boolean supports(NLPStage stage, Language lang) {
+        Set<NLPStage> suppStagesForLang = supportedStages.get(lang);
+        if (suppStagesForLang == null || suppStagesForLang.isEmpty())
+            return false;
+        return suppStagesForLang.contains(stage);
+    }
+
+    /**
      * Initialize NLPPipeline stages
      *
      * @return true if initialization succeeded, false otherwise
      */
     protected boolean initialize() {
-        // Initialize entities
+        // Reset recognised entities
         entities = new ArrayList<>();
-        // Pull all dependencies from specified stages
+
+        // Pull all dependencies from targeted stages
         stages = stagesDependenciesTC(targetStages);
-        // all specified stages and dependencies are supported for language
-        if (checkStages())
+        // all dependencies are supported for language
+        if (checkStages()) {
+            LOGGER.log(INFO, language.toString().toUpperCase());
             return true;
-        // or get all supported stages for language
+        }
+        // or get subset of stages supported for language
         stages = stagesDependenciesTC(supportedStages.getOrDefault(language, new HashSet<>()));
-        // TODO: or set default language?
+        // or set default language
+        if (stages.isEmpty()) {
+            LOGGER.log(INFO, language.toString().toUpperCase(Locale.ROOT) + " language is not supported." +
+                    "Defaulting to " + DEFAULT_LANGUAGE.toString().toUpperCase(Locale.ROOT));
+            language = DEFAULT_LANGUAGE;
+            stages = stagesDependenciesTC(supportedStages.get(language));
+        }
+
+        LOGGER.log(INFO, language.toString().toUpperCase());
+
         return ! stages.isEmpty();
     }
 
     /**
      * Apply all specified stage annotators
      *
-     * @param input is the source String to annotate
+     * @param input is the source String to process
      */
     protected abstract void process(String input);
 
     /**
      * Post-processing operations. Release document
      */
-    protected void terminate() { document = null; }
+    protected void terminate() {
+        documentHash = null;
+        documentPath = null;
+    }
 
     /**
      * Check if every stage supports language
@@ -253,7 +274,7 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
     }
 
     /**
-     * Transitive closure and topological sort of stage dependencies
+     * Transitive closure and then topological sort of stage dependencies
      *
      * @param coreStages is the stage Set to expand
      * @return the topological sort of all depending stages
