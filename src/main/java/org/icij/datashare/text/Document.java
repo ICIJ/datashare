@@ -11,8 +11,10 @@ import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 
+import org.icij.datashare.text.hashing.Hasher;
 import org.icij.datashare.text.reading.DocumentParser;
 
+import static org.icij.datashare.text.hashing.Hasher.SHA_384;
 import static org.icij.datashare.text.hashing.Hasher.SHA_512;
 
 
@@ -22,6 +24,8 @@ import static org.icij.datashare.text.hashing.Hasher.SHA_512;
 public class Document {
 
     private static final Logger LOGGER = Logger.getLogger(Document.class.getName());
+
+    private static final Hasher HASHER = SHA_384;
 
 
     public static Optional<Document> create(Path path)  {
@@ -87,11 +91,11 @@ public class Document {
 
     public Optional<String> getHash() { return Optional.ofNullable(hash); }
 
-    public Optional<String> getType() { return Optional.ofNullable(type); }
-
     public Optional<Integer> getLength() { return Optional.ofNullable(length); }
 
     public Optional<Language> getLanguage() { return Optional.ofNullable(language); }
+
+    public Optional<String> getType() { return Optional.ofNullable(type); }
 
     public Optional<Map<String, String>> getMetadata() { return Optional.ofNullable(metadata); }
 
@@ -121,7 +125,7 @@ public class Document {
         }
         content = optCont.get();
 
-        hash = SHA_512.hash(content);
+        hash = HASHER.hash(content);
         if (hash.isEmpty()) {
             LOGGER.log(SEVERE, "Failed to hash content of " + path);
             return false;
