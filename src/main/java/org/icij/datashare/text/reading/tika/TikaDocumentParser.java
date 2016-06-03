@@ -55,11 +55,10 @@ public final class TikaDocumentParser implements DocumentParser {
 
     public static final String CONTENT_LANGUAGE_BELIEF = "Content-Language-Belief";
 
+
     public static final Function<Language, Language> LANGUAGE_MAP = (lang) -> {
-        if (lang.equals(FRENCH) || lang.equals(SPANISH) || lang.equals(GERMAN))
-            return lang;
-        if (lang.equals(GALICIAN))
-            return SPANISH;
+        if (lang.equals(ENGLISH) || lang.equals(SPANISH) || lang.equals(FRENCH) || lang.equals(GERMAN)) return lang;
+        if (lang.equals(GALICIAN) || lang.equals(CATALAN))                                              return SPANISH;
         return ENGLISH;
     };
 
@@ -166,15 +165,15 @@ public final class TikaDocumentParser implements DocumentParser {
     public Optional<String> parse(Path filePath) {
         Metadata metadata = new Metadata();
         try (TikaInputStream input = TikaInputStream.get(filePath, metadata)) {
-            return Optional.of(parse(input, metadata));
-        } catch (DocumentParserException | IOException e) {
+            return parse(input, metadata);
+        } catch (IOException e) {
             //throw new DocumentParserException(e.getMessage(), e.getCause());
             LOGGER.log(SEVERE, "Failed to parse " + filePath, e);
             return Optional.empty();
         }
     }
 
-    private String parse(final InputStream is, final Metadata md) throws DocumentParserException {
+    private Optional<String> parse(final InputStream is, final Metadata md) {
         BodyContentHandler textHandler = new BodyContentHandler(-1);
         LinkContentHandler linkHandler = new LinkContentHandler();
         ProfilingHandler   profiler    = new ProfilingHandler();
@@ -184,7 +183,9 @@ public final class TikaDocumentParser implements DocumentParser {
         try {
             parser.parse(is, handler, metadata, context);
         } catch (IOException | SAXException | TikaException e) {
-            throw new DocumentParserException(e.getMessage(), e.getCause());
+            //throw new DocumentParserException(e.getMessage(), e.getCause());
+            LOGGER.log(SEVERE, "Failed to parse.", e);
+            return Optional.empty();
         }
 
         LanguageIdentifier identifier = profiler.getLanguage();
@@ -193,7 +194,7 @@ public final class TikaDocumentParser implements DocumentParser {
         String langBelief = identifier.isReasonablyCertain() ? "strong" : "weak" ;
         metadata.set(CONTENT_LANGUAGE_BELIEF, langBelief);
 
-        return textHandler.toString();
+        return Optional.of(textHandler.toString());
     }
 
 
