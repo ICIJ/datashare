@@ -54,49 +54,49 @@ public final class OpenNLPPipeline extends AbstractNLPPipeline {
     private static final Path MODELS_BASEDIR =
             Paths.get( OpenNLPPipeline.class.getPackage().getName().replace(".", "/"), "models" );
 
-    private static final Function<NLPStage, Path> MODELS_DIR =
+    private static final Function<NLPStage, Path> MODEL_DIR =
             (stage) -> MODELS_BASEDIR.resolve(stage.toString());
 
-    private static final Map<Language, Path> MODELS_PATH_SENT =
+    private static final Map<Language, Path> MODEL_PATH_SENT =
             new HashMap<Language, Path>(){{
-                put(ENGLISH, MODELS_DIR.apply(SENTENCE).resolve("en-sent.bin"));
-                put(SPANISH, MODELS_DIR.apply(SENTENCE).resolve("en-sent.bin"));
-                put(FRENCH,  MODELS_DIR.apply(SENTENCE).resolve("fr-sent.bin"));
-                put(GERMAN,  MODELS_DIR.apply(SENTENCE).resolve("de-sent.bin"));
+                put(ENGLISH, MODEL_DIR.apply(SENTENCE).resolve("en-sent.bin"));
+                put(SPANISH, MODEL_DIR.apply(SENTENCE).resolve("en-sent.bin"));
+                put(FRENCH,  MODEL_DIR.apply(SENTENCE).resolve("fr-sent.bin"));
+                put(GERMAN,  MODEL_DIR.apply(SENTENCE).resolve("de-sent.bin"));
             }};
 
-    private static final Map<Language, Path> MODELS_PATH_TOK =
+    private static final Map<Language, Path> MODEL_PATH_TOK =
             new HashMap<Language, Path>(){{
-                put(ENGLISH, MODELS_DIR.apply(TOKEN).resolve("en-token.bin"));
-                put(SPANISH, MODELS_DIR.apply(TOKEN).resolve("en-token.bin"));
-                put(FRENCH,  MODELS_DIR.apply(TOKEN).resolve("fr-token.bin"));
-                put(GERMAN,  MODELS_DIR.apply(TOKEN).resolve("de-token.bin"));
+                put(ENGLISH, MODEL_DIR.apply(TOKEN).resolve("en-token.bin"));
+                put(SPANISH, MODEL_DIR.apply(TOKEN).resolve("en-token.bin"));
+                put(FRENCH,  MODEL_DIR.apply(TOKEN).resolve("fr-token.bin"));
+                put(GERMAN,  MODEL_DIR.apply(TOKEN).resolve("de-token.bin"));
             }};
 
-    private static final Map<Language, Path> MODELS_PATH_POS =
+    private static final Map<Language, Path> MODEL_PATH_POS =
             new HashMap<Language, Path>(){{
-                put(ENGLISH, MODELS_DIR.apply(POS).resolve("en-pos-maxent.bin"));
-                put(SPANISH, MODELS_DIR.apply(POS).resolve("es-pos-maxent.bin"));
-                put(FRENCH,  MODELS_DIR.apply(POS).resolve("fr-pos-maxent.bin"));
-                put(GERMAN,  MODELS_DIR.apply(POS).resolve("de-pos-maxent.bin"));
+                put(ENGLISH, MODEL_DIR.apply(POS).resolve("en-pos-maxent.bin"));
+                put(SPANISH, MODEL_DIR.apply(POS).resolve("es-pos-maxent.bin"));
+                put(FRENCH,  MODEL_DIR.apply(POS).resolve("fr-pos-maxent.bin"));
+                put(GERMAN,  MODEL_DIR.apply(POS).resolve("de-pos-maxent.bin"));
             }};
 
-    private static final Map<Language, Map<NamedEntityCategory, Path>> MODELS_PATH_NER =
+    private static final Map<Language, Map<NamedEntityCategory, Path>> MODEL_PATH_NER =
             new HashMap<Language, Map<NamedEntityCategory, Path>>(){{
                 put(ENGLISH, new HashMap<NamedEntityCategory, Path>(){{
-                    put(PERSON,       MODELS_DIR.apply(NER).resolve("en-ner-person.bin"));
-                    put(ORGANIZATION, MODELS_DIR.apply(NER).resolve("en-ner-organization.bin"));
-                    put(LOCATION,     MODELS_DIR.apply(NER).resolve("en-ner-location.bin"));
+                    put(PERSON,       MODEL_DIR.apply(NER).resolve("en-ner-person.bin"));
+                    put(ORGANIZATION, MODEL_DIR.apply(NER).resolve("en-ner-organization.bin"));
+                    put(LOCATION,     MODEL_DIR.apply(NER).resolve("en-ner-location.bin"));
                 }});
                 put(SPANISH, new HashMap<NamedEntityCategory, Path>(){{
-                    put(PERSON,       MODELS_DIR.apply(NER).resolve("es-ner-person.bin"));
-                    put(ORGANIZATION, MODELS_DIR.apply(NER).resolve("es-ner-organization.bin"));
-                    put(LOCATION,     MODELS_DIR.apply(NER).resolve("es-ner-location.bin"));
+                    put(PERSON,       MODEL_DIR.apply(NER).resolve("es-ner-person.bin"));
+                    put(ORGANIZATION, MODEL_DIR.apply(NER).resolve("es-ner-organization.bin"));
+                    put(LOCATION,     MODEL_DIR.apply(NER).resolve("es-ner-location.bin"));
                 }});
                 put(FRENCH, new HashMap<NamedEntityCategory, Path>(){{
-                    put(PERSON,       MODELS_DIR.apply(NER).resolve("en-ner-person.bin"));
-                    put(ORGANIZATION, MODELS_DIR.apply(NER).resolve("en-ner-organization.bin"));
-                    put(LOCATION,     MODELS_DIR.apply(NER).resolve("en-ner-location.bin"));
+                    put(PERSON,       MODEL_DIR.apply(NER).resolve("en-ner-person.bin"));
+                    put(ORGANIZATION, MODEL_DIR.apply(NER).resolve("en-ner-organization.bin"));
+                    put(LOCATION,     MODEL_DIR.apply(NER).resolve("en-ner-location.bin"));
                 }});
             }};
 
@@ -144,11 +144,11 @@ public final class OpenNLPPipeline extends AbstractNLPPipeline {
         // Load sentence splitting model (language-specific)
         if (stages.contains(SENTENCE)) {
             if ( ! sentencer.containsKey(language) || sentencer.get(language) == null) {
-                LOGGER.log(INFO, "Loading " + language + " " + SENTENCE + " model" +
-                        " from file " + MODELS_PATH_SENT.get(language).toString());
-                try(InputStream sModelIS = loader.getResourceAsStream(MODELS_PATH_SENT.get(language).toString())) {
-                    SentenceModel smodel = new SentenceModel(sModelIS);
-                    sentencer.put(language, new SentenceDetectorME(smodel));
+
+                LOGGER.log(INFO, "Loading " + SENTENCE + " model (" + language + ") from " + MODEL_PATH_SENT.get(language).toString());
+
+                try(InputStream sModelIS = loader.getResourceAsStream(MODEL_PATH_SENT.get(language).toString())) {
+                    sentencer.put(language, new SentenceDetectorME(new SentenceModel(sModelIS)));
                 } catch (Exception e) {
                     LOGGER.log(SEVERE, "Failed to load SentenceDetector", e);
                     return false;
@@ -158,11 +158,11 @@ public final class OpenNLPPipeline extends AbstractNLPPipeline {
         // Load tokenization model (language-specific)
         if (stages.contains(TOKEN)) {
             if ( ! tokenizer.containsKey(language) || tokenizer.get(language) == null) {
-                LOGGER.log(INFO, "Loading " + language + " " + TOKEN + " model" +
-                        " from file " + MODELS_PATH_TOK.get(language).toString());
-                try (InputStream tagModelIS = loader.getResourceAsStream(MODELS_PATH_TOK.get(language).toString())) {
-                    TokenizerModel tmodel = new TokenizerModel(tagModelIS);
-                    tokenizer.put(language, new TokenizerME(tmodel));
+
+                LOGGER.log(INFO, "Loading " + TOKEN + " model (" + language + ") from " + MODEL_PATH_TOK.get(language).toString());
+
+                try (InputStream tagModelIS = loader.getResourceAsStream(MODEL_PATH_TOK.get(language).toString())) {
+                    tokenizer.put(language, new TokenizerME(new TokenizerModel(tagModelIS)));
                 } catch (IOException e) {
                     LOGGER.log(SEVERE, "Failed to load Tokenizer", e);
                     return false;
@@ -172,31 +172,31 @@ public final class OpenNLPPipeline extends AbstractNLPPipeline {
         // Load part-of-speech tagging model (language-specific)
         if (stages.contains(POS)) {
             if ( ! postagger.containsKey(language) || postagger.get(language) == null) {
-                LOGGER.log(INFO, "Loading " + language + " " + POS + " model" +
-                        " from file " + MODELS_PATH_POS.get(language).toString());
-                try (InputStream posModelIS = loader.getResourceAsStream(MODELS_PATH_POS.get(language).toString())) {
-                    POSModel pmodel = new POSModel(posModelIS);
-                    postagger.put(language, new POSTaggerME(pmodel));
+
+                LOGGER.log(INFO, "Loading " + POS + " model (" + language + ") from " + MODEL_PATH_POS.get(language).toString());
+
+                try (InputStream posModelIS = loader.getResourceAsStream(MODEL_PATH_POS.get(language).toString())) {
+                    postagger.put(language, new POSTaggerME(new POSModel(posModelIS)));
                 } catch (IOException e) {
                     LOGGER.log(SEVERE, "Failed to load Part-of-Speech Tagger", e);
                     return false;
                 }
             }
         }
-        // Load language-specific named targetEntityCategories recognition model
+        // Load named entity recogniser from language-specific models
         if (stages.contains(NER)) {
-            for (NamedEntityCategory cat : targetEntityCategories) {
+            for (NamedEntityCategory cat : targetEntities) {
                 if ( ! ner.containsKey(language) || ! ner.get(language).containsKey(cat) || ner.get(language).get(cat) == null) {
-                    LOGGER.log(INFO, "Loading " +  language + " " + cat + " model" +
-                            " from file " + MODELS_PATH_NER.get(language).get(cat).toString());
-                    try (InputStream nerModelIS = loader.getResourceAsStream(MODELS_PATH_NER.get(language).get(cat).toString())) {
-                        TokenNameFinderModel nerModel = new TokenNameFinderModel(nerModelIS);
+
+                    LOGGER.log(INFO, "Loading " + cat + " model (" + language + ") from " + MODEL_PATH_NER.get(language).get(cat).toString());
+
+                    try (InputStream nerModelIS = loader.getResourceAsStream(MODEL_PATH_NER.get(language).get(cat).toString())) {
                         if ( ! ner.containsKey(language))
                             ner.put(language, new HashMap<NamedEntityCategory, NameFinderME>() {{
-                                put(cat, new NameFinderME(nerModel));
+                                put(cat, new NameFinderME(new TokenNameFinderModel(nerModelIS)));
                             }});
                         else
-                            ner.get(language).put(cat, new NameFinderME(nerModel));
+                            ner.get(language).put(cat, new NameFinderME(new TokenNameFinderModel(nerModelIS)));
                     } catch (IOException e) {
                         LOGGER.log(SEVERE, "Failed to load Named Entity Recognizer", e);
                         return false;
@@ -209,10 +209,6 @@ public final class OpenNLPPipeline extends AbstractNLPPipeline {
 
     @Override
     protected void process(String input) {
-
-        Optional<String> docHash = (document != null) ? document.getHash()              : Optional.empty();
-        Optional<Path>   docPath = (document != null) ? Optional.of(document.getPath()) : Optional.empty();
-
         // Distance to beginning of document in chars
         int offset = 0;
 
@@ -227,14 +223,17 @@ public final class OpenNLPPipeline extends AbstractNLPPipeline {
             String[] postags;
             if (stages.contains(POS))
                 postags = postag(tokens);
+            else
+                postags = new String[0];
 
             // Extract Named Entities
             if (stages.contains(NER)) {
-                List<NamedEntity> nes = extractEntities(tokens, tokenSpans, offset);
+                List<NamedEntity> nes = extractEntities(tokens, tokenSpans, offset, postags);
                 for (NamedEntity entity : nes) {
-                    docHash.ifPresent(entity::setDocument);
-                    docPath.ifPresent(entity::setDocumentPath);
+                    Optional.ofNullable(documentHash).ifPresent(entity::setDocument);
+                    Optional.ofNullable(documentPath).ifPresent(entity::setDocumentPath);
                     entity.setExtractor(NLPPipelineType.OPENNLP);
+                    entity.setExtractorLanguage(language);
                     entities.add(entity);
                 }
             }
@@ -318,17 +317,17 @@ public final class OpenNLPPipeline extends AbstractNLPPipeline {
     }
 
     /**
-     * Extract all specified targetEntityCategories categories
+     * Extract all specified targetEntities categories
      *
      * @param tokens is the sequence of tokens to annotate
      * @param offset is the (global) number of chars from beginning of input
      * @return List of extracted Named Entities
      */
-    private List<NamedEntity> extractEntities(String[] tokens, Span[] tokenSpans, int offset) {
+    private List<NamedEntity> extractEntities(String[] tokens, Span[] tokenSpans, int offset, String[] postags) {
         List<NamedEntity> entities = new ArrayList<>();
 
         // For each Named Entity Category
-        for (NamedEntityCategory category : getTargetEntityCategories()) {
+        for (NamedEntityCategory category : getTargetEntities()) {
 
             // Recognize Named Entity mentions in sentence (as tokens)
             Span[] spans = recognize(tokens, category);
@@ -339,6 +338,14 @@ public final class OpenNLPPipeline extends AbstractNLPPipeline {
                 int mentionOffset = offset + tokenSpans[span.getStart()].getStart();
 
                 Optional<NamedEntity> optEntity = NamedEntity.create(category, mention, mentionOffset);
+
+                if (postags.length > 0) {
+                    String pos = String.join(" ", asList(copyOfRange(postags, span.getStart(), span.getEnd())));
+                    if (optEntity.isPresent()) {
+                        optEntity.get().setPartOfSpeech(pos);
+                    }
+                }
+
                 optEntity.ifPresent(entities::add);
             }
         }
