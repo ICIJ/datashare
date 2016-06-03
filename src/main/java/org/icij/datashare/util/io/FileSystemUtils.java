@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -25,18 +26,15 @@ public class FileSystemUtils {
 
     public static final int CHAR_BUFFER_SIZE = 8192;
 
-    private static final List<String> FILE_EXTS = asList(
-            "txt", "rtf", "doc", "docx", "pdf", "html", "xml", "msg", "eml", "xls", "xlsx", "pptx", "tif"
-    );
-
 
     public static List<Path> listFilesInDirectory(Path directory) throws IOException {
-        return listFilesInDirectory(directory, FILE_EXTS);
+        return listFilesInDirectory(directory, Collections.emptyList());
     }
 
     public static List<Path> listFilesInDirectory(Path directory, List<String> filterFileExts) {
         List<Path> paths = new ArrayList<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory, "*.{" + String.join(",", filterFileExts) + "}")) {
+        String dotExts = filterFileExts.isEmpty() ? "" : ".{" + String.join(",", filterFileExts) + "}";
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory, "*" + dotExts)) {
             for (Path entry: stream) {
                 paths.add(entry);
             }
