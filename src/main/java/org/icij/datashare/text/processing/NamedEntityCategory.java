@@ -43,8 +43,9 @@ public enum NamedEntityCategory {
         try {
             return Optional.of(valueOf(entity.toUpperCase(Locale.ROOT)));
         } catch (IllegalArgumentException e) {
+
             for (NamedEntityCategory ne : NamedEntityCategory.values()) {
-                if (entity.equalsIgnoreCase(ne.getAbbreviation())) {
+                if (entity.replaceAll("^I-", "").equalsIgnoreCase(ne.getAbbreviation())) {
                     return Optional.of(ne);
                 }
             }
