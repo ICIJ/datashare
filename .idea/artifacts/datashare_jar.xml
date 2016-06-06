@@ -7,8 +7,6 @@
       </element>
       <element id="directory" name="lib">
         <element id="file-copy" path="$MAVEN_REPOSITORY$/org/apache/sis/core/sis-utility/0.5/sis-utility-0.5.jar" />
-        <element id="file-copy" path="$PROJECT_DIR$/../entity-extractor/dist/Entity-extractor.jar" />
-        <element id="library" level="project" name="Entity-extractor-lib" />
         <element id="library" level="project" name="Maven: com.healthmarketscience.jackcess:jackcess:2.1.2" />
         <element id="library" level="project" name="Maven: com.io7m.xom:xom:1.2.10" />
         <element id="library" level="project" name="Maven: com.googlecode.json-simple:json-simple:1.1.1" />
@@ -75,13 +73,11 @@
         <element id="library" level="project" name="Maven: org.apache.xmlbeans:xmlbeans:2.6.0" />
         <element id="library" level="project" name="Maven: org.apache.poi:poi-ooxml-schemas:3.13" />
         <element id="library" level="project" name="Maven: org.codehaus.plexus:plexus-utils:1.5.6" />
-        <element id="library" level="project" name="Entity-extractor" />
         <element id="library" level="project" name="Maven: xalan:xalan:2.7.0" />
         <element id="library" level="project" name="Maven: org.apache.sis.core:sis-metadata:0.5" />
         <element id="library" level="project" name="Maven: org.apache.maven.scm:maven-scm-api:1.4" />
         <element id="library" level="project" name="Maven: org.ow2.asm:asm:5.0.4" />
         <element id="library" level="project" name="Maven: edu.stanford.nlp:stanford-corenlp:models-spanish:3.6.0" />
-        <element id="library" level="project" name="Maven: net.sf.jopt-simple:jopt-simple:4.3" />
         <element id="library" level="project" name="Maven: de.jollyday:jollyday:0.4.7" />
         <element id="library" level="project" name="Maven: javax.json:javax.json-api:1.0" />
         <element id="library" level="project" name="Maven: com.googlecode.efficient-java-matrix-library:ejml:0.23" />
@@ -121,6 +117,9 @@
         <element id="library" level="project" name="Maven: org.apache.cxf:cxf-rt-frontend-jaxrs:3.0.3" />
         <element id="library" level="project" name="Maven: edu.ucar:jj2000:5.2" />
         <element id="library" level="project" name="Maven: org.aspectj:aspectjrt:1.8.0" />
+        <element id="file-copy" path="$MAVEN_REPOSITORY$/es/upm/oeg/entity-extractor/0.1/entity-extractor-0.1.jar" />
+        <element id="file-copy" path="$MAVEN_REPOSITORY$/es/upm/oeg/entity-extractor-lib/0.1/entity-extractor-lib-0.1.jar" />
+        <element id="file-copy" path="$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/5.0.1/jopt-simple-5.0.1.jar" />
       </element>
       <element id="directory" name="src">
         <element id="directory" name="main">
