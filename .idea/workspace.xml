@@ -33,9 +33,6 @@
       <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_gagravarr_vorbis_java_core_0_6.xml" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_gagravarr_vorbis_java_tika_0_6.xml" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_jdom_jdom_2_0_2.xml" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/artifacts/datashare_jar.xml" afterPath="$PROJECT_DIR$/.idea/artifacts/datashare_jar.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare.iml" afterPath="$PROJECT_DIR$/datashare.iml" />
     </list>
     <ignored path="datashare.iws" />
     <ignored path=".idea/workspace.xml" />
