@@ -255,8 +255,8 @@ public final class CoreNLPPipeline extends AbstractNLPPipeline {
                             NamedEntity entity = optEntity.get();
                             Optional.ofNullable(documentHash).ifPresent(entity::setDocument);
                             Optional.ofNullable(documentPath).ifPresent(entity::setDocumentPath);
-                            entity.setExtractor(NLPPipelineType.CORENLP);
-                            entity.setExtractorLanguage(language);
+                            entity.setNlpPipeline(NLPPipelineType.CORENLP);
+                            entity.setNlpPipelineLanguage(language);
                             entity.setPartOfSpeech(mentionPos);
                             entities.add(entity);
                         }
@@ -296,8 +296,8 @@ public final class CoreNLPPipeline extends AbstractNLPPipeline {
                 NamedEntity entity = optEntity.get();
                 Optional.ofNullable(documentHash).ifPresent(entity::setDocument);
                 Optional.ofNullable(documentPath).ifPresent(entity::setDocumentPath);
-                entity.setExtractor(NLPPipelineType.CORENLP);
-                entity.setExtractorLanguage(language);
+                entity.setNlpPipeline(NLPPipelineType.CORENLP);
+                entity.setNlpPipelineLanguage(language);
                 entities.add(entity);
             }
         }

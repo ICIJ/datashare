@@ -7,128 +7,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d5e5fbf8-0c92-482b-8e9b-085fc76981c4" name="Default" comment="Added getType and Optional as return type">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-cli/pom.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-cli/src/main/assembly/assembly-dist.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/datashare-core.iml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/pom.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Corpus.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/test/TestBase.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/extraction/DocumentParserTest.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/hashing/HasherTest.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/processing/NLPPipelineTest.java" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-extract-tika/pom.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-corenlp/datashare-process-corenlp.iml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-corenlp/pom.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/datashare-process-gatenlp.iml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/pom.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-opennlp/datashare-process-opennlp.iml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-opennlp/pom.xml" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipelinesEvaluation.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/NLPPipelinesEvaluation.properties" afterPath="" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/DataShare.java" afterPath="$PROJECT_DIR$/datashare-cli/src/main/java/org/icij/datashare/cli/DataShareCli.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/Document.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Document.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/Language.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Language.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/hashing/HashException.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/hashing/HashException.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/hashing/Hasher.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/hashing/Hasher.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPStage.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NLPStage.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NamedEntity.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntity.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NamedEntityCategory.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntityCategory.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-process-corenlp/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/DocumentParser.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/extraction/DocumentParser.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/DocumentParserException.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/extraction/DocumentParserException.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/tika/ErrorParser.java" afterPath="$PROJECT_DIR$/datashare-extract-tika/src/main/java/org/icij/datashare/text/extraction/tika/ErrorParser.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/tika/ExcludedMediaTypeException.java" afterPath="$PROJECT_DIR$/datashare-extract-tika/src/main/java/org/icij/datashare/text/extraction/tika/ExcludedMediaTypeException.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/tika/TikaDocumentParser.java" afterPath="$PROJECT_DIR$/datashare-extract-tika/src/main/java/org/icij/datashare/text/extraction/tika/TikaDocumentParser.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/BiThrowingFunction.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/BiThrowingFunction.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/ThrowingFunction.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/ThrowingFunction.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/ThrowingFunctions.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/ThrowingFunctions.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/log4j.properties" afterPath="$PROJECT_DIR$/datashare-cli/src/main/resources/log4j.properties" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.properties" afterPath="$PROJECT_DIR$/datashare-process-corenlp/src/main/resources/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.properties" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/creole.xml" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/creole.xml" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.session" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.session" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.xml" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.xml" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/README.md" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/README.md" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/companySuffix.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/companySuffix.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countries.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countries.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countriesFrench.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countriesFrench.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryEEUU.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryEEUU.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryUK.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryUK.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.utf8.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.utf8.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/departments.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/departments.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/domains.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/domains.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/jobs.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/jobs.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/list.def" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/list.def" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/person.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/person.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/places.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/places.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/telephonePrefix.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/telephonePrefix.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffix1.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffix1.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffixLookup.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffixLookup.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/README.md" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/README.md" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company1.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company1.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company2.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company3.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company3.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company4.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company4.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/country.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/country.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/email.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/email.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/main.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/main.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person1.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person1.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person2.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person3.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person3.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person4.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person4.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street1.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street1.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street2.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street3.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street3.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone2.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended2.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/abbreviations.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/abbreviations.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/cleanup.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/cleanup.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find-single-nl.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find-single-nl.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/lists.def" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/lists.def" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main-single-nl.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main-single-nl.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/no-splits.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/no-splits.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/prepare.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/prepare.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/split.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/split.jape" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/DefaultTokeniser.rules" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/DefaultTokeniser.rules" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/abbreviations.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/abbreviations.lst" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.properties" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.properties" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/chunk/fr-chunk.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/chunk/fr-chunk.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/mph/fr-mph.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/mph/fr-mph.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-date.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-date.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-location.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-location.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-organization.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-organization.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-person.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-person.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-location.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-location.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-misc.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-misc.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-organization.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-organization.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-person.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-person.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-location.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-location.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-organization.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-organization.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-person.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-person.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/de-pos-maxent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/de-pos-maxent.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/en-pos-maxent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/en-pos-maxent.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/es-pos-maxent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/es-pos-maxent.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/fr-pos-maxent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/fr-pos-maxent.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/de-sent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/de-sent.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/en-sent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/en-sent.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/fr-sent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/fr-sent.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/de-token.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/de-token.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/en-token.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/en-token.bin" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/fr-token.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/fr-token.bin" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-cli/datashare-cli.iml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-extract-tika/datashare-extract-tika.iml" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/util/function/BiThrowingFunction.java" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/util/function/ThrowingFunction.java" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/util/function/ThrowingFunctions.java" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/util/io/FileSystemUtils.java" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare.iml" afterPath="$PROJECT_DIR$/datashare.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pom.xml" afterPath="$PROJECT_DIR$/pom.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-cli/pom.xml" afterPath="$PROJECT_DIR$/datashare-cli/pom.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-cli/src/main/assembly/assembly-dist.xml" afterPath="$PROJECT_DIR$/datashare-cli/src/main/assembly/assembly-dist.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-cli/src/main/java/org/icij/datashare/cli/DataShareCli.java" afterPath="$PROJECT_DIR$/datashare-cli/src/main/java/org/icij/datashare/cli/DataShareCli.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-core/datashare-core.iml" afterPath="$PROJECT_DIR$/datashare-core/datashare-core.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-core/pom.xml" afterPath="$PROJECT_DIR$/datashare-core/pom.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Document.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Document.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/hashing/Hasher.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/hashing/Hasher.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntity.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntity.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-process-corenlp/pom.xml" afterPath="$PROJECT_DIR$/datashare-process-corenlp/pom.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-process-corenlp/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-process-corenlp/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-process-gatenlp/pom.xml" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/pom.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-process-opennlp/pom.xml" afterPath="$PROJECT_DIR$/datashare-process-opennlp/pom.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare-process-opennlp/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java" />
     </list>
     <ignored path="datashare.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -181,7 +81,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Document.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="Document.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Document.java">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="126">
@@ -190,6 +90,19 @@
                 <element signature="imports" expanded="true" />
               </folding>
             </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="README.md" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/README.md">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="368">
+              <caret line="50" column="16" selection-start-line="50" selection-start-column="16" selection-end-line="50" selection-end-column="16" />
+              <folding />
+            </state>
+          </provider>
+          <provider editor-type-id="MarkdownPreviewEditor">
+            <state />
           </provider>
         </entry>
       </file>
@@ -298,7 +211,6 @@
         <option value="$PROJECT_DIR$/datashare-nlp-opennlp/pom.xml" />
         <option value="$PROJECT_DIR$/datashare-nlp-corenlp/pom.xml" />
         <option value="$PROJECT_DIR$/datashare-cli/src/main/java/org/icij/datashare/cli/DataShareCli.java" />
-        <option value="$PROJECT_DIR$/README.md" />
         <option value="$PROJECT_DIR$/datashare-cli/src/main/assembly/assembly.xml" />
         <option value="$PROJECT_DIR$/datashare-extract-tika/pom.xml" />
         <option value="$PROJECT_DIR$/datashare-process-corenlp/pom.xml" />
@@ -309,6 +221,7 @@
         <option value="$PROJECT_DIR$/datashare-cli/pom.xml" />
         <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntity.java" />
         <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Document.java" />
+        <option value="$PROJECT_DIR$/README.md" />
       </list>
     </option>
   </component>
@@ -417,7 +330,35 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value=".idea" />
+              <option name="myItemId" value="datashare-extract-tika" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="datashare" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="datashare" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="datashare-core" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="datashare" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="datashare" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="datashare-cli" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -1242,7 +1183,28 @@
       <option name="project" value="LOCAL" />
       <updated>1465657694584</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="IntelliJ project update">
+      <created>1465657729416</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1465657729416</updated>
+    </task>
+    <task id="LOCAL-00046" summary="Updated README">
+      <created>1465658283673</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1465658283673</updated>
+    </task>
+    <task id="LOCAL-00047" summary="IntelliJ project update">
+      <created>1465658311854</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1465658311854</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -1341,7 +1303,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <confirmMoveToFailedCommit value="1" />
-    <MESSAGE value="Content hashing" />
     <MESSAGE value="Added Document data structure" />
     <MESSAGE value="Refactored Factory; Added Optional as return type" />
     <MESSAGE value="Optional as return type" />
@@ -1365,6 +1326,7 @@
     <MESSAGE value="Added holding of file extensions supported list." />
     <MESSAGE value="Added stage handling in command line. Code Refactoring" />
     <MESSAGE value="File extensions is now given as a parameter of listFilesInDir and not a field of FileSystemUtils (handling tranferred to DocumentParser)" />
+    <MESSAGE value="Updated README" />
     <MESSAGE value="IntelliJ project update" />
     <option name="LAST_COMMIT_MESSAGE" value="IntelliJ project update" />
   </component>
@@ -1592,16 +1554,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/README.md">
-      <provider editor-type-id="text-editor">
-        <state relative-caret-position="813">
-          <caret line="71" column="0" selection-start-line="71" selection-start-column="0" selection-end-line="71" selection-end-column="0" />
-        </state>
-      </provider>
-      <provider selected="true" editor-type-id="MarkdownPreviewEditor">
-        <state />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/datashare-extract-tika/pom.xml">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="80">
@@ -1716,6 +1668,17 @@
             <element signature="imports" expanded="true" />
           </folding>
         </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="368">
+          <caret line="50" column="16" selection-start-line="50" selection-start-column="16" selection-end-line="50" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+      <provider editor-type-id="MarkdownPreviewEditor">
+        <state />
       </provider>
     </entry>
   </component>

@@ -9,7 +9,9 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>datashare-text-cli</artifactId>
+
+    <artifactId>datashare-cli</artifactId>
+    <packaging>jar</packaging>
 
 
     <properties>
@@ -19,24 +21,131 @@
 
     <dependencies>
 
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-core</artifactId>
-            <version>0.1</version>
-        </dependency>
-
+        <!-- Jopt Simple -->
         <dependency>
             <groupId>net.sf.jopt-simple</groupId>
             <artifactId>jopt-simple</artifactId>
             <version>${joptsimple.version}</version>
         </dependency>
 
+        <!-- Datashare Core -->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-core</artifactId>
+            <version>${datashare-core.version}</version>
+            <classifier>jar-with-dependencies</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
+
+        <!-- Datashare Tika -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-extract-tika</artifactId>
+            <version>${datashare-tika.version}</version>
+            <classifier>jar-with-dependencies</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Datashare CoreNLP -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-process-corenlp</artifactId>
+            <version>${datashare-corenlp.version}</version>
+            <classifier>jar-with-dependencies</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Datashare OpenNLP -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-process-opennlp</artifactId>
+            <version>${datashare-opennlp.version}</version>
+            <classifier>jar-with-dependencies</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Datashare GateNLP -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-process-gatenlp</artifactId>
+            <version>${datashare-gatenlp.version}</version>
+            <classifier>jar-with-dependencies</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
     </dependencies>
+
+
+    <build>
+        <plugins>
+
+            <!-- Package -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <mainClass>org.icij.datashare.cli.DataShareCli</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Assembly -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/main/assembly/assembly-dist.xml</descriptor>
+                    </descriptors>
+                    <descriptorRefs>none</descriptorRefs>
+                </configuration>
+            </plugin>
+
+            <!-- Execution -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>org.icij.datashare.cli.DataShareCli</mainClass>
+                    <arguments>
+                        <argument>--input-dir</argument>
+                        <argument>/home/julien/data/luxleaks/source</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
 
 </project>

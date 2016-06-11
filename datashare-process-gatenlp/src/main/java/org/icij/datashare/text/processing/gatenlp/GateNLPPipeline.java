@@ -109,8 +109,8 @@ public final class GateNLPPipeline extends AbstractNLPPipeline {
                             NamedEntity entity = optEntity.get();
                             docHash.ifPresent(entity::setDocument);
                             docPath.ifPresent(entity::setDocumentPath);
-                            entity.setExtractor(NLPPipelineType.GATENLP);
-                            entity.setExtractorLanguage(language);
+                            entity.setNlpPipeline(NLPPipelineType.GATENLP);
+                            entity.setNlpPipelineLanguage(language);
                             entities.add(entity);
                         }
                     }

@@ -1,15 +1,22 @@
 <assembly>
+
+    <!-- Specifies distribution name -->
     <id>dist</id>
-    <!-- Specifies binary distribution is a dir package -->
+
+    <!-- Specifies distribution type -->
     <formats>
         <format>dir</format>
-        <!--<format>zip</format>-->
+        <!--
+        <format>zip</format>
+        <format>tar.gz</format>
+        <format>tar.bz2</format>
+        -->
     </formats>
 
     <dependencySets>
         <dependencySet>
             <!--
-                Include the jar-with-dependencies
+                Include jar-with-dependencies and jar
             -->
             <includes>
                 <include>*:jar-with-dependencies</include>
@@ -32,6 +39,7 @@
 
 
     <fileSets>
+
         <!--
             Adds startup scripts to the root directory of zip package. The startup
             scripts are copied from the src/main/scripts directory.
@@ -43,6 +51,7 @@
                 <include>startup.*</include>
             </includes>
         </fileSet>
+
         <!--
             Adds the jar file of our application to the root directory.
         -->
@@ -53,6 +62,7 @@
                 <include>*.jar</include>
             </includes>
         </fileSet>
+
         <!--
             Copies the GateNLP resources directory to the root directory for letting
             Gate find and open settings & rule definition files at runtime.
@@ -63,4 +73,5 @@
         </fileSet>
 
     </fileSets>
+
 </assembly>

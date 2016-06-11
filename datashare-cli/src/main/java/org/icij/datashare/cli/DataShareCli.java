@@ -25,7 +25,7 @@ import static org.icij.datashare.util.io.FileSystemUtils.writeToFile;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 
-import org.icij.datashare.text.reading.DocumentParser;
+import org.icij.datashare.text.extraction.DocumentParser;
 
 import org.icij.datashare.text.processing.NamedEntity;
 import org.icij.datashare.text.processing.NamedEntityCategory;

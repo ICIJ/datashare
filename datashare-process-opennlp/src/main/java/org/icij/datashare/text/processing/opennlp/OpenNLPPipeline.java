@@ -232,8 +232,8 @@ public final class OpenNLPPipeline extends AbstractNLPPipeline {
                 for (NamedEntity entity : nes) {
                     Optional.ofNullable(documentHash).ifPresent(entity::setDocument);
                     Optional.ofNullable(documentPath).ifPresent(entity::setDocumentPath);
-                    entity.setExtractor(NLPPipelineType.OPENNLP);
-                    entity.setExtractorLanguage(language);
+                    entity.setNlpPipeline(NLPPipelineType.OPENNLP);
+                    entity.setNlpPipelineLanguage(language);
                     entities.add(entity);
                 }
             }

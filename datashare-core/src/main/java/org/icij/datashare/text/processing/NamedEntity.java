@@ -1,15 +1,16 @@
 package org.icij.datashare.text.processing;
 
-import me.xuender.unidecode.Unidecode;
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.hashing.Hasher;
-
 import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Logger;
 import static java.util.logging.Level.SEVERE;
+
+import me.xuender.unidecode.Unidecode;
+
+import org.icij.datashare.text.Language;
+
+import org.icij.datashare.text.hashing.Hasher;
 import static org.icij.datashare.text.hashing.Hasher.SHA_384;
-import static org.icij.datashare.text.hashing.Hasher.SHA_512;
 
 import static org.icij.datashare.text.processing.NLPPipeline.NLPPipelineType;
 
@@ -52,7 +53,7 @@ public class NamedEntity {
         Optional<NamedEntity> optEntity = create(cat, mention, offset, doc);
         if ( ! optEntity.isPresent())
             return Optional.empty();
-        optEntity.get().setExtractor(extr);
+        optEntity.get().setNlpPipeline(extr);
         return optEntity;
     }
 
@@ -65,13 +66,13 @@ public class NamedEntity {
 
 
     // Actual string denoting the named entity
-    private String mention;
+    private final String mention;
 
     // Mention's hash
-    private String hash;
+    private final String hash;
 
     // Category (Pers, Org, Loc)
-    private NamedEntityCategory category;
+    private final NamedEntityCategory category;
 
     // Approximative offset in document (lower bound ong number of chars from beginning)
     private int offset = -1;
@@ -92,10 +93,10 @@ public class NamedEntity {
     private Path documentPath;
 
     // Type of pipeline which extracted
-    private NLPPipelineType extractor;
+    private NLPPipelineType nlpPipeline;
 
     // Language setting by pipeline at extraction
-    private Language extractorLanguage;
+    private Language nlpPipelineLanguage;
 
 
     public String getMention() { return mention; }
@@ -132,14 +133,14 @@ public class NamedEntity {
     public void setPartOfSpeech(String pos) { partOfSpeech = pos; }
 
 
-    public Optional<NLPPipelineType> getExtractor() { return Optional.ofNullable(extractor); }
+    public Optional<NLPPipelineType> getNlpPipeline() { return Optional.ofNullable(nlpPipeline); }
 
-    public void setExtractor(NLPPipelineType extr) { extractor = extr; }
+    public void setNlpPipeline(NLPPipelineType pipeline) { nlpPipeline = pipeline; }
 
 
-    public Optional<Language> getExtractorLanguage() { return Optional.ofNullable(extractorLanguage); }
+    public Optional<Language> getNlpPipelineLanguage() { return Optional.ofNullable(nlpPipelineLanguage); }
 
-    public void setExtractorLanguage(Language extrLang) { extractorLanguage = extrLang; }
+    public void setNlpPipelineLanguage(Language extrLang) {nlpPipelineLanguage = extrLang; }
 
 
     public Optional<List<String>> getRightContext() { return Optional.ofNullable(rightContext); }
@@ -170,13 +171,13 @@ public class NamedEntity {
         else
             features.add("NONE");
 
-        Optional<NLPPipelineType> extr = getExtractor();
+        Optional<NLPPipelineType> extr = getNlpPipeline();
         if (extr.isPresent())
             features.add(extr.get().toString());
         else
             features.add("NONE");
 
-        Optional<Language> extrLang = getExtractorLanguage();
+        Optional<Language> extrLang = getNlpPipelineLanguage();
         if (extrLang.isPresent())
             features.add(extrLang.get().toString().toUpperCase(Locale.ROOT));
         else

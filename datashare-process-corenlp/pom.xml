@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>datashare-nlp-corenlp</artifactId>
+    <artifactId>datashare-process-corenlp</artifactId>
     <packaging>jar</packaging>
 
 

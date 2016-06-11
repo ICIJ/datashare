@@ -13,6 +13,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.util.function.ThrowingFunctions;
 
+import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.processing.NamedEntityCategory.*;
 import static org.icij.datashare.text.processing.NLPStage.*;
 
@@ -28,7 +29,7 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
             PERSON, ORGANIZATION, LOCATION
     ));
 
-    public static final Language DEFAULT_LANGUAGE = Language.ENGLISH;
+    public static final Language DEFAULT_LANGUAGE = ENGLISH;
 
     public static final Charset  DEFAULT_ENCODING = StandardCharsets.UTF_8;
 
@@ -98,10 +99,10 @@ public abstract class AbstractNLPPipeline implements NLPPipeline {
         }};
 
         supportedStages = new HashMap<Language, Set<NLPStage>>(){{
-            put(Language.ENGLISH, new HashSet<>());
-            put(Language.SPANISH, new HashSet<>());
-            put(Language.FRENCH,  new HashSet<>());
-            put(Language.GERMAN,  new HashSet<>());
+            put(ENGLISH, new HashSet<>());
+            put(SPANISH, new HashSet<>());
+            put(FRENCH,  new HashSet<>());
+            put(GERMAN,  new HashSet<>());
         }};
 
     }

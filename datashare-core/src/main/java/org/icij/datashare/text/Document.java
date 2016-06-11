@@ -7,15 +7,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 
 import org.icij.datashare.text.hashing.Hasher;
-import org.icij.datashare.text.reading.DocumentParser;
+import org.icij.datashare.text.extraction.DocumentParser;
 
 import static org.icij.datashare.text.hashing.Hasher.SHA_384;
-import static org.icij.datashare.text.hashing.Hasher.SHA_512;
 
 
 /**
@@ -30,7 +28,7 @@ public class Document {
 
     public static Optional<Document> create(Path path)  {
         if (path == null) {
-            LOGGER.log(WARNING, "Failed to create Document. Path is null");
+            LOGGER.log(WARNING, "Failed to create Document. Path is undefined");
             return Optional.empty();
         }
         if ( ! Files.exists(path)) {
@@ -50,9 +48,9 @@ public class Document {
     }
 
 
-    private Path path;
+    private final Path path;
 
-    private Date asOf;
+    private final Date asOf;
 
 
     private String content;
@@ -68,8 +66,6 @@ public class Document {
     private Map<String, String> metadata;
 
     private boolean read = false;
-
-    private boolean processed = false;
 
 
     private Document(Path p) {
