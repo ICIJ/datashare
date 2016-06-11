@@ -7,173 +7,150 @@
 
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
     <version>0.1</version>
 
 
+    <modules>
+        <module>datashare-core</module>
+        <module>datashare-extract-tika</module>
+        <module>datashare-process-corenlp</module>
+        <module>datashare-process-opennlp</module>
+        <module>datashare-process-gatenlp</module>
+        <module>datashare-cli</module>
+    </modules>
+
+
     <properties>
-        <tika.version>1.12</tika.version>
-        <corenlp.version>3.6.0</corenlp.version>
-        <opennlp.version>1.6.0</opennlp.version>
-        <unidecode.version>0.0.7</unidecode.version>
-        <bouncycastle.version>1.54</bouncycastle.version>
-        <joptsimple.version>5.0.1</joptsimple.version>
         <slf4j.version>1.7.18</slf4j.version>
         <junit.version>4.12</junit.version>
+
+        <datashare-core.version>${project.version}</datashare-core.version>
+        <datashare-tika.version>${project.version}</datashare-tika.version>
+        <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
+        <datashare-opennlp.version>${project.version}</datashare-opennlp.version>
+        <datashare-gatenlp.version>${project.version}</datashare-gatenlp.version>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
 
+    <dependencyManagement>
+        <dependencies>
+
+            <!-- JUnit -->
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- Log4J -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+
     <build>
-        <plugins>
+        <pluginManagement>
+            <plugins>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.5.1</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
+                <!-- Compilation -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>2.5.1</version>
+                    <configuration>
+                        <source>1.8</source>
+                        <target>1.8</target>
+                    </configuration>
+                </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <archive>
-                        <manifest>
-                            <mainClass>org.icij.datashare.DataShare</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+                <!-- Packaging / jar -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>2.5</version>
+                </plugin>
 
-        </plugins>
+                <!-- Packaging / Assembly / jar-with-dependencies -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>2.6</version>
+                    <configuration>
+                        <descriptorRefs>
+                            <descriptorRef>jar-with-dependencies</descriptorRef>
+                        </descriptorRefs>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>make-assembly</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>single</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <!-- Dependency Unpacking, Purging -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>2.10</version>
+                    <executions>
+                        <execution>
+                            <id>unpack-dependencies</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>unpack-dependencies</goal>
+                            </goals>
+                            <configuration>
+                                <excludeScope>system</excludeScope>
+                                <excludes>META-INF/*.SF</excludes>
+                                <excludes>META-INF/*.DSA</excludes>
+                                <excludes>META-INF/*.RSA</excludes>
+                                <excludeGroupIds>junit,org.mockito,org.hamcrest</excludeGroupIds>
+                                <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>purge-local-dependencies</id>
+                            <phase>clean</phase>
+                            <goals>
+                                <goal>purge-local-repository</goal>
+                            </goals>
+                            <configuration>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <!-- Execution -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>1.5.0</version>
+                    <executions>
+                        <execution>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>java</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
     </build>
 
-    <!-- Project Dependencies -->
-    <dependencies>
-
-        <dependency>
-            <groupId>es.upm.oeg</groupId>
-            <artifactId>entity-extractor</artifactId>
-            <version>0.1</version>
-            <type>jar</type>
-        </dependency>
-
-        <dependency>
-            <groupId>es.upm.oeg</groupId>
-            <artifactId>entity-extractor-lib</artifactId>
-            <version>0.1</version>
-            <type>jar</type>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-core</artifactId>
-            <version>${tika.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-parsers</artifactId>
-            <version>${tika.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models</classifier>
-        </dependency>
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models-spanish</classifier>
-        </dependency>
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models-french</classifier>
-        </dependency>
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models-german</classifier>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.opennlp</groupId>
-            <artifactId>opennlp-tools</artifactId>
-            <version>${opennlp.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>${bouncycastle.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-jdk15on</artifactId>
-            <version>${bouncycastle.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcmail-jdk15on</artifactId>
-            <version>${bouncycastle.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpg-jdk15on</artifactId>
-            <version>${bouncycastle.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>me.xuender</groupId>
-            <artifactId>unidecode</artifactId>
-            <version>${unidecode.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>net.sf.jopt-simple</groupId>
-            <artifactId>jopt-simple</artifactId>
-            <version>${joptsimple.version}</version>
-        </dependency>
-
-    </dependencies>
 
 </project>
