@@ -1,0 +1,66 @@
+<assembly>
+    <id>dist</id>
+    <!-- Specifies binary distribution is a dir package -->
+    <formats>
+        <format>dir</format>
+        <!--<format>zip</format>-->
+    </formats>
+
+    <dependencySets>
+        <dependencySet>
+            <!--
+                Include the jar-with-dependencies
+            -->
+            <includes>
+                <include>*:jar-with-dependencies</include>
+                <include>*:jar</include>
+            </includes>
+            <!--
+                Project artifact is not copied under library directory since
+                it is added to the root directory of the zip package.
+            -->
+            <useProjectArtifact>false</useProjectArtifact>
+            <!--
+                Don't use transitive dependencies since
+                they are already included in the jar
+            -->
+            <useTransitiveDependencies>false</useTransitiveDependencies>
+            <outputDirectory>lib/</outputDirectory>
+            <unpack>false</unpack>
+        </dependencySet>
+    </dependencySets>
+
+
+    <fileSets>
+        <!--
+            Adds startup scripts to the root directory of zip package. The startup
+            scripts are copied from the src/main/scripts directory.
+        -->
+        <fileSet>
+            <directory>${project.build.scriptSourceDirectory}</directory>
+            <outputDirectory></outputDirectory>
+            <includes>
+                <include>startup.*</include>
+            </includes>
+        </fileSet>
+        <!--
+            Adds the jar file of our application to the root directory.
+        -->
+        <fileSet>
+            <directory>${project.build.directory}</directory>
+            <outputDirectory></outputDirectory>
+            <includes>
+                <include>*.jar</include>
+            </includes>
+        </fileSet>
+        <!--
+            Copies the GateNLP resources directory to the root directory for letting
+            Gate find and open settings & rule definition files at runtime.
+        -->
+        <fileSet>
+            <directory>../datashare-process-gatenlp/src/main/resources</directory>
+            <outputDirectory>src/main/resources</outputDirectory>
+        </fileSet>
+
+    </fileSets>
+</assembly>
