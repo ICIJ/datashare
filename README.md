@@ -40,6 +40,7 @@ Supported named entity categories: **Person**, **Organization**, **Location**.
 
 Supported languages: **English**, **Spanish**, **French** and **German**.
 
+
 |  Pipeline \\ Stage  | Token            | Sentence        | PoS             | NER             |
 |---------------------|:-----------------|:----------------|:----------------|:----------------|
 |  CoreNLP            | en, es, fr, de   | en, es, fr, de  | en, es, fr, de  | en, es, --, de  |
@@ -49,23 +50,19 @@ Supported languages: **English**, **Spanish**, **French** and **German**.
 
 ## Usage Example
 
-`Main.java` exhibits basic usage.
+`org.icij.datashare.cli.DataShareCli.java` exhibits basic usage.
 
 
 ## Compilation
 
-Requires [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) and [Maven](http://maven.apache.org/download.cgi)
+Requires 
+[JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) and 
+[Maven](http://maven.apache.org/download.cgi)
 
 
 ## Todo
 
  - Integrate a `GATENLPPipeline`
-
- - Add data structure holding processing results
- 
- - Add command-line interface
-
- - Process all documents from folder / corpus
 
  - Asynchronous execution & multi-threading
  
