@@ -3,6 +3,13 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/datashare.iml" filepath="$PROJECT_DIR$/datashare.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-cli/datashare-cli.iml" filepath="$PROJECT_DIR$/datashare-cli/datashare-cli.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-core/datashare-core.iml" filepath="$PROJECT_DIR$/datashare-core/datashare-core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-extract-tika/datashare-extract-tika.iml" filepath="$PROJECT_DIR$/datashare-extract-tika/datashare-extract-tika.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-process-corenlp/datashare-process-corenlp.iml" filepath="$PROJECT_DIR$/datashare-process-corenlp/datashare-process-corenlp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-process-gatenlp/datashare-process-gatenlp.iml" filepath="$PROJECT_DIR$/datashare-process-gatenlp/datashare-process-gatenlp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-process-opennlp/datashare-process-opennlp.iml" filepath="$PROJECT_DIR$/datashare-process-opennlp/datashare-process-opennlp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-extract-tika/datashare-read-tika.iml" filepath="$PROJECT_DIR$/datashare-extract-tika/datashare-read-tika.iml" />
     </modules>
   </component>
 </project>

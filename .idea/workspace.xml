@@ -6,12 +6,163 @@
     </artifacts-to-build>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d5e5fbf8-0c92-482b-8e9b-085fc76981c4" name="Default" comment="Added getType and Optional as return type" />
+    <list default="true" id="d5e5fbf8-0c92-482b-8e9b-085fc76981c4" name="Default" comment="Added getType and Optional as return type">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-cli/pom.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-cli/src/main/assembly/assembly-dist.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/datashare-core.iml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/pom.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Corpus.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/test/TestBase.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/extraction/DocumentParserTest.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/hashing/HasherTest.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/processing/NLPPipelineTest.java" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-extract-tika/pom.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-corenlp/datashare-process-corenlp.iml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-corenlp/pom.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/datashare-process-gatenlp.iml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/pom.xml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-opennlp/datashare-process-opennlp.iml" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-opennlp/pom.xml" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__log4j_log4j_1_2_17.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_bouncycastle_bcmail_jdk15on_1_54.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_bouncycastle_bcpg_jdk15on_1_54.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_bouncycastle_bcpkix_jdk15on_1_54.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_slf4j_slf4j_log4j12_1_7_18.xml" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipelinesEvaluation.java" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/NLPPipelinesEvaluation.properties" afterPath="" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/DataShare.java" afterPath="$PROJECT_DIR$/datashare-cli/src/main/java/org/icij/datashare/cli/DataShareCli.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/Document.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Document.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/Language.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Language.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/hashing/HashException.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/hashing/HashException.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/hashing/Hasher.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/hashing/Hasher.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPStage.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NLPStage.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NamedEntity.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntity.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NamedEntityCategory.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntityCategory.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-process-corenlp/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/DocumentParser.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/extraction/DocumentParser.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/DocumentParserException.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/extraction/DocumentParserException.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/tika/ErrorParser.java" afterPath="$PROJECT_DIR$/datashare-extract-tika/src/main/java/org/icij/datashare/text/extraction/tika/ErrorParser.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/tika/ExcludedMediaTypeException.java" afterPath="$PROJECT_DIR$/datashare-extract-tika/src/main/java/org/icij/datashare/text/extraction/tika/ExcludedMediaTypeException.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/tika/TikaDocumentParser.java" afterPath="$PROJECT_DIR$/datashare-extract-tika/src/main/java/org/icij/datashare/text/extraction/tika/TikaDocumentParser.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/BiThrowingFunction.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/BiThrowingFunction.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/ThrowingFunction.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/ThrowingFunction.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/ThrowingFunctions.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/ThrowingFunctions.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java" afterPath="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/log4j.properties" afterPath="$PROJECT_DIR$/datashare-cli/src/main/resources/log4j.properties" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.properties" afterPath="$PROJECT_DIR$/datashare-process-corenlp/src/main/resources/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.properties" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/creole.xml" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/creole.xml" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.session" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.session" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.xml" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/conf/gate.xml" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/README.md" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/README.md" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/companySuffix.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/companySuffix.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countries.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countries.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countriesFrench.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countriesFrench.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryEEUU.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryEEUU.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryUK.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/countryUK.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.utf8.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/demonym.utf8.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/departments.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/departments.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/domains.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/domains.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/jobs.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/jobs.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/list.def" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/list.def" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/person.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/person.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/places.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/places.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/telephonePrefix.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/gazetteer/telephonePrefix.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffix1.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffix1.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffixLookup.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/CompanySuffixLookup.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/README.md" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/README.md" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company1.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company1.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company2.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company3.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company3.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company4.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/company4.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/country.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/country.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/email.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/email.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/main.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/main.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person1.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person1.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person2.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person3.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person3.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person4.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/person4.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street1.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street1.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street2.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street3.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/street3.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephone2.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended2.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/ner/rules/telephoneExtended2.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/abbreviations.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/abbreviations.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/cleanup.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/cleanup.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find-single-nl.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find-single-nl.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/find.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/lists.def" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/lists.def" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main-single-nl.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main-single-nl.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/main.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/no-splits.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/no-splits.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/prepare.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/prepare.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/split.jape" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/sentenceSplitter/split.jape" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/DefaultTokeniser.rules" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/DefaultTokeniser.rules" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/abbreviations.lst" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/src/main/resources/org/icij/datashare/text/processing/gatenlp/tokeniser/abbreviations.lst" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.properties" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.properties" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/chunk/fr-chunk.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/chunk/fr-chunk.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/mph/fr-mph.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/mph/fr-mph.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-date.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-date.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-location.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-location.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-organization.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-organization.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-person.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/en-ner-person.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-location.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-location.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-misc.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-misc.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-organization.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-organization.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-person.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/es-ner-person.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-location.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-location.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-organization.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-organization.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-person.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner/fr-ner-person.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/de-pos-maxent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/de-pos-maxent.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/en-pos-maxent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/en-pos-maxent.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/es-pos-maxent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/es-pos-maxent.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/fr-pos-maxent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/pos/fr-pos-maxent.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/de-sent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/de-sent.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/en-sent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/en-sent.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/fr-sent.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence/fr-sent.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/de-token.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/de-token.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/en-token.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/en-token.bin" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/fr-token.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/fr-token.bin" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/compiler.xml" afterPath="$PROJECT_DIR$/.idea/compiler.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/encodings.xml" afterPath="$PROJECT_DIR$/.idea/encodings.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/modules.xml" afterPath="$PROJECT_DIR$/.idea/modules.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare.iml" afterPath="$PROJECT_DIR$/datashare.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pom.xml" afterPath="$PROJECT_DIR$/pom.xml" />
+    </list>
     <ignored path="datashare.iws" />
     <ignored path=".idea/workspace.xml" />
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
     <ignored path="$PROJECT_DIR$/corenlp/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-core/target/" />
+    <ignored path="$PROJECT_DIR$/untitled/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-text-reading/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-text-processing/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-text-cli/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-cli/target/" />
+    <ignored path="$PROJECT_DIR$/core/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-text-processing/datashare-text-processing-corenlp/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-nlp/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-read/target/" />
+    <ignored path="$PROJECT_DIR$/nlp/opennlp/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-nlp-opennlp/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-nlp-gatenlp/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-nlp-corenlp/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-read-tika/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-extract-tika/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-process-corenlp/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-process-gatenlp/target/" />
+    <ignored path="$PROJECT_DIR$/datashare-process-opennlp/target/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -29,11 +180,21 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="TikaDocumentParser.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/tika/TikaDocumentParser.java">
+      <file leaf-file-name="pom.xml" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pom.xml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2730">
-              <caret line="166" column="52" selection-start-line="166" selection-start-column="52" selection-end-line="166" selection-end-column="52" />
+            <state relative-caret-position="672">
+              <caret line="32" column="0" selection-start-line="32" selection-start-column="0" selection-end-line="32" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Document.java" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Document.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="126">
+              <caret line="74" column="0" selection-start-line="74" selection-start-column="0" selection-end-line="74" selection-end-column="0" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -41,21 +202,43 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="DataShare.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/DataShare.java">
+      <file leaf-file-name="NLPPipeline.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4284">
-              <caret line="246" column="39" selection-start-line="246" selection-start-column="39" selection-end-line="246" selection-end-column="39" />
+            <state relative-caret-position="1512">
+              <caret line="87" column="0" selection-start-line="87" selection-start-column="0" selection-end-line="87" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="pom.xml" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/pom.xml">
+      <file leaf-file-name="NamedEntity.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntity.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="439">
-              <caret line="23" column="0" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
+            <state relative-caret-position="2499">
+              <caret line="131" column="0" selection-start-line="131" selection-start-column="0" selection-end-line="131" selection-end-column="0" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="pom.xml" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/datashare-cli/pom.xml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="2772">
+              <caret line="132" column="0" selection-start-line="132" selection-start-column="0" selection-end-line="132" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="assembly-dist.xml" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/datashare-cli/src/main/assembly/assembly-dist.xml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="189">
+              <caret line="9" column="5" selection-start-line="9" selection-start-column="5" selection-end-line="9" selection-end-column="5" />
               <folding />
             </state>
           </provider>
@@ -84,46 +267,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/ConfigDefaultsWithOptional.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/PropertiesDefaultsWithOptional.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/HasProperties.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/Files.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/File.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/security/HashingException.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/FileSystem.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/security/Hashing.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/security/HashingUtils.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/icij/datashare/test/TestBase.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/icij/datashare/util/security/HashingUtilsTest.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/ThrowingFunctionUtils.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/security/HashUtils.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/DocumentFactory.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/Main.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/security/HashAlgorithm.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/hashing/HashUtils.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/icij/datashare/util/security/HashUtilsTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/icij/datashare/util/security/HasherTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/icij/datashare/text/hashing/HasherTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/icij/datashare/text/processing/NLPPipelinesTest.java" />
-        <option value="$PROJECT_DIR$/src/test/java/org/icij/datashare/text/processing/NLPPipelineTest.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipelineFactory.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/DocumentParserFactory.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/Corpus.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/ThrowingFunction.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPStage.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/Language.java" />
-        <option value="$PROJECT_DIR$/corenlp/pom.xml" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/ThrowingFunctions.java" />
-        <option value="$PROJECT_DIR$/src/main/resources/log4j.properties" />
-        <option value="$PROJECT_DIR$/README.md" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipelinesEvaluation.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java" />
-        <option value="$PROJECT_DIR$/src/main/resources/META-INF/MANIFEST.MF" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/hashing/HashException.java" />
-        <option value="$PROJECT_DIR$/.idea/workspace.xml" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/DocumentParser.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java" />
-        <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NamedEntityCategory.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java" />
         <option value="$PROJECT_DIR$/out/artifacts/datashare_jar/README.md" />
         <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java" />
@@ -134,14 +277,54 @@
         <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java" />
         <option value="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/tika/TikaDocumentParser.java" />
+        <option value="$PROJECT_DIR$/datashare-text-reading/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-text-processing/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/ThrowingFunctions.java" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/ThrowingFunction.java" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/BiThrowingFunction.java" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java" />
+        <option value="$PROJECT_DIR$/datashare-text-cli/src/main/java/org/icij/datashare/DataShare.java" />
+        <option value="$PROJECT_DIR$/datashare-text-cli/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java" />
+        <option value="$PROJECT_DIR$/datashare-core/src/test/java/datashare/text/hashing/HasherTest.java" />
+        <option value="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/processing/NLPPipelineTest.java" />
+        <option value="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/reading/DocumentParserTest.java" />
+        <option value="$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/hashing/HasherTest.java" />
+        <option value="$PROJECT_DIR$/datashare-nlp/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java" />
+        <option value="$PROJECT_DIR$/datashare-read/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-nlp/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java" />
+        <option value="$PROJECT_DIR$/datashare-nlp-opennlp/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java" />
+        <option value="$PROJECT_DIR$/datashare-nlp-gatenlp/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java" />
+        <option value="$PROJECT_DIR$/datashare-cli/src/main/java/org/icij/datashare/DataShare.java" />
+        <option value="$PROJECT_DIR$/datashare-read-tika/src/main/java/org/icij/datashare/text/reading/tika/TikaDocumentParser.java" />
+        <option value="$PROJECT_DIR$/datashare-read-tika/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/reading/DocumentParser.java" />
+        <option value="$PROJECT_DIR$/datashare-cli/src/assembly/assembly.xml" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/hashing/Hasher.java" />
+        <option value="$PROJECT_DIR$/datashare-core/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-nlp-gatenlp/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-nlp-opennlp/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-nlp-corenlp/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-cli/src/main/java/org/icij/datashare/cli/DataShareCli.java" />
+        <option value="$PROJECT_DIR$/README.md" />
+        <option value="$PROJECT_DIR$/datashare-cli/src/main/assembly/assembly.xml" />
+        <option value="$PROJECT_DIR$/datashare-extract-tika/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-process-corenlp/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-process-gatenlp/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-process-opennlp/pom.xml" />
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-cli/src/main/assembly/assembly-dist.xml" />
+        <option value="$PROJECT_DIR$/datashare-cli/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntity.java" />
+        <option value="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Document.java" />
       </list>
     </option>
   </component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
-        <option name="mavenHome" value="Bundled (Maven 3)" />
+        <option name="mavenHome" value="/usr/share/maven" />
       </MavenGeneralSettings>
     </option>
     <option name="importingSettings">
@@ -156,7 +339,7 @@
   <component name="ProjectFrameBounds">
     <option name="y" value="25" />
     <option name="width" value="1920" />
-    <option name="height" value="1055" />
+    <option name="height" value="1053" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -211,6 +394,10 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="PackagesPane">
+        <subPane />
+      </pane>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -239,171 +426,19 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="test" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="text" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="test" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="test" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="util" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="src" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="main" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="java" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="datashare" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="text" />
+              <option name="myItemId" value=".idea" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
       <pane id="Scratches" />
-      <pane id="PackagesPane" />
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="project.structure.last.edited" value="Artifacts" />
+    <property name="project.structure.last.edited" value="Modules" />
     <property name="project.structure.proportion" value="0.15" />
-    <property name="project.structure.side.proportion" value="0.2703468" />
+    <property name="project.structure.side.proportion" value="0.39348903" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="MavenSettings" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
@@ -434,13 +469,14 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/datashare-cli/src/main" />
+      <recent name="$PROJECT_DIR$/datashare-cli/src/main/resources" />
+      <recent name="$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare" />
       <recent name="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/chunk" />
       <recent name="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/mph" />
-      <recent name="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/sentence" />
-      <recent name="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token" />
-      <recent name="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/ner" />
     </key>
     <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="org.icij.datashare" />
       <recent name="org.icij.datashare.text.processing.corenlp" />
       <recent name="org.icij.datashare.text.processing" />
       <recent name="org.icij.datashare.text" />
@@ -456,27 +492,7 @@
       <recent name="$PROJECT_DIR$/src/main/resources" />
     </key>
   </component>
-  <component name="RunManager" selected="Application.DataShare">
-    <configuration default="false" name="DataShare" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea">
-        <pattern>
-          <option name="PATTERN" value="org.icij.datashare.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="MAIN_CLASS_NAME" value="org.icij.datashare.DataShare" />
-      <option name="VM_PARAMETERS" value="-Xmx2g" />
-      <option name="PROGRAM_PARAMETERS" value="--i $USER_HOME$/data/luxleaks/source" />
-      <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
-      <option name="ALTERNATIVE_JRE_PATH" />
-      <option name="ENABLE_SWING_INSPECTOR" value="false" />
-      <option name="ENV_VARIABLES" />
-      <option name="PASS_PARENT_ENVS" value="true" />
-      <module name="datashare" />
-      <envs />
-      <method />
-    </configuration>
+  <component name="RunManager" selected="Maven.datashare [exec]">
     <configuration default="false" name="datashare [compile]" type="MavenRunConfiguration" factoryName="Maven" temporary="true">
       <MavenSettings>
         <option name="myGeneralSettings" />
@@ -826,6 +842,21 @@
       <envs />
       <method />
     </configuration>
+    <configuration default="false" name="DataShareCli" type="Application" factoryName="Application">
+      <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea" />
+      <option name="MAIN_CLASS_NAME" value="org.icij.datashare.cli.DataShareCli" />
+      <option name="VM_PARAMETERS" value="" />
+      <option name="PROGRAM_PARAMETERS" value="--input-dir $USER_HOME$/data/luxleaks/source" />
+      <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="ENABLE_SWING_INSPECTOR" value="false" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <module name="datashare-cli" />
+      <envs />
+      <method />
+    </configuration>
     <configuration default="false" name="Test" type="JUnit" factoryName="JUnit">
       <extension name="coverage" enabled="false" merge="false" sample_coverage="true" runner="idea" />
       <module name="datashare" />
@@ -847,15 +878,39 @@
       <patterns />
       <method />
     </configuration>
-    <list size="3">
-      <item index="0" class="java.lang.String" itemvalue="JUnit.Test" />
-      <item index="1" class="java.lang.String" itemvalue="Application.DataShare" />
-      <item index="2" class="java.lang.String" itemvalue="Maven.datashare [compile]" />
+    <configuration default="false" name="datashare [exec]" type="MavenRunConfiguration" factoryName="Maven">
+      <MavenSettings>
+        <option name="myGeneralSettings" />
+        <option name="myRunnerSettings" />
+        <option name="myRunnerParameters">
+          <MavenRunnerParameters>
+            <option name="profiles">
+              <set />
+            </option>
+            <option name="goals">
+              <list>
+                <option value="verify" />
+              </list>
+            </option>
+            <option name="profilesMap">
+              <map />
+            </option>
+            <option name="resolveToWorkspace" value="false" />
+            <option name="workingDirPath" value="$PROJECT_DIR$" />
+          </MavenRunnerParameters>
+        </option>
+      </MavenSettings>
+      <method />
+    </configuration>
+    <list size="4">
+      <item index="0" class="java.lang.String" itemvalue="Application.DataShareCli" />
+      <item index="1" class="java.lang.String" itemvalue="JUnit.Test" />
+      <item index="2" class="java.lang.String" itemvalue="Maven.datashare [exec]" />
+      <item index="3" class="java.lang.String" itemvalue="Maven.datashare [compile]" />
     </list>
     <recent_temporary>
-      <list size="2">
-        <item index="0" class="java.lang.String" itemvalue="Application.DataShare" />
-        <item index="1" class="java.lang.String" itemvalue="Maven.datashare [compile]" />
+      <list size="1">
+        <item index="0" class="java.lang.String" itemvalue="Maven.datashare [compile]" />
       </list>
     </recent_temporary>
   </component>
@@ -873,6 +928,9 @@
   </component>
   <component name="ShelveChangesManager" show_recycled="false">
     <option name="remove_strategy" value="false" />
+  </component>
+  <component name="StructureViewFactory">
+    <option name="AUTOSCROLL_FROM_SOURCE" value="true" />
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -1207,65 +1265,65 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="25" width="1920" height="1055" extended-state="0" />
-    <editor active="true" />
+    <frame x="0" y="25" width="1920" height="1053" extended-state="2" />
+    <editor active="false" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32928178" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.41318682" sideWeight="0.48294243" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Palette&#9;" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33547696" sideWeight="0.42217484" order="1" side_tool="true" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2836057" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.50330395" sideWeight="0.47761193" order="1" side_tool="true" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.31876332" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.26593408" sideWeight="0.4978701" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.41318682" sideWeight="0.5170576" order="9" side_tool="true" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33881578" sideWeight="0.50319487" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2707889" sideWeight="0.49014086" order="10" side_tool="false" content_ui="combo" />
-      <window_info id="Run with VisualVM" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4076923" sideWeight="0.4953125" order="13" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23591363" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="true" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.26492536" sideWeight="0.49014086" order="10" side_tool="false" content_ui="combo" />
+      <window_info id="Structure" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23560767" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24946696" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24307036" sideWeight="0.50985914" order="3" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.52960527" sideWeight="0.6118211" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug with VisualVM" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Dependency Viewer" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.35745615" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.22736955" sideWeight="0.5" order="8" side_tool="false" content_ui="combo" />
       <window_info id="Module Dependencies" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32960597" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.52960527" sideWeight="0.6118211" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.50330395" sideWeight="0.52025586" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Documentation" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="FLOATING" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" x="99" y="124" width="1722" height="857" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.46483517" sideWeight="0.47974414" order="9" side_tool="true" content_ui="tabs" />
+      <window_info id="Run with VisualVM" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4076923" sideWeight="0.4953125" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.6666667" sideWeight="0.47284344" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug with VisualVM" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33547696" sideWeight="0.42217484" order="1" side_tool="true" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.28198293" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.50330395" sideWeight="0.47761193" order="1" side_tool="true" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.31556502" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Dependency Viewer" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.35745615" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.22736955" sideWeight="0.5" order="8" side_tool="false" content_ui="combo" />
       <window_info id="Module Dependencies" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32960597" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23591363" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24973376" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23560767" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24946696" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.52960527" sideWeight="0.6118211" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32928178" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.41318682" sideWeight="0.48720682" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.50330395" sideWeight="0.52025586" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Palette&#9;" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Documentation" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="FLOATING" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" x="99" y="124" width="1722" height="857" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.26593408" sideWeight="0.4978701" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.30879122" sideWeight="0.5127932" order="9" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.46483517" sideWeight="0.47974414" order="9" side_tool="true" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33881578" sideWeight="0.50319487" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.26918977" sideWeight="0.49014086" order="10" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2595949" sideWeight="0.49014086" order="10" side_tool="false" content_ui="combo" />
       <window_info id="Run with VisualVM" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4076923" sideWeight="0.4953125" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.6666667" sideWeight="0.47284344" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24307036" sideWeight="0.50985914" order="3" side_tool="true" content_ui="tabs" />
@@ -1326,172 +1384,6 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="jar:///usr/lib/jvm/jdk-8-oracle-x64/src.zip!/java/lang/String.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="295">
-          <caret line="2449" column="25" selection-start-line="2449" selection-start-column="25" selection-end-line="2449" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/4.3/jopt-simple-4.3.jar!/joptsimple/OptionParser.class" />
-    <entry file="jar://$PROJECT_DIR$/../entity-extractor/dist/Entity-extractor-lib.jar!/gate/Gate.class" />
-    <entry file="file://$PROJECT_DIR$/src/main/resources/META-INF/MANIFEST.MF" />
-    <entry file="jar://$PROJECT_DIR$/../entity-extractor/dist/Entity-extractor-lib.jar!/gate/creole/gazetteer/DefaultGazetteer.class" />
-    <entry file="jar://$PROJECT_DIR$/../entity-extractor/dist/Entity-extractor-lib.jar!/gate/FeatureMap.class" />
-    <entry file="jar://$PROJECT_DIR$/../entity-extractor/dist/Entity-extractor-lib.jar!/gate/Factory.class" />
-    <entry file="jar:///usr/lib/jvm/jdk-8-oracle-x64/src.zip!/java/io/File.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="295">
-          <caret line="148" column="13" selection-start-line="148" selection-start-column="13" selection-end-line="148" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$PROJECT_DIR$/../entity-extractor/dist/Entity-extractor.jar!/es/upm/oeg/icij/entity/extractor/extractor/gate/GATENLPApplication.class" />
-    <entry file="jar:///usr/lib/jvm/jdk-8-oracle-x64/src.zip!/java/nio/file/Files.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="294">
-          <caret line="1267" column="23" selection-start-line="1267" selection-start-column="23" selection-end-line="1267" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/edu/stanford/nlp/stanford-corenlp/3.6.0/stanford-corenlp-3.6.0-sources.jar!/edu/stanford/nlp/pipeline/StanfordCoreNLP.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="137" column="9" selection-start-line="137" selection-start-column="9" selection-end-line="137" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/4.3/jopt-simple-4.3.jar!/joptsimple/OptionSet.class" />
-    <entry file="jar://$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/4.3/jopt-simple-4.3.jar!/joptsimple/BuiltinHelpFormatter.class" />
-    <entry file="jar://$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/4.3/jopt-simple-4.3-sources.jar!/joptsimple/BuiltinHelpFormatter.java" />
-    <entry file="file://$PROJECT_DIR$/.gitignore">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="21">
-          <caret line="1" column="0" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/4.3/jopt-simple-4.3-sources.jar!/joptsimple/OptionSet.java" />
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/hashing/HashException.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="63">
-          <caret line="3" column="9" selection-start-line="3" selection-start-column="9" selection-end-line="3" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/.idea/.name">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/.idea/workspace.xml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-315">
-          <caret line="41" column="0" selection-start-line="41" selection-start-column="0" selection-end-line="41" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///usr/lib/jvm/jdk-8-oracle-x64/src.zip!/java/util/Optional.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-9">
-          <caret line="134" column="0" selection-start-line="134" selection-start-column="0" selection-end-line="134" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/util/function/ThrowingFunctions.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="247">
-          <caret line="41" column="93" selection-start-line="41" selection-start-column="85" selection-end-line="41" selection-end-column="93" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///usr/lib/jvm/jdk-8-oracle-x64/src.zip!/java/util/ArrayList.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="152">
-          <caret line="576" column="0" selection-start-line="576" selection-start-column="0" selection-end-line="576" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="945">
-          <caret line="56" column="9" selection-start-line="56" selection-start-column="9" selection-end-line="56" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/Language.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="21">
-          <caret line="32" column="0" selection-start-line="32" selection-start-column="0" selection-end-line="32" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NamedEntityCategory.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="570">
-          <caret line="41" column="36" selection-start-line="41" selection-start-column="36" selection-end-line="41" selection-end-column="36" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$PROJECT_DIR$/../entity-extractor/dist/Entity-extractor-lib.jar!/gate/SimpleDocument.class" />
-    <entry file="jar://$PROJECT_DIR$/../entity-extractor/dist/Entity-extractor.jar!/es/upm/oeg/icij/entity/extractor/extractor/gate/GATENLPDocument.class" />
-    <entry file="jar://$MAVEN_REPOSITORY$/edu/stanford/nlp/stanford-corenlp/3.6.0/stanford-corenlp-3.6.0-sources.jar!/edu/stanford/nlp/ling/CoreAnnotations.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="294">
-          <caret line="277" column="22" selection-start-line="277" selection-start-column="22" selection-end-line="277" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/edu/stanford/nlp/stanford-corenlp/3.6.0/stanford-corenlp-3.6.0-sources.jar!/edu/stanford/nlp/ling/CoreLabel.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="9513">
-          <caret line="519" column="74" selection-start-line="519" selection-start-column="16" selection-end-line="519" selection-end-column="74" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3381">
-          <caret line="202" column="21" selection-start-line="202" selection-start-column="21" selection-end-line="202" selection-end-column="21" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar:///usr/lib/jvm/jdk-8-oracle-x64/src.zip!/java/util/Map.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="574">
-          <caret line="272" column="0" selection-start-line="272" selection-start-column="0" selection-end-line="272" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/out/artifacts/datashare_jar/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;MultiMarkdownPreviewEditor]">
-        <state split_layout="FIRST">
-          <first_editor relative-caret-position="609">
-            <caret line="29" column="7" selection-start-line="29" selection-start-column="7" selection-end-line="29" selection-end-column="7" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
-        <state />
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/edu/stanford/nlp/stanford-corenlp/3.6.0/stanford-corenlp-3.6.0-sources.jar!/edu/stanford/nlp/sequences/SeqClassifierFlags.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-16326">
-          <caret line="456" column="6" selection-start-line="456" selection-start-column="5" selection-end-line="456" selection-end-column="6" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="jar://$MAVEN_REPOSITORY$/edu/stanford/nlp/stanford-corenlp/3.6.0/stanford-corenlp-3.6.0-sources.jar!/edu/stanford/nlp/ie/AbstractSequenceClassifier.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="358">
-          <caret line="85" column="25" selection-start-line="85" selection-start-column="25" selection-end-line="85" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
     <entry file="jar://$MAVEN_REPOSITORY$/edu/stanford/nlp/stanford-corenlp/3.6.0/stanford-corenlp-3.6.0-sources.jar!/edu/stanford/nlp/ie/crf/CRFClassifier.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="841">
@@ -1503,90 +1395,11 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="205">
           <caret line="5002" column="32" selection-start-line="5002" selection-start-column="32" selection-end-line="5002" selection-end-column="32" />
-          <folding>
-            <element signature="e#223144#223145#0" expanded="false" />
-            <element signature="e#223197#223198#0" expanded="false" />
-          </folding>
         </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;MultiMarkdownPreviewEditor]">
-        <state split_layout="FIRST">
-          <first_editor relative-caret-position="787">
-            <caret line="88" column="0" selection-start-line="88" selection-start-column="0" selection-end-line="88" selection-end-column="0" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-      <provider editor-type-id="MultiMarkdownFxPreviewEditor">
-        <state />
       </provider>
     </entry>
     <entry file="jar://$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/2.4.1/jopt-simple-2.4.1.jar!/joptsimple/OptionSpec.class" />
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/DocumentParser.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="105">
-          <caret line="16" column="31" selection-start-line="16" selection-start-column="31" selection-end-line="16" selection-end-column="31" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="273">
-          <caret line="13" column="22" selection-start-line="13" selection-start-column="7" selection-end-line="13" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="841">
-          <caret line="124" column="0" selection-start-line="124" selection-start-column="0" selection-end-line="124" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="27" column="0" selection-start-line="27" selection-start-column="0" selection-end-line="27" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="228">
-          <caret line="65" column="0" selection-start-line="65" selection-start-column="0" selection-end-line="65" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/Document.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="228">
-          <caret line="53" column="0" selection-start-line="53" selection-start-column="0" selection-end-line="53" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/hashing/Hasher.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NamedEntity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="228">
-          <caret line="206" column="25" selection-start-line="206" selection-start-column="25" selection-end-line="206" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipelinesEvaluation.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="27" column="13" selection-start-line="27" selection-start-column="13" selection-end-line="27" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/util/io/FileSystemUtils.java" />
     <entry file="jar://$MAVEN_REPOSITORY$/es/upm/oeg/entity-extractor-lib/0.1/entity-extractor-lib-0.1.jar!/org/apache/tika/io/TikaInputStream.class">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="815">
@@ -1594,29 +1407,312 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/DataShare.java">
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/hashing/HashException.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4284">
-          <caret line="246" column="39" selection-start-line="246" selection-start-column="39" selection-end-line="246" selection-end-column="39" />
+        <state relative-caret-position="147">
+          <caret line="7" column="13" selection-start-line="7" selection-start-column="13" selection-end-line="7" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/extraction/DocumentParserException.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="105">
+          <caret line="5" column="13" selection-start-line="5" selection-start-column="13" selection-end-line="5" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntityCategory.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="147">
+          <caret line="8" column="12" selection-start-line="8" selection-start-column="12" selection-end-line="8" selection-end-column="12" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Corpus.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="147">
+          <caret line="8" column="13" selection-start-line="8" selection-start-column="13" selection-end-line="8" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NLPPipelinesEvaluation.java" />
+    <entry file="file://$PROJECT_DIR$/datashare-extract-tika/src/main/java/org/icij/datashare/text/extraction/tika/ExcludedMediaTypeException.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="147">
+          <caret line="7" column="13" selection-start-line="7" selection-start-column="13" selection-end-line="7" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NLPStage.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="294">
+          <caret line="16" column="13" selection-start-line="16" selection-start-column="13" selection-end-line="16" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-extract-tika/src/main/java/org/icij/datashare/text/extraction/tika/ErrorParser.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="84">
+          <caret line="12" column="13" selection-start-line="12" selection-start-column="13" selection-end-line="12" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/BiThrowingFunction.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="21">
+          <caret line="1" column="0" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/ThrowingFunction.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="63">
+          <caret line="4" column="0" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/function/ThrowingFunctions.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="17" selection-start-line="0" selection-start-column="17" selection-end-line="0" selection-end-column="17" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/util/io/FileSystemUtils.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="27" selection-start-line="0" selection-start-column="27" selection-end-line="0" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/extraction/DocumentParserTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="147">
+          <caret line="7" column="48" selection-start-line="7" selection-start-column="48" selection-end-line="7" selection-end-column="48" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/processing/NLPPipelineTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="147">
+          <caret line="7" column="46" selection-start-line="7" selection-start-column="46" selection-end-line="7" selection-end-column="46" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/test/java/org/icij/datashare/text/hashing/HasherTest.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="21">
+          <caret line="14" column="0" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.idea/.name">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-text-processing/datashare-text-processing-corenlp/pom.xml" />
+    <entry file="jar://$MAVEN_REPOSITORY$/edu/stanford/nlp/stanford-corenlp/3.6.0/stanford-corenlp-3.6.0-sources.jar!/edu/stanford/nlp/pipeline/StanfordCoreNLP.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="294">
+          <caret line="202" column="28" selection-start-line="202" selection-start-column="28" selection-end-line="202" selection-end-column="28" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/nlp/opennlp/pom.xml" />
+    <entry file="file://$PROJECT_DIR$/datashare-process-opennlp/datashare-process-opennlp.iml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-cli/datashare-cli.iml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/errors.log" />
+    <entry file="file://$PROJECT_DIR$/datashare-process-corenlp/src/main/java/org/icij/datashare/text/processing/corenlp/CoreNLPPipeline.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="223">
+          <caret line="100" column="54" selection-start-line="100" selection-start-column="54" selection-end-line="100" selection-end-column="54" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/AbstractNLPPipeline.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="258">
+          <caret line="14" column="0" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Language.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="184">
+          <caret line="36" column="4" selection-start-line="36" selection-start-column="4" selection-end-line="36" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$MAVEN_REPOSITORY$/net/sf/jopt-simple/jopt-simple/5.0.1/jopt-simple-5.0.1.jar!/joptsimple/OptionParser.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="126">
+          <caret line="44" column="13" selection-start-line="44" selection-start-column="13" selection-end-line="44" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-process-gatenlp/src/main/java/org/icij/datashare/text/processing/gatenlp/GateNLPPipeline.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-425">
+          <caret line="64" column="0" selection-start-line="64" selection-start-column="0" selection-end-line="64" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-process-corenlp/datashare-process-corenlp.iml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="84">
+          <caret line="4" column="65" selection-start-line="4" selection-start-column="65" selection-end-line="4" selection-end-column="65" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-process-opennlp/target/classes/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.class" />
+    <entry file="file://$PROJECT_DIR$/datashare-process-opennlp/src/main/java/org/icij/datashare/text/processing/opennlp/OpenNLPPipeline.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="168">
+          <caret line="8" column="38" selection-start-line="8" selection-start-column="38" selection-end-line="8" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/hashing/Hasher.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-840">
+          <caret line="14" column="26" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider editor-type-id="text-editor">
+        <state relative-caret-position="813">
+          <caret line="71" column="0" selection-start-line="71" selection-start-column="0" selection-end-line="71" selection-end-column="0" />
+        </state>
+      </provider>
+      <provider selected="true" editor-type-id="MarkdownPreviewEditor">
+        <state />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-extract-tika/pom.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="80">
+          <caret line="13" column="0" selection-start-line="13" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/pom.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="630">
+          <caret line="30" column="0" selection-start-line="30" selection-start-column="0" selection-end-line="30" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/org/icij/datashare/text/reading/tika/TikaDocumentParser.java">
+    <entry file="file://$PROJECT_DIR$/datashare-cli/src/main/java/org/icij/datashare/cli/DataShareCli.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2730">
-          <caret line="166" column="52" selection-start-line="166" selection-start-column="52" selection-end-line="166" selection-end-column="52" />
+        <state relative-caret-position="210">
+          <caret line="51" column="13" selection-start-line="51" selection-start-column="13" selection-end-line="51" selection-end-column="13" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-process-corenlp/pom.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-46">
+          <caret line="11" column="33" selection-start-line="11" selection-start-column="33" selection-end-line="11" selection-end-column="33" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-process-gatenlp/pom.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-294">
+          <caret line="1" column="50" selection-start-line="1" selection-start-column="50" selection-end-line="1" selection-end-column="50" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-process-opennlp/pom.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="815">
+          <caret line="50" column="10" selection-start-line="50" selection-start-column="10" selection-end-line="50" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-cli/src/main/assembly/assembly-dist.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="189">
+          <caret line="9" column="5" selection-start-line="9" selection-start-column="5" selection-end-line="9" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-cli/pom.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2772">
+          <caret line="132" column="0" selection-start-line="132" selection-start-column="0" selection-end-line="132" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/extraction/DocumentParser.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="609">
+          <caret line="93" column="26" selection-start-line="93" selection-start-column="26" selection-end-line="93" selection-end-column="26" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-extract-tika/src/main/java/org/icij/datashare/text/extraction/tika/TikaDocumentParser.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="986">
+          <caret line="99" column="0" selection-start-line="99" selection-start-column="0" selection-end-line="99" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pom.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="672">
+          <caret line="32" column="0" selection-start-line="32" selection-start-column="0" selection-end-line="32" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1512">
+          <caret line="87" column="0" selection-start-line="87" selection-start-column="0" selection-end-line="87" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/processing/NamedEntity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2499">
+          <caret line="131" column="0" selection-start-line="131" selection-start-column="0" selection-end-line="131" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/pom.xml">
+    <entry file="file://$PROJECT_DIR$/datashare-core/src/main/java/org/icij/datashare/text/Document.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="439">
-          <caret line="23" column="0" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
-          <folding />
+        <state relative-caret-position="126">
+          <caret line="74" column="0" selection-start-line="74" selection-start-column="0" selection-end-line="74" selection-end-column="0" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1627,15 +1723,15 @@
         <settings>
           <artifact-editor>
             <show-content>
-              <type id="artifact" />
               <type id="library" />
+              <type id="artifact" />
             </show-content>
           </artifact-editor>
           <last-edited>datashare:jar</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
-                <option value="0.2703468" />
+                <option value="0.39348903" />
                 <option value="0.5" />
               </list>
             </option>
@@ -1648,7 +1744,7 @@
           <splitter-proportions>
             <option name="proportions">
               <list>
-                <option value="0.43793103" />
+                <option value="0.39348903" />
               </list>
             </option>
           </splitter-proportions>
@@ -1659,7 +1755,7 @@
           <splitter-proportions>
             <option name="proportions">
               <list>
-                <option value="0.13153724" />
+                <option value="0.39348903" />
               </list>
             </option>
           </splitter-proportions>
@@ -1671,7 +1767,7 @@
           <splitter-proportions>
             <option name="proportions">
               <list>
-                <option value="0.13153724" />
+                <option value="0.39348903" />
               </list>
             </option>
           </splitter-proportions>
@@ -1683,8 +1779,7 @@
           <splitter-proportions>
             <option name="proportions">
               <list>
-                <option value="0.2703468" />
-                <option value="0.6" />
+                <option value="0.39348903" />
               </list>
             </option>
           </splitter-proportions>
@@ -1704,11 +1799,11 @@
       </state>
       <state key="ProjectLibrariesConfigurable.UI">
         <settings>
-          <last-edited>Maven: c3p0:c3p0:0.9.1.1</last-edited>
+          <last-edited>Maven: com.google.guava:guava:17.0</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
-                <option value="0.2703468" />
+                <option value="0.39348903" />
               </list>
             </option>
           </splitter-proportions>
@@ -1718,6 +1813,7 @@
   </component>
   <component name="mavenExecuteGoalHistory">
     <option value="$PROJECT_DIR$" />
+    <option value="dependency:purge-local-repository" />
     <option value="clean" />
     <option value="clean compile" />
     <option value="clean compile package" />

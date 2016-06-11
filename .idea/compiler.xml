@@ -22,12 +22,45 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
-        <module name="datashare" />
+        <module name="datashare-cli" />
+        <module name="datashare-core" />
+        <module name="datashare-extract-tika" />
+        <module name="datashare-nlp" />
+        <module name="datashare-nlp-corenlp" />
+        <module name="datashare-nlp-gatenlp" />
+        <module name="datashare-nlp-opennlp" />
+        <module name="datashare-process-corenlp" />
+        <module name="datashare-process-gatenlp" />
+        <module name="datashare-process-opennlp" />
+        <module name="datashare-read" />
+        <module name="datashare-read-tika" />
+        <module name="datashare-text-cli" />
+        <module name="datashare-text-processing" />
+        <module name="datashare-text-reading" />
+        <module name="untitled" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="corenlp" target="1.8" />
-      <module name="datashare" target="1.8" />
+      <module name="datashare" target="1.5" />
+      <module name="datashare-cli" target="1.8" />
+      <module name="datashare-core" target="1.8" />
+      <module name="datashare-extract-tika" target="1.8" />
+      <module name="datashare-nlp" target="1.8" />
+      <module name="datashare-nlp-corenlp" target="1.8" />
+      <module name="datashare-nlp-gatenlp" target="1.8" />
+      <module name="datashare-nlp-opennlp" target="1.8" />
+      <module name="datashare-process-corenlp" target="1.8" />
+      <module name="datashare-process-gatenlp" target="1.8" />
+      <module name="datashare-process-opennlp" target="1.8" />
+      <module name="datashare-read" target="1.8" />
+      <module name="datashare-read-tika" target="1.8" />
+      <module name="datashare-text-cli" target="1.8" />
+      <module name="datashare-text-corenlp" target="1.8" />
+      <module name="datashare-text-processing" target="1.8" />
+      <module name="datashare-text-processing-corenlp" target="1.8" />
+      <module name="datashare-text-reading" target="1.8" />
+      <module name="untitled" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

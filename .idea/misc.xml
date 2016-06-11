@@ -12,6 +12,7 @@
     <option name="ignoredFiles">
       <set>
         <option value="$PROJECT_DIR$/corenlp/pom.xml" />
+        <option value="$PROJECT_DIR$/datashare-text-processing/datashare-text-processing-corenlp/pom.xml" />
       </set>
     </option>
   </component>
