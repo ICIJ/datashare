@@ -24,11 +24,6 @@
       <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-gatenlp/pom.xml" />
       <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-opennlp/datashare-process-opennlp.iml" />
       <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/datashare-process-opennlp/pom.xml" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__log4j_log4j_1_2_17.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_bouncycastle_bcmail_jdk15on_1_54.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_bouncycastle_bcpg_jdk15on_1_54.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_bouncycastle_bcpkix_jdk15on_1_54.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/libraries/Maven__org_slf4j_slf4j_log4j12_1_7_18.xml" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipeline.java" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/java/org/icij/datashare/text/processing/NLPPipelinesEvaluation.java" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/NLPPipelinesEvaluation.properties" afterPath="" />
@@ -130,10 +125,6 @@
       <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/de-token.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/de-token.bin" />
       <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/en-token.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/en-token.bin" />
       <change type="MOVED" beforePath="$PROJECT_DIR$/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/fr-token.bin" afterPath="$PROJECT_DIR$/datashare-process-opennlp/src/main/resources/org/icij/datashare/text/processing/opennlp/models/token/fr-token.bin" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/compiler.xml" afterPath="$PROJECT_DIR$/.idea/compiler.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/encodings.xml" afterPath="$PROJECT_DIR$/.idea/encodings.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/modules.xml" afterPath="$PROJECT_DIR$/.idea/modules.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/datashare.iml" afterPath="$PROJECT_DIR$/datashare.iml" />
@@ -1244,7 +1235,14 @@
       <option name="project" value="LOCAL" />
       <updated>1464941000017</updated>
     </task>
-    <option name="localTasksCounter" value="44" />
+    <task id="LOCAL-00044" summary="IntelliJ project update">
+      <created>1465657694584</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1465657694584</updated>
+    </task>
+    <option name="localTasksCounter" value="45" />
     <servers />
   </component>
   <component name="TestHistory">
@@ -1343,7 +1341,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <confirmMoveToFailedCommit value="1" />
-    <MESSAGE value="File system utility class, notably read/write text files robustly" />
     <MESSAGE value="Content hashing" />
     <MESSAGE value="Added Document data structure" />
     <MESSAGE value="Refactored Factory; Added Optional as return type" />
@@ -1368,7 +1365,8 @@
     <MESSAGE value="Added holding of file extensions supported list." />
     <MESSAGE value="Added stage handling in command line. Code Refactoring" />
     <MESSAGE value="File extensions is now given as a parameter of listFilesInDir and not a field of FileSystemUtils (handling tranferred to DocumentParser)" />
-    <option name="LAST_COMMIT_MESSAGE" value="File extensions is now given as a parameter of listFilesInDir and not a field of FileSystemUtils (handling tranferred to DocumentParser)" />
+    <MESSAGE value="IntelliJ project update" />
+    <option name="LAST_COMMIT_MESSAGE" value="IntelliJ project update" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1677,6 +1675,10 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="986">
           <caret line="99" column="0" selection-start-line="99" selection-start-column="0" selection-end-line="99" selection-end-column="0" />
+          <folding>
+            <element signature="e#3377#3378#0" expanded="true" />
+            <element signature="e#3427#3428#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
