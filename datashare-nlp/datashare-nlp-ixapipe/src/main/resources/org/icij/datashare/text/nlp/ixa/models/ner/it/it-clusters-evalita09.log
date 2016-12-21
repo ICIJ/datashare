@@ -1,0 +1,90 @@
+CLI options: Namespace(params=it-clusters-evalita09.properties)
+-> Token features added!: Window range 2:2
+-> Token Class Features added!: Window range 2:2
+-> Outcome Prior Features added!
+-> Previous Map Features added!
+-> Sentence Features added!
+-> Prefix Features added!
+-> Suffix Features added!
+-> Bigram Class Features added!
+-> Brown Cluster Features added!
+-> Clark Cluster Features added!
+-> Word2Vec Clusters Features added!
+<?xml version="1.0" encoding="UTF-8"?>
+<generators>
+  <cache>
+    <generators>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.TokenFeatureGenerator" />
+      </window>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.TokenClassFeatureGenerator" />
+      </window>
+      <custom class="eus.ixa.ixa.pipe.nerc.features.OutcomePriorFeatureGenerator" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.PreviousMapFeatureGenerator" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.SentenceFeatureGenerator" begin="true" end="false" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.Prefix34FeatureGenerator" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.SuffixFeatureGenerator" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.BigramClassFeatureGenerator" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.Prev2MapFeatureGenerator" />
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.PreviousMapTokenFeatureGenerator" />
+      </window>
+      <custom class="eus.ixa.ixa.pipe.nerc.features.BrownBigramFeatureGenerator" dict="itwikiprecleantokc1000p1txt" />
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.BrownTokenFeatureGenerator" dict="itwikiprecleantokc1000p1txt" />
+      </window>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.BrownTokenClassFeatureGenerator" dict="itwikiprecleantokc1000p1txt" />
+      </window>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.ClarkFeatureGenerator" dict="itwikiprecleantokpunctlower300" />
+      </window>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.Word2VecClusterFeatureGenerator" dict="itwikis50w5400" />
+      </window>
+    </generators>
+  </cache>
+</generators>
+
+Indexing events using cutoff of 0
+
+	Computing event counts...  done. 212478 events
+	Indexing...  done.
+Collecting events... Done indexing.
+Incorporating indexed data for training...  
+done.
+	Number of Event Tokens: 212478
+	    Number of Outcomes: 17
+	  Number of Predicates: 756500
+Computing model parameters...
+Performing 500 iterations.
+  1:  . (207013/212478) 0.9742796901326255
+  2:  . (209511/212478) 0.986036201394968
+  3:  . (210421/212478) 0.9903189977315299
+  4:  . (210843/212478) 0.9923050857029905
+  5:  . (211244/212478) 0.9941923399128381
+  6:  . (211492/212478) 0.9953595195737912
+  7:  . (211647/212478) 0.9960890068618868
+  8:  . (211737/212478) 0.9965125801259425
+  9:  . (211846/212478) 0.9970255744124098
+ 10:  . (211958/212478) 0.9975526878076789
+ 20:  . (212305/212478) 0.9991857980590931
+ 30:  . (212391/212478) 0.9995905458447463
+ 40:  . (212421/212478) 0.9997317369327648
+ 50:  . (212453/212478) 0.9998823407599846
+ 60:  . (212446/212478) 0.9998493961727802
+Stopping: change in training set accuracy less than 1.0E-5
+Stats: (212459/212478) 0.9999105789775883
+...done.
+Final Result: 
+Precision: 0.8399912203687445
+Recall: 0.7706403544099879
+F-Measure: 0.8038227263180006
+Writing ixa-pipe-nerc model ... Compressed 756500 parameters to 100568
+3567 outcome patterns
+done (3.726s)
+
+Wrote ixa-pipe-nerc model to
+path: /home/ragerri/javacode/ixa-pipe-nerc/it-clusters-evalita09.bin
+

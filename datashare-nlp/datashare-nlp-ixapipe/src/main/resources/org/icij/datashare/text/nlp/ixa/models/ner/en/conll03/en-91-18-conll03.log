@@ -1,0 +1,94 @@
+CLI options: Namespace(params=en-91-18-conll03.properties)
+-> Token features added!: Window range 2:2
+-> Token Class Features added!: Window range 2:2
+-> Outcome Prior Features added!
+-> Previous Map Features added!
+-> Sentence Features added!
+-> Prefix Features added!
+-> Suffix Features added!
+-> Bigram Class Features added!
+-> Dictionary Features added!
+-> Brown Cluster Features added!
+-> Clark Cluster Features added!
+-> Word2Vec Clusters Features added!
+<?xml version="1.0" encoding="UTF-8"?>
+<generators>
+  <cache>
+    <generators>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.TokenFeatureGenerator" />
+      </window>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.TokenClassFeatureGenerator" />
+      </window>
+      <custom class="eus.ixa.ixa.pipe.nerc.features.OutcomePriorFeatureGenerator" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.PreviousMapFeatureGenerator" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.SentenceFeatureGenerator" begin="true" end="false" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.Prefix34FeatureGenerator" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.SuffixFeatureGenerator" />
+      <custom class="eus.ixa.ixa.pipe.nerc.features.BigramClassFeatureGenerator" />
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.DictionaryFeatureGenerator" dict="largegaztxt" seqCodec="BILOU" />
+      </window>
+      <custom class="eus.ixa.ixa.pipe.nerc.features.Prev2MapFeatureGenerator" />
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.PreviousMapTokenFeatureGenerator" />
+      </window>
+      <custom class="eus.ixa.ixa.pipe.nerc.features.BrownBigramFeatureGenerator" dict="brownrcv1cleantokenizedCoNLL03txtc1000freq1txt" />
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.BrownTokenFeatureGenerator" dict="brownrcv1cleantokenizedCoNLL03txtc1000freq1txt" />
+      </window>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.BrownTokenClassFeatureGenerator" dict="brownrcv1cleantokenizedCoNLL03txtc1000freq1txt" />
+      </window>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.ClarkFeatureGenerator" dict="reutersrcv1tokpunctlower600" />
+      </window>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.ClarkFeatureGenerator" dict="enwikipediaprecleantokpunctlower600" />
+      </window>
+      <window prevLength="2" nextLength="2">
+        <custom class="eus.ixa.ixa.pipe.nerc.features.Word2VecClusterFeatureGenerator" dict="engigawords50w5200" />
+      </window>
+    </generators>
+  </cache>
+</generators>
+
+Indexing events using cutoff of 0
+
+	Computing event counts...  done. 203621 events
+	Indexing...  done.
+Collecting events... Done indexing.
+Incorporating indexed data for training...  
+done.
+	Number of Event Tokens: 203621
+	    Number of Outcomes: 17
+	  Number of Predicates: 814615
+Computing model parameters...
+Performing 500 iterations.
+  1:  . (198845/203621) 0.9765446589497154
+  2:  . (201719/203621) 0.9906591166922861
+  3:  . (202445/203621) 0.9942245642640003
+  4:  . (202868/203621) 0.9963019531384287
+  5:  . (203048/203621) 0.997185948404143
+  6:  . (203199/203621) 0.9979275222103811
+  7:  . (203273/203621) 0.9982909424862858
+  8:  . (203332/203621) 0.9985806964900477
+  9:  . (203384/203621) 0.9988360729001429
+ 10:  . (203395/203621) 0.9988900948330477
+ 20:  . (203547/203621) 0.9996365797240953
+ 30:  . (203576/203621) 0.9997790011835714
+Stopping: change in training set accuracy less than 1.0E-5
+Stats: (203571/203621) 0.9997544457595238
+...done.
+Final Result: 
+Precision: 0.9219909502262443
+Recall: 0.9019121813031161
+F-Measure: 0.9118410453772487
+Writing ixa-pipe-nerc model ... Compressed 814615 parameters to 109543
+5849 outcome patterns
+done (9.878s)
+
+Wrote ixa-pipe-nerc model to
+path: /home/ragerri/javacode/ixa-pipe-nerc/en-91-18-conll03.bin
+

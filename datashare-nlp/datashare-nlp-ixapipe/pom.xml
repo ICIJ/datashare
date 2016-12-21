@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>datashare-nlp</artifactId>
+        <groupId>org.icij.datashare</groupId>
+        <version>0.5</version>
+    </parent>
+
+    <artifactId>datashare-nlp-ixapipe</artifactId>
+    <packaging>jar</packaging>
+
+
+    <dependencies>
+
+        <!-- Datashare Api -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-api</artifactId>
+        </dependency>
+
+        <!-- Ixa-Pipe-Tok -->
+        <dependency>
+            <groupId>eus.ixa</groupId>
+            <artifactId>ixa-pipe-tok</artifactId>
+            <version>${ixa-pipe-tok.version}</version>
+        </dependency>
+
+        <!-- Ixa-Pipe-Pos -->
+        <dependency>
+            <groupId>eus.ixa</groupId>
+            <artifactId>ixa-pipe-pos</artifactId>
+            <version>${ixa-pipe-pos.version}</version>
+        </dependency>
+
+        <!-- Ixa-Pipe-Nerc -->
+        <dependency>
+            <groupId>eus.ixa</groupId>
+            <artifactId>ixa-pipe-nerc</artifactId>
+            <version>${ixa-pipe-nerc.version}</version>
+        </dependency>
+
+        <!-- Kaflib-naf -->
+        <dependency>
+            <groupId>com.github.ixa-ehu</groupId>
+            <artifactId>kaflib-naf</artifactId>
+            <version>${ixa-kaflib-naf.version}</version>
+        </dependency>
+
+        <!-- Carrot2 Morphologik stemmer -->
+        <dependency>
+            <groupId>org.carrot2</groupId>
+            <artifactId>morfologik-stemming</artifactId>
+            <version>1.6.0</version>
+        </dependency>
+
+        <!-- Google Guava -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>19.0</version>
+        </dependency>
+
+        <!-- Log4j / Slf4j -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+        </dependency>
+
+    </dependencies>
+
+
+    <build>
+
+        <resources>
+            <resource>
+                <!-- Exclude models -->
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>**/*.bin</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
+        <plugins>
+
+            <!-- Assembly -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
+
+            <!-- Shade -->
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <configuration>
+                    <transformers>
+                        <!-- Exclude models -->
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
+                            <resource>.bin</resource>
+                        </transformer>
+                    </transformers>
+                    <!-- Package Renaming -->
+                    <!--<relocations>-->
+                        <!--<relocation>-->
+                            <!--<pattern>com.google</pattern>-->
+                            <!--<shadedPattern>for.ixapipe.com.google</shadedPattern>-->
+                        <!--</relocation>-->
+                        <!--<relocation>-->
+                            <!--<pattern>org.jdom2</pattern>-->
+                            <!--<shadedPattern>for.ixapipe.org.jdom2</shadedPattern>-->
+                        <!--</relocation>-->
+                    <!--</relocations>-->
+                </configuration>
+            </plugin>
+
+            <!-- Install -->
+            <plugin>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <!-- ixa-pipe-tok -->
+                    <execution>
+                        <phase>validate</phase>
+                        <id>install-ixa-pipe-tok</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>eus.ixa</groupId>
+                            <artifactId>ixa-pipe-tok</artifactId>
+                            <version>${ixa-pipe-tok.version}</version>
+                            <packaging>jar</packaging>
+                            <file>${project.basedir}/lib/ixa-pipe-tok-${ixa-pipe-tok.version}.jar</file>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                    </execution>
+                    <!-- ixa-pipe-pos -->
+                    <execution>
+                        <phase>validate</phase>
+                        <id>install-ixa-pipe-pos</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>eus.ixa</groupId>
+                            <artifactId>ixa-pipe-pos</artifactId>
+                            <version>${ixa-pipe-pos.version}</version>
+                            <packaging>jar</packaging>
+                            <file>${project.basedir}/lib/ixa-pipe-pos-${ixa-pipe-pos.version}.jar</file>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                    </execution>
+                    <!-- ixa-pipe-nerc -->
+                    <execution>
+                        <phase>validate</phase>
+                        <id>install-ixa-pipe-nerc</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>eus.ixa</groupId>
+                            <artifactId>ixa-pipe-nerc</artifactId>
+                            <version>${ixa-pipe-nerc.version}</version>
+                            <packaging>jar</packaging>
+                            <file>${project.basedir}/lib/ixa-pipe-nerc-${ixa-pipe-nerc.version}.jar</file>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+</project>
