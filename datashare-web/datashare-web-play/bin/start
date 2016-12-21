@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+scriptdir=`dirname $0`
+classpath=$scriptdir/conf:$scriptdir/lib/*
+nohup java $* -cp "$classpath" play.core.server.ProdServerStart $scriptdir > $scriptdir/logs/system.out 2>&1 &

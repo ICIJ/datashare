@@ -1,0 +1,24 @@
+# Routes
+# (Higher priority routes first)
+# Dev Mode: set JVM stack size to 256MB (-Xss256m) because of a Scala compiler (Typer) stack overflow bug
+# ~~~~
+
+
+# Processing Controller
+
+POST    /datashare/process/local/:inputdir           controllers.org.icij.datashare.web.ProcessController.processDirectory(inputdir, index = "datashare-local", pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+POST    /datashare/process/local/:inputdir/:index    controllers.org.icij.datashare.web.ProcessController.processDirectory(inputdir, index,                     pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+
+#POST    /datashare/process/:queueaddr           controllers.org.icij.datashare.web.ProcessController.processDistributedQueue(inputdir, index = "datashare-local", hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+#POST    /datashare/process/:queueaddr/:index    controllers.org.icij.datashare.web.ProcessController.processDistributedQueue(inputdir, index,                     hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+
+
+# Indexing Controller
+
+GET       /datashare/index                        controllers.org.icij.datashare.web.IndexController.listIndices()
+POST      /datashare/index/:index                 controllers.org.icij.datashare.web.IndexController.createIndex(index)
+PUT       /datashare/index/:index                 controllers.org.icij.datashare.web.IndexController.commitIndex(index)
+DELETE    /datashare/index/:index                 controllers.org.icij.datashare.web.IndexController.deleteIndex(index)
+
+GET       /datashare/index/:query                 controllers.org.icij.datashare.web.IndexController.searchAnyIndex(query)
+GET       /datashare/index/:index/:type/:query    controllers.org.icij.datashare.web.IndexController.search(index, type, query)

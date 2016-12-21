@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>datashare-web</artifactId>
+        <groupId>org.icij.datashare</groupId>
+        <version>0.5</version>
+    </parent>
+
+    <artifactId>datashare-web-play</artifactId>
+    <packaging>play2</packaging>
+
+
+    <properties>
+        <scala.version>2.11.7</scala.version>
+        <sbt-compiler.plugin.version>1.0.0-beta9</sbt-compiler.plugin.version>
+    </properties>
+
+
+    <dependencies>
+
+        <!-- Datashare Api -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-api</artifactId>
+        </dependency>
+
+        <!-- Scala -->
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+
+        <!-- Play! -->
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play-java_2.11</artifactId>
+            <version>${play2.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play-netty-server_2.11</artifactId>
+            <version>${play2.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play-logback_2.11</artifactId>
+            <version>${play2.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.play</groupId>
+            <artifactId>play-test_2.11</artifactId>
+            <version>${play2.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Log4j / Slf4j -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-web</artifactId>
+            <version>${log4j.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+    </dependencies>
+
+
+    <build>
+
+        <sourceDirectory>${basedir}/app</sourceDirectory>
+        <testSourceDirectory>${basedir}/test</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>${basedir}/conf</directory>
+            </resource>
+            <resource>
+                <directory>${basedir}/public</directory>
+                <targetPath>public</targetPath>
+            </resource>
+        </resources>
+
+        <plugins>
+
+            <!-- Compiler -->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+
+            <!-- Assembly -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
+
+            <!-- Play2 Dist -->
+            <plugin>
+                <groupId>com.google.code.play2-maven-plugin</groupId>
+                <artifactId>play2-maven-plugin</artifactId>
+                <version>${maven-play2.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <mainLang>java</mainLang>
+                    <distAttach>true</distAttach>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <id>make-play-dist</id>
+                        <goals>
+                            <goal>dist</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Sbt -->
+            <plugin>
+                <groupId>com.google.code.sbt-compiler-maven-plugin</groupId>
+                <artifactId>sbt-compiler-maven-plugin</artifactId>
+                <version>${sbt-compiler.plugin.version}</version>
+            </plugin>
+
+            <!-- Test -->
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+
+            <!-- Install -->
+            <plugin>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <!-- Play2 Maven Plugin - Jar -->
+                    <execution>
+                        <phase>validate</phase>
+                        <id>install-play2-maven-plugin-jar</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>com.google.code.play2-maven-plugin</groupId>
+                            <artifactId>play2-maven-plugin</artifactId>
+                            <version>${maven-play2.version}</version>
+                            <packaging>jar</packaging>
+                            <file>${project.basedir}/lib/play2-maven-plugin-${maven-play2.version}.jar</file>
+                            <generatePom>false</generatePom>
+                        </configuration>
+                    </execution>
+                    <!-- Play2 Maven Plugin - Pom -->
+                    <execution>
+                        <phase>validate</phase>
+                        <id>install-play2-maven-plugin-pom</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>com.google.code.play2-maven-plugin</groupId>
+                            <artifactId>play2-maven-plugin</artifactId>
+                            <version>${maven-play2.version}</version>
+                            <packaging>pom</packaging>
+                            <file>${project.basedir}/lib/play2-maven-plugin-${maven-play2.version}.pom</file>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+
+    </build>
+
+</project>
