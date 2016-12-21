@@ -1,0 +1,2 @@
+#!/bin/bash
+ES_JAVA_OPTS="-Xms1500M -Xmx1500M -Dfile.encoding=UTF-8" ./dist/elasticsearch-5.1.1/bin/elasticsearch -p idx.pid -d

@@ -1,0 +1,30 @@
+[2016-12-15T15:29:22,081][INFO ][o.e.n.Node               ] [IJulm] initializing ...
+[2016-12-15T15:29:22,540][INFO ][o.e.e.NodeEnvironment    ] [IJulm] using [1] data paths, mounts [[/home (/dev/sda8)]], net usable_space [98.8gb], net total_space [412.3gb], spins? [no], types [ext4]
+[2016-12-15T15:29:22,540][INFO ][o.e.e.NodeEnvironment    ] [IJulm] heap size [1.9gb], compressed ordinary object pointers [true]
+[2016-12-15T15:29:22,542][INFO ][o.e.n.Node               ] [IJulm] node name [IJulm], node ID [2Bx4LukvQ1ymZxPsx_fLYw]
+[2016-12-15T15:29:22,550][INFO ][o.e.n.Node               ] [IJulm] version[5.1.1], pid[13569], build[5395e21/2016-12-06T12:36:15.409Z], OS[Linux/4.3.0-1-amd64/amd64], JVM[Oracle Corporation/Java HotSpot(TM) 64-Bit Server VM/1.8.0_74/25.74-b02]
+[2016-12-15T15:29:24,063][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [aggs-matrix-stats]
+[2016-12-15T15:29:24,081][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [ingest-common]
+[2016-12-15T15:29:24,081][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [lang-expression]
+[2016-12-15T15:29:24,082][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [lang-groovy]
+[2016-12-15T15:29:24,082][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [lang-mustache]
+[2016-12-15T15:29:24,082][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [lang-painless]
+[2016-12-15T15:29:24,082][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [percolator]
+[2016-12-15T15:29:24,082][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [reindex]
+[2016-12-15T15:29:24,083][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [transport-netty3]
+[2016-12-15T15:29:24,083][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [transport-netty4]
+[2016-12-15T15:29:24,084][INFO ][o.e.p.PluginsService     ] [IJulm] no plugins loaded
+[2016-12-15T15:29:28,430][INFO ][o.e.n.Node               ] [IJulm] initialized
+[2016-12-15T15:29:28,431][INFO ][o.e.n.Node               ] [IJulm] starting ...
+[2016-12-15T15:29:28,781][INFO ][o.e.t.TransportService   ] [IJulm] publish_address {127.0.0.1:9300}, bound_addresses {[::1]:9300}, {127.0.0.1:9300}
+[2016-12-15T15:29:28,791][WARN ][o.e.b.BootstrapCheck     ] [IJulm] max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
+[2016-12-15T15:29:32,085][INFO ][o.e.c.s.ClusterService   ] [IJulm] new_master {IJulm}{2Bx4LukvQ1ymZxPsx_fLYw}{bV0DI720RRqg8ohVRS_bFA}{127.0.0.1}{127.0.0.1:9300}, reason: zen-disco-elected-as-master ([0] nodes joined)
+[2016-12-15T15:29:32,162][INFO ][o.e.h.HttpServer         ] [IJulm] publish_address {127.0.0.1:9200}, bound_addresses {[::1]:9200}, {127.0.0.1:9200}
+[2016-12-15T15:29:32,162][INFO ][o.e.n.Node               ] [IJulm] started
+[2016-12-15T15:29:32,171][INFO ][o.e.g.GatewayService     ] [IJulm] recovered [0] indices into cluster_state
+[2016-12-15T15:29:52,079][INFO ][o.e.c.m.MetaDataCreateIndexService] [IJulm] [datashare-local] creating index, cause [api], templates [datashare_mappings, datashare_local_settings], shards [1]/[0], mappings [NamedEntity, Document]
+[2016-12-15T15:29:52,434][INFO ][o.e.c.r.a.AllocationService] [IJulm] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[datashare-local][0]] ...]).
+[2016-12-15T15:30:01,515][INFO ][o.e.n.Node               ] [IJulm] stopping ...
+[2016-12-15T15:30:01,581][INFO ][o.e.n.Node               ] [IJulm] stopped
+[2016-12-15T15:30:01,581][INFO ][o.e.n.Node               ] [IJulm] closing ...
+[2016-12-15T15:30:01,589][INFO ][o.e.n.Node               ] [IJulm] closed
