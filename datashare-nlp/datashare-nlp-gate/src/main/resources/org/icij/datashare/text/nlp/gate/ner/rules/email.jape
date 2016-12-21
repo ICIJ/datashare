@@ -1,0 +1,23 @@
+/////////////////////////////////////////////// PATRON PARA RECONOCIMIENTO DE EMAIL
+Phase: EmailPhase
+Input: Token SpaceToken Lookup
+Options: control = appelt
+
+
+Rule:EmailPattern 
+(
+(
+{Token.kind== word}
+({Token.kind== word} | {Token.kind== number} | {Token.kind== punctuation,Token.length == 1} )[0,5]
+// could be p.calleja p_calleja p-calleja
+{Token.string == "@"}
+({Token.kind == word} | {Token.string == "."} )[1,5]
+{Lookup.minorType=="domain"}
+
+):ema
+)
+
+-->
+:ema.Email = {kind = "EmailPattern",string = :ema@cleanString}
+
+

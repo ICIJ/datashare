@@ -1,0 +1,45 @@
+////////////////////////// TELEPHONE PATTERNS
+Phase: TelephonePhase
+Input: Token Lookup SpaceToken
+Options: control = appelt
+
+
+// THE RULE DOES NOT COUNT THE LENGTH OF THE TELEPHONE NUMBER
+
+
+Rule:TelephonePattern 
+(
+(
+{Token.string =="+"}
+({SpaceToken.kind == "space"})[0,3]
+({Token.string == "("})?
+({SpaceToken.kind == "space"})[0,3]
+{Lookup.majorType == "telephoneprefix"}
+({Token.string == ")"} | {Token.kind == number} | {SpaceToken.kind == "space"})+
+):tel
+)
+
+-->
+:tel.Telephone = {kind = "TelephonePattern",string = :tel@cleanString}
+
+
+
+
+
+// MAYBE THE PREFIX IS INSIDE THE SAME TOKEN.
+Rule:TelephonePattern2 
+(
+(
+{Token.string =="+"}
+({SpaceToken.kind == "space"})[0,5]
+{Lookup.majorType == "telephoneprefix",Token.kind== number, Token.length > 3}
+({Token.kind == number} | {SpaceToken.kind == "space"})[0,7]
+):tel
+)
+
+-->
+:tel.Telephone = {kind = "TelephonePattern2",string = :tel@cleanString}
+
+
+
+

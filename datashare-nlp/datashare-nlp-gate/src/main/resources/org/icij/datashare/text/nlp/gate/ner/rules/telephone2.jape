@@ -1,0 +1,42 @@
+////////////////////////// TELEPHONE PATTERNS
+Phase: Telephone2Phase
+Input: Token
+Options: control = appelt
+
+
+
+Rule:TelephonePattern2 
+(
+
+
+({Token.string =~ "[Tt]elephone"} | {Token.string =~ "[Tt]el"} )
+({Token.string == ":"})?
+(({Token.string == "("} |{Token.string == ")"} | {Token.kind == number} )+
+):tel
+)
+
+-->
+:tel.Telephone = {kind = "TelephonePattern2",string = :tel@cleanString}
+
+
+
+Rule:TelephonePattern3 
+(
+
+
+({Token.string =~ "[Tt]el"}  {Token.string == "."} )
+({Token.string == ":"})?
+({Token.string == "+"})?
+(({Token.string == "("} |{Token.string == ")"} | {Token.string == "-"} |  {Token.kind == number} )+
+):tel
+)
+
+-->
+:tel.Telephone = {kind = "TelephonePattern2",string = :tel@cleanString}
+
+
+
+
+
+
+

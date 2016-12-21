@@ -1,0 +1,27 @@
+////////////////////////// TELEPHONE EXTENDED PATTERNS
+Phase: TelephoneExtendedPhase
+Input: Token Lookup SpaceToken
+Options: control = appelt
+
+
+Rule:TelephonePatternExtended1 
+(
+(
+{Token.string =="+"}
+({SpaceToken.kind == "space"})[0,3]
+({Token.string == "("})?
+({SpaceToken.kind == "space"})[0,3]
+{Lookup.majorType == "telephoneprefix"}
+({Token.string == ")"} | {Token.kind == number} | {SpaceToken.kind == "space"} )[0,5]
+({Token.string == "-"} )
+({Token.kind == number} | {SpaceToken.kind == "space"} )[1,5]
+):tel
+// faltaria control de digitos
+)
+
+-->
+:tel.TelephoneExtended = {kind = "TelephonePatternExtended1",string = :tel@cleanString}
+
+
+
+

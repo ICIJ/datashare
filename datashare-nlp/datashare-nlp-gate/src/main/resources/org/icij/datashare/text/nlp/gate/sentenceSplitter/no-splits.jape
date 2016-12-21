@@ -1,0 +1,31 @@
+/*
+*  no-splits.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Valentin Tablan, 23 Jan 2007
+* 
+*  $Id$
+*/
+
+//This grammar deals with documents that have no splits
+
+Phase:noSplits
+Input: Token Split
+Options: control = once
+
+Rule: blah
+{Token}
+-->
+{
+  AnnotationSet splits = inputAS.get("Split");
+  if(splits == null || splits.isEmpty()){
+    outputAS.add(outputAS.firstNode(), outputAS.lastNode(), 
+            "TempNoSplitText", Factory.newFeatureMap());
+  }
+}

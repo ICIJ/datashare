@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>datashare-nlp</artifactId>
+        <groupId>org.icij.datashare</groupId>
+        <version>0.5</version>
+    </parent>
+
+    <artifactId>datashare-nlp-gate</artifactId>
+    <packaging>jar</packaging>
+
+
+    <dependencies>
+
+        <!-- Datashare Api -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-api</artifactId>
+        </dependency>
+
+        <!-- OEG UPM Entity-Extractor -->
+        <dependency>
+            <groupId>es.upm.oeg</groupId>
+            <artifactId>entity-extractor</artifactId>
+            <version>${gatenlp.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>es.upm.oeg</groupId>
+            <artifactId>entity-extractor-lib</artifactId>
+            <version>${gatenlp.version}</version>
+            <type>jar</type>
+        </dependency>
+
+        <!-- Log4j / Slf4j -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+
+        <resources>
+            <!-- Exclude models and configs -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>**</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
+        <plugins>
+
+            <!-- Assembly -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
+
+            <!-- Shade -->
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <configuration>
+                            <!-- Package Renaming -->
+                            <artifactSet>
+                                <includes>
+                                    <include>es.upm.oeg:*</include>
+                                </includes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>opennlp</pattern>
+                                    <shadedPattern>for.gate.opennlp</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.springframework</pattern>
+                                    <shadedPattern>for.gate.org.springframework</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.lucene</pattern>
+                                    <shadedPattern>for.gate.org.apache.lucene</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Install -->
+            <plugin>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <!-- entity-extractor -->
+                    <execution>
+                        <phase>validate</phase>
+                        <id>install-entity-extractor</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>es.upm.oeg</groupId>
+                            <artifactId>entity-extractor</artifactId>
+                            <version>1.1</version>
+                            <packaging>jar</packaging>
+                            <file>${project.basedir}/lib/entity-extractor.jar</file>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                    </execution>
+                    <!-- entity-extractor-lib -->
+                    <execution>
+                        <phase>validate</phase>
+                        <id>install-entity-extractor-lib</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>es.upm.oeg</groupId>
+                            <artifactId>entity-extractor-lib</artifactId>
+                            <version>1.1</version>
+                            <packaging>jar</packaging>
+                            <file>${project.basedir}/lib/entity-extractor-lib.jar</file>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+</project>
