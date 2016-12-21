@@ -2,24 +2,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.1</version>
+        <version>0.5</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
-
 
     <artifactId>datashare-cli</artifactId>
     <packaging>jar</packaging>
 
 
-    <properties>
-        <joptsimple.version>5.0.1</joptsimple.version>
-    </properties>
-
-
     <dependencies>
+
+        <!-- Datashare API -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-api</artifactId>
+        </dependency>
 
         <!-- Jopt Simple -->
         <dependency>
@@ -28,124 +29,96 @@
             <version>${joptsimple.version}</version>
         </dependency>
 
-        <!-- Datashare Core -->
+        <!-- Log4J -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>datashare-core</artifactId>
-            <version>${datashare-core.version}</version>
-            <classifier>jar-with-dependencies</classifier>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
         </dependency>
-
-        <!-- Datashare Tika -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>datashare-extract-tika</artifactId>
-            <version>${datashare-tika.version}</version>
-            <classifier>jar-with-dependencies</classifier>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!-- Datashare CoreNLP -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>datashare-process-corenlp</artifactId>
-            <version>${datashare-corenlp.version}</version>
-            <classifier>jar-with-dependencies</classifier>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!-- Datashare OpenNLP -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>datashare-process-opennlp</artifactId>
-            <version>${datashare-opennlp.version}</version>
-            <classifier>jar-with-dependencies</classifier>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!-- Datashare GateNLP -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>datashare-process-gatenlp</artifactId>
-            <version>${datashare-gatenlp.version}</version>
-            <classifier>jar-with-dependencies</classifier>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
         </dependency>
 
     </dependencies>
 
 
     <build>
+
         <plugins>
 
-            <!-- Package -->
+            <!-- Compiler -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>org.icij.datashare.cli.DataShareCli</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
+                <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
 
             <!-- Assembly -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/main/assembly/assembly-dist.xml</descriptor>
-                    </descriptors>
-                    <descriptorRefs>none</descriptorRefs>
-                </configuration>
             </plugin>
 
-            <!-- Execution -->
+            <!-- Shade -->
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <configuration>
-                    <mainClass>org.icij.datashare.cli.DataShareCli</mainClass>
-                    <arguments>
-                        <argument>--input-dir</argument>
-                        <argument>/home/julien/data/luxleaks/source</argument>
-                    </arguments>
-                </configuration>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>org.icij.datashare.cli.DataShareCli</Main-Class>
+                                        <X-Compile-Source-JDK>${project.build.jdk.source}</X-Compile-Source-JDK>
+                                        <X-Compile-Target-JDK>${project.build.jdk.target}</X-Compile-Target-JDK>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
+
+            <!--&lt;!&ndash; Jar &ndash;&gt;-->
+            <!--<plugin>-->
+            <!--<groupId>org.apache.maven.plugins</groupId>-->
+            <!--<artifactId>maven-jar-plugin</artifactId>-->
+            <!--<configuration>-->
+            <!--<classifier>exec</classifier>-->
+            <!--<archive>-->
+            <!--<manifest>-->
+            <!--<addClasspath>true</addClasspath>-->
+            <!--<classpathPrefix>lib/</classpathPrefix>-->
+            <!--<mainClass>org.icij.datashare.cli.DataShareCli</mainClass>-->
+            <!--</manifest>-->
+            <!--</archive>-->
+            <!--</configuration>-->
+            <!--</plugin>-->
+
+            <!--&lt;!&ndash; Assembly &ndash;&gt;-->
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-assembly-plugin</artifactId>-->
+                <!--<configuration>-->
+                    <!--<descriptors>-->
+                        <!--<descriptor>src/assembly/dist.xml</descriptor>-->
+                    <!--</descriptors>-->
+                <!--</configuration>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>make-assembly</id>-->
+                        <!--<phase>package</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>single</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
 
         </plugins>
+
     </build>
 
-
 </project>
+

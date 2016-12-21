@@ -4,39 +4,221 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare</artifactId>
+    <version>0.5</version>
     <packaging>pom</packaging>
-    <version>0.1</version>
+
+    <inceptionYear>2016</inceptionYear>
+
+    <organization>
+        <name>ICIJ</name>
+        <url>https://www.icij.org/</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <name>Julien Martin</name>
+            <id>julm</id>
+            <email>julien.pierre.martin@gmail.com</email>
+            <roles>
+                <role>Project Lead</role>
+                <role>Developer</role>
+            </roles>
+            <organization>ICIJ</organization>
+        </developer>
+    </developers>
 
 
     <modules>
-        <module>datashare-core</module>
-        <module>datashare-extract-tika</module>
-        <module>datashare-process-corenlp</module>
-        <module>datashare-process-opennlp</module>
-        <module>datashare-process-gatenlp</module>
+        <module>datashare-api</module>
+        <module>datashare-extract</module>
+        <module>datashare-index</module>
+        <module>datashare-nlp</module>
         <module>datashare-cli</module>
+        <module>datashare-web</module>
+        <module>datashare-dist</module>
+        <module>datashare-dist/assembly</module>
     </modules>
 
 
     <properties>
-        <slf4j.version>1.7.18</slf4j.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <project.build.jdk.source>1.8</project.build.jdk.source>
+        <project.build.jdk.target>1.8</project.build.jdk.target>
+
+        <!-- json -->
+        <jackson.version>2.8.5</jackson.version>
+        <!-- security -->
+        <bouncycastle.version>1.54</bouncycastle.version>
+        <!-- unicode -->
+        <unidecode.version>0.0.7</unidecode.version>
+        <!-- beans -->
+        <commons-beanutils.version>1.7.0</commons-beanutils.version>
+
+        <!-- log -->
+        <slf4j.version>1.7.21</slf4j.version>
+        <log4j.version>2.6.2</log4j.version>
+
+        <!-- test -->
         <junit.version>4.12</junit.version>
 
-        <datashare-core.version>${project.version}</datashare-core.version>
-        <datashare-tika.version>${project.version}</datashare-tika.version>
-        <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
-        <datashare-opennlp.version>${project.version}</datashare-opennlp.version>
-        <datashare-gatenlp.version>${project.version}</datashare-gatenlp.version>
+        <!-- datashare-cli -->
+        <datashare-cli.version>${project.version}</datashare-cli.version>
+        <joptsimple.version>5.0.3</joptsimple.version>
 
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- datashare-web -->
+        <datashare-play.version>${project.version}</datashare-play.version>
+        <play2.version>2.5.9</play2.version>
+
+        <!-- datashare-api -->
+        <datashare-api.version>${project.version}</datashare-api.version>
+
+        <!-- datashare-extract -->
+        <datashare-tika.version>${project.version}</datashare-tika.version>
+        <tika.version>1.14</tika.version>
+
+        <!-- datashare-index -->
+        <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
+        <elasticsearch.version>5.1.1</elasticsearch.version>
+
+        <!-- datashare-nlp -->
+        <datashare-nlp.version>${project.version}</datashare-nlp.version>
+        <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
+        <corenlp.version>3.6.0</corenlp.version>
+        <datashare-opennlp.version>${project.version}</datashare-opennlp.version>
+        <opennlp.version>1.6.0</opennlp.version>
+        <datashare-gate.version>${project.version}</datashare-gate.version>
+        <gatenlp.version>1.1</gatenlp.version>
+        <datashare-mitie.version>${project.version}</datashare-mitie.version>
+        <mitie.version>0.8</mitie.version>
+        <datashare-ixapipe.version>${project.version}</datashare-ixapipe.version>
+        <ixa-pipe-tok.version>1.8.5</ixa-pipe-tok.version>
+        <ixa-pipe-pos.version>1.5.1</ixa-pipe-pos.version>
+        <ixa-pipe-nerc.version>1.6.1</ixa-pipe-nerc.version>
+        <ixa-kaflib-naf.version>1.1.15</ixa-kaflib-naf.version>
+
+        <!-- maven -->
+        <maven-compiler.version>3.5.1</maven-compiler.version>
+        <maven-surefire.version>2.19.1</maven-surefire.version>
+        <maven-jar.version>3.0.2</maven-jar.version>
+        <maven-play2.version>1.0.0-beta6-SNAPSHOT</maven-play2.version>
+        <maven-assembly.version>2.6</maven-assembly.version>
+        <maven-shade.version>2.4.3</maven-shade.version>
+        <maven-dependency.version>2.10</maven-dependency.version>
+        <maven-build-helper.version>1.10</maven-build-helper.version>
+        <maven-install.version>2.5.2</maven-install.version>
+        <maven-release.version>2.5.3</maven-release.version>
+        <maven-exec.version>1.5.0</maven-exec.version>
+        <maven-javadoc.version>2.10.4</maven-javadoc.version>
+
     </properties>
 
 
     <dependencyManagement>
+
         <dependencies>
+
+            <!-- Datashare Api -->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-api</artifactId>
+                <version>${datashare-api.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Datashare Web -->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-web-play</artifactId>
+                <version>${datashare-play.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Datashare Cli -->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-cli</artifactId>
+                <version>${datashare-cli.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Datashare Extract Tika -->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-extract-tika</artifactId>
+                <version>${datashare-tika.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Datashare Index Elasticsearh -->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-index-elasticsearch</artifactId>
+                <version>${datashare-elasticsearch.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Datashare Nlp CoreNLP -->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-nlp-corenlp</artifactId>
+                <version>${datashare-corenlp.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Datashare Nlp OpenNLP -->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-nlp-opennlp</artifactId>
+                <version>${datashare-opennlp.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Datashare Nlp OEG Gate -->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-nlp-gate</artifactId>
+                <version>${datashare-gate.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+             <!--Datashare Nlp Mitie-->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-nlp-mitie</artifactId>
+                <version>${datashare-mitie.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Datashare Nlp Ixa Pipe -->
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-nlp-ixapipe</artifactId>
+                <version>${datashare-ixapipe.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Log4j -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${log4j.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-web</artifactId>
+                <version>${log4j.version}</version>
+                <scope>provided</scope>
+            </dependency>
 
             <!-- JUnit -->
             <dependency>
@@ -46,110 +228,183 @@
                 <scope>test</scope>
             </dependency>
 
-            <!-- Log4J -->
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-log4j12</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-
         </dependencies>
+
     </dependencyManagement>
 
 
     <build>
+
         <pluginManagement>
+
             <plugins>
 
-                <!-- Compilation -->
+                <!-- Compile -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>2.5.1</version>
+                    <version>${maven-compiler.version}</version>
                     <configuration>
-                        <source>1.8</source>
-                        <target>1.8</target>
+                        <source>${project.build.jdk.source}</source>
+                        <target>${project.build.jdk.target}</target>
+                        <compilerArgument>-parameters</compilerArgument>
                     </configuration>
                 </plugin>
 
-                <!-- Packaging / jar -->
+                <!-- Jar -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>2.5</version>
+                    <version>${maven-jar.version}</version>
+                    <configuration>
+                        <archive>
+                            <manifest>
+                                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                                <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                            </manifest>
+                        </archive>
+                    </configuration>
                 </plugin>
 
-                <!-- Packaging / Assembly / jar-with-dependencies -->
+                <!-- Assembly -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <version>2.6</version>
-                    <configuration>
-                        <descriptorRefs>
-                            <descriptorRef>jar-with-dependencies</descriptorRef>
-                        </descriptorRefs>
-                    </configuration>
+                    <version>${maven-assembly.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.icij.assembly</groupId>
+                            <artifactId>bundle</artifactId>
+                            <version>1.0.0</version>
+                        </dependency>
+                    </dependencies>
                     <executions>
                         <execution>
-                            <id>make-assembly</id>
+                            <id>assembly</id>
                             <phase>package</phase>
                             <goals>
                                 <goal>single</goal>
                             </goals>
+                            <configuration>
+                                <descriptorRefs>
+                                    <descriptorRef>bundle</descriptorRef>
+                                </descriptorRefs>
+                            </configuration>
                         </execution>
                     </executions>
                 </plugin>
 
-                <!-- Dependency Unpacking, Purging -->
+                <!-- Shade -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${maven-shade.version}</version>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>shade</goal>
+                            </goals>
+                            <configuration>
+                                <minimizeJar>false</minimizeJar>
+                                <filters>
+                                    <filter>
+                                        <artifact>*:*</artifact>
+                                        <excludes>
+                                            <exclude>META-INF/*.SF</exclude>
+                                            <exclude>META-INF/*.DSA</exclude>
+                                            <exclude>META-INF/*.RSA</exclude>
+                                        </excludes>
+                                    </filter>
+                                </filters>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <!-- Dependency -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
-                    <version>2.10</version>
+                    <version>${maven-dependency.version}</version>
                     <executions>
                         <execution>
-                            <id>unpack-dependencies</id>
                             <phase>package</phase>
+                            <id>copy-dependencies</id>
                             <goals>
-                                <goal>unpack-dependencies</goal>
+                                <goal>copy-dependencies</goal>
                             </goals>
                             <configuration>
-                                <excludeScope>system</excludeScope>
-                                <excludes>META-INF/*.SF</excludes>
-                                <excludes>META-INF/*.DSA</excludes>
-                                <excludes>META-INF/*.RSA</excludes>
-                                <excludeGroupIds>junit,org.mockito,org.hamcrest</excludeGroupIds>
-                                <outputDirectory>${project.build.directory}/classes</outputDirectory>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>purge-local-dependencies</id>
-                            <phase>clean</phase>
-                            <goals>
-                                <goal>purge-local-repository</goal>
-                            </goals>
-                            <configuration>
+                                <outputDirectory>${project.build.directory}</outputDirectory>
+                                <overWriteReleases>true</overWriteReleases>
+                                <overWriteSnapshots>true</overWriteSnapshots>
+                                <excludeTransitive>false</excludeTransitive>
                             </configuration>
                         </execution>
                     </executions>
                 </plugin>
 
-                <!-- Execution -->
+                <!-- Install -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>${maven-install.version}</version>
+                </plugin>
+
+                <!-- Execute -->
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>1.5.0</version>
-                    <executions>
-                        <execution>
-                            <phase>verify</phase>
-                            <goals>
-                                <goal>java</goal>
-                            </goals>
-                        </execution>
-                    </executions>
+                    <version>${maven-exec.version}</version>
+                </plugin>
+
+                <!-- Doc -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven-javadoc.version}</version>
+                    <configuration>
+                        <show>private</show>
+                        <nohelp>true</nohelp>
+                        <aggregate>true</aggregate>
+                        <reportOutputDirectory>${project.basedir}</reportOutputDirectory>
+                        <destDir>doc</destDir>
+                    </configuration>
+                </plugin>
+
+                <!-- Release -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>${maven-release.version}</version>
+                    <configuration>
+                        <autoVersionSubmodules>true</autoVersionSubmodules>
+                    </configuration>
+                </plugin>
+
+                <!-- Test -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire.version}</version>
                 </plugin>
 
             </plugins>
+
         </pluginManagement>
+
+
+        <plugins>
+
+            <!-- JavaDoc -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc.version}</version>
+            </plugin>
+
+        </plugins>
+
     </build>
 
 

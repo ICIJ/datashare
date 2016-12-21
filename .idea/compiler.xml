@@ -22,13 +22,20 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
+        <module name="bundle" />
+        <module name="datashare-api" />
         <module name="datashare-cli" />
         <module name="datashare-core" />
         <module name="datashare-extract-tika" />
-        <module name="datashare-nlp" />
+        <module name="datashare-index-elasticsearch" />
+        <module name="datashare-index-es" />
         <module name="datashare-nlp-corenlp" />
+        <module name="datashare-nlp-gate" />
         <module name="datashare-nlp-gatenlp" />
+        <module name="datashare-nlp-ixapipe" />
+        <module name="datashare-nlp-mitie" />
         <module name="datashare-nlp-opennlp" />
+        <module name="datashare-nlp-pom" />
         <module name="datashare-process-corenlp" />
         <module name="datashare-process-gatenlp" />
         <module name="datashare-process-opennlp" />
@@ -37,30 +44,29 @@
         <module name="datashare-text-cli" />
         <module name="datashare-text-processing" />
         <module name="datashare-text-reading" />
+        <module name="datashare-web-play" />
         <module name="untitled" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="corenlp" target="1.8" />
+    <bytecodeTargetLevel target="1.8">
+      <module name="assembly" target="1.5" />
+      <module name="bundle" target="1.8" />
       <module name="datashare" target="1.5" />
+      <module name="datashare-api" target="1.8" />
       <module name="datashare-cli" target="1.8" />
-      <module name="datashare-core" target="1.8" />
+      <module name="datashare-dist" target="1.5" />
+      <module name="datashare-extract" target="1.5" />
       <module name="datashare-extract-tika" target="1.8" />
-      <module name="datashare-nlp" target="1.8" />
+      <module name="datashare-index" target="1.5" />
+      <module name="datashare-index-elasticsearch" target="1.8" />
+      <module name="datashare-nlp" target="1.5" />
       <module name="datashare-nlp-corenlp" target="1.8" />
-      <module name="datashare-nlp-gatenlp" target="1.8" />
+      <module name="datashare-nlp-gate" target="1.8" />
+      <module name="datashare-nlp-ixapipe" target="1.8" />
+      <module name="datashare-nlp-mitie" target="1.8" />
       <module name="datashare-nlp-opennlp" target="1.8" />
-      <module name="datashare-process-corenlp" target="1.8" />
-      <module name="datashare-process-gatenlp" target="1.8" />
-      <module name="datashare-process-opennlp" target="1.8" />
-      <module name="datashare-read" target="1.8" />
-      <module name="datashare-read-tika" target="1.8" />
-      <module name="datashare-text-cli" target="1.8" />
-      <module name="datashare-text-corenlp" target="1.8" />
-      <module name="datashare-text-processing" target="1.8" />
-      <module name="datashare-text-processing-corenlp" target="1.8" />
-      <module name="datashare-text-reading" target="1.8" />
-      <module name="untitled" target="1.8" />
+      <module name="datashare-web" target="1.5" />
+      <module name="datashare-web-play" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

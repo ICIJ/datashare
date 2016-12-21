@@ -2,14 +2,24 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/datashare-dist/assembly/assembly.iml" filepath="$PROJECT_DIR$/datashare-dist/assembly/assembly.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-dist/assembly/bundle/bundle.iml" filepath="$PROJECT_DIR$/datashare-dist/assembly/bundle/bundle.iml" />
       <module fileurl="file://$PROJECT_DIR$/datashare.iml" filepath="$PROJECT_DIR$/datashare.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-api/datashare-api.iml" filepath="$PROJECT_DIR$/datashare-api/datashare-api.iml" />
       <module fileurl="file://$PROJECT_DIR$/datashare-cli/datashare-cli.iml" filepath="$PROJECT_DIR$/datashare-cli/datashare-cli.iml" />
-      <module fileurl="file://$PROJECT_DIR$/datashare-core/datashare-core.iml" filepath="$PROJECT_DIR$/datashare-core/datashare-core.iml" />
-      <module fileurl="file://$PROJECT_DIR$/datashare-extract-tika/datashare-extract-tika.iml" filepath="$PROJECT_DIR$/datashare-extract-tika/datashare-extract-tika.iml" />
-      <module fileurl="file://$PROJECT_DIR$/datashare-process-corenlp/datashare-process-corenlp.iml" filepath="$PROJECT_DIR$/datashare-process-corenlp/datashare-process-corenlp.iml" />
-      <module fileurl="file://$PROJECT_DIR$/datashare-process-gatenlp/datashare-process-gatenlp.iml" filepath="$PROJECT_DIR$/datashare-process-gatenlp/datashare-process-gatenlp.iml" />
-      <module fileurl="file://$PROJECT_DIR$/datashare-process-opennlp/datashare-process-opennlp.iml" filepath="$PROJECT_DIR$/datashare-process-opennlp/datashare-process-opennlp.iml" />
-      <module fileurl="file://$PROJECT_DIR$/datashare-extract-tika/datashare-read-tika.iml" filepath="$PROJECT_DIR$/datashare-extract-tika/datashare-read-tika.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-dist/datashare-dist.iml" filepath="$PROJECT_DIR$/datashare-dist/datashare-dist.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-extract/datashare-extract.iml" filepath="$PROJECT_DIR$/datashare-extract/datashare-extract.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-extract/datashare-extract-tika/datashare-extract-tika.iml" filepath="$PROJECT_DIR$/datashare-extract/datashare-extract-tika/datashare-extract-tika.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-index/datashare-index.iml" filepath="$PROJECT_DIR$/datashare-index/datashare-index.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-index/datashare-index-elasticsearch/datashare-index-elasticsearch.iml" filepath="$PROJECT_DIR$/datashare-index/datashare-index-elasticsearch/datashare-index-elasticsearch.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-nlp/datashare-nlp.iml" filepath="$PROJECT_DIR$/datashare-nlp/datashare-nlp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-nlp/datashare-nlp-corenlp/datashare-nlp-corenlp.iml" filepath="$PROJECT_DIR$/datashare-nlp/datashare-nlp-corenlp/datashare-nlp-corenlp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-nlp/datashare-nlp-gate/datashare-nlp-gate.iml" filepath="$PROJECT_DIR$/datashare-nlp/datashare-nlp-gate/datashare-nlp-gate.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-nlp/datashare-nlp-ixapipe/datashare-nlp-ixapipe.iml" filepath="$PROJECT_DIR$/datashare-nlp/datashare-nlp-ixapipe/datashare-nlp-ixapipe.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-nlp/datashare-nlp-mitie/datashare-nlp-mitie.iml" filepath="$PROJECT_DIR$/datashare-nlp/datashare-nlp-mitie/datashare-nlp-mitie.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-nlp/datashare-nlp-opennlp/datashare-nlp-opennlp.iml" filepath="$PROJECT_DIR$/datashare-nlp/datashare-nlp-opennlp/datashare-nlp-opennlp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-web/datashare-web.iml" filepath="$PROJECT_DIR$/datashare-web/datashare-web.iml" />
+      <module fileurl="file://$PROJECT_DIR$/datashare-web/datashare-web-play/datashare-web-play.iml" filepath="$PROJECT_DIR$/datashare-web/datashare-web-play/datashare-web-play.iml" />
     </modules>
   </component>
 </project>
