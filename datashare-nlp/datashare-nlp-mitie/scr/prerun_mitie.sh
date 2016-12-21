@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+MITIE_LIB_PATH=`cd ../lib; pwd`
+
+export LD_LIBRARY_PATH=$MITIE_LIB_PATH:$LD_LIBRARY_PATH
+
+export DYLD_LIBRARY_PATH=$MITIE_LIB_PATH:$DYLD_LIBRARY_PATH
