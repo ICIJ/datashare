@@ -1,0 +1,48 @@
+<assembly>
+
+    <id>bundle</id>
+
+    <formats>
+        <format>zip</format>
+    </formats>
+
+    <includeBaseDirectory>false</includeBaseDirectory>
+
+    <fileSets>
+
+        <!-- src/main/resources -->
+        <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>src/main/resources</outputDirectory>
+            <useDefaultExcludes>true</useDefaultExcludes>
+        </fileSet>
+
+        <!-- dist -->
+        <fileSet>
+            <directory>dist</directory>
+            <outputDirectory>dist</outputDirectory>
+            <useDefaultExcludes>true</useDefaultExcludes>
+        </fileSet>
+
+        <!-- scr -->
+        <fileSet>
+            <directory>scr</directory>
+            <outputDirectory>./</outputDirectory>
+            <includes>
+                <include>start*</include>
+                <include>stop*</include>
+            </includes>
+        </fileSet>
+
+        <fileSet>
+            <directory>scr</directory>
+            <outputDirectory>scr</outputDirectory>
+            <excludes>
+                <exclude>start*</exclude>
+                <exclude>stop*</exclude>
+            </excludes>
+        </fileSet>
+
+    </fileSets>
+
+</assembly>

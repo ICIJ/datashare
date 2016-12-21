@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>datashare</artifactId>
+        <groupId>org.icij.datashare</groupId>
+        <version>0.5</version>
+    </parent>
+
+    <artifactId>datashare-dist</artifactId>
+    <packaging>pom</packaging>
+
+
+    <dependencies>
+
+        <!-- Datashare Api -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-api</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Datashare Web -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-web-play</artifactId>
+            <version>${datashare-play.version}</version>
+            <type>zip</type>
+            <classifier>dist</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-web-play</artifactId>
+            <version>${datashare-play.version}</version>
+            <type>zip</type>
+            <classifier>bundle</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Datashare Cli -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-cli</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-cli</artifactId>
+            <version>${datashare-cli.version}</version>
+            <type>zip</type>
+            <classifier>bundle</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Datashare Extract Tika -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-extract-tika</artifactId>
+        </dependency>
+
+        <!-- Datashare Index Elasticsearh -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-index-elasticsearch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-index-elasticsearch</artifactId>
+            <version>${datashare-elasticsearch.version}</version>
+            <type>zip</type>
+            <classifier>bundle</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Datashare Nlp CoreNLP -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-nlp-corenlp</artifactId>
+        </dependency>
+        <!-- Datashare Nlp CoreNLP English Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${corenlp.version}</version>
+            <classifier>models</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Datashare Nlp CoreNLP Spanish Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${corenlp.version}</version>
+            <classifier>models-spanish</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Datashare Nlp CoreNLP French Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${corenlp.version}</version>
+            <classifier>models-french</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Datashare Nlp CoreNLP German Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${corenlp.version}</version>
+            <classifier>models-german</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Datashare Nlp OpenNLP -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-nlp-opennlp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-nlp-opennlp</artifactId>
+            <version>${datashare-opennlp.version}</version>
+            <type>zip</type>
+            <classifier>bundle</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Datashare Nlp OEG Gate -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-nlp-gate</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-nlp-gate</artifactId>
+            <version>${datashare-gate.version}</version>
+            <type>zip</type>
+            <classifier>bundle</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
+         <!-- Datashare Nlp Mitie -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-nlp-mitie</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-nlp-mitie</artifactId>
+            <version>${datashare-mitie.version}</version>
+            <type>zip</type>
+            <classifier>bundle</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Datashare Nlp Ixa Pipe -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-nlp-ixapipe</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <version>${datashare-ixapipe.version}</version>
+            <artifactId>datashare-nlp-ixapipe</artifactId>
+            <type>zip</type>
+            <classifier>bundle</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Log4J -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+
+    </dependencies>
+
+
+    <build>
+
+        <plugins>
+
+            <!-- Assembly -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <id>make-dist</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/all.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+
+</project>
