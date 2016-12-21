@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="info">
+    <Appenders>
+        <Console name="CONSOLE" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d %-5p [%t] - %m%n"/>
+            <!--%d{ABSOLUTE} %5p -%C{1}:%m%n-->
+        </Console>
+        <File name="FILE" fileName="./logs/datashare.log" immediateFlush="true">
+            <PatternLayout pattern="%d %-5p [%t] - %m%n"/>
+            <!--%d{yyyy-MM-dd}-%t-%x-%-5p-%-10c:%m%n-->
+        </File>
+        <Async name="ASYNC">
+            <AppenderRef ref="FILE"/>
+            <AppenderRef ref="CONSOLE"/>
+        </Async>
+    </Appenders>
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="ASYNC"/>
+        </Root>
+    </Loggers>
+</Configuration>
