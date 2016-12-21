@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>datashare-nlp</artifactId>
+        <groupId>org.icij.datashare</groupId>
+        <version>0.5</version>
+    </parent>
+
+    <artifactId>datashare-nlp-opennlp</artifactId>
+    <packaging>jar</packaging>
+
+
+    <dependencies>
+
+        <!-- Datashare Api -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-api</artifactId>
+        </dependency>
+
+        <!-- OpenNLP Tools -->
+        <dependency>
+            <groupId>org.apache.opennlp</groupId>
+            <artifactId>opennlp-tools</artifactId>
+            <version>${opennlp.version}</version>
+        </dependency>
+
+        <!-- Log4j / Slf4j -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+        </dependency>
+
+    </dependencies>
+
+
+    <build>
+        <plugins>
+
+            <!-- Assembly -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
+
+            <!-- Shade -->
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+            </plugin>
+
+        </plugins>
+    </build>
+
+
+</project>
