@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: es.upm.oeg:entity-extractor-lib:1.1">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/es/upm/oeg/entity-extractor-lib/1.1/entity-extractor-lib-1.1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/es/upm/oeg/entity-extractor-lib/1.1/entity-extractor-lib-1.1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/es/upm/oeg/entity-extractor-lib/1.1/entity-extractor-lib-1.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: eus.ixa:ixa-pipe-tok:1.8.5">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/eus/ixa/ixa-pipe-tok/1.8.5/ixa-pipe-tok-1.8.5.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/eus/ixa/ixa-pipe-tok/1.8.5/ixa-pipe-tok-1.8.5-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/eus/ixa/ixa-pipe-tok/1.8.5/ixa-pipe-tok-1.8.5-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
