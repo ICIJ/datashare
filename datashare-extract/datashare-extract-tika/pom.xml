@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>datashare-extract</artifactId>
+        <groupId>org.icij.datashare</groupId>
+        <version>0.5</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+
+    <artifactId>datashare-extract-tika</artifactId>
+    <packaging>jar</packaging>
+
+
+    <properties>
+        <optimaize.version>0.6</optimaize.version>
+    </properties>
+
+
+    <dependencies>
+
+        <!-- Datashare API -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-api</artifactId>
+        </dependency>
+
+        <!-- Apache Tika -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers</artifactId>
+            <version>${tika.version}</version>
+        </dependency>
+
+        <!-- Optimaize -->
+        <dependency>
+            <groupId>com.optimaize.languagedetector</groupId>
+            <artifactId>language-detector</artifactId>
+            <version>${optimaize.version}</version>
+        </dependency>
+
+        <!-- Log4j / Slf4j -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+        </dependency>
+
+    </dependencies>
+
+
+    <build>
+
+        <plugins>
+
+            <!-- Assembly -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
+
+            <!-- Shade -->
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>opennlp</pattern>
+                                    <shadedPattern>for.tika.opennlp</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
