@@ -4,11 +4,12 @@ import java.util.concurrent.BlockingQueue;
 
 import org.apache.logging.log4j.LogManager;
 
+import org.apache.logging.log4j.Logger;
 import org.icij.datashare.concurrent.Latch;
 
 
 /**
- * Outputs are put on a {@code BlockingQueue<O>}
+ * Outputs come from {@code BlockingQueue<O>}
  *
  * Created by julien on 10/17/16.
  */
@@ -19,14 +20,12 @@ public interface OutputQueue<O> {
     Latch noMoreOutput();
 
     default void put(O element) {
-        LogManager.getLogger(getClass())
-                .debug(getClass().getName() + " - " + "Putting element " + element + "on queue " + output() );
+        Logger LOGGER = LogManager.getLogger(getClass());
+        LOGGER.debug(getClass().getName() + " - PUTTING " + element + " ["+output().size()+"]" );
         try {
             output().put(element);
-
         } catch (InterruptedException e) {
-            LogManager.getLogger(OutputQueue.class)
-                    .info(getClass().getName() + " - " + "Putting element on queue interrupted",  e);
+            LOGGER.info(getClass().getName() + " - PUTTING on queue INTERRUPTED", e);
             Thread.currentThread().interrupt();
         }
     }

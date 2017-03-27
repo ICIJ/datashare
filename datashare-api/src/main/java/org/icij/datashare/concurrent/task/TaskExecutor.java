@@ -2,6 +2,7 @@ package org.icij.datashare.concurrent.task;
 
 import java.util.concurrent.TimeUnit;
 
+
 /**
  * DataShare {@link Task} executor
  *
@@ -32,8 +33,8 @@ public interface TaskExecutor {
 
     /**
      * Block until no more running {@link Task} or duration passed
-     * @param duration
-     * @param timeUnit
+     * @param duration maximum waiting time
+     * @param timeUnit duration's time unit
      */
     void awaitTermination(int duration, TimeUnit timeUnit);
 

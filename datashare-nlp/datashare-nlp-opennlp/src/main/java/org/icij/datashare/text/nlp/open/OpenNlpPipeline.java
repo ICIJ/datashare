@@ -127,8 +127,13 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     @Override
     protected Optional<Annotation> process(String input, String hash, Language language) {
         Annotation annotation = new Annotation(hash, getType(), language);
+        String annotators = " - SENTENCING ~ TOKENIZING";
+        if (targetStages.contains(POS))
+            annotators += " ~ POS-TAGGING";
+        if (targetStages.contains(NER))
+            annotators += " ~ NAME-FINDING";
+        LOGGER.info(getClass().getName() + annotators + " for " + language.toString());
 
-        LOGGER.info("Sentencing, Tokenizing, Pos-tagging, Name-finding - " + Thread.currentThread().getName());
         // Split input into sentences
         Span[] sentenceSpans = sentences(input, language);
         for (Span sentenceSpan : sentenceSpans) {
@@ -163,6 +168,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
             if (targetStages.contains(NER)) {
                 for (NamedEntity.Category category : targetEntities) {
                     Span[] nerSpans = recognize(sentenceTokens, category, language);
+
                     // Feed annotation
                     for (Span nerSpan : nerSpans) {
                         int nerStart = sentenceOffsetBegin + sentenceTokenSpans[nerSpan.getStart()].getStart();
@@ -186,9 +192,10 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     protected void terminate(Language language) {
         super.terminate(language);
 
-        targetEntities.stream().forEach( cat ->
-                nerFinder.get(language).get(cat).clearAdaptiveData()
-        );
+        if (nerFinder.containsKey(language)) {
+            Map<NamedEntity.Category, NameFinderME> nerFinderLang = nerFinder.get(language);
+            targetEntities.forEach( cat -> nerFinderLang.get(cat).clearAdaptiveData() );
+        }
 
         // (Don't) keep models in memory
         if ( ! caching) {
@@ -238,13 +245,12 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadTokenizer(ClassLoader loader, Language language) {
-        if ( tokenizer.containsKey(language) ) {
+        if ( tokenizer.containsKey(language) )
             return true;
-        }
+
         Optional<TokenizerModel> model = OpenNlpTokenModel.INSTANCE.get(language);
-        if ( ! model.isPresent()) {
+        if ( ! model.isPresent())
             return false;
-        }
         tokenizer.put(language, new TokenizerME(model.get()));
         return true;
     }
@@ -256,9 +262,9 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      * @return Detected token Spans (tokens boundaries)
      */
     private Span[] tokenize(String input, Language language) {
-        if ( ! stages.contains(TOKEN) || ! tokenizer.containsKey(language) ) {
+        if ( ! stages.contains(TOKEN) || ! tokenizer.containsKey(language) )
             return new Span[0];
-        }
+
         return tokenizer.get(language).tokenizePos(input);
     }
 
@@ -269,13 +275,12 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadPosTagger(ClassLoader loader, Language language) {
-        if ( posTagger.containsKey(language) ) {
+        if ( posTagger.containsKey(language) )
             return true;
-        }
+
         Optional<POSModel> model = OpenNlpPosModel.INSTANCE.get(language);
-        if ( ! model.isPresent()) {
+        if ( ! model.isPresent())
             return false;
-        }
         posTagger.put(language, new POSTaggerME(model.get()));
         return true;
     }
@@ -287,9 +292,9 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      * @return Detected PoS as an array of String
      */
     private String[] postag(String[] tokens, Language language) {
-        if ( ! stages.contains(POS) || ! posTagger.containsKey(language)) {
+        if ( ! stages.contains(POS) || ! posTagger.containsKey(language))
             return new String[0];
-        }
+
         return posTagger.get(language).tag(tokens);
     }
 
@@ -301,16 +306,16 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      */
     private boolean loadNameFinder(ClassLoader loader, Language language) {
         for (NamedEntity.Category category : targetEntities) {
-            if ( nerFinder.containsKey(language) && nerFinder.get(language).containsKey(category) ) {
+            if ( nerFinder.containsKey(language) && nerFinder.get(language).containsKey(category) )
                 continue;
-            }
+
             Optional<TokenNameFinderModel> model = OpenNlpNerModel.INSTANCE.get(language, category);
-            if ( ! model.isPresent()) {
+            if ( ! model.isPresent())
                 return false;
-            }
-            if ( ! nerFinder.containsKey(language)) {
+
+            if ( ! nerFinder.containsKey(language))
                 nerFinder.put(language, new HashMap<>());
-            }
+
             nerFinder.get(language).put(category, new NameFinderME(model.get()));
         }
         return true;
@@ -324,16 +329,16 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      * @return Spans of recognized entities within tokens
      */
     private Span[] recognize(String[] tokens, NamedEntity.Category cat, Language language) {
-        if ( ! stages.contains(NER) || ! nerFinder.containsKey(language) || ! nerFinder.get(language).containsKey(cat) ) {
+        if ( ! stages.contains(NER) || ! nerFinder.containsKey(language) || ! nerFinder.get(language).containsKey(cat) )
             return new Span[0];
-        }
+
         Span[] ners = nerFinder.get(language).get(cat).find(tokens);
         return ners;
     }
 
     @Override
-    public Optional<String> getPosTagSet() {
-        return Optional.of(OpenNlpPosModel.POS_TAGSET);
+    public Optional<String> getPosTagSet(Language language) {
+        return Optional.of(OpenNlpPosModel.POS_TAGSET.get(language));
     }
 
 }

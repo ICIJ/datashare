@@ -7,7 +7,7 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-cli</artifactId>
@@ -27,6 +27,7 @@
             <groupId>net.sf.jopt-simple</groupId>
             <artifactId>jopt-simple</artifactId>
             <version>${joptsimple.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Log4J -->
@@ -46,17 +47,14 @@
 
         <plugins>
 
-            <!-- Compiler -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
 
-            <!-- Assembly -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
 
-            <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
@@ -80,41 +78,9 @@
                 </executions>
             </plugin>
 
-            <!--&lt;!&ndash; Jar &ndash;&gt;-->
-            <!--<plugin>-->
-            <!--<groupId>org.apache.maven.plugins</groupId>-->
-            <!--<artifactId>maven-jar-plugin</artifactId>-->
-            <!--<configuration>-->
-            <!--<classifier>exec</classifier>-->
-            <!--<archive>-->
-            <!--<manifest>-->
-            <!--<addClasspath>true</addClasspath>-->
-            <!--<classpathPrefix>lib/</classpathPrefix>-->
-            <!--<mainClass>org.icij.datashare.cli.DataShareCli</mainClass>-->
-            <!--</manifest>-->
-            <!--</archive>-->
-            <!--</configuration>-->
-            <!--</plugin>-->
-
-            <!--&lt;!&ndash; Assembly &ndash;&gt;-->
-            <!--<plugin>-->
-                <!--<groupId>org.apache.maven.plugins</groupId>-->
-                <!--<artifactId>maven-assembly-plugin</artifactId>-->
-                <!--<configuration>-->
-                    <!--<descriptors>-->
-                        <!--<descriptor>src/assembly/dist.xml</descriptor>-->
-                    <!--</descriptors>-->
-                <!--</configuration>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>make-assembly</id>-->
-                        <!--<phase>package</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>single</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
 
         </plugins>
 

@@ -3,7 +3,6 @@ package org.icij.datashare.text.nlp.core;
 import java.io.StringReader;
 import java.util.*;
 import java.util.function.BiPredicate;
-import static java.util.Collections.singleton;
 
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Triple;
@@ -86,15 +85,15 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
      */
     @Override
     protected boolean initialize(Language language) {
-        if( ! super.initialize(language) ) {
+        if( ! super.initialize(language) )
             return false;
-        }
-        if (singletonList(NER).equals(targetStages)) {
+
+        if (singletonList(NER).equals(targetStages))
             return initializeNerAnnotator(language);
-        }
-        if (singletonList(POS).equals(targetStages)) {
+
+        if (singletonList(POS).equals(targetStages))
             return initializePosAnnotator(language);
-        }
+
         return initializePipelineAnnotator(language);
     }
 
@@ -104,14 +103,14 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
     @Override
     protected Optional<Annotation> process(String input, String hash, Language language) {
         // Is NER the unique target stage?
-        if (singletonList(NER).equals(targetStages)) {
+        if (singletonList(NER).equals(targetStages))
             return processNerClassifier(input, hash, language);
-        }
+
         // Is POS the unique target stage?
-        if (singletonList(POS).equals(targetStages)) {
+        if (singletonList(POS).equals(targetStages))
             return processPosClassifier(input, hash, language);
-        }
-        // Otherwise,
+
+        // Otherwise
         return processPipeline(input, hash, language);
     }
 
@@ -131,12 +130,11 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
 
 
     private boolean initializePipelineAnnotator(Language language) {
-        if (pipeline.containsKey(language)) {
+        if (pipeline.containsKey(language))
             return true;
-        }
         Optional<StanfordCoreNLP> stanfordCoreNLP = CoreNlpPipelineAnnotator.INSTANCE.get(language);
         if ( ! stanfordCoreNLP.isPresent() ) {
-            LOGGER.error("Failed to get StanfordCoreNLP annotator. Aborting...");
+            LOGGER.error(getClass().getName() + " FAILED to get PIPELINE annotator. Aborting...");
             return false;
         }
         pipeline.put(language, stanfordCoreNLP.get());
@@ -157,6 +155,8 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
         // CoreNLP annotation data-structure
         edu.stanford.nlp.pipeline.Annotation coreNlpAnnotation = new edu.stanford.nlp.pipeline.Annotation(input);
 
+        LOGGER.info(getClass().getName() + " - SENTENCING ~ TOKENIZING ~ POS-TAGGING ~ NAME-FINDING for " + language.toString());
+
         // Sentencize input
         // Tokenize
         // Pos-tag
@@ -165,7 +165,6 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
 
         final BiPredicate<Optional<NamedEntity.Category>, Optional<NamedEntity.Category>>
                 differentCategories = (c1, c2) -> ! c1.equals(c2);
-
         // Feed annotation
         List<CoreMap> sentences = coreNlpAnnotation.get(SentencesAnnotation.class);
         for (CoreMap sentence: sentences) {
@@ -203,7 +202,6 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
                         String               mentionPos = String.join(" ", nerPoSs);
                         NamedEntity.Category category   = prevCat.orElse(NamedEntity.Category.UNKNOWN);
                         annotation.add(NER, nerBegin, tokenBegin, category.toString());
-
                         nerComps = new ArrayList<>();
                         nerPoSs  = new ArrayList<>();
                     }
@@ -217,12 +215,12 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
 
 
     private boolean initializeNerAnnotator(Language language) {
-        if (nerClassifier.containsKey(language)){
+        if (nerClassifier.containsKey(language))
             return true;
-        }
+
         Optional<AbstractSequenceClassifier<CoreLabel>> classifier = CoreNlpNerAnnotator.INSTANCE.get(language);
         if ( ! classifier.isPresent()) {
-            LOGGER.error("Failed to get NER annotator. Aborting processing");
+            LOGGER.error(getClass().getName() + " - FAILED INITIALIZING NER annotator. Aborting...");
             return false;
         }
         nerClassifier.put(language, classifier.get());
@@ -239,9 +237,9 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
     private Optional<Annotation> processNerClassifier(String input, String hash, Language language) {
         Annotation annotation = new Annotation(hash, getType(), language);
 
+        LOGGER.info(getClass().getName() + " - NAME-FINDING for " + language.toString());
         // Recognize named entities from input
         List<Triple<String, Integer, Integer>> items = nerClassifier.get(language).classifyToCharacterOffsets(input);
-
         // For each recognized named entity
         for (Triple<String, Integer, Integer> item : items) {
             // Triple: <category, begin, end>
@@ -256,12 +254,12 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
 
 
     private boolean initializePosAnnotator(Language language) {
-        if (posTagger.containsKey(language)) {
+        if (posTagger.containsKey(language))
             return true;
-        }
+
         Optional<MaxentTagger> tagger = CoreNlpPosAnnotator.INSTANCE.get(language);
         if ( ! tagger.isPresent()) {
-            LOGGER.error("Failed to get PoS annotator. Aborting...");
+            LOGGER.error(getClass().getName() + " - FAILED INITIALIZING POS annotator. Aborting...");
             return false;
         }
         posTagger.put(language, tagger.get());
@@ -277,6 +275,9 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
      */
     private Optional<Annotation> processPosClassifier(String input, String hash, Language language) {
         Annotation annotation = new Annotation(hash, getType(), language);
+
+        LOGGER.info(getClass().getName() + " - POS-TAGGING for " + language.toString());
+
         // Split input into sentences
         List<List<HasWord>> sentences = MaxentTagger.tokenizeText(new StringReader(input));
         for (List<HasWord> sentence : sentences) {
@@ -294,8 +295,8 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
     }
 
     @Override
-    public Optional<String> getPosTagSet() {
-        return Optional.of(CoreNlpPosAnnotator.POS_TAGSET);
+    public Optional<String> getPosTagSet(Language language) {
+        return Optional.of(CoreNlpPosAnnotator.POS_TAGSET.get(language));
     }
 
 }

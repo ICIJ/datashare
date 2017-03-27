@@ -110,28 +110,26 @@ public enum OpenNlpNerModel {
 
 
     public Optional<TokenNameFinderModel> get(Language language, NamedEntity.Category category) {
-        sharedModels.apply(language)
-                .forEach( lang ->
-                    modelLock.get(lang).get(category).lock()
-                );
+        sharedModels.apply(language).forEach( lang ->
+                modelLock.get(lang).get(category).lock()
+        );
         try {
-            if ( ! load(language, category, Thread.currentThread().getContextClassLoader())) {
+            if ( ! load(language, category, Thread.currentThread().getContextClassLoader()))
                 return Optional.empty();
-            }
+
             return Optional.of(model.get(language).get(category));
         } finally {
-            sharedModels.apply(language)
-                    .forEach( lang ->
-                            modelLock.get(lang).get(category).unlock()
-                    );
+            sharedModels.apply(language).forEach( lang ->
+                    modelLock.get(lang).get(category).unlock()
+            );
         }
     }
 
     private boolean load(Language language, NamedEntity.Category category, ClassLoader loader) {
-        if (model.containsKey(language) && model.get(language).containsKey(category) ) {
+        if (model.containsKey(language) && model.get(language).containsKey(category) )
             return true;
-        }
-        LOGGER.info("Loading NER " + category + " model for " + language + " - " + Thread.currentThread().getName());
+
+        LOGGER.info(getClass().getName() + " - LOADING NER " + category + " model for " + language);
         try (InputStream modelIS = loader.getResourceAsStream(modelPath.get(language).get(category).toString())) {
             TokenNameFinderModel nerModel = new TokenNameFinderModel(modelIS);
             sharedModels.apply(language)
@@ -139,9 +137,10 @@ public enum OpenNlpNerModel {
                             model.get(lang).put(category, nerModel)
                     );
         } catch (IOException e) {
-            LOGGER.error("Failed to load " + TokenNameFinderModel.class.getName(), e);
+            LOGGER.error(getClass().getName() + " - FAILED LOADING " + TokenNameFinderModel.class.getName(), e);
             return false;
         }
+        LOGGER.info(getClass().getName() + " - LOADED NER " + category + " model for " + language);
         return true;
     }
 

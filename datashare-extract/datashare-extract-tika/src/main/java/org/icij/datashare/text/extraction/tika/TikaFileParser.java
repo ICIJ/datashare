@@ -12,9 +12,8 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 
 import org.xml.sax.SAXException;
-
-import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.config.TikaConfig;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
@@ -22,17 +21,12 @@ import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.CompositeParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
-import org.apache.tika.parser.ocr.TesseractOCRConfig;
-import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.BodyContentHandler;
 import org.apache.tika.sax.LinkContentHandler;
 import org.apache.tika.sax.TeeContentHandler;
-
 import com.optimaize.langdetect.*;
-import com.optimaize.langdetect.i18n.LdLocale;
 import com.optimaize.langdetect.ngram.NgramExtractors;
-import com.optimaize.langdetect.profiles.LanguageProfile;
 import com.optimaize.langdetect.profiles.LanguageProfileReader;
 import com.optimaize.langdetect.text.CommonTextObjectFactories;
 import com.optimaize.langdetect.text.TextObjectFactory;
@@ -40,8 +34,9 @@ import com.optimaize.langdetect.text.TextObjectFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import static org.icij.datashare.text.Language.*;
-import org.icij.datashare.text.extraction.FileParser;
 import org.icij.datashare.text.extraction.AbstractFileParser;
+import org.icij.datashare.text.extraction.FileParser;
+import org.icij.datashare.text.extraction.tika.parser.ocr.Tess4JParserConfig;
 
 
 /**
@@ -53,60 +48,54 @@ import org.icij.datashare.text.extraction.AbstractFileParser;
  */
 public final class TikaFileParser extends AbstractFileParser {
 
-    public static final String RESOURCE_NAME           = Metadata.RESOURCE_NAME_KEY;
-    public static final String CONTENT_TYPE            = Metadata.CONTENT_TYPE;
-    public static final String CONTENT_LENGTH          = Metadata.CONTENT_LENGTH;
-    public static final String CONTENT_ENCODING        = Metadata.CONTENT_ENCODING;
-    public static final String CONTENT_LANGUAGE        = Metadata.CONTENT_LANGUAGE;
-    public static final String CONTENT_LANGUAGE_BELIEF = "Content-Language-Belief";
+    private static final long serialVersionUID = 1346797528461364L;
 
-    public static final Function<Language, Language> LANGUAGE_MAPPER =
-            lang -> {
-                if (lang.equals(ENGLISH) || lang.equals(SPANISH) || lang.equals(FRENCH) || lang.equals(GERMAN))
-                    return lang;
-                if (lang.equals(GALICIAN) || lang.equals(CATALAN))
-                    return SPANISH;
-                return ENGLISH;
-            };
+    public static final String RESOURCE_NAME    = Metadata.RESOURCE_NAME_KEY;
+    public static final String CONTENT_TYPE     = Metadata.CONTENT_TYPE;
+    public static final String CONTENT_LENGTH   = Metadata.CONTENT_LENGTH;
+    public static final String CONTENT_ENCODING = Metadata.CONTENT_ENCODING;
+    public static final String CONTENT_LANGUAGE = Metadata.CONTENT_LANGUAGE;
+    public static final Function<Language, Language> LANGUAGE_MAPPER = lang -> {
+        if (lang.equals(ENGLISH) || lang.equals(SPANISH) || lang.equals(FRENCH) || lang.equals(GERMAN))
+            return lang;
+        if (lang.equals(GALICIAN) || lang.equals(CATALAN))
+            return SPANISH;
+        return ENGLISH;
+    };
 
+
+    private final AutoDetectParser parser;
+
+    private final ParseContext context = new ParseContext();
 
     private final TikaConfig config = TikaConfig.getDefaultConfig();
 
     private final PDFParserConfig pdfConfig = new PDFParserConfig();
 
-    private final TesseractOCRConfig ocrConfig = new TesseractOCRConfig();
+    private final Tess4JParserConfig ocrConfig = new Tess4JParserConfig();
 
     private final Set<MediaType> excludedMediaTypes = new HashSet<>();
 
-    private final AutoDetectParser parser;
+    private final LanguageDetector languageDetector = LanguageDetectorBuilder.create(NgramExtractors.standard())
+            .withProfiles(new LanguageProfileReader().readAllBuiltIn())
+            .build();
 
-    private final ParseContext context;
-
-    private TeeContentHandler handler;
-
-    private LanguageDetector languageDetector;
-
-    private TextObjectFactory textObjectFactory;
-
-    private Metadata metadata;
+    private final TextObjectFactory textObjectFactory = CommonTextObjectFactories.forDetectingOnLargeText();
 
 
     public TikaFileParser(Properties properties) throws IOException {
         super(properties);
 
-        if (ocrEnabled) { enableOcr(); } else { disableOcr(); }
-        setOcrLanguage(language);
-
         parser = new AutoDetectParser(config);
         parser.setFallback(new ErrorParser(parser, excludedMediaTypes));
 
-        context = new ParseContext();
-        context.set(PDFParserConfig.class, pdfConfig);
-        context.set(Parser.class, parser);
+        pdfConfig.setOcrStrategy(PDFParserConfig.OCR_STRATEGY.NO_OCR);
+        pdfConfig.setExtractUniqueInlineImagesOnly(false);
 
-        List<LanguageProfile> languageProfiles = new LanguageProfileReader().readAllBuiltIn();
-        languageDetector  = LanguageDetectorBuilder.create(NgramExtractors.standard()).withProfiles(languageProfiles).build();
-        textObjectFactory = CommonTextObjectFactories.forDetectingOnLargeText();
+        if (ocrEnabled) { enableOcr(); } else { disableOcr(); }
+
+        context.set(Parser.class, parser);
+        context.set(PDFParserConfig.class, pdfConfig);
     }
 
     public TikaFileParser() throws IOException {
@@ -119,36 +108,33 @@ public final class TikaFileParser extends AbstractFileParser {
         Metadata metadata = new Metadata();
         try (TikaInputStream input = TikaInputStream.get(filePath, metadata)) {
             return parse(input, metadata, filePath);
-        } catch (IOException e) {
-            LOGGER.error("Failed to get input stream from " + filePath, e);
+        } catch (IOException | SAXException | TikaException e) {
+            LOGGER.error(getClass().getName() + " - FAILED PARSING from " + filePath, e);
             return Optional.empty();
         }
     }
 
-    private Optional<Document> parse(InputStream is, Metadata metadata, Path filePath) {
+    private Optional<Document> parse(InputStream is, Metadata metadata, Path filePath)
+            throws TikaException, SAXException, IOException {
         BodyContentHandler textHandler = new BodyContentHandler(-1);
         LinkContentHandler linkHandler = new LinkContentHandler();
+        TeeContentHandler  handler     = new TeeContentHandler(textHandler, linkHandler);
 
-        handler  = new TeeContentHandler(textHandler, linkHandler);
-        try {
-            parser.parse(is, handler, metadata, context);
-        } catch (IOException | SAXException | TikaException e) {
-            LOGGER.error("Failed to parse input stream", e);
-            return Optional.empty();
-        }
+        LOGGER.info(getClass().getName() + " PARSING " + filePath);
+
+        parser.parse(is, handler, metadata, context);
 
         String content = textHandler.toString();
 
-        com.google.common.base.Optional<LdLocale> langOpt = languageDetector.detect(textObjectFactory.forText(content));
-        if( langOpt.isPresent()) {
-            metadata.set(CONTENT_LANGUAGE, applyLanguageMap(langOpt.get().getLanguage()));
-        }
+        languageDetector.detect(textObjectFactory.forText(content))
+                .transform(Optional::of).or(Optional::empty)
+                .ifPresent( ldLocale -> metadata.set(CONTENT_LANGUAGE, applyLanguageMap(ldLocale.getLanguage())) );
 
         return Document.create(
                 filePath,
                 content,
-                getLanguage(metadata).orElse(UNKNOWN),
-                getEncoding(metadata).orElse(Charset.defaultCharset()),
+                getLanguage(metadata).orElse(ENGLISH),
+                getEncoding(metadata).orElse(StandardCharsets.UTF_8),
                 getMimeType(metadata).orElse("UNKNOWN"),
                 getMetadataAsMap(metadata).orElse(new HashMap<>()),
                 getType()
@@ -156,22 +142,25 @@ public final class TikaFileParser extends AbstractFileParser {
     }
 
     private void enableOcr() {
+        ocrConfig.setLanguage(language);
         pdfConfig.setExtractInlineImages(true);
-        pdfConfig.setExtractUniqueInlineImagesOnly(false);
-        context.set(TesseractOCRConfig.class, ocrConfig);
+        context.set(Tess4JParserConfig.class, ocrConfig);
         ocrEnabled = true;
     }
 
     private void disableOcr() {
-        excludeParser(TesseractOCRParser.class);
         pdfConfig.setExtractInlineImages(false);
+        context.set(Tess4JParserConfig.class, null);
         ocrEnabled = false;
     }
 
+    private boolean ocrEnabled() {
+        return ocrEnabled;
+    }
+
     private void setOcrLanguage(Language language) {
-        if (language != null && ! asList(NONE, UNKNOWN).contains(language)) {
-            ocrConfig.setLanguage(language.toString());
-        }
+        if (language != null && ! language.equals(UNKNOWN))
+            ocrConfig.setLanguage(language);
     }
 
     private String applyLanguageMap(String language) {
@@ -181,11 +170,11 @@ public final class TikaFileParser extends AbstractFileParser {
                 language;
     }
 
-    private void excludeParser(final Class exclude) {
+    private void excludeParser(Class exclude) {
+        final ParseContext                           context   = new ParseContext();
         final CompositeParser                        composite = (CompositeParser) config.getParser();
         final Map<MediaType, Parser>                 parsers   = composite.getParsers();
         final Iterator<Map.Entry<MediaType, Parser>> iterator  = parsers.entrySet().iterator();
-        final ParseContext                           context   = new ParseContext();
         while (iterator.hasNext()) {
             Map.Entry<MediaType, Parser> pair = iterator.next();
             Parser parser = pair.getValue();
@@ -197,17 +186,16 @@ public final class TikaFileParser extends AbstractFileParser {
         composite.setParsers(parsers);
     }
 
-    private static Optional<Language> getLanguage(Metadata metadata) {
-        if (! asList(metadata.names()).contains(CONTENT_LANGUAGE)) {
+
+    private Optional<Language> getLanguage(Metadata metadata) {
+        if (! asList(metadata.names()).contains(CONTENT_LANGUAGE))
             return Optional.empty();
-        }
         return Language.parse(metadata.get(CONTENT_LANGUAGE));
     }
 
-    private static OptionalInt getLength(Metadata metadata) {
-        if (! asList(metadata.names()).contains(CONTENT_LENGTH)) {
+    private OptionalInt getLength(Metadata metadata) {
+        if (! asList(metadata.names()).contains(CONTENT_LENGTH))
             return OptionalInt.empty();
-        }
         try {
             return OptionalInt.of(Integer.parseInt(metadata.get(CONTENT_LENGTH)));
         } catch (NumberFormatException e) {
@@ -215,31 +203,32 @@ public final class TikaFileParser extends AbstractFileParser {
         }
     }
 
-    private static Optional<Charset> getEncoding(Metadata metadata) {
-        if (! asList(metadata.names()).contains(CONTENT_ENCODING)) {
+    private Optional<Charset> getEncoding(Metadata metadata) {
+        if (! asList(metadata.names()).contains(CONTENT_ENCODING))
+            return Optional.empty();
+        try{
+            return Optional.of(Charset.forName(metadata.get(CONTENT_ENCODING)));
+        } catch (Exception e) {
+            LOGGER.error(getClass().getName() + " - FAILED parsing Charset " + metadata.get(CONTENT_ENCODING), e);
             return Optional.empty();
         }
-        return Optional.of(StandardCharsets.UTF_8);
     }
 
-    private static Optional<String> getName(Metadata metadata) {
-        if (! asList(metadata.names()).contains(RESOURCE_NAME)) {
+    private Optional<String> getName(Metadata metadata) {
+        if (! asList(metadata.names()).contains(RESOURCE_NAME))
             return Optional.empty();
-        }
         return Optional.of(metadata.get(RESOURCE_NAME));
     }
 
-    private static Optional<String> getMimeType(Metadata metadata) {
-        if (! asList(metadata.names()).contains(CONTENT_TYPE)) {
+    private Optional<String> getMimeType(Metadata metadata) {
+        if (! asList(metadata.names()).contains(CONTENT_TYPE))
             return Optional.empty();
-        }
         return Optional.of(metadata.get(CONTENT_TYPE));
     }
 
-    private static Optional<Map<String, String>> getMetadataAsMap(Metadata metadata) {
+    private Optional<Map<String, String>> getMetadataAsMap(Metadata metadata) {
         Map<String, String> map = new HashMap<String, String>() {{
-            stream(metadata.names())
-                    .forEach( key -> put(key, metadata.get(key)) );
+            stream(metadata.names()).forEach( key -> put(key, metadata.get(key)) );
         }};
         return Optional.of(map);
     }

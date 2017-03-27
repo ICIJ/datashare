@@ -24,7 +24,7 @@ import org.icij.datashare.text.nlp.mitie.annotators.MitieNlpTokenAnnotator;
  * {@link org.icij.datashare.text.nlp.AbstractNlpPipeline}
  * {@link Type#MITIE}
  *
- * /!\ Library is not thread-safe; hence all accesses synchronized
+ * /!\ Library is not thread-safe; hence the synchronization
  * <a href="https://github.com/mit-nlp/MITIE">MIT Information Extraction</a>
  *
  * Created by julien on 9/19/16.
@@ -46,22 +46,17 @@ public class MitieNlpPipeline extends AbstractNlpPipeline {
     }
 
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Map<Language, Set<NlpStage>> supportedStages() {
         return SUPPORTED_STAGES;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected Optional<Annotation> process(String input, String hash, Language language) {
         Annotation annotation = new Annotation(hash, getType(), language);
 
         // Tokenize input
+        LOGGER.info(getClass().getName() + " - TOKENIZING for " + language.toString());
         TokenIndexVector tokens = MitieNlpTokenAnnotator.INSTANCE.apply(input);
         // Feed annotation
         for (int i = 0; i < tokens.size(); ++i) {
@@ -73,6 +68,7 @@ public class MitieNlpPipeline extends AbstractNlpPipeline {
 
         // NER input
         if (targetStages.contains(NER)) {
+            LOGGER.info(getClass().getName() + " - NAME-FINDING for " + language.toString());
             EntityMentionVector entities = MitieNlpNerAnnotator.INSTANCE.apply(tokens, language);
             // Feed annotation
             // transform index offset given in bytes of utf-8 representation to chars offset in string
@@ -105,7 +101,7 @@ public class MitieNlpPipeline extends AbstractNlpPipeline {
     }
 
     @Override
-    public Optional<String> getPosTagSet() {
+    public Optional<String> getPosTagSet(Language language) {
         return Optional.empty();
     }
 

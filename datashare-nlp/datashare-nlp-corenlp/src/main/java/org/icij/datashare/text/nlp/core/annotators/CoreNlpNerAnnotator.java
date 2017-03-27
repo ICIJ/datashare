@@ -76,14 +76,14 @@ public enum CoreNlpNerAnnotator {
             return true;
         }
         try {
-            LOGGER.info("Loading NER annotator for " + language + " - " + Thread.currentThread().getName());
+            LOGGER.info(getClass().getName() + " - LOADING NER annotator for " + language);
             String modelPath = CoreNlpModels.PATH.get(NER).get(language).toString();
             CRFClassifier<CoreLabel> classifier = CRFClassifier.getClassifier(modelPath);
             CoreNlpModels.sharedModels.apply(NER, language)
                     .forEach( lang -> annotator.put(language, classifier) );
             return true;
         } catch (ClassNotFoundException | IOException e) {
-            LOGGER.error("Failed to load NER annotator", e);
+            LOGGER.error(getClass().getName() + " - FAILED LOADING NER annotator", e);
             return false;
         }
     }

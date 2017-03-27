@@ -1,22 +1,22 @@
 package org.icij.datashare.text.nlp.core.models;
 
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.nlp.NlpStage;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+
+import org.icij.datashare.text.Language;
 import static org.icij.datashare.text.Language.*;
+import org.icij.datashare.text.nlp.NlpStage;
 import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
 /**
+ * Stanford CoreNLP Models Information
+ *
  * Created by julien on 8/31/16.
  */
 public final class CoreNlpModels {
@@ -58,9 +58,9 @@ public final class CoreNlpModels {
     public static final Map<NlpStage, Set<Set<Language>>> SHARED_MODELS =
             new HashMap<NlpStage, Set<Set<Language>>>() {{
                 put(NER, new HashSet<Set<Language>>() {{
-                    add( new HashSet<>(asList(ENGLISH, FRENCH)) );
-                    add( new HashSet<>(singletonList(SPANISH)) );
-                    add( new HashSet<>(singletonList(GERMAN)) );
+                    add( new HashSet<>( asList(ENGLISH, FRENCH)) );
+                    add( new HashSet<>( singletonList(SPANISH)) );
+                    add( new HashSet<>( singletonList(GERMAN)) );
                 }});
             }};
 

@@ -5,9 +5,15 @@ org.icij.datashare.cli
 org.icij.datashare.concurrent
 org.icij.datashare.concurrent.queue
 org.icij.datashare.concurrent.task
+org.icij.datashare.function
+org.icij.datashare.imageio.jpx
+org.icij.datashare.io
+org.icij.datashare.json
+org.icij.datashare.reflect
 org.icij.datashare.text
 org.icij.datashare.text.extraction
 org.icij.datashare.text.extraction.tika
+org.icij.datashare.text.extraction.tika.parser.ocr
 org.icij.datashare.text.hashing
 org.icij.datashare.text.indexing
 org.icij.datashare.text.indexing.command
@@ -24,8 +30,4 @@ org.icij.datashare.text.nlp.mitie.annotators
 org.icij.datashare.text.nlp.mitie.models
 org.icij.datashare.text.nlp.open
 org.icij.datashare.text.nlp.open.models
-org.icij.datashare.util.function
-org.icij.datashare.util.io
-org.icij.datashare.util.json
-org.icij.datashare.util.reflect
 services

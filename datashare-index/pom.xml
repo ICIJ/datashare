@@ -7,16 +7,14 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-index</artifactId>
     <packaging>pom</packaging>
 
-
     <modules>
         <module>datashare-index-elasticsearch</module>
     </modules>
-
 
 </project>

@@ -34,7 +34,12 @@ public enum OpenNlpPosModel {
     private static final Logger LOGGER = LogManager.getLogger(OpenNlpPosModel.class);
 
     // Part-of-speech refence tag set
-    public static final String POS_TAGSET = "Penn Treebank";
+    public static final Map<Language, String> POS_TAGSET = new HashMap<Language, String>() {{
+        put(ENGLISH, "PENN TREEBANK");
+        put(SPANISH, "ANCORA");
+        put(FRENCH,  "CC");
+        put(GERMAN,  "STTS");
+    }};
 
 
     // Models base directory
@@ -80,17 +85,17 @@ public enum OpenNlpPosModel {
     }
 
     private boolean load(Language language, ClassLoader loader) {
-        if ( model.containsKey(language) && model.get(language) == null) {
+        if ( model.containsKey(language) && model.get(language) == null)
             return true;
-        }
-        LOGGER.info("Loading POS model for " + language);
+
+        LOGGER.info(getClass().getName() + " - LOADING POS model for " + language);
         try (InputStream modelIS = loader.getResourceAsStream(modelPath.get(language).toString())) {
             model.put(language, new POSModel(modelIS));
-
         } catch (IOException e) {
-            LOGGER.error("Failed to load " + POSModel.class.getName(), e);
+            LOGGER.error(getClass().getName() + " - FAILED LOADING " + POSModel.class.getName(), e);
             return false;
         }
+        LOGGER.info(getClass().getName() + " - LOADED POS model for " + language);
         return true;
     }
 

@@ -3,22 +3,31 @@
 # Dev Mode: set JVM stack size to 256MB (-Xss256m) because of a Scala compiler (Typer) stack overflow bug
 # ~~~~
 
-
 # Processing Controller
 
-POST    /datashare/process/local/:inputdir           controllers.org.icij.datashare.web.ProcessController.processDirectory(inputdir, index = "datashare-local", pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
-POST    /datashare/process/local/:inputdir/:index    controllers.org.icij.datashare.web.ProcessController.processDirectory(inputdir, index,                     pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+POST    /datashare/process/:inputDir             controllers.org.icij.datashare.web.ProcessController.processDirectory(inputDir, fileParserParallelism: Integer ?= 1, index = "datashare-local", nlpPipelines ?= "CORE,OPEN,GATE,IXA,MITIE", nlpParallelism: Integer ?= 1, nlpStages ?= "NER", entities ?= "ORG,PERS,LOC")
+POST    /datashare/process/:inputDir/:index      controllers.org.icij.datashare.web.ProcessController.processDirectory(inputDir, fileParserParallelism: Integer ?= 1, index,                     nlpPipelines ?= "CORE,OPEN,GATE,IXA,MITIE", nlpParallelism: Integer ?= 1, nlpStages ?= "NER", entities ?= "ORG,PERS,LOC")
 
-#POST    /datashare/process/:queueaddr           controllers.org.icij.datashare.web.ProcessController.processDistributedQueue(inputdir, index = "datashare-local", hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
-#POST    /datashare/process/:queueaddr/:index    controllers.org.icij.datashare.web.ProcessController.processDistributedQueue(inputdir, index,                     hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+#POST    /datashare/node/scan/:inputDir          controllers.org.icij.datashare.web.ProcessController.Node.scan(inputDir,  index = "datashare-global", hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", nlpParallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+#POST    /datashare/node/scan/:inputDir/:index   controllers.org.icij.datashare.web.ProcessController.Node.scan(inputDir,  index,                      hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", nlpParallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
 
+#POST    /datashare/node/parse                   controllers.org.icij.datashare.web.ProcessController.Node.parse(fileParserParallelism: Integer ?= 1, index = "datashare-global", hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", nlpParallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+#POST    /datashare/node/parse/:index            controllers.org.icij.datashare.web.ProcessController.Node.parse(fileParserParallelism: Integer ?= 1, index,                      hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", nlpParallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+
+#POST    /datashare/node/nlp                     controllers.org.icij.datashare.web.ProcessController.Node.nlp(index = "datashare-global", hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
+#POST    /datashare/node/nlp/:index              controllers.org.icij.datashare.web.ProcessController.Node.nlp(index,                      hosts, ports, pipelines ?= "CORE,OPEN,GATE,IXA,MITIE", parallelism: Integer ?= 1, stages ?= "NER", entities ?= "ORG,PERS,LOC")
 
 # Indexing Controller
 
 GET       /datashare/index                        controllers.org.icij.datashare.web.IndexController.listIndices()
-POST      /datashare/index/:index                 controllers.org.icij.datashare.web.IndexController.createIndex(index)
-PUT       /datashare/index/:index                 controllers.org.icij.datashare.web.IndexController.commitIndex(index)
+PUT       /datashare/index/:index                 controllers.org.icij.datashare.web.IndexController.createIndex(index)
+POST      /datashare/index/:index                 controllers.org.icij.datashare.web.IndexController.commitIndex(index)
 DELETE    /datashare/index/:index                 controllers.org.icij.datashare.web.IndexController.deleteIndex(index)
 
-GET       /datashare/index/:query                 controllers.org.icij.datashare.web.IndexController.searchAnyIndex(query)
-GET       /datashare/index/:index/:type/:query    controllers.org.icij.datashare.web.IndexController.search(index, type, query)
+PUT       /datashare/index/:index/:type/:id       controllers.org.icij.datashare.web.IndexController.addDocument(index, type, id)
+POST      /datashare/index/:index/:type/:id       controllers.org.icij.datashare.web.IndexController.updateDocument(index, type, id)
+GET       /datashare/index/:index/:type/:id       controllers.org.icij.datashare.web.IndexController.getDocument(index, type, id)
+DELETE    /datashare/index/:index/:type/:id       controllers.org.icij.datashare.web.IndexController.deleteDocument(index, type, id)
+
+GET       /datashare/index/search                 controllers.org.icij.datashare.web.IndexController.search(query, from: Integer ?= null, size: Integer ?= null)
+GET       /datashare/index/search/:index/:type    controllers.org.icij.datashare.web.IndexController.searchIndexAndType(index, type, query, from: Integer ?= null, size: Integer ?= null)

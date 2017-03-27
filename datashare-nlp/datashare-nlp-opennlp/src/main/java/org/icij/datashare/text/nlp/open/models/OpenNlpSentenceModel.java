@@ -78,17 +78,16 @@ public enum OpenNlpSentenceModel {
 
 
     public Optional<SentenceModel> get(Language language) {
-        sharedModels.apply(language)
-                .forEach( lang ->
-                    modelLock.get(lang).lock()
-                );
+        sharedModels.apply(language).forEach( lang ->
+                modelLock.get(lang).lock()
+        );
         try {
-            if ( ! load(language, Thread.currentThread().getContextClassLoader())) {
+            if ( ! load(language, Thread.currentThread().getContextClassLoader()))
                 return Optional.empty();
-            }
+
             return Optional.of(model.get(language));
         } finally {
-            sharedModels.apply(language).stream()
+            sharedModels.apply(language)
                     .forEach( lang ->
                         modelLock.get(lang).unlock()
                     );
@@ -96,20 +95,21 @@ public enum OpenNlpSentenceModel {
     }
 
     private boolean load(Language language, ClassLoader loader){
-        if ( model.containsKey(language) && model.get(language) != null) {
+        if ( model.containsKey(language) && model.get(language) != null)
             return true;
-        }
-        LOGGER.info("Loading SENTENCE model for " + language + " - " + Thread.currentThread().getName());
+
+        LOGGER.info(getClass().getName() + " - LOADING SENTENCE model for " + language);
         try (InputStream modelIS = loader.getResourceAsStream(modelPath.get(language).toString())) {
             SentenceModel sentenceModel = new SentenceModel(modelIS);
-            sharedModels.apply(language).stream()
+            sharedModels.apply(language)
                     .forEach( lang ->
                             model.put(lang, sentenceModel)
                     );
         } catch (Exception e) {
-            LOGGER.error("Failed to load " + SentenceModel.class.getName(), e);
+            LOGGER.error(getClass().getName() + " - FAILED LOADING " + SentenceModel.class.getName(), e);
             return false;
         }
+        LOGGER.info(getClass().getName() + " - LOADED SENTENCE model for " + language);
         return true;
     }
 

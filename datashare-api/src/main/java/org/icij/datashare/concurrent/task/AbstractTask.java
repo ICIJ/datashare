@@ -19,6 +19,9 @@ public abstract class AbstractTask implements Task {
     volatile private Future future;
 
 
+    protected AbstractTask() {}
+
+
     @Override
     public void setFuture(Future future) {
         this.future = future;

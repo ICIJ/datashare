@@ -9,7 +9,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import edu.mit.ll.mitie.EntityMentionVector;
 import edu.mit.ll.mitie.NamedEntityExtractor;
 import edu.mit.ll.mitie.StringVector;
@@ -17,8 +16,9 @@ import edu.mit.ll.mitie.TokenIndexVector;
 
 import org.icij.datashare.text.Language;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
-import static org.icij.datashare.text.nlp.mitie.models.MitieNlpModels.SUPPORTED_LANGUAGES;
 import org.icij.datashare.text.nlp.mitie.models.MitieNlpModels;
+import static org.icij.datashare.text.nlp.mitie.models.MitieNlpModels.SUPPORTED_LANGUAGES;
+
 
 /**
  * Created by julien on 9/19/16.
@@ -50,36 +50,19 @@ public enum MitieNlpNerAnnotator {
         tagSet = new HashMap<>();
     }
 
-
-    public EntityMentionVector apply(TokenIndexVector tokens, Language language) {
-        annotatorLock.get(language).lock();
-        try {
-            Optional<NamedEntityExtractor> annotator = get(language);
-            if (! annotator.isPresent()) {
-                return new EntityMentionVector();
-            }
-            LOGGER.info("Name-finding - " + Thread.currentThread().getName());
-            return annotator.get().extractEntities(tokens);
-        }  finally {
-            annotatorLock.get(language).unlock();
-        }
-    }
-
-
     /**
-     * Lock and get PoS tagger for language
+     * Lock and get NER annotator for language
      *
      * @param language the annotator language
      * @return an Optional of MaxenTagger if successfully (loaded and) retrieved; empty Optional otherwise
      */
     private Optional<NamedEntityExtractor> get(Language language)  {
         try {
-            if ( ! load(language)) {
+            if ( ! load(language))
                 return Optional.empty();
-            }
             return Optional.of(annotator.get(language));
         } catch (Exception e) {
-            LOGGER.error("Failed to extract entities", e);
+            LOGGER.error(getClass().getName() + " - FAILED LOADING POS annotator for " + language, e);
             return Optional.empty();
         }
     }
@@ -91,17 +74,17 @@ public enum MitieNlpNerAnnotator {
      * @return true if successfully loaded; false otherwise
      */
     private boolean load(Language language) {
-        if (annotator.containsKey(language)) {
+        if (annotator.containsKey(language))
             return true;
-        }
-        LOGGER.info("Loading NER annotator for " + language + " - " + Thread.currentThread().getName());
+        LOGGER.info(getClass().getName() +  " - LOADING NER annotator for " + language);
         try {
             String modelPath = MitieNlpModels.PATH.get(NER).get(language).toString();
             NamedEntityExtractor classifier = new NamedEntityExtractor(modelPath);
             annotator.put(language, classifier);
+            LOGGER.info(getClass().getName() + " - LOADED NER annotator for " + language.toString().toUpperCase());
             return true;
         } catch (Exception e) {
-            LOGGER.error("Failed to load NER annotator", e);
+            LOGGER.error(getClass().getName() + " - FAILED LOADING NER annotator", e);
             return false;
         }
     }
@@ -116,10 +99,32 @@ public enum MitieNlpNerAnnotator {
         }
     }
 
-    public StringVector getTagSet(Language language) {
-        if (tagSet.containsKey(language)) {
-            return tagSet.get(language);
+    /**
+     * Apply NER
+     *
+     * @param tokens   source tokens for NER
+     * @param language the annotator language
+     * @return an EntityMentionVector
+     */
+    public EntityMentionVector apply(TokenIndexVector tokens, Language language) {
+        annotatorLock.get(language).lock();
+        try {
+            Optional<NamedEntityExtractor> annotator = get(language);
+            if ( ! annotator.isPresent())
+                return new EntityMentionVector();
+            return annotator.get().extractEntities(tokens);
+        }  catch (Exception e) {
+            LOGGER.error(getClass().getName() + " - FAILED NAME-FINDING for " + language, e);
+            return new EntityMentionVector();
+        } finally {
+            annotatorLock.get(language).unlock();
         }
+    }
+
+
+    public StringVector getTagSet(Language language) {
+        if (tagSet.containsKey(language))
+            return tagSet.get(language);
         if (annotator.containsKey(language)) {
             tagSet.put(language, annotator.get(language).getPossibleNerTags());
             return tagSet.get(language);

@@ -7,7 +7,7 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-dist</artifactId>
@@ -60,6 +60,14 @@
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-extract-tika</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-extract-tika</artifactId>
+            <version>${datashare-tika.version}</version>
+            <type>zip</type>
+            <classifier>bundle</classifier>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Datashare Index Elasticsearh -->
         <dependency>
@@ -79,38 +87,6 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-corenlp</artifactId>
-        </dependency>
-        <!-- Datashare Nlp CoreNLP English Models -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- Datashare Nlp CoreNLP Spanish Models -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models-spanish</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- Datashare Nlp CoreNLP French Models -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models-french</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- Datashare Nlp CoreNLP German Models -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models-german</classifier>
-            <scope>runtime</scope>
         </dependency>
 
         <!-- Datashare Nlp OpenNLP -->
@@ -169,6 +145,42 @@
             <scope>runtime</scope>
         </dependency>
 
+
+        <!-- Joda Time -->
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Xalan XSLT processor -->
+        <dependency>
+            <groupId>xalan</groupId>
+            <artifactId>xalan</artifactId>
+            <version>${xalan.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Xerces XML parser-->
+        <dependency>
+            <groupId>xerces</groupId>
+            <artifactId>xercesImpl</artifactId>
+            <version>${xerces.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Logback -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Log4J -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -181,12 +193,32 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Slf4j -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
     </dependencies>
 
 
     <build>
-
         <plugins>
 
             <!-- Assembly -->
@@ -209,8 +241,16 @@
             </plugin>
 
         </plugins>
-
     </build>
 
 
 </project>
+
+
+
+<!--&lt;!&ndash; Logback &ndash;&gt;-->
+<!--<dependency>-->
+<!--<groupId>ch.qos.logback</groupId>-->
+<!--<artifactId>logback-classic</artifactId>-->
+<!--<scope>runtime</scope>-->
+<!--</dependency>-->

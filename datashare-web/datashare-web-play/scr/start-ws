@@ -5,8 +5,10 @@ scriptdir=`pwd $0`
 classpath="$scriptdir/lib/*"
 
 export WEB_APPLICATION_INDEXER_TYPE="ELASTICSEARCH"
-export WEB_APPLICATION_INDEXER_NODETYPE="LOCAL"
-export WEB_APPLICATION_INDEXER_HOSTS="localhost"
-export WEB_APPLICATION_INDEXER_PORTS=9300
+export WEB_APPLICATION_INDEXER_NODETYPE="REMOTE"
+#export WEB_APPLICATION_INDEXER_HOSTS="localhost"
+#export WEB_APPLICATION_INDEXER_PORTS=9300
 
-./start-idx && sleep 3 && exec java $* -Xms2000M -Dfile.encoding=UTF-8 -Dpidfile.path=ws.pid -cp "$classpath" play.core.server.ProdServerStart $scriptdir
+exec java $* -Xms2000M -Dfile.encoding=UTF-8 -Dpidfile.path=ws.pid -cp "$classpath" play.core.server.ProdServerStart "$scriptdir"
+
+

@@ -2,7 +2,6 @@ package org.icij.datashare.text.hashing;
 
 import java.util.Locale;
 import java.util.Optional;
-
 import java.io.InputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -14,7 +13,7 @@ import java.security.NoSuchAlgorithmException;
 
 import org.bouncycastle.util.encoders.Hex;
 
-import org.icij.datashare.util.io.FileSystemUtils;
+import org.icij.datashare.io.FileSystemUtils;
 
 
 /**

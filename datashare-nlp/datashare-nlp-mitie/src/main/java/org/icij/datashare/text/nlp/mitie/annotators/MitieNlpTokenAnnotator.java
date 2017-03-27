@@ -17,16 +17,15 @@ public enum MitieNlpTokenAnnotator {
 
 
     /**
-     * Lock and execute tokenizer
+     * Lock and apply Tokenizer
      *
      * @return an Optional of MaxenTagger if successfully (loaded and) retrieved; empty Optional otherwise
      */
     public synchronized TokenIndexVector apply(String input)  {
-        LOGGER.info("Tokenizing - " + Thread.currentThread().getName());
         try {
             return global.tokenizeWithOffsets(input);
         } catch (Exception e) {
-            LOGGER.error("Failed to tokenize input ", e);
+            LOGGER.error(getClass().getName() + " - FAILED TOKENIZING input ", e);
             return new TokenIndexVector();
         }
     }

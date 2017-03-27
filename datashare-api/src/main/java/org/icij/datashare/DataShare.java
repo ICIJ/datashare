@@ -3,41 +3,34 @@ package org.icij.datashare;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import com.hazelcast.core.*;
 
-import org.icij.datashare.concurrent.queue.QueueForwardingTask;
-import org.icij.datashare.concurrent.task.*;
+import org.icij.datashare.text.SourcePath;
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import static org.icij.datashare.text.NamedEntity.Category.LOCATION;
-import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
-import static org.icij.datashare.text.NamedEntity.Category.PERSON;
+import org.icij.datashare.io.FileSystemScanning;
 import org.icij.datashare.text.extraction.FileParser;
-import org.icij.datashare.text.extraction.FileParsingTask;
-import org.icij.datashare.text.extraction.FileSystemScanningTask;
-import static org.icij.datashare.text.extraction.FileParser.Type.TIKA;
+import org.icij.datashare.text.extraction.FileParsing;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.IndexingTask;
-import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
-import static org.icij.datashare.text.indexing.Indexer.Type.ELASTICSEARCH;
+import org.icij.datashare.text.indexing.Indexing;
 import org.icij.datashare.text.nlp.NlpPipeline;
-import org.icij.datashare.text.nlp.NerTask;
+import org.icij.datashare.text.nlp.NamedEntityRecognition;
 import org.icij.datashare.text.nlp.NlpStage;
-import static org.icij.datashare.text.nlp.NlpStage.NER;
+import org.icij.datashare.concurrent.DataGrid;
+import org.icij.datashare.concurrent.Latch;
+import org.icij.datashare.concurrent.BooleanLatch;
+import org.icij.datashare.concurrent.LatchForwarding;
+import org.icij.datashare.concurrent.queue.QueueForwarding;
+import org.icij.datashare.concurrent.task.*;
+import org.icij.datashare.function.ThrowingFunction;
 
 
 /**
@@ -47,300 +40,564 @@ import static org.icij.datashare.text.nlp.NlpStage.NER;
  */
 public final class DataShare {
 
+    public enum Stage {
+        SCANNING,
+        PARSING,
+        NLP;
+
+        public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
+
+        public static Optional<Stage> parse(final String stage) {
+            if (stage== null || stage.isEmpty())
+                return Optional.empty();
+            try {
+                return Optional.of(valueOf(stage.toUpperCase(Locale.ROOT)));
+            }  catch (IllegalArgumentException e) {
+                return Optional.empty();
+            }
+        }
+
+        public static ThrowingFunction<List<String>, List<Stage>> parseAll =
+                list ->
+                        list.stream()
+                                .map(Stage::parse)
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
+                                .collect(Collectors.toList());
+    }
+
     private static final Logger LOGGER = LogManager.getLogger(DataShare.class);
 
-    public static final FileParser.Type            DEFAULT_FILEPARSER_TYPE    = TIKA;
-    public static final boolean                    DEFAULT_FILEPARSER_OCR     = false;
+    public static final List<DataShare.Stage>      DEFAULT_STAGES             = asList(DataShare.Stage.values());
+
+    public static final FileParser.Type            DEFAULT_PARSER_TYPE        = FileParser.DEFAULT_TYPE;
+    public static final int                        DEFAULT_PARSER_PARALLELISM = 2;
+    public static final boolean                    DEFAULT_PARSER_OCR         = false;
 
     public static final List<NlpPipeline.Type>     DEFAULT_NLP_PIPELINES      = asList(NlpPipeline.Type.values());
     public static final int                        DEFAULT_NLP_PARALLELISM    = 1;
-    public static final List<NlpStage>             DEFAULT_NLP_STAGES         = singletonList(NER);
-    public static final List<NamedEntity.Category> DEFAULT_NLP_ENTITIES       = asList(PERSON, ORGANIZATION, LOCATION);
-    public static final boolean                    DEFAULT_NLP_CACHING        = true;
+    public static final List<NlpStage>             DEFAULT_NLP_STAGES         = NlpPipeline.DEFAULT_TARGET_STAGES;
+    public static final List<NamedEntity.Category> DEFAULT_NLP_ENTITIES       = NlpPipeline.DEFAULT_ENTITIES;
+    public static final boolean                    DEFAULT_NLP_CACHING        = NlpPipeline.DEFAULT_CACHING;
 
-    public static final Indexer.Type               DEFAULT_INDEXER_TYPE       = ELASTICSEARCH;
-    public static final Indexer.NodeType           DEFAULT_INDEXER_NODE_TYPE  = LOCAL;
+    public static final Indexer.Type               DEFAULT_INDEXER_TYPE       = Indexer.DEFAULT_TYPE;
+    public static final Indexer.NodeType           DEFAULT_INDEXER_NODE_TYPE  = Indexer.DEFAULT_NODETYPE;
     public static final List<String>               DEFAULT_INDEXER_NODE_HOSTS = emptyList();
     public static final List<Integer>              DEFAULT_INDEXER_NODE_PORTS = emptyList();
     public static final List<String>               DATASHARE_INDICES          = asList("datashare-local", "datashare-global");
     public static final String                     DEFAULT_INDEX              = DATASHARE_INDICES.get(0);
 
-    private static ReentrantLock processLock = new ReentrantLock();
+    private static ReentrantLock datashareLock = new ReentrantLock();
 
+    private static TaskExecutor asyncTaskExecutor;
 
-    public static boolean processDirectory(Path inputDir, Indexer indexer) {
-        return processDirectory(
-                inputDir,
-                DEFAULT_FILEPARSER_TYPE,
-                DEFAULT_FILEPARSER_OCR,
-                DEFAULT_NLP_STAGES,
-                DEFAULT_NLP_ENTITIES,
-                DEFAULT_NLP_PIPELINES,
-                DEFAULT_NLP_PARALLELISM,
-                DEFAULT_NLP_CACHING,
-                indexer,
-                DEFAULT_INDEX
-        );
+    private static void executeAsync(List<Task> tasks) {
+        LOGGER.info("Starting execution...");
+        asyncTaskExecutor = new AsyncTaskExecutor(tasks);
+        asyncTaskExecutor.start();
+        asyncTaskExecutor.shutdown();
+        asyncTaskExecutor.awaitTermination();
+        asyncTaskExecutor.stop();
     }
 
-    public static boolean processDirectory(Path inputDir,
-                                           List<NlpPipeline.Type> nlpPipelineTypes,
-                                           int nlpPipelineParallelism,
-                                           Indexer indexer) {
-        return processDirectory(
-                inputDir,
-                DEFAULT_FILEPARSER_TYPE,
-                DEFAULT_FILEPARSER_OCR,
-                DEFAULT_NLP_STAGES,
-                DEFAULT_NLP_ENTITIES,
-                nlpPipelineTypes,
-                nlpPipelineParallelism,
-                DEFAULT_NLP_CACHING,
-                indexer,
-                DEFAULT_INDEX
-        );
+    private static void executeAsync(Task... tasks) {
+        executeAsync(asList(tasks));
     }
 
-    public static boolean processDirectory(Path inputDir,
-                                           List<NlpStage> nlpStages,
-                                           List<NamedEntity.Category> nlpTargetEntities,
-                                           List<NlpPipeline.Type> nlpPipelineTypes,
-                                           int nlpPipelineParallelism,
-                                           Indexer indexer) {
-        return processDirectory(
-                inputDir,
-                DEFAULT_FILEPARSER_TYPE,
-                DEFAULT_FILEPARSER_OCR,
-                nlpStages,
-                nlpTargetEntities,
-                nlpPipelineTypes,
-                nlpPipelineParallelism,
-                DEFAULT_NLP_CACHING,
-                indexer,
-                DEFAULT_INDEX
-        );
+    public static boolean isProcessing() {
+        return datashareLock.isLocked();
     }
 
-    public static boolean processDirectory(Path inputDir,
-                                           List<NlpStage> nlpStages,
-                                           List<NamedEntity.Category> nlpTargetEntities,
-                                           List<NlpPipeline.Type> nlpPipelineTypes,
-                                           int nlpPipelineParallelism,
-                                           Indexer indexer,
-                                           String index) {
-        return processDirectory(
-                inputDir,
-                DEFAULT_FILEPARSER_TYPE,
-                DEFAULT_FILEPARSER_OCR,
-                nlpStages,
-                nlpTargetEntities,
-                nlpPipelineTypes,
-                nlpPipelineParallelism,
-                DEFAULT_NLP_CACHING,
-                indexer,
-                index
-        );
+    public static void shutdown() {
+        if (asyncTaskExecutor != null)
+            asyncTaskExecutor.shutdown();
     }
 
-    public static boolean processDirectory(Path inputDir,
-                                           boolean enableOcr,
-                                           List<NlpStage> nlpStages,
-                                           List<NamedEntity.Category> nlpTargetEntities,
-                                           List<NlpPipeline.Type> nlpPipelineTypes,
-                                           int nlpPipelineParallelism,
-                                           Indexer indexer,
-                                           String index) {
-        return processDirectory(
-                inputDir,
-                DEFAULT_FILEPARSER_TYPE,
-                enableOcr,
-                nlpStages,
-                nlpTargetEntities,
-                nlpPipelineTypes,
-                nlpPipelineParallelism,
-                DEFAULT_NLP_CACHING,
-                indexer,
-                index
-        );
+    public static void stop() {
+        if (asyncTaskExecutor != null)
+            asyncTaskExecutor.stop();
     }
 
-
-    /**
-     *     /**
-     * Extract {@link Document}s and {@link NamedEntity}s from files under {@code inputDir}
-     * Store them into {@code index}
-     *
-     * Coordinating {@link Task}s with local in-memory {@link BlockingQueue}s,
-     *  - Scan files from {@code inputDir}
-     *  - Parse each file {@link Path} into a {@link Document}
-     *  - Index each {@link Document} to {@code index} using {@code indexerType} {@link Indexer}
-     *  - Extract all {@link NamedEntity}s from each {@link Document} using {@code nlpPipelineTypes} {@link NlpPipeline}s
-     *  - Index each {@link NamedEntity} to {@code index} using {@code indexerType} {@link Indexer}
-     *
-     * @param inputDir                 the directory source files are scanned from
-     * @param fileParserType           the {@link FileParser.Type} to instantiate
-     * @param enableOcr                the flag for activating OCR at file parsing time
-     * @param nlpStages                the targeted NLP processing stages
-     * @param nlpTargetEntities        the targeted named entity categories
-     * @param nlpPipelineTypes         the {@link NlpPipeline.Type} to instantiate
-     * @param nlpPipelineParallelism   the number of threads per {@code nlpPipelineType}
-     * @param nlpPipelineCaching       the flag for caching models while running {@code NlpPipeline}s
-     * @param indexer                  the indexer instance
-     * @param index                    the destination index
-     * @return true if processings terminated successfully; false otherwise
-     */
-    public static boolean processDirectory(Path inputDir,
-                                           FileParser.Type fileParserType,
-                                           boolean enableOcr,
-                                           List<NlpStage> nlpStages,
-                                           List<NamedEntity.Category> nlpTargetEntities,
-                                           List<NlpPipeline.Type> nlpPipelineTypes,
-                                           int nlpPipelineParallelism,
-                                           boolean nlpPipelineCaching,
-                                           Indexer indexer,
-                                           String index) {
-        try {
-            if (processLock.tryLock(1, TimeUnit.SECONDS)) {
-                LOGGER.info(fileParserType);
-                LOGGER.info(nlpPipelineTypes);
-                LOGGER.info(nlpPipelineParallelism);
-                LOGGER.info(nlpStages.toString());
-                LOGGER.info(nlpTargetEntities.toString());
-
-                awaitIndexIsUp(indexer, index);
-
-                Properties fileParserProperties = FileParser.Property.build
-                        .apply(enableOcr)
-                        .apply(Language.UNKNOWN);
-
-                Properties nlpPipelineProperties = NlpPipeline.Property.build
-                        .apply(nlpStages)
-                        .apply(nlpTargetEntities)
-                        .apply(nlpPipelineCaching);
-
-                Map<NlpPipeline.Type, BlockingQueue<Document>> documentsQueuesForNlpMap =
-                        new HashMap<NlpPipeline.Type, BlockingQueue<Document>>() {{
-                            nlpPipelineTypes.forEach( type -> put(type, new LinkedBlockingQueue<>()) );
-                        }};
-
-                BlockingQueue<Path>           pathsQueue               = new LinkedBlockingQueue<>();
-                BlockingQueue<Document>       documentsQueue           = new LinkedBlockingQueue<>();
-                BlockingQueue<NamedEntity>    namedEntitiesQueue       = new LinkedBlockingQueue<>();
-                BlockingQueue<Task.Result>    indexingResultsQueue     = new LinkedBlockingQueue<>();
-                BlockingQueue<Document>       documentsQueueForIndexer = new LinkedBlockingQueue<>();
-                List<BlockingQueue<Document>> documentsQueuesForNlp    = documentsQueuesForNlpMap.entrySet().stream()
-                        .map(Map.Entry::getValue)
-                        .collect(Collectors.toList());
-                List<BlockingQueue<Document>>   documentsQueuesForwarded = new ArrayList<>();
-                documentsQueuesForwarded.add(documentsQueueForIndexer);
-                documentsQueuesForwarded.addAll(documentsQueuesForNlp);
-
-                List<Task> tasks = new ArrayList<>();
-                FileSystemScanningTask fileSystemScanningTask =
-                        new FileSystemScanningTask(
-                                inputDir,
-                                pathsQueue
-                        );
-                tasks.add(fileSystemScanningTask);
-
-                FileParsingTask fileParsingTask =
-                        new FileParsingTask(
-                                fileParserType,
-                                fileParserProperties,
-                                pathsQueue,
-                                documentsQueue,
-                                fileSystemScanningTask.noMoreOutput()
-                        );
-                tasks.add(fileParsingTask);
-
-                QueueForwardingTask documentQueueForwardingTask =
-                        new QueueForwardingTask<>(
-                                documentsQueue,
-                                documentsQueuesForwarded,
-                                fileParsingTask.noMoreOutput()
-                        );
-                tasks.add(documentQueueForwardingTask);
-
-                IndexingTask<Document> documentIndexingTask =
-                        new IndexingTask<>(
-                                indexer,
-                                index,
-                                documentsQueueForIndexer,
-                                indexingResultsQueue,
-                                fileParsingTask.noMoreOutput()
-                        );
-                tasks.add(documentIndexingTask);
-
-                List<NerTask> nerTasks =
-                        NerTask.createAll(
-                                nlpPipelineTypes,
-                                nlpPipelineParallelism,
-                                nlpPipelineProperties,
-                                documentsQueuesForNlpMap,
-                                namedEntitiesQueue,
-                                documentQueueForwardingTask.noMoreOutput()
-                        );
-                tasks.addAll(nerTasks);
-
-                IndexingTask<NamedEntity> namedEntityIndexingTask =
-                        new IndexingTask<>(
-                                indexer,
-                                index,
-                                namedEntitiesQueue,
-                                indexingResultsQueue,
-                                nerTasks.stream().map(QueueInQueueOutTask::noMoreOutput).collect(Collectors.toList())
-                        );
-                tasks.add(namedEntityIndexingTask);
-
-                TaskExecutor asyncTaskExecutor = new AsyncTaskExecutor(tasks);
-                asyncTaskExecutor.start();
-                asyncTaskExecutor.shutdown();
-                asyncTaskExecutor.awaitTermination();
-                LOGGER.info(" Number of Recognized Named Entities: " + namedEntitiesQueue.size());
-                asyncTaskExecutor.stop();
-                return true;
-
-            } else {
-                LOGGER.error("Already processing");
-                return false;
-            }
-        } catch (InterruptedException e) {
-            LOGGER.error("Processing lock interrupted", e);
-            Thread.currentThread().interrupt();
-            return false;
-        } finally {
-            processLock.unlock();
-        }
-    }
-
-
-    public static Optional<Indexer> awaitIndexIsUp(Indexer indexer, String index) {
+    private static Optional<Indexer> awaitIndexIsUp(Indexer indexer, String index) {
         if ( ! indexer.awaitIndexIsUp(index)) {
-            LOGGER.error("Index " + index + " is down. Closing");
+            LOGGER.error("Index " + index + " is down. Closing connection");
             indexer.close();
             return Optional.empty();
         }
         return Optional.of(indexer);
     }
 
-    public static boolean isProcessing() { return processLock.isLocked(); }
-
-
 //        System.out.println("________________________________");
 //        indexer.getIndices().forEach(System.out::println);
-//
 //        System.out.println("________________________________");
 //        indexer.searchTypes(Document.class).forEach(System.out::println);
-//
 //        System.out.println("________________________________");
 //        indexer.searchTypes(NamedEntity.class).forEach(System.out::println);
-//
 //        System.out.println("________________________________");
 //        indexer.searchHasChild(Document.class, NamedEntity.class)
 //                .forEach(System.out::println);
-//
 //        System.out.println("________________________________");
 //        indexer.searchHasChild(Document.class, NamedEntity.class, "category:PERSON")
 //                .forEach(System.out::println);
+
+
+    /**
+     * Stand-alone DataShare
+     */
+    public static final class StandAlone {
+
+        /**
+         * Extract {@link Document}s from files in {@code inputDir},
+         * Extract {@link NamedEntity}s from {@link Document}s,
+         * Store them into {@code index}
+         *
+         * {@link Task}s coordination with local or shared in-memory {@link BlockingQueue}s,
+         *  - Scan files from {@code inputDir}, put on path queue
+         *  - Parse each  {@link Path} into a {@link Document}, poll from path queue and put on document queue
+         *  - Index each  {@link Document} to {@code index} using {@code indexer}
+         *  - Extract all {@link NamedEntity}s from each {@link Document} using {@code nlpPipelineTypes} {@link NlpPipeline}s
+         *  - Index each  {@link NamedEntity} to {@code index} using {@code indexer}
+         *
+         * @param inputDir                the directory {@link Path} from which source files are scanned
+         * @param fileParserType          the {@link FileParser.Type} to instantiate
+         * @param fileParserDoOcr               the flag for activating OCR at file parsing time
+         * @param nlpPipelineTypes        the {@link NlpPipeline.Type}s to be instantiated
+         * @param nlpPipelineParallelism  the number of threads per {@code nlpPipelineType}
+         * @param nlpPipelineCaching      the flag for caching models while running {@link NlpPipeline}s
+         * @param nlpStages               the targeted NLP processing stage(s)
+         * @param nlpTargetEntities       the targeted named entity category(ies)
+         * @param indexer                 the {@link Indexer} instance
+         * @param index                   the destination index
+         * @return true if processings terminated successfully; false otherwise
+         */
+        public static boolean processDirectory(Path inputDir,
+                                               FileParser.Type fileParserType,
+                                               int fileParserParallelism,
+                                               boolean fileParserDoOcr,
+                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               int nlpPipelineParallelism,
+                                               boolean nlpPipelineCaching,
+                                               List<NlpStage> nlpStages,
+                                               List<NamedEntity.Category> nlpTargetEntities,
+                                               Indexer indexer,
+                                               String index) {
+            try {
+                if (datashareLock.tryLock(1, TimeUnit.SECONDS)) {
+                    LOGGER.info("Running Stand Alone");
+                    LOGGER.info("Source Directory:             " + inputDir);
+                    LOGGER.info("File Parser Type:             " + fileParserType);
+                    LOGGER.info("File Parser with OCR:         " + fileParserDoOcr);
+                    LOGGER.info("Nlp Pipelines:                " + nlpPipelineTypes);
+                    LOGGER.info("Nlp Pipeline Parallelism:     " + nlpPipelineParallelism);
+                    LOGGER.info("Nlp Pipeline Stages:          " + nlpStages);
+                    LOGGER.info("Nlp Pipeline Target Entities: " + nlpTargetEntities);
+
+                    awaitIndexIsUp(indexer, index);
+
+                    // Scanning
+                    FileSystemScanning fileSystemScanning = FileSystemScanning.create(inputDir);
+                    // Forwarding (SourcePath)
+                    QueueForwarding<SourcePath> sourcePathForwarding = QueueForwarding.create(fileSystemScanning);
+
+                    // Indexing (SourcePath)
+                    Indexing<SourcePath> sourcePathIndexing = Indexing.create(indexer, index, sourcePathForwarding);
+
+                    // Parsing
+                    List<FileParsing> fileParsings = FileParsing.create(
+                            fileParserType,
+                            fileParserParallelism,
+                            fileParserDoOcr,
+                            sourcePathForwarding
+                    );
+                    // Forwarding (Document)
+                    QueueForwarding<Document> documentForwarding = QueueForwarding.create(fileParsings);
+
+                    // Indexing (Document)
+                    Indexing<Document> documentIndexing = Indexing.create(indexer, index, documentForwarding);
+
+                    // Named Entity Recognition
+                    List<NamedEntityRecognition> namedEntityRecognitions = NamedEntityRecognition.create(
+                            nlpPipelineTypes,
+                            nlpPipelineParallelism,
+                            nlpStages,
+                            nlpTargetEntities,
+                            nlpPipelineCaching,
+                            documentForwarding
+                    );
+
+                    // Indexing (NamedEntity)
+                    List<Indexing<NamedEntity>> namedEntityIndexings = namedEntityRecognitions.stream()
+                            .map( ner -> new Indexing<>(indexer, index, ner) )
+                            .collect(Collectors.toList());
+
+
+                    List<Task> tasks = new ArrayList<>(asList(
+                            fileSystemScanning,
+                            sourcePathForwarding,
+                            sourcePathIndexing,
+                            documentForwarding,
+                            documentIndexing
+                    ));
+                    tasks.addAll(fileParsings);
+                    tasks.addAll(namedEntityRecognitions);
+                    tasks.addAll(namedEntityIndexings);
+
+                    // Execute!
+                    executeAsync(tasks);
+
+                    return true;
+                } else {
+                    LOGGER.error("Already processing");
+                    return false;
+                }
+            } catch (InterruptedException e) {
+                LOGGER.error("Processing lock interrupted", e);
+                Thread.currentThread().interrupt();
+                return false;
+            } finally {
+                datashareLock.unlock();
+            }
+        }
+
+        public static boolean processDirectory(Path inputDir, Indexer indexer) {
+            return processDirectory(
+                    inputDir,
+                    DEFAULT_PARSER_TYPE,
+                    DEFAULT_PARSER_PARALLELISM,
+                    DEFAULT_PARSER_OCR,
+                    DEFAULT_NLP_PIPELINES,
+                    DEFAULT_NLP_PARALLELISM,
+                    DEFAULT_NLP_CACHING,
+                    DEFAULT_NLP_STAGES,
+                    DEFAULT_NLP_ENTITIES,
+                    indexer,
+                    DEFAULT_INDEX
+            );
+        }
+
+        public static boolean processDirectory(Path inputDir,
+                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               int nlpPipelineParallelism,
+                                               Indexer indexer) {
+            return processDirectory(
+                    inputDir,
+                    DEFAULT_PARSER_TYPE,
+                    DEFAULT_PARSER_PARALLELISM,
+                    DEFAULT_PARSER_OCR,
+                    nlpPipelineTypes,
+                    nlpPipelineParallelism,
+                    DEFAULT_NLP_CACHING,
+                    DEFAULT_NLP_STAGES,
+                    DEFAULT_NLP_ENTITIES,
+                    indexer,
+                    DEFAULT_INDEX
+            );
+        }
+
+        public static boolean processDirectory(Path inputDir,
+                                               List<NlpStage> nlpStages,
+                                               List<NamedEntity.Category> nlpTargetEntities,
+                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               int nlpPipelineParallelism,
+                                               Indexer indexer) {
+            return processDirectory(
+                    inputDir,
+                    DEFAULT_PARSER_TYPE,
+                    DEFAULT_PARSER_PARALLELISM,
+                    DEFAULT_PARSER_OCR,
+                    nlpPipelineTypes,
+                    nlpPipelineParallelism,
+                    DEFAULT_NLP_CACHING,
+                    nlpStages,
+                    nlpTargetEntities,
+                    indexer,
+                    DEFAULT_INDEX
+            );
+        }
+
+        public static boolean processDirectory(Path inputDir,
+                                               int fileParserParallelism,
+                                               List<NlpStage> nlpStages,
+                                               List<NamedEntity.Category> nlpTargetEntities,
+                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               int nlpPipelineParallelism,
+                                               Indexer indexer,
+                                               String index) {
+            return processDirectory(
+                    inputDir,
+                    DEFAULT_PARSER_TYPE,
+                    fileParserParallelism,
+                    DEFAULT_PARSER_OCR,
+                    nlpPipelineTypes,
+                    nlpPipelineParallelism,
+                    DEFAULT_NLP_CACHING,
+                    nlpStages,
+                    nlpTargetEntities,
+                    indexer,
+                    index
+            );
+        }
+
+        public static boolean processDirectory(Path inputDir,
+                                               List<NlpStage> nlpStages,
+                                               List<NamedEntity.Category> nlpTargetEntities,
+                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               int nlpPipelineParallelism,
+                                               Indexer indexer,
+                                               String index) {
+            return processDirectory(
+                    inputDir,
+                    DEFAULT_PARSER_TYPE,
+                    DEFAULT_PARSER_PARALLELISM,
+                    DEFAULT_PARSER_OCR,
+                    nlpPipelineTypes,
+                    nlpPipelineParallelism,
+                    DEFAULT_NLP_CACHING,
+                    nlpStages,
+                    nlpTargetEntities,
+                    indexer,
+                    index
+            );
+        }
+
+        public static boolean processDirectory(Path inputDir,
+                                               boolean enableOcr,
+                                               List<NlpStage> nlpStages,
+                                               List<NamedEntity.Category> nlpTargetEntities,
+                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               int nlpPipelineParallelism,
+                                               Indexer indexer,
+                                               String index) {
+            return processDirectory(
+                    inputDir,
+                    DEFAULT_PARSER_TYPE,
+                    DEFAULT_PARSER_PARALLELISM,
+                    enableOcr,
+                    nlpPipelineTypes,
+                    nlpPipelineParallelism,
+                    DEFAULT_NLP_CACHING,
+                    nlpStages,
+                    nlpTargetEntities,
+                    indexer,
+                    index);
+        }
+
+        public static boolean processDirectory(Path inputDir,
+                                               int fileParserParallelism,
+                                               boolean enableOcr,
+                                               List<NlpStage> nlpStages,
+                                               List<NamedEntity.Category> nlpTargetEntities,
+                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               int nlpPipelineParallelism,
+                                               Indexer indexer,
+                                               String index) {
+            return processDirectory(
+                    inputDir,
+                    DEFAULT_PARSER_TYPE,
+                    fileParserParallelism,
+                    enableOcr,
+                    nlpPipelineTypes,
+                    nlpPipelineParallelism,
+                    DEFAULT_NLP_CACHING,
+                    nlpStages,
+                    nlpTargetEntities,
+                    indexer,
+                    index);
+        }
+
+    }
+
+
+    /**
+     * DataShare as a Cluster Node
+     */
+    public static final class Node {
+
+        /**
+         * Extract {@link Document}s from files in {@code inputDir},
+         * Put {@link Document}s on networked and shared {@link BlockingQueue}
+         * Store {@link Document}s into {@code index}
+         *
+         * {@link Task}s coordination with local or distributed shared in-memory {@link BlockingQueue}s,
+         *  - Scan files from {@code inputDir}
+         *  - Parse each file {@link Path} into a {@link Document}, poll from path queue and feed document queue
+         *  - Index each {@link Document} to {@code index} using {@code indexerType} {@link Indexer}
+         *
+         * @param inputDir                 the directory {@link Path} from which source files are scanned
+         * @param fileParserType           the {@link FileParser.Type} to instantiate
+         * @param fileParserDoOcr                the flag for activating OCR at file parsing time
+         * @param indexer                  the {@link Indexer} instance
+         * @param index                    the index name
+         * @return true if processings terminated successfully; false otherwise
+         */
+        public static boolean parseDirectory(Path inputDir,
+                                             FileParser.Type fileParserType,
+                                             int fileParserParallelism,
+                                             boolean fileParserDoOcr,
+                                             Indexer indexer,
+                                             String index) {
+            try {
+                if (datashareLock.tryLock(1, TimeUnit.SECONDS)) {
+                    LOGGER.info("Running as " + asList(Stage.SCANNING, Stage.PARSING) + " Node");
+                    LOGGER.info(DataGrid.INSTANCE.getCluster().getLocalMember());
+                    LOGGER.info("Input Directory:      " + inputDir);
+                    LOGGER.info("File Parser Type:     " + fileParserType);
+                    LOGGER.info("File Parser with OCR: " + fileParserDoOcr);
+
+                    awaitIndexIsUp(indexer, index);
+
+                    // This is a PARSING node
+                    DataGrid.INSTANCE.setLocalMemberRole(DataShare.Stage.PARSING);
+
+                    // Scanning
+                    FileSystemScanning fileSystemScanning = FileSystemScanning.create(inputDir);
+
+                    // Parsing
+                    List<FileParsing> fileParsings = FileParsing.create(
+                            fileParserType,
+                            fileParserParallelism,
+                            fileParserDoOcr,
+                            fileSystemScanning
+                    );
+
+                    // Document Forwarding
+                    QueueForwarding<Document> documentQueueForwarding = QueueForwarding.create(fileParsings);
+
+                    // Document Indexing
+                    Indexing<Document> documentIndexing = Indexing.create(indexer, index, documentQueueForwarding);
+
+                    // Distributed Document Queue
+                    BlockingQueue<Document> documentsQueueGlobal = DataGrid.INSTANCE.getBlockingQueue("Document");
+                    // Forward Documents Globally
+                    documentQueueForwarding.addOutput(documentsQueueGlobal);
+                    // Forward Document Latch Globally
+                    ICountDownLatch noMoreDocumentGlobal = DataGrid.INSTANCE.getCountDownLatch("Document");
+                    noMoreDocumentGlobal.trySetCount(1);
+                    LatchForwarding documentLatchPushing = new LatchForwarding(documentQueueForwarding, noMoreDocumentGlobal);
+
+                    // Await a PROCESSING node to join the cluster
+                    DataGrid.INSTANCE.awaitMemberJoins(DataShare.Stage.NLP);
+
+                    List<Task> tasks = new ArrayList<>(asList(
+                            fileSystemScanning,
+                            documentQueueForwarding,
+                            documentIndexing,
+                            documentLatchPushing
+                    ));
+                    tasks.addAll(fileParsings);
+
+                    // Execute!
+                    executeAsync(tasks);
+
+                    DataGrid.INSTANCE.shutdown();
+
+                    return true;
+                } else {
+                    LOGGER.error("Already processing");
+                    return false;
+                }
+            } catch (InterruptedException e) {
+                LOGGER.error("Processing lock interrupted", e);
+                Thread.currentThread().interrupt();
+                return false;
+            } finally {
+                datashareLock.unlock();
+            }
+        }
+
+        /**
+         * Take {@link Document}s from distributed shared {@link BlockingQueue}
+         * Extract {@link NamedEntity}s from {@link Document}s
+         * Store them into {@code index}
+         *
+         * {@link Task}s coordination with local or distributed shared in-memory {@link BlockingQueue}s,
+         *  - Extract all {@link NamedEntity}s from each {@link Document} using {@code nlpPipelineTypes} {@link NlpPipeline}s
+         *  - Index each {@link NamedEntity} to {@code index} using {@code indexerType} {@link Indexer}
+         *
+         * @param nlpPipelineTypes         the {@link NlpPipeline.Type} to instantiate
+         * @param nlpPipelineParallelism   the number of threads per {@code nlpPipelineType}
+         * @param nlpPipelineCaching       the flag for caching models while running {@code NlpPipeline}s
+         * @param nlpStages                the targeted NLP processing stage(s)
+         * @param nlpTargetEntities        the targeted named entity category(ies)
+         * @param indexer                  the indexer instance
+         * @param index                    the destination index
+         * @return true if processings terminated successfully; false otherwise
+         */
+        public static boolean extractNamedEntities(List<NlpStage> nlpStages,
+                                                   List<NamedEntity.Category> nlpTargetEntities,
+                                                   List<NlpPipeline.Type> nlpPipelineTypes,
+                                                   int nlpPipelineParallelism,
+                                                   boolean nlpPipelineCaching,
+                                                   Indexer indexer,
+                                                   String index) {
+            try {
+                if (datashareLock.tryLock(1, TimeUnit.SECONDS)) {
+                    LOGGER.info("Running as " + Stage.NLP + " Node");
+                    LOGGER.info(DataGrid.INSTANCE.getCluster().getLocalMember());
+                    LOGGER.info("Nlp Pipeline Types:           " + nlpPipelineTypes);
+                    LOGGER.info("Nlp Pipeline Parallelism:     " + nlpPipelineParallelism);
+                    LOGGER.info("Nlp Pipeline Stages:          " + nlpStages);
+                    LOGGER.info("Nlp Pipeline Target Entities: " + nlpTargetEntities);
+
+                    awaitIndexIsUp(indexer, index);
+
+                    // This is a PROCESSING node
+                    DataGrid.INSTANCE.setLocalMemberRole(Stage.NLP);
+
+                    // Distributed Document Queue
+                    BlockingQueue<Document> documentsQueue = DataGrid.INSTANCE.getBlockingQueue("Document");
+                    // Distributed Document Latch
+                    ICountDownLatch noMoreDocumentGlobal = DataGrid.INSTANCE.getCountDownLatch("Document");
+                    Latch noMoreDocumentLocal = new BooleanLatch();
+                    LatchForwarding documentLatchForwarding = new LatchForwarding(noMoreDocumentGlobal, noMoreDocumentLocal);
+
+                    // Document Forwarding
+                    QueueForwarding<Document> documentQueueForwarding = QueueForwarding.create(documentsQueue, noMoreDocumentLocal);
+
+                    // Named Entity Recognition
+                    List<NamedEntityRecognition> namedEntityRecognitions = NamedEntityRecognition.create(
+                            nlpPipelineTypes,
+                            nlpPipelineParallelism,
+                            nlpStages,
+                            nlpTargetEntities,
+                            nlpPipelineCaching,
+                            documentQueueForwarding
+                    );
+
+                    // NamedEntity Indexing
+                    List<Indexing<NamedEntity>> namedEntityIndexings = namedEntityRecognitions.stream()
+                            .map( ner -> new Indexing<>(indexer, index, ner) )
+                            .collect(Collectors.toList());
+
+                    // Await PARSING node to join the cluster
+                    DataGrid.INSTANCE.awaitMemberJoins(Stage.PARSING);
+
+                    List<Task> tasks = new ArrayList<>(asList(
+                            documentLatchForwarding,
+                            documentQueueForwarding
+                    ));
+                    tasks.addAll(namedEntityRecognitions);
+                    tasks.addAll(namedEntityIndexings);
+
+                    // Execute
+                    executeAsync( tasks );
+
+                    DataGrid.INSTANCE.shutdown();
+
+                    return true;
+                } else {
+                    LOGGER.error("Already processing");
+                    return false;
+                }
+            } catch (InterruptedException e) {
+                LOGGER.error("Processing lock interrupted", e);
+                Thread.currentThread().interrupt();
+                return false;
+            } finally {
+                datashareLock.unlock();
+            }
+        }
+
+    }
 
 }

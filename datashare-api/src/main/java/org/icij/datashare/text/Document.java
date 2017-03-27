@@ -1,15 +1,19 @@
 package org.icij.datashare.text;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.hazelcast.nio.ObjectDataInput;
+import com.hazelcast.nio.ObjectDataOutput;
+import com.hazelcast.nio.serialization.DataSerializable;
 
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexId;
@@ -21,18 +25,18 @@ import org.icij.datashare.text.nlp.Annotation;
 
 
 /**
- * DataShare document.
+ * DataShare document
+ *
+ * id = {@link org.icij.datashare.Entity#HASHER}({@code content})
  *
  * Created by julien on 4/26/16.
  */
 @IndexType("Document")
-public class Document implements Entity {
+public final class Document implements Entity, DataSerializable {
 
     private static final Logger LOGGER = LogManager.getLogger(Document.class);
 
     private static final long serialVersionUID = 5913568429773112L;
-
-    public static long getSerialVersionUID() { return serialVersionUID; }
 
 
     /**
@@ -54,9 +58,8 @@ public class Document implements Entity {
                                             FileParser.Type parserType) {
         try {
             return Optional.of( new Document(path, content, language, encoding, mimeType, parserType, metadata) );
-
         } catch (IllegalStateException | FileParserException | HasherException e) {
-            LOGGER.error("Failed to createList document", e);
+            LOGGER.error("Failed to create document", e);
             return Optional.empty();
         }
     }
@@ -71,7 +74,6 @@ public class Document implements Entity {
     public static Optional<Document> create(Path path, FileParser parser)  {
         try {
             return parser.parse(path) ;
-
         } catch (NullPointerException | IllegalStateException e) {
             LOGGER.error("Failed to create document", e);
             return Optional.empty();
@@ -97,45 +99,47 @@ public class Document implements Entity {
 
 
     // Source file path
-    private final Path path;
+    private Path path;
 
     // Path and content as of date
-    private final Date asOf;
+    private Date asOf;
 
     // Content string
-    private final String content;
+    private String content;
 
     // Content hash code
     @IndexId
     @JsonIgnore
-    private final String hash;
+    private String hash;
 
     // Content length
-    private final int length;
+    private int length;
 
     // Mime-type
-    private final String type;
+    private String type;
 
     // Detected content language
-    private final Language language;
+    private Language language;
 
     // Detected encoding
-    private final Charset encoding;
+    private Charset encoding;
 
     // Extracted metadata
-    private final Map<String, String> metadata;
+    private Map<String, String> metadata;
 
     // Type of file parser which has extracted content
-    private final FileParser.Type parser;
+    private FileParser.Type parser;
 
+
+    private Document() {}
 
     @JsonCreator
-    private Document(Path            path,
-                     String          content,
-                     Language        language,
-                     Charset         encoding,
-                     String          mimeType,
-                     FileParser.Type parserType,
+    private Document(Path                path,
+                     String              content,
+                     Language            language,
+                     Charset             encoding,
+                     String              mimeType,
+                     FileParser.Type     parserType,
                      Map<String, String> metadata)
             throws NullPointerException, IllegalArgumentException, FileParserException, HasherException {
         if ( ! Files.exists(path)) {
@@ -162,38 +166,6 @@ public class Document implements Entity {
         this.parser   = parserType;
     }
 
-//    private Document(@JsonProperty("path") Path p, FileParser fileParser)
-//            throws NullPointerException, IllegalArgumentException, FileParserException, HasherException {
-//
-//        if ( ! Files.exists(p)) {
-//            throw new IllegalArgumentException("File " + p + " does not exist.");
-//        }
-//        if ( ! Files.isRegularFile(p)) {
-//            throw new IllegalArgumentException("File " + p + " is not a regular file.");
-//        }
-//        if ( ! Files.isReadable(p)) {
-//            throw new IllegalArgumentException("File " + p + " is not readable.");
-//        }
-//        if (fileParser == null) {
-//            throw new NullPointerException("FileParser is undefined");
-//        }
-//        path = p;
-//        Optional<String> contOpt = fileParser.parse(path);
-//        if ( ! contOpt.isPresent()) {
-//            throw new FileParserException("Failed to get content " + path);
-//        }
-//        content  = contOpt.get();
-//        hash     = HASHER.hash(content);
-//        if (hash.isEmpty()) {
-//            throw new HasherException("Failed to hash content of " + path);
-//        }
-//        asOf     = new Date();
-//        language = fileParser.getLanguage().orElse(Language.UNKNOWN);
-//        type     = fileParser.getMimeType().orElse("");
-//        length   = fileParser.getLength().orElse(0);
-//        metadata = fileParser.getMetadata().orElseGet(HashMap::new);
-//        parser   = fileParser.getType();
-//    }
 
     @Override
     public String getHash() { return hash; }
@@ -221,13 +193,41 @@ public class Document implements Entity {
     @JsonIgnore
     public String getName() { return path.getName(path.getNameCount()-1).toString(); }
 
-    public List<NamedEntity> getNamedEntities(Annotation annotation) {
+    public List<NamedEntity> namedEntities(Annotation annotation) {
         return NamedEntity.allFrom(this, annotation);
     }
 
     @Override
     public String toString() {
         return getName() + "(" + getHash() + ")";
+    }
+
+    @Override
+    public void writeData(ObjectDataOutput out) throws IOException {
+        out.writeUTF(path.toString());
+        out.writeObject(asOf);
+        out.writeUTF(encoding.toString());
+        out.writeByteArray(content.getBytes());
+        out.writeUTF(hash);
+        out.writeInt(length);
+        out.writeObject(type);
+        out.writeObject(language);
+        out.writeObject(metadata);
+        out.writeObject(parser);
+    }
+
+    @Override
+    public void readData(ObjectDataInput in) throws IOException {
+        path     = Paths.get(in.readUTF());
+        asOf     = in.readObject();
+        encoding = Charset.forName(in.readUTF());
+        content  = new String(in.readByteArray(), encoding);
+        hash     = in.readUTF();
+        length   = in.readInt();
+        type     = in.readObject();
+        language = in.readObject();
+        metadata = in.readObject();
+        parser   = in.readObject();
     }
 
 }

@@ -71,7 +71,7 @@ public enum OpenNlpTokenModel {
             put(GERMAN,  modelDir.resolve("de-token.bin"));
         }};
         modelLock =  new ConcurrentHashMap<Language, Lock>(){{
-            modelPath.keySet().stream()
+            modelPath.keySet()
                     .forEach( language -> put(language, new ReentrantLock()) );
         }};
         model = new HashMap<>();
@@ -107,7 +107,7 @@ public enum OpenNlpTokenModel {
         if ( model.containsKey(language) ) {
             return true;
         }
-        LOGGER.info("Loading TOKEN model for " + language + " - " + Thread.currentThread().getName());
+        LOGGER.info(getClass().getName() + " - LOADING TOKEN model for " + language);
         try (InputStream modelIS = loader.getResourceAsStream(modelPath.get(language).toString())) {
             TokenizerModel tokenizerModel = new TokenizerModel(modelIS);
             sharedModels.apply(language)
@@ -115,9 +115,10 @@ public enum OpenNlpTokenModel {
                             model.put(lang, tokenizerModel)
                     );
         } catch (IOException e) {
-            LOGGER.error("Failed to load " + TokenizerModel.class.getName(), e);
+            LOGGER.error("- FAILED LOADING " + TokenizerModel.class.getName(), e);
             return false;
         }
+        LOGGER.info(getClass().getName() + " - LOADED TOKEN model for " + language);
         return true;
     }
 

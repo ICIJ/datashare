@@ -5,25 +5,25 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import static java.util.Collections.singletonList;
 import static java.util.Arrays.asList;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import java.lang.reflect.InvocationTargetException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.icij.datashare.reflect.EnumTypeToken;
+import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.util.function.ThrowingFunction;
-import org.icij.datashare.util.reflect.EnumTypeToken;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 import org.icij.datashare.text.NamedEntity;
 import static org.icij.datashare.text.NamedEntity.Category.LOCATION;
 import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
-import static org.icij.datashare.util.function.ThrowingFunctions.joinComma;
+import static org.icij.datashare.function.ThrowingFunctions.joinComma;
 
 
 /**
@@ -34,11 +34,11 @@ import static org.icij.datashare.util.function.ThrowingFunctions.joinComma;
 public interface NlpPipeline {
 
     enum Type implements EnumTypeToken {
-        OPEN,
         CORE,
         GATE,
+        IXA,
         MITIE,
-        IXA;
+        OPEN;
 
         private final String className;
 
@@ -61,7 +61,6 @@ public interface NlpPipeline {
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .collect(Collectors.toList());
-
     }
 
     enum Property {
@@ -101,7 +100,7 @@ public interface NlpPipeline {
 
 
     /**
-     * Instantiate a concrete {@code NlpPipeline} reflectively with a {@link Type} enum value
+     * Instantiate a concrete {@code NlpPipeline} reflectively, implementation determined by {@link Type} enum value
      *
      * @param type       the {@link Type} enum value denoting a {@code NlpPipeline} implementation
      * @param properties the {@code NlpPipeline} settings as Properties
@@ -121,11 +120,14 @@ public interface NlpPipeline {
             Object pipelineInstance = Class.forName( type.getClassName() )
                     .getDeclaredConstructor( new Class[]{Properties.class} )
                     .newInstance           (             properties        );
-            return Optional.ofNullable( (NlpPipeline) pipelineInstance );
+            return Optional.of( (NlpPipeline) pipelineInstance );
         } catch (ClassNotFoundException e) {
             logger.error( type.getClassName() + " not found in the classpath.", e);
             return Optional.empty();
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+        } catch (InvocationTargetException e) {
+            logger.error( "Failed to instantiate " + type + " " + interfaceName, e.getCause());
+            return Optional.empty();
+        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException e) {
             logger.error("Failed to instantiate " + type + " " + interfaceName, e);
             return Optional.empty();
         }
@@ -161,7 +163,7 @@ public interface NlpPipeline {
 
 
     /**
-     * Run pipeline from a {@link  org.icij.datashare.text.Document}
+     * Run pipeline on a {@link  org.icij.datashare.text.Document}
      * Use document's language
      *
      * @param document the document to process
@@ -169,7 +171,7 @@ public interface NlpPipeline {
     Optional<Annotation>  run(Document document);
 
     /**
-     * Run pipeline from a {@link  org.icij.datashare.text.Document}
+     * Run pipeline on a {@link  org.icij.datashare.text.Document}
      * Force language
      *
      * @param document the document to process
@@ -178,7 +180,7 @@ public interface NlpPipeline {
     Optional<Annotation>  run(Document document, Language language);
 
     /**
-     * Run pipeline from a {@link Path}
+     * Run pipeline on a {@link Path}
      * Use document's language
      *
      * @param path the file Path to process
@@ -195,18 +197,20 @@ public interface NlpPipeline {
     Optional<Annotation>  run(Path path, Language language);
 
     /**
-     * Run pipeline from a {@link String}
+     * Run pipeline on a {@link String}
      * Force default language
      *
      * @param text the input string to process
      * @see #DEFAULT_LANGUAGE
      */
     default Optional<Annotation>  run(String text) {
+        if (text.isEmpty())
+            return Optional.empty();
         return run(text, DEFAULT_LANGUAGE);
     }
 
     /**
-     * Run pipeline from a {@link String} with language
+     * Run pipeline on a {@link String} with language
      *
      * @param text     the input string to process
      * @param language the forced processing language
@@ -245,6 +249,6 @@ public interface NlpPipeline {
     /**
      * @return the tagset used by the part-of-speech tagger
      */
-    Optional<String> getPosTagSet();
+    Optional<String> getPosTagSet(Language language);
 
 }

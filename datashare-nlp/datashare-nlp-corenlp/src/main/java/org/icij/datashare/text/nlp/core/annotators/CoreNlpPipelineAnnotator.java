@@ -20,7 +20,7 @@ import org.icij.datashare.text.nlp.core.models.CoreNlpModels;
 
 
 /**
- * Stanford CoreNLP full pipelines (TOKEN, SENTENCE, LEMMA, POS, NER)
+ * Stanford CoreNLP full integrated pipeline (TOKEN, SENTENCE, LEMMA, POS, NER)
  *
  * Created by julien on 8/31/16.
  */
@@ -97,6 +97,7 @@ public enum CoreNlpPipelineAnnotator {
         if ( annotator.containsKey(language) && annotator.get(language) != null ) {
             return true;
         }
+        LOGGER.info(getClass().getName() + " - LOADING " + stages.toString() + " PIPELINE Annotator for " + language);
         Properties properties = new Properties();
         properties.setProperty("annotators", String.join(", ", CORE_STAGE_NAMES(stages)));
         properties.setProperty("ner.useSUTime", "false");
@@ -113,7 +114,7 @@ public enum CoreNlpPipelineAnnotator {
             annotator.put(language, new StanfordCoreNLP(properties, true));
 
         } catch (Exception e) {
-            LOGGER.error("Failed to load annotator", e);
+            LOGGER.error(getClass().getName() + " - FAILED LOADING PIPELINE annotator", e);
             return false;
         }
         return true;

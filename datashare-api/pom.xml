@@ -7,20 +7,33 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-api</artifactId>
     <packaging>jar</packaging>
 
 
+    <properties>
+        <hazelcast.version>3.7.4</hazelcast.version>
+    </properties>
+
+
     <dependencies>
+
+        <!-- Hazelcast -->
+        <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast-all</artifactId>
+            <version>${hazelcast.version}</version>
+        </dependency>
 
         <!-- Unidecode -->
         <dependency>
             <groupId>me.xuender</groupId>
             <artifactId>unidecode</artifactId>
             <version>${unidecode.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Bouncycastle -->
@@ -28,26 +41,42 @@
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
             <version>${bouncycastle.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcmail-jdk15on</artifactId>
+            <version>${bouncycastle.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jdk8</artifactId>
             <version>${jackson.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-parameter-names</artifactId>
             <version>${jackson.version}</version>
+            <scope>compile</scope>
         </dependency>
 
-        <!-- Log4j / Slf4j -->
+        <!-- Log4j -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
@@ -82,22 +111,26 @@
             <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    <relocations>
-                        <relocation>
-                            <pattern>org.bouncycastle</pattern>
-                            <shadedPattern>for.datashare-api.org.bouncycastle</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>me.xuender</pattern>
-                            <shadedPattern>for.datashare-api.me.xuender</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>com.fasterxml</pattern>
-                            <shadedPattern>for.datashare-api.com.fasterxml</shadedPattern>
-                        </relocation>
-                    </relocations>
-                </configuration>
+                <!--<configuration>-->
+                    <!--<relocations>-->
+                        <!--<relocation>-->
+                            <!--<pattern>org.bouncycastle</pattern>-->
+                            <!--<shadedPattern>for.datashare-api.org.bouncycastle</shadedPattern>-->
+                        <!--</relocation>-->
+                        <!--<relocation>-->
+                            <!--<pattern>me.xuender</pattern>-->
+                            <!--<shadedPattern>for.datashare-api.me.xuender</shadedPattern>-->
+                        <!--</relocation>-->
+                        <!--<relocation>-->
+                            <!--<pattern>com.fasterxml</pattern>-->
+                            <!--<shadedPattern>for.datashare-api.com.fasterxml</shadedPattern>-->
+                        <!--</relocation>-->
+                    <!--</relocations>-->
+                <!--</configuration>-->
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
 
         </plugins>

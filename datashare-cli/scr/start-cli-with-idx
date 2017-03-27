@@ -1,0 +1,9 @@
+#!/bin/bash
+
+scriptdir=`pwd $0`
+
+classpath="$scriptdir/lib/*"
+
+./start-idx && sleep 3 && ./start-cli $* && ./stop-idx
+
+# PATH=$PATH:"$classpath" LD_LIBRARY_PATH="$classpath"${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} java -Xms1500M -Dfile.encoding=UTF-8 -cp "$classpath" org.icij.datashare.cli.DataShareCli $*

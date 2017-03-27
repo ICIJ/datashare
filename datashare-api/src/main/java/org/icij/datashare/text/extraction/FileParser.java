@@ -1,10 +1,10 @@
 package org.icij.datashare.text.extraction;
 
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
-
 import static java.util.Arrays.asList;
 
 import org.apache.logging.log4j.LogManager;
@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.util.reflect.EnumTypeToken;
+import org.icij.datashare.reflect.EnumTypeToken;
 import static org.icij.datashare.text.extraction.FileParser.Type.TIKA;
 
 
@@ -21,10 +21,12 @@ import static org.icij.datashare.text.extraction.FileParser.Type.TIKA;
  *
  * Created by julien on 3/9/16.
  */
-public interface FileParser {
+public interface FileParser extends Serializable {
 
-    enum Type implements EnumTypeToken {
+    enum Type implements EnumTypeToken, Serializable {
         TIKA;
+
+        private static final long serialVersionUID = -3791536248652568L;
 
         private final String className;
 
@@ -40,7 +42,6 @@ public interface FileParser {
         public static Optional<Type> fromClassName(final String className) {
             return EnumTypeToken.parseClassName(FileParser.class, Type.class, className);
         }
-
     }
 
     enum Property {
@@ -58,6 +59,7 @@ public interface FileParser {
             properties.setProperty(OCR_LANGUAGE.getName(), String.valueOf(ocrLanguage.toString()));
             return properties;
         };
+
     }
 
 
@@ -84,22 +86,23 @@ public interface FileParser {
         }
 
         try {
-            Object docParserInstance = Class.forName(type.getClassName())
+            Object fileParserInstance = Class.forName(type.getClassName())
                     .getDeclaredConstructor( new Class[]{Properties.class} )
                     .newInstance           (             properties      );
-            return Optional.ofNullable( (FileParser) docParserInstance );
-
+            return Optional.of( (FileParser) fileParserInstance );
         } catch (ClassNotFoundException e) {
             logger.error(type + " " + interfaceName + " not found. Consider installing it.", e);
             return Optional.empty();
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+        } catch( InvocationTargetException e) {
+            logger.error("Failed to instantiate " + type  + " " + interfaceName, e.getCause());
+            return Optional.empty();
+        } catch (InstantiationException | IllegalAccessException  | NoSuchMethodException e) {
             logger.error("Failed to instantiate " + type  + " " + interfaceName, e);
             return Optional.empty();
         } catch (Exception e) {
             logger.error("Failed to instantiate " + type  + " " + interfaceName, e);
             return Optional.empty();
         }
-
     }
 
     /**

@@ -7,12 +7,15 @@
     <parent>
         <artifactId>datashare-nlp</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-nlp-mitie</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <mitie.version>0.8</mitie.version>
+    </properties>
 
     <dependencies>
 
@@ -46,7 +49,7 @@
 
         <resources>
             <resource>
-                <!-- Exclude models -->
+                <!-- Exclude models from jar -->
                 <directory>src/main/resources</directory>
                 <excludes>
                     <exclude>**/*.dat</exclude>
@@ -56,12 +59,10 @@
 
         <plugins>
 
-            <!-- Assembly -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
 
-            <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
                 <configuration>
@@ -73,6 +74,11 @@
                     </transformers>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+
         </plugins>
 
     </build>

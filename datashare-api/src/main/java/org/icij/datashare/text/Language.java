@@ -1,12 +1,16 @@
 package org.icij.datashare.text;
 
+import java.io.Serializable;
 import java.util.Locale;
 import java.util.Optional;
 
+
 /**
+ * Languages ISO-6391 and ISO-6392 codes
+ *
  * Created by julien on 3/30/16.
  */
-public enum Language {
+public enum Language implements Serializable {
     ENGLISH    ("eng", "en"),
     SPANISH    ("spa", "es"),
     GERMAN     ("deu", "de"),
@@ -32,8 +36,9 @@ public enum Language {
     ESTONIAN   ("est", "et"),
     BELARUSIAN ("bel", "be"),
     ICELANDIC  ("isl", "is"),
-    NONE       ("none",    "none"),
     UNKNOWN    ("unknown", "unknown");
+
+    private static final long serialVersionUID =-7964823164978231L;
 
     private final String iso6391Code;
     private final String iso6392Code;
@@ -43,33 +48,27 @@ public enum Language {
         iso6391Code = iso1Code;
     }
 
-    public String getISO6392Code() { return iso6392Code; }
-
-    public String getISO6391Code() { return iso6391Code; }
+    public String iso6391Code() { return iso6391Code; }
+    public String iso6392Code() { return iso6392Code; }
 
     @Override
-    public String toString() { return getISO6391Code(); }
+    public String toString() { return iso6391Code(); }
 
 
     public static Optional<Language> parse(final String language) {
         if (    language == null ||
                 language.isEmpty() ||
-                language.equalsIgnoreCase(NONE.toString()) ||
                 language.equalsIgnoreCase(UNKNOWN.toString())) {
             return Optional.empty();
         }
-
         for (Language lang : Language.values()) {
-            if (language.equalsIgnoreCase(lang.toString()) || language.equalsIgnoreCase(lang.getISO6392Code())) {
+            if (language.equalsIgnoreCase(lang.toString()) || language.equalsIgnoreCase(lang.iso6392Code())) {
                 return Optional.of(lang);
             }
         }
-
         try {
             return Optional.of(valueOf(language.toUpperCase(Locale.ROOT)));
-
         } catch (IllegalArgumentException e) {
-            // throw new IllegalArgumentException(String.format("\"%s\" is not a valid language code.", language));
             return Optional.empty();
         }
     }

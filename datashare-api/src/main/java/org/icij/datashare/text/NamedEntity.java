@@ -1,5 +1,6 @@
 package org.icij.datashare.text;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 import static java.util.Collections.emptyList;
@@ -7,34 +8,40 @@ import static java.util.Arrays.fill;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexId;
-import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexType;
+import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.nlp.NlpPipeline;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.Tag;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 import static org.icij.datashare.text.nlp.NlpStage.POS;
-import org.icij.datashare.util.function.ThrowingFunction;
-import org.icij.datashare.util.function.ThrowingFunctions;
-import static org.icij.datashare.util.function.ThrowingFunctions.normal;
-import static org.icij.datashare.util.function.ThrowingFunctions.removePattFrom;
+import org.icij.datashare.function.ThrowingFunction;
+import org.icij.datashare.function.ThrowingFunctions;
+import static org.icij.datashare.function.ThrowingFunctions.normal;
+import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 
 
 /**
  * DataShare Named Entity
  *
+ * id = {@link org.icij.datashare.Entity#HASHER}({@code content})
+ *
  * Created by julien on 5/12/16.
  */
 @IndexType("NamedEntity")
-public class NamedEntity implements Entity {
+public final class NamedEntity implements Entity {
 
-    public enum Category {
+    private static final Logger LOGGER = LogManager.getLogger(NamedEntity.class);
+
+    private static final long serialVersionUID = 1946532866377498L;
+
+
+    public enum Category implements Serializable {
         PERSON       ("PERS"),
         ORGANIZATION ("ORG"),
         LOCATION     ("LOC"),
@@ -43,6 +50,8 @@ public class NamedEntity implements Entity {
         NUMBER       ("NUM"),
         NONE         ("NONE"),
         UNKNOWN      ("UNK");
+
+        private static final long serialVersionUID = -1596432856473673L;
 
         private final String abbreviation;
 
@@ -75,13 +84,6 @@ public class NamedEntity implements Entity {
     }
 
 
-    private static final Logger LOGGER = LogManager.getLogger(NamedEntity.class);
-
-    private static final long serialVersionUID = 1946532866377498L;
-
-    public static long getSerialVersionUID() { return serialVersionUID; }
-
-
     /**
      * Instantiate a new {@code NamedEntity} from mere category and mention, without context document
      *
@@ -91,7 +93,7 @@ public class NamedEntity implements Entity {
      */
     public static Optional<NamedEntity> create(Category cat, String mention)  {
         try {
-            return Optional.of( new NamedEntity(mention, cat, null, -1, null, null, null) );
+            return Optional.of( new NamedEntity(mention, cat, "", -1, null, null, null) );
         } catch (IllegalArgumentException e) {
             LOGGER.error("Failed to create named entity", e);
             return Optional.empty();
@@ -150,6 +152,7 @@ public class NamedEntity implements Entity {
         }
     }
 
+
     /**
      * Named entities from {@link Document}, {@link Annotation}
      *
@@ -161,22 +164,21 @@ public class NamedEntity implements Entity {
         if ( ! annotation.getDocument().equals(document.getHash()))
             return emptyList();
         return annotation.get(NER).stream()
-                .map     (tag -> from(document.getContent(), tag, annotation))
-                .filter  (Optional::isPresent)
-                .map     (Optional::get)
-                .collect (Collectors.toList());
+                .map     ( tag -> from(document.getContent(), tag, annotation) )
+                .filter  ( Optional::isPresent )
+                .map     ( Optional::get )
+                .collect ( Collectors.toList() );
     }
 
     private static Optional<NamedEntity> from(String text, Tag tag, Annotation annotation) {
         Optional<NamedEntity.Category> category = NamedEntity.Category.parse(tag.getValue());
-        if ( ! category.isPresent()) {
+        if ( ! category.isPresent())
             return Optional.empty();
-        }
         String mention = ThrowingFunctions.removeNewLines.apply(text.substring(tag.getBegin(), tag.getEnd()));
         List<Tag> posTags = annotation.get(POS);
         int posTagIndex = Collections.binarySearch(posTags, tag, Tag.comparator);
         if (posTagIndex > 0) {
-            LOGGER.info(posTagIndex + "," + posTags.get(posTagIndex));
+            LOGGER.info(posTagIndex + ", " + posTags.get(posTagIndex));
         }
         return NamedEntity.create(
                 category.get(),
@@ -190,32 +192,37 @@ public class NamedEntity implements Entity {
 
 
     // Actual string denoting the named entity
-    private final String mention;
+    private String mention;
 
-    // Mention's hash
+    // [Document,Offset,Extractor,Mention]'s hash
     @IndexId
     @JsonIgnore
-    private final String hash;
+    private String hash;
+
+    // Mention's hash
+    private String mentionHash;
 
     // Category (Pers, Org, Loc)
-    private final Category category;
+    private Category category;
 
     // Document uid (hash) from which mention was extracted
     @IndexParent
-    private final String document;
+    private String document;
 
     // Offset in document (lower bound on number of chars from beginning)
-    private final int offset;
+    private int offset;
 
     // Type of pipeline which has extracted mention
-    private final NlpPipeline.Type extractor;
+    private NlpPipeline.Type extractor;
 
     // Language used by pipeline at extraction time
-    private final Language extractorLanguage;
+    private Language extractorLanguage;
 
     // Parts-of-speech associated with mention
-    private final String partsOfSpeech;
+    private String partsOfSpeech;
 
+
+    private NamedEntity() {}
 
     @JsonCreator
     private NamedEntity(String           mention,
@@ -228,15 +235,21 @@ public class NamedEntity implements Entity {
         if (mention == null || mention.isEmpty()) {
             throw new IllegalArgumentException("Mention is undefined");
         }
-        this.mention = mention;
         if (category == null) {
             throw new IllegalArgumentException("Category is undefined");
         }
+        this.mention = mention;
+        this.mentionHash = HASHER.hash(mentionNormalForm());
         this.category = category;
-        hash = HASHER.hash( mentionNormalForm() );
         this.document = document;
         this.offset = offset;
         this.extractor = extractor;
+        this.hash = HASHER.hash( String.join("|",
+                getDocument().toString(),
+                String.valueOf(offset),
+                getExtractor().toString(),
+                mentionNormalForm()
+        ));
         this.extractorLanguage = extractorLanguage;
         this.partsOfSpeech = partsOfSpeech;
     }
@@ -246,6 +259,8 @@ public class NamedEntity implements Entity {
     public String getHash() { return hash; }
 
     public String getMention() { return mention; }
+
+    public String getMentionHash() { return mentionHash; }
 
     public Category getCategory() { return category; }
 

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>datashare-index</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -13,6 +13,10 @@
     <artifactId>datashare-index-elasticsearch</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <elasticsearch.version>5.1.1</elasticsearch.version>
+        <jna.version>4.1.0</jna.version>
+    </properties>
 
     <dependencies>
 
@@ -33,7 +37,7 @@
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
-            <version>4.1.0</version>
+            <version>${jna.version}</version>
         </dependency>
 
         <!-- Log4j / Slf4j -->
@@ -68,8 +72,8 @@
                 <executions>
                     <execution>
                         <configuration>
-                            <!-- Package Renaming -->
                             <relocations>
+                                <!-- Isolate netty from play! framework-->
                                 <relocation>
                                     <pattern>io.netty</pattern>
                                     <shadedPattern>for.elasticsearch.io.netty</shadedPattern>
@@ -78,6 +82,10 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
 
         </plugins>

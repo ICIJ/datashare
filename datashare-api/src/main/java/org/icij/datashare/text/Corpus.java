@@ -3,6 +3,9 @@ package org.icij.datashare.text;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.NlpPipeline;
@@ -13,13 +16,18 @@ import org.icij.datashare.text.nlp.NlpPipeline;
  */
 public class Corpus implements Entity {
 
+    private static final Logger LOGGER = LogManager.getLogger(Corpus.class);
+
+    private static final long serialVersionUID = 2568979856231459L;
+
+
     private final String name;
 
     private final String hash;
 
-    private Path sourcePath;
+    private final Path sourcePath;
 
-    private Path processedPath;
+    private final Path processedPath;
 
 
     public Corpus(String corpus, Path source, Path processed) {
@@ -28,6 +36,7 @@ public class Corpus implements Entity {
         sourcePath = source;
         processedPath = processed;
     }
+
 
     @Override
     public String getHash() {

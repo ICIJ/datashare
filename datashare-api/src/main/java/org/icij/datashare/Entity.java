@@ -1,12 +1,8 @@
 package org.icij.datashare;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.icij.datashare.text.hashing.Hasher;
-
 import java.io.Serializable;
-import java.util.Optional;
 
+import org.icij.datashare.text.hashing.Hasher;
 import static org.icij.datashare.text.hashing.Hasher.SHA_384;
 
 

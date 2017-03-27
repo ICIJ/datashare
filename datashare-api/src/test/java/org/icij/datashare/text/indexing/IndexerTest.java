@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.command.*;
@@ -39,14 +40,13 @@ public class IndexerTest extends TestBase {
         Document d = dOpt.get();
 
         // Document --> JSON
-        // (Document is not take yet)
-        Map<String, Object> s = IndexObjectMapper.getJson(d);
+        Map<String, Object> s = JsonObjectMapper.getJson(d);
         System.out.println("Document::toJSON " + s);
         // Document --> JSON
-        s = IndexObjectMapper.getJson(d);
-        String id = IndexObjectMapper.getId(d);
+        s = JsonObjectMapper.getJson(d);
+        String id = JsonObjectMapper.getId(d);
         Class<Document> cls = Document.class;
-        Document e = IndexObjectMapper.getObject(id, s, cls);
+        Document e = JsonObjectMapper.getObject(id, s, cls);
         System.out.println("Document::toJSON " + e.toString());
         System.out.println("Document::getHash " + e.getHash());
         e.getType().ifPresent( c -> System.out.println("Document::getMimeType " + c ) );
@@ -69,12 +69,12 @@ public class IndexerTest extends TestBase {
             return;
         NamedEntity ne = neOpt.get();
         // NamedEntity --> JSON
-        s = IndexObjectMapper.getJson(ne);
+        s = JsonObjectMapper.getJson(ne);
         System.out.println("NamedEntity::toJSON " + s);
         // JSON --> NamedEntity
-        id = IndexObjectMapper.getId(d);
+        id = JsonObjectMapper.getId(d);
         Class<NamedEntity> clss = NamedEntity.class;
-        NamedEntity nent = IndexObjectMapper.getObject(id, s, clss);
+        NamedEntity nent = JsonObjectMapper.getObject(id, s, clss);
         System.out.println("NamedEntity::toJSON " + nent.toString());
 
 

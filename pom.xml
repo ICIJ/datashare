@@ -6,7 +6,7 @@
 
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare</artifactId>
-    <version>0.5</version>
+    <version>0.6</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2016</inceptionYear>
@@ -48,58 +48,55 @@
         <project.build.jdk.source>1.8</project.build.jdk.source>
         <project.build.jdk.target>1.8</project.build.jdk.target>
 
-        <!-- json -->
-        <jackson.version>2.8.5</jackson.version>
-        <!-- security -->
-        <bouncycastle.version>1.54</bouncycastle.version>
-        <!-- unicode -->
-        <unidecode.version>0.0.7</unidecode.version>
-        <!-- beans -->
-        <commons-beanutils.version>1.7.0</commons-beanutils.version>
-
-        <!-- log -->
-        <slf4j.version>1.7.21</slf4j.version>
-        <log4j.version>2.6.2</log4j.version>
-
-        <!-- test -->
-        <junit.version>4.12</junit.version>
-
-        <!-- datashare-cli -->
-        <datashare-cli.version>${project.version}</datashare-cli.version>
-        <joptsimple.version>5.0.3</joptsimple.version>
-
-        <!-- datashare-web -->
-        <datashare-play.version>${project.version}</datashare-play.version>
-        <play2.version>2.5.9</play2.version>
-
-        <!-- datashare-api -->
+        <!-- Datashare Modules -->
         <datashare-api.version>${project.version}</datashare-api.version>
-
-        <!-- datashare-extract -->
+        <datashare-cli.version>${project.version}</datashare-cli.version>
+        <datashare-play.version>${project.version}</datashare-play.version>
         <datashare-tika.version>${project.version}</datashare-tika.version>
-        <tika.version>1.14</tika.version>
-
-        <!-- datashare-index -->
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
-        <elasticsearch.version>5.1.1</elasticsearch.version>
-
-        <!-- datashare-nlp -->
         <datashare-nlp.version>${project.version}</datashare-nlp.version>
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
-        <corenlp.version>3.6.0</corenlp.version>
         <datashare-opennlp.version>${project.version}</datashare-opennlp.version>
-        <opennlp.version>1.6.0</opennlp.version>
         <datashare-gate.version>${project.version}</datashare-gate.version>
-        <gatenlp.version>1.1</gatenlp.version>
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
-        <mitie.version>0.8</mitie.version>
         <datashare-ixapipe.version>${project.version}</datashare-ixapipe.version>
-        <ixa-pipe-tok.version>1.8.5</ixa-pipe-tok.version>
-        <ixa-pipe-pos.version>1.5.1</ixa-pipe-pos.version>
-        <ixa-pipe-nerc.version>1.6.1</ixa-pipe-nerc.version>
-        <ixa-kaflib-naf.version>1.1.15</ixa-kaflib-naf.version>
 
-        <!-- maven -->
+        <!-- Json -->
+        <jackson.version>2.8.5</jackson.version>
+
+        <!-- Unicode -->
+        <unidecode.version>0.0.7</unidecode.version>
+
+        <!-- General Data Structures and Functions -->
+        <joda-time.version>2.9.5</joda-time.version>
+        <guava.version>19.0</guava.version>
+        <xalan.version>2.7.2</xalan.version>
+        <xerces.version>2.11.0</xerces.version>
+        <commons-beanutils.version>1.7.0</commons-beanutils.version>
+
+        <!-- Foreign Languages Interface -->
+        <jna.version>4.2.2</jna.version>
+
+        <!-- Cryptography -->
+        <bouncycastle.version>1.54</bouncycastle.version>
+
+        <!-- Http -->
+        <httpcomponents.version>4.5.2</httpcomponents.version>
+
+        <!-- Command Line Interface -->
+        <joptsimple.version>5.0.3</joptsimple.version>
+
+        <!-- Logging -->
+        <log4j.version>2.6.2</log4j.version>
+        <slf4j.version>1.7.22</slf4j.version>
+        <logback.version>1.1.7</logback.version>
+
+        <!-- Testing -->
+        <junit.version>4.12</junit.version>
+
+        <opennlp.version>1.7.2</opennlp.version>
+
+        <!-- Maven Plugins -->
         <maven-compiler.version>3.5.1</maven-compiler.version>
         <maven-surefire.version>2.19.1</maven-surefire.version>
         <maven-jar.version>3.0.2</maven-jar.version>
@@ -117,7 +114,6 @@
 
 
     <dependencyManagement>
-
         <dependencies>
 
             <!-- Datashare Api -->
@@ -142,6 +138,12 @@
                 <artifactId>datashare-cli</artifactId>
                 <version>${datashare-cli.version}</version>
                 <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>net.sf.jopt-simple</groupId>
+                <artifactId>jopt-simple</artifactId>
+                <version>${joptsimple.version}</version>
+                <scope>provided</scope>
             </dependency>
 
             <!-- Datashare Extract Tika -->
@@ -200,6 +202,105 @@
                 <scope>runtime</scope>
             </dependency>
 
+
+            <!-- Unidecode -->
+            <dependency>
+                <groupId>me.xuender</groupId>
+                <artifactId>unidecode</artifactId>
+                <version>${unidecode.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Bouncycastle -->
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>${bouncycastle.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcmail-jdk15on</artifactId>
+                <version>${bouncycastle.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Jackson -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jdk8</artifactId>
+                <version>${jackson.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-parameter-names</artifactId>
+                <version>${jackson.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Guava -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Joda Time -->
+            <dependency>
+                <groupId>joda-time</groupId>
+                <artifactId>joda-time</artifactId>
+                <version>${joda-time.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>xalan</groupId>
+                <artifactId>xalan</artifactId>
+                <version>${xalan.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>xerces</groupId>
+                <artifactId>xercesImpl</artifactId>
+                <version>${xerces.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Upgraded from 5.2 (Tika dep) to avoid exception:
+                 Caused by: java.lang.NoSuchMethodError:
+                 jj2000.j2k.fileformat.reader.FileFormatReader.<init>(
+                 Ljj2000/j2k/io/RandomAccessIO;Lcom/sun/media/imageioimpl/plugins/
+                 jpeg2000/J2KMetadata;)V
+             -->
+            <dependency>
+                <groupId>edu.ucar</groupId>
+                <artifactId>jj2000</artifactId>
+                <version>5.3</version>
+            </dependency>
+
+            <!-- OpenNlp -->
+            <dependency>
+                <groupId>org.apache.opennlp</groupId>
+                <artifactId>opennlp-tools</artifactId>
+                <version>${opennlp.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
             <!-- Log4j -->
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
@@ -220,6 +321,46 @@
                 <scope>provided</scope>
             </dependency>
 
+            <!-- Slf4j -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>log4j-over-slf4j</artifactId>
+                <version>${slf4j.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jul-to-slf4j</artifactId>
+                <version>${slf4j.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jcl-over-slf4j</artifactId>
+                <version>${slf4j.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Logback -->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
             <!-- JUnit -->
             <dependency>
                 <groupId>junit</groupId>
@@ -229,14 +370,12 @@
             </dependency>
 
         </dependencies>
-
     </dependencyManagement>
 
 
     <build>
 
         <pluginManagement>
-
             <plugins>
 
                 <!-- Compile -->
@@ -247,10 +386,11 @@
                     <configuration>
                         <source>${project.build.jdk.source}</source>
                         <target>${project.build.jdk.target}</target>
+                        <compilerArgument>-Xlint:all</compilerArgument>
                         <compilerArgument>-parameters</compilerArgument>
+                        <showDeprecation>true</showDeprecation>
                     </configuration>
                 </plugin>
-
                 <!-- Jar -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -265,7 +405,6 @@
                         </archive>
                     </configuration>
                 </plugin>
-
                 <!-- Assembly -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -329,16 +468,21 @@
                     <version>${maven-dependency.version}</version>
                     <executions>
                         <execution>
-                            <phase>package</phase>
-                            <id>copy-dependencies</id>
+                            <id>copy-installed</id>
+                            <phase>install</phase>
                             <goals>
-                                <goal>copy-dependencies</goal>
+                                <goal>copy</goal>
                             </goals>
                             <configuration>
-                                <outputDirectory>${project.build.directory}</outputDirectory>
-                                <overWriteReleases>true</overWriteReleases>
-                                <overWriteSnapshots>true</overWriteSnapshots>
-                                <excludeTransitive>false</excludeTransitive>
+                                <artifactItems>
+                                    <artifactItem>
+                                        <groupId>${project.groupId}</groupId>
+                                        <artifactId>${project.artifactId}</artifactId>
+                                        <version>${project.version}</version>
+                                        <type>${project.packaging}</type>
+                                    </artifactItem>
+                                </artifactItems>
+                                <outputDirectory>${session.executionRootDirectory}/datashare-dist/target/datashare-dist-${project.version}-all/lib</outputDirectory>
                             </configuration>
                         </execution>
                     </executions>
@@ -358,7 +502,7 @@
                     <version>${maven-exec.version}</version>
                 </plugin>
 
-                <!-- Doc -->
+                <!-- Javadoc -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
@@ -390,22 +534,19 @@
                 </plugin>
 
             </plugins>
-
         </pluginManagement>
 
 
         <plugins>
-
             <!-- JavaDoc -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${maven-javadoc.version}</version>
             </plugin>
-
         </plugins>
 
-    </build>
 
+    </build>
 
 </project>

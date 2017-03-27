@@ -7,24 +7,22 @@ import java.util.concurrent.*;
 
 import javax.inject.*;
 
-import org.icij.datashare.text.extraction.FileParser;
-import org.icij.datashare.text.indexing.Indexer;
 import play.mvc.*;
 import scala.concurrent.ExecutionContextExecutor;
 
+import services.DataShareIndexer;
 import org.icij.datashare.DataShare;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.NlpPipeline;
 import org.icij.datashare.text.nlp.NlpStage;
-import services.DataShareIndexer;
-
-import static org.icij.datashare.util.function.ThrowingFunctions.splitComma;
+import org.icij.datashare.text.indexing.Indexer;
+import static org.icij.datashare.function.ThrowingFunctions.splitComma;
 
 
 /**
  * DataShare Processing Controller
  *
- * {@link DataShare#processDirectory(Path, FileParser.Type, boolean, List, List, List, int, boolean, Indexer, String)}
+ * @see DataShare.StandAlone#processDirectory(Path, int, boolean, List, List, List, int, Indexer, String)
  * see datashare-web-play/conf/routes
  *
  */
@@ -32,6 +30,7 @@ import static org.icij.datashare.util.function.ThrowingFunctions.splitComma;
 public class ProcessController extends Controller {
 
     private final ExecutionContextExecutor exec;
+
     private final Indexer indexer;
 
 
@@ -43,22 +42,24 @@ public class ProcessController extends Controller {
 
 
     public CompletionStage<Result> processDirectory(String inputDir,
+                                                    int fileParserParallelism,
                                                     String index,
-                                                    String pipelines,
-                                                    int parallelism,
-                                                    String stages,
+                                                    String nlpPipelines,
+                                                    int nlpParallelism,
+                                                    String nlpStages,
                                                     String entities) {
         return CompletableFuture.supplyAsync( () ->
-                DataShare.processDirectory(
+                DataShare.StandAlone.processDirectory(
                         Paths.get(inputDir),
-                        splitComma.andThen(NlpStage.parseAll).apply(stages),
+                        fileParserParallelism,
+                        splitComma.andThen(NlpStage.parseAll).apply(nlpStages),
                         splitComma.andThen(NamedEntity.Category.parseAll).apply(entities),
-                        splitComma.andThen(NlpPipeline.Type.parseAll).apply(pipelines),
-                        parallelism,
+                        splitComma.andThen(NlpPipeline.Type.parseAll).apply(nlpPipelines),
+                        nlpParallelism,
                         indexer,
                         index
                 )
-        ).thenApplyAsync(proc -> proc ? Results.ok() : Results.internalServerError(), exec);
+        ).thenApplyAsync( proc -> proc ? Results.ok() : Results.internalServerError(), exec);
     }
 
 }

@@ -7,7 +7,7 @@
     <parent>
         <artifactId>datashare-web</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-web-play</artifactId>
@@ -15,6 +15,7 @@
 
 
     <properties>
+        <play2.version>2.5.9</play2.version>
         <scala.version>2.11.7</scala.version>
         <sbt-compiler.plugin.version>1.0.0-beta9</sbt-compiler.plugin.version>
     </properties>
@@ -35,7 +36,7 @@
             <version>${scala.version}</version>
         </dependency>
 
-        <!-- Play! -->
+        <!-- Play -->
         <dependency>
             <groupId>com.typesafe.play</groupId>
             <artifactId>play-java_2.11</artifactId>
@@ -105,7 +106,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
 
-            <!-- Play2 Dist -->
+            <!-- Play2 make dist -->
             <plugin>
                 <groupId>com.google.code.play2-maven-plugin</groupId>
                 <artifactId>play2-maven-plugin</artifactId>
@@ -117,8 +118,8 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <phase>package</phase>
                         <id>make-play-dist</id>
+                        <phase>package</phase>
                         <goals>
                             <goal>dist</goal>
                         </goals>
@@ -142,10 +143,9 @@
             <plugin>
                 <artifactId>maven-install-plugin</artifactId>
                 <executions>
-                    <!-- Play2 Maven Plugin - Jar -->
                     <execution>
-                        <phase>validate</phase>
                         <id>install-play2-maven-plugin-jar</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>
@@ -158,10 +158,9 @@
                             <generatePom>false</generatePom>
                         </configuration>
                     </execution>
-                    <!-- Play2 Maven Plugin - Pom -->
                     <execution>
-                        <phase>validate</phase>
                         <id>install-play2-maven-plugin-pom</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>
@@ -175,6 +174,11 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+
         </plugins>
 
     </build>

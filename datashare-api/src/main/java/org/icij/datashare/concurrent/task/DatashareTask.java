@@ -6,7 +6,7 @@ import java.util.concurrent.BlockingQueue;
 import static java.util.Collections.singletonList;
 
 import org.icij.datashare.concurrent.Latch;
-import org.icij.datashare.util.reflect.EnumTypeToken;
+import org.icij.datashare.reflect.EnumTypeToken;
 
 
 /**
@@ -23,22 +23,14 @@ public abstract class DatashareTask<I, O, T extends Enum<T> & EnumTypeToken> ext
     protected final Properties properties;
 
 
-    public DatashareTask(T type,
-                         Properties properties,
-                         BlockingQueue<I> input,
-                         BlockingQueue<O> output,
-                         List<Latch> noMoreInput) {
-        super(input, output, noMoreInput);
+    public DatashareTask(T type, Properties properties, BlockingQueue<I> input, List<Latch> noMoreInput, BlockingQueue<O> output) {
+        super(input, noMoreInput, output);
         this.type       = type;
         this.properties = new Properties(properties);
     }
 
-    public DatashareTask(T type,
-                         Properties properties,
-                         BlockingQueue<I> input,
-                         BlockingQueue<O> output,
-                         Latch noMoreInput) {
-        this(type, properties, input, output, singletonList(noMoreInput));
+    public DatashareTask(T type, Properties properties, BlockingQueue<I> input, Latch noMoreInput, BlockingQueue<O> output) {
+        this(type, properties, input, singletonList(noMoreInput), output);
     }
 
 

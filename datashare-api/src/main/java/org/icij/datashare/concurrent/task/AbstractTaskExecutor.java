@@ -10,8 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * Common structure and behavior for {@link TaskExecutor}s
- *   - an executor service handles
- *   - a list of {@link Task}s
+ * An executor service handles a list of {@link Task}s
  *
  * Created by julien on 9/30/16.
  */
@@ -20,7 +19,7 @@ abstract class AbstractTaskExecutor implements TaskExecutor {
     protected final Logger LOGGER = LogManager.getLogger(getClass());
 
 
-    protected final ExecutorService      executor;
+    private final ExecutorService executor;
 
     protected final List<? extends Task> tasks;
 
@@ -28,10 +27,6 @@ abstract class AbstractTaskExecutor implements TaskExecutor {
     AbstractTaskExecutor(ExecutorService executor, List<? extends Task> tasks) {
         this.executor = executor;
         this.tasks    = tasks;
-
-        LOGGER.info(getClass().getName() +
-                " - " + "Creating fixed thread pool of " + tasks.size() + " tasks" +
-                " - " + Thread.currentThread().getName());
     }
 
 
@@ -44,7 +39,7 @@ abstract class AbstractTaskExecutor implements TaskExecutor {
         if ( ! runningTask()) {
             tasks.forEach( this::submit );
         }
-    };
+    }
 
     @Override
     public void shutdown() {
@@ -54,49 +49,48 @@ abstract class AbstractTaskExecutor implements TaskExecutor {
 
     @Override
     public void awaitTermination(int duration, TimeUnit timeUnit) {
+        LOGGER.info("Awaiting termination of processings up to " + duration + " " + timeUnit.name());
         try {
-            LOGGER.info(getClass().getSimpleName() + ": " +
-                    "Awaiting termination of processings up to " + duration + " " + timeUnit.name());
             executor.awaitTermination(duration, timeUnit);
         } catch (InterruptedException e) {
-            LOGGER.error(getClass().getSimpleName() + ": Await termination interrupted");
+            LOGGER.error("Await processing termination interrupted");
             Thread.currentThread().interrupt();
         }
     }
 
     @Override
     public void awaitTermination() {
-        try {
-            LOGGER.info(getClass().getSimpleName() + ": " + "Awaiting termination of processings...");
-            while ( runningTask() ) {
+        LOGGER.info("Awaiting termination of processings...");
+        while ( runningTask() && ! Thread.currentThread().isInterrupted() ) {
+            try {
                 Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                LOGGER.info("Await termination interrupted");
+                Thread.currentThread().interrupt();
             }
-        } catch (InterruptedException e) {
-            LOGGER.info(getClass().getSimpleName() + ": " + "Await termination interrupted");
-            Thread.currentThread().interrupt();
         }
     }
 
     @Override
     public void stop() {
         try {
-            LOGGER.info(getClass().getSimpleName() + ": Attempt to stop executor");
+            LOGGER.info(" Attempting to stop executor");
             executor.shutdown();
-            LOGGER.info(getClass().getSimpleName() + ": Awaiting completion of processings...");
+            LOGGER.info(" Awaiting completion of processings...");
             executor.awaitTermination(5, TimeUnit.SECONDS);
-
         } catch (InterruptedException e) {
-            LOGGER.error(getClass().getSimpleName() + ": Stop interrupted");
+            LOGGER.error("Executor Stop interrupted");
+            Thread.currentThread().interrupt();
+        } catch (SecurityException e) {
+            LOGGER.error("Executor Stop denied", e);
             Thread.currentThread().interrupt();
         } finally {
             if ( ! executor.isTerminated()) {
-                executor.shutdownNow()
-                        .forEach( runnable ->
-                                LOGGER.info(getClass().getSimpleName() + ": " +
-                                        "Cancelling awaiting tasks " + runnable.getClass().getEnclosingClass().getName())
-                        );
+                executor.shutdownNow().forEach( runnable ->
+                        LOGGER.info("Cancelling awaiting tasks " + runnable.getClass().getEnclosingClass().getName())
+                );
             }
-            LOGGER.info(getClass().getSimpleName() + ": Executor stopped");
+            LOGGER.info("Executor stopped");
         }
     }
 

@@ -2,11 +2,12 @@ package org.icij.datashare.text.nlp;
 
 import java.util.*;
 
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 
 
 /**
- * Annotation on a {@link org.icij.datashare.text.Document}
+ * Annotation on a {@link Document}
  * consists of {@link Tag}s indexed by {@link NlpStage}s
  * produced by an {@link NlpPipeline}
  *
@@ -27,12 +28,12 @@ public class Annotation {
     private final Map<NlpStage, List<Tag>> tags;
 
 
-    public Annotation(String doc, NlpPipeline.Type pipe, Language lang) {
-        document = doc;
-        pipeline = pipe;
-        language = lang;
+    public Annotation(String document, NlpPipeline.Type pipeline, Language language) {
+        this.document = document;
+        this.pipeline = pipeline;
+        this.language = language;
         tags = new HashMap<NlpStage, List<Tag>>() {{
-            Arrays.stream(NlpStage.values())
+            Arrays.stream( NlpStage.values() )
                     .forEach( stage ->
                             put(stage, new ArrayList<>())
                     );

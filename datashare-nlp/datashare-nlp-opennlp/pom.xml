@@ -7,11 +7,16 @@
     <parent>
         <artifactId>datashare-nlp</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-nlp-opennlp</artifactId>
     <packaging>jar</packaging>
+
+
+    <properties>
+        <opennlp.version>1.7.2</opennlp.version>
+    </properties>
 
 
     <dependencies>
@@ -27,6 +32,7 @@
             <groupId>org.apache.opennlp</groupId>
             <artifactId>opennlp-tools</artifactId>
             <version>${opennlp.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Log4j / Slf4j -->
@@ -45,14 +51,16 @@
     <build>
         <plugins>
 
-            <!-- Assembly -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
 
-            <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
 
         </plugins>

@@ -1,6 +1,8 @@
 package org.icij.datashare.text.indexing;
 
 /**
+ * DataShare Entity Id Annotation
+ *
  * Created by julien on 6/22/16.
  */
 import java.lang.annotation.ElementType;

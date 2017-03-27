@@ -12,13 +12,14 @@ import static java.util.Arrays.asList;
 import static java.net.InetAddress.getByName;
 
 import org.apache.lucene.search.join.ScoreMode;
-
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+
+import static org.elasticsearch.cluster.health.ClusterHealthStatus.YELLOW;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
@@ -58,11 +59,11 @@ import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import static org.elasticsearch.cluster.health.ClusterHealthStatus.GREEN;
 
 import org.icij.datashare.Entity;
-import org.icij.datashare.util.function.Pair;
-import static org.icij.datashare.util.function.Functions.zip;
+import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.function.Pair;
+import org.icij.datashare.function.ThrowingConsumer;
+import static org.icij.datashare.function.Functions.zip;
 import org.icij.datashare.text.indexing.AbstractIndexer;
-import org.icij.datashare.text.indexing.IndexObjectMapper;
-import org.icij.datashare.util.function.ThrowingConsumer;
 import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
 import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
 
@@ -86,7 +87,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     private static final Map<NodeType, ClusterHealthStatus> CLUSTER_UP_STATUS =
             new HashMap<NodeType, ClusterHealthStatus>() {{
-                put(LOCAL,  GREEN);
+                put(LOCAL,  YELLOW);
                 put(REMOTE, GREEN);
             }};
 
@@ -118,6 +119,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
         bulkProcessor = buildBulkProcessor();
     }
+
 
     @Override
     public void close() {
@@ -212,7 +214,8 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         }
     }
 
-    // __________ Add Document __________
+
+    // __________  Add Document __________
 
     @Override
     public boolean add(String index, String type, String id, String json) {
@@ -232,7 +235,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         try {
             final IndexRequest  req  = new IndexRequest(index, type, id).source(json).parent(parent);
             final IndexResponse resp = client.index(req).get();
-            return resp.status().equals(RestStatus.CREATED);
+            return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + index, e);
             return false;
@@ -265,14 +268,49 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     @Override
     public <T extends Entity> boolean add(String index, T obj) {
-        final String              type   = IndexObjectMapper.getType(obj);
-        final String              id     = IndexObjectMapper.getId(obj);
-        final Map<String, Object> json   = IndexObjectMapper.getJson(obj);
-        final Optional<String>    parent = IndexObjectMapper.getParent(obj);
+        final String              type   = JsonObjectMapper.getType(obj);
+        final String              id     = JsonObjectMapper.getId(obj);
+        final Map<String, Object> json   = JsonObjectMapper.getJson(obj);
+        final Optional<String>    parent = JsonObjectMapper.getParent(obj);
         if (parent.isPresent())
             return add(index, type, id, json, parent.get());
         return add(index, type, id, json);
     }
+
+    // __________ Batched Add Document(s) __________
+
+    @Override
+    public void batchAdd(String index, String type, String id, String json) {
+        bulkProcessor.add( new IndexRequest(index, type, id).source(json) );
+    }
+
+    @Override
+    public void batchAdd(String index, String type, String id, String json, String parent) {
+        bulkProcessor.add( new IndexRequest(index, type, id).source(json).parent(parent) );
+    }
+
+    @Override
+    public void batchAdd(String index, String type, String id, Map<String, Object> json) {
+        bulkProcessor.add( new IndexRequest(index, type, id).source(json) );
+    }
+
+    @Override
+    public void batchAdd(String index, String type, String id, Map<String, Object> json, String parent) {
+        bulkProcessor.add( new IndexRequest(index, type, id).source(json).parent(parent) );
+    }
+
+    @Override
+    public <T extends Entity> void batchAdd(String index, T obj) {
+        final String              type   = JsonObjectMapper.getType(obj);
+        final String              id     = JsonObjectMapper.getId(obj);
+        final Map<String, Object> json   = JsonObjectMapper.getJson(obj);
+        final Optional<String>    parent = JsonObjectMapper.getParent(obj);
+        if (parent.isPresent())
+            batchAdd(index, type, id, json, parent.get());
+        else
+            batchAdd(index, type, id, json);
+    }
+
 
     // __________ Read Document __________
 
@@ -283,7 +321,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
             final GetResponse resp = client.get(req).get();
             return resp.getSourceAsMap();
         } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to take doc " + id + " of type " + type + " in index " + index, e);
+            LOGGER.error("Failed to poll doc " + id + " of type " + type + " in index " + index, e);
             return emptyMap();
         }
     }
@@ -302,26 +340,26 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     @Override
     public <T extends Entity> T read(String index, Class<T> cls, String id) {
-        final String              type = IndexObjectMapper.getType(cls);
+        final String              type = JsonObjectMapper.getType(cls);
         final Map<String, Object> json = read(index, type, id);
-        return IndexObjectMapper.getObject(id, json, cls);
+        return JsonObjectMapper.getObject(id, json, cls);
     }
 
     @Override
     public <T extends Entity> T read(String index, Class<T> cls, String id, String parent) {
-        final String              type = IndexObjectMapper.getType(cls);
+        final String              type = JsonObjectMapper.getType(cls);
         final Map<String, Object> json = read(index, type, id, parent);
-        return IndexObjectMapper.getObject(id, json, cls);
+        return JsonObjectMapper.getObject(id, json, cls);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <T extends Entity> T read(String index, T obj) {
-        final String           type   = IndexObjectMapper.getType(obj);
-        final String           id     = IndexObjectMapper.getId(obj);
-        final Optional<String> parent = IndexObjectMapper.getParent(obj);
+        final String           type   = JsonObjectMapper.getType(obj);
+        final String           id     = JsonObjectMapper.getId(obj);
+        final Optional<String> parent = JsonObjectMapper.getParent(obj);
         Map<String, Object> json = parent.isPresent() ? read(index, type, id, parent.get()) : read(index, type, id);
-        return IndexObjectMapper.getObject(id, json, (Class<T>) obj.getClass());
+        return JsonObjectMapper.getObject(id, json, (Class<T>) obj.getClass());
     }
 
 
@@ -332,7 +370,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         try {
             final DeleteRequest  req  = new DeleteRequest(index, type, id);
             final DeleteResponse resp = client.delete(req).get();
-            return resp.status().equals(RestStatus.FOUND);
+            return asList(RestStatus.FOUND, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to delete doc " + id  + " of type " + type + " in index " + index, e);
             return false;
@@ -344,7 +382,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         try {
             final DeleteRequest  req  = new DeleteRequest(index, type, id).parent(parent);
             final DeleteResponse resp = client.delete(req).get();
-            return resp.status().equals(RestStatus.FOUND);
+            return asList(RestStatus.FOUND, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to delete doc " + id + " of type " + type + " in index " + index, e);
             return false;
@@ -353,12 +391,35 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     @Override
     public <T extends Entity> boolean delete(String index, T obj) {
-        final String           type   = IndexObjectMapper.getType(obj);
-        final String           id     = IndexObjectMapper.getId(obj);
-        final Optional<String> parent = IndexObjectMapper.getParent(obj);
+        final String           type   = JsonObjectMapper.getType(obj);
+        final String           id     = JsonObjectMapper.getId(obj);
+        final Optional<String> parent = JsonObjectMapper.getParent(obj);
         if (parent.isPresent())
             return delete(index, type, id, parent.get());
         return delete(index, type, id);
+    }
+
+    // __________ Batched Delete Document(s) __________
+
+    @Override
+    public void batchDelete(String index, String type, String id) {
+        bulkProcessor.add( new DeleteRequest(index, type, id) );
+    }
+
+    @Override
+    public void batchDelete(String index, String type, String id, String parent) {
+        bulkProcessor.add( new DeleteRequest(index, type, id).parent(parent) );
+    }
+
+    @Override
+    public <T extends Entity> void batchDelete(String index, T obj) {
+        final String           type   = JsonObjectMapper.getType(obj);
+        final String           id     = JsonObjectMapper.getId(obj);
+        final Optional<String> parent = JsonObjectMapper.getParent(obj);
+        if (parent.isPresent())
+            batchDelete(index, type, id, parent.get());
+        else
+            batchDelete(index, type, id);
     }
 
 
@@ -369,7 +430,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         try {
             final UpdateRequest  req  = new UpdateRequest(index, type, id).doc(json);
             final UpdateResponse resp = client.update(req).get();
-            return resp.status().equals(RestStatus.CREATED);
+            return asList(RestStatus.FOUND, RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to update doc " + id + " of type " + type + " in index " + index, e);
             return false;
@@ -381,7 +442,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         try {
             final UpdateRequest  req  = new UpdateRequest(index, type, id).doc(json);
             final UpdateResponse resp = client.update(req).get();
-            return resp.status().equals(RestStatus.CREATED);
+            return asList(RestStatus.FOUND, RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to update doc " + id + " of type " + type + " in index " + index, e);
             return false;
@@ -393,7 +454,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         try {
             final UpdateRequest  req  = new UpdateRequest(index, type, id).doc(json).parent(parent);
             final UpdateResponse resp = client.update(req).get();
-            return resp.status().equals(RestStatus.CREATED);
+            return asList(RestStatus.FOUND, RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to update doc " + id + " of type " + type + " in index " + index, e);
             return false;
@@ -402,10 +463,10 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     @Override
     public <T extends Entity> boolean update(String index, T obj) {
-        final String              type   = IndexObjectMapper.getType(obj);
-        final String              id     = IndexObjectMapper.getId(obj);
-        final Map<String, Object> json   = IndexObjectMapper.getJson(obj);
-        final Optional<String>    parent = IndexObjectMapper.getParent(obj);
+        final String              type   = JsonObjectMapper.getType(obj);
+        final String              id     = JsonObjectMapper.getId(obj);
+        final Map<String, Object> json   = JsonObjectMapper.getJson(obj);
+        final Optional<String>    parent = JsonObjectMapper.getParent(obj);
         if (parent.isPresent())
             return update(index, type, id, json, parent.get());
         return update(index, type, id, json);
@@ -417,6 +478,11 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public Stream<Map<String, Object>> search(String query) {
         return search( queryStringQuery(query) );
+    }
+
+    @Override
+    public Stream<Map<String, Object>> search(String query, int from, int size) {
+        return search(queryStringQuery(query), from, size);
     }
 
     @Override
@@ -435,9 +501,15 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     }
 
     @Override
+    public Stream<Map<String, Object>> search(String query, int from, int to, String type, String... indices) {
+        return search( queryStringQuery(query), from, to, type, indices);
+    }
+
+    @Override
     public <T extends Entity> Stream<T> search(String query, Class<T> cls, String... indices) {
         return search( queryStringQuery(query), cls, indices);
     }
+
 
     @Override
     public Stream<Map<String, Object>> searchIndices(String... indices) {
@@ -446,9 +518,10 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     @Override
     public <T extends Entity> Stream<T> searchIndices(Class<T> cls, String... indices) {
-        final String type = IndexObjectMapper.getType(cls);
+        final String type = JsonObjectMapper.getType(cls);
         return resultStream( cls, searchRequest().setTypes( type ).setIndices( indices ));
     }
+
 
     @Override
     public Stream<Map<String, Object>> searchTypes(String... types) {
@@ -457,7 +530,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     @Override
     public <T extends Entity> Stream<T> searchTypes(Class<T> cls) {
-        final String type = IndexObjectMapper.getType(cls);
+        final String type = JsonObjectMapper.getType(cls);
         return resultStream( cls, searchRequest().setTypes( type ));
     }
 
@@ -476,7 +549,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     @Override
     public <T extends Entity, U extends Entity> Stream<T> searchHasChild(Class<T> parentCls, Class<U> childCls) {
-        String childType = IndexObjectMapper.getType(childCls);
+        String childType = JsonObjectMapper.getType(childCls);
         return search( mustHasChildQuery(childType), parentCls);
     }
 
@@ -484,7 +557,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     public <T extends Entity, U extends Entity> Stream<T> searchHasChild(Class<T> parentCls,
                                                                          Class<U> childCls,
                                                                          String query) {
-        String childType = IndexObjectMapper.getType(childCls);
+        String childType = JsonObjectMapper.getType(childCls);
         return search( mustHasChildQuery(childType, query), parentCls);
     }
 
@@ -492,18 +565,18 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     public <T extends Entity, U extends Entity> Stream<T> searchHasNoChild(Class<T> parentCls,
                                                                            Class<U> childCls,
                                                                            String query) {
-        String childType = IndexObjectMapper.getType(childCls);
+        String childType = JsonObjectMapper.getType(childCls);
         return search( mustNotHasChildQuery(childType, query), parentCls);
     }
 
     @Override
     public <T extends Entity, U extends Entity> Stream<T> searchHasNoChild(Class<T> parentCls, Class<U> childCls) {
-        String childType = IndexObjectMapper.getType(childCls);
+        String childType = JsonObjectMapper.getType(childCls);
         return search( mustNotHasChildQuery(childType), parentCls );
     }
 
 
-    // __________ Search Document(s) with(out) parent __________
+    // __________ Search Document(s) with (no) parent __________
 
     @Override
     public Stream<Map<String, Object>> searchHasParent(String childType, String parentType) {
@@ -540,6 +613,10 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         return resultStream(searchRequest().setQuery( query ));
     }
 
+    private Stream<Map<String, Object>> search(QueryBuilder query, int from, int size) {
+        return resultStream(searchRequest(from, size).setQuery( query ));
+    }
+
     private Stream<Map<String, Object>> search(QueryBuilder query, String type) {
         return resultStream(searchRequest().setQuery( query ).setTypes( type ));
     }
@@ -548,15 +625,20 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         return resultStream(searchRequest().setQuery( query ).setTypes( type ).setIndices( indices ));
     }
 
+    private Stream<Map<String, Object>> search(QueryBuilder query, int from, int to, String type, String... indices) {
+        return resultStream(searchRequest(from, to).setQuery( query ).setTypes( type ).setIndices( indices ));
+    }
+
     private <T extends Entity> Stream<T> search(QueryBuilder query, Class<T> cls) {
-        final String type = IndexObjectMapper.getType(cls);
+        final String type = JsonObjectMapper.getType(cls);
         return resultStream(cls, searchRequest().setQuery( query ).setTypes( type ) );
     }
 
     private <T extends Entity> Stream<T> search(QueryBuilder query, Class<T> cls, String... indices) {
-        final String type = IndexObjectMapper.getType(cls);
+        final String type = JsonObjectMapper.getType(cls);
         return resultStream( cls, searchRequest().setQuery( query ).setTypes( type ).setIndices( indices ));
     }
+
 
     /**
      * https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/java-search.html
@@ -590,9 +672,8 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     }
 
     private static <T extends Entity> T hitToObject(SearchHit searchHit, Class<T> cls) {
-        return IndexObjectMapper.getObject(searchHit.getId(), searchHit.getSource(), cls);
+        return JsonObjectMapper.getObject(searchHit.getId(), searchHit.getSource(), cls);
     }
-
 
     /**
      * Build a search result as JSON Maps from search hit
@@ -616,7 +697,6 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     private static Stream<Map<String, Object>> resultStream(SearchRequestBuilder srchReq) {
         return resultStream( searchHitIterable(srchReq) );
     }
-
 
     /**
      * https://www.elastic.co/guide/en/elasticsearch/reference/2.3/query-dsl-has-child-query.html
@@ -665,64 +745,6 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     }
 
 
-    // __________ Batched Add Document(s) __________
-
-    @Override
-    public void batchAdd(String index, String type, String id, String json) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json) );
-    }
-
-    @Override
-    public void batchAdd(String index, String type, String id, String json, String parent) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json).parent(parent) );
-    }
-
-    @Override
-    public void batchAdd(String index, String type, String id, Map<String, Object> json) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json) );
-    }
-
-    @Override
-    public void batchAdd(String index, String type, String id, Map<String, Object> json, String parent) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json).parent(parent) );
-    }
-
-    @Override
-    public <T extends Entity> void batchAdd(String index, T obj) {
-        final String              type   = IndexObjectMapper.getType(obj);
-        final String              id     = IndexObjectMapper.getId(obj);
-        final Map<String, Object> json   = IndexObjectMapper.getJson(obj);
-        final Optional<String>    parent = IndexObjectMapper.getParent(obj);
-        if (parent.isPresent())
-            batchAdd(index, type, id, json, parent.get());
-        else
-            batchAdd(index, type, id, json);
-    }
-
-    // __________ Batched Delete Document(s) __________
-
-    @Override
-    public void batchDelete(String index, String type, String id) {
-        bulkProcessor.add( new DeleteRequest(index, type, id) );
-    }
-
-    @Override
-    public void batchDelete(String index, String type, String id, String parent) {
-        bulkProcessor.add( new DeleteRequest(index, type, id).parent(parent) );
-    }
-
-    @Override
-    public <T extends Entity> void batchDelete(String index, T obj) {
-        final String           type   = IndexObjectMapper.getType(obj);
-        final String           id     = IndexObjectMapper.getId(obj);
-        final Optional<String> parent = IndexObjectMapper.getParent(obj);
-        if (parent.isPresent())
-            batchDelete(index, type, id, parent.get());
-        else
-            batchDelete(index, type, id);
-    }
-
-
     /**
      * @return node(s) settings
      */
@@ -741,21 +763,9 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
             return Settings.builder()
                     .put("cluster.name", cluster)
                     .put("client.transport.sniff",        true)
-                    .put("client.transport.ping_timeout", DEFAULT_TIMEOUT_INSEC)
+                    //.put("client.transport.ping_timeout", timeValueSeconds(DEFAULT_TIMEOUT_INSEC))
                     .build();
         }
-    }
-
-    @Override
-    protected boolean awaitConnectionIsUp() {
-        return ! client
-                .admin()
-                .cluster()
-                .prepareHealth()
-                .setTimeout(timeValueSeconds(DEFAULT_TIMEOUT_INSEC))
-                .setWaitForStatus(CLUSTER_UP_STATUS.get(nodeType))
-                .get()
-                .isTimedOut();
     }
 
     /**
@@ -767,6 +777,19 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
                 .put("index.number_of_replicas", replicas)
                 .put("index.max_result_window",  INDEX_MAX_RESULT_WINDOW)
                 .build();
+    }
+
+
+    @Override
+    protected boolean awaitConnectionIsUp() {
+        return ! client
+                .admin()
+                .cluster()
+                .prepareHealth()
+                .setTimeout(timeValueSeconds(DEFAULT_TIMEOUT_INSEC))
+                .setWaitForStatus(CLUSTER_UP_STATUS.get(nodeType))
+                .get()
+                .isTimedOut();
     }
 
     /**

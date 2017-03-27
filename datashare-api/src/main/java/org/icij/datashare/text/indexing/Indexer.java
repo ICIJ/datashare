@@ -11,9 +11,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.icij.datashare.Entity;
-import org.icij.datashare.util.reflect.EnumTypeToken;
+import org.icij.datashare.reflect.EnumTypeToken;
+import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
 import static org.icij.datashare.text.indexing.Indexer.Type.ELASTICSEARCH;
-import static org.icij.datashare.util.function.ThrowingFunctions.joinComma;
+import static org.icij.datashare.function.ThrowingFunctions.joinComma;
 
 
 /**
@@ -67,19 +68,16 @@ public interface Indexer extends Closeable {
         public String defaultHost() {
             return defaultHost;
         }
-
         public int defaultIndexReplicas() {
             return defaultIndexReplicas;
         }
-
         public int defaultIndexShards() {
             return defaultIndexShards;
         }
 
         public static Optional<NodeType> parse(final String nodeType) {
-            if (nodeType == null || nodeType.isEmpty()) {
+            if (nodeType == null || nodeType.isEmpty())
                 return Optional.empty();
-            }
             try {
                 return Optional.of(valueOf(nodeType.toUpperCase(Locale.ROOT)));
             } catch (IllegalArgumentException e) {
@@ -114,6 +112,8 @@ public interface Indexer extends Closeable {
 
     Type DEFAULT_TYPE = ELASTICSEARCH;
 
+    NodeType DEFAULT_NODETYPE = LOCAL;
+
     String DEFAULT_CLUSTER = "datashare";
 
 
@@ -140,14 +140,17 @@ public interface Indexer extends Closeable {
             Object indexerInstance = Class.forName( type.getClassName() )
                     .getDeclaredConstructor( new Class[]{Properties.class} )
                     .newInstance           (             properties        );
-            return Optional.ofNullable( (Indexer) indexerInstance );
+            return Optional.of( (Indexer) indexerInstance );
         } catch (ClassNotFoundException e) {
             logger.error(type + " " + interfaceName + " not found in classpath.", e);
             return Optional.empty();
         } catch (IllegalArgumentException e) {
             logger.error("Invalid argument values for " + type + " " + interfaceName, e);
             return Optional.empty();
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+        } catch (InvocationTargetException e) {
+            logger.error("Failed to instantiate " + type + " " + interfaceName, e.getCause());
+            return Optional.empty();
+        }catch (InstantiationException | IllegalAccessException | NoSuchMethodException e) {
             logger.error("Failed to instantiate " + type + " " + interfaceName, e);
             return Optional.empty();
         }
@@ -280,6 +283,36 @@ public interface Indexer extends Closeable {
      */
     <T extends Entity> boolean add(String index, T obj);
 
+    /**
+     * Add a document indexing to batch processing
+     * document source given as a JSON String
+     */
+    void batchAdd(String index, String type, String id, String json);
+
+    /**
+     * Add a document indexing, with parent, to batch processing
+     * document source given as a JSON String
+     */
+    void batchAdd(String index, String type, String id, String json, String parent);
+
+    /**
+     * Add an document indexing to batch processing
+     * document source given as a JSON Map
+     */
+    void batchAdd(String index, String type, String id, Map<String, Object> json);
+
+    /**
+     * Add a document indexing, with parent, to batch processing
+     * document source given as a JSON Map
+     */
+    void batchAdd(String index, String type, String id, Map<String, Object> json, String parent);
+
+    /**
+     * Add a document indexing, with parent, to batch processing
+     * document source given as an Object of type {@code T}
+     */
+    <T extends Entity> void batchAdd(String index, T obj);
+
 
     /**
      * Get document by id in index
@@ -386,6 +419,24 @@ public interface Indexer extends Closeable {
      */
     <T extends Entity> boolean delete(String index, T obj);
 
+    /**
+     * Add a document deletion to batch processing
+     * document's id given as a String
+     */
+    void batchDelete(String index, String type, String id);
+
+    /**
+     * Add a document deletion, with parent, to batch processing
+     * document's id given as a String
+     */
+    void batchDelete(String index, String type, String id, String parent);
+
+    /**
+     * Add a document deletion to batch processing
+     * document's id given in {@code obj}
+     */
+    <T extends Entity> void batchDelete(String index, T obj);
+
 
     /**
      * Get documents matching {@code query}, any type in any index
@@ -394,6 +445,9 @@ public interface Indexer extends Closeable {
      * @return the stream of search results as JSON Maps
      */
     Stream<Map<String, Object>> search(String query);
+
+    Stream<Map<String, Object>> search(String query, int from, int to);
+
 
     /**
      * Get documents matching {@code query} and {@code type} in any index
@@ -413,6 +467,8 @@ public interface Indexer extends Closeable {
      * @return the stream of search results as JSON Maps
      */
     Stream<Map<String, Object>> search(String query, String type, String... indices);
+
+    Stream<Map<String, Object>> search(String query, int from, int to, String type, String... indices);
 
 
     /**
@@ -511,55 +567,5 @@ public interface Indexer extends Closeable {
     <T extends Entity> Stream<T> searchHasNoParent(Class<T> childCls, String parentType);
 
     <T extends Entity> Stream<T> searchHasNoParent(Class<T> childCls, String parentType, String query);
-
-
-    /**
-     * Add a document indexing to batch processing
-     * document source given as a JSON String
-     */
-    void batchAdd(String index, String type, String id, String json);
-
-    /**
-     * Add a document indexing, with parent, to batch processing
-     * document source given as a JSON String
-     */
-    void batchAdd(String index, String type, String id, String json, String parent);
-
-    /**
-     * Add an document indexing to batch processing
-     * document source given as a JSON Map
-     */
-    void batchAdd(String index, String type, String id, Map<String, Object> json);
-
-    /**
-     * Add a document indexing, with parent, to batch processing
-     * document source given as a JSON Map
-     */
-    void batchAdd(String index, String type, String id, Map<String, Object> json, String parent);
-
-    /**
-     * Add a document indexing, with parent, to batch processing
-     * document source given as an Object of type {@code T}
-     */
-    <T extends Entity> void batchAdd(String index, T obj);
-
-
-    /**
-     * Add a document deletion to batch processing
-     * document's id given as a String
-     */
-    void batchDelete(String index, String type, String id);
-
-    /**
-     * Add a document deletion, with parent, to batch processing
-     * document's id given as a String
-     */
-    void batchDelete(String index, String type, String id, String parent);
-
-    /**
-     * Add a document deletion to batch processing
-     * document's id given in {@code obj}
-     */
-    <T extends Entity> void batchDelete(String index, T obj);
 
 }

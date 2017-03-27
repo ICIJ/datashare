@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule="true" type="JAVA_MODULE" version="4">
-  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_5" inherit-compiler-output="false">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_5">
     <output url="file://$MODULE_DIR$/target/classes" />
     <output-test url="file://$MODULE_DIR$/target/test-classes" />
     <content url="file://$MODULE_DIR$">
@@ -9,18 +9,17 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models:3.6.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-spanish:3.6.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-french:3.6.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-german:3.6.0" level="project" />
     <orderEntry type="module" module-name="datashare-api" scope="RUNTIME" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: me.xuender:unidecode:0.0.7" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.bouncycastle:bcprov-jdk15on:1.54" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.8.5" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: com.hazelcast:hazelcast-all:3.7.4" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: me.xuender:unidecode:0.0.7" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: org.bouncycastle:bcprov-jdk15on:1.54" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: org.bouncycastle:bcmail-jdk15on:1.54" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: org.bouncycastle:bcpkix-jdk15on:1.54" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.core:jackson-core:2.8.5" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.8.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.8.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: com.fasterxml.jackson.core:jackson-core:2.8.5" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.8.5" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: com.fasterxml.jackson.module:jackson-module-parameter-names:2.8.5" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.8.5" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.module:jackson-module-parameter-names:2.8.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.scala-lang:scala-library:2.11.7" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.typesafe.play:play-java_2.11:2.5.9" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.typesafe.play:play_2.11:2.5.9" level="project" />
@@ -39,14 +38,11 @@
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.typesafe:ssl-config-core_2.11:0.2.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.typesafe.play:twirl-api_2.11:1.1.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.scala-lang.modules:scala-xml_2.11:1.0.1" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.slf4j:jul-to-slf4j:1.7.21" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.slf4j:jcl-over-slf4j:1.7.21" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.typesafe.akka:akka-actor_2.11:2.4.10" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.typesafe.akka:akka-slf4j_2.11:2.4.10" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.7.6" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.scala-stm:scala-stm_2.11:0.7" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.joda:joda-convert:1.8.1" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.commons:commons-lang3:3.4" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: javax.transaction:jta:1.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.google.inject:guice:4.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: javax.inject:javax.inject:1" level="project" />
@@ -67,6 +63,7 @@
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.reflections:reflections:0.9.10" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.javassist:javassist:3.19.0-GA" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: net.jodah:typetools:0.4.4" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.guava:guava:19.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.google.code.findbugs:jsr305:3.0.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.tomcat:tomcat-servlet-api:8.0.33" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.typesafe.play:play-netty-server_2.11:2.5.9" level="project" />
@@ -79,11 +76,9 @@
     <orderEntry type="library" scope="RUNTIME" name="Maven: io.netty:netty-buffer:4.0.41.Final" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: io.netty:netty-transport:4.0.41.Final" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.typesafe.play:play-logback_2.11:2.5.9" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: ch.qos.logback:logback-classic:1.1.7" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: ch.qos.logback:logback-core:1.1.7" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.logging.log4j:log4j-web:2.6.2" level="project" />
     <orderEntry type="module" module-name="datashare-cli" scope="RUNTIME" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: net.sf.jopt-simple:jopt-simple:5.0.3" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: net.sf.jopt-simple:jopt-simple:5.0.3" level="project" />
     <orderEntry type="module" module-name="datashare-extract-tika" scope="RUNTIME" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.tika:tika-parsers:1.14" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.tika:tika-core:1.14" level="project" />
@@ -103,8 +98,6 @@
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.pdfbox:pdfbox-tools:2.0.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.pdfbox:pdfbox-debugger:2.0.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.pdfbox:jempbox:1.8.12" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.bouncycastle:bcmail-jdk15on:1.54" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.bouncycastle:bcpkix-jdk15on:1.54" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.poi:poi:3.15" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.commons:commons-collections4:4.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.poi:poi-scratchpad:3.15" level="project" />
@@ -149,9 +142,9 @@
     <orderEntry type="library" scope="RUNTIME" name="Maven: edu.ucar:netcdf4:4.5.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: net.jcip:jcip-annotations:1.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: edu.ucar:grib:4.5.5" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: com.google.protobuf:protobuf-java:2.5.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.jdom:jdom2:2.0.4" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.jsoup:jsoup:1.7.2" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.ucar:jj2000:5.2" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.ucar:jj2000:5.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.itadaki:bzip2:0.9.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: edu.ucar:cdm:4.5.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: edu.ucar:udunits:4.5.5" level="project" />
@@ -174,19 +167,44 @@
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.optimaize.languagedetector:language-detector:0.6" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: net.arnx:jsonic:1.2.11" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.intellij:annotations:12.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: net.sourceforge.tess4j:tess4j:3.3.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.ghost4j:ghost4j:1.0.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: log4j:log4j:1.2.17" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: commons-beanutils:commons-beanutils:1.9.2" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: commons-collections:commons-collections:3.2.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:xmlgraphics-commons:1.4" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: com.lowagie:itext:2.1.7" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: net.sourceforge.lept4j:lept4j:1.3.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.rococoa:rococoa-core:0.5" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: cglib:cglib:2.2.2" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: asm:asm:3.3.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: com.github.jai-imageio:jai-imageio-core:1.3.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: com.github.jai-imageio:jai-imageio-jpeg2000:1.3.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: com.levigo.jbig2:levigo-jbig2-imageio:1.6.5" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-transcoder:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-anim:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-css:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-ext:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-parser:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-svg-dom:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-awt-util:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-bridge:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-script:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-dom:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-gvt:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-svggen:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-util:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.xmlgraphics:batik-xml:1.8" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: xml-apis:xml-apis-ext:1.3.04" level="project" />
     <orderEntry type="module" module-name="datashare-index-elasticsearch" scope="RUNTIME" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.elasticsearch.client:transport:5.1.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.elasticsearch:elasticsearch:5.1.1" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-core:6.3.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-analyzers-common:6.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-backward-codecs:6.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-grouping:6.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-highlighter:6.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-join:6.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-memory:6.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-misc:6.3.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-queries:6.3.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-queryparser:6.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-sandbox:6.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-spatial:6.3.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-spatial-extras:6.3.0" level="project" />
@@ -214,23 +232,26 @@
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.elasticsearch.plugin:percolator-client:5.1.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: net.java.dev.jna:jna:4.1.0" level="project" />
     <orderEntry type="module" module-name="datashare-nlp-corenlp" scope="RUNTIME" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:3.6.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models:3.6.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: com.io7m.xom:xom:1.2.10" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: xml-apis:xml-apis:1.3.03" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: xerces:xercesImpl:2.8.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: xalan:xalan:2.7.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: joda-time:joda-time:2.9" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: de.jollyday:jollyday:0.4.7" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:3.7.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: com.apple:AppleJavaExtensions:1.4" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: de.jollyday:jollyday:0.4.9" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: javax.xml.bind:jaxb-api:2.2.7" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.commons:commons-lang3:3.3.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-queryparser:4.10.3" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-analyzers-common:4.10.3" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-queries:4.10.3" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.lucene:lucene-core:4.10.3" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: javax.servlet:javax.servlet-api:3.0.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: com.io7m.xom:xom:1.2.10" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: com.googlecode.efficient-java-matrix-library:ejml:0.23" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: javax.json:javax.json-api:1.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.slf4j:slf4j-api:1.7.12" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-spanish:3.6.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-french:3.6.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-german:3.6.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.glassfish:javax.json:1.0.4" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: com.google.protobuf:protobuf-java:2.6.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models:3.7.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-spanish:3.7.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-french:3.7.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-german:3.7.0" level="project" />
     <orderEntry type="module" module-name="datashare-nlp-opennlp" scope="RUNTIME" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.opennlp:opennlp-tools:1.6.0" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.opennlp:opennlp-tools:1.7.2" level="project" />
     <orderEntry type="module" module-name="datashare-nlp-gate" scope="RUNTIME" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: es.upm.oeg:entity-extractor:1.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: es.upm.oeg:entity-extractor-lib:1.1" level="project" />
@@ -240,12 +261,18 @@
     <orderEntry type="library" scope="RUNTIME" name="Maven: eus.ixa:ixa-pipe-tok:1.8.5" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: eus.ixa:ixa-pipe-pos:1.5.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: eus.ixa:ixa-pipe-nerc:1.6.1" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: com.github.ixa-ehu:kaflib-naf:1.1.15" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.jdom:jdom2:2.0.4" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.carrot2:morfologik-stemming:1.6.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: org.carrot2:morfologik-fsa:1.6.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: com.google.guava:guava:19.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: joda-time:joda-time:2.9.5" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: xalan:xalan:2.7.2" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: xalan:serializer:2.7.2" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: xerces:xercesImpl:2.11.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: xml-apis:xml-apis:1.4.01" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: ch.qos.logback:logback-core:1.1.7" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: ch.qos.logback:logback-classic:1.1.7" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.logging.log4j:log4j-api:2.6.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.logging.log4j:log4j-core:2.6.2" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.slf4j:slf4j-api:1.7.22" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.slf4j:jul-to-slf4j:1.7.22" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.slf4j:jcl-over-slf4j:1.7.22" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.slf4j:log4j-over-slf4j:1.7.22" level="project" />
   </component>
 </module>

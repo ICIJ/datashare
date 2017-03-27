@@ -1,6 +1,5 @@
 package org.icij.datashare.text.indexing.command;
 
-import org.icij.datashare.text.indexing.IndexObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
 
 import java.util.Map;

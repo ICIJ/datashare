@@ -8,12 +8,14 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.nlp.NlpStage;
 import static org.icij.datashare.text.Language.*;
+import org.icij.datashare.text.nlp.NlpStage;
 import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
 /**
+ * Ixa-Pipe Tokenization, Part-of-Speech and Named Entity Recognition Models handling singleton
+ *
  * Created by julien on 9/23/16.
  */
 public final class IxaModels {
@@ -21,7 +23,7 @@ public final class IxaModels {
     // Base directory
     private static final Path BASE_DIR = Paths.get(
             System.getProperty("user.dir"), "src", "main", "resources",
-            Paths.get( IxaModels.class.getPackage().getName().replace(".", "/")).toString()
+            Paths.get( IxaModels.class.getPackage().getName().replace(".", "/") ).toString()
     );
 
     // Sub-directory <stage/language>
@@ -66,5 +68,13 @@ public final class IxaModels {
                 put(LEMMA, PATH.get(LEMMA).keySet());
                 put(NER,   PATH.get(NER).keySet());
             }};
+
+    // Part-of-speech refence tag set
+    public static final Map<Language, String> POS_TAGSET = new HashMap<Language, String>() {{
+        put(ENGLISH, "PENN TREEBANK");
+        put(SPANISH, "ANCORA");
+        put(FRENCH,  "CC");
+        put(GERMAN,  "STTS");
+    }};
 
 }

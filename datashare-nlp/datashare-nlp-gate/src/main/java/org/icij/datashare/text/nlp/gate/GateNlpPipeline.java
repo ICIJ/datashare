@@ -80,22 +80,15 @@ public final class GateNlpPipeline extends AbstractNlpPipeline {
     }
 
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Map<Language, Set<NlpStage>> supportedStages() {
         return SUPPORTED_STAGES;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected boolean initialize(Language language) {
-        if ( ! super.initialize(language)) {
+        if ( ! super.initialize(language))
             return false;
-        }
         // Already loaded?
         if (pipeline != null) {
             return true;
@@ -105,19 +98,15 @@ public final class GateNlpPipeline extends AbstractNlpPipeline {
             pipeline = GATENLPFactory.create(RESOURCES_DIR.toFile());
 
         } catch (GateException | IOException e) {
-            LOGGER.error("Failed to build GateNLP Application", e);
+            LOGGER.error(getClass().getName() + " - FAILED BUILDING GateNLP Application", e);
             return false;
         }
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected Optional<Annotation> process(String input, String hash, Language language) {
         Annotation annotation = new Annotation(hash, getType(), language);
-
         try {
             // Gate annotated document
             String gateDocName = String.join(".", asList(Document.HASHER.hash(input), "txt"));
@@ -125,7 +114,7 @@ public final class GateNlpPipeline extends AbstractNlpPipeline {
 
             // Tokenize input
             // NER input
-            LOGGER.info("Tokenizing, Name-finding - " + Thread.currentThread().getName());
+            LOGGER.info(getClass().getName() + " - TOKENIZING ~ NAME-FINDING");
             pipeline.annotate(gateDoc);
             gateDoc.storeAnnotationSet();
             gateDoc.cleanDocument();
@@ -187,7 +176,7 @@ public final class GateNlpPipeline extends AbstractNlpPipeline {
     }
 
     @Override
-    public Optional<String> getPosTagSet() {
+    public Optional<String> getPosTagSet(Language language) {
         return Optional.empty();
     }
 

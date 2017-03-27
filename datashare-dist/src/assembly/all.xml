@@ -31,7 +31,7 @@
             <unpack>true</unpack>
         </dependencySet>
 
-        <!-- Dependencies web dist -->
+        <!-- Dependencies dist - Play! -->
         <dependencySet>
             <includes>
                 <include>org.icij.datashare:datashare-web-play:zip:dist</include>

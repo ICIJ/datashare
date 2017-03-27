@@ -3,19 +3,20 @@ package services;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
-
 import javax.inject.*;
 
-import org.icij.datashare.DataShare;
 import play.Logger;
 import play.inject.ApplicationLifecycle;
 import play.Configuration;
 
+import org.icij.datashare.DataShare;
 import org.icij.datashare.text.indexing.Indexer;
-import static org.icij.datashare.util.function.ThrowingFunctions.*;
+import static org.icij.datashare.function.ThrowingFunctions.*;
 
 
 /**
+ * DataShare Indexer Singleton
+ *
  * Created by julien on 12/13/16.
  */
 @Singleton
@@ -41,18 +42,15 @@ public class DataShareIndexer {
                 .apply(removeSpaces.andThen(splitComma).apply(hosts))
                 .apply(removeSpaces.andThen(splitComma).andThen(parseInts).apply(ports));
 
-        Logger.info("Opening DataShare " + indexerType + "Indexer\n" + indexerProperties);
-        Optional<Indexer> indexerOpt = Indexer.create(
-                indexerType,
-                indexerProperties);
-        if (! indexerOpt.isPresent()) {
+        Logger.info("Opening " + indexerType + " Indexer\n" + indexerProperties);
+        Optional<Indexer> indexerOpt = Indexer.create(indexerType, indexerProperties);
+        if ( ! indexerOpt.isPresent())
             throw new RuntimeException("Failed to create " + Indexer.Type.parse(type) + " indexer");
-        }
 
         indexer = indexerOpt.get();
 
         this.appLifecycle.addStopHook( () -> {
-            Logger.info("Closing DataShare Indexer");
+            Logger.info("Closing " + indexerType + " Indexer");
             indexer.close();
             return CompletableFuture.completedFuture(null);
         });

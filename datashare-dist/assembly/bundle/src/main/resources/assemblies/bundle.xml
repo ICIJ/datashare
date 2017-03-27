@@ -15,12 +15,17 @@
             <directory>src/main/resources</directory>
             <outputDirectory>src/main/resources</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
+            <excludes>
+                <exclude>org/icij/datashare/text/extraction/tika/parser/ocr/**</exclude>
+                <exclude>org/icij/datashare/text/nlp/open/models/**</exclude>
+                <exclude>**/*.so</exclude>
+            </excludes>
         </fileSet>
 
-        <!-- dist -->
+        <!-- opt -->
         <fileSet>
-            <directory>dist</directory>
-            <outputDirectory>dist</outputDirectory>
+            <directory>opt</directory>
+            <outputDirectory>opt</outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
 
@@ -32,15 +37,6 @@
                 <include>start*</include>
                 <include>stop*</include>
             </includes>
-        </fileSet>
-
-        <fileSet>
-            <directory>scr</directory>
-            <outputDirectory>scr</outputDirectory>
-            <excludes>
-                <exclude>start*</exclude>
-                <exclude>stop*</exclude>
-            </excludes>
         </fileSet>
 
     </fileSets>

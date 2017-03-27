@@ -7,12 +7,15 @@
     <parent>
         <artifactId>datashare-nlp</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-nlp-corenlp</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <corenlp.version>3.7.0</corenlp.version>
+    </properties>
 
     <dependencies>
 
@@ -27,12 +30,39 @@
             <groupId>edu.stanford.nlp</groupId>
             <artifactId>stanford-corenlp</artifactId>
             <version>${corenlp.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-            </exclusions>
+        </dependency>
+
+        <!-- Stanford CoreNLP English Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${corenlp.version}</version>
+            <classifier>models</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Stanford CoreNLP Spanish Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${corenlp.version}</version>
+            <classifier>models-spanish</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Stanford CoreNLP French Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${corenlp.version}</version>
+            <classifier>models-french</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Stanford CoreNLP German Models -->
+        <dependency>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${corenlp.version}</version>
+            <classifier>models-german</classifier>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Log4j / Slf4j -->
@@ -51,61 +81,18 @@
     <build>
         <plugins>
 
-            <!-- Assembly -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
 
-            <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>edu.stanford.nlp:stanford-corenlp:jar:models:3.6.0</exclude>
-                                    <exclude>edu.stanford.nlp:stanford-corenlp:jar:models-spanish:3.6.0</exclude>
-                                    <exclude>edu.stanford.nlp:stanford-corenlp:jar:models-french:3.6.0</exclude>
-                                    <exclude>edu.stanford.nlp:stanford-corenlp:jar:models-german:3.6.0</exclude>
-                                </excludes>
-                            </artifactSet>
-                        </configuration>
-                    </execution>
-                </executions>
-                <configuration>
-                    <!--<relocations>-->
-                        <!--<relocation>-->
-                            <!--<pattern>org.apache</pattern>-->
-                            <!--<shadedPattern>for.corenlp.org.apache</shadedPattern>-->
-                        <!--</relocation>-->
-                        <!--<relocation>-->
-                            <!--<pattern>org.w3c</pattern>-->
-                            <!--<shadedPattern>for.corenlp.org.w3c</shadedPattern>-->
-                        <!--</relocation>-->
-                        <!--<relocation>-->
-                            <!--<pattern>javax</pattern>-->
-                            <!--<shadedPattern>for.corenlp.javax</shadedPattern>-->
-                        <!--</relocation>-->
-                        <!--<relocation>-->
-                            <!--<pattern>org.xml</pattern>-->
-                            <!--<shadedPattern>for.corenlp.org.xml</shadedPattern>-->
-                        <!--</relocation>-->
-                        <!--<relocation>-->
-                            <!--<pattern>org.joda</pattern>-->
-                            <!--<shadedPattern>for.corenlp.org.joda</shadedPattern>-->
-                        <!--</relocation>-->
-                        <!--<relocation>-->
-                            <!--<pattern>org.slf4j</pattern>-->
-                            <!--<shadedPattern>for.corenlp.org.slf4j</shadedPattern>-->
-                        <!--</relocation>-->
-                    <!--</relocations>-->
-                </configuration>
             </plugin>
+
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+
         </plugins>
 
     </build>

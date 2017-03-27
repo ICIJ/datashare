@@ -11,12 +11,31 @@ import org.apache.logging.log4j.Logger;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 
 import org.icij.datashare.text.Language;
+
+import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.nlp.NlpStage.POS;
 import org.icij.datashare.text.nlp.core.models.CoreNlpModels;
 
 
 /**
  * Stanford CoreNLP Part-of-Speech taggers
+ *
+ * Tagsets
+ *
+ * ENGLISH: PENN TREEBANK
+ * https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
+ * http://www.cs.upc.edu/~nlp/SVMTool/PennTreebank.html
+ *
+ * FRENCH CC:
+ * http://french-postaggers.tiddlyspot.com/
+ *
+ * SPANISH: (reduced) ANCORA
+ * http://nlp.stanford.edu/software/spanish-faq.shtml#tagset
+ * https://web.archive.org/web/20160325024315/http://nlp.lsi.upc.edu/freeling/doc/tagsets/tagset-es.html
+ * http://stackoverflow.com/questions/27047450/meaning-of-stanford-spanish-pos-tagger-tags
+ *
+ * GERMAN: STTS
+ * http://www.ims.uni-stuttgart.de/forschung/ressourcen/lexika/TagSets/stts-table.html
  *
  * Created by julien on 8/31/16.
  */
@@ -25,7 +44,12 @@ public enum CoreNlpPosAnnotator {
 
     private static final Logger LOGGER = LogManager.getLogger(CoreNlpPosAnnotator.class);
 
-    public static final String POS_TAGSET = "Penn Treebank";
+    public static final Map<Language, String> POS_TAGSET = new HashMap<Language, String>() {{
+        put(ENGLISH, "PENN TREEBANK");
+        put(SPANISH, "ANCORA");
+        put(FRENCH,  "CC");
+        put(GERMAN,  "STTS");
+    }};
 
 
     // Annotators (Maximum Entropy Tagger)
@@ -38,8 +62,7 @@ public enum CoreNlpPosAnnotator {
     CoreNlpPosAnnotator() {
         annotator = new HashMap<>();
         annotatorLock = new ConcurrentHashMap<Language, Lock>(){{
-            CoreNlpModels.SUPPORTED_LANGUAGES.get(POS).stream()
-                    .forEach( l -> put(l, new ReentrantLock()) );
+            CoreNlpModels.SUPPORTED_LANGUAGES.get(POS).forEach( lang -> put(lang, new ReentrantLock()) );
         }};
     }
 
@@ -73,12 +96,12 @@ public enum CoreNlpPosAnnotator {
             return true;
         }
         try {
-            LOGGER.info("Loading POS annotator for " + language + " - " + Thread.currentThread().getName());
+            LOGGER.info(getClass().getName() + " Loading POS annotator for " + language);
             String modelPath = CoreNlpModels.PATH.get(POS).get(language).toString();
             annotator.put(language, new MaxentTagger(modelPath));
 
         } catch (Exception e) {
-            LOGGER.error("Failed to load POS annotator", e);
+            LOGGER.error(getClass().getName() + " Failed to load POS annotator", e);
             return false;
         }
         return true;

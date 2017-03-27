@@ -7,12 +7,15 @@
     <parent>
         <artifactId>datashare-nlp</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-nlp-gate</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <gatenlp.version>1.1</gatenlp.version>
+    </properties>
 
     <dependencies>
 
@@ -51,7 +54,7 @@
     <build>
 
         <resources>
-            <!-- Exclude models and configs -->
+            <!-- Exclude models and configs from Jar -->
             <resource>
                 <directory>src/main/resources</directory>
                 <excludes>
@@ -62,18 +65,15 @@
 
         <plugins>
 
-            <!-- Assembly -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
 
-            <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
                         <configuration>
-                            <!-- Package Renaming -->
                             <artifactSet>
                                 <includes>
                                     <include>es.upm.oeg:*</include>
@@ -81,16 +81,188 @@
                             </artifactSet>
                             <relocations>
                                 <relocation>
-                                    <pattern>opennlp</pattern>
-                                    <shadedPattern>for.gate.opennlp</shadedPattern>
+                                    <pattern>org.apache.tika</pattern>
+                                    <shadedPattern>for.gate.org.apache.tika</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.pdfbox</pattern>
+                                    <shadedPattern>for.gate.org.apache.pdfbox</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.poi</pattern>
+                                    <shadedPattern>for.gate.org.apache.poi</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.regexp</pattern>
+                                    <shadedPattern>for.gate.org.apache.regexp</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.commons</pattern>
+                                    <shadedPattern>for.gate.org.apache.commons</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.cxf</pattern>
+                                    <shadedPattern>for.gate.org.apache.cxf</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.fontbox</pattern>
+                                    <shadedPattern>for.gate.org.apache.fontbox</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.jempbox</pattern>
+                                    <shadedPattern>for.gate.org.apache.jempbox</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.james</pattern>
+                                    <shadedPattern>for.gate.org.apache.james</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.sis</pattern>
+                                    <shadedPattern>for.gate.org.apache.sis</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.ws</pattern>
+                                    <shadedPattern>for.gate.org.apache.ws</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.sis</pattern>
+                                    <shadedPattern>for.gate.org.apache.xmlbeans</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.lucene</pattern>
+                                    <shadedPattern>for.gate.org.apache.lucene</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.ccil</pattern>
+                                    <shadedPattern>for.gate.org.ccil</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.cyberneko</pattern>
+                                    <shadedPattern>for.gate.org.cyberneko</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.etsi</pattern>
+                                    <shadedPattern>for.gate.org.etsi</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.gagravarr</pattern>
+                                    <shadedPattern>for.gate.org.gagravarr</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.itadaki</pattern>
+                                    <shadedPattern>for.gate.org.itadaki</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.jsoup</pattern>
+                                    <shadedPattern>for.gate.org.jsoup</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.mozilla</pattern>
+                                    <shadedPattern>for.gate.org.mozilla</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.objectweb</pattern>
+                                    <shadedPattern>for.gate.org.objectweb</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.opengis</pattern>
+                                    <shadedPattern>for.gate.org.opengis</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.openxmlformats</pattern>
+                                    <shadedPattern>for.gate.org.openxmlformats</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.quarz</pattern>
+                                    <shadedPattern>for.gate.org.quartz</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.terracotta</pattern>
+                                    <shadedPattern>for.gate.org.terracotta</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.tukaani</pattern>
+                                    <shadedPattern>for.gate.org.tukaani</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.springframework</pattern>
                                     <shadedPattern>for.gate.org.springframework</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.apache.lucene</pattern>
-                                    <shadedPattern>for.gate.org.apache.lucene</shadedPattern>
+                                    <pattern>com.adobe</pattern>
+                                    <shadedPattern>for.gate.com.adobe</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.beust</pattern>
+                                    <shadedPattern>for.gate.com.beust</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.coremedia</pattern>
+                                    <shadedPattern>for.gate.com.coremedia</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.ctc</pattern>
+                                    <shadedPattern>for.gate.com.ctc</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.drew</pattern>
+                                    <shadedPattern>for.gate.com.drew</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.jmatio</pattern>
+                                    <shadedPattern>for.gate.com.jmatio</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.mchange</pattern>
+                                    <shadedPattern>for.gate.com.mchange</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.microsoft</pattern>
+                                    <shadedPattern>for.gate.com.microsoft</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.pff</pattern>
+                                    <shadedPattern>for.gate.com.pff</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.rometools</pattern>
+                                    <shadedPattern>for.gate.com.rometools</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.sun</pattern>
+                                    <shadedPattern>for.gate.com.sun</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.uwyn</pattern>
+                                    <shadedPattern>for.gate.com.uwyn</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>opennlp</pattern>
+                                    <shadedPattern>for.gate.opennlp</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>net</pattern>
+                                    <shadedPattern>for.gate.net</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>de</pattern>
+                                    <shadedPattern>for.gate.de</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>schemas</pattern>
+                                    <shadedPattern>for.gate.schemas</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>thredds</pattern>
+                                    <shadedPattern>for.gate.thredds</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>ucar</pattern>
+                                    <shadedPattern>for.gate.ucar</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>uk</pattern>
+                                    <shadedPattern>for.gate.uk</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
@@ -102,10 +274,9 @@
             <plugin>
                 <artifactId>maven-install-plugin</artifactId>
                 <executions>
-                    <!-- entity-extractor -->
                     <execution>
-                        <phase>validate</phase>
                         <id>install-entity-extractor</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>
@@ -118,10 +289,9 @@
                             <generatePom>true</generatePom>
                         </configuration>
                     </execution>
-                    <!-- entity-extractor-lib -->
                     <execution>
-                        <phase>validate</phase>
                         <id>install-entity-extractor-lib</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>
@@ -135,6 +305,10 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
 
         </plugins>

@@ -7,12 +7,20 @@
     <parent>
         <artifactId>datashare-nlp</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>0.5</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>datashare-nlp-ixapipe</artifactId>
     <packaging>jar</packaging>
 
+
+    <properties>
+        <ixa-pipe-tok.version>1.8.5</ixa-pipe-tok.version>
+        <ixa-pipe-pos.version>1.5.1</ixa-pipe-pos.version>
+        <ixa-pipe-nerc.version>1.6.1</ixa-pipe-nerc.version>
+        <ixa-kaflib-naf.version>1.1.15</ixa-kaflib-naf.version>
+        <morfologik.version>1.6.0</morfologik.version>
+    </properties>
 
     <dependencies>
 
@@ -43,27 +51,6 @@
             <version>${ixa-pipe-nerc.version}</version>
         </dependency>
 
-        <!-- Kaflib-naf -->
-        <dependency>
-            <groupId>com.github.ixa-ehu</groupId>
-            <artifactId>kaflib-naf</artifactId>
-            <version>${ixa-kaflib-naf.version}</version>
-        </dependency>
-
-        <!-- Carrot2 Morphologik stemmer -->
-        <dependency>
-            <groupId>org.carrot2</groupId>
-            <artifactId>morfologik-stemming</artifactId>
-            <version>1.6.0</version>
-        </dependency>
-
-        <!-- Google Guava -->
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>19.0</version>
-        </dependency>
-
         <!-- Log4j / Slf4j -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -81,7 +68,7 @@
 
         <resources>
             <resource>
-                <!-- Exclude models -->
+                <!-- Exclude models from jar -->
                 <directory>src/main/resources</directory>
                 <excludes>
                     <exclude>**/*.bin</exclude>
@@ -91,12 +78,10 @@
 
         <plugins>
 
-            <!-- Assembly -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
 
-            <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
                 <configuration>
@@ -106,21 +91,9 @@
                             <resource>.bin</resource>
                         </transformer>
                     </transformers>
-                    <!-- Package Renaming -->
-                    <!--<relocations>-->
-                        <!--<relocation>-->
-                            <!--<pattern>com.google</pattern>-->
-                            <!--<shadedPattern>for.ixapipe.com.google</shadedPattern>-->
-                        <!--</relocation>-->
-                        <!--<relocation>-->
-                            <!--<pattern>org.jdom2</pattern>-->
-                            <!--<shadedPattern>for.ixapipe.org.jdom2</shadedPattern>-->
-                        <!--</relocation>-->
-                    <!--</relocations>-->
                 </configuration>
             </plugin>
 
-            <!-- Install -->
             <plugin>
                 <artifactId>maven-install-plugin</artifactId>
                 <executions>
@@ -173,6 +146,10 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
 
         </plugins>

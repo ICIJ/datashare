@@ -7,11 +7,12 @@ import java.util.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.icij.datashare.text.hashing.Hasher;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import static org.icij.datashare.util.function.ThrowingFunctions.*;
+import org.icij.datashare.text.hashing.Hasher;
+import static org.icij.datashare.text.Language.UNKNOWN;
+import static org.icij.datashare.function.ThrowingFunctions.*;
 
 
 /**
@@ -50,7 +51,6 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
 
 
     protected AbstractNlpPipeline(Properties properties) {
-
         targetEntities = getProperty(Property.ENCODING.getName(), properties,
                 removeSpaces
                         .andThen(splitComma)
@@ -77,7 +77,6 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
                             put(stage, new ArrayList<>())
                     );
         }};
-
     }
 
     @Override
@@ -102,10 +101,9 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
     @Override
     public Optional<Annotation> run(Path path) {
         Optional<Document> document = Document.create(path);
-        if (document.isPresent() ) {
-            return run(document.get());
-        }
-        return Optional.empty();
+        if ( ! document.isPresent() )
+            return Optional.empty();
+        return run(document.get());
     }
 
     /**
@@ -114,10 +112,9 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
     @Override
     public Optional<Annotation>  run(Path path, Language language) {
         Optional<Document> document = Document.create(path);
-        if (document.isPresent() ) {
-            return run(document.get(), language);
-        }
-        return Optional.empty();
+        if ( ! document.isPresent())
+            return Optional.empty();
+        return run(document.get(), language);
     }
 
     /**
@@ -126,10 +123,11 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
     @Override
     public Optional<Annotation>  run(Document document) {
         Optional<Language> language = document.getLanguage();
-        if (language.isPresent()) {
-            return run(document.getContent(), language.get());
+        if ( ! language.isPresent() || language.get().equals(UNKNOWN)) {
+            LOGGER.info(getClass().getName() + " - UNKNOWN language; ABORTING PROCESSING...");
+            return Optional.empty();
         }
-        return Optional.empty();
+        return run(document.getContent(), language.get());
     }
 
     /**
@@ -145,12 +143,15 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
      */
     @Override
     public Optional<Annotation>  run(String input, Language language) {
+        if (input.isEmpty())
+            return Optional.empty();
+
         Optional<Annotation> annotation = Optional.empty();
         if (initialize(language)) {
             try{
                 annotation = process(input, HASHER.hash(input), language);
             } catch (Exception e) {
-                LOGGER.error("Failed to process", e);
+                LOGGER.error(getClass().getName() + " - FAILED PROCESSING [" + language + "]" + input, e);
             }
         }
         terminate(language);
@@ -167,25 +168,27 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
     protected boolean initialize(Language language) {
         // Pull all dependencies from targeted stages
         stages = stagesDependenciesTC(targetStages);
-
         // Check all dependencies for support in language
         if ( ! checkStages(language)) {
             LOGGER.info(
                     String.join(" - ",
+                            getClass().getName(),
+                            "INITIALIZING",
                             getType().toString(),
                             "Skipping... Stage unsupported for ",
                             language.toString().toUpperCase(Locale.ROOT),
-                            stages.toString(),
-                            Thread.currentThread().getName()));
+                            stages.toString())
+            );
             return false;
         }
-
         LOGGER.info(
                 String.join(" - ",
+                        getClass().getName(),
+                        "INITIALIZING",
                         getType().toString(),
                         language.toString().toUpperCase(Locale.ROOT),
-                        stages.toString(),
-                        Thread.currentThread().getName()));
+                        stages.toString())
+        );
         return true;
     }
 
@@ -198,10 +201,17 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
     protected abstract Optional<Annotation>  process(String input, String hash, Language language);
 
     /**
-     * Post-processing operations.
+     * Post-processing operations
      */
     protected void terminate(Language language) {
-        stages = stagesDependenciesTC(targetStages);
+        LOGGER.info(
+                String.join(" - ",
+                        getClass().getName(),
+                        "ENDING",
+                        getType().toString(),
+                        language.toString().toUpperCase(Locale.ROOT),
+                        stages.toString())
+        );
     }
 
 
@@ -216,9 +226,8 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
     @Override
     public boolean supports(NlpStage stage, Language language) {
         Set<NlpStage> supStagesForLang = supportedStages().get(language);
-        if (supStagesForLang == null || supStagesForLang.isEmpty()) {
+        if (supStagesForLang == null || supStagesForLang.isEmpty())
             return false;
-        }
         return supStagesForLang.contains(stage);
     }
 
@@ -230,9 +239,8 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
      */
     private boolean checkStages(Language language) {
         for (NlpStage stage : getStages()) {
-            if ( ! supports(stage, language)) {
+            if ( ! supports(stage, language))
                 return false;
-            }
         }
         return true;
     }
@@ -267,9 +275,8 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
         visited.add(stage);
         stagesMatrix.get(stage)
                 .forEach( stageDep -> {
-                    if ( ! visited.contains(stageDep)) {
+                    if ( ! visited.contains(stageDep))
                         dfs(stageDep, visited, sorted, stagesMatrix);
-                    }
                 });
         sorted.add(stage);
     }

@@ -9,9 +9,11 @@ import org.apache.logging.log4j.LogManager;
 
 import org.icij.datashare.concurrent.Latch;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 
 /**
- * Inputs are taken from a {@code BlockingQueue<I>}
+ * Inputs come from {@code BlockingQueue<I>}
  *
  * Created by julien on 10/17/16.
  */
@@ -21,18 +23,20 @@ public interface InputQueue<I> {
 
     List<Latch> noMoreInput();
 
-    default Optional<I> take() {
-        LogManager.getLogger(getClass()).debug(getClass().getName() +
-                " - " + "Polling queue "+ input() + ", [" + input().size() + "] remaining");
+    default Optional<I> poll(int timeout, TimeUnit unit) {
+        LogManager.getLogger(getClass()).debug(getClass().getName() + " - POLLING " + input() + ", [" + input().size() + "]");
         try {
-            I inputElement = input().poll(30, TimeUnit.SECONDS);
+            I inputElement = input().poll(timeout, unit);
             return Optional.ofNullable( inputElement );
-
         } catch (InterruptedException e) {
-            LogManager.getLogger(InputQueue.class).info("Queue polling interrupted", e);
+            LogManager.getLogger(getClass()).info("Queue polling interrupted", e);
             Thread.currentThread().interrupt();
             return Optional.empty();
         }
+    }
+
+    default Optional<I> poll() {
+        return poll(120, SECONDS);
     }
 
 }

@@ -1,11 +1,10 @@
 package org.icij.datashare.concurrent.task;
 
-
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-import org.icij.datashare.util.reflect.EnumTypeToken;
+import org.icij.datashare.reflect.EnumTypeToken;
 
 
 /**
@@ -20,7 +19,6 @@ public interface Task extends Callable<Task.Result> {
     enum Result {
         SUCCESS,
         FAILURE;
-
     }
 
     void setFuture(Future future);
