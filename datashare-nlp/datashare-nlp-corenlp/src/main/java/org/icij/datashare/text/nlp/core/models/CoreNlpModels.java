@@ -44,7 +44,7 @@ public final class CoreNlpModels {
                     put(ENGLISH, DIRECTORY.get(NER).resolve("english.all.3class.distsim.crf.ser.gz"));
                     put(SPANISH, DIRECTORY.get(NER).resolve("spanish.ancora.distsim.s512.crf.ser.gz"));
                     put(FRENCH,  DIRECTORY.get(NER).resolve("english.all.3class.distsim.crf.ser.gz"));
-                    put(GERMAN,  DIRECTORY.get(NER).resolve("german.hgc_175m_600.crf.ser.gz"));
+                    put(GERMAN,  DIRECTORY.get(NER).resolve("german.conll.hgc_175m_600.crf.ser.gz" ));
                 }});
             }};
 
