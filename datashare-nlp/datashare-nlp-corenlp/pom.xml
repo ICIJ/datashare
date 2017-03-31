@@ -87,6 +87,19 @@
 
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <configuration>
+                            <relocations>
+                                <!-- Isolate lucene from elasticsearch -->
+                                <relocation>
+                                    <pattern>org.apache.lucene</pattern>
+                                    <shadedPattern>for.corenlp.org.apache.lucene</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
