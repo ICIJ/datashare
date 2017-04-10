@@ -37,14 +37,15 @@
         <module>datashare-nlp</module>
         <module>datashare-cli</module>
         <module>datashare-web</module>
+
         <module>datashare-dist</module>
         <module>datashare-dist/assembly</module>
     </modules>
 
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.jdk.source>1.8</project.build.jdk.source>
         <project.build.jdk.target>1.8</project.build.jdk.target>
 
