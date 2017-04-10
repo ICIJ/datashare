@@ -1,0 +1,29 @@
+[2017-04-04T15:45:23,215][INFO ][o.e.n.Node               ] [] initializing ...
+[2017-04-04T15:45:23,290][INFO ][o.e.e.NodeEnvironment    ] [Wx_GQwx] using [1] data paths, mounts [[/home (/dev/sda8)]], net usable_space [80.1gb], net total_space [412.3gb], spins? [no], types [ext4]
+[2017-04-04T15:45:23,290][INFO ][o.e.e.NodeEnvironment    ] [Wx_GQwx] heap size [1.9gb], compressed ordinary object pointers [true]
+[2017-04-04T15:45:23,293][INFO ][o.e.n.Node               ] node name [Wx_GQwx] derived from node ID [Wx_GQwxFSqCDEDbtoCKWxw]; set [node.name] to override
+[2017-04-04T15:45:23,296][INFO ][o.e.n.Node               ] version[5.2.2], pid[30122], build[f9d9b74/2017-02-24T17:26:45.835Z], OS[Linux/4.3.0-1-amd64/amd64], JVM[Oracle Corporation/Java HotSpot(TM) 64-Bit Server VM/1.8.0_74/25.74-b02]
+[2017-04-04T15:45:24,070][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [aggs-matrix-stats]
+[2017-04-04T15:45:24,070][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [ingest-common]
+[2017-04-04T15:45:24,071][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [lang-expression]
+[2017-04-04T15:45:24,071][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [lang-groovy]
+[2017-04-04T15:45:24,071][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [lang-mustache]
+[2017-04-04T15:45:24,071][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [lang-painless]
+[2017-04-04T15:45:24,071][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [percolator]
+[2017-04-04T15:45:24,071][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [reindex]
+[2017-04-04T15:45:24,072][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [transport-netty3]
+[2017-04-04T15:45:24,072][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] loaded module [transport-netty4]
+[2017-04-04T15:45:24,072][INFO ][o.e.p.PluginsService     ] [Wx_GQwx] no plugins loaded
+[2017-04-04T15:45:25,870][INFO ][o.e.n.Node               ] initialized
+[2017-04-04T15:45:25,871][INFO ][o.e.n.Node               ] [Wx_GQwx] starting ...
+[2017-04-04T15:45:26,062][INFO ][o.e.t.TransportService   ] [Wx_GQwx] publish_address {127.0.0.1:9300}, bound_addresses {[::1]:9300}, {127.0.0.1:9300}
+[2017-04-04T15:45:29,111][INFO ][o.e.c.s.ClusterService   ] [Wx_GQwx] new_master {Wx_GQwx}{Wx_GQwxFSqCDEDbtoCKWxw}{H5_K9BySRJe7OMokTujYYw}{127.0.0.1}{127.0.0.1:9300}, reason: zen-disco-elected-as-master ([0] nodes joined)
+[2017-04-04T15:45:29,137][INFO ][o.e.h.HttpServer         ] [Wx_GQwx] publish_address {127.0.0.1:9200}, bound_addresses {[::1]:9200}, {127.0.0.1:9200}
+[2017-04-04T15:45:29,137][INFO ][o.e.n.Node               ] [Wx_GQwx] started
+[2017-04-04T15:45:29,155][INFO ][o.e.g.GatewayService     ] [Wx_GQwx] recovered [0] indices into cluster_state
+[2017-04-04T15:45:38,961][INFO ][o.e.c.m.MetaDataCreateIndexService] [Wx_GQwx] [datashare-local] creating index, cause [api], templates [datashare_local_settings, datashare_mappings], shards [1]/[0], mappings [SourcePath, NamedEntity, Document]
+[2017-04-04T15:45:39,127][INFO ][o.e.c.r.a.AllocationService] [Wx_GQwx] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[datashare-local][0]] ...]).
+[2017-04-04T15:45:48,985][INFO ][o.e.n.Node               ] [Wx_GQwx] stopping ...
+[2017-04-04T15:45:49,035][INFO ][o.e.n.Node               ] [Wx_GQwx] stopped
+[2017-04-04T15:45:49,035][INFO ][o.e.n.Node               ] [Wx_GQwx] closing ...
+[2017-04-04T15:45:49,041][INFO ][o.e.n.Node               ] [Wx_GQwx] closed

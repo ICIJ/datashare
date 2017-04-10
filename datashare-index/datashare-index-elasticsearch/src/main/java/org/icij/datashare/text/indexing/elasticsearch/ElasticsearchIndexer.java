@@ -79,9 +79,9 @@ import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
  */
 public final class ElasticsearchIndexer extends AbstractIndexer {
     
-    public static final String VERSION = "5.1.1";
+    public static final String VERSION = "5.2.2";
 
-    public static final Path HOME = Paths.get( System.getProperty("user.dir"), "dist", "elasticsearch-" + VERSION);
+    public static final Path HOME = Paths.get( System.getProperty("user.dir"), "opt", "elasticsearch-" + VERSION);
 
     private static final int INDEX_MAX_RESULT_WINDOW = 50000;
 
@@ -650,7 +650,6 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     private SearchRequestBuilder searchRequest(int from, int size) {
         return client.prepareSearch()
                 .addSort("_doc", SortOrder.ASC)
-                .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
                 .setFrom(from)
                 .setSize(size);
     }
