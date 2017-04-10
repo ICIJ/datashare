@@ -9,6 +9,7 @@ import java.util.Set;
 import org.icij.datashare.text.Language;
 
 import static org.icij.datashare.text.Language.ENGLISH;
+import static org.icij.datashare.text.Language.GERMAN;
 import static org.icij.datashare.text.Language.SPANISH;
 import org.icij.datashare.text.nlp.NlpStage;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
@@ -32,6 +33,7 @@ public final class MitieNlpModels {
                 put(NER, new HashMap<Language, Path>() {{
                     put(ENGLISH, BASE_DIR.resolve(Paths.get(ENGLISH.name().toLowerCase(), "ner_model.dat")));
                     put(SPANISH, BASE_DIR.resolve(Paths.get(SPANISH.name().toLowerCase(), "ner_model.dat")));
+                    put(GERMAN,  BASE_DIR.resolve(Paths.get(GERMAN.name().toLowerCase(),  "ner_model.dat")));
                 }});
             }};
 

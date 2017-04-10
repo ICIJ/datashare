@@ -43,9 +43,7 @@ public enum MitieNlpNerAnnotator {
         annotator = new HashMap<>();
         annotatorLock = new ConcurrentHashMap<Language, Lock>(){{
             SUPPORTED_LANGUAGES.get(NER)
-                    .forEach( lang ->
-                            put(lang, new ReentrantLock())
-                    );
+                    .forEach( lang -> put(lang, new ReentrantLock()) );
         }};
         tagSet = new HashMap<>();
     }

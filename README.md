@@ -111,7 +111,7 @@ Web API
 | `NlpPipeline.Type.CORE`    |     X      |      X     |      -    |     X     |
 | `NlpPipeline.Type.OPEN`    |     X      |      X     |      X    |     -     |
 | `NlpPipeline.Type.IXA`     |     X      |      X     |      -    |     X     |
-| `NlpPipeline.Type.MITIE`   |     X      |      X     |      -    |     -     |
+| `NlpPipeline.Type.MITIE`   |     X      |      X     |      -    |     X     |
 
 *Named Entity Categories Support*
 
@@ -147,7 +147,7 @@ Web API
   
  - `org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer`
  
-   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v5.3.0, *Apache Licence v2.0*
+   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v5.2.2, *Apache Licence v2.0*
 
 
 
