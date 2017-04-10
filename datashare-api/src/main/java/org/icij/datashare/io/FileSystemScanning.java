@@ -36,7 +36,7 @@ public class FileSystemScanning extends QueueOutTask<SourcePath> {
     @Override
     public Task.Result call() {
         LOGGER.info(getClass().getName() + " - SCANNING FILES in " + root );
-        for (Path path : FileSystemUtils.listFiles(root).stream().collect(Collectors.toList())) {
+        for (Path path : FileSystemUtils.listFiles(root)) {
             LOGGER.info(getClass().getName() + " - PUTTING " + path + "["+output().size()+"]");
             Optional<SourcePath> sourcePath = SourcePath.create(path);
             if (sourcePath.isPresent())
@@ -44,7 +44,6 @@ public class FileSystemScanning extends QueueOutTask<SourcePath> {
             else {
                 return Result.FAILURE;
             }
-
         }
         noMoreOutput().signal();
         return Task.Result.SUCCESS;

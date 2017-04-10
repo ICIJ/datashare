@@ -71,11 +71,11 @@ public final class DataShare {
     public static final List<DataShare.Stage>      DEFAULT_STAGES             = asList(DataShare.Stage.values());
 
     public static final FileParser.Type            DEFAULT_PARSER_TYPE        = FileParser.DEFAULT_TYPE;
-    public static final int                        DEFAULT_PARSER_PARALLELISM = 2;
-    public static final boolean                    DEFAULT_PARSER_OCR         = false;
+    public static final int                        DEFAULT_PARSER_PARALLELISM = FileParser.DEFAULT_PARALLELISM;
+    public static final boolean                    DEFAULT_PARSER_OCR         = FileParser.DEFAULT_ENABLE_OCR;
 
     public static final List<NlpPipeline.Type>     DEFAULT_NLP_PIPELINES      = asList(NlpPipeline.Type.values());
-    public static final int                        DEFAULT_NLP_PARALLELISM    = 1;
+    public static final int                        DEFAULT_NLP_PARALLELISM    = NlpPipeline.DEFAULT_PARALLELISM;
     public static final List<NlpStage>             DEFAULT_NLP_STAGES         = NlpPipeline.DEFAULT_TARGET_STAGES;
     public static final List<NamedEntity.Category> DEFAULT_NLP_ENTITIES       = NlpPipeline.DEFAULT_ENTITIES;
     public static final boolean                    DEFAULT_NLP_CACHING        = NlpPipeline.DEFAULT_CACHING;
@@ -84,8 +84,7 @@ public final class DataShare {
     public static final Indexer.NodeType           DEFAULT_INDEXER_NODE_TYPE  = Indexer.DEFAULT_NODETYPE;
     public static final List<String>               DEFAULT_INDEXER_NODE_HOSTS = emptyList();
     public static final List<Integer>              DEFAULT_INDEXER_NODE_PORTS = emptyList();
-    public static final List<String>               DATASHARE_INDICES          = asList("datashare-local", "datashare-global");
-    public static final String                     DEFAULT_INDEX              = DATASHARE_INDICES.get(0);
+    public static final String                     DEFAULT_INDEX              = "datashare-local";
 
     private static ReentrantLock datashareLock = new ReentrantLock();
 
@@ -316,7 +315,6 @@ public final class DataShare {
         }
 
         public static boolean processDirectory(Path inputDir,
-                                               int fileParserParallelism,
                                                List<NlpStage> nlpStages,
                                                List<NamedEntity.Category> nlpTargetEntities,
                                                List<NlpPipeline.Type> nlpPipelineTypes,
@@ -326,7 +324,7 @@ public final class DataShare {
             return processDirectory(
                     inputDir,
                     DEFAULT_PARSER_TYPE,
-                    fileParserParallelism,
+                    DEFAULT_PARSER_PARALLELISM,
                     DEFAULT_PARSER_OCR,
                     nlpPipelineTypes,
                     nlpPipelineParallelism,
@@ -339,6 +337,7 @@ public final class DataShare {
         }
 
         public static boolean processDirectory(Path inputDir,
+                                               int fileParserParallelism,
                                                List<NlpStage> nlpStages,
                                                List<NamedEntity.Category> nlpTargetEntities,
                                                List<NlpPipeline.Type> nlpPipelineTypes,
@@ -348,7 +347,7 @@ public final class DataShare {
             return processDirectory(
                     inputDir,
                     DEFAULT_PARSER_TYPE,
-                    DEFAULT_PARSER_PARALLELISM,
+                    fileParserParallelism,
                     DEFAULT_PARSER_OCR,
                     nlpPipelineTypes,
                     nlpPipelineParallelism,
@@ -424,6 +423,78 @@ public final class DataShare {
          *  - Index each {@link Document} to {@code index} using {@code indexerType} {@link Indexer}
          *
          * @param inputDir                 the directory {@link Path} from which source files are scanned
+         * @param indexer                  the {@link Indexer} instance
+         * @param index                    the index name
+         * @return true if processings terminated successfully; false otherwise
+         */
+        public static boolean scanDirectory(Path inputDir,
+                                            Indexer indexer,
+                                            String index) {
+            try {
+                if (datashareLock.tryLock(1, TimeUnit.SECONDS)) {
+                    LOGGER.info("Running as " + Stage.SCANNING + " Node");
+                    LOGGER.info(DataGrid.INSTANCE.getCluster().getLocalMember());
+                    LOGGER.info("Input Directory:      " + inputDir);
+
+                    awaitIndexIsUp(indexer, index);
+
+                    // This is a PARSING node
+                    DataGrid.INSTANCE.setLocalMemberRole(Stage.SCANNING);
+
+                    // Scanning
+                    FileSystemScanning fileSystemScanning = FileSystemScanning.create(inputDir);
+                    // Forwarding (SourcePath)
+                    QueueForwarding<SourcePath> sourcePathForwarding = QueueForwarding.create(fileSystemScanning);
+
+                    // Indexing (SourcePath)
+                    Indexing<SourcePath> sourcePathIndexing = Indexing.create(indexer, index, sourcePathForwarding);
+
+                    // Distributed Document Queue
+                    BlockingQueue<Document> sourcePathQueueGlobal = DataGrid.INSTANCE.getBlockingQueue("SourcePath");
+                    // Forward SourcePath Latch Globally
+                    ICountDownLatch noMoreSourcePathGlobal = DataGrid.INSTANCE.getCountDownLatch("SourcePath");
+                    noMoreSourcePathGlobal.trySetCount(1);
+                    LatchForwarding sourcePathLatchPushing = new LatchForwarding(sourcePathForwarding, noMoreSourcePathGlobal);
+
+                    // Await a PROCESSING node to join the cluster
+                    DataGrid.INSTANCE.awaitMemberJoins(Stage.PARSING);
+
+                    List<Task> tasks = new ArrayList<>(asList(
+                            fileSystemScanning,
+                            sourcePathIndexing,
+                            sourcePathLatchPushing
+                    ));
+
+                    // Execute!
+                    executeAsync(tasks);
+
+                    DataGrid.INSTANCE.shutdown();
+
+                    return true;
+                } else {
+                    LOGGER.error("Already processing");
+                    return false;
+                }
+            } catch (InterruptedException e) {
+                LOGGER.error("Processing lock interrupted", e);
+                Thread.currentThread().interrupt();
+                return false;
+            } finally {
+                datashareLock.unlock();
+            }
+        }
+
+        /**
+         * Extract {@link Document}s from files in {@code inputDir},
+         * Put {@link Document}s on networked and shared {@link BlockingQueue}
+         * Store {@link Document}s into {@code index}
+         *
+         * {@link Task}s coordination with local or distributed shared in-memory {@link BlockingQueue}s,
+         *  - Scan files from {@code inputDir}
+         *  - Parse each file {@link Path} into a {@link Document}, poll from path queue and feed document queue
+         *  - Index each {@link Document} to {@code index} using {@code indexerType} {@link Indexer}
+         *
+         * @param inputDir                 the directory {@link Path} from which source files are scanned
          * @param fileParserType           the {@link FileParser.Type} to instantiate
          * @param fileParserDoOcr                the flag for activating OCR at file parsing time
          * @param indexer                  the {@link Indexer} instance
@@ -447,7 +518,7 @@ public final class DataShare {
                     awaitIndexIsUp(indexer, index);
 
                     // This is a PARSING node
-                    DataGrid.INSTANCE.setLocalMemberRole(DataShare.Stage.PARSING);
+                    DataGrid.INSTANCE.setLocalMemberRole(Stage.PARSING);
 
                     // Scanning
                     FileSystemScanning fileSystemScanning = FileSystemScanning.create(inputDir);
@@ -476,7 +547,7 @@ public final class DataShare {
                     LatchForwarding documentLatchPushing = new LatchForwarding(documentQueueForwarding, noMoreDocumentGlobal);
 
                     // Await a PROCESSING node to join the cluster
-                    DataGrid.INSTANCE.awaitMemberJoins(DataShare.Stage.NLP);
+                    DataGrid.INSTANCE.awaitMemberJoins(Stage.NLP);
 
                     List<Task> tasks = new ArrayList<>(asList(
                             fileSystemScanning,

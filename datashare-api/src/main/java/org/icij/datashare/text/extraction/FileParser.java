@@ -65,6 +65,10 @@ public interface FileParser extends Serializable {
 
     Type DEFAULT_TYPE = TIKA;
 
+    int DEFAULT_PARALLELISM = 1;
+
+    boolean DEFAULT_ENABLE_OCR = false;
+
 
     /**
      * Instantiate a concrete {@code FileParser} reflectively with a {@link Type} enum value
@@ -93,7 +97,7 @@ public interface FileParser extends Serializable {
         } catch (ClassNotFoundException e) {
             logger.error(type + " " + interfaceName + " not found. Consider installing it.", e);
             return Optional.empty();
-        } catch( InvocationTargetException e) {
+        } catch (InvocationTargetException e) {
             logger.error("Failed to instantiate " + type  + " " + interfaceName, e.getCause());
             return Optional.empty();
         } catch (InstantiationException | IllegalAccessException  | NoSuchMethodException e) {

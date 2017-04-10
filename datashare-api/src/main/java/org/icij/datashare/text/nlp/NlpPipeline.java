@@ -92,6 +92,8 @@ public interface NlpPipeline {
 
     Type DEFAULT_TYPE = Type.GATE;
 
+    int DEFAULT_PARALLELISM = 1;
+
     List<NlpStage> DEFAULT_TARGET_STAGES = singletonList(NER);
 
     List<NamedEntity.Category> DEFAULT_ENTITIES = asList(PERSON, ORGANIZATION, LOCATION);
