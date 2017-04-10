@@ -147,7 +147,7 @@ Web API
   
  - `org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer`
  
-   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v5.1.1, *Apache Licence v2.0*
+   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v5.3.0, *Apache Licence v2.0*
 
 
 
@@ -194,48 +194,67 @@ Build process yields the following structure
 
 *Requirements*:
 
- - Version `JRE8+`,
- - File encoding `UTF-8`,
+ - Version `JRE8+`
  - Memory `8+GB`
 
 #### Command-Line Interface
 
 **`./start-cli`**
 
-`--stages`, `s`:
+`--stages`, `-s`:
 Processing stages to be run. 
-Defaults to all: {`SCANNING`, `PARSING`, `NLP`}
+Defaults to all: {`SCANNING`, `PARSING`, `NLP`}.
 
-`--node`, `n`:
+`--node`, `-n`:
 Run as a cluster node.
 
-`--input-dir`, `-i`:
+SCANNING
+
+`--scanning-input-dir`, `-i`:
 Path towards source directory containing documents to be processed.
-*Required if not a node or if --scanning-node*
 
-`--nlp-pipelines`, `-p`:
-NLP pipelines to be run; in {`GATE`,`CORE`,`OPEN`,`MITIE`,`IXA`}.
-Defaults to `GATE`
+PARSING
 
-`--nlp-parallelism`, `-t`:
-Number of threads per NLP pipeline.
-Defaults to `1`
-
-`--nlp-stages`, `-s`:
-NLP stages to be run by pipelines; in {`POS`,`NER`}.
-Defaults to `NER`
-
-`--entities`, `-e`:
-Named entity categories to be extracted.
-Defaults to  all: {`ORGANIZATION`,`PERSON`,`LOCATION`}
-
-`--no-caching`:
-Disable caching of pipeline's models and annotators.
-Default is `--caching`
-
-`--ocr`:
+`--parsing-ocr`, `-ocr`:
 Enable OCR when parsing source documents.
-Defaults to `--no-ocr`
+
+`--parsing-parallelism`, `-prst`:
+Number of file parser threads.
+Defaults to `1`.
+
+NLP
+
+`--nlp-pipelines`, `-nlpp`:
+NLP pipelines to be run; in {`GATE`,`CORE`,`OPEN`,`MITIE`,`IXA`}.
+Defaults to `GATE`.
+
+`--nlp-parallelism`, `-nlpt`:
+Number of threads per NLP pipeline.
+Defaults to `1`.
+
+`--nlp-stages`, `-nlps`:
+NLP stages to be run by pipelines; in {`POS`,`NER`}.
+Defaults to `NER`.
+
+`--nlp-ner-categories`, `-nlpnerc`:
+Named entity categories to be extracted.
+Defaults to  all: {`ORGANIZATION`,`PERSON`,`LOCATION`}.
+
+`--nlp-no-caching`, `-nlpnocach`:
+Disable caching of pipeline's models and annotators.
+
+INDEXING
+
+`--indexing-node-type`, `-idxtype`:
+Index node type ; in {`LOCAL`,`REMOTE`}.
+Defaults to `LOCAL`.
+
+`--indexing-hostnames`, `-idxhosts`:
+Remote indexing nodes hostnames to connect to.
+
+`--indexing-hostports`, `-idxports`:
+Remote indexing nodes ports to connect on.
+
 
 *Command examples:*
 
@@ -243,13 +262,13 @@ Stand-alone
 
  - `./start-cli-with-idx --input-dir path/to/source/docs/`
 
- - `./start-cli-with-idx --input-dir path/to/source/docs/ -p OPEN,CORE -s POS,NER -e PERS,ORG --ocr` 
+ - `./start-cli-with-idx --scanning-input-dir path/to/source/docs/ --ocr --nlp-pipelines OPEN,CORE --nlp-stages NER -cat PERS,ORG` 
 
 Node 
 
  - `./start-cli --node --stages SCANNING,PARSING --input-dir path/to/source/docs/ --ocr --index-hostnames http://192.168.0.1 --index-hostports 9300` 
  
- - `./start-cli --node --stages NLP -pipelines OPEN,CORE --nlp-stages NER -e PERS,ORG --ocr  --index-hostnames http://192.168.0.1 --index-hostports 9300` 
+ - `./start-cli --node --stages NLP -pipelines OPEN,CORE --nlp-stages NER -cat PERS,ORG --ocr  --index-hostnames http://192.168.0.1 --index-hostports 9300` 
 
 
 #### Web Server
