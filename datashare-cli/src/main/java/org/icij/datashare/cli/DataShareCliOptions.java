@@ -44,7 +44,7 @@ final class DataShareCliOptions {
 
     static OptionSpec<File> inputDir(OptionParser parser) {
         return parser.acceptsAll(
-                asList( "input-dir", "i"),
+                asList( "scanning-input-dir", "i"),
                 "Source files directory." )
                 .withRequiredArg()
                 .ofType( File.class )
@@ -53,7 +53,7 @@ final class DataShareCliOptions {
 
     static OptionSpec<Integer> fileParserParallelism(OptionParser parser) {
         return parser.acceptsAll(
-                asList("parsing-parallelism", "parsing-t"),
+                asList("parsing-parallelism", "parsingt"),
                 "Number of file parser threads.")
                 .withRequiredArg()
                 .ofType( Integer.class )
@@ -62,14 +62,14 @@ final class DataShareCliOptions {
 
     static OptionSpecBuilder enableOcr(OptionParser parser) {
         return parser.acceptsAll(
-                asList("enable-ocr", "ocr"),
+                asList("parsing-ocr", "ocr"),
                 "Run optical character recognition at file parsing time. " +
                         "(Tesseract must be installed beforehand).");
     }
 
     static OptionSpecBuilder disableOcr(OptionParser parser) {
         return parser.acceptsAll(
-                asList("disable-ocr", "nocr"),
+                asList("parsing-no-ocr", "nocr"),
                 "Prevent optical character recognition from being run at file parsing time. " +
                         "(Tesseract must be installed otherwise).");
     }
@@ -105,7 +105,7 @@ final class DataShareCliOptions {
 
     static OptionSpec<NamedEntity.Category> nlpPipelinesEntities(OptionParser parser) {
         return parser.acceptsAll(
-                asList("entities", "e"),
+                asList("nlp-ner-categories", "nlpnerc"),
                 "Targeted named entity categories.")
                 .withRequiredArg()
                 .ofType( NamedEntity.Category.class )
@@ -115,20 +115,20 @@ final class DataShareCliOptions {
 
     static OptionSpecBuilder nlpPipelinesEnableCaching(OptionParser parser) {
         return parser.acceptsAll(
-                asList("caching", "cach"),
+                asList("nlp-caching", "nlpcach"),
                 "Keep nlpPipelines' models and annotators in memory. The default.");
     }
 
     static OptionSpecBuilder nlpPipelinesDisableCaching(OptionParser parser) {
         return parser.acceptsAll(
-                asList("no-caching", "nocach"),
+                asList("nlp-no-caching", "nlpnocach"),
                 "Don't keep nlpPipelines' models and annotators in memory.");
     }
 
     static OptionSpec<Indexer.NodeType> indexerNodeType(OptionParser parser) {
         return parser.acceptsAll(
-                asList("index-nodetype", "idxtype"),
-                "LOCAL or REMOTE connection to indexing node(s)")
+                asList("indexing-node-type", "idxtype"),
+                "Index node connection type (LOCAL or REMOTE)")
                 .withRequiredArg()
                 .ofType( Indexer.NodeType.class )
                 .defaultsTo(DataShare.DEFAULT_INDEXER_NODE_TYPE);
@@ -136,8 +136,8 @@ final class DataShareCliOptions {
 
     static OptionSpec<String> indexerHostNames(OptionParser parser, OptionSpec idxNodeType) {
         return parser.acceptsAll(
-                asList("index-hostnames", "idxhosts"),
-                "Indexing nodes hostnames to connect to.")
+                asList("indexing-hostnames", "idxhosts"),
+                "Remote indexing nodes hostnames to connect to.")
                 .requiredIf(idxNodeType)
                 .withRequiredArg()
                 .ofType( String.class )
@@ -147,9 +147,9 @@ final class DataShareCliOptions {
 
     static OptionSpec<Integer> indexerHostPorts(OptionParser parser, OptionSpec idxNodeType) {
         return parser.acceptsAll(
-                asList("index-hostports", "idxports"),
+                asList("indexing-hostports", "idxports"),
                 String.join( "\n",
-                        "Indexing nodes ports to connect to (eg 9300).",
+                        "Remote indexing nodes ports to connect to (eg 9300).",
                         "One port per host defined in --index-hostnames."))
                 .requiredIf(idxNodeType)
                 .withRequiredArg()
