@@ -11,17 +11,15 @@ that uncover corruption, transnational crime and abuse of power.
 
 ## Current Features
 
-An Open-ended Multilingual Information Extraction and Search Platform
+An Extensible Multilingual Information Extraction and Search Platform
 
  - Extract Text from Files; 
  - Extract Organizations, Persons and Locations from Text; 
  - Index and Search all
 
-Multithreaded processings 
+Multithreaded and Distributed Processings
 
-Distributed processings
-
-Remote or Embedded Index 
+Local or Remote Indexing
 
 Web API 
 
@@ -105,13 +103,13 @@ Web API
 
 *Named Entity Recognition Language Support*
 
-| *`NlpStage.NER`*           | `ENGLISH`  | `SPANISH`  | `FRENCH`  | `GERMAN`  |
+| *`NlpStage.NER`*           | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  |
 |---------------------------:|:----------:|:----------:|:---------:|:---------:|
 | `NlpPipeline.Type.GATE`    |     X      |      X     |      X    |     X     |
-| `NlpPipeline.Type.CORE`    |     X      |      X     |      -    |     X     |
-| `NlpPipeline.Type.OPEN`    |     X      |      X     |      X    |     -     |
-| `NlpPipeline.Type.IXA`     |     X      |      X     |      -    |     X     |
-| `NlpPipeline.Type.MITIE`   |     X      |      X     |      -    |     X     |
+| `NlpPipeline.Type.CORE`    |     X      |      X     |      X    |     -     |
+| `NlpPipeline.Type.OPEN`    |     X      |      X     |      -    |     X     |
+| `NlpPipeline.Type.IXA`     |     X      |      X     |      X    |     -     |
+| `NlpPipeline.Type.MITIE`   |     X      |      X     |      X    |     -     |
 
 *Named Entity Categories Support*
 
@@ -123,7 +121,7 @@ Web API
 
 *Parts-of-Speech Language Support*
 
-|  *`NlpStage.POS`*          | `ENGLISH`  | `SPANISH`  | `FRENCH`  | `GERMAN`  |
+|  *`NlpStage.POS`*          | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  |
 |---------------------------:|:----------:|:----------:|:---------:|:---------:|
 | `NlpPipeline.Type.GATE`    |     -      |      -     |      -    |     -     |
 | `NlpPipeline.Type.CORE`    |     X      |      X     |     X     |     X     |
