@@ -3,6 +3,8 @@ package org.icij.datashare.concurrent.queue;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import org.apache.logging.log4j.LogManager;
@@ -26,7 +28,7 @@ public interface InputQueues<I> {
             do {
                 element = inputs().stream().map( BlockingQueue::poll ).filter( Objects::nonNull ).findAny();
                 if ( ! element.isPresent())
-                        Thread.sleep(750);
+                        Thread.sleep(100);
             } while ( ! element.isPresent() && (new Date().getTime() - start) < unit.toMillis(timeout));
             return element;
         } catch (InterruptedException e) {

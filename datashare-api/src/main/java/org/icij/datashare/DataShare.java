@@ -224,22 +224,18 @@ public final class DataShare {
                             documentForwarding
                     );
 
-                    // Indexing (NamedEntity)
-                    List<Indexing<NamedEntity>> namedEntityIndexings = namedEntityRecognitions.stream()
-                            .map( ner -> new Indexing<>(indexer, index, ner) )
-                            .collect(Collectors.toList());
-
+                    Indexing<NamedEntity> namedEntityIndexing = Indexing.create(indexer, index, namedEntityRecognitions);
 
                     List<Task> tasks = new ArrayList<>(asList(
                             fileSystemScanning,
                             sourcePathForwarding,
                             sourcePathIndexing,
                             documentForwarding,
-                            documentIndexing
+                            documentIndexing,
+                            namedEntityIndexing
                     ));
                     tasks.addAll(fileParsings);
                     tasks.addAll(namedEntityRecognitions);
-                    tasks.addAll(namedEntityIndexings);
 
                     // Execute!
                     executeAsync(tasks);

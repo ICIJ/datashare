@@ -4,6 +4,7 @@ import java.util.List;
 import static java.util.Collections.singletonList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 import org.icij.datashare.concurrent.Latch;
 import org.icij.datashare.concurrent.queue.OutputQueue;
@@ -11,6 +12,7 @@ import org.icij.datashare.concurrent.queue.QueueForwarding;
 import org.icij.datashare.concurrent.task.QueueInTask;
 import org.icij.datashare.concurrent.task.DatashareTask;
 import org.icij.datashare.Entity;
+import org.icij.datashare.concurrent.task.QueuesInTask;
 
 
 /**
@@ -18,12 +20,22 @@ import org.icij.datashare.Entity;
  *
  * Created by julien on 11/30/16.
  */
-public class Indexing<I extends Entity> extends QueueInTask<I> {
+public class Indexing<I extends Entity> extends QueuesInTask<I> {
 
     public static <E  extends Entity> Indexing<E> create(Indexer indexer, String index, QueueForwarding<E> source) {
         Indexing<E> indexing = new Indexing<>(indexer, index, source.noMoreOutput());
-        source.addOutput(indexing.input());
+        source.addOutput(indexing.inputs());
         return indexing;
+    }
+
+    public static <E  extends Entity, S extends OutputQueue<E>> Indexing<E> create(Indexer indexer, String index, List<S> sources) {
+        List<BlockingQueue<E>> sourcesOutputs = sources.stream()
+                .map( OutputQueue::output )
+                .collect(Collectors.toList());
+        List<Latch> sourcesNoMoreOutput = sources.stream()
+                .map( OutputQueue::noMoreOutput )
+                .collect(Collectors.toList());
+        return new Indexing<>(indexer, index, sourcesOutputs, sourcesNoMoreOutput);
     }
 
 
@@ -31,9 +43,8 @@ public class Indexing<I extends Entity> extends QueueInTask<I> {
 
     private final String index;
 
-
-    public Indexing(Indexer indexer, String index, BlockingQueue<I> input, List<Latch> noMoreInput) {
-        super(input, noMoreInput);
+    public Indexing(Indexer indexer, String index, List<BlockingQueue<I>> inputs, List<Latch> noMoreInput) {
+        super(inputs, noMoreInput);
         if (indexer == null)
             throw new IllegalArgumentException("Indexer is undefined");
         this.indexer = indexer;
@@ -41,7 +52,11 @@ public class Indexing<I extends Entity> extends QueueInTask<I> {
     }
 
     public Indexing(Indexer indexer, String index, BlockingQueue<I> input, Latch noMoreInput) {
-        this(indexer, index, input, singletonList(noMoreInput));
+        this(indexer, index, singletonList(input), singletonList(noMoreInput));
+    }
+
+    public Indexing(Indexer indexer, String index, BlockingQueue<I> input, List<Latch> noMoreInputs) {
+        this(indexer, index, singletonList(input), noMoreInputs);
     }
 
     public Indexing(Indexer indexer, String index, List<Latch> noMoreInput) {
