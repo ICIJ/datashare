@@ -40,7 +40,7 @@ Web API
   
     [Apache Tika](https://tika.apache.org/) v1.15 (Apache Licence v2.0)
   
-    with [Tess4J](http://tess4j.sourceforge.net/) v3.3.0 (Apache Licence v2.0),
+    with [Tess4J](http://tess4j.sourceforge.net/) v3.4.0 (Apache Licence v2.0),
     [Tesseract](https://github.com/tesseract-ocr/tesseract/wiki/4.0-with-LSTM) v4.0 alpha compiled for arch x86-64 
 
 
@@ -68,7 +68,7 @@ Web API
   
   - `org.icij.datashare.text.nlp.core.CoreNlpPipeline` 
   
-    [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP) v3.7.0, 
+    [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP) v3.8.0, 
     (Conditional Random Fields), 
     *Composite GPL v3+* 
 
