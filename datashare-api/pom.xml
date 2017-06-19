@@ -10,12 +10,13 @@
         <version>0.6</version>
     </parent>
 
+
     <artifactId>datashare-api</artifactId>
     <packaging>jar</packaging>
 
 
     <properties>
-        <hazelcast.version>3.7.4</hazelcast.version>
+        <hazelcast.version>3.8.2</hazelcast.version>
     </properties>
 
 
@@ -111,22 +112,6 @@
             <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
-                <!--<configuration>-->
-                    <!--<relocations>-->
-                        <!--<relocation>-->
-                            <!--<pattern>org.bouncycastle</pattern>-->
-                            <!--<shadedPattern>for.datashare-api.org.bouncycastle</shadedPattern>-->
-                        <!--</relocation>-->
-                        <!--<relocation>-->
-                            <!--<pattern>me.xuender</pattern>-->
-                            <!--<shadedPattern>for.datashare-api.me.xuender</shadedPattern>-->
-                        <!--</relocation>-->
-                        <!--<relocation>-->
-                            <!--<pattern>com.fasterxml</pattern>-->
-                            <!--<shadedPattern>for.datashare-api.com.fasterxml</shadedPattern>-->
-                        <!--</relocation>-->
-                    <!--</relocations>-->
-                <!--</configuration>-->
             </plugin>
 
             <plugin>

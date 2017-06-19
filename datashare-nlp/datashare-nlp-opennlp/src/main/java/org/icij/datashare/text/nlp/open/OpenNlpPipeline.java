@@ -110,9 +110,8 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      */
     @Override
     protected boolean initialize(Language language) {
-        if ( ! super.initialize(language)) {
+        if ( ! super.initialize(language))
             return false;
-        }
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         stages.forEach( stage ->
                 annotatorLoader.get(stage).apply(classLoader, language)
@@ -153,7 +152,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
                 sentencePosTags = postag(sentenceTokens, language);
             }
 
-            // Feed annotation
+            // Feed annotation with token and pos
             for (Span sentenceTokenSpan : sentenceTokenSpans) {
                 int tokenOffsetBegin = sentenceOffsetBegin + sentenceTokenSpan.getStart();
                 int tokenOffsetEnd   = sentenceOffsetBegin + sentenceTokenSpan.getEnd();
@@ -164,12 +163,12 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
                 }
             }
 
-            // NER in sentence
+            // NER on sentence
             if (targetStages.contains(NER)) {
                 for (NamedEntity.Category category : targetEntities) {
                     Span[] nerSpans = recognize(sentenceTokens, category, language);
 
-                    // Feed annotation
+                    // Feed annotation with ne
                     for (Span nerSpan : nerSpans) {
                         int nerStart = sentenceOffsetBegin + sentenceTokenSpans[nerSpan.getStart()].getStart();
                         int nerEnd   = sentenceOffsetBegin + sentenceTokenSpans[nerSpan.getEnd()-1].getEnd();
@@ -213,13 +212,11 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadSentenceDetector(ClassLoader loader, Language language) {
-        if ( sentencer.containsKey(language) ) {
+        if (sentencer.containsKey(language))
             return true;
-        }
-        Optional<SentenceModel> model = OpenNlpSentenceModel.INSTANCE.get(language);
-        if ( ! model.isPresent()) {
+        Optional<SentenceModel> model = OpenNlpSentenceModel.INSTANCE.get(language, loader);
+        if ( ! model.isPresent())
             return false;
-        }
         sentencer.put(language, new SentenceDetectorME(model.get()));
         return true;
     }
@@ -231,9 +228,8 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      * @return Detected sentences as an array of String
      */
     private Span[] sentences(String input, Language language) {
-        if ( ! stages.contains(SENTENCE) || ! sentencer.containsKey(language) ) {
+        if ( ! stages.contains(SENTENCE) || ! sentencer.containsKey(language) )
             return new Span[0];
-        }
         return sentencer.get(language).sentPosDetect(input);
     }
 
@@ -247,8 +243,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private boolean loadTokenizer(ClassLoader loader, Language language) {
         if ( tokenizer.containsKey(language) )
             return true;
-
-        Optional<TokenizerModel> model = OpenNlpTokenModel.INSTANCE.get(language);
+        Optional<TokenizerModel> model = OpenNlpTokenModel.INSTANCE.get(language, loader);
         if ( ! model.isPresent())
             return false;
         tokenizer.put(language, new TokenizerME(model.get()));
@@ -264,7 +259,6 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private Span[] tokenize(String input, Language language) {
         if ( ! stages.contains(TOKEN) || ! tokenizer.containsKey(language) )
             return new Span[0];
-
         return tokenizer.get(language).tokenizePos(input);
     }
 
@@ -277,8 +271,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private boolean loadPosTagger(ClassLoader loader, Language language) {
         if ( posTagger.containsKey(language) )
             return true;
-
-        Optional<POSModel> model = OpenNlpPosModel.INSTANCE.get(language);
+        Optional<POSModel> model = OpenNlpPosModel.INSTANCE.get(language, loader);
         if ( ! model.isPresent())
             return false;
         posTagger.put(language, new POSTaggerME(model.get()));
@@ -294,7 +287,6 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private String[] postag(String[] tokens, Language language) {
         if ( ! stages.contains(POS) || ! posTagger.containsKey(language))
             return new String[0];
-
         return posTagger.get(language).tag(tokens);
     }
 
@@ -308,14 +300,11 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
         for (NamedEntity.Category category : targetEntities) {
             if ( nerFinder.containsKey(language) && nerFinder.get(language).containsKey(category) )
                 continue;
-
-            Optional<TokenNameFinderModel> model = OpenNlpNerModel.INSTANCE.get(language, category);
+            Optional<TokenNameFinderModel> model = OpenNlpNerModel.INSTANCE.get(language, category, loader);
             if ( ! model.isPresent())
                 return false;
-
             if ( ! nerFinder.containsKey(language))
                 nerFinder.put(language, new HashMap<>());
-
             nerFinder.get(language).put(category, new NameFinderME(model.get()));
         }
         return true;
@@ -331,9 +320,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private Span[] recognize(String[] tokens, NamedEntity.Category cat, Language language) {
         if ( ! stages.contains(NER) || ! nerFinder.containsKey(language) || ! nerFinder.get(language).containsKey(cat) )
             return new Span[0];
-
-        Span[] ners = nerFinder.get(language).get(cat).find(tokens);
-        return ners;
+        return nerFinder.get(language).get(cat).find(tokens);
     }
 
     @Override

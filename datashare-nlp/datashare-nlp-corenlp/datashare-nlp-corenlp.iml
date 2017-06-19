@@ -14,7 +14,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="datashare-api" scope="PROVIDED" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.hazelcast:hazelcast-all:3.7.4" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.hazelcast:hazelcast-all:3.8.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: me.xuender:unidecode:0.0.7" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.bouncycastle:bcprov-jdk15on:1.54" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.bouncycastle:bcmail-jdk15on:1.54" level="project" />
@@ -24,7 +24,7 @@
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.8.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.8.5" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.module:jackson-module-parameter-names:2.8.5" level="project" />
-    <orderEntry type="library" name="Maven: edu.stanford.nlp:stanford-corenlp:3.7.0" level="project" />
+    <orderEntry type="library" name="Maven: edu.stanford.nlp:stanford-corenlp:3.8.0" level="project" />
     <orderEntry type="library" name="Maven: com.apple:AppleJavaExtensions:1.4" level="project" />
     <orderEntry type="library" name="Maven: de.jollyday:jollyday:0.4.9" level="project" />
     <orderEntry type="library" name="Maven: javax.xml.bind:jaxb-api:2.2.7" level="project" />
@@ -44,11 +44,11 @@
     <orderEntry type="library" name="Maven: com.googlecode.efficient-java-matrix-library:ejml:0.23" level="project" />
     <orderEntry type="library" name="Maven: org.glassfish:javax.json:1.0.4" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.slf4j:slf4j-api:1.7.22" level="project" />
-    <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java:2.6.1" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models:3.7.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-spanish:3.7.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-french:3.7.0" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-german:3.7.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java:3.2.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models:3.8.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-spanish:3.8.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-french:3.8.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-german:3.8.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.logging.log4j:log4j-api:2.6.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.logging.log4j:log4j-core:2.6.2" level="project" />
   </component>

@@ -13,10 +13,12 @@
     <artifactId>datashare-index-elasticsearch</artifactId>
     <packaging>jar</packaging>
 
+
     <properties>
-        <elasticsearch.version>5.2.2</elasticsearch.version>
+        <elasticsearch.version>5.4.1</elasticsearch.version>
         <jna.version>4.1.0</jna.version>
     </properties>
+
 
     <dependencies>
 

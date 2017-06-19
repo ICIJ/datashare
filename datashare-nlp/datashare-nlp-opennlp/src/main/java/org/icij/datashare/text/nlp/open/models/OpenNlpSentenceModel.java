@@ -77,14 +77,14 @@ public enum OpenNlpSentenceModel {
     }
 
 
-    public Optional<SentenceModel> get(Language language) {
-        sharedModels.apply(language).forEach( lang ->
-                modelLock.get(lang).lock()
-        );
+    public Optional<SentenceModel> get(Language language, ClassLoader classLoader) {
+        sharedModels.apply(language)
+                .forEach( lang ->
+                        modelLock.get(lang).lock()
+                );
         try {
-            if ( ! load(language, Thread.currentThread().getContextClassLoader()))
+            if ( ! load(language, classLoader))
                 return Optional.empty();
-
             return Optional.of(model.get(language));
         } finally {
             sharedModels.apply(language)
@@ -95,7 +95,7 @@ public enum OpenNlpSentenceModel {
     }
 
     private boolean load(Language language, ClassLoader loader){
-        if ( model.containsKey(language) && model.get(language) != null)
+        if (model.containsKey(language) && model.get(language) != null)
             return true;
 
         LOGGER.info(getClass().getName() + " - LOADING SENTENCE model for " + language);

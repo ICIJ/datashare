@@ -1,0 +1,192 @@
+GET _all
+GET _settings
+GET _stats
+GET _cluster/health
+GET _cluster/state
+GET _cluster/settings
+GET _template/datashare_mappings
+GET _template/datashare_local_settings
+GET _template/datashare*
+
+
+PUT _template/datashare_local_settings
+{
+  "template": "*local*",
+  "settings" : {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  }
+}
+
+PUT _template/datashare_global_settings
+{
+  "template": "*global*",
+  "settings" : {
+    "number_of_shards": 8,
+    "number_of_replicas": 2
+  }
+}
+
+PUT http://localhost:9200/_template/datashare_mappings
+{
+  "template": "datashare*",
+
+  "mappings": {
+
+    "SourcePath": {
+      "properties": {
+        "asOf": { "type": "date", "format": "date_time" },
+        "path": { "type": "text" }
+      }
+    },
+
+    "Document": {
+      "properties": {
+        "content":  { "type": "text", "index_options": "offsets" },
+        "asOf":     { "type": "date", "format": "date_time" },
+        "path":     { "type": "text" },
+        "length":   { "type": "integer" },
+        "encoding": { "type": "keyword" },
+        "type":     { "type": "keyword" },
+        "language": { "type": "keyword" },
+        "parser":   { "type": "keyword" }
+      }
+    },
+
+    "NamedEntity": {
+      "_parent": { "type": "Document" },
+      "properties": {
+        "mention":           { "type": "text", "index_options": "docs" },
+        "mentionHash":       { "type": "keyword" },
+        "hash":              { "type": "keyword" },
+        "category":          { "type": "keyword" },
+        "document":          { "type": "keyword" },
+        "offset":            { "type": "integer" },
+        "extractor":         { "type": "keyword" },
+        "extractorLanguage": { "type": "keyword" },
+        "partsOfSpeech":     { "type": "text", "index_options": "docs" }
+      }
+    }
+  }
+}
+
+PUT datashare-local
+PUT datashare-global
+
+
+GET _search
+{
+   "query": {
+      "match_all": {}
+   }
+}
+
+
+GET  datashare-local/Document/_search
+{
+   "query": {
+      "match_all": {}
+   }
+}
+
+GET  datashare-local/NamedEntity/_search
+{
+   "query": {
+      "match_all": {}
+   }
+}
+
+GET  datashare-local/NamedEntity/_search
+{
+   "query": {
+       "match": {
+          "extractor": "IXA"
+       }
+   }
+}
+
+GET  datashare-local/NamedEntity/_search
+{
+   "query": {
+       "match": {
+          "category": "ORGANIZATION"
+       }
+   }
+}
+
+GET  datashare-local/_search
+{
+    "query": {
+        "query_string": {
+           "query": "extractor:MITIE"
+        }
+    }
+}
+
+GET  datashare-local/NamedEntity/_search
+{
+    "query": {
+        "bool": {
+            "must": [
+                    {
+                        "term" : { "_parent": "fdb4890c34e6ddf8c97a07a71840d4fb03e648359b77a7e96667b11df2a131b882234baa668ec3cad7237cb71ba50c82"}
+                    },
+                    {
+                        "match" : { "category": "PERSON" }
+                    }
+            ]
+        }
+    }
+}
+
+GET  datashare-local/NamedEntity/57c02b3c2a9c7e4b8a8d31d063f23f64b4a79b86a934971f1ddd2548612b258932ba4317c5f23fc6f3df863a98804755?parent=fdb4890c34e6ddf8c97a07a71840d4fb03e648359b77a7e96667b11df2a131b882234baa668ec3cad7237cb71ba50c82
+
+
+GET  datashare-local/Document/_search
+{
+   "query": {
+      "match_all": {}
+   }
+}
+
+GET  datashare-local/Document/_search
+{
+    "query": {
+        "bool": {
+            "must": [
+                        {
+                            "has_child": {
+                                "type": "NamedEntity",
+                                "query": {
+                                    "query_string": { "query": "category:PERSON" }
+                                },
+                                "inner_hits":{}
+                           }
+                        }
+            ]
+        }
+    }
+}
+
+GET  datashare-local/Document/_search
+{
+  "size" : 10,
+  "query" : {
+    "bool" : {
+      "must" : {
+        "has_child" : {
+          "query" : {
+            "match_all" : { }
+          },
+          "child_type" : "NamedEntity",
+          "inner_hits" : { }
+        }
+      }
+    }
+  },
+  "sort" : [ {
+    "_doc" : {
+      "order" : "asc"
+    }
+  } ]
+}

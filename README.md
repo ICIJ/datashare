@@ -38,7 +38,7 @@ Web API
   
   - `org.icij.datashare.text.extraction.tika.TikaFileParser` 
   
-    [Apache Tika](https://tika.apache.org/) v1.14 (Apache Licence v2.0)
+    [Apache Tika](https://tika.apache.org/) v1.15 (Apache Licence v2.0)
   
     with [Tess4J](http://tess4j.sourceforge.net/) v3.3.0 (Apache Licence v2.0),
     [Tesseract](https://github.com/tesseract-ocr/tesseract/wiki/4.0-with-LSTM) v4.0 alpha compiled for arch x86-64 
@@ -46,7 +46,7 @@ Web API
 
 *Support*
 
-  [Tika File Formats](https://tika.apache.org/1.14/formats.html)
+  [Tika File Formats](https://tika.apache.org/1.15/formats.html)
 
   
 ### **Extract Persons, Organizations or Locations from Text** 
@@ -68,28 +68,34 @@ Web API
   
   - `org.icij.datashare.text.nlp.core.CoreNlpPipeline` 
   
-    [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP) v3.7.0, (Conditional Random Fields), 
-  *Composite GPL v3+* 
+    [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP) v3.7.0, 
+    (Conditional Random Fields), 
+    *Composite GPL v3+* 
 
   - `org.icij.datashare.text.nlp.gate.GateNlpPipeline` 
     
-    [OEG UPM Entity Extractor](https://github.com/ICIJ/entity-extractor/tree/production) v1.1, (JAPE Rules Grammar), 
-    based on [EPSRC Gate](https://gate.ac.uk/) v8.11, *LGPL v3*
+    [OEG UPM Entity Extractor](https://github.com/ICIJ/entity-extractor/tree/production) v1.1, 
+    (JAPE Rules Grammar), 
+    based on [EPSRC Gate](https://gate.ac.uk/) v8.11, 
+    *LGPL v3*
   
   - `org.icij.datashare.text.nlp.ixa.IxaNlpPipeline` 
   
-    [Ixa Pipes Nerc](https://github.com/ixa-ehu/ixa-pipe-nerc) v1.6.1, (Perceptron), 
-  *Apache Licence v2.0*
+    [Ixa Pipes Nerc](https://github.com/ixa-ehu/ixa-pipe-nerc) v1.6.1, 
+    (Perceptron), 
+    *Apache Licence v2.0*
 
   - `org.icij.datashare.text.nlp.mitie.MitieNlpPipeline` 
   
-    [MIT Information Extraction](https://github.com/mit-nlp/MITIE) v0.8, (Structural Support Vector Machines), 
-  *Boost Software License v1.0*
+    [MIT Information Extraction](https://github.com/mit-nlp/MITIE) v0.8, 
+    (Structural Support Vector Machines), 
+    *Boost Software License v1.0*
 
   - `org.icij.datashare.text.nlp.open.OpenNlpPipeline` 
   
-    [Apache OpenNLP](https://opennlp.apache.org/) v1.7.2, (Maximum Entropy), 
-  *Apache Licence v2.0*
+    [Apache OpenNLP](https://opennlp.apache.org/) v1.6.0, 
+    (Maximum Entropy), 
+    *Apache Licence v2.0*
 
   
 *Natural Language Processing Stages Support*
@@ -145,7 +151,7 @@ Web API
   
  - `org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer`
  
-   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v5.2.2, *Apache Licence v2.0*
+   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v5.4.1, *Apache Licence v2.0*
 
 
 
@@ -223,7 +229,7 @@ Defaults to `1`.
 NLP
 
 `--nlp-pipelines`, `-nlpp`:
-NLP pipelines to be run; in {`GATE`,`CORE`,`OPEN`,`MITIE`,`IXA`}.
+NLP pipelines to be run; in {`GATE`,`CORE`,`MITIE`,`OPEN`,`IXA`}.
 Defaults to `GATE`.
 
 `--nlp-parallelism`, `-nlpt`:

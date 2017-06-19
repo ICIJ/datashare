@@ -15,9 +15,9 @@
 
 
     <properties>
-        <tika.version>1.14</tika.version>
+        <tika.version>1.15</tika.version>
         <optimaize.version>0.6</optimaize.version>
-        <tess4j.version>3.3.0</tess4j.version>
+        <tess4j.version>3.4.0</tess4j.version>
     </properties>
 
 
@@ -97,8 +97,6 @@
 
 
     <build>
-
-
         <plugins>
 
             <plugin>
@@ -121,6 +119,13 @@
                                     <resource>META-INF/services/org.apache.tika.parser.Parser</resource>
                                 </transformer>
                             </transformers>
+
+                            <relocations>
+                                    <relocation>
+                                        <pattern>opennlp</pattern>
+                                        <shadedPattern>for.tika.opennlp</shadedPattern>
+                                    </relocation>
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>

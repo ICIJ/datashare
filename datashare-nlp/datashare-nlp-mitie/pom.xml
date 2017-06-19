@@ -10,12 +10,15 @@
         <version>0.6</version>
     </parent>
 
+
     <artifactId>datashare-nlp-mitie</artifactId>
     <packaging>jar</packaging>
+
 
     <properties>
         <mitie.version>0.8</mitie.version>
     </properties>
+
 
     <dependencies>
 

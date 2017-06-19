@@ -1,1 +1,0 @@
-[2017-04-04T15:45:24,201][WARN ][o.e.d.s.g.GroovyScriptEngineService] [groovy] scripts are deprecated, use [painless] scripts instead

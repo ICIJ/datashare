@@ -50,7 +50,6 @@ import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
@@ -79,7 +78,7 @@ import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
  */
 public final class ElasticsearchIndexer extends AbstractIndexer {
     
-    public static final String VERSION = "5.2.2";
+    public static final String VERSION = "5.4.1";
 
     public static final Path HOME = Paths.get( System.getProperty("user.dir"), "opt", "elasticsearch-" + VERSION);
 

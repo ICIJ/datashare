@@ -10,12 +10,13 @@
         <version>0.6</version>
     </parent>
 
+
     <artifactId>datashare-nlp-opennlp</artifactId>
     <packaging>jar</packaging>
 
 
     <properties>
-        <opennlp.version>1.7.2</opennlp.version>
+        <opennlp.version>1.6.0</opennlp.version>
     </properties>
 
 

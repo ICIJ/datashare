@@ -12,7 +12,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="datashare-api" scope="PROVIDED" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.hazelcast:hazelcast-all:3.7.4" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.hazelcast:hazelcast-all:3.8.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: me.xuender:unidecode:0.0.7" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.bouncycastle:bcprov-jdk15on:1.54" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.bouncycastle:bcmail-jdk15on:1.54" level="project" />
@@ -22,8 +22,8 @@
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.8.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.8.5" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.fasterxml.jackson.module:jackson-module-parameter-names:2.8.5" level="project" />
-    <orderEntry type="library" name="Maven: eus.ixa:ixa-pipe-tok:1.8.5" level="project" />
-    <orderEntry type="library" name="Maven: eus.ixa:ixa-pipe-pos:1.5.1" level="project" />
+    <orderEntry type="library" name="Maven: eus.ixa:ixa-pipe-tok:2.0.0" level="project" />
+    <orderEntry type="library" name="Maven: eus.ixa:ixa-pipe-pos:1.5.2" level="project" />
     <orderEntry type="library" name="Maven: eus.ixa:ixa-pipe-nerc:1.6.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.logging.log4j:log4j-api:2.6.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.logging.log4j:log4j-core:2.6.2" level="project" />

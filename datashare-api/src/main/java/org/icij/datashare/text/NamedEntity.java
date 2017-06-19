@@ -281,10 +281,10 @@ public final class NamedEntity implements Entity {
         fill(features, "NONE");
         features[0] = getMention();
         features[1] = getCategory().toString();
-        getOffset()           .ifPresent(off      -> features[2] = String.valueOf(off));
-        getExtractor()        .ifPresent(extr     -> features[3] = extr.toString());
+        getOffset().ifPresent(off -> features[2] = String.valueOf(off));
+        getExtractor().ifPresent(extr -> features[3] = extr.toString());
         getExtractorLanguage().ifPresent(extrLang -> features[4] = extrLang.toString().toUpperCase(Locale.ROOT));
-        getPartsOfSpeech()    .ifPresent(pos      -> features[5] = pos.toUpperCase(Locale.ROOT));
+        getPartsOfSpeech().ifPresent(pos -> features[5] = pos.toUpperCase(Locale.ROOT));
         features[6] = mentionNormalForm();
         features[7] = getHash();
         getDocument().ifPresent(docHash -> features[8] = docHash);

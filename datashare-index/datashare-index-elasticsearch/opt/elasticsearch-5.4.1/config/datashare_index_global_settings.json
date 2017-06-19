@@ -1,0 +1,13 @@
+// DataShare Elasticsearch Global/Networked/Clustered Nodes Index Settings Template
+//
+// curl -XPUT    'localhost:9200/_template/datashare_global_setting' -d '(...)'
+// curl -XGET    'localhost:9200/_template/datashare_global_setting?pretty'
+// curl -XDELETE 'localhost:9200/_template/datashare_global_setting?pretty'
+//
+{
+  "template": "*global*",
+  "settings" : {
+    "number_of_shards": 8,
+    "number_of_replicas": 2
+  }
+}

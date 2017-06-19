@@ -23,19 +23,19 @@ public interface InputQueues<I> {
 
     default Optional<I> poll(int timeout, TimeUnit unit) {
         long start = new Date().getTime();
-        try {
+//        try {
             Optional<I> element;
             do {
                 element = inputs().stream().map( BlockingQueue::poll ).filter( Objects::nonNull ).findAny();
-                if ( ! element.isPresent())
-                        Thread.sleep(100);
+//                if ( ! element.isPresent())
+//                    Thread.sleep(100);
             } while ( ! element.isPresent() && (new Date().getTime() - start) < unit.toMillis(timeout));
             return element;
-        } catch (InterruptedException e) {
-            LogManager.getLogger(getClass()).info(getClass().getName() + " - QUEUE POLLING INTERRUPTED", e);
-            Thread.currentThread().interrupt();
-            return Optional.empty();
-        }
+//        } catch (InterruptedException e) {
+//            LogManager.getLogger(getClass()).info(getClass().getName() + " - QUEUE POLLING INTERRUPTED", e);
+//            Thread.currentThread().interrupt();
+//            return Optional.empty();
+//        }
     }
 
     default Optional<I> poll() {

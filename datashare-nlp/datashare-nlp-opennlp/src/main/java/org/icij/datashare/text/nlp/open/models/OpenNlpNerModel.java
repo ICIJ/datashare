@@ -109,19 +109,20 @@ public enum OpenNlpNerModel {
     }
 
 
-    public Optional<TokenNameFinderModel> get(Language language, NamedEntity.Category category) {
-        sharedModels.apply(language).forEach( lang ->
-                modelLock.get(lang).get(category).lock()
-        );
+    public Optional<TokenNameFinderModel> get(Language language, NamedEntity.Category category, ClassLoader classLoader) {
+        sharedModels.apply(language)
+                .forEach( lang ->
+                        modelLock.get(lang).get(category).lock()
+                );
         try {
-            if ( ! load(language, category, Thread.currentThread().getContextClassLoader()))
+            if ( ! load(language, category, classLoader))
                 return Optional.empty();
-
             return Optional.of(model.get(language).get(category));
         } finally {
-            sharedModels.apply(language).forEach( lang ->
-                    modelLock.get(lang).get(category).unlock()
-            );
+            sharedModels.apply(language)
+                    .forEach( lang ->
+                            modelLock.get(lang).get(category).unlock()
+                    );
         }
     }
 

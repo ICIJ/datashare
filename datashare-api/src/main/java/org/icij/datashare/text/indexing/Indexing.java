@@ -29,12 +29,8 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
     }
 
     public static <E  extends Entity, S extends OutputQueue<E>> Indexing<E> create(Indexer indexer, String index, List<S> sources) {
-        List<BlockingQueue<E>> sourcesOutputs = sources.stream()
-                .map( OutputQueue::output )
-                .collect(Collectors.toList());
-        List<Latch> sourcesNoMoreOutput = sources.stream()
-                .map( OutputQueue::noMoreOutput )
-                .collect(Collectors.toList());
+        List<BlockingQueue<E>> sourcesOutputs = sources.stream().map( OutputQueue::output ).collect(Collectors.toList());
+        List<Latch> sourcesNoMoreOutput = sources.stream().map( OutputQueue::noMoreOutput ).collect(Collectors.toList());
         return new Indexing<>(indexer, index, sourcesOutputs, sourcesNoMoreOutput);
     }
 
@@ -42,6 +38,7 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
     private final Indexer indexer;
 
     private final String index;
+
 
     public Indexing(Indexer indexer, String index, List<BlockingQueue<I>> inputs, List<Latch> noMoreInput) {
         super(inputs, noMoreInput);
@@ -51,16 +48,16 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
         this.index   = index;
     }
 
-    public Indexing(Indexer indexer, String index, BlockingQueue<I> input, Latch noMoreInput) {
-        this(indexer, index, singletonList(input), singletonList(noMoreInput));
-    }
-
     public Indexing(Indexer indexer, String index, BlockingQueue<I> input, List<Latch> noMoreInputs) {
         this(indexer, index, singletonList(input), noMoreInputs);
     }
 
-    public Indexing(Indexer indexer, String index, List<Latch> noMoreInput) {
-        this(indexer, index, new LinkedBlockingQueue<>(), noMoreInput);
+    public Indexing(Indexer indexer, String index, BlockingQueue<I> input, Latch noMoreInput) {
+        this(indexer, index, singletonList(input), singletonList(noMoreInput));
+    }
+
+    public Indexing(Indexer indexer, String index, List<Latch> noMoreInputs) {
+        this(indexer, index, new LinkedBlockingQueue<>(), noMoreInputs);
     }
 
     public Indexing(Indexer indexer, String index, Latch noMoreInput) {

@@ -17,7 +17,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="datashare-api" scope="PROVIDED" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.hazelcast:hazelcast-all:3.7.4" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.hazelcast:hazelcast-all:3.8.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: me.xuender:unidecode:0.0.7" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.bouncycastle:bcprov-jdk15on:1.54" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.bouncycastle:bcmail-jdk15on:1.54" level="project" />

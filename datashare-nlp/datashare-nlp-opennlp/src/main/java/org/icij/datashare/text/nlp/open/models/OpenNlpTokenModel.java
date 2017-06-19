@@ -84,16 +84,14 @@ public enum OpenNlpTokenModel {
      * @param language the annotator language
      * @return an Optional of Tokenizer model if successfully (loaded and) retrieved; empty Optional otherwise
      */
-    public Optional<TokenizerModel> get(Language language) {
+    public Optional<TokenizerModel> get(Language language, ClassLoader classLoader) {
         sharedModels.apply(language)
                 .forEach( lang -> {
                     modelLock.get(lang).lock();
                 });
-
         try {
-            if ( ! load(language, Thread.currentThread().getContextClassLoader()) ) {
+            if ( ! load(language, classLoader))
                 return Optional.empty();
-            }
             return Optional.of(model.get(language));
         } finally {
             sharedModels.apply(language)
@@ -104,9 +102,9 @@ public enum OpenNlpTokenModel {
     }
 
     private boolean load(Language language, ClassLoader loader) {
-        if ( model.containsKey(language) ) {
+        if (model.containsKey(language))
             return true;
-        }
+
         LOGGER.info(getClass().getName() + " - LOADING TOKEN model for " + language);
         try (InputStream modelIS = loader.getResourceAsStream(modelPath.get(language).toString())) {
             TokenizerModel tokenizerModel = new TokenizerModel(modelIS);

@@ -71,13 +71,12 @@ public enum OpenNlpPosModel {
     }
 
 
-    public Optional<POSModel> get(Language language) {
+    public Optional<POSModel> get(Language language, ClassLoader classLoader) {
         Lock l = modelLock.get(language);
         l.lock();
         try {
-            if ( ! load(language, Thread.currentThread().getContextClassLoader())) {
+            if ( ! load(language, classLoader))
                 return Optional.empty();
-            }
             return Optional.of(model.get(language));
         } finally {
             l.unlock();
@@ -85,7 +84,7 @@ public enum OpenNlpPosModel {
     }
 
     private boolean load(Language language, ClassLoader loader) {
-        if ( model.containsKey(language) && model.get(language) == null)
+        if (model.containsKey(language) && model.get(language) == null)
             return true;
 
         LOGGER.info(getClass().getName() + " - LOADING POS model for " + language);

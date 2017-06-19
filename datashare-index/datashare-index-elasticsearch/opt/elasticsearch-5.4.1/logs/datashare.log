@@ -1,0 +1,32 @@
+[2017-06-19T15:33:12,728][INFO ][o.e.n.Node               ] [IJulm] initializing ...
+[2017-06-19T15:33:12,793][INFO ][o.e.e.NodeEnvironment    ] [IJulm] using [1] data paths, mounts [[/home (/dev/sda8)]], net usable_space [65.3gb], net total_space [412.3gb], spins? [no], types [ext4]
+[2017-06-19T15:33:12,793][INFO ][o.e.e.NodeEnvironment    ] [IJulm] heap size [1.9gb], compressed ordinary object pointers [true]
+[2017-06-19T15:33:12,794][INFO ][o.e.n.Node               ] [IJulm] node name [IJulm], node ID [9bhI5-xnTYyHUhFm-Z53TA]
+[2017-06-19T15:33:12,794][INFO ][o.e.n.Node               ] [IJulm] version[5.4.1], pid[1155], build[2cfe0df/2017-05-29T16:05:51.443Z], OS[Linux/4.3.0-1-amd64/amd64], JVM[Oracle Corporation/Java HotSpot(TM) 64-Bit Server VM/1.8.0_74/25.74-b02]
+[2017-06-19T15:33:12,795][INFO ][o.e.n.Node               ] [IJulm] JVM arguments [-Xms2g, -Xmx2g, -XX:+UseConcMarkSweepGC, -XX:CMSInitiatingOccupancyFraction=75, -XX:+UseCMSInitiatingOccupancyOnly, -XX:+DisableExplicitGC, -XX:+AlwaysPreTouch, -Xss1m, -Djava.awt.headless=true, -Dfile.encoding=UTF-8, -Djna.nosys=true, -Djdk.io.permissionsUseCanonicalPath=true, -Dio.netty.noUnsafe=true, -Dio.netty.noKeySetOptimization=true, -Dio.netty.recycler.maxCapacityPerThread=0, -Dlog4j.shutdownHookEnabled=false, -Dlog4j2.disable.jmx=true, -Dlog4j.skipJansi=true, -XX:+HeapDumpOnOutOfMemoryError, -Des.path.home=/home/julien/src/datashare/datashare-index/datashare-index-elasticsearch/opt/elasticsearch-5.4.1]
+[2017-06-19T15:33:13,667][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [aggs-matrix-stats]
+[2017-06-19T15:33:13,667][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [ingest-common]
+[2017-06-19T15:33:13,667][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [lang-expression]
+[2017-06-19T15:33:13,667][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [lang-groovy]
+[2017-06-19T15:33:13,667][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [lang-mustache]
+[2017-06-19T15:33:13,667][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [lang-painless]
+[2017-06-19T15:33:13,668][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [percolator]
+[2017-06-19T15:33:13,668][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [reindex]
+[2017-06-19T15:33:13,668][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [transport-netty3]
+[2017-06-19T15:33:13,668][INFO ][o.e.p.PluginsService     ] [IJulm] loaded module [transport-netty4]
+[2017-06-19T15:33:13,669][INFO ][o.e.p.PluginsService     ] [IJulm] no plugins loaded
+[2017-06-19T15:33:14,977][INFO ][o.e.d.DiscoveryModule    ] [IJulm] using discovery type [zen]
+[2017-06-19T15:33:15,519][INFO ][o.e.n.Node               ] [IJulm] initialized
+[2017-06-19T15:33:15,519][INFO ][o.e.n.Node               ] [IJulm] starting ...
+[2017-06-19T15:33:15,751][INFO ][o.e.t.TransportService   ] [IJulm] publish_address {127.0.0.1:9300}, bound_addresses {[::1]:9300}, {127.0.0.1:9300}
+[2017-06-19T15:33:15,761][WARN ][o.e.b.BootstrapChecks    ] [IJulm] max file descriptors [4096] for elasticsearch process is too low, increase to at least [65536]
+[2017-06-19T15:33:18,914][INFO ][o.e.c.s.ClusterService   ] [IJulm] new_master {IJulm}{9bhI5-xnTYyHUhFm-Z53TA}{4fZwAflpTPWNjRq4hKTOZg}{127.0.0.1}{127.0.0.1:9300}, reason: zen-disco-elected-as-master ([0] nodes joined)
+[2017-06-19T15:33:18,941][INFO ][o.e.h.n.Netty4HttpServerTransport] [IJulm] publish_address {127.0.0.1:9200}, bound_addresses {[::1]:9200}, {127.0.0.1:9200}
+[2017-06-19T15:33:18,944][INFO ][o.e.n.Node               ] [IJulm] started
+[2017-06-19T15:33:18,948][INFO ][o.e.g.GatewayService     ] [IJulm] recovered [0] indices into cluster_state
+[2017-06-19T15:33:40,585][INFO ][o.e.c.m.MetaDataCreateIndexService] [IJulm] [datashare-local] creating index, cause [api], templates [datashare_local_settings, datashare_mappings], shards [1]/[0], mappings [SourcePath, NamedEntity, Document]
+[2017-06-19T15:33:40,797][INFO ][o.e.c.r.a.AllocationService] [IJulm] Cluster health status changed from [YELLOW] to [GREEN] (reason: [shards started [[datashare-local][0]] ...]).
+[2017-06-19T15:34:07,899][INFO ][o.e.n.Node               ] [IJulm] stopping ...
+[2017-06-19T15:34:07,945][INFO ][o.e.n.Node               ] [IJulm] stopped
+[2017-06-19T15:34:07,945][INFO ][o.e.n.Node               ] [IJulm] closing ...
+[2017-06-19T15:34:07,954][INFO ][o.e.n.Node               ] [IJulm] closed

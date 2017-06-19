@@ -10,17 +10,17 @@
         <version>0.6</version>
     </parent>
 
+
     <artifactId>datashare-nlp-ixapipe</artifactId>
     <packaging>jar</packaging>
 
 
     <properties>
-        <ixa-pipe-tok.version>1.8.5</ixa-pipe-tok.version>
-        <ixa-pipe-pos.version>1.5.1</ixa-pipe-pos.version>
+        <ixa-pipe-tok.version>2.0.0</ixa-pipe-tok.version>
+        <ixa-pipe-pos.version>1.5.2</ixa-pipe-pos.version>
         <ixa-pipe-nerc.version>1.6.1</ixa-pipe-nerc.version>
-        <ixa-kaflib-naf.version>1.1.15</ixa-kaflib-naf.version>
-        <morfologik.version>1.6.0</morfologik.version>
     </properties>
+
 
     <dependencies>
 
@@ -35,6 +35,7 @@
             <groupId>eus.ixa</groupId>
             <artifactId>ixa-pipe-tok</artifactId>
             <version>${ixa-pipe-tok.version}</version>
+            <type>jar</type>
         </dependency>
 
         <!-- Ixa-Pipe-Pos -->
@@ -42,6 +43,7 @@
             <groupId>eus.ixa</groupId>
             <artifactId>ixa-pipe-pos</artifactId>
             <version>${ixa-pipe-pos.version}</version>
+            <type>jar</type>
         </dependency>
 
         <!-- Ixa-Pipe-Nerc -->
@@ -49,6 +51,7 @@
             <groupId>eus.ixa</groupId>
             <artifactId>ixa-pipe-nerc</artifactId>
             <version>${ixa-pipe-nerc.version}</version>
+            <type>jar</type>
         </dependency>
 
         <!-- Log4j / Slf4j -->
@@ -92,6 +95,18 @@
                         </transformer>
                     </transformers>
                 </configuration>
+                <executions>
+                    <execution>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>morfologik</pattern>
+                                    <shadedPattern>for.ixapipe.morfologik</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

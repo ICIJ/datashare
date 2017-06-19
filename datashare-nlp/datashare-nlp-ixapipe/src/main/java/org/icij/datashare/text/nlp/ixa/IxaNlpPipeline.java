@@ -8,6 +8,7 @@ import static java.util.Arrays.asList;
 import com.google.common.io.Files;
 
 import ixa.kaflib.*;
+import ixa.kaflib.KAFDocument.LinguisticProcessor;
 
 import org.icij.datashare.text.Language;
 import static org.icij.datashare.text.Language.*;
@@ -43,8 +44,8 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
                 put(BASQUE,  new HashSet<>(asList(TOKEN, POS, NER)));
             }};
 
-    private static final String VERSION_TOK = "1.8.5";
-    private static final String VERSION_POS = "1.5.1";
+    private static final String VERSION_TOK = "2.0.0";
+    private static final String VERSION_POS = "1.5.2";
     private static final String VERSION_NER = "1.6.1";
 
     private static final String  KAF_VERSION            = "v1.naf";
@@ -103,27 +104,22 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
         // KAF document annotated by IXA annotators
         KAFDocument kafDocument = new KAFDocument(language.toString(), KAF_VERSION);
 
-        // Tokenize input
+        // tokenize( input )
         LOGGER.info(getClass().getName() + " - TOKENIZING for "  + language.toString() );
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(input.getBytes(getEncoding()));
-        if ( ! tokenize(inputStream, kafDocument, hash, language) ) {
-            LOGGER.error(getClass().getName() + " - FAILED TOKENIZING for " + language.toString() );
+        if ( ! tokenize(new StringReader(input), kafDocument, hash, language) )
             return Optional.empty();
-        }
 
-        // Pos-tag input
+        // pos-tag( tokenize( input ) )
         LOGGER.info(getClass().getName() + " - POS-TAGGING for " + language.toString());
-        if ( ! postag(kafDocument, hash, language) ) {
-            LOGGER.error(getClass().getName() + " - FAILED POS-TAGGING for " + language.toString() );
+        if ( ! postag(kafDocument, hash, language) )
             return Optional.of(annotation);
-        }
 
-        // Feed annotation
+        // Feed annotation with tokens and pos
         for (int s = kafDocument.getFirstSentence(); s <= kafDocument.getNumSentences(); s++) {
             List<Term> sentenceTerms = kafDocument.getSentenceTerms(s);
             for(Term term : sentenceTerms) {
-                WF wfBegin = term.getWFs().get(0);
-                WF wfEnd   = term.getWFs().get(term.getWFs().size()-1);
+                WF wfBegin     = term.getWFs().get(0);
+                WF wfEnd       = term.getWFs().get(term.getWFs().size() - 1);
                 int tokenBegin = wfBegin.getOffset();
                 int tokenEnd   = wfEnd.getOffset() + wfEnd.getLength();
                 annotation.add(TOKEN, tokenBegin, tokenEnd);
@@ -141,13 +137,13 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
             annotation.add(SENTENCE, sentenceBegin, sentenceEnd);
         }
 
-        // Ner input
+        // ner( pos-tag( tokenize( input ) ) )
         if (targetStages.contains(NER)) {
-            if ( ! recognize(kafDocument, hash, language) ) {
-                LOGGER.error(getClass().getName() + " - FAILED NAME-FINDING for " + language.toString());
+            LOGGER.info(getClass().getName() + " - NAME-FINDING for " + language.toString());
+            if ( ! recognize(kafDocument, hash, language) )
                 return Optional.of(annotation);
-            }
-            // Feed annotation
+
+            // Feed annotation with ne
             for (Entity entity : kafDocument.getEntities()) {
                 List<Term> terms     = entity.getTerms();
                 Term       termBegin = terms.get(0);
@@ -165,13 +161,12 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
     }
 
 
-    public boolean tokenize(InputStream inputStream, KAFDocument kafDocument, String hash, Language language) {
+    public boolean tokenize(Reader reader, KAFDocument kafDocument, String hash, Language language) {
         String lang = language.toString();
         Properties properties = tokenAnnotatorProperties(lang, DEFAULT_NORMALIZE, DEFAULT_UNTOKENIZABLE, DEFAULT_HARD_PARAGRAPH);
         try {
-            KAFDocument.LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("text", "ixa-pipe-tok-" + lang, VERSION_TOK);
-            // Tokenize input stream
-            try (BufferedReader buffReader = new BufferedReader(new InputStreamReader(inputStream, getEncoding()))) {
+            LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("text", "ixa-pipe-tok-" + lang, VERSION_TOK);
+            try (BufferedReader buffReader = new BufferedReader(reader)) {
                 eus.ixa.ixa.pipe.tok.Annotate annotator = new eus.ixa.ixa.pipe.tok.Annotate(buffReader, properties);
                 newLp.setBeginTimestamp();
                 annotator.tokenizeToKAF(kafDocument);
@@ -198,7 +193,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
 
 
     /**
-     * Load pos tagger (language-specific)
+     * Load PoS tagger (language-specific)
      *
      * @return true if successfully loaded; false otherwise
      */
@@ -229,7 +224,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
     private boolean postag(KAFDocument kafDocument, String hash, Language language) {
         String  model     = IxaModels.PATH.get(POS).get(language).toString();
         String  modelName = Files.getNameWithoutExtension(model);
-        KAFDocument.LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("terms", "ixa-pipe-pos-" + modelName, VERSION_POS);
+        LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("terms", "ixa-pipe-pos-" + modelName, VERSION_POS);
         newLp.setBeginTimestamp();
         posTagger.get(language).annotatePOSToKAF(kafDocument);
         newLp.setEndTimestamp();
@@ -269,10 +264,9 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
             String     clearFeatures = eus.ixa.ixa.pipe.nerc.train.Flags.DEFAULT_FEATURE_FLAG;
             Properties properties    = nerAnnotatorProperties(model, lang, lexer, dictTag, dictPath, clearFeatures);
             eus.ixa.ixa.pipe.nerc.Annotate annotate = new eus.ixa.ixa.pipe.nerc.Annotate(properties);
-
             nerFinder.put(language, annotate);
         } catch (IOException e) {
-            LOGGER.error(getClass().getName() + " - FAILED LOADING POS annotator", e);
+            LOGGER.error(getClass().getName() + " - FAILED LOADING NER annotator for " + language.toString().toUpperCase(), e);
             return false;
         }
         LOGGER.info(getClass().getName() + " - LOADED NER annotator for " + language.toString().toUpperCase());
@@ -282,15 +276,13 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
     private boolean recognize(KAFDocument kafDocument, String hash, Language language) {
         String model     = IxaModels.PATH.get(NER).get(language).toString();
         String modelName = Files.getNameWithoutExtension(model);
-        KAFDocument.LinguisticProcessor newLp = kafDocument
-                .addLinguisticProcessor("entities", "ixa-pipe-nerc-" + modelName, VERSION_NER);
-        LOGGER.info(getClass().getName() + " - NAME-FINDING for " + language.toString());
+        LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("entities", "ixa-pipe-nerc-" + modelName, VERSION_NER);
         try {
-            // Recognize named entities
             newLp.setBeginTimestamp();
             nerFinder.get(language).annotateNEs(kafDocument);
             newLp.setEndTimestamp();
         } catch (IOException e) {
+            LOGGER.error(getClass().getName() + " - FAILED NAME-FINDING for " + language.toString().toUpperCase(), e);
             return false;
         }
         return true;

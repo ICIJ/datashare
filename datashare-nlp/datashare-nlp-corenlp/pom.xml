@@ -10,12 +10,15 @@
         <version>0.6</version>
     </parent>
 
+
     <artifactId>datashare-nlp-corenlp</artifactId>
     <packaging>jar</packaging>
 
+
     <properties>
-        <corenlp.version>3.7.0</corenlp.version>
+        <corenlp.version>3.8.0</corenlp.version>
     </properties>
+
 
     <dependencies>
 
