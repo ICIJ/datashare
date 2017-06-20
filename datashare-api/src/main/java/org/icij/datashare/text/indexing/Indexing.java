@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 import org.icij.datashare.concurrent.Latch;
 import org.icij.datashare.concurrent.queue.OutputQueue;
 import org.icij.datashare.concurrent.queue.QueueForwarding;
-import org.icij.datashare.concurrent.task.QueueInTask;
 import org.icij.datashare.concurrent.task.DatashareTask;
 import org.icij.datashare.Entity;
 import org.icij.datashare.concurrent.task.QueuesInTask;
@@ -29,8 +28,8 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
     }
 
     public static <E  extends Entity, S extends OutputQueue<E>> Indexing<E> create(Indexer indexer, String index, List<S> sources) {
-        List<BlockingQueue<E>> sourcesOutputs = sources.stream().map( OutputQueue::output ).collect(Collectors.toList());
-        List<Latch> sourcesNoMoreOutput = sources.stream().map( OutputQueue::noMoreOutput ).collect(Collectors.toList());
+        List<BlockingQueue<E>> sourcesOutputs = sources.stream().map(OutputQueue::output).collect(Collectors.toList());
+        List<Latch> sourcesNoMoreOutput = sources.stream().map(OutputQueue::noMoreOutput).collect(Collectors.toList());
         return new Indexing<>(indexer, index, sourcesOutputs, sourcesNoMoreOutput);
     }
 
@@ -73,11 +72,12 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
     protected Result process(I element) {
         LOGGER.info(getClass().getName() + " - INDEXING " + element.getClass().getName());
         try{
-            boolean indexed = indexer.add(index, element);
-            if ( ! indexed ) {
-                LOGGER.error(getClass().getName() + " - " + indexer + " FAILED INDEXING " + element);
-                return Result.FAILURE;
-            }
+//            boolean indexed = indexer.add(index, element);
+//            if ( ! indexed ) {
+//                LOGGER.error(getClass().getName() + " - " + indexer + " FAILED INDEXING " + element);
+//                return Result.FAILURE;
+//            }
+            indexer.addBatch(index, element);
             return Result.SUCCESS;
         } catch (Exception e ) {
             LOGGER.error( getClass().getName() + " - " + indexer.getType() + " FAILED INDEXING " + element, e);

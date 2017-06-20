@@ -23,7 +23,7 @@ public class AddCommand extends AbstractIndexerBatchCommand {
      * @param json    JSON String representing indexed document fields
      */
     public AddCommand(Indexer indexer, String index, String type, String id, String json) {
-        super( () -> indexer.batchAdd(index, type, id, json) );
+        super( () -> indexer.addBatch(index, type, id, json) );
     }
 
     /**
@@ -36,7 +36,7 @@ public class AddCommand extends AbstractIndexerBatchCommand {
      * @param json    JSON Map representing indexed document fields
      */
     public AddCommand(Indexer indexer, String index, String type, String id, Map<String, Object> json) {
-        super(  () -> indexer.batchAdd(index, type, id, json) );
+        super(  () -> indexer.addBatch(index, type, id, json) );
     }
 
     /**
@@ -47,7 +47,7 @@ public class AddCommand extends AbstractIndexerBatchCommand {
      * @param obj     object to index
      */
     public <T extends Entity> AddCommand(Indexer indexer, String index, T obj) {
-        super(  () -> indexer.batchAdd(index, obj) );
+        super(  () -> indexer.addBatch(index, obj) );
     }
 
 }

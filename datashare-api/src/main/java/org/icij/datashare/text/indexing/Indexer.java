@@ -287,31 +287,31 @@ public interface Indexer extends Closeable {
      * Add a document indexing to batch processing
      * document source given as a JSON String
      */
-    void batchAdd(String index, String type, String id, String json);
+    void addBatch(String index, String type, String id, String json);
 
     /**
      * Add a document indexing, with parent, to batch processing
      * document source given as a JSON String
      */
-    void batchAdd(String index, String type, String id, String json, String parent);
+    void addBatch(String index, String type, String id, String json, String parent);
 
     /**
      * Add an document indexing to batch processing
      * document source given as a JSON Map
      */
-    void batchAdd(String index, String type, String id, Map<String, Object> json);
+    void addBatch(String index, String type, String id, Map<String, Object> json);
 
     /**
      * Add a document indexing, with parent, to batch processing
      * document source given as a JSON Map
      */
-    void batchAdd(String index, String type, String id, Map<String, Object> json, String parent);
+    void addBatch(String index, String type, String id, Map<String, Object> json, String parent);
 
     /**
      * Add a document indexing, with parent, to batch processing
      * document source given as an Object of type {@code T}
      */
-    <T extends Entity> void batchAdd(String index, T obj);
+    <T extends Entity> void addBatch(String index, T obj);
 
 
     /**
