@@ -72,7 +72,7 @@ import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
  * {@link org.icij.datashare.text.indexing.AbstractIndexer}
  * {@link Type#ELASTICSEARCH}
  *
- * <a href="https://www.elastic.co/products/elasticsearch">Elasticsearch v5.1.1</a>
+ * <a href="https://www.elastic.co/products/elasticsearch">Elasticsearch v5.4.1</a>
  *
  * Created by julien on 6/15/16.
  */
@@ -122,13 +122,15 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     @Override
     public void close() {
-        LOGGER.info("Closing connection");
+        LOGGER.info("Closing Elasticsearch connection");
         try {
-            bulkProcessor.awaitClose(2, TimeUnit.SECONDS);
+            LOGGER.info("Awaiting bulk processor termination...");
+            bulkProcessor.awaitClose(10, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
             LOGGER.error("Failed to close batch processor", e);
         }
         client.close();
+        LOGGER.info("Elasticsearch connection closed");
     }
 
 
@@ -279,35 +281,35 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     // __________ Batched Add Document(s) __________
 
     @Override
-    public void batchAdd(String index, String type, String id, String json) {
+    public void addBatch(String index, String type, String id, String json) {
         bulkProcessor.add( new IndexRequest(index, type, id).source(json) );
     }
 
     @Override
-    public void batchAdd(String index, String type, String id, String json, String parent) {
+    public void addBatch(String index, String type, String id, String json, String parent) {
         bulkProcessor.add( new IndexRequest(index, type, id).source(json).parent(parent) );
     }
 
     @Override
-    public void batchAdd(String index, String type, String id, Map<String, Object> json) {
+    public void addBatch(String index, String type, String id, Map<String, Object> json) {
         bulkProcessor.add( new IndexRequest(index, type, id).source(json) );
     }
 
     @Override
-    public void batchAdd(String index, String type, String id, Map<String, Object> json, String parent) {
+    public void addBatch(String index, String type, String id, Map<String, Object> json, String parent) {
         bulkProcessor.add( new IndexRequest(index, type, id).source(json).parent(parent) );
     }
 
     @Override
-    public <T extends Entity> void batchAdd(String index, T obj) {
+    public <T extends Entity> void addBatch(String index, T obj) {
         final String              type   = JsonObjectMapper.getType(obj);
         final String              id     = JsonObjectMapper.getId(obj);
         final Map<String, Object> json   = JsonObjectMapper.getJson(obj);
         final Optional<String>    parent = JsonObjectMapper.getParent(obj);
         if (parent.isPresent())
-            batchAdd(index, type, id, json, parent.get());
+            addBatch(index, type, id, json, parent.get());
         else
-            batchAdd(index, type, id, json);
+            addBatch(index, type, id, json);
     }
 
 
@@ -811,22 +813,30 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         return ! resp.isTimedOut();
     }
 
+    /**
+     * Bulk processor flushes every 2000 actions, or 5MB of data or 10 seconds and
+     * it allows 1 action to be executed while accumullating requests.
+     *
+     * @return
+     */
     private BulkProcessor buildBulkProcessor() {
         return BulkProcessor.builder(client,
                 new BulkProcessor.Listener() {
                     public void beforeBulk(long executionId, BulkRequest request) {
-                        LOGGER.info(String.valueOf(request.numberOfActions()));
+                        LOGGER.info("INDEXING - BULK PROCESSING of " + String.valueOf(request.numberOfActions()) + " actions");
                     }
                     public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
-                        LOGGER.info(String.valueOf(response.hasFailures()));
+                        if ( ! response.hasFailures()) {
+                            LOGGER.info("INDEXING - BULK PROCESSING TOOK: " + String.valueOf(response.getTook()));
+                        }
                     }
                     public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
-                        LOGGER.error(String.valueOf(request.toString()), failure);
+                        LOGGER.error("INDEXING - BULK PROCESSOR FAILED: " + String.valueOf(request.toString()), failure);
                     }
                 })
-                .setBulkActions(100)
-                .setBulkSize(new ByteSizeValue(250, ByteSizeUnit.MB))
-                .setFlushInterval(timeValueSeconds(5))
+                .setBulkActions(2000)
+                .setBulkSize(new ByteSizeValue(5, ByteSizeUnit.MB))
+                .setFlushInterval(timeValueSeconds(10))
                 .setConcurrentRequests(1)
                 .setBackoffPolicy(BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(100), 3))
                 .build();

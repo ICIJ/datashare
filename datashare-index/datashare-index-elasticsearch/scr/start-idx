@@ -1,4 +1,4 @@
 #!/bin/bash
 
-ES_VERSION="5.2.2"
+ES_VERSION="5.4.1"
 ES_JAVA_OPTS="-Xms1500M -Xmx1500M -Dfile.encoding=UTF-8" ./opt/elasticsearch-$ES_VERSION/bin/elasticsearch -p idx.pid -d
