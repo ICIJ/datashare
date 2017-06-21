@@ -3,6 +3,9 @@ package org.icij.datashare.text;
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static java.util.Collections.emptyList;
 import static java.util.Arrays.fill;
 
@@ -59,16 +62,19 @@ public final class NamedEntity implements Entity {
 
         public String getAbbreviation() { return abbreviation; }
 
-        public static Optional<Category> parse(String entity) {
-            if (entity == null || entity.isEmpty())
+        public static Optional<Category> parse(String entityCategory) {
+            if (entityCategory == null || entityCategory.isEmpty())
                 return Optional.empty();
-            if (entity.trim().equals("0") || entity.trim().equals("O"))
+            if (entityCategory.trim().equals("0") || entityCategory.trim().equals("O"))
                 return Optional.of(NONE);
             try {
-                return Optional.of(valueOf(entity.toUpperCase(Locale.ROOT)));
+                return Optional.of(valueOf(entityCategory.toUpperCase(Locale.ROOT)));
             } catch (IllegalArgumentException e) {
+                String normEntityCategory = removePattFrom.apply("^I-").apply(entityCategory);
                 for (Category cat : values()) {
-                    if ( removePattFrom.apply("^I-").apply(entity).equalsIgnoreCase(cat.getAbbreviation()))
+                    String catAbbreviation = cat.getAbbreviation();
+                    if (    normEntityCategory.equalsIgnoreCase(catAbbreviation) ||
+                            normEntityCategory.equalsIgnoreCase(catAbbreviation.substring(0, min(catAbbreviation.length(), 3))) )
                         return Optional.of(cat);
                 }
                 return Optional.empty();
