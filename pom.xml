@@ -96,13 +96,12 @@
         <!-- Testing -->
         <junit.version>4.12</junit.version>
 
-        <opennlp.version>1.7.2</opennlp.version>
+        <opennlp.version>1.6.0</opennlp.version>
 
         <!-- Maven Plugins -->
         <maven-compiler.version>3.5.1</maven-compiler.version>
         <maven-surefire.version>2.19.1</maven-surefire.version>
         <maven-jar.version>3.0.2</maven-jar.version>
-        <maven-play2.version>1.0.0-beta6-SNAPSHOT</maven-play2.version>
         <maven-assembly.version>2.6</maven-assembly.version>
         <maven-shade.version>2.4.3</maven-shade.version>
         <maven-dependency.version>2.10</maven-dependency.version>

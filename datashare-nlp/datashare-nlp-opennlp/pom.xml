@@ -15,11 +15,6 @@
     <packaging>jar</packaging>
 
 
-    <properties>
-        <opennlp.version>1.6.0</opennlp.version>
-    </properties>
-
-
     <dependencies>
 
         <!-- Datashare Api -->

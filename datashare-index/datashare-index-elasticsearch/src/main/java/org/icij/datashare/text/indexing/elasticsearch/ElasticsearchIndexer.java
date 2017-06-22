@@ -82,7 +82,12 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     public static final Path HOME = Paths.get( System.getProperty("user.dir"), "opt", "elasticsearch-" + VERSION);
 
-    private static final int INDEX_MAX_RESULT_WINDOW = 50000;
+    private static final int INDEX_MAX_RESULT_WINDOW = 100000;
+    
+    private static final int           BULKPROCESSOR_FLUSH_ACTIONS   = 2000;
+    private static final ByteSizeValue BULKPROCESSOR_FLUSH_SIZE      = new ByteSizeValue(5, ByteSizeUnit.MB);
+    private static final TimeValue     BULKPROCESSOR_FLUSH_TIME      = timeValueSeconds(20);
+    private static final int           BULKPROCESSOR_CONCURRENT_REQS = 1;
 
     private static final Map<NodeType, ClusterHealthStatus> CLUSTER_UP_STATUS =
             new HashMap<NodeType, ClusterHealthStatus>() {{
@@ -177,7 +182,10 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     public boolean commitIndices(String... indices) {
         try {
             final FlushRequest   req = new FlushRequest(indices);
-            final FlushResponse resp = client.admin().indices().flush(req).get();
+            final FlushResponse resp = client.admin()
+                    .indices()
+                    .flush(req)
+                    .get();
             return resp.getFailedShards() > 1;
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to flush indices " + String.join(", ", asList(indices)),e);
@@ -814,30 +822,30 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     }
 
     /**
-     * Bulk processor flushes every 2000 actions, or 5MB of data or 10 seconds and
-     * it allows 1 action to be executed while accumullating requests.
-     *
-     * @return
+     * @return new {@link BulkProcessor} instance which flushes when reached
+     *   - {@link this#BULKPROCESSOR_FLUSH_ACTIONS} index actions or
+     *   - {@link this#BULKPROCESSOR_FLUSH_SIZE} of data or
+     *   - {@link this#BULKPROCESSOR_FLUSH_TIME} has passed and
+     * and allows {@link this#BULKPROCESSOR_CONCURRENT_REQS} actions to be executed while accumullating bulk requests.
      */
     private BulkProcessor buildBulkProcessor() {
-        return BulkProcessor.builder(client,
+        return BulkProcessor.builder( client,
                 new BulkProcessor.Listener() {
                     public void beforeBulk(long executionId, BulkRequest request) {
                         LOGGER.info("INDEXING - BULK PROCESSING of " + String.valueOf(request.numberOfActions()) + " actions");
                     }
                     public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
-                        if ( ! response.hasFailures()) {
+                        if ( ! response.hasFailures())
                             LOGGER.info("INDEXING - BULK PROCESSING TOOK: " + String.valueOf(response.getTook()));
-                        }
                     }
                     public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
                         LOGGER.error("INDEXING - BULK PROCESSOR FAILED: " + String.valueOf(request.toString()), failure);
                     }
                 })
-                .setBulkActions(2000)
-                .setBulkSize(new ByteSizeValue(5, ByteSizeUnit.MB))
-                .setFlushInterval(timeValueSeconds(10))
-                .setConcurrentRequests(1)
+                .setBulkActions(BULKPROCESSOR_FLUSH_ACTIONS)
+                .setBulkSize(BULKPROCESSOR_FLUSH_SIZE)
+                .setFlushInterval(BULKPROCESSOR_FLUSH_TIME)
+                .setConcurrentRequests(BULKPROCESSOR_CONCURRENT_REQS)
                 .setBackoffPolicy(BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(100), 3))
                 .build();
     }

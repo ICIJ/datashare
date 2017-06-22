@@ -17,7 +17,8 @@
     <properties>
         <play2.version>2.5.9</play2.version>
         <scala.version>2.11.7</scala.version>
-        <sbt-compiler.plugin.version>1.0.0-beta9</sbt-compiler.plugin.version>
+        <sbt-compiler.plugin.version>1.0.0</sbt-compiler.plugin.version>
+        <maven-play2.version>1.0.0-beta9</maven-play2.version>
     </properties>
 
 
@@ -137,42 +138,6 @@
             <!-- Test -->
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-            </plugin>
-
-            <!-- Install -->
-            <plugin>
-                <artifactId>maven-install-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>install-play2-maven-plugin-jar</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <groupId>com.google.code.play2-maven-plugin</groupId>
-                            <artifactId>play2-maven-plugin</artifactId>
-                            <version>${maven-play2.version}</version>
-                            <packaging>jar</packaging>
-                            <file>${project.basedir}/lib/play2-maven-plugin-${maven-play2.version}.jar</file>
-                            <generatePom>false</generatePom>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>install-play2-maven-plugin-pom</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <groupId>com.google.code.play2-maven-plugin</groupId>
-                            <artifactId>play2-maven-plugin</artifactId>
-                            <version>${maven-play2.version}</version>
-                            <packaging>pom</packaging>
-                            <file>${project.basedir}/lib/play2-maven-plugin-${maven-play2.version}.pom</file>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>
