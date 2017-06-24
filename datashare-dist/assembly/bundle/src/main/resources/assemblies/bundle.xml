@@ -10,7 +10,7 @@
 
     <fileSets>
 
-        <!-- src/main/resources -->
+        <!-- src -->
         <fileSet>
             <directory>src/main/resources</directory>
             <outputDirectory>src/main/resources</outputDirectory>

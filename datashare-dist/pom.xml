@@ -220,12 +220,20 @@
 
 
     <build>
+
         <plugins>
 
             <!-- Assembly -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
+                    <execution>
+                        <id>assembly</id>
+                        <phase>none</phase>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </execution>
                     <execution>
                         <phase>package</phase>
                         <id>make-dist</id>
@@ -246,12 +254,3 @@
 
 
 </project>
-
-
-
-<!--&lt;!&ndash; Logback &ndash;&gt;-->
-<!--<dependency>-->
-<!--<groupId>ch.qos.logback</groupId>-->
-<!--<artifactId>logback-classic</artifactId>-->
-<!--<scope>runtime</scope>-->
-<!--</dependency>-->

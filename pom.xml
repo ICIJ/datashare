@@ -32,14 +32,12 @@
 
     <modules>
         <module>datashare-api</module>
+        <module>datashare-cli</module>
         <module>datashare-extract</module>
         <module>datashare-index</module>
         <module>datashare-nlp</module>
-        <module>datashare-cli</module>
         <module>datashare-web</module>
-
         <module>datashare-dist</module>
-        <module>datashare-dist/assembly</module>
     </modules>
 
 
@@ -50,18 +48,18 @@
         <project.build.jdk.source>1.8</project.build.jdk.source>
         <project.build.jdk.target>1.8</project.build.jdk.target>
 
-        <!-- Datashare Modules -->
         <datashare-api.version>${project.version}</datashare-api.version>
         <datashare-cli.version>${project.version}</datashare-cli.version>
         <datashare-play.version>${project.version}</datashare-play.version>
         <datashare-tika.version>${project.version}</datashare-tika.version>
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
-        <datashare-nlp.version>${project.version}</datashare-nlp.version>
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
         <datashare-opennlp.version>${project.version}</datashare-opennlp.version>
         <datashare-gate.version>${project.version}</datashare-gate.version>
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-ixapipe.version>${project.version}</datashare-ixapipe.version>
+
+        <opennlp.version>1.6.0</opennlp.version>
 
         <!-- Json -->
         <jackson.version>2.8.5</jackson.version>
@@ -96,8 +94,6 @@
         <!-- Testing -->
         <junit.version>4.12</junit.version>
 
-        <opennlp.version>1.6.0</opennlp.version>
-
         <!-- Maven Plugins -->
         <maven-compiler.version>3.5.1</maven-compiler.version>
         <maven-surefire.version>2.19.1</maven-surefire.version>
@@ -115,6 +111,7 @@
 
 
     <dependencyManagement>
+
         <dependencies>
 
             <!-- Datashare Api -->
@@ -203,7 +200,6 @@
                 <scope>runtime</scope>
             </dependency>
 
-
             <!-- Unidecode -->
             <dependency>
                 <groupId>me.xuender</groupId>
@@ -283,23 +279,15 @@
             </dependency>
 
             <!-- Upgraded from 5.2 (Tika dep) to avoid exception:
-                 Caused by: java.lang.NoSuchMethodError:
+                 Caused by: java.lang.NoSuchMethodError:x
                  jj2000.j2k.fileformat.reader.FileFormatReader.<init>(
                  Ljj2000/j2k/io/RandomAccessIO;Lcom/sun/media/imageioimpl/plugins/
-                 jpeg2000/J2KMetadata;)V
+                 jpeg2000/J2KMetadata;)
              -->
             <dependency>
                 <groupId>edu.ucar</groupId>
                 <artifactId>jj2000</artifactId>
                 <version>5.3</version>
-            </dependency>
-
-            <!-- OpenNlp -->
-            <dependency>
-                <groupId>org.apache.opennlp</groupId>
-                <artifactId>opennlp-tools</artifactId>
-                <version>${opennlp.version}</version>
-                <scope>provided</scope>
             </dependency>
 
             <!-- Log4j -->
@@ -371,12 +359,14 @@
             </dependency>
 
         </dependencies>
+
     </dependencyManagement>
 
 
     <build>
 
         <pluginManagement>
+
             <plugins>
 
                 <!-- Compile -->
@@ -392,6 +382,7 @@
                         <showDeprecation>true</showDeprecation>
                     </configuration>
                 </plugin>
+
                 <!-- Jar -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -406,6 +397,7 @@
                         </archive>
                     </configuration>
                 </plugin>
+
                 <!-- Assembly -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -535,6 +527,7 @@
                 </plugin>
 
             </plugins>
+
         </pluginManagement>
 
 
@@ -546,7 +539,6 @@
                 <version>${maven-javadoc.version}</version>
             </plugin>
         </plugins>
-
 
     </build>
 

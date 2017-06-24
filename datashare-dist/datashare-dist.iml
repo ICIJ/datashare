@@ -251,7 +251,7 @@
     <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-french:3.8.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: edu.stanford.nlp:stanford-corenlp:models-german:3.8.0" level="project" />
     <orderEntry type="module" module-name="datashare-nlp-opennlp" scope="RUNTIME" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.opennlp:opennlp-tools:1.6.0" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Maven: org.apache.opennlp:opennlp-tools:1.6.0" level="project" />
     <orderEntry type="module" module-name="datashare-nlp-gate" scope="RUNTIME" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: es.upm.oeg:entity-extractor:1.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: es.upm.oeg:entity-extractor-lib:1.1" level="project" />
