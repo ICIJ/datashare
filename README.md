@@ -158,8 +158,9 @@ Web API
 ## Compilation / Build
 
 Requires 
-[JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) and 
-[Maven 3](http://maven.apache.org/download.cgi)
+[JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html),
+[Maven 3](http://maven.apache.org/download.cgi) and
+[Git LFS](https://help.github.com/articles/installing-git-large-file-storage/)
 
 From `datashare` root directory, type: `mvn package`
 
@@ -277,21 +278,39 @@ Node
 
 #### Web Server
 
+**`./start-ws-with-idx`**
+
+Starts local elasticsearch node and then the web server.
+
 **`./start-ws`**
+
+Start the web server only. 
+
+Define remote Elasticsearch nodes to connect to with the following environnement variables.
+
+`export WEB_APPLICATION_INDEXER_TYPE="ELASTICSEARCH"`
+
+`export WEB_APPLICATION_INDEXER_NODETYPE="REMOTE"`
+
+`export WEB_APPLICATION_INDEXER_HOSTS="host-1.cluster.es,host-2.cluster.es,host-3.cluster.es"`
+
+`export WEB_APPLICATION_INDEXER_PORTS="9100,9200,9300"`
+
+USAGE
 
 *See all routes at `datashare/datashare-web/datashare-web-play/conf/routes`*
 
-*Processing examples:*
+*PROCESSING examples:*
 
   - `curl -XPOST 'localhost:9000/datashare/process/<INPUT_DIR>'`
   
   - `curl -XPOST 'localhost:9000/datashare/process/<INPUT_DIR>?parallelism=2'`
   
-NB: concrete `INPUT_DIR` is evaluated on web server and must be escaped, eg `%2Fpath%2Fto%2Fsource%2Fdocs`
+*nb*: concrete `INPUT_DIR` is evaluated on web server and must be escaped, eg `%2Fpath%2Fto%2Fsource%2Fdocs`
 
 TODO: pass options as JSON
 
-*Indexing examples:*
+*INDEXING examples:*
   
   - list all indices: `curl -XGET 'localhost:9000/datashare/index'`
     
