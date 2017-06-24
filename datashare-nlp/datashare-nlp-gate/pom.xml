@@ -16,7 +16,8 @@
 
 
     <properties>
-        <gatenlp.version>1.1</gatenlp.version>
+        <entity-extractor.version>1.1</entity-extractor.version>
+        <entity-extractor-lib.version>1.1</entity-extractor-lib.version>
     </properties>
 
 
@@ -32,13 +33,13 @@
         <dependency>
             <groupId>es.upm.oeg</groupId>
             <artifactId>entity-extractor</artifactId>
-            <version>${gatenlp.version}</version>
+            <version>${entity-extractor.version}</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>es.upm.oeg</groupId>
             <artifactId>entity-extractor-lib</artifactId>
-            <version>${gatenlp.version}</version>
+            <version>${entity-extractor-lib.version}</version>
             <type>jar</type>
         </dependency>
 
@@ -286,7 +287,7 @@
                         <configuration>
                             <groupId>es.upm.oeg</groupId>
                             <artifactId>entity-extractor</artifactId>
-                            <version>1.1</version>
+                            <version>${entity-extractor.version}</version>
                             <packaging>jar</packaging>
                             <file>${project.basedir}/lib/entity-extractor.jar</file>
                             <generatePom>true</generatePom>
@@ -301,7 +302,7 @@
                         <configuration>
                             <groupId>es.upm.oeg</groupId>
                             <artifactId>entity-extractor-lib</artifactId>
-                            <version>1.1</version>
+                            <version>${entity-extractor-lib.version}</version>
                             <packaging>jar</packaging>
                             <file>${project.basedir}/lib/entity-extractor-lib.jar</file>
                             <generatePom>true</generatePom>

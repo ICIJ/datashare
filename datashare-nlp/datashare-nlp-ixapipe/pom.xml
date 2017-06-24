@@ -114,8 +114,8 @@
                 <executions>
                     <!-- ixa-pipe-tok -->
                     <execution>
-                        <phase>validate</phase>
                         <id>install-ixa-pipe-tok</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>
@@ -130,8 +130,8 @@
                     </execution>
                     <!-- ixa-pipe-pos -->
                     <execution>
-                        <phase>validate</phase>
                         <id>install-ixa-pipe-pos</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>
@@ -146,8 +146,8 @@
                     </execution>
                     <!-- ixa-pipe-nerc -->
                     <execution>
-                        <phase>validate</phase>
                         <id>install-ixa-pipe-nerc</id>
+                        <phase>validate</phase>
                         <goals>
                             <goal>install-file</goal>
                         </goals>

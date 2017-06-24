@@ -9,8 +9,6 @@
     <file url="file://$PROJECT_DIR$/datashare-dist/assembly/bundle" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/datashare-extract" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/datashare-extract/datashare-extract-tika" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/datashare-extract/datashare-extract-tika-tess4j" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/datashare-extract/datashare-extract-tika-tess4j" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/datashare-index" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/datashare-index/datashare-index-elasticsearch" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/datashare-nlp" charset="UTF-8" />
