@@ -1,13 +1,10 @@
 #!/bin/bash
 
-scriptdir=`pwd $0`
+dir=`pwd $0`
 
-classpath="$scriptdir/lib/*"
+classpath="${dir}/lib/*"
 
-export PATH=$PATH:"$classpath"
-export LD_LIBRARY_PATH="$classpath"${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-export DYLD_LIBRARY_PATH="$classpath"${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}
-
-exec java -Xms1500M -Dfile.encoding=UTF-8 -cp "$classpath" org.icij.datashare.cli.DataShareCli $*
-
-# PATH=$PATH:"$classpath" LD_LIBRARY_PATH="$classpath"${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} java -Xms1500M -Dfile.encoding=UTF-8 -cp "$classpath" org.icij.datashare.cli.DataShareCli $*
+PATH=$PATH:"$classpath" \
+LD_LIBRARY_PATH="$classpath"${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} \
+DYLD_LIBRARY_PATH="$classpath"${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH} \
+java -Xms1500M -Dfile.encoding="UTF-8" -cp "$classpath" org.icij.datashare.cli.DataShareCli $*

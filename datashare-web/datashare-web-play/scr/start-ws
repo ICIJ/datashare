@@ -1,17 +1,16 @@
 #!/bin/bash
 
-scriptdir=`pwd $0`
+dir=`pwd $0`
 
-classpath="${scriptdir}/lib/*"
+classpath="${dir}/lib/*"
 
 i=0
 while read subdir
 do
     subdirs[$i]="${subdir}/lib/*"
     (( i++ ))
-done < <(ls -d ./lib/*)
-scriptsubdirs=$( IFS=$':'; echo "${subdirs[*]}" )
-classpath="${classpath}:${scriptsubdirs}"
+done < <(ls -d ${dir}/lib/*/)
+subdirs=$( IFS=$':'; echo "${subdirs[*]}" )
+classpath="${classpath}:${subdirs}"
 
-# Start web server
-exec java $* -Xms2000M -Dfile.encoding=UTF-8 -Dpidfile.path=ws.pid -cp "$classpath" play.core.server.ProdServerStart "$scriptdir"
+java $* -Xms2000M -Dfile.encoding="UTF-8" -Dpidfile.path="ws.pid" -cp "$classpath" play.core.server.ProdServerStart "$dir"

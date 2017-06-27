@@ -1,4 +1,3 @@
 #!/bin/bash
 
-# Start index, wait 3 seconds, start web server, stop index when web server exits
 ./start-idx && sleep 3 && ./start-ws $* && ./stop-idx
