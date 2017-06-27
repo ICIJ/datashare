@@ -13,7 +13,7 @@
     <groupId>org.icij.assembly</groupId>
     <artifactId>bundle</artifactId>
     <version>1.0.0</version>
-    <packaging></packaging>
+    <packaging>jar</packaging>
 
 
     <name>bundle</name>
