@@ -264,6 +264,7 @@
                 <scope>provided</scope>
             </dependency>
 
+            <!-- Xslt Processor -->
             <dependency>
                 <groupId>xalan</groupId>
                 <artifactId>xalan</artifactId>
@@ -271,6 +272,7 @@
                 <scope>provided</scope>
             </dependency>
 
+            <!-- Xml Parser -->
             <dependency>
                 <groupId>xerces</groupId>
                 <artifactId>xercesImpl</artifactId>

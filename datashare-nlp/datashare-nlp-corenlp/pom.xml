@@ -95,7 +95,7 @@
                     <execution>
                         <configuration>
                             <relocations>
-                                <!-- Isolate lucene from elasticsearch -->
+                                <!-- Isolate this lucene from elasticsearch's -->
                                 <relocation>
                                     <pattern>org.apache.lucene</pattern>
                                     <shadedPattern>for.corenlp.org.apache.lucene</shadedPattern>
