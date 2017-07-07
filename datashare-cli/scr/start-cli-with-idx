@@ -4,4 +4,4 @@ scriptdir=`pwd $0`
 
 classpath="$scriptdir/lib/*"
 
-./start-idx && sleep 3 && ./start-cli $* && ./stop-idx
+./start-idx && ./start-cli $* && ./stop-idx

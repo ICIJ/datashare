@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./start-idx && sleep 3 && ./start-ws $* && ./stop-idx
+./start-idx && ./start-ws $* && ./stop-idx
