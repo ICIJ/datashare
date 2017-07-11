@@ -20,6 +20,7 @@ import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.nlp.NlpPipeline;
 import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Tag;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 import static org.icij.datashare.text.nlp.NlpStage.POS;
@@ -176,7 +177,15 @@ public final class NamedEntity implements Entity {
                 .collect ( Collectors.toList() );
     }
 
-    private static Optional<NamedEntity> from(String text, Tag tag, Annotation annotation) {
+    public static List<NamedEntity> allFrom(String text, Annotation annotation) {
+        return annotation.get(NER).stream()
+                .map     ( tag -> from(text, tag, annotation) )
+                .filter  ( Optional::isPresent )
+                .map     ( Optional::get )
+                .collect ( Collectors.toList() );
+    }
+
+    public static Optional<NamedEntity> from(String text, Tag tag, Annotation annotation) {
         Optional<NamedEntity.Category> category = NamedEntity.Category.parse(tag.getValue());
         if ( ! category.isPresent())
             return Optional.empty();

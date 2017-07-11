@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.hazelcast.core.*;
 
+import org.icij.datashare.text.Language;
 import org.icij.datashare.text.SourcePath;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
@@ -21,6 +22,7 @@ import org.icij.datashare.text.extraction.FileParser;
 import org.icij.datashare.text.extraction.FileParsing;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.Indexing;
+import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.NlpPipeline;
 import org.icij.datashare.text.nlp.NamedEntityRecognition;
 import org.icij.datashare.text.nlp.NlpStage;

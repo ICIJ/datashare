@@ -51,7 +51,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
 
 
     protected AbstractNlpPipeline(Properties properties) {
-        targetEntities = getProperty(Property.ENCODING.getName(), properties,
+        targetEntities = getProperty(Property.ENTITIES.getName(), properties,
                 removeSpaces
                         .andThen(splitComma)
                         .andThen(NamedEntity.Category.parseAll))
@@ -110,7 +110,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
      * {@inheritDoc}
      */
     @Override
-    public Optional<Annotation>  run(Path path, Language language) {
+    public Optional<Annotation> run(Path path, Language language) {
         Optional<Document> document = Document.create(path);
         if ( ! document.isPresent())
             return Optional.empty();
@@ -121,7 +121,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
      * {@inheritDoc}
      */
     @Override
-    public Optional<Annotation>  run(Document document) {
+    public Optional<Annotation> run(Document document) {
         Optional<Language> language = document.getLanguage();
         if ( ! language.isPresent() || language.get().equals(UNKNOWN)) {
             LOGGER.info(getClass().getName() + " - UNKNOWN language; ABORTING PROCESSING...");
@@ -134,7 +134,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
      * {@inheritDoc}
      */
     @Override
-    public Optional<Annotation>  run(Document document, Language language) {
+    public Optional<Annotation> run(Document document, Language language) {
         return run(document.getContent(), language);
      }
 
@@ -142,10 +142,9 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
      * {@inheritDoc}
      */
     @Override
-    public Optional<Annotation>  run(String input, Language language) {
+    public Optional<Annotation> run(String input, Language language) {
         if (input.isEmpty())
             return Optional.empty();
-
         Optional<Annotation> annotation = Optional.empty();
         if (initialize(language)) {
             try{

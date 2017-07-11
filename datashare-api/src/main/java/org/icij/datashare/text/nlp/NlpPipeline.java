@@ -149,6 +149,19 @@ public interface NlpPipeline {
     }
 
     /**
+     * Instantiate a concrete default {@code NlpPipeline}
+     *
+     * @param type the {@link Type} enum value denoting a {@code NlpPipeline} implementation
+     * @return the corresponding NlpPipeline implementation instance if succeeded; empty Optional otherwise
+     * @see Type
+     * @see EnumTypeToken
+     * @see Property
+     */
+    static Optional<NlpPipeline> create(Type type) {
+        return create(type, new Properties());
+    }
+
+    /**
      * Instantiate a default concrete {@code NlpPipeline}
      *
      * @return the corresponding NlpPipeline implementation instance if succeeded; empty Optional otherwise
@@ -170,7 +183,7 @@ public interface NlpPipeline {
      *
      * @param document the document to process
      */
-    Optional<Annotation>  run(Document document);
+    Optional<Annotation> run(Document document);
 
     /**
      * Run pipeline on a {@link  org.icij.datashare.text.Document}
@@ -179,7 +192,7 @@ public interface NlpPipeline {
      * @param document the document to process
      * @param language the forced processing language
      */
-    Optional<Annotation>  run(Document document, Language language);
+    Optional<Annotation> run(Document document, Language language);
 
     /**
      * Run pipeline on a {@link Path}
@@ -187,7 +200,7 @@ public interface NlpPipeline {
      *
      * @param path the file Path to process
      */
-    Optional<Annotation>  run(Path path);
+    Optional<Annotation> run(Path path);
 
     /**
      * Run pipeline from a {@link Path}
@@ -196,7 +209,7 @@ public interface NlpPipeline {
      * @param path     the file Path to process
      * @param language the forced processing language
      */
-    Optional<Annotation>  run(Path path, Language language);
+    Optional<Annotation> run(Path path, Language language);
 
     /**
      * Run pipeline on a {@link String}
@@ -205,7 +218,7 @@ public interface NlpPipeline {
      * @param text the input string to process
      * @see #DEFAULT_LANGUAGE
      */
-    default Optional<Annotation>  run(String text) {
+    default Optional<Annotation> run(String text) {
         if (text.isEmpty())
             return Optional.empty();
         return run(text, DEFAULT_LANGUAGE);
@@ -217,7 +230,7 @@ public interface NlpPipeline {
      * @param text     the input string to process
      * @param language the forced processing language
      */
-    Optional<Annotation>  run(String text, Language language);
+    Optional<Annotation> run(String text, Language language);
 
     /**
      * Is stage supported for language?

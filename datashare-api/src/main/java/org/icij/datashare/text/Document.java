@@ -2,7 +2,6 @@ package org.icij.datashare.text;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -58,7 +57,7 @@ public final class Document implements Entity, DataSerializable {
                                             FileParser.Type parserType) {
         try {
             return Optional.of( new Document(path, content, language, encoding, mimeType, parserType, metadata) );
-        } catch (IllegalStateException | FileParserException | HasherException e) {
+        } catch (IllegalStateException | HasherException e) {
             LOGGER.error("Failed to create document", e);
             return Optional.empty();
         }
@@ -141,16 +140,7 @@ public final class Document implements Entity, DataSerializable {
                      String              mimeType,
                      FileParser.Type     parserType,
                      Map<String, String> metadata)
-            throws NullPointerException, IllegalArgumentException, FileParserException, HasherException {
-        if ( ! Files.exists(path)) {
-            throw new IllegalArgumentException("File " + path + " does not exist.");
-        }
-        if ( ! Files.isRegularFile(path)) {
-            throw new IllegalArgumentException("File " + path + " is not a regular file.");
-        }
-        if ( ! Files.isReadable(path)) {
-            throw new IllegalArgumentException("File " + path + " is not readable.");
-        }
+            throws HasherException {
         this.path = path;
         this.content = content;
         this.hash = HASHER.hash(content);
