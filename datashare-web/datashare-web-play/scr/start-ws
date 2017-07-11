@@ -11,6 +11,7 @@ do
     (( i++ ))
 done < <(ls -d ${dir}/lib/*/)
 subdirs=$( IFS=$':'; echo "${subdirs[*]}" )
+
 classpath="${classpath}:${subdirs}"
 
 java $* -Xms2000M -Dfile.encoding="UTF-8" -Dpidfile.path="ws.pid" -cp "$classpath" play.core.server.ProdServerStart "$dir"

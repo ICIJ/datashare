@@ -3,16 +3,21 @@
 dir=`pwd $0`
 
 ES_VERSION="5.4.1"
+ES_HOME="${dir}/opt/elasticsearch-${ES_VERSION}"
+ES_INIT_FLAG="${ES_HOME}/config/datashare-init"
 
-init_flag_file="${dir}/opt/elasticsearch-${ES_VERSION}/config/datashare-init"
-
-if [ -f ${init_flag_file} ]; then
+if [ -f ${ES_INIT_FLAG} ]; then
   exit 0
 fi
 
 echo "____________________"
 echo "INDEX INITIALIZATION"
 echo "____________________"
+
+ES_PLUGINS_DIR="${ES_HOME}/plugins"
+if [ -d ${ES_PLUGINS_DIR} ]; then
+  mkdir ${ES_PLUGINS_DIR}
+fi
 
 sleep 7
 
@@ -67,10 +72,10 @@ curl -XPUT 'localhost:9200/_template/datashare_mappings?pretty' -H 'Content-Type
 echo -e "\nCREATING INDEX datashare-local..."
 curl -XPUT 'localhost:9200/datashare-local?pretty'
 
-touch ${init_flag_file}
+touch ${ES_INIT_FLAG}
 
 echo "____________________"
-echo -e "\nINDEX INITIALIZATION DONE."
+echo "INDEX INITIALIZATION DONE"
 echo "____________________"
 
-sleep 5
+sleep 3

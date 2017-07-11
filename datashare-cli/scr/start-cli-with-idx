@@ -1,7 +1,5 @@
 #!/bin/bash
 
-scriptdir=`pwd $0`
+dir=`pwd $0`
 
-classpath="$scriptdir/lib/*"
-
-./start-idx && ./start-cli $* && ./stop-idx
+${dir}/start-idx && ${dir}/start-cli $* && ${dir}/stop-idx
