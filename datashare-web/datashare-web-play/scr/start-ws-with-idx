@@ -1,3 +1,5 @@
 #!/bin/bash
 
-./start-idx && ./start-ws $* && ./stop-idx
+dir=`pwd $0`
+
+${dir}/start-idx && ${dir}/start-ws $* && ${dir}/stop-idx

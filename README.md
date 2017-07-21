@@ -288,13 +288,13 @@ Start the web server only.
 
 Define remote Elasticsearch nodes to connect to with the following environnement variables.
 
-`export WEB_APPLICATION_INDEXER_TYPE="ELASTICSEARCH"`
+`export DATASHARE_WEB_INDEXER_TYPE="ELASTICSEARCH"`
 
-`export WEB_APPLICATION_INDEXER_NODETYPE="REMOTE"`
+`export DATASHARE_WEB_INDEXER_NODETYPE="REMOTE"`
 
-`export WEB_APPLICATION_INDEXER_HOSTS="host-1.cluster.es,host-2.cluster.es,host-3.cluster.es"`
+`export DATASHARE_WEB_INDEXER_HOSTS="host-1.cluster.es,host-2.cluster.es,host-3.cluster.es"`
 
-`export WEB_APPLICATION_INDEXER_PORTS="9100,9200,9300"`
+`export DATASHARE_WEB_INDEXER_PORTS="9100,9200,9300"`
 
 USAGE
 

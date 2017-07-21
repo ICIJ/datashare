@@ -20,7 +20,7 @@ public class ApplicationTimer {
         this.appLifecycle = appLifecycle;
         // This code is called when the application starts.
         start = clock.instant();
-        Logger.info("ApplicationTimer demo: Starting application at " + start);
+        Logger.info("Starting application at " + start);
 
         // When the application starts, register a stop hook with the
         // ApplicationLifecycle object. The code inside the stop hook will
@@ -28,7 +28,7 @@ public class ApplicationTimer {
         appLifecycle.addStopHook(() -> {
             Instant stop = clock.instant();
             Long runningTime = stop.getEpochSecond() - start.getEpochSecond();
-            Logger.info("ApplicationTimer demo: Stopping application at " + clock.instant() + " after " + runningTime + "s.");
+            Logger.info("Stopping application at " + clock.instant() + " after " + runningTime + "s.");
             return CompletableFuture.completedFuture(null);
         });
     }

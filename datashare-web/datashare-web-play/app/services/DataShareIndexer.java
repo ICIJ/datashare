@@ -36,11 +36,16 @@ public class DataShareIndexer {
         String hosts     = configuration.getString("datashare.indexer.hosts");
         String ports     = configuration.getString("datashare.indexer.ports");
 
+        Logger.info("Indexer type: "      + type);
+        Logger.info("Indexer node type: " + nodeType);
+        Logger.info("Indexer hosts: "     + hosts);
+        Logger.info("Indexer ports: "     + ports);
+
         Indexer.Type indexerType = Indexer.Type.parse(type).orElse(DataShare.DEFAULT_INDEXER_TYPE);
         Properties indexerProperties = Indexer.Property.build
                 .apply(Indexer.NodeType.parse(nodeType).orElse(DataShare.DEFAULT_INDEXER_NODE_TYPE))
-                .apply(removeSpaces.andThen(splitComma).apply(hosts))
-                .apply(removeSpaces.andThen(splitComma).andThen(parseInts).apply(ports));
+                .apply(removeSpaces.andThen(splitComma).apply(Optional.ofNullable(hosts).orElse(DataShare.DEFAULT_INDEXER_NODE_HOSTS.toString())))
+                .apply(removeSpaces.andThen(splitComma).andThen(parseInts).apply(Optional.ofNullable(ports).orElse(DataShare.DEFAULT_INDEXER_NODE_PORTS.toString())));
 
         Logger.info("Opening " + indexerType + " Indexer\n" + indexerProperties);
         Optional<Indexer> indexerOpt = Indexer.create(indexerType, indexerProperties);
