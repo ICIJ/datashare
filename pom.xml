@@ -283,7 +283,7 @@
 
             <!-- Log4j -->
             <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
+                <groupId>org.apache.logging.log4j</groupId>git config --global user.name "Your Name"
                 <artifactId>log4j-api</artifactId>
                 <version>${log4j.version}</version>
                 <scope>provided</scope>

@@ -1,3 +1,5 @@
 target/
 out/
 dependency-reduced-pom.xml
+.idea/
+*.iml
