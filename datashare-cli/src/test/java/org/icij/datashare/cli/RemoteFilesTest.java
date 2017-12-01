@@ -5,7 +5,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,6 +21,7 @@ public class RemoteFilesTest {
     public TemporaryFolder folder = new TemporaryFolder();
 
     private final AmazonS3 s3Client = S3_MOCK_RULE.createS3Client();
+    private RemoteFiles remoteFiles = new RemoteFiles(s3Client, BUCKET_NAME);
 
     @Before
     public void setUp() {
@@ -34,17 +34,26 @@ public class RemoteFilesTest {
 
     @Test
     public void test_upload_download_file_at_root_directory() throws IOException {
-        final byte[] fileContent = {'c', 'o', 'n', 't', 'e', 'n', 't'};
         final String fileName = "file.txt";
         RemoteFiles remoteFiles = new RemoteFiles(s3Client, BUCKET_NAME);
 
         assertThat(remoteFiles.objectExists(fileName)).isFalse();
 
-        remoteFiles.upload(fileName, new ByteArrayInputStream(fileContent));
+        remoteFiles.upload(fileName, new File("src/test/resources/sampleFile.txt"));
         final File targetFolder = folder.newFolder();
         remoteFiles.download(fileName, targetFolder);
 
         byte[] content = Files.readAllBytes(Paths.get(targetFolder.getPath() + '/' + fileName));
-        assertThat(content).contains(fileContent);
+        assertThat(content).contains(Files.readAllBytes(Paths.get("src/test/resources/sampleFile.txt")));
     }
+
+    // to uncomment when the bug in S3Mock will be solved :
+    // cf https://github.com/adobe/S3Mock/issues/8
+//    @Test
+//    public void test_upload_file_in_sub_directory() throws FileNotFoundException {
+//        final String filePath = "path/to/a/file.txt";
+//        remoteFiles.upload(filePath, new File("src/test/resources/sampleFile.txt"));
+//
+//        assertThat(remoteFiles.objectExists(filePath)).isTrue();
+//    }
 }

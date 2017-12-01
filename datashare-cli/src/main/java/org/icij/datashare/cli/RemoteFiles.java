@@ -19,8 +19,10 @@ public class RemoteFiles {
         this.bucket = bucket;
     }
 
-    public void upload(final String key, final InputStream inputStream) {
-        s3Client.putObject(new PutObjectRequest(this.bucket, key, inputStream, new ObjectMetadata()));
+    public void upload(final String key, final File file) throws FileNotFoundException {
+        final ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(file.length());
+        s3Client.putObject(new PutObjectRequest(this.bucket, key, new FileInputStream(file), metadata));
     }
 
     public boolean objectExists(final String key) {
@@ -41,3 +43,4 @@ public class RemoteFiles {
         reader.close();
     }
 }
+
