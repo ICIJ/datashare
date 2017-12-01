@@ -6,9 +6,6 @@ import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -27,30 +24,40 @@ public class RemoteFilesTest {
     public void setUp() {
         s3Client.createBucket(BUCKET_NAME);
     }
+
     @After
     public void tearDown() {
         s3Client.deleteBucket(BUCKET_NAME);
     }
 
     @Test
-    public void test_upload_download_file_at_root_directory() throws IOException {
+    public void test_upload_download_file_with_key_at_root_directory() throws Exception {
         final String fileName = "file.txt";
-        RemoteFiles remoteFiles = new RemoteFiles(s3Client, BUCKET_NAME);
-
         assertThat(remoteFiles.objectExists(fileName)).isFalse();
 
         remoteFiles.upload(fileName, new File("src/test/resources/sampleFile.txt"));
-        final File targetFolder = folder.newFolder();
-        remoteFiles.download(fileName, targetFolder);
+        remoteFiles.download(fileName, new File(folder.getRoot().getPath() + '/' + fileName));
 
-        byte[] content = Files.readAllBytes(Paths.get(targetFolder.getPath() + '/' + fileName));
-        assertThat(content).contains(Files.readAllBytes(Paths.get("src/test/resources/sampleFile.txt")));
+        final File downloadedFile = new File(folder.getRoot().getPath() + '/' + fileName);
+        assertThat(downloadedFile).exists();
+        assertThat(downloadedFile).hasSameContentAs(new File("src/test/resources/sampleFile.txt"));
     }
 
-    // to uncomment when the bug in S3Mock will be solved :
+    // TODO: uncomment when the bug in S3Mock will be solved :
     // cf https://github.com/adobe/S3Mock/issues/8
+
 //    @Test
-//    public void test_upload_file_in_sub_directory() throws FileNotFoundException {
+//    public void test_upload_download_directory() throws IOException, InterruptedException {
+//        assertThat(remoteFiles.objectExists("prefix")).isFalse();
+//
+//        remoteFiles.upload(new File("src/test/resources"), "prefix");
+//        remoteFiles.download("prefix", folder.getRoot());
+//
+//        assertThat(new File(folder.getRoot().getPath() + "/prefix/sampleFile.txt")).exists();
+//    }
+//
+//    @Test
+//    public void test_upload_file_with_key_in_sub_directory() throws FileNotFoundException {
 //        final String filePath = "path/to/a/file.txt";
 //        remoteFiles.upload(filePath, new File("src/test/resources/sampleFile.txt"));
 //
