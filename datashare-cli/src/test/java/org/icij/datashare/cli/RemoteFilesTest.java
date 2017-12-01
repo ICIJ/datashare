@@ -35,7 +35,7 @@ public class RemoteFilesTest {
         final String fileName = "file.txt";
         assertThat(remoteFiles.objectExists(fileName)).isFalse();
 
-        remoteFiles.upload(fileName, new File("src/test/resources/sampleFile.txt"));
+        remoteFiles.upload(new File("src/test/resources/sampleFile.txt"), fileName);
         remoteFiles.download(fileName, new File(folder.getRoot().getPath() + '/' + fileName));
 
         final File downloadedFile = new File(folder.getRoot().getPath() + '/' + fileName);

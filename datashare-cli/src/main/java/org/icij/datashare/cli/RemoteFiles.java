@@ -27,24 +27,23 @@ public class RemoteFiles {
         this.bucket = bucket;
     }
 
-    public void upload(final String key, final File file) throws FileNotFoundException {
-        final ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(file.length());
-        s3Client.putObject(new PutObjectRequest(bucket, key, new FileInputStream(file), metadata));
-    }
+    public void upload(final File localFile, final String remoteKey) throws InterruptedException, FileNotFoundException {
+        if (localFile.isDirectory()) {
+            TransferManager transferManager = TransferManagerBuilder.standard().withS3Client(this.s3Client).build();
+            final MultipleFileUpload uploads = transferManager.uploadDirectory(bucket, remoteKey, localFile, true);
 
-    public void upload(File localFile, String remoteKey) throws InterruptedException {
-        TransferManager transferManager = TransferManagerBuilder.standard().withS3Client(this.s3Client).build();
-        final MultipleFileUpload uploads = transferManager.uploadDirectory(
-                bucket, remoteKey, localFile, true);
-
-        for (Upload upload : uploads.getSubTransfers()) {
-            upload.waitForUploadResult();
+            for (Upload upload : uploads.getSubTransfers()) {
+                upload.waitForUploadResult();
+            }
+            transferManager.shutdownNow();
+        } else {
+            final ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(localFile.length());
+            s3Client.putObject(new PutObjectRequest(bucket, remoteKey, new FileInputStream(localFile), metadata));
         }
-        transferManager.shutdownNow();
     }
 
-    public void download(String remoteKey, File localFile) throws InterruptedException, IOException {
+    public void download(final String remoteKey, final File localFile) throws InterruptedException, IOException {
         if (localFile.isDirectory()) {
             TransferManager transferManager = TransferManagerBuilder.standard().withS3Client(this.s3Client).build();
             transferManager.downloadDirectory(bucket, remoteKey, localFile).waitForCompletion();
@@ -59,7 +58,7 @@ public class RemoteFiles {
         return s3Client.doesObjectExist(this.bucket, key);
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, FileNotFoundException {
         AmazonS3 amazonS3 = AmazonS3ClientBuilder.standard().withRegion("us-east-1")
                 .withCredentials(new ClasspathPropertiesFileCredentialsProvider("s3.properties")).build();
         final RemoteFiles remoteFiles = new RemoteFiles(amazonS3, "s3.datashare.icij.org");
