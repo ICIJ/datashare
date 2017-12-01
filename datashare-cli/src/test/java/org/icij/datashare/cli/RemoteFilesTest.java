@@ -63,4 +63,20 @@ public class RemoteFilesTest {
 //
 //        assertThat(remoteFiles.objectExists(filePath)).isTrue();
 //    }
+
+    @Test
+    public void test_main_upload_download_one_file() throws Exception {
+        RemoteFiles.main(new String[] {"-u", "-f", "src/test/resources/sampleFile.txt"});
+        RemoteFiles.main(new String[] {"-d", "-f", folder.getRoot().getPath() + "/foo.txt"});
+
+        assertThat(new File(folder.getRoot().getPath()+ "/foo.txt")).exists();
+    }
+
+    @Test
+    public void test_main_upload_download_one_directory() throws Exception {
+        RemoteFiles.main(new String[] {"-u", "-f", "src/test/resources/"});
+        RemoteFiles.main(new String[] {"-d", "-f", folder.getRoot().getPath()});
+
+        assertThat(new File(folder.getRoot().getPath()+ "/sampleFile.txt")).exists();
+    }
 }
