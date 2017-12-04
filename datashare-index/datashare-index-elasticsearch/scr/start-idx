@@ -1,13 +1,115 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 dir=`pwd $0`
 
 ES_VERSION="5.4.1"
 ES_HOME="${dir}/opt/elasticsearch-${ES_VERSION}"
+ES_CONFIG="${dir}/opt/config"
+ES_INIT_FLAG="${ES_HOME}/config/datashare-init"
+ES_DOWNLOAD_URL="https://artifacts.elastic.co/downloads/elasticsearch"
 
-ES_JAVA_OPTS="-Xms1500M -Xmx1500M -Dfile.encoding=UTF-8" \
-${ES_HOME}/bin/elasticsearch --pidfile "idx.pid" --daemonize
+function start_idx {
+    ES_JAVA_OPTS="-Xms1500M -Xmx1500M -Dfile.encoding=UTF-8" \
+    ${ES_HOME}/bin/elasticsearch --pidfile "idx.pid" --daemonize
+}
 
-sleep 3
+function wait_idx_is_up {
+    local curl_return=1
+    for i in `seq 1 300`; do
+        sleep 0.1
+        curl localhost:9200 2> /dev/null
+        if [ $? -eq 0 ]; then
+            break
+        fi
+    done
+}
 
-${dir}/init-idx
+function install_idx {
+    echo "____________________"
+    echo "INDEX INSTALLING    "
+    echo "____________________"
+    curl --progress-bar -O "${ES_DOWNLOAD_URL}/elasticsearch-${ES_VERSION}.zip"
+    ES_CHECKSUM=$(curl -s ${ES_DOWNLOAD_URL}/elasticsearch-${ES_VERSION}.zip.sha1)
+
+    echo "${ES_CHECKSUM} elasticsearch-${ES_VERSION}.zip" | sha1sum -c -
+    if [ $? -ne 0 ]; then
+        echo "error with checksum" >&2
+        exit 1
+    fi
+    unzip "elasticsearch-${ES_VERSION}.zip" -d "${dir}/opt/"
+    cp -f ${ES_CONFIG}/* "${ES_HOME}/config/"
+}
+
+function init_idx {
+    echo "____________________"
+    echo "INDEX INITIALIZATION"
+    echo "____________________"
+
+    echo "DEFINING TEMPLATE for *local* indices..."
+    curl -XPUT 'localhost:9200/_template/datashare_local_setting?pretty' -H 'Content-Type: application/json' -d '{
+      "template": "*local*",
+      "settings" : {
+        "number_of_shards": 1,
+        "number_of_replicas": 0
+      }
+    }'
+
+    echo -e "\nDEFINING MAPPING for *datashare* indices..."
+    curl -XPUT 'localhost:9200/_template/datashare_mappings?pretty' -H 'Content-Type: application/json' -d '{
+      "template": "datashare*",
+      "mappings": {
+        "SourcePath": {
+          "properties": {
+            "asOf": { "type": "date", "format": "date_time" },
+            "path": { "type": "text" }
+          }
+        },
+        "Document": {
+          "properties": {
+            "content": { "type": "text", "index_options": "offsets"},
+            "asOf": { "type": "date", "format": "date_time" },
+            "path": { "type": "text" },
+            "length": { "type": "integer" },
+            "encoding": { "type": "keyword" },
+            "type": { "type": "keyword" },
+            "language": { "type": "keyword" },
+            "parser": { "type": "keyword" }
+          }
+        },
+        "NamedEntity": {
+          "_parent": { "type": "Document" },
+          "properties": {
+            "mention": { "type": "text", "index_options": "docs" },
+            "mentionHash": { "type": "keyword" },
+            "hash": { "type": "keyword" },
+            "category": { "type": "keyword" },
+            "document": { "type": "keyword" },
+            "offset": { "type": "integer" },
+            "extractor": { "type": "keyword" },
+            "extractorLanguage": { "type": "keyword" },
+            "partsOfSpeech": { "type": "text", "index_options": "docs" }
+          }
+        }
+      }
+    }'
+
+    echo -e "\nCREATING INDEX datashare-local..."
+    curl -XPUT 'localhost:9200/datashare-local?pretty'
+
+    touch ${ES_INIT_FLAG}
+
+    echo "____________________"
+    echo "INDEX INITIALIZATION DONE"
+    echo "____________________"
+}
+
+if [ ! -d ${ES_HOME} ]; then
+    install_idx
+fi
+
+start_idx
+wait_idx_is_up
+
+if [ ! -f ${ES_INIT_FLAG} ]; then
+    init_idx
+fi
