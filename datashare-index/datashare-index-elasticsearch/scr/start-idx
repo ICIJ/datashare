@@ -14,7 +14,6 @@ function start_idx {
 }
 
 function wait_idx_is_up {
-    local curl_return=1
     for i in `seq 1 300`; do
         sleep 0.1
         curl localhost:9200 2> /dev/null
