@@ -10,7 +10,7 @@ import java.io.File;
 import static org.fest.assertions.Assertions.assertThat;
 
 
-public class RemoteFilesTest {
+public class RemoteFilesTestInt {
     private static final String BUCKET_NAME = "mybucket";
     @ClassRule
     public static S3MockRule S3_MOCK_RULE = new S3MockRule();
