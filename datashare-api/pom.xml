@@ -77,6 +77,18 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- for amazon S3 -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Log4j -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -87,12 +99,24 @@
             <artifactId>log4j-core</artifactId>
         </dependency>
 
-        <!-- JUnit -->
+        <!-- tests dependencies -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.easytesting</groupId>
+            <artifactId>fest-assert</artifactId>
+            <version>1.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.adobe.testing</groupId>
+            <artifactId>s3mock</artifactId>
+            <version>1.0.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 

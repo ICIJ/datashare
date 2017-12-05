@@ -41,6 +41,25 @@
             <artifactId>log4j-core</artifactId>
         </dependency>
 
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.easytesting</groupId>
+            <artifactId>fest-assert</artifactId>
+            <version>1.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.adobe.testing</groupId>
+            <artifactId>s3mock</artifactId>
+            <version>1.0.1</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 
