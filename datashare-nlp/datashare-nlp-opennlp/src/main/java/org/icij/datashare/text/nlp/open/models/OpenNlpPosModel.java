@@ -1,39 +1,23 @@
 package org.icij.datashare.text.nlp.open.models;
 
+import opennlp.tools.postag.POSModel;
+import opennlp.tools.util.model.BaseModel;
+import org.icij.datashare.text.Language;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import opennlp.tools.postag.POSModel;
-
+import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.nlp.NlpStage.POS;
-import org.icij.datashare.text.Language;
-import static org.icij.datashare.text.Language.ENGLISH;
-import static org.icij.datashare.text.Language.FRENCH;
-import static org.icij.datashare.text.Language.SPANISH;
-import static org.icij.datashare.text.Language.GERMAN;
 
 
-/**
- * OpenNLP Part-of-Speech tagger models handling singleton
- *
- * Created by julien on 8/11/16.
- */
-public enum OpenNlpPosModel {
-    INSTANCE;
+public class OpenNlpPosModel extends OpenNlpAbstractModel {
+    private static volatile OpenNlpPosModel instance;
 
-    private static final Logger LOGGER = LogManager.getLogger(OpenNlpPosModel.class);
-
-    // Part-of-speech refence tag set
     public static final Map<Language, String> POS_TAGSET = new HashMap<Language, String>() {{
         put(ENGLISH, "PENN TREEBANK");
         put(SPANISH, "ANCORA");
@@ -41,21 +25,25 @@ public enum OpenNlpPosModel {
         put(GERMAN,  "STTS");
     }};
 
-
-    // Models base directory
     private final Path modelDir;
-
-    // Model paths (per Language)
     private final Map<Language, Path> modelPath;
-
-    // Model lock
-    private final ConcurrentHashMap<Language, Lock> modelLock;
-
-    // Model
     private final Map<Language, POSModel> model;
 
+    public static OpenNlpPosModel getInstance() {
+        OpenNlpPosModel local_instance = instance; // avoid accessing volatile field
+         if (local_instance == null) {
+             synchronized(OpenNlpAbstractModel.mutex) {
+                 local_instance = instance;
+                 if (local_instance == null) {
+                     instance = new OpenNlpPosModel();
+                 }
+             }
+         }
+         return instance;
+     }
 
-    OpenNlpPosModel() {
+    private OpenNlpPosModel() {
+        super(POS);
         modelDir = OpenNlpModels.DIRECTORY.apply(POS);
         modelPath  = new HashMap<Language, Path>(){{
             put(ENGLISH, modelDir.resolve("en-pos-maxent.bin"));
@@ -63,39 +51,22 @@ public enum OpenNlpPosModel {
             put(FRENCH,  modelDir.resolve("fr-pos-maxent.bin"));
             put(GERMAN,  modelDir.resolve("de-pos-maxent.bin"));
         }};
-        modelLock = new ConcurrentHashMap<Language, Lock>(){{
-            modelPath.keySet()
-                    .forEach( language -> put(language, new ReentrantLock()) );
-        }};
         model = new HashMap<>();
     }
 
-
-    public Optional<POSModel> get(Language language, ClassLoader classLoader) {
-        Lock l = modelLock.get(language);
-        l.lock();
-        try {
-            if ( ! load(language, classLoader))
-                return Optional.empty();
-            return Optional.of(model.get(language));
-        } finally {
-            l.unlock();
-        }
+    @Override
+    BaseModel getModel(Language language) {
+        return model.get(language);
     }
 
-    private boolean load(Language language, ClassLoader loader) {
-        if (model.containsKey(language) && model.get(language) == null)
-            return true;
+    @Override
+    void putModel(Language language, InputStream content) throws IOException {
+        model.put(language, new POSModel(content));
+    }
 
-        LOGGER.info(getClass().getName() + " - LOADING POS model for " + language);
-        try (InputStream modelIS = loader.getResourceAsStream(modelPath.get(language).toString())) {
-            model.put(language, new POSModel(modelIS));
-        } catch (IOException e) {
-            LOGGER.error(getClass().getName() + " - FAILED LOADING " + POSModel.class.getName(), e);
-            return false;
-        }
-        LOGGER.info(getClass().getName() + " - LOADED POS model for " + language);
-        return true;
+    @Override
+    String getModelPath(Language language) {
+        return modelPath.get(language).toString();
     }
 
     public void unload(Language language) {
@@ -107,7 +78,6 @@ public enum OpenNlpPosModel {
             l.unlock();
         }
     }
-
 }
 
 

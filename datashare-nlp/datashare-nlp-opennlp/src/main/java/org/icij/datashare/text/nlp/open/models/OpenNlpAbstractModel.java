@@ -16,7 +16,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class OpenNlpAbstractModel {
+    protected static final Object mutex = new Object();
     static final Logger LOGGER = LogManager.getLogger(OpenNlpPosModel.class);
+
     final ConcurrentHashMap<Language, Lock> modelLock = new ConcurrentHashMap<Language, Lock>() {{
         for (Language l : Language.values()) {
             put(l, new ReentrantLock());

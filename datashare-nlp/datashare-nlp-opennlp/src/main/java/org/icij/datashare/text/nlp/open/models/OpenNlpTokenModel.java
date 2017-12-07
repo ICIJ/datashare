@@ -17,7 +17,6 @@ import static org.icij.datashare.text.nlp.NlpStage.TOKEN;
 
 public class OpenNlpTokenModel extends OpenNlpAbstractModel {
     private static volatile OpenNlpTokenModel instance;
-    private static final Object mutex = new Object();
 
     private final Path modelDir;
     private final Map<Language, Path> modelPath;
@@ -26,7 +25,7 @@ public class OpenNlpTokenModel extends OpenNlpAbstractModel {
     public static OpenNlpTokenModel getInstance() {
         OpenNlpTokenModel local_instance = instance; // avoid accessing volatile field
         if (local_instance == null) {
-            synchronized(OpenNlpTokenModel.mutex) {
+            synchronized(OpenNlpAbstractModel.mutex) {
                 local_instance = instance;
                 if (local_instance == null) {
                     instance = new OpenNlpTokenModel();

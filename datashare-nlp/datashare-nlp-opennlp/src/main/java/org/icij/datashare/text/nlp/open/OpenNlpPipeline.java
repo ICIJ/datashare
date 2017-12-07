@@ -267,10 +267,10 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private boolean loadPosTagger(ClassLoader loader, Language language) {
         if ( posTagger.containsKey(language) )
             return true;
-        Optional<POSModel> model = OpenNlpPosModel.INSTANCE.get(language, loader);
+        Optional<BaseModel> model = OpenNlpPosModel.getInstance().get(language, loader);
         if ( ! model.isPresent())
             return false;
-        posTagger.put(language, new POSTaggerME(model.get()));
+        posTagger.put(language, new POSTaggerME((POSModel) model.get()));
         return true;
     }
 
