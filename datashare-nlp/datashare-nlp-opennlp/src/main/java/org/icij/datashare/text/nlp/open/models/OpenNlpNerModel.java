@@ -1,5 +1,11 @@
 package org.icij.datashare.text.nlp.open.models;
 
+import opennlp.tools.namefind.TokenNameFinderModel;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -9,24 +15,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import opennlp.tools.namefind.TokenNameFinderModel;
-
+import static org.icij.datashare.text.Language.*;
+import static org.icij.datashare.text.NamedEntity.Category.*;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
-import org.icij.datashare.text.Language;
-import static org.icij.datashare.text.Language.ENGLISH;
-import static org.icij.datashare.text.Language.FRENCH;
-import static org.icij.datashare.text.Language.SPANISH;
-import static org.icij.datashare.text.Language.GERMAN;
-import org.icij.datashare.text.NamedEntity;
-import static org.icij.datashare.text.NamedEntity.Category.LOCATION;
-import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
-import static org.icij.datashare.text.NamedEntity.Category.PERSON;
+import static org.icij.datashare.text.nlp.open.models.OpenNlpAbstractModel.DIRECTORY;
 
 
 /**
@@ -70,7 +65,7 @@ public enum OpenNlpNerModel {
 
 
     OpenNlpNerModel() {
-        modelDir = OpenNlpModels.DIRECTORY.apply(NER);
+        modelDir = DIRECTORY.apply(NER);
         modelPath = new HashMap<Language, Map<NamedEntity.Category, Path>>(){{
             put(ENGLISH, new HashMap<NamedEntity.Category, Path>(){{
                 put(PERSON,       modelDir.resolve("en-ner-person.bin"));

@@ -37,7 +37,7 @@ public class OpenNlpSentenceModel extends OpenNlpAbstractModel {
 
     private OpenNlpSentenceModel() {
         super(SENTENCE);
-        modelDir = OpenNlpModels.DIRECTORY.apply(SENTENCE);
+        modelDir = DIRECTORY.apply(SENTENCE);
         modelPath = new HashMap<Language, Path>(){{
             put(ENGLISH, modelDir.resolve("en-sent.bin"));
             put(SPANISH, modelDir.resolve("en-sent.bin"));

@@ -37,7 +37,7 @@ public class OpenNlpTokenModel extends OpenNlpAbstractModel {
 
     private OpenNlpTokenModel() {
         super(TOKEN);
-        modelDir = OpenNlpModels.DIRECTORY.apply(TOKEN);
+        modelDir = DIRECTORY.apply(TOKEN);
         modelPath = new HashMap<Language, Path>(){{
             put(ENGLISH, modelDir.resolve("en-token.bin"));
             put(SPANISH, modelDir.resolve("en-token.bin"));

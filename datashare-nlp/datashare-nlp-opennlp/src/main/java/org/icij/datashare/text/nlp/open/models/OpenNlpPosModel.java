@@ -44,7 +44,7 @@ public class OpenNlpPosModel extends OpenNlpAbstractModel {
 
     private OpenNlpPosModel() {
         super(POS);
-        modelDir = OpenNlpModels.DIRECTORY.apply(POS);
+        modelDir = DIRECTORY.apply(POS);
         modelPath  = new HashMap<Language, Path>(){{
             put(ENGLISH, modelDir.resolve("en-pos-maxent.bin"));
             put(SPANISH, modelDir.resolve("es-pos-maxent.bin"));

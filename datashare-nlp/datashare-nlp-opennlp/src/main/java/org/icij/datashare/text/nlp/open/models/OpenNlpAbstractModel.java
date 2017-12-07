@@ -10,12 +10,18 @@ import org.icij.datashare.text.nlp.NlpStage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 
 public abstract class OpenNlpAbstractModel {
+    private static final Path BASE_DIR = Paths.get(OpenNlpAbstractModel.class.getPackage().getName().replace(".", "/"));
+    static final Function<NlpStage, Path> DIRECTORY = stage -> BASE_DIR.resolve(stage.toString().toLowerCase());
+
     protected static final Object mutex = new Object();
     static final Logger LOGGER = LogManager.getLogger(OpenNlpPosModel.class);
 
