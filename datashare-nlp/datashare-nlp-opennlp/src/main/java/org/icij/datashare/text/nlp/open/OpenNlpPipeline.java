@@ -210,10 +210,10 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private boolean loadSentenceDetector(ClassLoader loader, Language language) {
         if (sentencer.containsKey(language))
             return true;
-        Optional<SentenceModel> model = OpenNlpSentenceModel.INSTANCE.get(language, loader);
+        Optional<BaseModel> model = OpenNlpSentenceModel.getInstance().get(language, loader);
         if ( ! model.isPresent())
             return false;
-        sentencer.put(language, new SentenceDetectorME(model.get()));
+        sentencer.put(language, new SentenceDetectorME((SentenceModel) model.get()));
         return true;
     }
 
