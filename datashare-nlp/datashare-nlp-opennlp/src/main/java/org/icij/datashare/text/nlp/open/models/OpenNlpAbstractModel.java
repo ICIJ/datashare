@@ -17,20 +17,20 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class OpenNlpAbstractModel {
     static final Logger LOGGER = LogManager.getLogger(OpenNlpPosModel.class);
-    private final ConcurrentHashMap<Language, Lock> modelLock = new ConcurrentHashMap<Language, Lock>() {{
+    final ConcurrentHashMap<Language, Lock> modelLock = new ConcurrentHashMap<Language, Lock>() {{
         for (Language l : Language.values()) {
             put(l, new ReentrantLock());
         }
     }};
     final NlpStage stage;
 
-    public OpenNlpAbstractModel(NlpStage stage) { this.stage = stage;}
+    OpenNlpAbstractModel(NlpStage stage) { this.stage = stage;}
 
     abstract BaseModel getModel(Language language);
-    abstract void putModel(Language language, InputStream content);
+    abstract void putModel(Language language, InputStream content) throws IOException;
     abstract String getModelPath(Language language);
 
-    public Optional<? extends BaseModel> get(Language language, ClassLoader loader) {
+    public Optional<BaseModel> get(Language language, ClassLoader loader) {
         Lock l = modelLock.get(language);
         l.lock();
         try {
@@ -77,6 +77,6 @@ public abstract class OpenNlpAbstractModel {
     }
 
     RemoteFiles getRemoteFiles() {
-        return null;
+        return RemoteFiles.getDefault();
     }
 }

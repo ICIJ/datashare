@@ -1,68 +1,43 @@
 package org.icij.datashare.text.nlp.open.models;
 
+import opennlp.tools.tokenize.TokenizerModel;
+import opennlp.tools.util.model.BaseModel;
+import org.icij.datashare.text.Language;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import opennlp.tools.tokenize.TokenizerModel;
-
+import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.nlp.NlpStage.TOKEN;
-import org.icij.datashare.text.Language;
-import static org.icij.datashare.text.Language.ENGLISH;
-import static org.icij.datashare.text.Language.SPANISH;
-import static org.icij.datashare.text.Language.FRENCH;
-import static org.icij.datashare.text.Language.GERMAN;
 
 
-/**
- * OpenNLP Tokenizer models handling singleton
- *
- * Created by julien on 8/11/16.
- */
-public enum OpenNlpTokenModel {
-    INSTANCE;
+public class OpenNlpTokenModel extends OpenNlpAbstractModel {
+    private static volatile OpenNlpTokenModel instance;
+    private static final Object mutex = new Object();
 
-    private static final Logger LOGGER = LogManager.getLogger(OpenNlpTokenModel.class);
-
-    private static final Set<Set<Language>> SHARED_MODELS =
-            new HashSet<Set<Language>>(){{
-                add( new HashSet<>(asList(ENGLISH, SPANISH)) );
-                add( new HashSet<>(singletonList(FRENCH)) );
-                add( new HashSet<>(singletonList(GERMAN)) );
-            }};
-
-    private static Function<Language, Set<Language>> sharedModels = language ->
-        SHARED_MODELS.stream()
-                .filter( sharedSet -> sharedSet.contains(language) )
-                .flatMap( Set::stream )
-                .collect(Collectors.toSet());
-
-
-    // Token models base directory
     private final Path modelDir;
-
-    // Token model paths (per Language)
     private final Map<Language, Path> modelPath;
-
-    // Model locks
-    private final ConcurrentHashMap<Language, Lock> modelLock;
-
-    // Models
     private final Map<Language, TokenizerModel> model;
 
+    public static OpenNlpTokenModel getInstance() {
+        OpenNlpTokenModel local_instance = instance; // avoid accessing volatile field
+        if (local_instance == null) {
+            synchronized(OpenNlpTokenModel.mutex) {
+                local_instance = instance;
+                if (local_instance == null) {
+                    instance = new OpenNlpTokenModel();
+                }
+            }
+        }
+        return instance;
+    }
 
-    OpenNlpTokenModel() {
+    private OpenNlpTokenModel() {
+        super(TOKEN);
         modelDir = OpenNlpModels.DIRECTORY.apply(TOKEN);
         modelPath = new HashMap<Language, Path>(){{
             put(ENGLISH, modelDir.resolve("en-token.bin"));
@@ -70,54 +45,22 @@ public enum OpenNlpTokenModel {
             put(FRENCH,  modelDir.resolve("fr-token.bin"));
             put(GERMAN,  modelDir.resolve("de-token.bin"));
         }};
-        modelLock =  new ConcurrentHashMap<Language, Lock>(){{
-            modelPath.keySet()
-                    .forEach( language -> put(language, new ReentrantLock()) );
-        }};
         model = new HashMap<>();
     }
 
-
-    /**
-     * Lock and get tokenizer model for language
-     *
-     * @param language the annotator language
-     * @return an Optional of Tokenizer model if successfully (loaded and) retrieved; empty Optional otherwise
-     */
-    public Optional<TokenizerModel> get(Language language, ClassLoader classLoader) {
-        sharedModels.apply(language)
-                .forEach( lang -> {
-                    modelLock.get(lang).lock();
-                });
-        try {
-            if ( ! load(language, classLoader))
-                return Optional.empty();
-            return Optional.of(model.get(language));
-        } finally {
-            sharedModels.apply(language)
-                    .forEach( lang -> {
-                        modelLock.get(lang).unlock();
-                    });
-        }
+    @Override
+    BaseModel getModel(Language language) {
+        return model.get(language);
     }
 
-    private boolean load(Language language, ClassLoader loader) {
-        if (model.containsKey(language))
-            return true;
+    @Override
+    void putModel(Language language, InputStream content) throws IOException {
+        model.put(language, new TokenizerModel(content));
+    }
 
-        LOGGER.info(getClass().getName() + " - LOADING TOKEN model for " + language);
-        try (InputStream modelIS = loader.getResourceAsStream(modelPath.get(language).toString())) {
-            TokenizerModel tokenizerModel = new TokenizerModel(modelIS);
-            sharedModels.apply(language)
-                    .forEach( lang ->
-                            model.put(lang, tokenizerModel)
-                    );
-        } catch (IOException e) {
-            LOGGER.error("- FAILED LOADING " + TokenizerModel.class.getName(), e);
-            return false;
-        }
-        LOGGER.info(getClass().getName() + " - LOADED TOKEN model for " + language);
-        return true;
+    @Override
+    String getModelPath(Language language) {
+        return modelPath.get(language).toString();
     }
 
     public void unload(Language language) {
@@ -129,5 +72,4 @@ public enum OpenNlpTokenModel {
             l.unlock();
         }
     }
-
 }

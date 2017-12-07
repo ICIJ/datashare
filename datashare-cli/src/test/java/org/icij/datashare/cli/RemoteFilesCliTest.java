@@ -2,13 +2,14 @@ package org.icij.datashare.cli;
 
 import com.adobe.testing.s3mock.S3MockRule;
 import com.amazonaws.services.s3.AmazonS3;
+import org.icij.datashare.io.RemoteFiles;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-import static org.icij.datashare.cli.RemoteFilesCli.S3_DATASHARE_BUCKET_NAME;
+import static org.icij.datashare.io.RemoteFiles.S3_DATASHARE_BUCKET_NAME;
 
 public class RemoteFilesCliTest {
     @ClassRule
@@ -19,7 +20,7 @@ public class RemoteFilesCliTest {
 
     @Before
     public void setUp() {
-        RemoteFilesCli.setS3client(s3Client);
+        RemoteFilesCli.setRemoteFiles(new RemoteFiles(s3Client, S3_DATASHARE_BUCKET_NAME));
         s3Client.createBucket(S3_DATASHARE_BUCKET_NAME);
     }
 

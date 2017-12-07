@@ -1,6 +1,8 @@
 package org.icij.datashare.io;
 
+import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
@@ -17,12 +19,20 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class RemoteFiles {
+    public static final String S3_DATASHARE_BUCKET_NAME = "s3.datashare.icij.org";
+    private static final String S3_REGION = "us-east-1";
     private final AmazonS3 s3Client;
     private final String bucket;
 
     public RemoteFiles(final AmazonS3 s3Client, final String bucket) {
         this.s3Client = s3Client;
         this.bucket = bucket;
+    }
+
+    public static RemoteFiles getDefault() {
+        return new RemoteFiles(AmazonS3ClientBuilder.standard().withRegion(S3_REGION)
+                .withCredentials(new ClasspathPropertiesFileCredentialsProvider("s3.properties")).build(),
+                S3_DATASHARE_BUCKET_NAME);
     }
 
     public void upload(final File localFile, final String remoteKey) throws InterruptedException, FileNotFoundException {

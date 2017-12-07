@@ -1,40 +1,36 @@
 package org.icij.datashare.text.nlp.open;
 
+import opennlp.tools.namefind.NameFinderME;
+import opennlp.tools.namefind.TokenNameFinderModel;
+import opennlp.tools.postag.POSModel;
+import opennlp.tools.postag.POSTagger;
+import opennlp.tools.postag.POSTaggerME;
+import opennlp.tools.sentdetect.SentenceDetector;
+import opennlp.tools.sentdetect.SentenceDetectorME;
+import opennlp.tools.sentdetect.SentenceModel;
+import opennlp.tools.tokenize.Tokenizer;
+import opennlp.tools.tokenize.TokenizerME;
+import opennlp.tools.tokenize.TokenizerModel;
+import opennlp.tools.util.Span;
+import opennlp.tools.util.model.BaseModel;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.nlp.AbstractNlpPipeline;
+import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.open.models.OpenNlpNerModel;
+import org.icij.datashare.text.nlp.open.models.OpenNlpPosModel;
+import org.icij.datashare.text.nlp.open.models.OpenNlpSentenceModel;
+import org.icij.datashare.text.nlp.open.models.OpenNlpTokenModel;
+
 import java.util.*;
 import java.util.function.BiFunction;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.copyOfRange;
-
-import opennlp.tools.util.*;
-import opennlp.tools.postag.POSModel;
-import opennlp.tools.postag.POSTagger;
-import opennlp.tools.postag.POSTaggerME;
-import opennlp.tools.sentdetect.SentenceModel;
-import opennlp.tools.sentdetect.SentenceDetector;
-import opennlp.tools.sentdetect.SentenceDetectorME;
-import opennlp.tools.tokenize.TokenizerModel;
-import opennlp.tools.tokenize.Tokenizer;
-import opennlp.tools.tokenize.TokenizerME;
-import opennlp.tools.namefind.TokenNameFinderModel;
-import opennlp.tools.namefind.NameFinderME;
 import static opennlp.tools.util.Span.spansToStrings;
-
-import org.icij.datashare.text.Language;
-import static org.icij.datashare.text.Language.ENGLISH;
-import static org.icij.datashare.text.Language.SPANISH;
-import static org.icij.datashare.text.Language.FRENCH;
-import static org.icij.datashare.text.Language.GERMAN;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.*;
-import static org.icij.datashare.text.nlp.NlpStage.SENTENCE;
-import static org.icij.datashare.text.nlp.NlpStage.TOKEN;
-import static org.icij.datashare.text.nlp.NlpStage.POS;
-import static org.icij.datashare.text.nlp.NlpStage.NER;
-import org.icij.datashare.text.nlp.open.models.OpenNlpNerModel;
-import org.icij.datashare.text.nlp.open.models.OpenNlpPosModel;
-import org.icij.datashare.text.nlp.open.models.OpenNlpSentenceModel;
-import org.icij.datashare.text.nlp.open.models.OpenNlpTokenModel;
+import static org.icij.datashare.text.Language.*;
+import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
 /**
@@ -243,10 +239,10 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private boolean loadTokenizer(ClassLoader loader, Language language) {
         if ( tokenizer.containsKey(language) )
             return true;
-        Optional<TokenizerModel> model = OpenNlpTokenModel.INSTANCE.get(language, loader);
+        Optional<BaseModel> model = OpenNlpTokenModel.getInstance().get(language, loader);
         if ( ! model.isPresent())
             return false;
-        tokenizer.put(language, new TokenizerME(model.get()));
+        tokenizer.put(language, new TokenizerME((TokenizerModel) model.get()));
         return true;
     }
 

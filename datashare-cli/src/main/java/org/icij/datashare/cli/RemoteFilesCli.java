@@ -1,8 +1,5 @@
 package org.icij.datashare.cli;
 
-import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.icij.datashare.io.RemoteFiles;
@@ -10,17 +7,13 @@ import org.icij.datashare.io.RemoteFiles;
 import java.io.File;
 
 public class RemoteFilesCli {
-    static final String S3_DATASHARE_BUCKET_NAME = "s3.datashare.icij.org";
-    private static AmazonS3 s3Client = null;
+    private static RemoteFiles remoteFiles = null;
 
     public static void main(String[] args) throws Exception {
-        AmazonS3 amazonS3 = s3Client;
-        if (amazonS3 == null) {
-            amazonS3 = AmazonS3ClientBuilder.standard().withRegion("us-east-1")
-                    .withCredentials(new ClasspathPropertiesFileCredentialsProvider("s3.properties")).build();
+        RemoteFiles remoteFiles = RemoteFilesCli.remoteFiles;
+        if (remoteFiles == null) {
+            RemoteFilesCli.remoteFiles = RemoteFiles.getDefault();
         }
-        final RemoteFiles remoteFiles = new RemoteFiles(amazonS3, S3_DATASHARE_BUCKET_NAME);
-
         OptionSet cmd = parseArgs(args);
         String remoteKey = cmd.has("D") ? (String)cmd.valueOf("D") : "/";
         if (cmd.has("u")) {
@@ -57,6 +50,6 @@ public class RemoteFilesCli {
         System.out.println("example : copy-remote -u -D foo -f bar.txt -f qux/ ");
     }
 
-    static void setS3client(AmazonS3 s3) { s3Client = s3;}
+    static void setRemoteFiles(RemoteFiles remoteFiles) { RemoteFilesCli.remoteFiles = remoteFiles;}
 }
 
