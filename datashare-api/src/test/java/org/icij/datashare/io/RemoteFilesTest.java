@@ -55,12 +55,13 @@ public class RemoteFilesTest {
     //        assertThat(new File(folder.getRoot().getPath() + "/prefix/sampleFile.txt")).exists();
     //    }
     //
-    //    @Test
-    //    public void test_upload_file_with_key_in_sub_directory() throws FileNotFoundException {
-    //        final String filePath = "path/to/a/file.txt";
-    //        remoteFiles.upload(filePath, new File("src/test/resources/sampleFile.txt"));
-    //
-    //        assertThat(remoteFiles.objectExists(filePath)).isTrue();
-    //    }
+    
+    @Test
+    public void test_upload_file_with_key_in_sub_directory() throws Exception {
+        final String filePath = "path/to/a/file.txt";
+        remoteFiles.upload(new File("src/test/resources/sampleFile.txt"), filePath);
+
+        assertThat(remoteFiles.objectExists(filePath)).isTrue();
+    }
 
 }
