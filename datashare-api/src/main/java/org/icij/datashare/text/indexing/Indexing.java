@@ -1,17 +1,18 @@
 package org.icij.datashare.text.indexing;
 
-import java.util.List;
-import static java.util.Collections.singletonList;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
-
+import org.icij.datashare.Entity;
 import org.icij.datashare.concurrent.Latch;
 import org.icij.datashare.concurrent.queue.OutputQueue;
 import org.icij.datashare.concurrent.queue.QueueForwarding;
 import org.icij.datashare.concurrent.task.DatashareTask;
-import org.icij.datashare.Entity;
 import org.icij.datashare.concurrent.task.QueuesInTask;
+
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
+
+import static java.util.Collections.singletonList;
 
 
 /**
@@ -70,7 +71,7 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
 
     @Override
     protected Result process(I element) {
-        LOGGER.info(getClass().getName() + " - INDEXING " + element.getClass().getName());
+        LOGGER.debug(getClass().getName() + " - INDEXING " + element.getClass().getName());
         try{
 //            boolean indexed = indexer.add(index, element);
 //            if ( ! indexed ) {
