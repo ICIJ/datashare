@@ -12,22 +12,20 @@ import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
-import opennlp.tools.util.model.BaseModel;
+import opennlp.tools.util.model.ArtifactProvider;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractNlpPipeline;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.NlpStage;
-import org.icij.datashare.text.nlp.open.models.OpenNlpNerModel;
-import org.icij.datashare.text.nlp.open.models.OpenNlpPosModel;
-import org.icij.datashare.text.nlp.open.models.OpenNlpSentenceModel;
-import org.icij.datashare.text.nlp.open.models.OpenNlpTokenModel;
+import org.icij.datashare.text.nlp.open.models.*;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.copyOfRange;
+import static java.util.stream.Collectors.toList;
 import static opennlp.tools.util.Span.spansToStrings;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.nlp.NlpStage.*;
@@ -67,7 +65,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private Map<Language, POSTagger> posTagger;
 
     // Named Entity Recognition annotators (associate entity category with tokens)
-    private Map<Language, Map<NamedEntity.Category, NameFinderME>> nerFinder;
+    private Map<Language, List<NameFinderME>> nerFinder;
 
     // Annotator loading functions (per NlpStage)
     private final Map<NlpStage, BiFunction<ClassLoader, Language, Boolean>> annotatorLoader;
@@ -161,14 +159,15 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
 
             // NER on sentence
             if (targetStages.contains(NER)) {
-                for (NamedEntity.Category category : targetEntities) {
-                    Span[] nerSpans = recognize(sentenceTokens, category, language);
+                for (NameFinderME nameFinderME : nerFinder.get(language)) {
+                    Span[] nerSpans = nameFinderME.find(sentenceTokens);
 
                     // Feed annotation with ne
                     for (Span nerSpan : nerSpans) {
                         int nerStart = sentenceOffsetBegin + sentenceTokenSpans[nerSpan.getStart()].getStart();
                         int nerEnd   = sentenceOffsetBegin + sentenceTokenSpans[nerSpan.getEnd()-1].getEnd();
-                        annotation.add(NER, nerStart, nerEnd, category.toString());
+                        // TODO is nameFinderME.toString() tells if it is EntityName.Type ?
+                        annotation.add(NER, nerStart, nerEnd, nameFinderME.toString());
                     }
                 }
             }
@@ -188,8 +187,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
         super.terminate(language);
 
         if (nerFinder.containsKey(language)) {
-            Map<NamedEntity.Category, NameFinderME> nerFinderLang = nerFinder.get(language);
-            targetEntities.forEach( cat -> nerFinderLang.get(cat).clearAdaptiveData() );
+            nerFinder.get(language).forEach(NameFinderME::clearAdaptiveData);
         }
 
         // (Don't) keep models in memory
@@ -210,7 +208,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private boolean loadSentenceDetector(ClassLoader loader, Language language) {
         if (sentencer.containsKey(language))
             return true;
-        Optional<BaseModel> model = OpenNlpSentenceModel.getInstance().get(language, loader);
+        Optional<ArtifactProvider> model = OpenNlpSentenceModel.getInstance().get(language, loader);
         if ( ! model.isPresent())
             return false;
         sentencer.put(language, new SentenceDetectorME((SentenceModel) model.get()));
@@ -239,7 +237,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private boolean loadTokenizer(ClassLoader loader, Language language) {
         if ( tokenizer.containsKey(language) )
             return true;
-        Optional<BaseModel> model = OpenNlpTokenModel.getInstance().get(language, loader);
+        Optional<ArtifactProvider> model = OpenNlpTokenModel.getInstance().get(language, loader);
         if ( ! model.isPresent())
             return false;
         tokenizer.put(language, new TokenizerME((TokenizerModel) model.get()));
@@ -267,7 +265,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private boolean loadPosTagger(ClassLoader loader, Language language) {
         if ( posTagger.containsKey(language) )
             return true;
-        Optional<BaseModel> model = OpenNlpPosModel.getInstance().get(language, loader);
+        Optional<ArtifactProvider> model = OpenNlpPosModel.getInstance().get(language, loader);
         if ( ! model.isPresent())
             return false;
         posTagger.put(language, new POSTaggerME((POSModel) model.get()));
@@ -293,30 +291,16 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadNameFinder(ClassLoader loader, Language language) {
-        for (NamedEntity.Category category : targetEntities) {
-            if ( nerFinder.containsKey(language) && nerFinder.get(language).containsKey(category) )
-                continue;
-            Optional<TokenNameFinderModel> model = OpenNlpNerModel.INSTANCE.get(language, category, loader);
-            if ( ! model.isPresent())
-                return false;
-            if ( ! nerFinder.containsKey(language))
-                nerFinder.put(language, new HashMap<>());
-            nerFinder.get(language).put(category, new NameFinderME(model.get()));
+        Optional<ArtifactProvider> optNerModels = OpenNlpNerModel.getInstance().get(language, loader);
+        if (optNerModels.isPresent()) {
+            OpenNlpCompositeModel nerModels = (OpenNlpCompositeModel) optNerModels.get();
+            final Stream<NameFinderME> nameFinderMEStream =
+                    nerModels.models.stream().map(m -> new NameFinderME((TokenNameFinderModel) m));
+            nerFinder.put(language, nameFinderMEStream.collect(toList()));
+            return true;
+        } else {
+            return false;
         }
-        return true;
-    }
-
-    /**
-     * Recognize named entity category
-     *
-     * @param tokens is the sequence of tokens to annotate
-     * @param cat is the named entity category to recognize
-     * @return Spans of recognized entities within tokens
-     */
-    private Span[] recognize(String[] tokens, NamedEntity.Category cat, Language language) {
-        if ( ! stages.contains(NER) || ! nerFinder.containsKey(language) || ! nerFinder.get(language).containsKey(cat) )
-            return new Span[0];
-        return nerFinder.get(language).get(cat).find(tokens);
     }
 
     @Override

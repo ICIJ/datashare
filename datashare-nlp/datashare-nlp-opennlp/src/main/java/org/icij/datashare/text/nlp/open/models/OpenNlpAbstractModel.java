@@ -1,6 +1,6 @@
 package org.icij.datashare.text.nlp.open.models;
 
-import opennlp.tools.util.model.BaseModel;
+import opennlp.tools.util.model.ArtifactProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.icij.datashare.io.RemoteFiles;
@@ -34,11 +34,11 @@ public abstract class OpenNlpAbstractModel {
 
     OpenNlpAbstractModel(NlpStage stage) { this.stage = stage;}
 
-    abstract BaseModel getModel(Language language);
+    abstract ArtifactProvider getModel(Language language);
     abstract void putModel(Language language, InputStream content) throws IOException;
     abstract String getModelPath(Language language);
 
-    public Optional<BaseModel> get(Language language, ClassLoader loader) {
+    public Optional<ArtifactProvider> get(Language language, ClassLoader loader) {
         Lock l = modelLock.get(language);
         l.lock();
         try {
