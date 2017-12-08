@@ -20,7 +20,7 @@ public class OpenNlpModelsTest {
         final OpenNlpModel model = new OpenNlpModel(NlpStage.TOKEN);
 
         model.get(Language.FRENCH, getClass().getClassLoader());
-        verify(mockRemoteFiles).download("/dist/models/opennlp/fr", new File("models/opennlp"));
+        verify(mockRemoteFiles).download("/dist/models/opennlp/fr", new File("models/inexistant"));
         reset(mockRemoteFiles);
 
         model.get(Language.FRENCH, getClass().getClassLoader());
@@ -36,7 +36,7 @@ public class OpenNlpModelsTest {
         void putModel(Language language, InputStream content) {model = mock(BaseModel.class);}
         @Override
         String getModelPath(Language language) {
-            return "models/opennlp";
+            return "models/inexistant";
         }
         @Override
         RemoteFiles getRemoteFiles() { return mockRemoteFiles;}

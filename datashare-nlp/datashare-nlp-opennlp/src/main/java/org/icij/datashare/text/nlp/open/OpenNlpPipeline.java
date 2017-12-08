@@ -65,7 +65,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private Map<Language, POSTagger> posTagger;
 
     // Named Entity Recognition annotators (associate entity category with tokens)
-    private Map<Language, List<NameFinderME>> nerFinder;
+    Map<Language, List<NameFinderME>> nerFinder;
 
     // Annotator loading functions (per NlpStage)
     private final Map<NlpStage, BiFunction<ClassLoader, Language, Boolean>> annotatorLoader;
@@ -107,8 +107,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
         if ( ! super.initialize(language))
             return false;
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        stages.forEach( stage ->
-                annotatorLoader.get(stage).apply(classLoader, language)
+        stages.forEach( stage -> annotatorLoader.get(stage).apply(classLoader, language)
         );
         return true;
     }

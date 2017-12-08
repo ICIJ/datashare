@@ -60,8 +60,8 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
 
     @Override
     ArtifactProvider getModel(Language language) {
-            return model.get(language);
-        }
+        return model.get(language);
+    }
 
 
     @Override
@@ -71,7 +71,7 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
 
     @Override
     String getModelPath(Language language) {
-        return null;
+        return DIRECTORY.apply(NER).toString();
     }
 
     boolean load(Language language, ClassLoader loader) {
@@ -92,6 +92,7 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
                 return false;
             }
         }
+        model.put(language, models);
 
         LOGGER.info(getClass().getName() + " - LOADED NER model for " + language);
         return true;
