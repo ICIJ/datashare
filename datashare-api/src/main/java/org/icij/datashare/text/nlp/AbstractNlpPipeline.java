@@ -1,18 +1,18 @@
 package org.icij.datashare.text.nlp;
 
-import java.nio.file.Path;
-import java.nio.charset.Charset;
-import java.util.*;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.hashing.Hasher;
-import static org.icij.datashare.text.Language.UNKNOWN;
+
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.*;
+
 import static org.icij.datashare.function.ThrowingFunctions.*;
+import static org.icij.datashare.text.Language.UNKNOWN;
 
 
 /**
