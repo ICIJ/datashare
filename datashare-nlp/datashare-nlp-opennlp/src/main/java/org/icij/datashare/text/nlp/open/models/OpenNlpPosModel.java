@@ -6,7 +6,6 @@ import org.icij.datashare.text.Language;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
@@ -25,8 +24,7 @@ public class OpenNlpPosModel extends OpenNlpAbstractModel {
         put(GERMAN,  "STTS");
     }};
 
-    private final Path modelDir;
-    private final Map<Language, Path> modelPath;
+    private final Map<Language, String> modelFilenames;
     private final Map<Language, POSModel> model;
 
     public static OpenNlpPosModel getInstance() {
@@ -44,12 +42,11 @@ public class OpenNlpPosModel extends OpenNlpAbstractModel {
 
     private OpenNlpPosModel() {
         super(POS);
-        modelDir = DIRECTORY.apply(POS);
-        modelPath  = new HashMap<Language, Path>(){{
-            put(ENGLISH, modelDir.resolve("en-pos-maxent.bin"));
-            put(SPANISH, modelDir.resolve("es-pos-maxent.bin"));
-            put(FRENCH,  modelDir.resolve("fr-pos-maxent.bin"));
-            put(GERMAN,  modelDir.resolve("de-pos-maxent.bin"));
+        modelFilenames = new HashMap<Language, String>(){{
+            put(ENGLISH, "en-pos-maxent.bin");
+            put(SPANISH, "es-pos-maxent.bin");
+            put(FRENCH,  "fr-pos-maxent.bin");
+            put(GERMAN,  "de-pos-maxent.bin");
         }};
         model = new HashMap<>();
     }
@@ -66,7 +63,7 @@ public class OpenNlpPosModel extends OpenNlpAbstractModel {
 
     @Override
     String getModelPath(Language language) {
-        return modelPath.get(language).toString();
+        return BASE_DIR.resolve(language.iso6391Code()).resolve(modelFilenames.get(language)).toString();
     }
 
     public void unload(Language language) {

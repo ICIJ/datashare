@@ -41,20 +41,6 @@ public class RemoteFilesTest {
         assertThat(downloadedFile).exists();
         assertThat(downloadedFile).hasSameContentAs(new File("src/test/resources/sampleFile.txt"));
     }
-
-    // TODO: uncomment when the bug in S3Mock will be solved :
-    // cf https://github.com/adobe/S3Mock/issues/8
-
-    //    @Test
-    //    public void test_upload_download_directory() throws IOException, InterruptedException {
-    //        assertThat(remoteFiles.objectExists("prefix")).isFalse();
-    //
-    //        remoteFiles.upload(new File("src/test/resources"), "prefix");
-    //        remoteFiles.download("prefix", folder.getRoot());
-    //
-    //        assertThat(new File(folder.getRoot().getPath() + "/prefix/sampleFile.txt")).exists();
-    //    }
-    //
     
     @Test
     public void test_upload_file_with_key_in_sub_directory() throws Exception {
@@ -64,4 +50,13 @@ public class RemoteFilesTest {
         assertThat(remoteFiles.objectExists(filePath)).isTrue();
     }
 
+    @Test
+    public void test_upload_download_directory() throws Exception {
+        assertThat(remoteFiles.objectExists("prefix")).isFalse();
+
+        remoteFiles.upload(new File("src/test/resources"), "prefix");
+        remoteFiles.download("prefix", folder.getRoot());
+
+        assertThat(new File(folder.getRoot().getPath() + "/prefix/sampleFile.txt")).exists();
+    }
 }

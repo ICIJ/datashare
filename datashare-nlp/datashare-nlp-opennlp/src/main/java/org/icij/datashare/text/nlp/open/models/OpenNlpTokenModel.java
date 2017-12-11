@@ -6,7 +6,6 @@ import org.icij.datashare.text.Language;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
@@ -18,8 +17,7 @@ import static org.icij.datashare.text.nlp.NlpStage.TOKEN;
 public class OpenNlpTokenModel extends OpenNlpAbstractModel {
     private static volatile OpenNlpTokenModel instance;
 
-    private final Path modelDir;
-    private final Map<Language, Path> modelPath;
+    private final Map<Language, String> modelFilenames;
     private final Map<Language, TokenizerModel> model;
 
     public static OpenNlpTokenModel getInstance() {
@@ -37,12 +35,11 @@ public class OpenNlpTokenModel extends OpenNlpAbstractModel {
 
     private OpenNlpTokenModel() {
         super(TOKEN);
-        modelDir = DIRECTORY.apply(TOKEN);
-        modelPath = new HashMap<Language, Path>(){{
-            put(ENGLISH, modelDir.resolve("en-token.bin"));
-            put(SPANISH, modelDir.resolve("en-token.bin"));
-            put(FRENCH,  modelDir.resolve("fr-token.bin"));
-            put(GERMAN,  modelDir.resolve("de-token.bin"));
+        modelFilenames = new HashMap<Language, String>(){{
+            put(ENGLISH, "en-token.bin");
+            put(SPANISH, "en-token.bin");
+            put(FRENCH,  "fr-token.bin");
+            put(GERMAN,  "de-token.bin");
         }};
         model = new HashMap<>();
     }
@@ -59,7 +56,7 @@ public class OpenNlpTokenModel extends OpenNlpAbstractModel {
 
     @Override
     String getModelPath(Language language) {
-        return modelPath.get(language).toString();
+        return BASE_DIR.resolve(language.iso6391Code()).resolve(modelFilenames.get(language)).toString();
     }
 
     public void unload(Language language) {

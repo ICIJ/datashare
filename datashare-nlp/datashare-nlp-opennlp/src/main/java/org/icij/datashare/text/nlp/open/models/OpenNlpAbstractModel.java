@@ -7,7 +7,6 @@ import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.NlpStage;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -16,11 +15,10 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
 
 public abstract class OpenNlpAbstractModel {
-    private static final Path BASE_DIR = Paths.get(OpenNlpAbstractModel.class.getPackage().getName().replace(".", "/"));
-    static final Function<NlpStage, Path> DIRECTORY = stage -> BASE_DIR.resolve(stage.toString().toLowerCase());
+    public static final String MODELS_OPENNLP_PATH = "dist/models/opennlp/1-5/";
+    static final Path BASE_DIR = Paths.get(MODELS_OPENNLP_PATH);
 
     protected static final Object mutex = new Object();
     static final Logger LOGGER = LogManager.getLogger(OpenNlpPosModel.class);
@@ -76,7 +74,8 @@ public abstract class OpenNlpAbstractModel {
     boolean download(Language language) {
         LOGGER.info(getClass().getName() + " - DOWNLOADING " + stage + " model for " + language);
         try {
-            getRemoteFiles().download("/dist/models/opennlp/" + language.iso6391Code(), new File(getModelPath(language)));
+            getRemoteFiles().download(MODELS_OPENNLP_PATH + language.iso6391Code(),
+                    Paths.get(".").toAbsolutePath().normalize().toFile());
             return true;
         } catch (InterruptedException | IOException e) {
             LOGGER.error(getClass().getName() + " - FAILED DOWNLOADING " + stage, e);

@@ -56,13 +56,13 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
             }};
 
     // Sentence annotators (split string into sentences)
-    private Map<Language, SentenceDetector> sentencer;
+    Map<Language, SentenceDetector> sentencer;
 
     // Token annotators (split string into tokens)
-    private Map<Language, Tokenizer> tokenizer;
+    Map<Language, Tokenizer> tokenizer;
 
     // Part-of-Speech annotators (associate pos with tokens)
-    private Map<Language, POSTagger> posTagger;
+    Map<Language, POSTagger> posTagger;
 
     // Named Entity Recognition annotators (associate entity category with tokens)
     Map<Language, List<NameFinderME>> nerFinder;

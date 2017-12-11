@@ -43,7 +43,7 @@ public class RemoteFiles {
             for (Upload upload : uploads.getSubTransfers()) {
                 upload.waitForUploadResult();
             }
-            transferManager.shutdownNow();
+            transferManager.shutdownNow(false);
         } else {
             final ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(localFile.length());
@@ -55,7 +55,7 @@ public class RemoteFiles {
         if (localFile.isDirectory()) {
             TransferManager transferManager = TransferManagerBuilder.standard().withS3Client(this.s3Client).build();
             transferManager.downloadDirectory(bucket, remoteKey, localFile).waitForCompletion();
-            transferManager.shutdownNow();
+            transferManager.shutdownNow(false);
         } else {
             final S3Object s3Object = s3Client.getObject(this.bucket, remoteKey);
             Files.copy(s3Object.getObjectContent(), Paths.get(localFile.getPath()));

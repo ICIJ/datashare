@@ -2,7 +2,7 @@
 <Configuration status="info">
     <Appenders>
         <Console name="CONSOLE" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d %-5p [%t] - %m%n"/>
+            <PatternLayout pattern="%d %-5p [%t] [%C{1}] - %m%n"/>
             <!--%d{ABSOLUTE} %5p -%C{1}:%m%n-->
         </Console>
         <Async name="ASYNC">

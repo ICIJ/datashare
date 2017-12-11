@@ -7,7 +7,6 @@ import org.icij.datashare.text.NamedEntity;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
@@ -19,8 +18,7 @@ import static org.icij.datashare.text.nlp.NlpStage.NER;
 
 public class OpenNlpNerModel extends OpenNlpAbstractModel {
     private static volatile OpenNlpNerModel instance;
-    private final Path modelDir;
-    private final Map<Language, Map<NamedEntity.Category, Path>> modelPath;
+    private final Map<Language, Map<NamedEntity.Category, String>> modelsFilenames;
     private final Map<Language, OpenNlpCompositeModel> model = new HashMap<>();
 
     public static OpenNlpNerModel getInstance() {
@@ -38,22 +36,21 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
 
     private OpenNlpNerModel() {
         super(NER);
-        modelDir = DIRECTORY.apply(NER);
-        modelPath = new HashMap<Language, Map<NamedEntity.Category, Path>>(){{
-            put(ENGLISH, new HashMap<NamedEntity.Category, Path>(){{
-                put(PERSON,       modelDir.resolve("en-ner-person.bin"));
-                put(ORGANIZATION, modelDir.resolve("en-ner-organization.bin"));
-                put(LOCATION,     modelDir.resolve("en-ner-location.bin"));
+        modelsFilenames = new HashMap<Language, Map<NamedEntity.Category, String>>(){{
+            put(ENGLISH, new HashMap<NamedEntity.Category, String>(){{
+                put(PERSON,       "en-ner-person.bin");
+                put(ORGANIZATION, "en-ner-organization.bin");
+                put(LOCATION,     "en-ner-location.bin");
             }});
-            put(SPANISH, new HashMap<NamedEntity.Category, Path>(){{
-                put(PERSON,       modelDir.resolve("es-ner-person.bin"));
-                put(ORGANIZATION, modelDir.resolve("es-ner-organization.bin"));
-                put(LOCATION,     modelDir.resolve("es-ner-location.bin"));
+            put(SPANISH, new HashMap<NamedEntity.Category, String>(){{
+                put(PERSON,       "es-ner-person.bin");
+                put(ORGANIZATION, "es-ner-organization.bin");
+                put(LOCATION,     "es-ner-location.bin");
             }});
-            put(FRENCH, new HashMap<NamedEntity.Category, Path>(){{
-                put(PERSON,       modelDir.resolve("en-ner-person.bin"));
-                put(ORGANIZATION, modelDir.resolve("en-ner-organization.bin"));
-                put(LOCATION,     modelDir.resolve("en-ner-location.bin"));
+            put(FRENCH, new HashMap<NamedEntity.Category, String>(){{
+                put(PERSON,       "fr-ner-person.bin");
+                put(ORGANIZATION, "fr-ner-organization.bin");
+                put(LOCATION,     "fr-ner-location.bin");
             }});
         }};
     }
@@ -63,7 +60,6 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
         return model.get(language);
     }
 
-
     @Override
     void putModel(Language language, InputStream content) throws IOException {
         throw new IllegalStateException("putModel not available for " + this.getClass());
@@ -71,7 +67,7 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
 
     @Override
     String getModelPath(Language language) {
-        return DIRECTORY.apply(NER).toString();
+        return BASE_DIR.resolve(language.iso6391Code()).toString();
     }
 
     boolean load(Language language, ClassLoader loader) {
@@ -83,9 +79,9 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
         }
 
         OpenNlpCompositeModel models = new OpenNlpCompositeModel(language);
-        for (Path p: modelPath.get(language).values()) {
+        for (String p: modelsFilenames.get(language).values()) {
             LOGGER.info(getClass().getName() + " - LOADING NER model " + p);
-            try (InputStream modelIS = loader.getResourceAsStream(p.toString())) {
+            try (InputStream modelIS = loader.getResourceAsStream(BASE_DIR.resolve(language.iso6391Code()).resolve(p).toString())) {
                 models.add(new TokenNameFinderModel(modelIS));
             } catch (IOException e) {
                 LOGGER.error(getClass().getName() + " - FAILED LOADING " + p, e);
@@ -94,7 +90,7 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
         }
         model.put(language, models);
 
-        LOGGER.info(getClass().getName() + " - LOADED NER model for " + language);
+        LOGGER.info(getClass().getName() + " - LOADED NER models for " + language);
         return true;
     }
 

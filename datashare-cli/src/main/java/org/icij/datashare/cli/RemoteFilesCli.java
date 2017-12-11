@@ -10,8 +10,7 @@ public class RemoteFilesCli {
     private static RemoteFiles remoteFiles = null;
 
     public static void main(String[] args) throws Exception {
-        RemoteFiles remoteFiles = RemoteFilesCli.remoteFiles;
-        if (remoteFiles == null) {
+        if (RemoteFilesCli.remoteFiles == null) {
             RemoteFilesCli.remoteFiles = RemoteFiles.getDefault();
         }
         OptionSet cmd = parseArgs(args);

@@ -36,6 +36,7 @@ function install_idx {
         exit 1
     fi
     unzip "elasticsearch-${ES_VERSION}.zip" -d "${dir}/opt/"
+    rm -f "elasticsearch-${ES_VERSION}.zip"
     cp -f ${ES_CONFIG}/* "${ES_HOME}/config/"
 }
 
