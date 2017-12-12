@@ -1,8 +1,8 @@
 package org.icij.datashare.text.nlp.open.models;
 
 import opennlp.tools.util.model.ArtifactProvider;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.NlpStage;
@@ -21,7 +21,7 @@ public abstract class OpenNlpAbstractModel {
     static final Path BASE_DIR = Paths.get(MODELS_OPENNLP_PATH);
 
     protected static final Object mutex = new Object();
-    static final Logger LOGGER = LogManager.getLogger(OpenNlpPosModel.class);
+    final Log LOGGER = LogFactory.getLog(getClass());
 
     final ConcurrentHashMap<Language, Lock> modelLock = new ConcurrentHashMap<Language, Lock>() {{
         for (Language l : Language.values()) {
@@ -56,14 +56,14 @@ public abstract class OpenNlpAbstractModel {
             download(language);
         }
 
-        LOGGER.info(getClass().getName() + " - LOADING " + stage + " model for " + language);
+        LOGGER.info("LOADING " + stage + " model for " + language);
         try (InputStream modelIS = loader.getResourceAsStream(getModelPath(language))) {
             putModel(language, modelIS);
         } catch (IOException e) {
-            LOGGER.error(getClass().getName() + " - FAILED LOADING " + stage, e);
+            LOGGER.error("FAILED LOADING " + stage, e);
             return false;
         }
-        LOGGER.info(getClass().getName() + " - LOADED " + stage + " model for " + language);
+        LOGGER.info("LOADED " + stage + " model for " + language);
         return true;
     }
 
@@ -72,13 +72,14 @@ public abstract class OpenNlpAbstractModel {
     }
 
     boolean download(Language language) {
-        LOGGER.info(getClass().getName() + " - DOWNLOADING " + stage + " model for " + language);
+        LOGGER.info("DOWNLOADING " + stage + " model for " + language);
         try {
             getRemoteFiles().download(MODELS_OPENNLP_PATH + language.iso6391Code(),
                     Paths.get(".").toAbsolutePath().normalize().toFile());
+            LOGGER.info("DOWNLOADED " + stage + " model for " + language);
             return true;
         } catch (InterruptedException | IOException e) {
-            LOGGER.error(getClass().getName() + " - FAILED DOWNLOADING " + stage, e);
+            LOGGER.error("FAILED DOWNLOADING " + stage, e);
             return false;
         }
     }

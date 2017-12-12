@@ -1,7 +1,7 @@
 package org.icij.datashare.text.nlp;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
@@ -28,7 +28,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
     protected static final Hasher HASHER = Document.HASHER;
 
 
-    protected final Logger LOGGER = LogManager.getLogger(getClass());
+    protected final Log LOGGER = LogFactory.getLog(getClass());
 
     // Content charset
     protected final Charset encoding;
@@ -124,7 +124,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
     public Optional<Annotation> run(Document document) {
         Optional<Language> language = document.getLanguage();
         if ( ! language.isPresent() || language.get().equals(UNKNOWN)) {
-            LOGGER.info(getClass().getName() + " - UNKNOWN language; ABORTING PROCESSING...");
+            LOGGER.info("UNKNOWN language; ABORTING PROCESSING...");
             return Optional.empty();
         }
         return run(document.getContent(), language.get());
@@ -150,7 +150,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
             try{
                 annotation = process(input, HASHER.hash(input), language);
             } catch (Exception e) {
-                LOGGER.error(getClass().getName() + " - FAILED PROCESSING [" + language + "]" + input, e);
+                LOGGER.error("FAILED PROCESSING [" + language + "]" + input, e);
             }
         }
         terminate(language);
@@ -169,25 +169,11 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
         stages = stagesDependenciesTC(targetStages);
         // Check all dependencies for support in language
         if ( ! checkStages(language)) {
-            LOGGER.info(
-                    String.join(" - ",
-                            getClass().getName(),
-                            "INITIALIZING",
-                            getType().toString(),
-                            "Skipping... Stage unsupported for ",
-                            language.toString().toUpperCase(Locale.ROOT),
-                            stages.toString())
-            );
+            LOGGER.info("INITIALIZING " + getType() + " Skipping... Stage unsupported for " +
+                            language + " " + stages);
             return false;
         }
-        LOGGER.info(
-                String.join(" - ",
-                        getClass().getName(),
-                        "INITIALIZING",
-                        getType().toString(),
-                        language.toString().toUpperCase(Locale.ROOT),
-                        stages.toString())
-        );
+        LOGGER.info("INITIALIZING " + getType() + " " + language + " " + stages);
         return true;
     }
 
