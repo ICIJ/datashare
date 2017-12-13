@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContextExecutor;
 import services.DataShareIndexer;
 import org.icij.datashare.DataShare;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.NlpPipeline;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.indexing.Indexer;
 import static org.icij.datashare.function.ThrowingFunctions.splitComma;
@@ -54,7 +54,7 @@ public class ProcessController extends Controller {
                         fileParserParallelism,
                         splitComma.andThen(NlpStage.parseAll).apply(nlpStages),
                         splitComma.andThen(NamedEntity.Category.parseAll).apply(entities),
-                        splitComma.andThen(NlpPipeline.Type.parseAll).apply(nlpPipelines),
+                        splitComma.andThen(Pipeline.Type.parseAll).apply(nlpPipelines),
                         nlpParallelism,
                         indexer,
                         index

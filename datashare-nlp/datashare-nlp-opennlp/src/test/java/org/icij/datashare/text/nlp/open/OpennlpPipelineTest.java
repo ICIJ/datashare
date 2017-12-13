@@ -7,16 +7,16 @@ import org.junit.Test;
 import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.text.nlp.NlpPipeline.Property.STAGES;
+import static org.icij.datashare.text.nlp.Pipeline.Property.STAGES;
 
-public class OpenNlpPipelineTest {
-    private OpenNlpPipeline openNlpPipeline;
+public class OpennlpPipelineTest {
+    private OpennlpPipeline openNlpPipeline;
 
     @Before
     public void setUp() throws Exception {
         Properties props = new Properties();
         props.setProperty(STAGES.getName(), "SENTENCE,TOKEN");
-        openNlpPipeline = new OpenNlpPipeline(props);
+        openNlpPipeline = new OpennlpPipeline(props);
     }
 
     @Test

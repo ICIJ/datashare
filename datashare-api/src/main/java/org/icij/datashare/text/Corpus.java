@@ -8,7 +8,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.NlpPipeline;
+import org.icij.datashare.text.nlp.Pipeline;
 
 
 /**
@@ -61,11 +61,11 @@ public class Corpus implements Entity {
 
     public boolean readFromIndex(Indexer idxr) { return false; }
 
-    public boolean processDirectory(Path inputDir, List<NlpPipeline> pipelines) {
+    public boolean processDirectory(Path inputDir, List<Pipeline> pipelines) {
         return false;
     }
 
-    public boolean processIndex(Indexer idxr, List<NlpPipeline> pipelines) {
+    public boolean processIndex(Indexer idxr, List<Pipeline> pipelines) {
         return false;
     }
 

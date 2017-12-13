@@ -9,9 +9,10 @@ import gate.util.GateException;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.AbstractNlpPipeline;
+import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -26,9 +27,9 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
 /**
- * {@link org.icij.datashare.text.nlp.NlpPipeline}
- * {@link org.icij.datashare.text.nlp.AbstractNlpPipeline}
- * {@link Type#GATE}
+ * {@link Pipeline}
+ * {@link AbstractPipeline}
+ * {@link Type#GATENLP}
  *
  * <a href="https://github.com/ICIJ/entity-extractor/tree/production">OEG UPM Gate-based entity-extractor</a>
  * <a href="https://gate.ac.uk/">Gate</a>
@@ -36,7 +37,7 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
  *
  * Created by julien on 5/19/16.
  */
-public final class GateNlpPipeline extends AbstractNlpPipeline {
+public final class GatenlpPipeline extends AbstractPipeline {
 
     private static final Map<Language, Set<NlpStage>> SUPPORTED_STAGES =
             new HashMap<Language, Set<NlpStage>>(){{
@@ -49,7 +50,7 @@ public final class GateNlpPipeline extends AbstractNlpPipeline {
     // Resources base directory (configuration, dictionaries, rule-based grammar)
     private static final Path RESOURCES_DIR = Paths.get(
             System.getProperty("user.dir"), "src", "main", "resources",
-            Paths.get( GateNlpPipeline.class.getPackage().getName().replace(".", "/") ).toString()
+            Paths.get( GatenlpPipeline.class.getPackage().getName().replace(".", "/") ).toString()
     );
 
     // NamedEntityCategory to Gate annotation types
@@ -71,7 +72,7 @@ public final class GateNlpPipeline extends AbstractNlpPipeline {
     private GATENLPApplication pipeline;
 
 
-    public GateNlpPipeline(Properties properties) {
+    public GatenlpPipeline(Properties properties) {
         super(properties);
         // TOKEN <-- NER
         stageDependencies.get(NER).add(TOKEN);

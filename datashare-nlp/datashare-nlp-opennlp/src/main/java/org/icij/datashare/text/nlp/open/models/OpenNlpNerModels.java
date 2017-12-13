@@ -4,37 +4,37 @@ import opennlp.tools.namefind.TokenNameFinderModel;
 import opennlp.tools.util.model.ArtifactProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
 
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.*;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 
 
-public class OpenNlpNerModel extends OpenNlpAbstractModel {
-    private static volatile OpenNlpNerModel instance;
+public class OpenNlpNerModels extends OpenNlpModels {
+    private static volatile OpenNlpNerModels instance;
+    private static final Object mutex = new Object();
     private final Map<Language, Map<NamedEntity.Category, String>> modelsFilenames;
-    private final Map<Language, OpenNlpCompositeModel> model = new HashMap<>();
 
-    public static OpenNlpNerModel getInstance() {
-        OpenNlpNerModel local_instance = instance;
+    public static OpenNlpNerModels getInstance() {
+        OpenNlpNerModels local_instance = instance;
          if (local_instance == null) {
-             synchronized(OpenNlpAbstractModel.mutex) {
+             synchronized(mutex) {
                  local_instance = instance;
                  if (local_instance == null) {
-                     instance = new OpenNlpNerModel();
+                     instance = new OpenNlpNerModels();
                  }
              }
          }
          return instance;
      }
 
-    private OpenNlpNerModel() {
+    private OpenNlpNerModels() {
         super(NER);
         modelsFilenames = new HashMap<Language, Map<NamedEntity.Category, String>>(){{
             put(ENGLISH, new HashMap<NamedEntity.Category, String>(){{
@@ -56,52 +56,24 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
     }
 
     @Override
-    ArtifactProvider getModel(Language language) {
-        return model.get(language);
+    protected ArtifactProvider loadModelFile(Language language, ClassLoader loader) throws IOException {
+        OpenNlpCompositeModel compositeModels = new OpenNlpCompositeModel(language);
+        for (String p: modelsFilenames.get(language).values()) {
+            LOGGER.info("loading NER model " + p);
+            try (InputStream modelIS = loader.getResourceAsStream(BASE_CLASSPATH.resolve(language.iso6391Code()).resolve(p).toString())) {
+                compositeModels.add(createModel(modelIS));
+            }
+        }
+        return compositeModels;
     }
 
     @Override
-    void putModel(Language language, InputStream content) throws IOException {
-        throw new IllegalStateException("putModel not available for " + this.getClass());
+    ArtifactProvider createModel(InputStream is) throws IOException {
+        return new TokenNameFinderModel(is);
     }
 
     @Override
     String getModelPath(Language language) {
-        return BASE_DIR.resolve(language.iso6391Code()).toString();
+        throw new NotImplementedException();
     }
-
-    boolean load(Language language, ClassLoader loader) {
-        if (getModel(language) != null)
-            return true;
-
-        if (!isDownloaded(language, loader)) {
-            download(language);
-        }
-
-        OpenNlpCompositeModel models = new OpenNlpCompositeModel(language);
-        for (String p: modelsFilenames.get(language).values()) {
-            LOGGER.info("loading NER model " + p);
-            try (InputStream modelIS = loader.getResourceAsStream(BASE_DIR.resolve(language.iso6391Code()).resolve(p).toString())) {
-                models.add(new TokenNameFinderModel(modelIS));
-            } catch (IOException e) {
-                LOGGER.error("failed loading " + p, e);
-                return false;
-            }
-        }
-        model.put(language, models);
-
-        LOGGER.info("loaded NER models for " + language);
-        return true;
-    }
-
-    public void unload(Language language) {
-        Lock l = modelLock.get(language);
-        l.lock();
-        try {
-            model.remove(language);
-        } finally {
-            l.unlock();
-        }
-    }
-
 }

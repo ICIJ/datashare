@@ -25,10 +25,10 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
      * Instantiate {@code parallelism} tasks per pipeline type.
      * Tasks of same type share input queue
      */
-    public static List<NamedEntityRecognition> create(List<NlpPipeline.Type> types,
+    public static List<NamedEntityRecognition> create(List<Pipeline.Type> types,
                                                       int parallelism,
                                                       Properties properties,
-                                                      Map<NlpPipeline.Type, BlockingQueue<Document>> inputMap,
+                                                      Map<Pipeline.Type, BlockingQueue<Document>> inputMap,
                                                       Latch noMoreInput,
                                                       BlockingQueue<NamedEntity> output) {
         return types.stream().flatMap( type ->
@@ -41,13 +41,13 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
     /**
      * Instantiate one input queue per pipeline type; create tasks
      */
-    public static List<NamedEntityRecognition> create(List<NlpPipeline.Type> types,
+    public static List<NamedEntityRecognition> create(List<Pipeline.Type> types,
                                                       int parallelism,
                                                       Properties properties,
                                                       Latch noMoreInput,
                                                       BlockingQueue<NamedEntity> output) {
-        Map<NlpPipeline.Type, BlockingQueue<Document>> inputMap =
-                new HashMap<NlpPipeline.Type, BlockingQueue<Document>>() {{
+        Map<Pipeline.Type, BlockingQueue<Document>> inputMap =
+                new HashMap<Pipeline.Type, BlockingQueue<Document>>() {{
                     types.forEach( type -> put(type, new LinkedBlockingQueue<>()) );
                 }};
         return create(types, parallelism, properties, inputMap, noMoreInput, output);
@@ -56,14 +56,14 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
     /**
      * Build a {@link Properties} object from pipeline parameters; create tasks
      */
-    public static List<NamedEntityRecognition> create(List<NlpPipeline.Type> types,
+    public static List<NamedEntityRecognition> create(List<Pipeline.Type> types,
                                                       int parallelism,
                                                       List<NlpStage> stages,
                                                       List<NamedEntity.Category> targetEntities,
                                                       boolean caching,
                                                       Latch noMoreInput,
                                                       BlockingQueue<NamedEntity> output) {
-        Properties properties = NlpPipeline.Property.build
+        Properties properties = Pipeline.Property.build
                 .apply(stages)
                 .apply(targetEntities)
                 .apply(caching);
@@ -73,7 +73,7 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
     /**
      * Create tasks; add inputs to document forwarding task destinations
      */
-    public static List<NamedEntityRecognition> create(List<NlpPipeline.Type> types,
+    public static List<NamedEntityRecognition> create(List<Pipeline.Type> types,
                                                       int parallelism,
                                                       List<NlpStage> stages,
                                                       List<NamedEntity.Category> entities,
@@ -91,13 +91,13 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
     }
 
 
-    private NamedEntityRecognition(NlpPipeline.Type type,
+    private NamedEntityRecognition(Pipeline.Type type,
                                    Properties properties,
                                    BlockingQueue<Document> input,
                                    Latch noMoreInput,
                                    BlockingQueue<NamedEntity> output) {
         super(type, properties, input, noMoreInput, output);
-        this.properties.setProperty(NlpPipeline.Property.STAGES.getName(), NER.toString());
+        this.properties.setProperty(Pipeline.Property.STAGES.getName(), NER.toString());
     }
 
 

@@ -7,9 +7,10 @@ import ixa.kaflib.KAFDocument.LinguisticProcessor;
 import ixa.kaflib.Term;
 import ixa.kaflib.WF;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.nlp.AbstractNlpPipeline;
+import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.ixa.models.IxaModels;
 
 import java.io.BufferedReader;
@@ -25,9 +26,9 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
 /**
- * {@link org.icij.datashare.text.nlp.NlpPipeline}
- * {@link org.icij.datashare.text.nlp.AbstractNlpPipeline}
- * {@link Type#IXA}
+ * {@link Pipeline}
+ * {@link AbstractPipeline}
+ * {@link Type#IXAPIPE}
  *
  * <a href="http://ixa2.si.ehu.es/ixa-pipes">Ixa Pipes</a>
  * <a href="https://github.com/ixa-ehu/ixa-pipe-tok">Ixa Pipe Tok</a>
@@ -36,7 +37,7 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
  *
  * Created by julien on 9/22/16.
  */
-public class IxaNlpPipeline extends AbstractNlpPipeline {
+public class IxapipePipeline extends AbstractPipeline {
 
     private static final Map<Language, Set<NlpStage>> SUPPORTED_STAGES =
             new HashMap<Language, Set<NlpStage>>(){{
@@ -71,7 +72,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
     private final Map<NlpStage, Function<Language, Boolean>> annotatorLoader;
 
 
-    public IxaNlpPipeline(Properties properties) {
+    public IxapipePipeline(Properties properties) {
         super(properties);
 
         // TOKEN <-- POS <-- NER
@@ -79,8 +80,8 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
         stageDependencies.get(NER).add(POS);
 
         annotatorLoader = new HashMap<NlpStage, Function<Language, Boolean>>(){{
-            put(POS, IxaNlpPipeline.this::loadPosTagger);
-            put(NER, IxaNlpPipeline.this::loadNameFinder);
+            put(POS, IxapipePipeline.this::loadPosTagger);
+            put(NER, IxapipePipeline.this::loadNameFinder);
         }};
 
         posTagger = new HashMap<>();
@@ -106,7 +107,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
     @Override
     protected Optional<Annotation> process(String input, String hash, Language language) {
         Annotation annotation = new Annotation(hash, getType(), language);
-        // KAF document annotated by IXA annotators
+        // KAF document annotated by IXAPIPE annotators
         KAFDocument kafDocument = new KAFDocument(language.toString(), KAF_VERSION);
 
         // tokenize( input )
@@ -242,7 +243,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
                                               String multiwords,
                                               String dictag) {
         final Properties annotateProperties = new Properties();
-        annotateProperties.setProperty("model",           model);
+        annotateProperties.setProperty("models",           model);
         annotateProperties.setProperty("lemmatizerModel", lemmatizerModel);
         annotateProperties.setProperty("language",        language);
         annotateProperties.setProperty("multiwords",      multiwords);
@@ -300,7 +301,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
                                               String dictPath,
                                               String clearFeatures) {
         Properties annotateProperties = new Properties();
-        annotateProperties.setProperty("model",           model);
+        annotateProperties.setProperty("models",           model);
         annotateProperties.setProperty("language",        language);
         annotateProperties.setProperty("ruleBasedOption", lexer);
         annotateProperties.setProperty("dictTag",         dictTag);

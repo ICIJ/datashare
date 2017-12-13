@@ -1,38 +1,38 @@
 package org.icij.datashare;
 
+import com.hazelcast.core.ICountDownLatch;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.icij.datashare.concurrent.BooleanLatch;
+import org.icij.datashare.concurrent.DataGrid;
+import org.icij.datashare.concurrent.Latch;
+import org.icij.datashare.concurrent.LatchForwarding;
+import org.icij.datashare.concurrent.queue.QueueForwarding;
+import org.icij.datashare.concurrent.task.AsyncTaskExecutor;
+import org.icij.datashare.concurrent.task.Task;
+import org.icij.datashare.concurrent.task.TaskExecutor;
+import org.icij.datashare.function.ThrowingFunction;
+import org.icij.datashare.io.FileSystemScanning;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.SourcePath;
+import org.icij.datashare.text.extraction.FileParser;
+import org.icij.datashare.text.extraction.FileParsing;
+import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.Indexing;
+import org.icij.datashare.text.nlp.NamedEntityRecognition;
+import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.Pipeline;
+
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import com.hazelcast.core.*;
-
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.SourcePath;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.io.FileSystemScanning;
-import org.icij.datashare.text.extraction.FileParser;
-import org.icij.datashare.text.extraction.FileParsing;
-import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.Indexing;
-import org.icij.datashare.text.nlp.Annotation;
-import org.icij.datashare.text.nlp.NlpPipeline;
-import org.icij.datashare.text.nlp.NamedEntityRecognition;
-import org.icij.datashare.text.nlp.NlpStage;
-import org.icij.datashare.concurrent.DataGrid;
-import org.icij.datashare.concurrent.Latch;
-import org.icij.datashare.concurrent.BooleanLatch;
-import org.icij.datashare.concurrent.LatchForwarding;
-import org.icij.datashare.concurrent.queue.QueueForwarding;
-import org.icij.datashare.concurrent.task.*;
-import org.icij.datashare.function.ThrowingFunction;
 
 
 /**
@@ -76,11 +76,11 @@ public final class DataShare {
     public static final int                        DEFAULT_PARSER_PARALLELISM = FileParser.DEFAULT_PARALLELISM;
     public static final boolean                    DEFAULT_PARSER_OCR         = FileParser.DEFAULT_ENABLE_OCR;
 
-    public static final List<NlpPipeline.Type>     DEFAULT_NLP_PIPELINES      = asList(NlpPipeline.Type.values());
-    public static final int                        DEFAULT_NLP_PARALLELISM    = NlpPipeline.DEFAULT_PARALLELISM;
-    public static final List<NlpStage>             DEFAULT_NLP_STAGES         = NlpPipeline.DEFAULT_TARGET_STAGES;
-    public static final List<NamedEntity.Category> DEFAULT_NLP_ENTITIES       = NlpPipeline.DEFAULT_ENTITIES;
-    public static final boolean                    DEFAULT_NLP_CACHING        = NlpPipeline.DEFAULT_CACHING;
+    public static final List<Pipeline.Type>     DEFAULT_NLP_PIPELINES      = asList(Pipeline.Type.values());
+    public static final int                        DEFAULT_NLP_PARALLELISM    = Pipeline.DEFAULT_PARALLELISM;
+    public static final List<NlpStage>             DEFAULT_NLP_STAGES         = Pipeline.DEFAULT_TARGET_STAGES;
+    public static final List<NamedEntity.Category> DEFAULT_NLP_ENTITIES       = Pipeline.DEFAULT_ENTITIES;
+    public static final boolean                    DEFAULT_NLP_CACHING        = Pipeline.DEFAULT_CACHING;
 
     public static final Indexer.Type               DEFAULT_INDEXER_TYPE       = Indexer.DEFAULT_TYPE;
     public static final Indexer.NodeType           DEFAULT_INDEXER_NODE_TYPE  = Indexer.DEFAULT_NODETYPE;
@@ -156,15 +156,15 @@ public final class DataShare {
          *  - Scan files from {@code inputDir}, put on path queue
          *  - Parse each  {@link Path} into a {@link Document}, poll from path queue and put on document queue
          *  - Index each  {@link Document} to {@code index} using {@code indexer}
-         *  - Extract all {@link NamedEntity}s from each {@link Document} using {@code nlpPipelineTypes} {@link NlpPipeline}s
+         *  - Extract all {@link NamedEntity}s from each {@link Document} using {@code nlpPipelineTypes} {@link Pipeline}s
          *  - Index each  {@link NamedEntity} to {@code index} using {@code indexer}
          *
          * @param inputDir                the directory {@link Path} from which source files are scanned
          * @param fileParserType          the {@link FileParser.Type} to instantiate
          * @param fileParserDoOcr               the flag for activating OCR at file parsing time
-         * @param nlpPipelineTypes        the {@link NlpPipeline.Type}s to be instantiated
+         * @param nlpPipelineTypes        the {@link Pipeline.Type}s to be instantiated
          * @param nlpPipelineParallelism  the number of threads per {@code nlpPipelineType}
-         * @param nlpPipelineCaching      the flag for caching models while running {@link NlpPipeline}s
+         * @param nlpPipelineCaching      the flag for caching models while running {@link Pipeline}s
          * @param nlpStages               the targeted NLP processing stage(s)
          * @param nlpTargetEntities       the targeted named entity category(ies)
          * @param indexer                 the {@link Indexer} instance
@@ -175,7 +175,7 @@ public final class DataShare {
                                                FileParser.Type fileParserType,
                                                int fileParserParallelism,
                                                boolean fileParserDoOcr,
-                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               List<Pipeline.Type> nlpPipelineTypes,
                                                int nlpPipelineParallelism,
                                                boolean nlpPipelineCaching,
                                                List<NlpStage> nlpStages,
@@ -273,7 +273,7 @@ public final class DataShare {
         }
 
         public static boolean processDirectory(Path inputDir,
-                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               List<Pipeline.Type> nlpPipelineTypes,
                                                int nlpPipelineParallelism,
                                                Indexer indexer) {
             return processDirectory(
@@ -294,7 +294,7 @@ public final class DataShare {
         public static boolean processDirectory(Path inputDir,
                                                List<NlpStage> nlpStages,
                                                List<NamedEntity.Category> nlpTargetEntities,
-                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               List<Pipeline.Type> nlpPipelineTypes,
                                                int nlpPipelineParallelism,
                                                Indexer indexer) {
             return processDirectory(
@@ -315,7 +315,7 @@ public final class DataShare {
         public static boolean processDirectory(Path inputDir,
                                                List<NlpStage> nlpStages,
                                                List<NamedEntity.Category> nlpTargetEntities,
-                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               List<Pipeline.Type> nlpPipelineTypes,
                                                int nlpPipelineParallelism,
                                                Indexer indexer,
                                                String index) {
@@ -338,7 +338,7 @@ public final class DataShare {
                                                int fileParserParallelism,
                                                List<NlpStage> nlpStages,
                                                List<NamedEntity.Category> nlpTargetEntities,
-                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               List<Pipeline.Type> nlpPipelineTypes,
                                                int nlpPipelineParallelism,
                                                Indexer indexer,
                                                String index) {
@@ -361,7 +361,7 @@ public final class DataShare {
                                                boolean enableOcr,
                                                List<NlpStage> nlpStages,
                                                List<NamedEntity.Category> nlpTargetEntities,
-                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               List<Pipeline.Type> nlpPipelineTypes,
                                                int nlpPipelineParallelism,
                                                Indexer indexer,
                                                String index) {
@@ -384,7 +384,7 @@ public final class DataShare {
                                                boolean enableOcr,
                                                List<NlpStage> nlpStages,
                                                List<NamedEntity.Category> nlpTargetEntities,
-                                               List<NlpPipeline.Type> nlpPipelineTypes,
+                                               List<Pipeline.Type> nlpPipelineTypes,
                                                int nlpPipelineParallelism,
                                                Indexer indexer,
                                                String index) {
@@ -580,12 +580,12 @@ public final class DataShare {
          * Store them into {@code index}
          *
          * {@link Task}s coordination with local or distributed shared in-memory {@link BlockingQueue}s,
-         *  - Extract all {@link NamedEntity}s from each {@link Document} using {@code nlpPipelineTypes} {@link NlpPipeline}s
+         *  - Extract all {@link NamedEntity}s from each {@link Document} using {@code nlpPipelineTypes} {@link Pipeline}s
          *  - Index each {@link NamedEntity} to {@code index} using {@code indexerType} {@link Indexer}
          *
-         * @param nlpPipelineTypes         the {@link NlpPipeline.Type} to instantiate
+         * @param nlpPipelineTypes         the {@link Pipeline.Type} to instantiate
          * @param nlpPipelineParallelism   the number of threads per {@code nlpPipelineType}
-         * @param nlpPipelineCaching       the flag for caching models while running {@code NlpPipeline}s
+         * @param nlpPipelineCaching       the flag for caching models while running {@code Pipeline}s
          * @param nlpStages                the targeted NLP processing stage(s)
          * @param nlpTargetEntities        the targeted named entity category(ies)
          * @param indexer                  the indexer instance
@@ -594,7 +594,7 @@ public final class DataShare {
          */
         public static boolean extractNamedEntities(List<NlpStage> nlpStages,
                                                    List<NamedEntity.Category> nlpTargetEntities,
-                                                   List<NlpPipeline.Type> nlpPipelineTypes,
+                                                   List<Pipeline.Type> nlpPipelineTypes,
                                                    int nlpPipelineParallelism,
                                                    boolean nlpPipelineCaching,
                                                    Indexer indexer,

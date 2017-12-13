@@ -10,16 +10,16 @@ import org.icij.datashare.concurrent.task.Task;
 
 
 /**
- * {@link Task} running an {@link NlpPipeline}
+ * {@link Task} running an {@link Pipeline}
  *
  * Created by julien on 10/6/16.
  */
-public abstract class NaturalLanguageProcessing<I,O> extends DatashareTask<I, O, NlpPipeline.Type> {
+public abstract class NaturalLanguageProcessing<I,O> extends DatashareTask<I, O, Pipeline.Type> {
 
-    protected NlpPipeline nlpPipeline;
+    protected Pipeline nlpPipeline;
 
 
-    public NaturalLanguageProcessing(NlpPipeline.Type pipelineType,
+    public NaturalLanguageProcessing(Pipeline.Type pipelineType,
                                      Properties pipelineProperties,
                                      BlockingQueue<I> inputQueue,
                                      Latch noMoreInput,
@@ -30,7 +30,7 @@ public abstract class NaturalLanguageProcessing<I,O> extends DatashareTask<I, O,
 
     @Override
     protected boolean initialize() {
-        Optional<NlpPipeline> nlpPipelineOpt = NlpPipeline.create(type, properties);
+        Optional<Pipeline> nlpPipelineOpt = Pipeline.create(type, properties);
         if ( ! nlpPipelineOpt.isPresent())
             return false;
         nlpPipeline = nlpPipelineOpt.get();

@@ -14,9 +14,10 @@ import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.model.ArtifactProvider;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.nlp.AbstractNlpPipeline;
+import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.open.models.*;
 
 import java.util.*;
@@ -32,9 +33,9 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
 /**
- * {@link org.icij.datashare.text.nlp.NlpPipeline}
- * {@link org.icij.datashare.text.nlp.AbstractNlpPipeline}
- * {@link Type#OPEN}
+ * {@link Pipeline}
+ * {@link AbstractPipeline}
+ * {@link Type#OPENNLP}
  *
  * <a href="https://opennlp.apache.org/">Apache OpenNLP</a>
  * Models v1.5
@@ -45,7 +46,7 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
  *
  * Created by julien on 3/29/16.
  */
-public final class OpenNlpPipeline extends AbstractNlpPipeline {
+public final class OpennlpPipeline extends AbstractPipeline {
 
     private static final Map<Language, Set<NlpStage>> SUPPORTED_STAGES =
             new HashMap<Language, Set<NlpStage>>(){{
@@ -71,7 +72,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     private final Map<NlpStage, BiFunction<ClassLoader, Language, Boolean>> annotatorLoader;
 
 
-    public OpenNlpPipeline(final Properties properties) {
+    public OpennlpPipeline(final Properties properties) {
         super(properties);
 
         // SENTENCE <-- TOKEN <-- {POS, NER}
@@ -80,10 +81,10 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
         stageDependencies.get(NER)  .add(TOKEN);
 
         annotatorLoader = new HashMap<NlpStage, BiFunction<ClassLoader, Language, Boolean>>(){{
-            put(TOKEN,    OpenNlpPipeline.this::loadTokenizer);
-            put(SENTENCE, OpenNlpPipeline.this::loadSentenceDetector);
-            put(POS,      OpenNlpPipeline.this::loadPosTagger);
-            put(NER,      OpenNlpPipeline.this::loadNameFinder);
+            put(TOKEN,    OpennlpPipeline.this::loadTokenizer);
+            put(SENTENCE, OpennlpPipeline.this::loadSentenceDetector);
+            put(POS,      OpennlpPipeline.this::loadPosTagger);
+            put(NER,      OpennlpPipeline.this::loadNameFinder);
         }};
 
         sentencer = new HashMap<>();
@@ -107,8 +108,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
         if ( ! super.initialize(language))
             return false;
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        stages.forEach( stage -> annotatorLoader.get(stage).apply(classLoader, language)
-        );
+        stages.forEach( stage -> annotatorLoader.get(stage).apply(classLoader, language));
         return true;
     }
 
@@ -199,15 +199,15 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     }
 
     /**
-     * Load sentence splitter from model (language-specific)
+     * Load sentence splitter from models (language-specific)
      *
-     * @param loader the ClassLoader used to load model resources
+     * @param loader the ClassLoader used to load models resources
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadSentenceDetector(ClassLoader loader, Language language) {
         if (sentencer.containsKey(language))
             return true;
-        Optional<ArtifactProvider> model = OpenNlpSentenceModel.getInstance().get(language, loader);
+        Optional<ArtifactProvider> model = OpenNlpSentenceModels.getInstance().get(language, loader);
         if ( ! model.isPresent())
             return false;
         sentencer.put(language, new SentenceDetectorME((SentenceModel) model.get()));
@@ -228,15 +228,15 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
 
 
     /**
-     * Load tokenizer from model (language-specific)
+     * Load tokenizer from models (language-specific)
      *
-     * @param loader the ClassLoader used to load model resources
+     * @param loader the ClassLoader used to load models resources
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadTokenizer(ClassLoader loader, Language language) {
         if ( tokenizer.containsKey(language) )
             return true;
-        Optional<ArtifactProvider> model = OpenNlpTokenModel.getInstance().get(language, loader);
+        Optional<ArtifactProvider> model = OpenNlpTokenModels.getInstance().get(language, loader);
         if ( ! model.isPresent())
             return false;
         tokenizer.put(language, new TokenizerME((TokenizerModel) model.get()));
@@ -256,15 +256,15 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     }
 
     /**
-     * Load part-of-speech tagging model (language-specific)
+     * Load part-of-speech tagging models (language-specific)
      *
-     * @param loader the ClassLoader used to load model resources
+     * @param loader the ClassLoader used to load models resources
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadPosTagger(ClassLoader loader, Language language) {
         if ( posTagger.containsKey(language) )
             return true;
-        Optional<ArtifactProvider> model = OpenNlpPosModel.getInstance().get(language, loader);
+        Optional<ArtifactProvider> model = OpenNlpPosModels.getInstance().get(language, loader);
         if ( ! model.isPresent())
             return false;
         posTagger.put(language, new POSTaggerME((POSModel) model.get()));
@@ -284,13 +284,13 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
     }
 
     /**
-     * Load named entity recognisers (for each category) from model (language-specific)
+     * Load named entity recognisers (for each category) from models (language-specific)
      *
-     * @param loader the ClassLoader used to load model resources
+     * @param loader the ClassLoader used to load models resources
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadNameFinder(ClassLoader loader, Language language) {
-        Optional<ArtifactProvider> optNerModels = OpenNlpNerModel.getInstance().get(language, loader);
+        Optional<ArtifactProvider> optNerModels = OpenNlpNerModels.getInstance().get(language, loader);
         if (optNerModels.isPresent()) {
             OpenNlpCompositeModel nerModels = (OpenNlpCompositeModel) optNerModels.get();
             final Stream<NameFinderME> nameFinderMEStream =
@@ -304,7 +304,7 @@ public final class OpenNlpPipeline extends AbstractNlpPipeline {
 
     @Override
     public Optional<String> getPosTagSet(Language language) {
-        return Optional.of(OpenNlpPosModel.POS_TAGSET.get(language));
+        return Optional.of(OpenNlpPosModels.POS_TAGSET.get(language));
     }
 
 }

@@ -9,7 +9,7 @@ import org.icij.datashare.text.Language;
 /**
  * Annotation on a {@link Document}
  * consists of {@link Tag}s indexed by {@link NlpStage}s
- * produced by an {@link NlpPipeline}
+ * produced by an {@link Pipeline}
  *
  * Created by julien on 8/17/16.
  */
@@ -19,7 +19,7 @@ public class Annotation {
     private final String document;
 
     // Annotator
-    private final NlpPipeline.Type pipeline;
+    private final Pipeline.Type pipeline;
 
     // Annotator language
     private final Language language;
@@ -28,7 +28,7 @@ public class Annotation {
     private final Map<NlpStage, List<Tag>> tags;
 
 
-    public Annotation(String document, NlpPipeline.Type pipeline, Language language) {
+    public Annotation(String document, Pipeline.Type pipeline, Language language) {
         this.document = document;
         this.pipeline = pipeline;
         this.language = language;
@@ -46,7 +46,7 @@ public class Annotation {
 
     public Language getLanguage() { return language; }
 
-    public NlpPipeline.Type getPipeline() {
+    public Pipeline.Type getPipeline() {
         return pipeline;
     }
 

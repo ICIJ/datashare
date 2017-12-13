@@ -5,9 +5,10 @@ import edu.mit.ll.mitie.EntityMentionVector;
 import edu.mit.ll.mitie.TokenIndexPair;
 import edu.mit.ll.mitie.TokenIndexVector;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.nlp.AbstractNlpPipeline;
+import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.mitie.annotators.MitieNlpNerAnnotator;
 import org.icij.datashare.text.nlp.mitie.annotators.MitieNlpTokenAnnotator;
 
@@ -22,8 +23,8 @@ import static org.icij.datashare.text.nlp.NlpStage.TOKEN;
 
 
 /**
- * {@link org.icij.datashare.text.nlp.NlpPipeline}
- * {@link org.icij.datashare.text.nlp.AbstractNlpPipeline}
+ * {@link Pipeline}
+ * {@link AbstractPipeline}
  * {@link Type#MITIE}
  *
  * /!\ Library is not thread-safe; hence the synchronization
@@ -31,7 +32,7 @@ import static org.icij.datashare.text.nlp.NlpStage.TOKEN;
  *
  * Created by julien on 9/19/16.
  */
-public class MitieNlpPipeline extends AbstractNlpPipeline {
+public class MitiePipeline extends AbstractPipeline {
 
     private static final Map<Language, Set<NlpStage>> SUPPORTED_STAGES =
             new HashMap<Language, Set<NlpStage>>(){{
@@ -40,7 +41,7 @@ public class MitieNlpPipeline extends AbstractNlpPipeline {
             }};
 
 
-    public MitieNlpPipeline(Properties properties) {
+    public MitiePipeline(Properties properties) {
         super(properties);
 
         // TOKEN <-- NER

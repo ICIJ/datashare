@@ -12,7 +12,7 @@ import org.icij.datashare.text.indexing.command.*;
 
 import org.icij.datashare.test.TestBase;
 
-import static org.icij.datashare.text.nlp.NlpPipeline.Type.CORE;
+import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
 
 /**
  * Created by julien on 7/13/16.
@@ -62,7 +62,7 @@ public class IndexerTest extends TestBase {
                 "Magma SARL",
                 12345,
                 e.getHash(),
-                CORE,
+                CORENLP,
                 e.getLanguage().get(),
                 "NPP");
         if ( ! neOpt.isPresent())

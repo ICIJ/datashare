@@ -17,7 +17,7 @@ import static org.icij.datashare.DataShare.Stage.*;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.extraction.FileParser;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.NlpPipeline;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.NlpStage;
 
 
@@ -40,7 +40,7 @@ public final class DataShareCli {
     private static int             fileParserParallelism;
     private static boolean         enableOcr;
 
-    private static List<NlpPipeline.Type>     nlpPipelineTypes;
+    private static List<Pipeline.Type>     nlpPipelineTypes;
     private static List<NlpStage>             nlpStages;
     private static List<NamedEntity.Category> nlpTargetEntities;
     private static boolean                    nlpPipelineCaching;
@@ -73,7 +73,7 @@ public final class DataShareCli {
         OptionSpecBuilder                parsingDisableOcrOpt  = DataShareCliOptions.disableOcr(parser);
         parser.mutuallyExclusive(parsingEnableOcrOpt, parsingDisableOcrOpt);
 
-        OptionSpec<NlpPipeline.Type>     nlpPipelinesOpt       = DataShareCliOptions.nlpPipelines(parser);
+        OptionSpec<Pipeline.Type>     nlpPipelinesOpt       = DataShareCliOptions.nlpPipelines(parser);
         OptionSpec<NlpStage>             nlpStagesOpt          = DataShareCliOptions.nlpPipelinesStages(parser);
         OptionSpec<NamedEntity.Category> nlpEntitiesOpt        = DataShareCliOptions.nlpPipelinesEntities(parser);
         OptionSpec<Integer>              nlpParallelismOpt     = DataShareCliOptions.nlpPipelinesParallelism(parser);

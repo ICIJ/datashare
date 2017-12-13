@@ -1,18 +1,18 @@
 package org.icij.datashare.cli;
 
-import java.io.File;
-import static java.util.Arrays.asList;
-
+import joptsimple.AbstractOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
-import joptsimple.AbstractOptionSpec;
-
 import org.icij.datashare.DataShare;
-import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.NlpPipeline;
-import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.Pipeline;
+
+import java.io.File;
+
+import static java.util.Arrays.asList;
 import static org.icij.datashare.DataShare.*;
 
 
@@ -74,14 +74,14 @@ final class DataShareCliOptions {
                         "(Tesseract must be installed otherwise).");
     }
 
-    static OptionSpec<NlpPipeline.Type> nlpPipelines(OptionParser parser) {
+    static OptionSpec<Pipeline.Type> nlpPipelines(OptionParser parser) {
         return parser.acceptsAll(
                 asList("nlp-pipelines", "nlpp"),
                 "NLP pipelines to be run.")
                 .withRequiredArg()
-                .ofType( NlpPipeline.Type.class )
+                .ofType( Pipeline.Type.class )
                 .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DEFAULT_NLP_PIPELINES.toArray(new NlpPipeline.Type[DEFAULT_NLP_PIPELINES.size()]));
+                .defaultsTo(DEFAULT_NLP_PIPELINES.toArray(new Pipeline.Type[DEFAULT_NLP_PIPELINES.size()]));
     }
 
     static OptionSpec<Integer> nlpPipelinesParallelism(OptionParser parser) {

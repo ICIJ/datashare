@@ -1,29 +1,29 @@
 package org.icij.datashare.text.nlp;
 
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import static java.util.Collections.singletonList;
-import static java.util.Arrays.asList;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import java.lang.reflect.InvocationTargetException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import org.icij.datashare.reflect.EnumTypeToken;
 import org.icij.datashare.function.ThrowingFunction;
+import org.icij.datashare.reflect.EnumTypeToken;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
-import static org.icij.datashare.text.Language.ENGLISH;
-import static org.icij.datashare.text.nlp.NlpStage.NER;
 import org.icij.datashare.text.NamedEntity;
-import static org.icij.datashare.text.NamedEntity.Category.LOCATION;
-import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
-import static org.icij.datashare.text.NamedEntity.Category.PERSON;
+
+import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.icij.datashare.function.ThrowingFunctions.joinComma;
+import static org.icij.datashare.text.Language.ENGLISH;
+import static org.icij.datashare.text.NamedEntity.Category.*;
+import static org.icij.datashare.text.nlp.NlpStage.NER;
 
 
 /**
@@ -31,18 +31,18 @@ import static org.icij.datashare.function.ThrowingFunctions.joinComma;
  *
  * Created by julien on 4/4/16.
  */
-public interface NlpPipeline {
+public interface Pipeline {
 
     enum Type implements EnumTypeToken {
-        CORE,
-        GATE,
-        IXA,
+        CORENLP,
+        GATENLP,
+        IXAPIPE,
         MITIE,
-        OPEN;
+        OPENNLP;
 
         private final String className;
 
-        Type() { className = buildClassName(NlpPipeline.class, this); }
+        Type() { className = buildClassName(Pipeline.class, this); }
 
         @Override
         public String getClassName() { return className; }
@@ -52,12 +52,12 @@ public interface NlpPipeline {
         }
 
         public static Optional<Type> fromClassName(final String className) {
-            return EnumTypeToken.parseClassName(NlpPipeline.class, Type.class, className);
+            return EnumTypeToken.parseClassName(Pipeline.class, Type.class, className);
         }
 
-        public static ThrowingFunction<List<String>, List<NlpPipeline.Type>> parseAll =
+        public static ThrowingFunction<List<String>, List<Pipeline.Type>> parseAll =
                 list -> list.stream()
-                        .map(NlpPipeline.Type::parse)
+                        .map(Pipeline.Type::parse)
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .collect(Collectors.toList());
@@ -90,7 +90,7 @@ public interface NlpPipeline {
 
     Language DEFAULT_LANGUAGE = ENGLISH;
 
-    Type DEFAULT_TYPE = Type.GATE;
+    Type DEFAULT_TYPE = Type.GATENLP;
 
     int DEFAULT_PARALLELISM = 1;
 
@@ -102,18 +102,18 @@ public interface NlpPipeline {
 
 
     /**
-     * Instantiate a concrete {@code NlpPipeline} reflectively, implementation determined by {@link Type} enum value
+     * Instantiate a concrete {@code Pipeline} reflectively, implementation determined by {@link Type} enum value
      *
-     * @param type       the {@link Type} enum value denoting a {@code NlpPipeline} implementation
-     * @param properties the {@code NlpPipeline} settings as Properties
-     * @return the corresponding NlpPipeline implementation instance if succeeded; empty Optional otherwise
+     * @param type       the {@link Type} enum value denoting a {@code Pipeline} implementation
+     * @param properties the {@code Pipeline} settings as Properties
+     * @return the corresponding Pipeline implementation instance if succeeded; empty Optional otherwise
      * @see Type
      * @see EnumTypeToken
      * @see Property
      * */
-    static Optional<NlpPipeline> create(Type type, Properties properties)  {
-        String interfaceName = NlpPipeline.class.getName();
-        Logger logger = LogManager.getLogger(NlpPipeline.class);
+    static Optional<Pipeline> create(Type type, Properties properties)  {
+        String interfaceName = Pipeline.class.getName();
+        Logger logger = LogManager.getLogger(Pipeline.class);
         if ( ! asList(Type.values()).contains(type)) {
             logger.error("Unknown " + type + " " + interfaceName);
             return Optional.empty();
@@ -122,7 +122,7 @@ public interface NlpPipeline {
             Object pipelineInstance = Class.forName( type.getClassName() )
                     .getDeclaredConstructor( new Class[]{Properties.class} )
                     .newInstance           (             properties        );
-            return Optional.of( (NlpPipeline) pipelineInstance );
+            return Optional.of( (Pipeline) pipelineInstance );
         } catch (ClassNotFoundException e) {
             logger.error( type.getClassName() + " not found in the classpath.", e);
             return Optional.empty();
@@ -136,37 +136,37 @@ public interface NlpPipeline {
     }
 
     /**
-     * Instantiate a concrete {@code NlpPipeline} of {@link NlpPipeline#DEFAULT_TYPE}
+     * Instantiate a concrete {@code Pipeline} of {@link Pipeline#DEFAULT_TYPE}
      *
-     * @param properties the {@code NlpPipeline} settings as Properties
-     * @return the corresponding NlpPipeline implementation instance if succeeded; empty Optional otherwise
+     * @param properties the {@code Pipeline} settings as Properties
+     * @return the corresponding Pipeline implementation instance if succeeded; empty Optional otherwise
      * @see Type
      * @see EnumTypeToken
      * @see Property
      */
-    static Optional<NlpPipeline> create(Properties properties) {
+    static Optional<Pipeline> create(Properties properties) {
         return create(DEFAULT_TYPE, properties);
     }
 
     /**
-     * Instantiate a concrete default {@code NlpPipeline}
+     * Instantiate a concrete default {@code Pipeline}
      *
-     * @param type the {@link Type} enum value denoting a {@code NlpPipeline} implementation
-     * @return the corresponding NlpPipeline implementation instance if succeeded; empty Optional otherwise
+     * @param type the {@link Type} enum value denoting a {@code Pipeline} implementation
+     * @return the corresponding Pipeline implementation instance if succeeded; empty Optional otherwise
      * @see Type
      * @see EnumTypeToken
      * @see Property
      */
-    static Optional<NlpPipeline> create(Type type) {
+    static Optional<Pipeline> create(Type type) {
         return create(type, new Properties());
     }
 
     /**
-     * Instantiate a default concrete {@code NlpPipeline}
+     * Instantiate a default concrete {@code Pipeline}
      *
-     * @return the corresponding NlpPipeline implementation instance if succeeded; empty Optional otherwise
+     * @return the corresponding Pipeline implementation instance if succeeded; empty Optional otherwise
      */
-    static Optional<NlpPipeline> create() {
+    static Optional<Pipeline> create() {
         return create(new Properties());
     }
 

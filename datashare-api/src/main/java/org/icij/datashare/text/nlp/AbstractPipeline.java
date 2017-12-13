@@ -16,14 +16,14 @@ import static org.icij.datashare.text.Language.UNKNOWN;
 
 
 /**
- * Common structure and behavior of NlpPipeline implementations
+ * Common structure and behavior of Pipeline implementations
  *
  * Pipelines (models and annotators) are loaded lazily,
- * at {@link NlpPipeline#run(String)} invocation)
+ * at {@link Pipeline#run(String)} invocation)
  *
  * Created by julien on 3/29/16.
  */
-public abstract class AbstractNlpPipeline implements NlpPipeline {
+public abstract class AbstractPipeline implements Pipeline {
 
     protected static final Hasher HASHER = Document.HASHER;
 
@@ -50,7 +50,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
 
 
 
-    protected AbstractNlpPipeline(Properties properties) {
+    protected AbstractPipeline(Properties properties) {
         targetEntities = getProperty(Property.ENTITIES.getName(), properties,
                 removeSpaces
                         .andThen(splitComma)

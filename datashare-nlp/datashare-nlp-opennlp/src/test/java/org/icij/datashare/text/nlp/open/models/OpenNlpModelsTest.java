@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp.open.models;
 
+import opennlp.tools.util.model.ArtifactProvider;
 import opennlp.tools.util.model.BaseModel;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
@@ -17,7 +18,7 @@ public class OpenNlpModelsTest {
 
     @Test
     public void test_download_model() throws Exception {
-        final OpenNlpModel model = new OpenNlpModel(NlpStage.TOKEN);
+        final OpenNlpModels model = new OpenNlpModels(NlpStage.TOKEN);
 
         model.get(Language.FRENCH, getClass().getClassLoader());
         verify(mockRemoteFiles).download("dist/models/opennlp/1-5/fr", new File(System.getProperty("user.dir")));
@@ -27,16 +28,15 @@ public class OpenNlpModelsTest {
         verify(mockRemoteFiles, never()).download(any(String.class), any(File.class));
     }
 
-    class OpenNlpModel extends OpenNlpAbstractModel {
-        BaseModel model = null;
-        public OpenNlpModel(NlpStage stage) {super(stage);}
+    class OpenNlpModels extends org.icij.datashare.text.nlp.open.models.OpenNlpModels {
+        protected OpenNlpModels(NlpStage stage) {super(stage);}
         @Override
-        BaseModel getModel(Language language) { return model;}
+        protected ArtifactProvider createModel(InputStream io) {return mock(BaseModel.class);}
         @Override
-        void putModel(Language language, InputStream content) {model = mock(BaseModel.class);}
+        String getModelPath(Language languate) { return "unused";}
         @Override
-        String getModelPath(Language language) {return "models/opennlp/1-5/fr/inexistant.bin";}
+        protected boolean isDownloaded(Language language, ClassLoader loader) {return false;}
         @Override
-        RemoteFiles getRemoteFiles() { return mockRemoteFiles;}
+        protected RemoteFiles getRemoteFiles() { return mockRemoteFiles;}
     }
 }

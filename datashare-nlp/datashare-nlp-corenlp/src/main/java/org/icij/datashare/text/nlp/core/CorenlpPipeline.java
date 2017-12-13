@@ -11,9 +11,9 @@ import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Triple;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.AbstractNlpPipeline;
+import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotation;
-import org.icij.datashare.text.nlp.NlpPipeline;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.core.annotators.CoreNlpNerAnnotator;
 import org.icij.datashare.text.nlp.core.annotators.CoreNlpPipelineAnnotator;
@@ -28,9 +28,9 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
 /**
- * {@link NlpPipeline}
- * {@link AbstractNlpPipeline}
- * {@link Type#CORE}
+ * {@link Pipeline}
+ * {@link AbstractPipeline}
+ * {@link Type#CORENLP}
  *
  * <a href="http://stanfordnlp.github.io/CoreNLP">Stanford CoreNLP</a>
  * Models v3.6.0:
@@ -41,7 +41,7 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
  *
  * Created by julien on 3/24/16.
  */
-public final class CoreNlpPipeline extends AbstractNlpPipeline {
+public final class CorenlpPipeline extends AbstractPipeline {
 
     // Pipeline annotator (TOKEN, SENTENCE, POS, NER)
     private Map<Language, StanfordCoreNLP> pipeline;
@@ -53,7 +53,7 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
     private Map<Language, AbstractSequenceClassifier<CoreLabel>> nerClassifier;
 
 
-    public CoreNlpPipeline(final Properties properties) {
+    public CorenlpPipeline(final Properties properties) {
         super(properties);
 
         // TOKEN <-- SENTENCE <-- POS <-- LEMMA <-- NER

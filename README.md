@@ -53,7 +53,7 @@ Web API
   
 *API* 
 
- - **`org.icij.datashare.text.nlp.NlpPipeline`**  
+ - **`org.icij.datashare.text.nlp.Pipeline`**  
 
  - `org.icij.datashare.text.Document`
 
@@ -66,32 +66,32 @@ Web API
    
 *Implementations*
   
-  - `org.icij.datashare.text.nlp.core.CoreNlpPipeline` 
+  - `org.icij.datashare.text.nlp.core.CorenlpPipeline` 
   
     [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP) v3.8.0, 
     (Conditional Random Fields), 
     *Composite GPL v3+* 
 
-  - `org.icij.datashare.text.nlp.gate.GateNlpPipeline` 
+  - `org.icij.datashare.text.nlp.gate.GatenlpPipeline` 
     
     [OEG UPM Entity Extractor](https://github.com/ICIJ/entity-extractor/tree/production) v1.1, 
     (JAPE Rules Grammar), 
     based on [EPSRC Gate](https://gate.ac.uk/) v8.11, 
     *LGPL v3*
   
-  - `org.icij.datashare.text.nlp.ixa.IxaNlpPipeline` 
+  - `org.icij.datashare.text.nlp.ixa.IxapipePipeline` 
   
     [Ixa Pipes Nerc](https://github.com/ixa-ehu/ixa-pipe-nerc) v1.6.1, 
     (Perceptron), 
     *Apache Licence v2.0*
 
-  - `org.icij.datashare.text.nlp.mitie.MitieNlpPipeline` 
+  - `org.icij.datashare.text.nlp.mitie.MitiePipeline` 
   
     [MIT Information Extraction](https://github.com/mit-nlp/MITIE) v0.8, 
     (Structural Support Vector Machines), 
     *Boost Software License v1.0*
 
-  - `org.icij.datashare.text.nlp.open.OpenNlpPipeline` 
+  - `org.icij.datashare.text.nlp.open.OpennlpPipeline` 
   
     [Apache OpenNLP](https://opennlp.apache.org/) v1.6.0, 
     (Maximum Entropy), 

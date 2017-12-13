@@ -18,9 +18,8 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.indexing.IndexParent;
-import org.icij.datashare.text.nlp.NlpPipeline;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.Annotation;
-import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Tag;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 import static org.icij.datashare.text.nlp.NlpStage.POS;
@@ -122,7 +121,7 @@ public final class NamedEntity implements Entity {
                                                String mention,
                                                int offset,
                                                String doc,
-                                               NlpPipeline.Type extr,
+                                               Pipeline.Type extr,
                                                Language extrLang) {
         try {
             return Optional.of( new NamedEntity(mention, cat, doc, offset, extr, extrLang, null) );
@@ -148,7 +147,7 @@ public final class NamedEntity implements Entity {
                                                String mention,
                                                int offset,
                                                String doc,
-                                               NlpPipeline.Type extr,
+                                               Pipeline.Type extr,
                                                Language extrLang,
                                                String pos) {
         try {
@@ -228,7 +227,7 @@ public final class NamedEntity implements Entity {
     private int offset;
 
     // Type of pipeline which has extracted mention
-    private NlpPipeline.Type extractor;
+    private Pipeline.Type extractor;
 
     // Language used by pipeline at extraction time
     private Language extractorLanguage;
@@ -244,7 +243,7 @@ public final class NamedEntity implements Entity {
                         Category         category,
                         String           document,
                         int              offset,
-                        NlpPipeline.Type extractor,
+                        Pipeline.Type extractor,
                         Language         extractorLanguage,
                         String           partsOfSpeech) {
         if (mention == null || mention.isEmpty()) {
@@ -283,7 +282,7 @@ public final class NamedEntity implements Entity {
 
     public OptionalInt getOffset() { return OptionalInt.of(offset); }
 
-    public Optional<NlpPipeline.Type> getExtractor() { return Optional.ofNullable(extractor); }
+    public Optional<Pipeline.Type> getExtractor() { return Optional.ofNullable(extractor); }
 
     public Optional<Language> getExtractorLanguage() { return Optional.ofNullable(extractorLanguage); }
 
