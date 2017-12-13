@@ -94,4 +94,14 @@ public abstract class AbstractModels<T> {
     protected RemoteFiles getRemoteFiles() {
         return RemoteFiles.getDefault();
     }
+
+    public void unload(Language language) {
+        Lock l = modelLock.get(language);
+        l.lock();
+        try {
+            models.remove(language);
+        } finally {
+            l.unlock();
+        }
+    }
 }

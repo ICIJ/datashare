@@ -8,7 +8,6 @@ import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.locks.Lock;
 
 public abstract class OpenNlpModels extends AbstractModels<ArtifactProvider> {
     static final String VERSION = "1.5";
@@ -30,13 +29,4 @@ public abstract class OpenNlpModels extends AbstractModels<ArtifactProvider> {
     abstract ArtifactProvider createModel (InputStream is) throws IOException;
     abstract String getModelPath (Language languate);
 
-    public void unload(Language language) {
-        Lock l = modelLock.get(language);
-        l.lock();
-        try {
-            models.remove(language);
-        } finally {
-            l.unlock();
-        }
-    }
 }

@@ -1,16 +1,11 @@
 package org.icij.datashare.text.nlp.mitie;
 
-import edu.mit.ll.mitie.EntityMention;
-import edu.mit.ll.mitie.EntityMentionVector;
-import edu.mit.ll.mitie.TokenIndexPair;
-import edu.mit.ll.mitie.TokenIndexVector;
+import edu.mit.ll.mitie.*;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
-import org.icij.datashare.text.nlp.mitie.annotators.MitieNlpNerAnnotator;
-import org.icij.datashare.text.nlp.mitie.annotators.MitieNlpTokenAnnotator;
 
 import java.util.*;
 
@@ -26,16 +21,16 @@ import static org.icij.datashare.text.nlp.NlpStage.TOKEN;
  * {@link Pipeline}
  * {@link AbstractPipeline}
  * {@link Type#MITIE}
- *
+ * <p>
  * /!\ Library is not thread-safe; hence the synchronization
  * <a href="https://github.com/mit-nlp/MITIE">MIT Information Extraction</a>
- *
+ * <p>
  * Created by julien on 9/19/16.
  */
 public class MitiePipeline extends AbstractPipeline {
 
     private static final Map<Language, Set<NlpStage>> SUPPORTED_STAGES =
-            new HashMap<Language, Set<NlpStage>>(){{
+            new HashMap<Language, Set<NlpStage>>() {{
                 put(ENGLISH, new HashSet<>(asList(TOKEN, NER)));
                 put(SPANISH, new HashSet<>(asList(TOKEN, NER)));
             }};
@@ -60,33 +55,39 @@ public class MitiePipeline extends AbstractPipeline {
 
         // Tokenize input
         LOGGER.info("tokenizing for " + language.toString());
-        TokenIndexVector tokens = MitieNlpTokenAnnotator.INSTANCE.apply(input);
+        TokenIndexVector tokens = new TokenIndexVector();
+        try {
+            tokens = global.tokenizeWithOffsets(input);
+        } catch (Exception e) {
+            LOGGER.error("failed tokenizing input ", e);
+        }
+
         // Feed annotation
         for (int i = 0; i < tokens.size(); ++i) {
             TokenIndexPair tokenIndexPair = tokens.get(i);
             int tokenBegin = toIntExact(tokenIndexPair.getIndex());
-            int tokenEnd   = toIntExact(tokenBegin + tokenIndexPair.getToken().length());
+            int tokenEnd = toIntExact(tokenBegin + tokenIndexPair.getToken().length());
             annotation.add(TOKEN, tokenBegin, tokenEnd);
         }
 
         // NER input
         if (targetStages.contains(NER)) {
-            LOGGER.info("name-finding for " + language.toString());
-            EntityMentionVector entities = MitieNlpNerAnnotator.INSTANCE.apply(tokens, language);
+            LOGGER.info("name-finding for " + language);
+            EntityMentionVector entities = MitieNlpModels.getInstance().extract(tokens, language);
             // Feed annotation
             // transform index offset given in bytes of utf-8 representation to chars offset in string
             byte[] inputBytes = input.getBytes(getEncoding());
             for (int i = 0; i < entities.size(); ++i) {
-                EntityMention entity         = entities.get(i);
-                TokenIndexPair tokenBegin    = tokens.get(entity.getStart());
-                TokenIndexPair tokenEnd      = tokens.get(entity.getEnd() - 1);
-                int            nerBeginBytes = toIntExact(tokenBegin.getIndex());
-                int            nerEndBytes   = toIntExact(tokenEnd.getIndex() + tokenEnd.getToken().length());
-                final String   nerPrefix     = new String(inputBytes, 0, nerBeginBytes, getEncoding());
-                final String   nerContent    = new String(inputBytes, nerBeginBytes, nerEndBytes - nerBeginBytes, getEncoding());
-                int    nerBegin = nerPrefix.length();
-                int    nerEnd   = nerBegin + nerContent.length();
-                String category = MitieNlpNerAnnotator.INSTANCE.getTagSet(language).get(entity.getTag());
+                EntityMention entity = entities.get(i);
+                TokenIndexPair tokenBegin = tokens.get(entity.getStart());
+                TokenIndexPair tokenEnd = tokens.get(entity.getEnd() - 1);
+                int nerBeginBytes = toIntExact(tokenBegin.getIndex());
+                int nerEndBytes = toIntExact(tokenEnd.getIndex() + tokenEnd.getToken().length());
+                final String nerPrefix = new String(inputBytes, 0, nerBeginBytes, getEncoding());
+                final String nerContent = new String(inputBytes, nerBeginBytes, nerEndBytes - nerBeginBytes, getEncoding());
+                int nerBegin = nerPrefix.length();
+                int nerEnd = nerBegin + nerContent.length();
+                String category = MitieNlpModels.getInstance().getTagSet(language).get(entity.getTag());
                 annotation.add(NER, nerBegin, nerEnd, category);
             }
         }
@@ -94,8 +95,8 @@ public class MitiePipeline extends AbstractPipeline {
     }
 
     private static void printEntity(TokenIndexVector tokens, EntityMention entity) {
-        Double        score    = entity.getScore();
-        String        scoreStr = String.format("%1$,.3f",score);
+        Double score = entity.getScore();
+        String scoreStr = String.format("%1$,.3f", score);
         // Print all the words in the range indicated by the entity ent.
         for (int i = entity.getStart(); i < entity.getEnd(); ++i) {
             System.out.print(tokens.get(i).getToken() + " ");
