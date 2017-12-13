@@ -1,8 +1,12 @@
 #!/bin/bash
 
 dir=`pwd $0`
+dist_dir="${dir}/dist"
 
-classpath="${dir}/lib/*"
+if [ ! -d "${dist_dir}" ]; then
+    mkdir -p "${dist_dir}"
+fi
+classpath="${dir}/lib/*:${dist_dir}"
 
 PATH=$PATH:"$classpath" \
 LD_LIBRARY_PATH="$classpath"${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} \

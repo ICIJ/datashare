@@ -80,17 +80,17 @@ public class OpenNlpNerModel extends OpenNlpAbstractModel {
 
         OpenNlpCompositeModel models = new OpenNlpCompositeModel(language);
         for (String p: modelsFilenames.get(language).values()) {
-            LOGGER.info("LOADING NER model " + p);
+            LOGGER.info("loading NER model " + p);
             try (InputStream modelIS = loader.getResourceAsStream(BASE_DIR.resolve(language.iso6391Code()).resolve(p).toString())) {
                 models.add(new TokenNameFinderModel(modelIS));
             } catch (IOException e) {
-                LOGGER.error("FAILED LOADING " + p, e);
+                LOGGER.error("failed loading " + p, e);
                 return false;
             }
         }
         model.put(language, models);
 
-        LOGGER.info("LOADED NER models for " + language);
+        LOGGER.info("loaded NER models for " + language);
         return true;
     }
 

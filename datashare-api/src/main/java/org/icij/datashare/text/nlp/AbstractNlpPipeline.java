@@ -124,7 +124,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
     public Optional<Annotation> run(Document document) {
         Optional<Language> language = document.getLanguage();
         if ( ! language.isPresent() || language.get().equals(UNKNOWN)) {
-            LOGGER.info("UNKNOWN language; ABORTING PROCESSING...");
+            LOGGER.info("unknown language; aborting processing...");
             return Optional.empty();
         }
         return run(document.getContent(), language.get());
@@ -150,7 +150,7 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
             try{
                 annotation = process(input, HASHER.hash(input), language);
             } catch (Exception e) {
-                LOGGER.error("FAILED PROCESSING [" + language + "]" + input, e);
+                LOGGER.error("failed processing [" + language + "]" + input, e);
             }
         }
         terminate(language);
@@ -169,11 +169,11 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
         stages = stagesDependenciesTC(targetStages);
         // Check all dependencies for support in language
         if ( ! checkStages(language)) {
-            LOGGER.info("INITIALIZING " + getType() + " Skipping... Stage unsupported for " +
+            LOGGER.info("initializing " + getType() + " Skipping... Stage unsupported for " +
                             language + " " + stages);
             return false;
         }
-        LOGGER.info("INITIALIZING " + getType() + " " + language + " " + stages);
+        LOGGER.info("initializing " + getType() + " " + language + " " + stages);
         return true;
     }
 
@@ -189,16 +189,8 @@ public abstract class AbstractNlpPipeline implements NlpPipeline {
      * Post-processing operations
      */
     protected void terminate(Language language) {
-        LOGGER.info(
-                String.join(" - ",
-                        getClass().getName(),
-                        "ENDING",
-                        getType().toString(),
-                        language.toString().toUpperCase(Locale.ROOT),
-                        stages.toString())
-        );
+        LOGGER.info("ending " + getType() + " " + language + " " + stages.toString());
     }
-
 
     /**
      * @return Language . NlpStage support matrix

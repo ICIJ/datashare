@@ -17,7 +17,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class OpenNlpAbstractModel {
-    public static final String MODELS_OPENNLP_PATH = "dist/models/opennlp/1-5/";
+    public static final String MODELS_OPENNLP_PATH = "models/opennlp/1-5/";
     static final Path BASE_DIR = Paths.get(MODELS_OPENNLP_PATH);
 
     protected static final Object mutex = new Object();
@@ -56,14 +56,15 @@ public abstract class OpenNlpAbstractModel {
             download(language);
         }
 
-        LOGGER.info("LOADING " + stage + " model for " + language);
-        try (InputStream modelIS = loader.getResourceAsStream(getModelPath(language))) {
+        final String modelPath = getModelPath(language);
+        LOGGER.info("loading model file " + modelPath);
+        try (InputStream modelIS = loader.getResourceAsStream(modelPath)) {
             putModel(language, modelIS);
         } catch (IOException e) {
-            LOGGER.error("FAILED LOADING " + stage, e);
+            LOGGER.error("failed loading " + stage, e);
             return false;
         }
-        LOGGER.info("LOADED " + stage + " model for " + language);
+        LOGGER.info("loaded " + stage + " model for " + language);
         return true;
     }
 
@@ -72,14 +73,14 @@ public abstract class OpenNlpAbstractModel {
     }
 
     boolean download(Language language) {
-        LOGGER.info("DOWNLOADING " + stage + " model for " + language);
+        LOGGER.info("downloading models for " + language);
         try {
-            getRemoteFiles().download(MODELS_OPENNLP_PATH + language.iso6391Code(),
+            getRemoteFiles().download("dist/" + MODELS_OPENNLP_PATH + language.iso6391Code(),
                     Paths.get(".").toAbsolutePath().normalize().toFile());
-            LOGGER.info("DOWNLOADED " + stage + " model for " + language);
+            LOGGER.info("models successfully downloaded for language " + language);
             return true;
         } catch (InterruptedException | IOException e) {
-            LOGGER.error("FAILED DOWNLOADING " + stage, e);
+            LOGGER.error("failed downloading models for " + language, e);
             return false;
         }
     }

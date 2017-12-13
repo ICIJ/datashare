@@ -17,7 +17,6 @@ public class OpenNlpPipelineTest {
         Properties props = new Properties();
         props.setProperty(STAGES.getName(), "SENTENCE,TOKEN");
         openNlpPipeline = new OpenNlpPipeline(props);
-        System.out.println(System.getProperty("java.class.path"));
     }
 
     @Test

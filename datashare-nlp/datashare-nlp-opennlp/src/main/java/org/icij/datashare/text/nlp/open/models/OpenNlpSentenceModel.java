@@ -56,7 +56,7 @@ public class OpenNlpSentenceModel extends OpenNlpAbstractModel {
 
      @Override
      String getModelPath(Language language) {
-         return BASE_DIR.resolve(language.iso6391Code()).resolve(modelFilenames.get(language)).toString();
+        return BASE_DIR.resolve(language.iso6391Code()).resolve(modelFilenames.get(language)).toString();
      }
 
     public void unload(Language language) {
