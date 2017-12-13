@@ -1,14 +1,15 @@
 package org.icij.datashare.concurrent.queue;
 
+import org.icij.datashare.concurrent.Latch;
+import org.icij.datashare.concurrent.task.QueueInQueueOutTask;
+
 import java.util.ArrayList;
 import java.util.List;
-import static java.util.Collections.singletonList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
-import org.icij.datashare.concurrent.Latch;
-import org.icij.datashare.concurrent.task.QueueInQueueOutTask;
+import static java.util.Collections.singletonList;
 
 
 /**
@@ -65,13 +66,13 @@ public class QueueForwarding<I> extends QueueInQueueOutTask<I,I> {
     public Result process(I element) {
         for (BlockingQueue<I> outputQueue : destinations) {
             try {
-                LOGGER.debug(getClass().getName() + " - FORWARDING INPUT " + element);
+                LOGGER.debug("forwarding input " + element);
                 outputQueue.put(element);
             } catch (InterruptedException e) {
-                LOGGER.info(getClass().getName() + " - QUEUE FORWARDING INTERRUPTED");
+                LOGGER.info("queue forwarding interrupted");
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                LOGGER.info(getClass().getName() + " - FAILED FORWARDING queue element " + output());
+                LOGGER.info("failed forwarding queue element " + output());
             }
         }
         return Result.SUCCESS;

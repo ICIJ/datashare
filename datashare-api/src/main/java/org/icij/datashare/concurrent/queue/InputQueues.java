@@ -1,15 +1,15 @@
 package org.icij.datashare.concurrent.queue;
 
-import java.util.*;
+import org.icij.datashare.concurrent.Latch;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-
-import org.apache.logging.log4j.LogManager;
-
-import org.icij.datashare.concurrent.Latch;
 
 
 /**
@@ -23,19 +23,13 @@ public interface InputQueues<I> {
 
     default Optional<I> poll(int timeout, TimeUnit unit) {
         long start = new Date().getTime();
-//        try {
-            Optional<I> element;
-            do {
-                element = inputs().stream().map( BlockingQueue::poll ).filter( Objects::nonNull ).findAny();
-//                if ( ! element.isPresent())
-//                    Thread.sleep(100);
-            } while ( ! element.isPresent() && (new Date().getTime() - start) < unit.toMillis(timeout));
-            return element;
-//        } catch (InterruptedException e) {
-//            LogManager.getLogger(getClass()).info(getClass().getName() + " - QUEUE POLLING INTERRUPTED", e);
-//            Thread.currentThread().interrupt();
-//            return Optional.empty();
-//        }
+        Optional<I> element;
+        do {
+            element = inputs().stream().map(BlockingQueue::poll).filter(Objects::nonNull).findAny();
+
+        } while (!element.isPresent() && (new Date().getTime() - start) < unit.toMillis(timeout));
+        return element;
+
     }
 
     default Optional<I> poll() {

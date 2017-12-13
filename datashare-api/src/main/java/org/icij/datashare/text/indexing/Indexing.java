@@ -71,17 +71,17 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
 
     @Override
     protected Result process(I element) {
-        LOGGER.debug(getClass().getName() + " - INDEXING " + element.getClass().getName());
+        LOGGER.debug("indexing " + element.getClass().getName());
         try{
 //            boolean indexed = indexer.add(index, element);
 //            if ( ! indexed ) {
-//                LOGGER.error(getClass().getName() + " - " + indexer + " FAILED INDEXING " + element);
+//                LOGGER.error(indexer + " failed indexing " + element);
 //                return Result.FAILURE;
 //            }
             indexer.addBatch(index, element);
             return Result.SUCCESS;
         } catch (Exception e ) {
-            LOGGER.error( getClass().getName() + " - " + indexer.getType() + " FAILED INDEXING " + element, e);
+            LOGGER.error( indexer.getType() + " failed indexing " + element, e);
             return Result.FAILURE;
         }
     }
@@ -90,6 +90,6 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
     protected boolean initialize() { return true; }
 
     @Override
-    protected void terminate() { LOGGER.info(getClass().getName() + " - TERMINATING"); }
+    protected void terminate() { LOGGER.info("terminating"); }
 
 }

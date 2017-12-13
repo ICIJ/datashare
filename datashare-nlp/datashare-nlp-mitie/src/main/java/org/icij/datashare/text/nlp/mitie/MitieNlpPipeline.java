@@ -1,22 +1,24 @@
 package org.icij.datashare.text.nlp.mitie;
 
+import edu.mit.ll.mitie.EntityMention;
+import edu.mit.ll.mitie.EntityMentionVector;
+import edu.mit.ll.mitie.TokenIndexPair;
+import edu.mit.ll.mitie.TokenIndexVector;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.nlp.AbstractNlpPipeline;
+import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.mitie.annotators.MitieNlpNerAnnotator;
+import org.icij.datashare.text.nlp.mitie.annotators.MitieNlpTokenAnnotator;
+
 import java.util.*;
 
 import static java.lang.Math.toIntExact;
 import static java.util.Arrays.asList;
-
-import edu.mit.ll.mitie.*;
-
-import org.icij.datashare.text.nlp.AbstractNlpPipeline;
-import org.icij.datashare.text.nlp.Annotation;
-import org.icij.datashare.text.Language;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Language.SPANISH;
-import org.icij.datashare.text.nlp.NlpStage;
-import static org.icij.datashare.text.nlp.NlpStage.TOKEN;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
-import org.icij.datashare.text.nlp.mitie.annotators.MitieNlpNerAnnotator;
-import org.icij.datashare.text.nlp.mitie.annotators.MitieNlpTokenAnnotator;
+import static org.icij.datashare.text.nlp.NlpStage.TOKEN;
 
 
 /**
@@ -56,7 +58,7 @@ public class MitieNlpPipeline extends AbstractNlpPipeline {
         Annotation annotation = new Annotation(hash, getType(), language);
 
         // Tokenize input
-        LOGGER.info(getClass().getName() + " - TOKENIZING for " + language.toString());
+        LOGGER.info("tokenizing for " + language.toString());
         TokenIndexVector tokens = MitieNlpTokenAnnotator.INSTANCE.apply(input);
         // Feed annotation
         for (int i = 0; i < tokens.size(); ++i) {
@@ -68,7 +70,7 @@ public class MitieNlpPipeline extends AbstractNlpPipeline {
 
         // NER input
         if (targetStages.contains(NER)) {
-            LOGGER.info(getClass().getName() + " - NAME-FINDING for " + language.toString());
+            LOGGER.info("name-finding for " + language.toString());
             EntityMentionVector entities = MitieNlpNerAnnotator.INSTANCE.apply(tokens, language);
             // Feed annotation
             // transform index offset given in bytes of utf-8 representation to chars offset in string

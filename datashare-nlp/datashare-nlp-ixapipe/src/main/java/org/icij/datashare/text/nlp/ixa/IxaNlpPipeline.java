@@ -1,22 +1,27 @@
 package org.icij.datashare.text.nlp.ixa;
 
-import java.io.*;
-import java.util.*;
-import java.util.function.Function;
-import static java.util.Arrays.asList;
-
 import com.google.common.io.Files;
-
-import ixa.kaflib.*;
+import ixa.kaflib.Entity;
+import ixa.kaflib.KAFDocument;
 import ixa.kaflib.KAFDocument.LinguisticProcessor;
-
+import ixa.kaflib.Term;
+import ixa.kaflib.WF;
 import org.icij.datashare.text.Language;
-import static org.icij.datashare.text.Language.*;
-import static org.icij.datashare.text.nlp.NlpStage.*;
 import org.icij.datashare.text.nlp.AbstractNlpPipeline;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.ixa.models.IxaModels;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.*;
+import java.util.function.Function;
+
+import static java.util.Arrays.asList;
+import static org.icij.datashare.text.Language.*;
+import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
 /**
@@ -105,12 +110,12 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
         KAFDocument kafDocument = new KAFDocument(language.toString(), KAF_VERSION);
 
         // tokenize( input )
-        LOGGER.info(getClass().getName() + " - TOKENIZING for "  + language.toString() );
+        LOGGER.info("tokenizing for "  + language.toString() );
         if ( ! tokenize(new StringReader(input), kafDocument, hash, language) )
             return Optional.empty();
 
         // pos-tag( tokenize( input ) )
-        LOGGER.info(getClass().getName() + " - POS-TAGGING for " + language.toString());
+        LOGGER.info("POS-tagging for " + language.toString());
         if ( ! postag(kafDocument, hash, language) )
             return Optional.of(annotation);
 
@@ -139,7 +144,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
 
         // ner( pos-tag( tokenize( input ) ) )
         if (targetStages.contains(NER)) {
-            LOGGER.info(getClass().getName() + " - NAME-FINDING for " + language.toString());
+            LOGGER.info("name-finding for " + language.toString());
             if ( ! recognize(kafDocument, hash, language) )
                 return Optional.of(annotation);
 
@@ -174,7 +179,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
                 return true;
             }
         } catch (Exception e) {
-            LOGGER.error(getClass().getName() + " - FAILED TOKENIZING for " + language.toString(), e);
+            LOGGER.error("failed tokenizing for " + language.toString(), e);
             return false;
         }
     }
@@ -201,7 +206,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
         if ( posTagger.containsKey(language) )
             return true;
         try {
-            LOGGER.info(getClass().getName() + " - LOADING POS annotator for " + language.toString().toUpperCase());
+            LOGGER.info("loading POS annotator for " + language.toString().toUpperCase());
             String     lang       = language.toString();
             String     model      = IxaModels.PATH.get(POS).get(language).toString();
             String     lemmaModel = IxaModels.PATH.get(LEMMA).get(language).toString();
@@ -214,10 +219,10 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
             Properties properties = posAnnotatorProperties(model, lemmaModel, lang, multiwords, dictag);
             posTagger.put(language, new eus.ixa.ixa.pipe.pos.Annotate(properties));
         } catch (IOException e) {
-            LOGGER.error(getClass().getName() + " - FAILED LOADING POS annotator", e);
+            LOGGER.error("failed loading POS annotator", e);
             return false;
         }
-        LOGGER.info(getClass().getName() + " - LOADED POS annotator for " + language.toString().toUpperCase());
+        LOGGER.info("loaded POS annotator for " + language.toString().toUpperCase());
         return true;
     }
 
@@ -255,7 +260,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
         if (nerFinder.containsKey(language))
             return true;
         try {
-            LOGGER.info(getClass().getName() + " - LOADING NER annotator for " + language.toString().toUpperCase());
+            LOGGER.info("loading NER annotator for " + language.toString().toUpperCase());
             String     lang          = language.toString();
             String     model         = IxaModels.PATH.get(NER).get(language).toString();
             String     lexer         = eus.ixa.ixa.pipe.nerc.train.Flags.DEFAULT_LEXER;
@@ -266,10 +271,10 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
             eus.ixa.ixa.pipe.nerc.Annotate annotate = new eus.ixa.ixa.pipe.nerc.Annotate(properties);
             nerFinder.put(language, annotate);
         } catch (IOException e) {
-            LOGGER.error(getClass().getName() + " - FAILED LOADING NER annotator for " + language.toString().toUpperCase(), e);
+            LOGGER.error("failed loading NER annotator for " + language.toString().toUpperCase(), e);
             return false;
         }
-        LOGGER.info(getClass().getName() + " - LOADED NER annotator for " + language.toString().toUpperCase());
+        LOGGER.info("loaded NER annotator for " + language.toString().toUpperCase());
         return true;
     }
 
@@ -282,7 +287,7 @@ public class IxaNlpPipeline extends AbstractNlpPipeline {
             nerFinder.get(language).annotateNEs(kafDocument);
             newLp.setEndTimestamp();
         } catch (IOException e) {
-            LOGGER.error(getClass().getName() + " - FAILED NAME-FINDING for " + language.toString().toUpperCase(), e);
+            LOGGER.error("failed name-finding for " + language.toString().toUpperCase(), e);
             return false;
         }
         return true;

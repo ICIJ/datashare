@@ -1,19 +1,13 @@
 package org.icij.datashare.text.extraction.tika;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.Optional;
-import java.util.function.Function;
-import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
-
-import org.xml.sax.SAXException;
-import org.apache.tika.exception.TikaException;
+import com.optimaize.langdetect.LanguageDetector;
+import com.optimaize.langdetect.LanguageDetectorBuilder;
+import com.optimaize.langdetect.ngram.NgramExtractors;
+import com.optimaize.langdetect.profiles.LanguageProfileReader;
+import com.optimaize.langdetect.text.CommonTextObjectFactories;
+import com.optimaize.langdetect.text.TextObjectFactory;
 import org.apache.tika.config.TikaConfig;
+import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
@@ -25,18 +19,24 @@ import org.apache.tika.parser.pdf.PDFParserConfig;
 import org.apache.tika.sax.BodyContentHandler;
 import org.apache.tika.sax.LinkContentHandler;
 import org.apache.tika.sax.TeeContentHandler;
-import com.optimaize.langdetect.*;
-import com.optimaize.langdetect.ngram.NgramExtractors;
-import com.optimaize.langdetect.profiles.LanguageProfileReader;
-import com.optimaize.langdetect.text.CommonTextObjectFactories;
-import com.optimaize.langdetect.text.TextObjectFactory;
-
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
-import static org.icij.datashare.text.Language.*;
 import org.icij.datashare.text.extraction.AbstractFileParser;
 import org.icij.datashare.text.extraction.FileParser;
 import org.icij.datashare.text.extraction.tika.parser.ocr.Tess4JParserConfig;
+import org.xml.sax.SAXException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.function.Function;
+
+import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
+import static org.icij.datashare.text.Language.*;
 
 
 /**
@@ -109,7 +109,7 @@ public final class TikaFileParser extends AbstractFileParser {
         try (TikaInputStream input = TikaInputStream.get(filePath, metadata)) {
             return parse(input, metadata, filePath);
         } catch (IOException | SAXException | TikaException e) {
-            LOGGER.error(getClass().getName() + " - FAILED PARSING from " + filePath, e);
+            LOGGER.error("failed parsing from " + filePath, e);
             return Optional.empty();
         }
     }
@@ -209,7 +209,7 @@ public final class TikaFileParser extends AbstractFileParser {
         try{
             return Optional.of(Charset.forName(metadata.get(CONTENT_ENCODING)));
         } catch (Exception e) {
-            LOGGER.error(getClass().getName() + " - FAILED parsing Charset " + metadata.get(CONTENT_ENCODING), e);
+            LOGGER.error("failed parsing Charset " + metadata.get(CONTENT_ENCODING), e);
             return Optional.empty();
         }
     }

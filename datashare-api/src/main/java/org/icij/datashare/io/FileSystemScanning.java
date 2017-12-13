@@ -1,15 +1,14 @@
 package org.icij.datashare.io;
 
+import org.icij.datashare.concurrent.task.QueueOutTask;
+import org.icij.datashare.concurrent.task.Task;
+import org.icij.datashare.text.SourcePath;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
-
-import org.icij.datashare.concurrent.task.QueueOutTask;
-import org.icij.datashare.concurrent.task.Task;
-import org.icij.datashare.text.SourcePath;
 
 
 /**
@@ -35,9 +34,9 @@ public class FileSystemScanning extends QueueOutTask<SourcePath> {
 
     @Override
     public Task.Result call() {
-        LOGGER.info(getClass().getName() + " - SCANNING FILES in " + root );
+        LOGGER.info("scanning files in " + root );
         for (Path path : FileSystemUtils.listFiles(root)) {
-            LOGGER.info(getClass().getName() + " - PUTTING " + path + "["+output().size()+"]");
+            LOGGER.info("putting " + path + "["+output().size()+"]");
             Optional<SourcePath> sourcePath = SourcePath.create(path);
             if (sourcePath.isPresent())
                 put(sourcePath.get());

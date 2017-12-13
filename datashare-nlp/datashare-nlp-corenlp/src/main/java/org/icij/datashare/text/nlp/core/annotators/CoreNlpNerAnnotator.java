@@ -1,20 +1,21 @@
 package org.icij.datashare.text.nlp.core.annotators;
 
+import edu.stanford.nlp.ie.AbstractSequenceClassifier;
+import edu.stanford.nlp.ie.crf.CRFClassifier;
+import edu.stanford.nlp.ling.CoreLabel;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.nlp.core.models.CoreNlpModels;
+
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import edu.stanford.nlp.ie.AbstractSequenceClassifier;
-import edu.stanford.nlp.ie.crf.CRFClassifier;
-import edu.stanford.nlp.ling.CoreLabel;
-
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.nlp.core.models.CoreNlpModels;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 
 
@@ -26,7 +27,7 @@ import static org.icij.datashare.text.nlp.NlpStage.NER;
 public enum CoreNlpNerAnnotator {
     INSTANCE;
 
-    private static final Logger LOGGER = LogManager.getLogger(CoreNlpNerAnnotator.class);
+    private static final Log LOGGER = LogFactory.getLog(CoreNlpNerAnnotator.class);
 
 
     // Annotators (Conditional Random Fields Classifier)
@@ -76,14 +77,14 @@ public enum CoreNlpNerAnnotator {
             return true;
         }
         try {
-            LOGGER.info(getClass().getName() + " - LOADING NER annotator for " + language);
+            LOGGER.info("loading NER annotator for " + language);
             String modelPath = CoreNlpModels.PATH.get(NER).get(language).toString();
             CRFClassifier<CoreLabel> classifier = CRFClassifier.getClassifier(modelPath);
             CoreNlpModels.sharedModels.apply(NER, language)
                     .forEach( lang -> annotator.put(language, classifier) );
             return true;
         } catch (ClassNotFoundException | IOException e) {
-            LOGGER.error(getClass().getName() + " - FAILED LOADING NER annotator", e);
+            LOGGER.error("failed loading NER annotator", e);
             return false;
         }
     }
@@ -97,12 +98,4 @@ public enum CoreNlpNerAnnotator {
             l.unlock();
         }
     }
-
-//    private Set<Language> sharedModels(Language language) {
-//        return CoreNlpModels.SHARED_MODELS.get(NER).stream()
-//                .filter( sharedSet -> sharedSet.contains(language) )
-//                .flatMap( Set::stream )
-//                .collect(Collectors.toSet());
-//    }
-
 }

@@ -1,12 +1,13 @@
 package org.icij.datashare.concurrent.task;
 
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import static java.util.Collections.singletonList;
-
-import org.icij.datashare.concurrent.queue.OutputQueue;
 import org.icij.datashare.concurrent.BooleanLatch;
 import org.icij.datashare.concurrent.Latch;
+import org.icij.datashare.concurrent.queue.OutputQueue;
+
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+
+import static java.util.Collections.singletonList;
 
 
 /**
@@ -50,7 +51,7 @@ public abstract class QueueInQueueOutTask<I,O> extends QueuesInTask<I> implement
 
     @Override
     protected void terminate() {
-        LOGGER.info(getClass().getName() + " - TERMINATING");
+        LOGGER.info("TERMINATING");
         noMoreOutput.signal();
     }
 

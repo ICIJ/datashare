@@ -1,5 +1,14 @@
 package org.icij.datashare.text.nlp.mitie.annotators;
 
+import edu.mit.ll.mitie.EntityMentionVector;
+import edu.mit.ll.mitie.NamedEntityExtractor;
+import edu.mit.ll.mitie.StringVector;
+import edu.mit.ll.mitie.TokenIndexVector;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.nlp.mitie.models.MitieNlpModels;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -7,16 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import edu.mit.ll.mitie.EntityMentionVector;
-import edu.mit.ll.mitie.NamedEntityExtractor;
-import edu.mit.ll.mitie.StringVector;
-import edu.mit.ll.mitie.TokenIndexVector;
-
-import org.icij.datashare.text.Language;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
-import org.icij.datashare.text.nlp.mitie.models.MitieNlpModels;
 import static org.icij.datashare.text.nlp.mitie.models.MitieNlpModels.SUPPORTED_LANGUAGES;
 
 
@@ -26,7 +26,7 @@ import static org.icij.datashare.text.nlp.mitie.models.MitieNlpModels.SUPPORTED_
 public enum MitieNlpNerAnnotator {
     INSTANCE;
 
-    private static final Logger LOGGER = LogManager.getLogger(MitieNlpNerAnnotator.class);
+    final Log LOGGER = LogFactory.getLog(getClass());
 
 
     // Annotators (Conditional Random Fields Classifier)
@@ -60,7 +60,7 @@ public enum MitieNlpNerAnnotator {
                 return Optional.empty();
             return Optional.of(annotator.get(language));
         } catch (Exception e) {
-            LOGGER.error(getClass().getName() + " - FAILED LOADING POS annotator for " + language, e);
+            LOGGER.error("failed loading POS annotator for " + language, e);
             return Optional.empty();
         }
     }
@@ -74,15 +74,15 @@ public enum MitieNlpNerAnnotator {
     private boolean load(Language language) {
         if (annotator.containsKey(language))
             return true;
-        LOGGER.info(getClass().getName() +  " - LOADING NER annotator for " + language);
+        LOGGER.info("loading NER annotator for " + language);
         try {
             String modelPath = MitieNlpModels.PATH.get(NER).get(language).toString();
             NamedEntityExtractor classifier = new NamedEntityExtractor(modelPath);
             annotator.put(language, classifier);
-            LOGGER.info(getClass().getName() + " - LOADED NER annotator for " + language.toString().toUpperCase());
+            LOGGER.info("loaded NER annotator for " + language.toString().toUpperCase());
             return true;
         } catch (Exception e) {
-            LOGGER.error(getClass().getName() + " - FAILED LOADING NER annotator", e);
+            LOGGER.error("failed loading NER annotator", e);
             return false;
         }
     }
@@ -112,7 +112,7 @@ public enum MitieNlpNerAnnotator {
                 return new EntityMentionVector();
             return annotator.get().extractEntities(tokens);
         }  catch (Exception e) {
-            LOGGER.error(getClass().getName() + " - FAILED NAME-FINDING for " + language, e);
+            LOGGER.error("failed name-finding for " + language, e);
             return new EntityMentionVector();
         } finally {
             annotatorLock.get(language).unlock();

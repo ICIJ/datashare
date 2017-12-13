@@ -1,22 +1,21 @@
 package org.icij.datashare.text.nlp.core.annotators;
 
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.core.models.CoreNlpModels;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+
 import static java.util.Arrays.asList;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-
-import org.icij.datashare.text.Language;
 import static org.icij.datashare.text.Language.*;
-import org.icij.datashare.text.nlp.NlpStage;
 import static org.icij.datashare.text.nlp.NlpStage.*;
-import org.icij.datashare.text.nlp.core.models.CoreNlpModels;
 
 
 /**
@@ -27,7 +26,7 @@ import org.icij.datashare.text.nlp.core.models.CoreNlpModels;
 public enum CoreNlpPipelineAnnotator {
     INSTANCE;
 
-    private static final Logger LOGGER = LogManager.getLogger(CoreNlpPipelineAnnotator.class);
+    private static final Log LOGGER = LogFactory.getLog(CoreNlpPipelineAnnotator.class);
 
     // Supported stages for each language
     public static final Map<Language, Set<NlpStage>> SUPPORTED_STAGES =
@@ -97,7 +96,7 @@ public enum CoreNlpPipelineAnnotator {
         if ( annotator.containsKey(language) && annotator.get(language) != null ) {
             return true;
         }
-        LOGGER.info(getClass().getName() + " - LOADING " + stages.toString() + " PIPELINE Annotator for " + language);
+        LOGGER.info("loading " + stages.toString() + " pipeline Annotator for " + language);
         Properties properties = new Properties();
         properties.setProperty("annotators", String.join(", ", CORE_STAGE_NAMES(stages)));
         properties.setProperty("ner.useSUTime", "false");
@@ -114,7 +113,7 @@ public enum CoreNlpPipelineAnnotator {
             annotator.put(language, new StanfordCoreNLP(properties, true));
 
         } catch (Exception e) {
-            LOGGER.error(getClass().getName() + " - FAILED LOADING PIPELINE annotator", e);
+            LOGGER.error("failed loading pipeline annotator", e);
             return false;
         }
         return true;

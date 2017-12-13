@@ -1,13 +1,13 @@
 package org.icij.datashare.concurrent.queue;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.icij.datashare.concurrent.Latch;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.logging.log4j.LogManager;
-
-import org.icij.datashare.concurrent.Latch;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -24,12 +24,13 @@ public interface InputQueue<I> {
     List<Latch> noMoreInput();
 
     default Optional<I> poll(int timeout, TimeUnit unit) {
-        LogManager.getLogger(getClass()).debug(getClass().getName() + " - POLLING " + input() + ", [" + input().size() + "]");
+        final Log LOGGER = LogFactory.getLog(getClass());
+        LOGGER.debug("polling " + input() + ", [" + input().size() + "]");
         try {
             I inputElement = input().poll(timeout, unit);
             return Optional.ofNullable( inputElement );
         } catch (InterruptedException e) {
-            LogManager.getLogger(getClass()).info("Queue polling interrupted", e);
+            LOGGER.info("queue polling interrupted", e);
             Thread.currentThread().interrupt();
             return Optional.empty();
         }

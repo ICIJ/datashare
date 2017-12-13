@@ -1,37 +1,38 @@
 package org.icij.datashare.text.extraction.tika.parser.ocr;
 
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.List;
-import static java.util.Arrays.asList;
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.charset.StandardCharsets;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import com.sun.jna.Platform;
-
-import org.xml.sax.ContentHandler;
-import org.xml.sax.SAXException;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import net.sourceforge.tess4j.ITesseract;
+import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.TesseractException;
+import net.sourceforge.tess4j.util.LoadLibs;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TemporaryResources;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.mime.MediaTypeRegistry;
-import org.apache.tika.parser.Parser;
 import org.apache.tika.parser.AbstractParser;
 import org.apache.tika.parser.CompositeParser;
 import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
 import org.apache.tika.parser.image.ImageParser;
 import org.apache.tika.parser.image.TiffParser;
 import org.apache.tika.parser.jpeg.JpegParser;
 import org.apache.tika.sax.XHTMLContentHandler;
-import net.sourceforge.tess4j.ITesseract;
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
-import net.sourceforge.tess4j.util.LoadLibs;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static java.util.Arrays.asList;
 
 
 /**
@@ -43,7 +44,7 @@ public class Tess4JParser extends AbstractParser {
 
     private static final long serialVersionUID = -5693216478732659L;
 
-    private static final Logger LOGGER = LogManager.getLogger(Tess4JParser.class);
+    private static final Log LOGGER = LogFactory.getLog(Tess4JParser.class);
 
     private static final Tess4JParserConfig DEFAULT_CONFIG = new Tess4JParserConfig();
 
@@ -79,11 +80,10 @@ public class Tess4JParser extends AbstractParser {
             Files.list(Paths.get(LoadLibs.TESS4J_TEMP_DIR, Platform.RESOURCE_PREFIX))
                     .forEach( libPath -> {
                         System.load( libPath.toString() );
-                        LOGGER.info(Tess4JParser.class.getName() + " - LOADING " + libPath );
+                        LOGGER.info("loading " + libPath );
                     });
         } catch (IOException e) {
-            LOGGER.error(Tess4JParser.class.getName() +
-                    " - FAILED LOADING " + Platform.RESOURCE_PREFIX + " Tesseract related native libraries", e);
+            LOGGER.error("failed loading " + Platform.RESOURCE_PREFIX + " Tesseract related native libraries", e);
         }
     }
 
@@ -116,7 +116,7 @@ public class Tess4JParser extends AbstractParser {
                 .replace("-", ".")
                 .toLowerCase();
 
-        LOGGER.info(getClass().getName() + " PARSING CONTENT TYPE: " +  type );
+        LOGGER.info("parsing content type: " +  type );
 
         TemporaryResources tmp = new TemporaryResources();
         try (TikaInputStream tis = TikaInputStream.get(stream, tmp)) {
@@ -138,7 +138,7 @@ public class Tess4JParser extends AbstractParser {
             _TMP_IMAGE_METADATA_PARSER.parse(tis, handler, metadata, context);
 
         } catch (Exception e) {
-            LOGGER.error(getClass().getName() + " - FAILED PARSING", e);
+            LOGGER.error("failed parsing", e);
         } finally {
             tmp.dispose();
         }
@@ -155,7 +155,7 @@ public class Tess4JParser extends AbstractParser {
     private String doOCR(File input, Tess4JParserConfig config) throws IOException, TikaException {
         File tessdataDir = Paths.get(LoadLibs.TESS4J_TEMP_DIR, config.getTessdataPath()).toFile();
         if ( ! Files.exists(tessdataDir.toPath())){
-            LOGGER.info(getClass().getName() + " - LOADING Tesseract data");
+            LOGGER.info("loading Tesseract data");
             LoadLibs.extractTessResources(config.getTessdataPath());
         }
         ocrInstance.setDatapath(tessdataDir.getParent());
@@ -165,7 +165,7 @@ public class Tess4JParser extends AbstractParser {
         try {
             return ocrInstance.doOCR(input);
         } catch (TesseractException e) {
-            LOGGER.error(getClass().getName() + " - FAILED OCRING", e);
+            LOGGER.error("OCR failed", e);
             return "";
         }
     }
@@ -197,19 +197,4 @@ public class Tess4JParser extends AbstractParser {
         xhtml.endElement("div");
         xhtml.endDocument();
     }
-
-//    private void extractOutput(InputStream stream, XHTMLContentHandler xhtml) throws SAXException, IOException {
-//        xhtml.startDocument();
-//        xhtml.startElement("div");
-//        try (Reader reader = new InputStreamReader(stream, UTF_8)) {
-//            char[] buffer = new char[1024];
-//            for (int n = reader.read(buffer); n != -1; n = reader.read(buffer)) {
-//                if (n > 0)
-//                    xhtml.characters(buffer, 0, n);
-//            }
-//        }
-//        xhtml.endElement("div");
-//        xhtml.endDocument();
-//    }
-
 }

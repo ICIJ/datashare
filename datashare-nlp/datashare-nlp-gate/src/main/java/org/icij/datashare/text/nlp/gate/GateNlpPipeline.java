@@ -1,30 +1,28 @@
 package org.icij.datashare.text.nlp.gate;
 
+import es.upm.oeg.icij.entityextractor.GATENLPApplication;
+import es.upm.oeg.icij.entityextractor.GATENLPDocument;
+import es.upm.oeg.icij.entityextractor.GATENLPFactory;
+import gate.AnnotationSet;
+import gate.creole.ResourceInstantiationException;
+import gate.util.GateException;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.nlp.AbstractNlpPipeline;
+import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.NlpStage;
+
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiFunction;
 
 import static java.util.Arrays.asList;
-
-import gate.AnnotationSet;
-import gate.util.GateException;
-import gate.creole.ResourceInstantiationException;
-import es.upm.oeg.icij.entityextractor.GATENLPDocument;
-import es.upm.oeg.icij.entityextractor.GATENLPFactory;
-import es.upm.oeg.icij.entityextractor.GATENLPApplication;
-
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Language;
 import static org.icij.datashare.text.Language.*;
-import org.icij.datashare.text.NamedEntity;
-import static org.icij.datashare.text.NamedEntity.Category.LOCATION;
-import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
-import static org.icij.datashare.text.NamedEntity.Category.PERSON;
-import org.icij.datashare.text.nlp.AbstractNlpPipeline;
-import org.icij.datashare.text.nlp.NlpStage;
+import static org.icij.datashare.text.NamedEntity.Category.*;
 import static org.icij.datashare.text.nlp.NlpStage.*;
-import org.icij.datashare.text.nlp.Annotation;
 
 
 /**
@@ -98,7 +96,7 @@ public final class GateNlpPipeline extends AbstractNlpPipeline {
             pipeline = GATENLPFactory.create(RESOURCES_DIR.toFile());
 
         } catch (GateException | IOException e) {
-            LOGGER.error(getClass().getName() + " - FAILED BUILDING GateNLP Application", e);
+            LOGGER.error("failed building GateNLP Application", e);
             return false;
         }
         return true;
@@ -114,7 +112,7 @@ public final class GateNlpPipeline extends AbstractNlpPipeline {
 
             // Tokenize input
             // NER input
-            LOGGER.info(getClass().getName() + " - TOKENIZING ~ NAME-FINDING");
+            LOGGER.info("tokenizing ~ NAME-FINDING");
             pipeline.annotate(gateDoc);
             gateDoc.storeAnnotationSet();
             gateDoc.cleanDocument();

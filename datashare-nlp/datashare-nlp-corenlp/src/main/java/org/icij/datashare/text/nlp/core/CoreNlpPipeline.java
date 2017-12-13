@@ -1,34 +1,30 @@
 package org.icij.datashare.text.nlp.core;
 
+import edu.stanford.nlp.ie.AbstractSequenceClassifier;
+import edu.stanford.nlp.ling.CoreAnnotations.*;
+import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.ling.HasWord;
+import edu.stanford.nlp.ling.TaggedWord;
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import edu.stanford.nlp.util.CoreMap;
+import edu.stanford.nlp.util.Triple;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.nlp.AbstractNlpPipeline;
+import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.NlpPipeline;
+import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.core.annotators.CoreNlpNerAnnotator;
+import org.icij.datashare.text.nlp.core.annotators.CoreNlpPipelineAnnotator;
+import org.icij.datashare.text.nlp.core.annotators.CoreNlpPosAnnotator;
+
 import java.io.StringReader;
 import java.util.*;
 import java.util.function.BiPredicate;
 
-import edu.stanford.nlp.util.CoreMap;
-import edu.stanford.nlp.util.Triple;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import edu.stanford.nlp.ie.AbstractSequenceClassifier;
-import edu.stanford.nlp.tagger.maxent.MaxentTagger;
-import edu.stanford.nlp.ling.CoreAnnotations.CharacterOffsetBeginAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.CharacterOffsetEndAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.NamedEntityTagAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.TextAnnotation;
-import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.ling.HasWord;
-import edu.stanford.nlp.ling.TaggedWord;
-
-import org.icij.datashare.text.nlp.*;
-
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.text.nlp.NlpStage.*;
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.core.annotators.CoreNlpNerAnnotator;
-import org.icij.datashare.text.nlp.core.annotators.CoreNlpPosAnnotator;
-import org.icij.datashare.text.nlp.core.annotators.CoreNlpPipelineAnnotator;
 
 
 /**
@@ -134,7 +130,7 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
             return true;
         Optional<StanfordCoreNLP> stanfordCoreNLP = CoreNlpPipelineAnnotator.INSTANCE.get(language);
         if ( ! stanfordCoreNLP.isPresent() ) {
-            LOGGER.error(getClass().getName() + " FAILED to get PIPELINE annotator. Aborting...");
+            LOGGER.error("failed to get pipeline annotator. Aborting...");
             return false;
         }
         pipeline.put(language, stanfordCoreNLP.get());
@@ -155,7 +151,7 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
         // CoreNLP annotation data-structure
         edu.stanford.nlp.pipeline.Annotation coreNlpAnnotation = new edu.stanford.nlp.pipeline.Annotation(input);
 
-        LOGGER.info(getClass().getName() + " - SENTENCING ~ TOKENIZING ~ POS-TAGGING ~ NAME-FINDING for " + language.toString());
+        LOGGER.info("sentencing ~ tokenizing ~ POS-tagging ~ name-finding for " + language.toString());
 
         // Sentencize input
         // Tokenize
@@ -220,7 +216,7 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
 
         Optional<AbstractSequenceClassifier<CoreLabel>> classifier = CoreNlpNerAnnotator.INSTANCE.get(language);
         if ( ! classifier.isPresent()) {
-            LOGGER.error(getClass().getName() + " - FAILED INITIALIZING NER annotator. Aborting...");
+            LOGGER.error("failed initializing NER annotator. Aborting...");
             return false;
         }
         nerClassifier.put(language, classifier.get());
@@ -237,7 +233,7 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
     private Optional<Annotation> processNerClassifier(String input, String hash, Language language) {
         Annotation annotation = new Annotation(hash, getType(), language);
 
-        LOGGER.info(getClass().getName() + " - NAME-FINDING for " + language.toString());
+        LOGGER.info("name-finding for " + language.toString());
         // Recognize named entities from input
         List<Triple<String, Integer, Integer>> items = nerClassifier.get(language).classifyToCharacterOffsets(input);
         // For each recognized named entity
@@ -259,7 +255,7 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
 
         Optional<MaxentTagger> tagger = CoreNlpPosAnnotator.INSTANCE.get(language);
         if ( ! tagger.isPresent()) {
-            LOGGER.error(getClass().getName() + " - FAILED INITIALIZING POS annotator. Aborting...");
+            LOGGER.error("failed initializing POS annotator. Aborting...");
             return false;
         }
         posTagger.put(language, tagger.get());
@@ -276,7 +272,7 @@ public final class CoreNlpPipeline extends AbstractNlpPipeline {
     private Optional<Annotation> processPosClassifier(String input, String hash, Language language) {
         Annotation annotation = new Annotation(hash, getType(), language);
 
-        LOGGER.info(getClass().getName() + " - POS-TAGGING for " + language.toString());
+        LOGGER.info("POS-tagging for " + language.toString());
 
         // Split input into sentences
         List<List<HasWord>> sentences = MaxentTagger.tokenizeText(new StringReader(input));

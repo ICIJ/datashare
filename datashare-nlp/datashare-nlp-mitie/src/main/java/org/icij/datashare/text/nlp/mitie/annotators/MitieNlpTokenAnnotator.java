@@ -1,10 +1,9 @@
 package org.icij.datashare.text.nlp.mitie.annotators;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import edu.mit.ll.mitie.global;
 import edu.mit.ll.mitie.TokenIndexVector;
+import edu.mit.ll.mitie.global;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 
 /**
@@ -13,7 +12,7 @@ import edu.mit.ll.mitie.TokenIndexVector;
 public enum MitieNlpTokenAnnotator {
     INSTANCE;
 
-    private static final Logger LOGGER = LogManager.getLogger(MitieNlpTokenAnnotator.class);
+    final Log LOGGER = LogFactory.getLog(getClass());
 
 
     /**
@@ -25,7 +24,7 @@ public enum MitieNlpTokenAnnotator {
         try {
             return global.tokenizeWithOffsets(input);
         } catch (Exception e) {
-            LOGGER.error(getClass().getName() + " - FAILED TOKENIZING input ", e);
+            LOGGER.error("failed tokenizing input ", e);
             return new TokenIndexVector();
         }
     }
