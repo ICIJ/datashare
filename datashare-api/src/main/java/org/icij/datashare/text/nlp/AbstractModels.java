@@ -108,4 +108,8 @@ public abstract class AbstractModels<T> {
             l.unlock();
         }
     }
+
+    public boolean isLoaded(Language language) {
+        return models.containsKey(language);
+    }
 }

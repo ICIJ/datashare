@@ -4,6 +4,8 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.NlpStage;
 
 import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -39,8 +41,11 @@ public class IxaNerModels extends IxaModels<eus.ixa.ixa.pipe.nerc.Annotate> {
 
     @Override
     protected IxaAnnotate<eus.ixa.ixa.pipe.nerc.Annotate> loadModelFile(Language language, ClassLoader loader) throws IOException {
+        final Path path = getModelsBasePath(language).resolve(MODEL_NAMES.get(language));
+        final URL resource = createResourceOrThrowIoEx(path, loader);
+
         Properties properties = IxaNerModels.nerAnnotatorProperties(language,
-                MODEL_NAMES.get(language),
+                resource.getPath(),
                 eus.ixa.ixa.pipe.nerc.train.Flags.DEFAULT_LEXER,
                 eus.ixa.ixa.pipe.nerc.train.Flags.DEFAULT_DICT_OPTION,
                 eus.ixa.ixa.pipe.nerc.train.Flags.DEFAULT_DICT_PATH,
@@ -54,7 +59,7 @@ public class IxaNerModels extends IxaModels<eus.ixa.ixa.pipe.nerc.Annotate> {
                                                      String dictPath,
                                                      String clearFeatures) {
         Properties annotateProperties = new Properties();
-        annotateProperties.setProperty("models", model);
+        annotateProperties.setProperty("model", model);
         annotateProperties.setProperty("language", String.valueOf(language));
         annotateProperties.setProperty("ruleBasedOption", lexer);
         annotateProperties.setProperty("dictTag", dictTag);

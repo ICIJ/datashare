@@ -4,6 +4,8 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.NlpStage;
 
 import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -58,7 +60,13 @@ public class IxaPosModels extends IxaModels<eus.ixa.ixa.pipe.pos.Annotate> {
 
     @Override
     protected IxaAnnotate<eus.ixa.ixa.pipe.pos.Annotate> loadModelFile(Language language, ClassLoader loader) throws IOException {
-        LOGGER.info("loading POS annotator for " + language);
+        final Path path = getModelsBasePath(language).resolve(MODEL_NAMES.get(language));
+        final URL resource = createResourceOrThrowIoEx(path, loader);
+
+        final Path lemmaPath = getModelsBasePath(language).resolve(lemmaModelNames.get(language));
+        final URL lemmaResource = createResourceOrThrowIoEx(lemmaPath, loader);
+
+        LOGGER.info("loading POS annotator " + lemmaPath);
         boolean dictag = false;
         boolean multiwords = false;
         if (asList(SPANISH, GALICIAN).contains(language)) {
@@ -66,8 +74,8 @@ public class IxaPosModels extends IxaModels<eus.ixa.ixa.pipe.pos.Annotate> {
             multiwords = true;
         }
         return new IxaAnnotate<>(new eus.ixa.ixa.pipe.pos.Annotate(
-                posAnnotatorProperties(language, MODEL_NAMES.get(language),
-                lemmaModelNames.get(language), multiwords, dictag))
+                posAnnotatorProperties(language, resource.getPath(),
+                lemmaResource.getPath(), multiwords, dictag))
         );
     }
 
@@ -80,7 +88,7 @@ public class IxaPosModels extends IxaModels<eus.ixa.ixa.pipe.pos.Annotate> {
                                                      boolean multiwords,
                                                      boolean dictag) {
         final Properties annotateProperties = new Properties();
-        annotateProperties.setProperty("models", model);
+        annotateProperties.setProperty("model", model);
         annotateProperties.setProperty("lemmatizerModel", lemmatizerModel);
         annotateProperties.setProperty("language", String.valueOf(language));
         annotateProperties.setProperty("multiwords", String.valueOf(multiwords));

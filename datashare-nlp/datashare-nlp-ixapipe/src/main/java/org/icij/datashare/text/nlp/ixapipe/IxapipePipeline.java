@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.*;
+import java.util.function.BiFunction;
 
 import static java.util.Arrays.asList;
 import static org.icij.datashare.text.Language.*;
@@ -28,34 +29,42 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
  * {@link Pipeline}
  * {@link AbstractPipeline}
  * {@link Type#IXAPIPE}
- *
+ * <p>
  * <a href="http://ixa2.si.ehu.es/ixa-pipes">Ixa Pipes</a>
  * <a href="https://github.com/ixa-ehu/ixa-pipe-tok">Ixa Pipe Tok</a>
  * <a href="https://github.com/ixa-ehu/ixa-pipe-pos">Ixa Pipe Pos</a>
  * <a href="https://github.com/ixa-ehu/ixa-pipe-nerc">Ixa Pipe Nerc</a>
- *
+ * <p>
  * Created by julien on 9/22/16.
  */
 public class IxapipePipeline extends AbstractPipeline {
     private static final String VERSION_TOK = "2.0.0";
     private static final Map<Language, Set<NlpStage>> SUPPORTED_STAGES =
-            new HashMap<Language, Set<NlpStage>>(){{
+            new HashMap<Language, Set<NlpStage>>() {{
                 put(ENGLISH, new HashSet<>(asList(TOKEN, POS, NER)));
                 put(SPANISH, new HashSet<>(asList(TOKEN, POS, NER)));
-                put(FRENCH,  new HashSet<>(asList(TOKEN, POS)));
-                put(GERMAN,  new HashSet<>(asList(TOKEN, POS, NER)));
-                put(DUTCH,   new HashSet<>(asList(TOKEN, POS, NER)));
+                put(FRENCH, new HashSet<>(asList(TOKEN, POS)));
+                put(GERMAN, new HashSet<>(asList(TOKEN, POS, NER)));
+                put(DUTCH, new HashSet<>(asList(TOKEN, POS, NER)));
                 put(ITALIAN, new HashSet<>(asList(TOKEN, POS, NER)));
-                put(BASQUE,  new HashSet<>(asList(TOKEN, POS, NER)));
+                put(BASQUE, new HashSet<>(asList(TOKEN, POS, NER)));
+            }};
+
+    Map<NlpStage, BiFunction<ClassLoader, Language, Boolean>> annotatorLoader =
+            new HashMap<NlpStage, BiFunction<ClassLoader, Language, Boolean>>() {{
+                put(POS, IxapipePipeline.this::loadPos);
+                put(NER, IxapipePipeline.this::loadName);
+                put(TOKEN, IxapipePipeline.this::loadToken);
             }};
 
     private static final String VERSION_POS = "1.5.2";
-    private static final String VERSION_NER = "1.6.1";
 
-    private static final String  KAF_VERSION            = "v1.naf";
-    private static final String  DEFAULT_NORMALIZE      = "default"; // alpino, ancora, ctag, default, ptb, tiger, tutpenn
-    private static final String  DEFAULT_UNTOKENIZABLE  = "no";      // yes, no
-    private static final String  DEFAULT_HARD_PARAGRAPH = "no";      // yes, no
+    private static final String VERSION_NER = "1.6.1";
+    private static final String KAF_VERSION = "v1.naf";
+
+    private static final String DEFAULT_NORMALIZE = "default"; // alpino, ancora, ctag, default, ptb, tiger, tutpenn
+    private static final String DEFAULT_UNTOKENIZABLE = "no";      // yes, no
+    private static final String DEFAULT_HARD_PARAGRAPH = "no";      // yes, no
 
     public IxapipePipeline(Properties properties) {
         super(properties);
@@ -72,11 +81,10 @@ public class IxapipePipeline extends AbstractPipeline {
 
     @Override
     protected boolean initialize(Language language) {
-        if ( ! super.initialize(language))
+        if (!super.initialize(language))
             return false;
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        IxaPosModels.getInstance().get(language, classLoader);
-        IxaNerModels.getInstance().get(language, classLoader);
+        stages.forEach( stage -> annotatorLoader.get(stage).apply(classLoader, language));
         return true;
     }
 
@@ -87,54 +95,54 @@ public class IxapipePipeline extends AbstractPipeline {
         KAFDocument kafDocument = new KAFDocument(language.toString(), KAF_VERSION);
 
         // tokenize( input )
-        LOGGER.info("tokenizing for "  + language.toString() );
-        if ( ! tokenize(new StringReader(input), kafDocument, hash, language) )
+        LOGGER.info("tokenizing for " + language.toString());
+        if (!tokenize(new StringReader(input), kafDocument, hash, language))
             return Optional.empty();
 
         // pos-tag( tokenize( input ) )
         LOGGER.info("POS-tagging for " + language.toString());
-        if ( ! postag(kafDocument, hash, language) )
+        if (!postag(kafDocument, hash, language))
             return Optional.of(annotation);
 
         // Feed annotation with tokens and pos
         for (int s = kafDocument.getFirstSentence(); s <= kafDocument.getNumSentences(); s++) {
             List<Term> sentenceTerms = kafDocument.getSentenceTerms(s);
-            for(Term term : sentenceTerms) {
-                WF wfBegin     = term.getWFs().get(0);
-                WF wfEnd       = term.getWFs().get(term.getWFs().size() - 1);
+            for (Term term : sentenceTerms) {
+                WF wfBegin = term.getWFs().get(0);
+                WF wfEnd = term.getWFs().get(term.getWFs().size() - 1);
                 int tokenBegin = wfBegin.getOffset();
-                int tokenEnd   = wfEnd.getOffset() + wfEnd.getLength();
+                int tokenEnd = wfEnd.getOffset() + wfEnd.getLength();
                 annotation.add(TOKEN, tokenBegin, tokenEnd);
                 if (targetStages.contains(POS)) {
                     String posTag = term.getPos();
                     annotation.add(POS, tokenBegin, tokenEnd, posTag);
                 }
             }
-            Term termBegin     = sentenceTerms.get(0);
-            Term termEnd       = sentenceTerms.get(sentenceTerms.size() - 1);
-            WF   wfBegin       = termBegin.getWFs().get(0);
-            WF   wfEnd         = termEnd.getWFs().get(termEnd.getWFs().size() - 1);
-            int  sentenceBegin = wfBegin.getOffset();
-            int  sentenceEnd   = wfEnd.getOffset() + wfEnd.getLength();
+            Term termBegin = sentenceTerms.get(0);
+            Term termEnd = sentenceTerms.get(sentenceTerms.size() - 1);
+            WF wfBegin = termBegin.getWFs().get(0);
+            WF wfEnd = termEnd.getWFs().get(termEnd.getWFs().size() - 1);
+            int sentenceBegin = wfBegin.getOffset();
+            int sentenceEnd = wfEnd.getOffset() + wfEnd.getLength();
             annotation.add(SENTENCE, sentenceBegin, sentenceEnd);
         }
 
         // ner( pos-tag( tokenize( input ) ) )
         if (targetStages.contains(NER)) {
             LOGGER.info("name-finding for " + language.toString());
-            if ( ! recognize(kafDocument, hash, language) )
+            if (!recognize(kafDocument, hash, language))
                 return Optional.of(annotation);
 
             // Feed annotation with ne
             for (Entity entity : kafDocument.getEntities()) {
-                List<Term> terms     = entity.getTerms();
-                Term       termBegin = terms.get(0);
-                Term       termEnd   = terms.get(terms.size() - 1);
-                WF         wfBegin   = termBegin.getWFs().get(0);
-                WF         wfEnd     = termEnd.getWFs().get(termEnd.getWFs().size() - 1);
-                String     cat       = entity.getType();
-                int        nerBegin  = wfBegin.getOffset();
-                int        nerEnd    = wfEnd.getOffset() + wfEnd.getLength();
+                List<Term> terms = entity.getTerms();
+                Term termBegin = terms.get(0);
+                Term termEnd = terms.get(terms.size() - 1);
+                WF wfBegin = termBegin.getWFs().get(0);
+                WF wfEnd = termEnd.getWFs().get(termEnd.getWFs().size() - 1);
+                String cat = entity.getType();
+                int nerBegin = wfBegin.getOffset();
+                int nerEnd = wfEnd.getOffset() + wfEnd.getLength();
                 annotation.add(NER, nerBegin, nerEnd, cat);
             }
         }
@@ -162,7 +170,7 @@ public class IxapipePipeline extends AbstractPipeline {
 
     private boolean postag(KAFDocument kafDocument, String hash, Language language) {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String  modelName = Files.getNameWithoutExtension(IxaPosModels.MODEL_NAMES.get(language));
+        String modelName = Files.getNameWithoutExtension(IxaPosModels.MODEL_NAMES.get(language));
         LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("terms", "ixapipe-pipe-pos-" + modelName, VERSION_POS);
         newLp.setBeginTimestamp();
         final Optional<IxaAnnotate<Annotate>> annotate = IxaPosModels.getInstance().get(language, classLoader);
@@ -173,7 +181,7 @@ public class IxapipePipeline extends AbstractPipeline {
 
     private boolean recognize(KAFDocument kafDocument, String hash, Language language) {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String model     = IxaNerModels.MODEL_NAMES.get(language);
+        String model = IxaNerModels.MODEL_NAMES.get(language);
         String modelName = Files.getNameWithoutExtension(model);
         LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("entities", "ixapipe-pipe-nerc-" + modelName, VERSION_NER);
         try {
@@ -196,8 +204,8 @@ public class IxapipePipeline extends AbstractPipeline {
                                                        String untokenizable,
                                                        String hardParagraph) {
         final Properties annotateProperties = new Properties();
-        annotateProperties.setProperty("language",      lang.toString());
-        annotateProperties.setProperty("normalize",     normalize);
+        annotateProperties.setProperty("language", lang.toString());
+        annotateProperties.setProperty("normalize", normalize);
         annotateProperties.setProperty("untokenizable", untokenizable);
         annotateProperties.setProperty("hardParagraph", hardParagraph);
         return annotateProperties;
@@ -207,5 +215,17 @@ public class IxapipePipeline extends AbstractPipeline {
     @Override
     public Optional<String> getPosTagSet(Language language) {
         return IxaPosModels.getInstance().getPosTagSet(language);
+    }
+
+    private boolean loadPos(ClassLoader classLoader, Language language) {
+        return IxaPosModels.getInstance().get(language, classLoader).isPresent();
+    }
+
+    private boolean loadName(ClassLoader classLoader, Language language) {
+        return IxaNerModels.getInstance().get(language, classLoader).isPresent();
+    }
+
+    private boolean loadToken(ClassLoader classLoader, Language language) {
+        return true;
     }
 }

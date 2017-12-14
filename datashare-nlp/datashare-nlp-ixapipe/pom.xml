@@ -54,6 +54,14 @@
             <type>jar</type>
         </dependency>
 
+        <!-- OpenNLP Tools -->
+        <dependency>
+            <groupId>org.apache.opennlp</groupId>
+            <artifactId>opennlp-tools</artifactId>
+            <version>${opennlp.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!-- Log4j / Slf4j -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -62,6 +70,19 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.easytesting</groupId>
+            <artifactId>fest-assert</artifactId>
+            <version>1.4</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
