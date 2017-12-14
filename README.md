@@ -66,20 +66,20 @@ Web API
    
 *Implementations*
   
-  - `org.icij.datashare.text.nlp.core.CorenlpPipeline` 
+  - `org.icij.datashare.text.nlp.corenlp.CorenlpPipeline` 
   
     [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP) v3.8.0, 
     (Conditional Random Fields), 
     *Composite GPL v3+* 
 
-  - `org.icij.datashare.text.nlp.gate.GatenlpPipeline` 
+  - `org.icij.datashare.text.nlp.gatenlp.GatenlpPipeline` 
     
     [OEG UPM Entity Extractor](https://github.com/ICIJ/entity-extractor/tree/production) v1.1, 
     (JAPE Rules Grammar), 
     based on [EPSRC Gate](https://gate.ac.uk/) v8.11, 
     *LGPL v3*
   
-  - `org.icij.datashare.text.nlp.ixa.IxapipePipeline` 
+  - `org.icij.datashare.text.nlp.ixapipe.IxapipePipeline` 
   
     [Ixa Pipes Nerc](https://github.com/ixa-ehu/ixa-pipe-nerc) v1.6.1, 
     (Perceptron), 
@@ -91,7 +91,7 @@ Web API
     (Structural Support Vector Machines), 
     *Boost Software License v1.0*
 
-  - `org.icij.datashare.text.nlp.open.OpennlpPipeline` 
+  - `org.icij.datashare.text.nlp.opennlp.OpennlpPipeline` 
   
     [Apache OpenNLP](https://opennlp.apache.org/) v1.6.0, 
     (Maximum Entropy), 
