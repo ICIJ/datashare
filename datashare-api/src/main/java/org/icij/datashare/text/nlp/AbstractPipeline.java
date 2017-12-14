@@ -150,7 +150,7 @@ public abstract class AbstractPipeline implements Pipeline {
             try{
                 annotation = process(input, HASHER.hash(input), language);
             } catch (Exception e) {
-                LOGGER.error("failed processing [" + language + "]" + input, e);
+                LOGGER.error("failed processing [" + language + "]", e);
             }
         }
         terminate(language);

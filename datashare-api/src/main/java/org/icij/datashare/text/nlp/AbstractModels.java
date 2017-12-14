@@ -76,12 +76,16 @@ public abstract class AbstractModels<T> {
                 resolve(language.iso6391Code());
     }
 
+    protected Path getModelsFilesystemPath(Language language) {
+        return Paths.get("dist").resolve(getModelsBasePath(language));
+    }
+
     protected boolean isDownloaded(Language language, ClassLoader loader) {
         return loader.getResource(getModelsBasePath(language).toString()) != null;
     }
 
     private void download(Language language) {
-        String remoteKey = "dist/" + getModelsBasePath(language);
+        String remoteKey = getModelsFilesystemPath(language).toString();
         LOGGER.info("downloading models for language " + language + " under " + remoteKey);
         try {
             getRemoteFiles().download(remoteKey, BASE_DIR.toFile());

@@ -41,7 +41,7 @@ public final class MitieNlpModels extends AbstractModels<NamedEntityExtractor> {
 
     @Override
     protected NamedEntityExtractor loadModelFile(Language language, ClassLoader loader) throws IOException {
-        return new NamedEntityExtractor(getModelsBasePath(language).resolve(NER_MODEL_NAME).toString());
+        return new NamedEntityExtractor(getModelsFilesystemPath(language).resolve(NER_MODEL_NAME).toAbsolutePath().toString());
     }
 
     public EntityMentionVector extract(TokenIndexVector tokens, Language language) {
