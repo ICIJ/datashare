@@ -1,8 +1,8 @@
 package org.icij.datashare;
 
 import com.hazelcast.core.ICountDownLatch;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.concurrent.BooleanLatch;
 import org.icij.datashare.concurrent.DataGrid;
 import org.icij.datashare.concurrent.Latch;
@@ -67,8 +67,7 @@ public final class DataShare {
                                 .map(Optional::get)
                                 .collect(Collectors.toList());
     }
-
-    private static final Logger LOGGER = LogManager.getLogger(DataShare.class);
+    private static final Log LOGGER = LogFactory.getLog(DataShare.class);
 
     public static final List<DataShare.Stage>      DEFAULT_STAGES             = asList(DataShare.Stage.values());
 
