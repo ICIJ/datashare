@@ -146,7 +146,6 @@
             <scope>runtime</scope>
         </dependency>
 
-
         <!-- Joda Time -->
         <dependency>
             <groupId>joda-time</groupId>
@@ -193,29 +192,6 @@
             <artifactId>log4j-core</artifactId>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- Slf4j -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>log4j-over-slf4j</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
     </dependencies>
 
 

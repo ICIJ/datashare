@@ -83,7 +83,7 @@
             <version>2.4</version>
         </dependency>
 
-        <!-- Log4j / Slf4j -->
+        <!-- Log4j -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
