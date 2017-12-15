@@ -1,13 +1,12 @@
 package org.icij.datashare.text.hashing;
 
-import org.icij.datashare.test.TestBase;
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
  * Created by julien on 5/3/16.
  */
-public class HasherTest extends TestBase {
+public class HasherTest {
 
     @Test
     public void testHashString() throws Throwable {

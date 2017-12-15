@@ -1,23 +1,21 @@
 package org.icij.datashare.text.indexing;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Stream;
-
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.command.*;
 
-import org.icij.datashare.test.TestBase;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Stream;
 
 import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
 
 /**
  * Created by julien on 7/13/16.
  */
-public class IndexerTest extends TestBase {
+public class IndexerTest {
 
 
     private static void testIndexer(Indexer indexer) {
