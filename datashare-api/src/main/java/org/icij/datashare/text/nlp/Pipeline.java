@@ -1,7 +1,7 @@
 package org.icij.datashare.text.nlp;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.reflect.EnumTypeToken;
 import org.icij.datashare.text.Document;
@@ -32,6 +32,7 @@ import static org.icij.datashare.text.nlp.NlpStage.NER;
  * Created by julien on 4/4/16.
  */
 public interface Pipeline {
+    Log LOGGER = LogFactory.getLog(Pipeline.class);
 
     enum Type implements EnumTypeToken {
         CORENLP,
@@ -113,9 +114,8 @@ public interface Pipeline {
      * */
     static Optional<Pipeline> create(Type type, Properties properties)  {
         String interfaceName = Pipeline.class.getName();
-        Logger logger = LogManager.getLogger(Pipeline.class);
         if ( ! asList(Type.values()).contains(type)) {
-            logger.error("Unknown " + type + " " + interfaceName);
+            LOGGER.error("Unknown " + type + " " + interfaceName);
             return Optional.empty();
         }
         try {
@@ -124,13 +124,13 @@ public interface Pipeline {
                     .newInstance           (             properties        );
             return Optional.of( (Pipeline) pipelineInstance );
         } catch (ClassNotFoundException e) {
-            logger.error( type.getClassName() + " not found in the classpath.", e);
+            LOGGER.error( type.getClassName() + " not found in the classpath.", e);
             return Optional.empty();
         } catch (InvocationTargetException e) {
-            logger.error( "Failed to instantiate " + type + " " + interfaceName, e.getCause());
+            LOGGER.error( "Failed to instantiate " + type + " " + interfaceName, e.getCause());
             return Optional.empty();
         } catch (InstantiationException | IllegalAccessException | NoSuchMethodException e) {
-            logger.error("Failed to instantiate " + type + " " + interfaceName, e);
+            LOGGER.error("Failed to instantiate " + type + " " + interfaceName, e);
             return Optional.empty();
         }
     }

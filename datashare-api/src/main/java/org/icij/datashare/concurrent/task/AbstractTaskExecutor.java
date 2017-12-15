@@ -1,11 +1,12 @@
 package org.icij.datashare.concurrent.task;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.stream.Collectors;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 /**
@@ -15,9 +16,7 @@ import org.apache.logging.log4j.Logger;
  * Created by julien on 9/30/16.
  */
 abstract class AbstractTaskExecutor implements TaskExecutor {
-
-    protected final Logger LOGGER = LogManager.getLogger(getClass());
-
+    final Log LOGGER = LogFactory.getLog(getClass());
 
     private final ExecutorService executor;
 
@@ -74,9 +73,9 @@ abstract class AbstractTaskExecutor implements TaskExecutor {
     @Override
     public void stop() {
         try {
-            LOGGER.info(" Attempting to stop executor");
+            LOGGER.info("Attempting to stop executor");
             executor.shutdown();
-            LOGGER.info(" Awaiting completion of processings...");
+            LOGGER.info("Awaiting completion of processings...");
             executor.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             LOGGER.error("Executor Stop interrupted");

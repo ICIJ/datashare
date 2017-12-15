@@ -1,23 +1,20 @@
 package org.icij.datashare.text;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Date;
-import java.util.Optional;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.DataSerializable;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import org.icij.datashare.Entity;
+import org.icij.datashare.text.hashing.HasherException;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexType;
-import org.icij.datashare.text.hashing.HasherException;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Date;
+import java.util.Optional;
 
 
 /**
@@ -29,11 +26,7 @@ import org.icij.datashare.text.hashing.HasherException;
  */
 @IndexType("SourcePath")
 public class SourcePath implements Entity, DataSerializable {
-
-    private static final Logger LOGGER = LogManager.getLogger(SourcePath.class);
-
     private static final long serialVersionUID = 1587956432685458L;
-
 
     /**
      * Instantiate a new {@code SourcePath} from given path which must point to regular, existing, readable file

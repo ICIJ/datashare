@@ -1,68 +1,68 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import static java.util.Collections.*;
-import static java.util.Arrays.asList;
-import static java.net.InetAddress.getByName;
-
 import org.apache.lucene.search.join.ScoreMode;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
-
-import static org.elasticsearch.cluster.health.ClusterHealthStatus.YELLOW;
-import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryBuilder;
-import static org.elasticsearch.index.query.QueryBuilders.*;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import static org.elasticsearch.cluster.health.ClusterHealthStatus.GREEN;
-
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.icij.datashare.Entity;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.function.ThrowingConsumer;
-import static org.icij.datashare.function.Functions.zip;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.AbstractIndexer;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import static java.net.InetAddress.getByName;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static org.elasticsearch.cluster.health.ClusterHealthStatus.GREEN;
+import static org.elasticsearch.cluster.health.ClusterHealthStatus.YELLOW;
+import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
+import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.icij.datashare.function.Functions.zip;
 import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
 import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
 
@@ -850,4 +850,8 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
                 .build();
     }
 
+    public static void main(String[] args) {
+        final ElasticsearchIndexer elasticsearchIndexer = new ElasticsearchIndexer(new Properties());
+
+    }
 }

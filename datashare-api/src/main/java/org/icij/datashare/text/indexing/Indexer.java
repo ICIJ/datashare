@@ -1,20 +1,20 @@
 package org.icij.datashare.text.indexing;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.icij.datashare.Entity;
+import org.icij.datashare.reflect.EnumTypeToken;
+
+import java.io.Closeable;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Stream;
+
 import static java.util.Arrays.asList;
-import java.io.Closeable;
-import java.lang.reflect.InvocationTargetException;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.icij.datashare.Entity;
-import org.icij.datashare.reflect.EnumTypeToken;
+import static org.icij.datashare.function.ThrowingFunctions.joinComma;
 import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
 import static org.icij.datashare.text.indexing.Indexer.Type.ELASTICSEARCH;
-import static org.icij.datashare.function.ThrowingFunctions.joinComma;
 
 
 /**
@@ -23,6 +23,7 @@ import static org.icij.datashare.function.ThrowingFunctions.joinComma;
  * Created by julien on 6/13/16.
  */
 public interface Indexer extends Closeable {
+    Log LOGGER = LogFactory.getLog(Indexer.class);
 
     enum Type implements EnumTypeToken {
         ELASTICSEARCH(9300);
@@ -131,9 +132,8 @@ public interface Indexer extends Closeable {
      */
     static Optional<Indexer> create(Type type, Properties properties) {
         String interfaceName = Indexer.class.getName();
-        Logger logger = LogManager.getLogger(Indexer.class);
         if ( ! asList(Type.values()).contains(type)) {
-            logger.error("Unknown " + interfaceName + " " + type);
+            LOGGER.error("Unknown " + interfaceName + " " + type);
             return Optional.empty();
         }
         try {
@@ -142,16 +142,16 @@ public interface Indexer extends Closeable {
                     .newInstance           (             properties        );
             return Optional.of( (Indexer) indexerInstance );
         } catch (ClassNotFoundException e) {
-            logger.error(type + " " + interfaceName + " not found in classpath.", e);
+            LOGGER.error(type + " " + interfaceName + " not found in classpath.", e);
             return Optional.empty();
         } catch (IllegalArgumentException e) {
-            logger.error("Invalid argument values for " + type + " " + interfaceName, e);
+            LOGGER.error("Invalid argument values for " + type + " " + interfaceName, e);
             return Optional.empty();
         } catch (InvocationTargetException e) {
-            logger.error("Failed to instantiate " + type + " " + interfaceName, e.getCause());
+            LOGGER.error("Failed to instantiate " + type + " " + interfaceName, e.getCause());
             return Optional.empty();
         }catch (InstantiationException | IllegalAccessException | NoSuchMethodException e) {
-            logger.error("Failed to instantiate " + type + " " + interfaceName, e);
+            LOGGER.error("Failed to instantiate " + type + " " + interfaceName, e);
             return Optional.empty();
         }
     }

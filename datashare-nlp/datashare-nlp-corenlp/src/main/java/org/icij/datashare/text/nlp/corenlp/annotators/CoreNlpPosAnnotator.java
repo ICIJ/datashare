@@ -1,20 +1,20 @@
 package org.icij.datashare.text.nlp.corenlp.annotators;
 
-import java.util.*;
+import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import edu.stanford.nlp.tagger.maxent.MaxentTagger;
-
-import org.icij.datashare.text.Language;
-
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.nlp.NlpStage.POS;
-import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
 
 
 /**
@@ -42,7 +42,7 @@ import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
 public enum CoreNlpPosAnnotator {
     INSTANCE;
 
-    private static final Logger LOGGER = LogManager.getLogger(CoreNlpPosAnnotator.class);
+    static final Log LOGGER = LogFactory.getLog(CoreNlpPosAnnotator.class);
 
     public static final Map<Language, String> POS_TAGSET = new HashMap<Language, String>() {{
         put(ENGLISH, "PENN TREEBANK");

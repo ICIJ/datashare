@@ -1,15 +1,15 @@
 package org.icij.datashare.io;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 
 /**
@@ -17,8 +17,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class FileSystemUtils {
 
-    private static final Logger LOGGER = LogManager.getLogger(FileSystemUtils.class.getName());
-
+    private static final Log LOGGER = LogFactory.getLog(FileSystemUtils.class);
 
     public static final File TMP_DIR = new File(System.getProperty("java.io.tmpdir"));
 

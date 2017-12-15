@@ -1,26 +1,22 @@
 package org.icij.datashare.text;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.DataSerializable;
-
 import org.icij.datashare.Entity;
+import org.icij.datashare.text.extraction.FileParser;
+import org.icij.datashare.text.hashing.HasherException;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexType;
-import org.icij.datashare.text.extraction.FileParser;
-import org.icij.datashare.text.extraction.FileParserException;
-import org.icij.datashare.text.hashing.HasherException;
 import org.icij.datashare.text.nlp.Annotation;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 
 /**
@@ -32,9 +28,6 @@ import org.icij.datashare.text.nlp.Annotation;
  */
 @IndexType("Document")
 public final class Document implements Entity, DataSerializable {
-
-    private static final Logger LOGGER = LogManager.getLogger(Document.class);
-
     private static final long serialVersionUID = 5913568429773112L;
 
 

@@ -1,18 +1,19 @@
 package org.icij.datashare.text.extraction;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.icij.datashare.reflect.EnumTypeToken;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Language;
+
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.function.Function;
+
 import static java.util.Arrays.asList;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Language;
-import org.icij.datashare.reflect.EnumTypeToken;
 import static org.icij.datashare.text.extraction.FileParser.Type.TIKA;
 
 
@@ -22,6 +23,7 @@ import static org.icij.datashare.text.extraction.FileParser.Type.TIKA;
  * Created by julien on 3/9/16.
  */
 public interface FileParser extends Serializable {
+    Log LOGGER = LogFactory.getLog(FileParser.class);
 
     enum Type implements EnumTypeToken, Serializable {
         TIKA;
@@ -82,10 +84,9 @@ public interface FileParser extends Serializable {
      */
     static Optional<FileParser> create(Type type, Properties properties) {
         String interfaceName = FileParser.class.getName();
-        Logger logger = LogManager.getLogger(FileParser.class);
 
         if ( ! asList(Type.values()).contains(type)) {
-            logger.error("Unknown type " + interfaceName + " " + type );
+            LOGGER.error("Unknown type " + interfaceName + " " + type );
             return Optional.empty();
         }
 
@@ -95,16 +96,13 @@ public interface FileParser extends Serializable {
                     .newInstance           (             properties      );
             return Optional.of( (FileParser) fileParserInstance );
         } catch (ClassNotFoundException e) {
-            logger.error(type + " " + interfaceName + " not found. Consider installing it.", e);
+            LOGGER.error(type + " " + interfaceName + " not found. Consider installing it.", e);
             return Optional.empty();
         } catch (InvocationTargetException e) {
-            logger.error("Failed to instantiate " + type  + " " + interfaceName, e.getCause());
-            return Optional.empty();
-        } catch (InstantiationException | IllegalAccessException  | NoSuchMethodException e) {
-            logger.error("Failed to instantiate " + type  + " " + interfaceName, e);
+            LOGGER.error("Failed to instantiate " + type  + " " + interfaceName, e.getCause());
             return Optional.empty();
         } catch (Exception e) {
-            logger.error("Failed to instantiate " + type  + " " + interfaceName, e);
+            LOGGER.error("Failed to instantiate " + type  + " " + interfaceName, e);
             return Optional.empty();
         }
     }

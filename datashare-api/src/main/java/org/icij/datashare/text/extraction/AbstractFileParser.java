@@ -1,15 +1,13 @@
 package org.icij.datashare.text.extraction;
 
+import org.icij.datashare.text.Language;
+
 import java.util.Properties;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.icij.datashare.text.Language;
-import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.function.Functions.parseLanguage;
-import static org.icij.datashare.function.ThrowingFunctions.parseBoolean;
 import static org.icij.datashare.function.ThrowingFunctions.getProperty;
+import static org.icij.datashare.function.ThrowingFunctions.parseBoolean;
+import static org.icij.datashare.text.Language.ENGLISH;
 
 
 /**
@@ -20,8 +18,6 @@ import static org.icij.datashare.function.ThrowingFunctions.getProperty;
 public abstract class AbstractFileParser implements FileParser {
 
     private static final long serialVersionUID = 7548697822136485L;
-
-    protected final Logger LOGGER = LogManager.getLogger(getClass());
 
     protected boolean ocrEnabled;
 

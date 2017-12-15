@@ -1,32 +1,28 @@
 package org.icij.datashare.text;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.icij.datashare.Entity;
+import org.icij.datashare.function.ThrowingFunction;
+import org.icij.datashare.function.ThrowingFunctions;
+import org.icij.datashare.text.indexing.IndexId;
+import org.icij.datashare.text.indexing.IndexParent;
+import org.icij.datashare.text.indexing.IndexType;
+import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.text.nlp.Tag;
+
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.lang.Math.max;
 import static java.lang.Math.min;
-import static java.util.Collections.emptyList;
 import static java.util.Arrays.fill;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import org.icij.datashare.Entity;
-import org.icij.datashare.text.indexing.IndexId;
-import org.icij.datashare.text.indexing.IndexType;
-import org.icij.datashare.text.indexing.IndexParent;
-import org.icij.datashare.text.nlp.Pipeline;
-import org.icij.datashare.text.nlp.Annotation;
-import org.icij.datashare.text.nlp.Tag;
-import static org.icij.datashare.text.nlp.NlpStage.NER;
-import static org.icij.datashare.text.nlp.NlpStage.POS;
-import org.icij.datashare.function.ThrowingFunction;
-import org.icij.datashare.function.ThrowingFunctions;
+import static java.util.Collections.emptyList;
 import static org.icij.datashare.function.ThrowingFunctions.normal;
 import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
+import static org.icij.datashare.text.nlp.NlpStage.NER;
+import static org.icij.datashare.text.nlp.NlpStage.POS;
 
 
 /**
@@ -38,11 +34,7 @@ import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
  */
 @IndexType("NamedEntity")
 public final class NamedEntity implements Entity {
-
-    private static final Logger LOGGER = LogManager.getLogger(NamedEntity.class);
-
     private static final long serialVersionUID = 1946532866377498L;
-
 
     public enum Category implements Serializable {
         PERSON       ("PERS"),

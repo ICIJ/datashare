@@ -1,17 +1,14 @@
 package org.icij.datashare.text.indexing;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+
 import static java.util.Collections.nCopies;
 import static java.util.Collections.singletonList;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
-import static org.icij.datashare.function.Predicates.isGE;
-import static org.icij.datashare.function.Predicates.notEmptyList;
-import static org.icij.datashare.function.Predicates.notEmptyStr;
+import static org.icij.datashare.function.Predicates.*;
 import static org.icij.datashare.function.ThrowingFunctions.*;
+import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
 
 
 /**
@@ -20,13 +17,9 @@ import static org.icij.datashare.function.ThrowingFunctions.*;
  * Created by julien on 7/22/16.
  */
 public abstract class AbstractIndexer implements Indexer {
-
     static protected final int DEFAULT_SEARCH_FROM = 0;
     static protected final int DEFAULT_SEARCH_SIZE = 100;
     static protected final int DEFAULT_TIMEOUT_INSEC = 10;
-
-
-    protected final Logger LOGGER = LogManager.getLogger(getClass());
 
     // Connect to Local or Remote nodes?
     protected final NodeType nodeType;

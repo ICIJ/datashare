@@ -1,5 +1,19 @@
 package org.icij.datashare.concurrent;
 
+import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.client.config.ClientConfig;
+import com.hazelcast.config.Config;
+import com.hazelcast.config.XmlConfigBuilder;
+import com.hazelcast.core.Cluster;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.ICountDownLatch;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.icij.datashare.DataShare;
+import org.icij.datashare.DataShare.Stage;
+
+import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
@@ -8,18 +22,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.io.FileNotFoundException;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import com.hazelcast.client.HazelcastClient;
-import com.hazelcast.client.config.ClientConfig;
-import com.hazelcast.config.Config;
-import com.hazelcast.config.XmlConfigBuilder;
-import com.hazelcast.core.*;
-
-import org.icij.datashare.DataShare;
-import org.icij.datashare.DataShare.Stage;
 
 
 /**
@@ -31,8 +33,7 @@ public enum DataGrid {
     INSTANCE("instance"),
     CLIENT  ("client");
 
-    private static final Logger LOGGER = LogManager.getLogger(DataGrid.class);
-
+    static final Log LOGGER = LogFactory.getLog(DataGrid.class);
 
     private final String type;
 
