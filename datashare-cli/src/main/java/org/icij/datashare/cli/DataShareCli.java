@@ -1,24 +1,25 @@
 package org.icij.datashare.cli;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.*;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import joptsimple.*;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.DataShare;
-import static org.icij.datashare.DataShare.Stage.*;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.extraction.FileParser;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.Pipeline;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.icij.datashare.DataShare.Stage.*;
 
 
 /**
@@ -28,8 +29,7 @@ import org.icij.datashare.text.nlp.NlpStage;
  */
 public final class DataShareCli {
 
-    private static final Logger LOGGER = LogManager.getLogger(DataShareCli.class);
-
+    private static final Log LOGGER = LogFactory.getLog(DataShareCli.class);
     private static List<DataShare.Stage> stages = new ArrayList<>();
 
     private static boolean runAsNode;

@@ -1,5 +1,10 @@
 package org.icij.datashare.text.nlp;
 
+import org.icij.datashare.concurrent.Latch;
+import org.icij.datashare.concurrent.queue.QueueForwarding;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.NamedEntity;
+
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -7,11 +12,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.NamedEntity;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
-import org.icij.datashare.concurrent.Latch;
-import org.icij.datashare.concurrent.queue.QueueForwarding;
 
 
 /**
@@ -104,7 +105,7 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
     @Override
     protected Result process(Document document) {
         try {
-            LOGGER.info(getClass().getName() + " " + type + " running on " + document.getPath() +
+            LOGGER.info(type + " running on " + document.getPath() +
                     " - " + document.getLength() +
                     " - " + document.getLanguage());
             Optional<Annotation> annotation = nlpPipeline.run(document);
@@ -114,7 +115,7 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
             }
             return Result.FAILURE;
         } catch (Exception e) {
-            LOGGER.error(getClass().getName() + " " + type + " failed running on " + document.getPath() +
+            LOGGER.error(type + " failed running on " + document.getPath() +
                     " - " + document.getLength() +
                     " - " + document.getLanguage(), e);
             return Result.FAILURE;
