@@ -8,6 +8,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,8 +60,9 @@ public class OpenNlpNerModels extends OpenNlpModels {
     protected ArtifactProvider loadModelFile(Language language, ClassLoader loader) throws IOException {
         OpenNlpCompositeModel compositeModels = new OpenNlpCompositeModel(language);
         for (String p: modelsFilenames.get(language).values()) {
-            LOGGER.info("loading NER model " + p);
-            try (InputStream modelIS = loader.getResourceAsStream(BASE_CLASSPATH.resolve(language.iso6391Code()).resolve(p).toString())) {
+            final Path path = getModelsBasePath(language).resolve(p);
+            LOGGER.info("loading NER model file " + path);
+            try (InputStream modelIS = loader.getResourceAsStream(path.toString())) {
                 compositeModels.add(createModel(modelIS));
             }
         }
