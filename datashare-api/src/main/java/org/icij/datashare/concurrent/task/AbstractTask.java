@@ -1,7 +1,7 @@
 package org.icij.datashare.concurrent.task;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -14,7 +14,7 @@ import java.util.concurrent.Future;
  */
 public abstract class AbstractTask implements Task {
 
-    protected  final Log LOGGER = LogFactory.getLog(getClass());
+    protected  final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     volatile private Future future;
 

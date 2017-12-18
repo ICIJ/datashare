@@ -1,11 +1,11 @@
 package org.icij.datashare.text.nlp;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.hashing.Hasher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -28,7 +28,7 @@ public abstract class AbstractPipeline implements Pipeline {
     protected static final Hasher HASHER = Document.HASHER;
 
 
-    protected final Log LOGGER = LogFactory.getLog(getClass());
+    protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     // Content charset
     protected final Charset encoding;

@@ -1,10 +1,10 @@
 package org.icij.datashare.text.extraction;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.reflect.EnumTypeToken;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
@@ -23,7 +23,7 @@ import static org.icij.datashare.text.extraction.FileParser.Type.TIKA;
  * Created by julien on 3/9/16.
  */
 public interface FileParser extends Serializable {
-    Log LOGGER = LogFactory.getLog(FileParser.class);
+    Logger LOGGER = LoggerFactory.getLogger(FileParser.class);
 
     enum Type implements EnumTypeToken, Serializable {
         TIKA;

@@ -1,8 +1,6 @@
 package org.icij.datashare;
 
 import com.hazelcast.core.ICountDownLatch;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.concurrent.BooleanLatch;
 import org.icij.datashare.concurrent.DataGrid;
 import org.icij.datashare.concurrent.Latch;
@@ -23,6 +21,8 @@ import org.icij.datashare.text.indexing.Indexing;
 import org.icij.datashare.text.nlp.NamedEntityRecognition;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -67,7 +67,7 @@ public final class DataShare {
                                 .map(Optional::get)
                                 .collect(Collectors.toList());
     }
-    private static final Log LOGGER = LogFactory.getLog(DataShare.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DataShare.class);
 
     public static final List<DataShare.Stage>      DEFAULT_STAGES             = asList(DataShare.Stage.values());
 
@@ -430,7 +430,7 @@ public final class DataShare {
             try {
                 if (datashareLock.tryLock(1, TimeUnit.SECONDS)) {
                     LOGGER.info("Running as " + Stage.SCANNING + " Node");
-                    LOGGER.info(DataGrid.INSTANCE.getCluster().getLocalMember());
+                    LOGGER.info("{}", DataGrid.INSTANCE.getCluster().getLocalMember());
                     LOGGER.info("Input Directory:      " + inputDir);
 
                     awaitIndexIsUp(indexer, index);
@@ -507,7 +507,7 @@ public final class DataShare {
             try {
                 if (datashareLock.tryLock(1, TimeUnit.SECONDS)) {
                     LOGGER.info("Running as " + asList(Stage.SCANNING, Stage.PARSING) + " Node");
-                    LOGGER.info(DataGrid.INSTANCE.getCluster().getLocalMember());
+                    LOGGER.info("{}", DataGrid.INSTANCE.getCluster().getLocalMember());
                     LOGGER.info("Input Directory:      " + inputDir);
                     LOGGER.info("File Parser Type:     " + fileParserType);
                     LOGGER.info("File Parser with OCR: " + fileParserDoOcr);
@@ -601,7 +601,7 @@ public final class DataShare {
             try {
                 if (datashareLock.tryLock(1, TimeUnit.SECONDS)) {
                     LOGGER.info("Running as " + Stage.NLP + " Node");
-                    LOGGER.info(DataGrid.INSTANCE.getCluster().getLocalMember());
+                    LOGGER.info("{}", DataGrid.INSTANCE.getCluster().getLocalMember());
                     LOGGER.info("Nlp Pipeline Types:           " + nlpPipelineTypes);
                     LOGGER.info("Nlp Pipeline Parallelism:     " + nlpPipelineParallelism);
                     LOGGER.info("Nlp Pipeline Stages:          " + nlpStages);

@@ -1,11 +1,11 @@
 package org.icij.datashare.text.nlp.corenlp.annotators;
 
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +26,7 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
 public enum CoreNlpPipelineAnnotator {
     INSTANCE;
 
-    private static final Log LOGGER = LogFactory.getLog(CoreNlpPipelineAnnotator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CoreNlpPipelineAnnotator.class);
 
     // Supported stages for each language
     public static final Map<Language, Set<NlpStage>> SUPPORTED_STAGES =

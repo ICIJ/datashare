@@ -42,16 +42,11 @@
             <version>${jna.version}</version>
         </dependency>
 
-        <!-- Log4j -->
+        <!-- Slf4j / log4j bridge for elasticsearch -->
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-        </dependency>
-
     </dependencies>
 
 

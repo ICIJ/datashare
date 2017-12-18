@@ -3,10 +3,10 @@ package org.icij.datashare.text.nlp.corenlp.annotators;
 import edu.stanford.nlp.ie.AbstractSequenceClassifier;
 import edu.stanford.nlp.ie.crf.CRFClassifier;
 import edu.stanford.nlp.ling.CoreLabel;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -27,7 +27,7 @@ import static org.icij.datashare.text.nlp.NlpStage.NER;
 public enum CoreNlpNerAnnotator {
     INSTANCE;
 
-    private static final Log LOGGER = LogFactory.getLog(CoreNlpNerAnnotator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CoreNlpNerAnnotator.class);
 
 
     // Annotators (Conditional Random Fields Classifier)

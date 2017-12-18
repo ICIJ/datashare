@@ -1,9 +1,9 @@
 package org.icij.datashare.text.indexing;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.Entity;
 import org.icij.datashare.reflect.EnumTypeToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.lang.reflect.InvocationTargetException;
@@ -23,7 +23,7 @@ import static org.icij.datashare.text.indexing.Indexer.Type.ELASTICSEARCH;
  * Created by julien on 6/13/16.
  */
 public interface Indexer extends Closeable {
-    Log LOGGER = LogFactory.getLog(Indexer.class);
+    Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
 
     enum Type implements EnumTypeToken {
         ELASTICSEARCH(9300);

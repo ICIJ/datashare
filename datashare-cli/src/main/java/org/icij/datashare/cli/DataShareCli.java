@@ -1,14 +1,14 @@
 package org.icij.datashare.cli;
 
 import joptsimple.*;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.DataShare;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.extraction.FileParser;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +29,7 @@ import static org.icij.datashare.DataShare.Stage.*;
  */
 public final class DataShareCli {
 
-    private static final Log LOGGER = LogFactory.getLog(DataShareCli.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DataShareCli.class);
     private static List<DataShare.Stage> stages = new ArrayList<>();
 
     private static boolean runAsNode;

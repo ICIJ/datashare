@@ -1,12 +1,12 @@
 package org.icij.datashare.text.nlp;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.reflect.EnumTypeToken;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
@@ -32,7 +32,7 @@ import static org.icij.datashare.text.nlp.NlpStage.NER;
  * Created by julien on 4/4/16.
  */
 public interface Pipeline {
-    Log LOGGER = LogFactory.getLog(Pipeline.class);
+    Logger LOGGER = LoggerFactory.getLogger(Pipeline.class);
 
     enum Type implements EnumTypeToken {
         CORENLP,

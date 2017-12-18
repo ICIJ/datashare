@@ -8,10 +8,10 @@ import com.hazelcast.core.Cluster;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.ICountDownLatch;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.DataShare;
 import org.icij.datashare.DataShare.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
@@ -33,7 +33,7 @@ public enum DataGrid {
     INSTANCE("instance"),
     CLIENT  ("client");
 
-    static final Log LOGGER = LogFactory.getLog(DataGrid.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(DataGrid.class);
 
     private final String type;
 

@@ -1,10 +1,10 @@
 package org.icij.datashare.text.nlp.corenlp.annotators;
 
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpModels;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +42,7 @@ import static org.icij.datashare.text.nlp.NlpStage.POS;
 public enum CoreNlpPosAnnotator {
     INSTANCE;
 
-    static final Log LOGGER = LogFactory.getLog(CoreNlpPosAnnotator.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(CoreNlpPosAnnotator.class);
 
     public static final Map<Language, String> POS_TAGSET = new HashMap<Language, String>() {{
         put(ENGLISH, "PENN TREEBANK");

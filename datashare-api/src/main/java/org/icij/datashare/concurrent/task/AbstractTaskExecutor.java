@@ -1,7 +1,7 @@
 package org.icij.datashare.concurrent.task;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
  * Created by julien on 9/30/16.
  */
 abstract class AbstractTaskExecutor implements TaskExecutor {
-    final Log LOGGER = LogFactory.getLog(getClass());
+    final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     private final ExecutorService executor;
 

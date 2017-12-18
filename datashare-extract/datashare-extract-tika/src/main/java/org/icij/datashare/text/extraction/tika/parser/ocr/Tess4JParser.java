@@ -5,8 +5,6 @@ import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 import net.sourceforge.tess4j.util.LoadLibs;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TemporaryResources;
 import org.apache.tika.io.TikaInputStream;
@@ -21,6 +19,8 @@ import org.apache.tika.parser.image.ImageParser;
 import org.apache.tika.parser.image.TiffParser;
 import org.apache.tika.parser.jpeg.JpegParser;
 import org.apache.tika.sax.XHTMLContentHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
@@ -44,21 +44,19 @@ public class Tess4JParser extends AbstractParser {
 
     private static final long serialVersionUID = -5693216478732659L;
 
-    private static final Log LOGGER = LogFactory.getLog(Tess4JParser.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Tess4JParser.class);
 
     private static final Tess4JParserConfig DEFAULT_CONFIG = new Tess4JParserConfig();
 
     private static final Set<MediaType> SUPPORTED_TYPES = Collections.unmodifiableSet(
-            new HashSet<>(asList(new MediaType[] {
-                    MediaType.image("png"),
+            new HashSet<>(asList(MediaType.image("png"),
                     MediaType.image("jpeg"),
                     MediaType.image("jpx"),
                     MediaType.image("jp2"),
                     MediaType.image("gif"),
                     MediaType.image("tiff"),
                     MediaType.image("x-ms-bmp"),
-                    MediaType.image("x-portable-pixmap")
-            }))
+                    MediaType.image("x-portable-pixmap")))
     );
 
     // TIKA-1445 workaround parser
@@ -108,7 +106,7 @@ public class Tess4JParser extends AbstractParser {
 
     @Override
     public void parse(InputStream stream, ContentHandler handler, Metadata metadata, ParseContext context)
-            throws IOException, SAXException, TikaException {
+            throws TikaException {
 
         String type = metadata.get(Metadata.CONTENT_TYPE)
                 .replace("/", ".")
@@ -152,7 +150,7 @@ public class Tess4JParser extends AbstractParser {
      * @param config  the Configuration for tesseract-ocr
      * @throws IOException if an input error occurred
      */
-    private String doOCR(File input, Tess4JParserConfig config) throws IOException, TikaException {
+    private String doOCR(File input, Tess4JParserConfig config) {
         File tessdataDir = Paths.get(LoadLibs.TESS4J_TEMP_DIR, config.getTessdataPath()).toFile();
         if ( ! Files.exists(tessdataDir.toPath())){
             LOGGER.info("loading Tesseract data");

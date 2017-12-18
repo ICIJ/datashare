@@ -1,9 +1,9 @@
 package org.icij.datashare.text.nlp;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -19,7 +19,7 @@ public abstract class AbstractModels<T> {
     public static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
     protected static final Path BASE_CLASSPATH = Paths.get("models");
 
-    protected final Log LOGGER = LogFactory.getLog(getClass());
+    protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     protected final ConcurrentHashMap<Language, Lock> modelLock = new ConcurrentHashMap<Language, Lock>() {{
         for (Language l : Language.values()) {

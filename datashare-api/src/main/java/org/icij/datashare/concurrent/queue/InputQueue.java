@@ -1,8 +1,8 @@
 package org.icij.datashare.concurrent.queue;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.icij.datashare.concurrent.Latch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,7 +24,7 @@ public interface InputQueue<I> {
     List<Latch> noMoreInput();
 
     default Optional<I> poll(int timeout, TimeUnit unit) {
-        final Log LOGGER = LogFactory.getLog(getClass());
+        final Logger LOGGER = LoggerFactory.getLogger(getClass());
         LOGGER.debug("polling " + input() + ", [" + input().size() + "]");
         try {
             I inputElement = input().poll(timeout, unit);
