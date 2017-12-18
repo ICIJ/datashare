@@ -35,12 +35,12 @@
             <version>${elasticsearch.version}</version>
         </dependency>
 
-        <!-- JNA -->
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>${jna.version}</version>
-        </dependency>
+        <!--&lt;!&ndash; JNA &ndash;&gt;-->
+        <!--<dependency>-->
+            <!--<groupId>net.java.dev.jna</groupId>-->
+            <!--<artifactId>jna</artifactId>-->
+            <!--<version>${jna.version}</version>-->
+        <!--</dependency>-->
 
         <!-- Slf4j / log4j bridge for elasticsearch -->
         <dependency>
@@ -67,19 +67,6 @@
             <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <configuration>
-                            <relocations>
-                                <!-- Isolate this netty from Play! framework's-->
-                                <relocation>
-                                    <pattern>io.netty</pattern>
-                                    <shadedPattern>for.elasticsearch.io.netty</shadedPattern>
-                                </relocation>
-                            </relocations>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

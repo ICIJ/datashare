@@ -73,7 +73,7 @@ import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
  * {@link org.icij.datashare.text.indexing.AbstractIndexer}
  * {@link Type#ELASTICSEARCH}
  *
- * <a href="https://www.elastic.co/products/elasticsearch">Elasticsearch v5.4.1</a>
+ * <a href="https://www.elastic.co/products/elasticsearch">Elasticsearch v6.1.0</a>
  *
  * Created by julien on 6/15/16.
  */
