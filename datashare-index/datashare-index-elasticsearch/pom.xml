@@ -15,7 +15,7 @@
 
 
     <properties>
-        <elasticsearch.version>5.4.1</elasticsearch.version>
+        <elasticsearch.version>6.1.0</elasticsearch.version>
         <jna.version>4.1.0</jna.version>
     </properties>
 

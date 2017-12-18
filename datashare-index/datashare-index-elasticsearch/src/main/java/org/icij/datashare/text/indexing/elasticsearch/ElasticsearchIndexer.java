@@ -1,68 +1,69 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import static java.util.Collections.*;
+import static java.util.Arrays.asList;
+import static java.net.InetAddress.getByName;
+
 import org.apache.lucene.search.join.ScoreMode;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+
+import static org.elasticsearch.cluster.health.ClusterHealthStatus.YELLOW;
+import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.join.query.JoinQueryBuilders;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
-import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
+import org.elasticsearch.action.admin.indices.flush.FlushRequest;
+import org.elasticsearch.action.admin.indices.flush.FlushResponse;
+import org.elasticsearch.index.query.QueryBuilder;
+import static org.elasticsearch.index.query.QueryBuilders.*;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import static org.elasticsearch.cluster.health.ClusterHealthStatus.GREEN;
+
 import org.icij.datashare.Entity;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.function.ThrowingConsumer;
-import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.text.indexing.AbstractIndexer;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import static java.net.InetAddress.getByName;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static org.elasticsearch.cluster.health.ClusterHealthStatus.GREEN;
-import static org.elasticsearch.cluster.health.ClusterHealthStatus.YELLOW;
-import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
-import static org.elasticsearch.index.query.QueryBuilders.*;
 import static org.icij.datashare.function.Functions.zip;
+import org.icij.datashare.text.indexing.AbstractIndexer;
 import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
 import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
 
@@ -78,7 +79,7 @@ import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
  */
 public final class ElasticsearchIndexer extends AbstractIndexer {
     
-    public static final String VERSION = "5.4.1";
+    public static final String VERSION = "6.1.0";
 
     public static final Path HOME = Paths.get( System.getProperty("user.dir"), "opt", "elasticsearch-" + VERSION);
 
@@ -113,7 +114,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         TransportClient               trnspClient = new PreBuiltTransportClient(settings);
         Stream<Pair<String, Integer>> trnspAddrs  = zip(hosts.stream(), ports.stream(), Pair::new);
         ThrowingConsumer<Pair<String, Integer>> addTrnspAddrToClient = addr ->
-                trnspClient.addTransportAddress(new InetSocketTransportAddress(getByName(addr._1()), addr._2()));
+                trnspClient.addTransportAddress(new TransportAddress(getByName(addr._1()), addr._2()));
         trnspAddrs.forEach( addTrnspAddrToClient );
         client = trnspClient;
 
@@ -242,7 +243,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public boolean add(String index, String type, String id, String json, String parent) {
         try {
-            final IndexRequest  req  = new IndexRequest(index, type, id).source(json).parent(parent);
+            final IndexRequest  req  = new IndexRequest(index, type, id).source(json, XContentType.JSON).parent(parent);
             final IndexResponse resp = client.index(req).get();
             return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
@@ -290,12 +291,12 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     @Override
     public void addBatch(String index, String type, String id, String json) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json) );
+        bulkProcessor.add( new IndexRequest(index, type, id).source(json, XContentType.JSON) );
     }
 
     @Override
     public void addBatch(String index, String type, String id, String json, String parent) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json).parent(parent) );
+        bulkProcessor.add( new IndexRequest(index, type, id).source(json, XContentType.JSON).parent(parent) );
     }
 
     @Override
@@ -680,7 +681,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     }
 
     private static <T extends Entity> T hitToObject(SearchHit searchHit, Class<T> cls) {
-        return JsonObjectMapper.getObject(searchHit.getId(), searchHit.getSource(), cls);
+        return JsonObjectMapper.getObject(searchHit.getId(), searchHit.getSourceAsMap(), cls);
     }
 
     /**
@@ -691,7 +692,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
      * @return a Stream of JSONs as {@code Map}s
      */
     private static Map<String, Object> hitToJson(SearchHit searchHit) {
-        return new HashMap<String, Object>( searchHit.getSource() ) {{
+        return new HashMap<String, Object>( searchHit.getSourceAsMap() ) {{
             put("_index", searchHit.getIndex());
             put("_type",  searchHit.getType());
             put("_id",    searchHit.getId());
@@ -710,7 +711,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
      * https://www.elastic.co/guide/en/elasticsearch/reference/2.3/query-dsl-has-child-query.html
      */
     private static QueryBuilder hasChildQuery(String type, QueryBuilder query) {
-        return QueryBuilders.hasChildQuery(type, query, ScoreMode.None);
+        return JoinQueryBuilders.hasChildQuery(type, query, ScoreMode.None);
     }
 
     private static QueryBuilder mustHasChildQuery(String type) {
@@ -733,7 +734,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
      * https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-has-parent-query.html
      */
     private static QueryBuilder hasParentQuery(String type, QueryBuilder query) {
-        return QueryBuilders.hasParentQuery(type, query, false);
+        return JoinQueryBuilders.hasParentQuery(type, query, false);
     }
 
     private static QueryBuilder mustHasParentQuery(String type) {
@@ -850,8 +851,4 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
                 .build();
     }
 
-    public static void main(String[] args) {
-        final ElasticsearchIndexer elasticsearchIndexer = new ElasticsearchIndexer(new Properties());
-
-    }
 }
