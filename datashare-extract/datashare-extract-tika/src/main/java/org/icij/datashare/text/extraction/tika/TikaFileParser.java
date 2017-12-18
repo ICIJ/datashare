@@ -135,7 +135,7 @@ public final class TikaFileParser extends AbstractFileParser {
                 content,
                 getLanguage(metadata).orElse(ENGLISH),
                 getEncoding(metadata).orElse(StandardCharsets.UTF_8),
-                getMimeType(metadata).orElse("UNKNOWN"),
+                getContentType(metadata).orElse("UNKNOWN"),
                 getMetadataAsMap(metadata).orElse(new HashMap<>()),
                 getType()
         );
@@ -220,7 +220,7 @@ public final class TikaFileParser extends AbstractFileParser {
         return Optional.of(metadata.get(RESOURCE_NAME));
     }
 
-    private Optional<String> getMimeType(Metadata metadata) {
+    private Optional<String> getContentType(Metadata metadata) {
         if (! asList(metadata.names()).contains(CONTENT_TYPE))
             return Optional.empty();
         return Optional.of(metadata.get(CONTENT_TYPE));

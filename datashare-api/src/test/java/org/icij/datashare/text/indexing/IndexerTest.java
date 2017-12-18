@@ -47,7 +47,7 @@ public class IndexerTest {
         Document e = JsonObjectMapper.getObject(id, s, cls);
         System.out.println("Document::toJSON " + e.toString());
         System.out.println("Document::getHash " + e.getHash());
-        e.getType().ifPresent( c -> System.out.println("Document::getMimeType " + c ) );
+        e.getContentType().ifPresent(c -> System.out.println("Document::getMimeType " + c ) );
         e.getLength().ifPresent( c -> System.out.println("Document::getLength " + c ) );
         e.getLanguage().ifPresent( c -> System.out.println("Document::getLanguage " + c ) );
         e.getMetadata().ifPresent( c -> System.out.println("Document::getMetadata " + c ) );

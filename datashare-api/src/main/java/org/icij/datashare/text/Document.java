@@ -34,22 +34,22 @@ public final class Document implements Entity, DataSerializable {
     /**
      * Instantiate a new {@code Document} from given path which must point to regular, existing, readable file
      *
-     * @param path      the file path from which to createList document
-     * @param content   the text content
-     * @param language  the detected content language
-     * @param metadata  the rest of extracted metadata
-     * @param mimeType  the detected mime type
+     * @param path         the file path from which to createList document
+     * @param content      the text content
+     * @param language     the detected content language
+     * @param metadata     the rest of extracted metadata
+     * @param contentType  the detected mime content contentType
      * @return an Optional of {@code Document} if instantiation succeeded; empty Optional otherwise
      */
     public static Optional<Document> create(Path path,
                                             String content,
                                             Language language,
                                             Charset encoding,
-                                            String mimeType,
+                                            String contentType,
                                             Map<String, String> metadata,
                                             FileParser.Type parserType) {
         try {
-            return Optional.of( new Document(path, content, language, encoding, mimeType, parserType, metadata) );
+            return Optional.of( new Document(path, content, language, encoding, contentType, parserType, metadata) );
         } catch (IllegalStateException | HasherException e) {
             LOGGER.error("Failed to create document", e);
             return Optional.empty();
@@ -107,8 +107,8 @@ public final class Document implements Entity, DataSerializable {
     // Content length
     private int length;
 
-    // Mime-type
-    private String type;
+    // Mime-contentType
+    private String contentType;
 
     // Detected content language
     private Language language;
@@ -143,7 +143,7 @@ public final class Document implements Entity, DataSerializable {
         this.asOf     = new Date();
         this.length   = content.length();
         this.language = language;
-        this.type     = mimeType;
+        this.contentType = mimeType;
         this.encoding = encoding;
         this.metadata = metadata;
         this.parser   = parserType;
@@ -169,7 +169,7 @@ public final class Document implements Entity, DataSerializable {
 
     public Optional<Language> getLanguage() { return Optional.ofNullable(language); }
 
-    public Optional<String> getType() { return Optional.ofNullable(type); }
+    public Optional<String> getContentType() { return Optional.ofNullable(contentType); }
 
     public Optional<Map<String, String>> getMetadata() { return Optional.ofNullable(metadata); }
 
@@ -193,7 +193,7 @@ public final class Document implements Entity, DataSerializable {
         out.writeByteArray(content.getBytes());
         out.writeUTF(hash);
         out.writeInt(length);
-        out.writeObject(type);
+        out.writeObject(contentType);
         out.writeObject(language);
         out.writeObject(metadata);
         out.writeObject(parser);
@@ -201,16 +201,16 @@ public final class Document implements Entity, DataSerializable {
 
     @Override
     public void readData(ObjectDataInput in) throws IOException {
-        path     = Paths.get(in.readUTF());
-        asOf     = in.readObject();
-        encoding = Charset.forName(in.readUTF());
-        content  = new String(in.readByteArray(), encoding);
-        hash     = in.readUTF();
-        length   = in.readInt();
-        type     = in.readObject();
-        language = in.readObject();
-        metadata = in.readObject();
-        parser   = in.readObject();
+        path        = Paths.get(in.readUTF());
+        asOf        = in.readObject();
+        encoding    = Charset.forName(in.readUTF());
+        content     = new String(in.readByteArray(), encoding);
+        hash        = in.readUTF();
+        length      = in.readInt();
+        contentType = in.readObject();
+        language    = in.readObject();
+        metadata    = in.readObject();
+        parser      = in.readObject();
     }
 
 }
