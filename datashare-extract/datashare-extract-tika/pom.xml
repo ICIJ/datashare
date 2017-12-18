@@ -123,7 +123,6 @@
     <build>
 
         <plugins>
-
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
@@ -133,6 +132,14 @@
                 <executions>
                     <execution>
                         <configuration>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>**/logback.xml</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                                     <resource>META-INF/services/javax.imageio.spi.ImageWriterSpi</resource>
