@@ -26,7 +26,7 @@ public abstract class AbstractModels<T> {
             put(l, new ReentrantLock());
         }
     }};
-    protected final NlpStage stage;
+    public final NlpStage stage;
     protected final Map<Language, T> models;
     private final Pipeline.Type type;
 
@@ -51,7 +51,7 @@ public abstract class AbstractModels<T> {
         }
     }
 
-    protected boolean load(Language language, ClassLoader loader) {
+    private boolean load(Language language, ClassLoader loader) {
         if (models.get(language) != null)
             return true;
 
