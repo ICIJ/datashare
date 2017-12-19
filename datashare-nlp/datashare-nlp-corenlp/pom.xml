@@ -35,38 +35,6 @@
             <version>${corenlp.version}</version>
         </dependency>
 
-        <!-- Stanford CoreNLP English Models -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- Stanford CoreNLP Spanish Models -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models-spanish</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- Stanford CoreNLP French Models -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models-french</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- Stanford CoreNLP German Models -->
-        <dependency>
-            <groupId>edu.stanford.nlp</groupId>
-            <artifactId>stanford-corenlp</artifactId>
-            <version>${corenlp.version}</version>
-            <classifier>models-german</classifier>
-            <scope>runtime</scope>
-        </dependency>
 
         <!-- Logging -->
         <dependency>
