@@ -44,13 +44,6 @@ public class CoreNlpPosModels extends CoreNlpModels<MaxentTagger> {
         put(GERMAN,  "STTS");
     }};
 
-    static {
-        MODEL_NAMES.put(ENGLISH, "pos-tagger/english-left3words/english-left3words-distsim.tagger");
-        MODEL_NAMES.put(SPANISH, "pos-tagger/spanish/spanish-distsim.tagger");
-        MODEL_NAMES.put(FRENCH, "pos-tagger/french/french.tagger");
-        MODEL_NAMES.put(GERMAN, "pos-tagger/german/german-hgc.tagger");
-    }
-
     public static CoreNlpPosModels getInstance() {
         CoreNlpPosModels local_instance = instance;
         if (local_instance == null) {
@@ -70,7 +63,13 @@ public class CoreNlpPosModels extends CoreNlpModels<MaxentTagger> {
         return new CoreNlpAnnotator<>(new MaxentTagger(getInJarModelPath(language)));
     }
 
-    private CoreNlpPosModels() { super(POS);}
+    private CoreNlpPosModels() {
+        super(POS);
+        modelNames.put(ENGLISH, "pos-tagger/english-left3words/english-left3words-distsim.tagger");
+        modelNames.put(SPANISH, "pos-tagger/spanish/spanish-distsim.tagger");
+        modelNames.put(FRENCH, "pos-tagger/french/french.tagger");
+        modelNames.put(GERMAN, "pos-tagger/german/german-hgc.tagger");
+    }
     @Override
     String getPropertyName() { return "pos.model";}
 }

@@ -39,13 +39,6 @@ public class CoreNlpNerModels extends CoreNlpModels<AbstractSequenceClassifier<C
     private static volatile CoreNlpNerModels instance;
     private static final Object mutex = new Object();
 
-    static {
-        MODEL_NAMES.put(ENGLISH, "ner/english.all.3class.distsim.crf.ser.gz");
-        MODEL_NAMES.put(SPANISH, "ner/spanish.ancora.distsim.s512.crf.ser.gz");
-        MODEL_NAMES.put(FRENCH, "ner/english.all.3class.distsim.crf.ser.gz");
-        MODEL_NAMES.put(GERMAN, "ner/german.conll.hgc_175m_600.crf.ser.gz");
-    }
-
     public static final Map<Language, String> POS_TAGSET = new HashMap<Language, String>() {{
         put(ENGLISH, "PENN TREEBANK");
         put(SPANISH, "ANCORA");
@@ -78,6 +71,10 @@ public class CoreNlpNerModels extends CoreNlpModels<AbstractSequenceClassifier<C
 
     private CoreNlpNerModels() {
         super(NER);
+        modelNames.put(ENGLISH, "ner/english.all.3class.distsim.crf.ser.gz");
+        modelNames.put(SPANISH, "ner/spanish.ancora.distsim.s512.crf.ser.gz");
+        modelNames.put(FRENCH, "ner/english.all.3class.distsim.crf.ser.gz");
+        modelNames.put(GERMAN, "ner/german.conll.hgc_175m_600.crf.ser.gz");
     }
     @Override
     String getPropertyName() { return "ner.model";}

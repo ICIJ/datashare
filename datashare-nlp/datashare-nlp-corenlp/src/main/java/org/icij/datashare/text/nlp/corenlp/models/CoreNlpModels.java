@@ -19,7 +19,7 @@ import static java.util.Arrays.asList;
 
 public abstract class CoreNlpModels<T> extends AbstractModels<CoreNlpAnnotator<T>> {
     static final String VERSION = "3.8.0";
-    static final Map<Language, String> MODEL_NAMES = new HashMap<>();
+    final Map<Language, String> modelNames = new HashMap<>();
     private static final Path IN_JAR_BASE_PATH = Paths.get("edu/stanford/nlp/models");
 
     CoreNlpModels(NlpStage stage) {
@@ -32,7 +32,7 @@ public abstract class CoreNlpModels<T> extends AbstractModels<CoreNlpAnnotator<T
     }
 
     protected String getInJarModelPath(Language language) {
-        return IN_JAR_BASE_PATH.resolve(MODEL_NAMES.get(language)).toString();
+        return IN_JAR_BASE_PATH.resolve(modelNames.get(language)).toString();
     }
 
     protected void addJarToContextClassLoader(Language language, ClassLoader loader) throws IOException {
