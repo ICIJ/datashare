@@ -2,12 +2,21 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
 import static java.util.Arrays.asList;
 import static java.net.InetAddress.getByName;
 
@@ -18,12 +27,9 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-
-import static org.elasticsearch.cluster.health.ClusterHealthStatus.YELLOW;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.join.query.JoinQueryBuilders;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -37,7 +43,9 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.index.query.QueryBuilder;
-import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
+import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
+import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -57,12 +65,16 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import static org.elasticsearch.cluster.health.ClusterHealthStatus.GREEN;
+import static org.elasticsearch.cluster.health.ClusterHealthStatus.YELLOW;
 
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.function.ThrowingConsumer;
 import static org.icij.datashare.function.Functions.zip;
+import static org.icij.datashare.function.Predicates.notEmptyStr;
+import static org.icij.datashare.function.ThrowingFunctions.getProperty;
+import static org.icij.datashare.function.ThrowingFunctions.removeSpaces;
 import org.icij.datashare.text.indexing.AbstractIndexer;
 import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
 import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
@@ -83,12 +95,18 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
 
     public static final Path HOME = Paths.get( System.getProperty("user.dir"), "opt", "elasticsearch-" + VERSION);
 
-    private static final int INDEX_MAX_RESULT_WINDOW = 100000;
-    
     private static final int           BULKPROCESSOR_FLUSH_ACTIONS   = 2000;
     private static final ByteSizeValue BULKPROCESSOR_FLUSH_SIZE      = new ByteSizeValue(5, ByteSizeUnit.MB);
     private static final TimeValue     BULKPROCESSOR_FLUSH_TIME      = timeValueSeconds(20);
     private static final int           BULKPROCESSOR_CONCURRENT_REQS = 1;
+
+    private static final int INDEX_MAX_RESULT_WINDOW = 100000;
+
+    private static final String DEFAULT_INDEX_TYPE = "doc";
+    private static final String DEFAULT_INDEX_JOIN_FIELD = "join";
+    private static final String DEFAULT_DOC_TYPE_FIELD = "type";
+    private static final Set<String> PARENT_TYPES = new HashSet<>(singletonList("Document"));
+    private static final String DEFAULT_INDEX_NAME = "datashare-local";
 
     private static final Map<NodeType, ClusterHealthStatus> CLUSTER_UP_STATUS =
             new HashMap<NodeType, ClusterHealthStatus>() {{
@@ -97,15 +115,36 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
             }};
 
 
-    // Index Client service
+    // Index client service
     private final Client client;
 
-    // Index Batch processor
+    // Index batch processor
     private final BulkProcessor bulkProcessor;
+
+    // Index unique type name
+    private final String indexType;
+
+    // Index unique index join field name
+    private final String indexJoinField;
+
+    // Documents custom type field name
+    private final String docTypeField;
 
 
     public ElasticsearchIndexer(Properties properties) {
         super(properties);
+
+        indexType = getProperty(Property.INDEX_TYPE.getName(), properties, removeSpaces)
+                .filter(notEmptyStr)
+                .orElse(DEFAULT_INDEX_TYPE);
+
+        indexJoinField = getProperty(Property.INDEX_JOIN_FIELD.getName(), properties, removeSpaces)
+                .filter(notEmptyStr)
+                .orElse(DEFAULT_INDEX_JOIN_FIELD);
+
+        docTypeField = getProperty(Property.DOC_TYPE_FIELD.getName(), properties, removeSpaces)
+                .filter(notEmptyStr)
+                .orElse(DEFAULT_DOC_TYPE_FIELD);
 
         Settings settings = getNodeSettings(nodeType);
         LOGGER.info("Opening connection to "+ "[" + nodeType + "]" + " node(s)");
@@ -133,7 +172,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
             LOGGER.info("Awaiting bulk processor termination...");
             bulkProcessor.awaitClose(10, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
-            LOGGER.error("Failed to close batch processor", e);
+            LOGGER.error("Failed to close bulk processor", e);
         }
         client.close();
         LOGGER.info("Elasticsearch connection closed");
@@ -228,35 +267,9 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     // __________  Add Document __________
 
     @Override
-    public boolean add(String index, String type, String id, String json) {
-        try {
-            final IndexRequest  req  = new IndexRequest(index, type, id).source(json);
-            final IndexResponse resp = client.index(req).get();
-            return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + index, e);
-            return false;
-        }
-    }
-
-
-    @Override
-    public boolean add(String index, String type, String id, String json, String parent) {
-        try {
-            final IndexRequest  req  = new IndexRequest(index, type, id).source(json, XContentType.JSON).parent(parent);
-            final IndexResponse resp = client.index(req).get();
-            return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + index, e);
-            return false;
-        }
-    }
-
-    @Override
     public boolean add(String index, String type, String id, Map<String, Object> json) {
         try {
-            final IndexRequest  req  = new IndexRequest(index, type, id).source(json);
-            final IndexResponse resp = client.index(req).get();
+            final IndexResponse resp = client.index( indexRequest(index, type, id, json) ).get();
             return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + index, e);
@@ -267,8 +280,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public boolean add(String index, String type, String id, Map<String, Object> json, String parent) {
         try {
-            final IndexRequest  req  = new IndexRequest(index, type, id).source(json).parent(parent);
-            final IndexResponse resp = client.index(req).get();
+            final IndexResponse resp = client.index( indexRequest(index, type, id, json, parent) ).get();
             return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + index, e);
@@ -287,26 +299,37 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         return add(index, type, id, json);
     }
 
+    private IndexRequest indexRequest(String index, String type, String id, Map<String, Object> json) {
+        return indexRequest(index, type, id, json, null);
+    }
+
+    private IndexRequest indexRequest(String index, String type, String id, Map<String, Object> json, String parent) {
+        IndexRequest req = new IndexRequest(index, indexType, id);
+
+        json.put(docTypeField, type);
+        if(PARENT_TYPES.contains(type))
+            json.put(indexJoinField, type);
+        if (parent != null)
+            json.put(indexJoinField, new HashMap<String, String>() {{
+                put("name", type);
+                put("parent", parent);
+            }});
+        req = req.source(json);
+
+        return (parent != null) ? req.routing(parent) : req;
+    }
+
+
     // __________ Batched Add Document(s) __________
 
     @Override
-    public void addBatch(String index, String type, String id, String json) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json, XContentType.JSON) );
-    }
-
-    @Override
-    public void addBatch(String index, String type, String id, String json, String parent) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json, XContentType.JSON).parent(parent) );
-    }
-
-    @Override
     public void addBatch(String index, String type, String id, Map<String, Object> json) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json) );
+        bulkProcessor.add( indexRequest(index, type, id, json) );
     }
 
     @Override
     public void addBatch(String index, String type, String id, Map<String, Object> json, String parent) {
-        bulkProcessor.add( new IndexRequest(index, type, id).source(json).parent(parent) );
+        bulkProcessor.add( indexRequest(index, type, id, json, parent) );
     }
 
     @Override
@@ -327,7 +350,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public Map<String, Object> read(String index, String type, String id) {
         try {
-            final GetRequest  req  = new GetRequest(index, type, id);
+            final GetRequest  req  = new GetRequest(index, indexType, id);
             final GetResponse resp = client.get(req).get();
             return resp.getSourceAsMap();
         } catch (InterruptedException | ExecutionException e) {
@@ -339,7 +362,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public Map<String, Object> read(String index, String type, String id, String parent) {
         try {
-            final GetRequest  req  = new GetRequest(index, type, id).parent(parent);
+            final GetRequest  req  = new GetRequest(index, indexType, id).routing(parent);
             final GetResponse resp = client.get(req).get();
             return resp.getSourceAsMap();
         } catch (InterruptedException | ExecutionException e) {
@@ -378,8 +401,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public boolean delete(String index, String type, String id) {
         try {
-            final DeleteRequest  req  = new DeleteRequest(index, type, id);
-            final DeleteResponse resp = client.delete(req).get();
+            final DeleteResponse resp = client.delete( deleteRequest(index, type, id) ).get();
             return asList(RestStatus.FOUND, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to delete doc " + id  + " of type " + type + " in index " + index, e);
@@ -390,8 +412,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public boolean delete(String index, String type, String id, String parent) {
         try {
-            final DeleteRequest  req  = new DeleteRequest(index, type, id).parent(parent);
-            final DeleteResponse resp = client.delete(req).get();
+            final DeleteResponse resp = client.delete( deleteRequest(index, type, id, parent) ).get();
             return asList(RestStatus.FOUND, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to delete doc " + id + " of type " + type + " in index " + index, e);
@@ -409,16 +430,26 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         return delete(index, type, id);
     }
 
-    // __________ Batched Delete Document(s) __________
+
+    private DeleteRequest deleteRequest(String index, String type, String id) {
+        return deleteRequest(index, type, id, null);
+    }
+
+    private DeleteRequest deleteRequest(String index, String type, String id, String parent) {
+        DeleteRequest req = new DeleteRequest(index, indexType, id);
+        return (parent != null) ? req.routing(parent) : req;
+    }
+
+        // __________ Batched Delete Document(s) __________
 
     @Override
     public void batchDelete(String index, String type, String id) {
-        bulkProcessor.add( new DeleteRequest(index, type, id) );
+        bulkProcessor.add( deleteRequest(index, type, id) );
     }
 
     @Override
     public void batchDelete(String index, String type, String id, String parent) {
-        bulkProcessor.add( new DeleteRequest(index, type, id).parent(parent) );
+        bulkProcessor.add( deleteRequest(index, type, id, parent) );
     }
 
     @Override
@@ -438,7 +469,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public boolean update(String index, String type, String id, String json) {
         try {
-            final UpdateRequest  req  = new UpdateRequest(index, type, id).doc(json);
+            final UpdateRequest  req  = new UpdateRequest(index, indexType, id).doc(json);
             final UpdateResponse resp = client.update(req).get();
             return asList(RestStatus.FOUND, RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
@@ -450,7 +481,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public boolean update(String index, String type, String id, Map<String, Object> json) {
         try {
-            final UpdateRequest  req  = new UpdateRequest(index, type, id).doc(json);
+            final UpdateRequest  req  = new UpdateRequest(index, indexType, id).doc(json);
             final UpdateResponse resp = client.update(req).get();
             return asList(RestStatus.FOUND, RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
@@ -462,7 +493,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
     @Override
     public boolean update(String index, String type, String id, Map<String, Object> json, String parent) {
         try {
-            final UpdateRequest  req  = new UpdateRequest(index, type, id).doc(json).parent(parent);
+            final UpdateRequest  req  = new UpdateRequest(index, indexType, id).doc(json).routing(parent);
             final UpdateResponse resp = client.update(req).get();
             return asList(RestStatus.FOUND, RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
@@ -833,14 +864,14 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         return BulkProcessor.builder( client,
                 new BulkProcessor.Listener() {
                     public void beforeBulk(long executionId, BulkRequest request) {
-                        LOGGER.info("INDEXING - BULK PROCESSING of " + String.valueOf(request.numberOfActions()) + " actions");
+                        LOGGER.info("Indexing - bulk processing of " + String.valueOf(request.numberOfActions()) + " actions");
                     }
                     public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
                         if ( ! response.hasFailures())
-                            LOGGER.info("INDEXING - BULK PROCESSING TOOK: " + String.valueOf(response.getTook()));
+                            LOGGER.info("Indexing - bulk processing took: " + String.valueOf(response.getTook()));
                     }
                     public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
-                        LOGGER.error("INDEXING - BULK PROCESSOR FAILED: " + String.valueOf(request.toString()), failure);
+                        LOGGER.error("Indexing - bulk processor failed: " + String.valueOf(request.toString()), failure);
                     }
                 })
                 .setBulkActions(BULKPROCESSOR_FLUSH_ACTIONS)

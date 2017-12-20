@@ -28,9 +28,9 @@ function install_idx {
     echo "INDEX INSTALLING    "
     echo "____________________"
     curl --progress-bar -O "${ES_DOWNLOAD_URL}/elasticsearch-${ES_VERSION}.zip"
-    ES_CHECKSUM=$(curl -s ${ES_DOWNLOAD_URL}/elasticsearch-${ES_VERSION}.zip.sha1)
+    ES_CHECKSUM=$(curl -s ${ES_DOWNLOAD_URL}/elasticsearch-${ES_VERSION}.zip.sha512)
 
-    echo "${ES_CHECKSUM} elasticsearch-${ES_VERSION}.zip" | sha1sum -c -
+    echo "${ES_CHECKSUM}" | sha512sum -c -
     if [ $? -ne 0 ]; then
         echo "error with checksum" >&2
         exit 1
@@ -58,36 +58,27 @@ function init_idx {
     curl -XPUT 'localhost:9200/_template/datashare_mappings?pretty' -H 'Content-Type: application/json' -d '{
       "template": "datashare*",
       "mappings": {
-        "SourcePath": {
-          "properties": {
-            "asOf": { "type": "date", "format": "date_time" },
-            "path": { "type": "text" }
-          }
-        },
-        "Document": {
-          "properties": {
-            "content": { "type": "text", "index_options": "offsets"},
-            "asOf": { "type": "date", "format": "date_time" },
-            "path": { "type": "text" },
-            "length": { "type": "integer" },
-            "encoding": { "type": "keyword" },
-            "type": { "type": "keyword" },
-            "language": { "type": "keyword" },
-            "parser": { "type": "keyword" }
-          }
-        },
-        "NamedEntity": {
-          "_parent": { "type": "Document" },
-          "properties": {
-            "mention": { "type": "text", "index_options": "docs" },
-            "mentionHash": { "type": "keyword" },
-            "hash": { "type": "keyword" },
-            "category": { "type": "keyword" },
-            "document": { "type": "keyword" },
-            "offset": { "type": "integer" },
-            "extractor": { "type": "keyword" },
-            "extractorLanguage": { "type": "keyword" },
-            "partsOfSpeech": { "type": "text", "index_options": "docs" }
+        "doc": {
+        "properties": {
+          "type": { "type": "keyword" },
+          "asOf": { "type": "date", "format": "date_time" },
+          "path": { "type": "text" },
+          "content": { "type": "text", "index_options": "offsets" },
+          "length": { "type": "integer" },
+          "encoding": { "type": "keyword" },
+          "contentType": { "type": "keyword" },
+          "language": { "type": "keyword" },
+          "parser": { "type": "keyword" },
+          "mention": { "type": "text", "index_options": "docs" },
+          "mentionHash": { "type": "keyword" },
+          "hash": { "type": "keyword" },
+          "category": { "type": "keyword" },
+          "document": { "type": "keyword" },
+          "offset": { "type": "integer" },
+          "extractor": { "type": "keyword" },
+          "extractorLanguage": { "type": "keyword" },
+          "partsOfSpeech": { "type": "text", "index_options": "docs" },
+          "join": { "type": "join", "relations": { "Document": "NamedEntity" } }
           }
         }
       }

@@ -1,26 +1,31 @@
 package org.icij.datashare.text;
 
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.stream.Collectors;
+import static java.util.Arrays.fill;
+import static java.util.Collections.emptyList;
+import static java.lang.Math.min;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import org.icij.datashare.Entity;
 import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.function.ThrowingFunctions;
+import static org.icij.datashare.function.ThrowingFunctions.normal;
+import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.Tag;
-
-import java.io.Serializable;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static java.lang.Math.min;
-import static java.util.Arrays.fill;
-import static java.util.Collections.emptyList;
-import static org.icij.datashare.function.ThrowingFunctions.normal;
-import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 import static org.icij.datashare.text.nlp.NlpStage.POS;
 

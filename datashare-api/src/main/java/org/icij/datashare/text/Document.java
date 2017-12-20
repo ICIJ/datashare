@@ -1,22 +1,23 @@
 package org.icij.datashare.text;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.DataSerializable;
+
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.extraction.FileParser;
 import org.icij.datashare.text.hashing.HasherException;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Annotation;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
 
 
 /**

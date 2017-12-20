@@ -93,7 +93,10 @@ public interface Indexer extends Closeable {
         PORTS,
         CLUSTER,
         SHARDS,
-        REPLICAS;
+        REPLICAS,
+        INDEX_TYPE,
+        INDEX_JOIN_FIELD,
+        DOC_TYPE_FIELD;
 
         public String getName() {
             return name().toLowerCase().replace('_', '-');
@@ -242,22 +245,6 @@ public interface Indexer extends Closeable {
 
 
     /**
-     * Add document to index from JSON as a String
-     *
-     * @param index the index store
-     * @param type  tne index document type
-     * @param id    the index document id
-     * @param json  the document content source as JSON String
-     * @return true if successfully added; false otherwise
-     */
-    boolean add(String index, String type, String id, String json);
-
-    /**
-     * {@link Indexer#add(String, String, String, String)} with {@code parent}
-     */
-    boolean add(String index, String type, String id, String json, String parent);
-
-    /**
      * Add document to index from JSON as a Map
      *
      * @param index the index store
@@ -283,17 +270,6 @@ public interface Indexer extends Closeable {
      */
     <T extends Entity> boolean add(String index, T obj);
 
-    /**
-     * Add a document indexing to batch processing
-     * document source given as a JSON String
-     */
-    void addBatch(String index, String type, String id, String json);
-
-    /**
-     * Add a document indexing, with parent, to batch processing
-     * document source given as a JSON String
-     */
-    void addBatch(String index, String type, String id, String json, String parent);
 
     /**
      * Add an document indexing to batch processing

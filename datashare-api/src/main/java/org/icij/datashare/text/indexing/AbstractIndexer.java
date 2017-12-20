@@ -40,7 +40,7 @@ public abstract class AbstractIndexer implements Indexer {
     protected final int replicas;
 
 
-    public AbstractIndexer(Properties properties) {
+    public AbstractIndexer(Properties properties) throws IllegalArgumentException {
         nodeType = getProperty(Property.NODE_TYPE.getName(), properties,
                 removeSpaces
                         .andThen(NodeType::parse)

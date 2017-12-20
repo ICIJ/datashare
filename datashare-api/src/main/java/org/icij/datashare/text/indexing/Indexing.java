@@ -73,12 +73,12 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
     protected Result process(I element) {
         LOGGER.debug("indexing " + element.getClass().getName());
         try{
-//            boolean indexed = indexer.add(index, element);
-//            if ( ! indexed ) {
-//                LOGGER.error(indexer + " failed indexing " + element);
-//                return Result.FAILURE;
-//            }
-            indexer.addBatch(index, element);
+            boolean indexed = indexer.add(index, element);
+            if ( ! indexed ) {
+                LOGGER.error(indexer + " failed indexing " + element);
+                return Result.FAILURE;
+            }
+            //indexer.addBatch(index, element);
             return Result.SUCCESS;
         } catch (Exception e ) {
             LOGGER.error( indexer.getType() + " failed indexing " + element, e);
