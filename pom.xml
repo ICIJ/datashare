@@ -88,7 +88,7 @@
         <joptsimple.version>5.0.3</joptsimple.version>
 
         <!-- Logging -->
-        <slf4j.version>1.7.22</slf4j.version>
+        <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.1.7</logback.version>
 
         <!-- Testing -->
