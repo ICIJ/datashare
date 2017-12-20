@@ -10,7 +10,7 @@
         <file>./logs/datashare.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>datashare.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>./logs/datashare.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>5</maxHistory>
         </rollingPolicy>
 

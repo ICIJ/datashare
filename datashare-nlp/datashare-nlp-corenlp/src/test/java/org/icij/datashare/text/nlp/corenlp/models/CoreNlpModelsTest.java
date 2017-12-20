@@ -22,9 +22,9 @@ public class CoreNlpModelsTest {
             }
         };
 
-        jarModels.addJarToContextClassLoader(GERMAN, Thread.currentThread().getContextClassLoader());
+        jarModels.addJarToContextClassLoader(GERMAN, getClass().getClassLoader());
 
-        assertThat(Thread.currentThread().getContextClassLoader().
+        assertThat(getClass().getClassLoader().
                 getResource("StanfordCoreNLP-german.properties")).isNotNull();
     }
 }

@@ -6,6 +6,8 @@ import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
@@ -35,8 +37,16 @@ public abstract class CoreNlpModels<T> extends AbstractModels<CoreNlpAnnotator<T
 
     protected void addJarToContextClassLoader(Language language, ClassLoader loader) throws IOException {
         final URL resource = loader.getResource(getModelsBasePath(language).resolve(getJarFileName(language)).toString());
-        URLClassLoader urlClassLoader = new URLClassLoader(new URL[] {resource}, loader);
-        Thread.currentThread().setContextClassLoader(urlClassLoader);
+
+        URLClassLoader classLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
+        try {
+            LOGGER.info("adding " + getJarFileName(language) + " to system classloader");
+            Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+            method.setAccessible(true);
+            method.invoke(classLoader, resource); // hack to load jar for CoreNLP resources
+        } catch (NoSuchMethodException|IllegalAccessException|InvocationTargetException e) {
+            LOGGER.error("cannot invoke SystemClassloader.addURL. Cannot load language resource for " + language);
+        }
     }
 
     @Override
