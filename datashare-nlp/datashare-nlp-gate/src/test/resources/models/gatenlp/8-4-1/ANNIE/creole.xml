@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!-- $Id: creole.xml 17154 2013-12-01 16:44:44Z markagreenwood $ -->
+<!-- creole.xml directory file for ANNIE Processing resources -->
+<CREOLE-DIRECTORY>
+
+	<!-- PROCESSING RESOURCES -->
+
+	<!-- creole.xml for the Unicode tokeniser -->
+	<RESOURCE>
+		<CLASS>gate.creole.tokeniser.SimpleTokeniser</CLASS>			
+	</RESOURCE>
+
+	<!-- creole.xml for the Englishtokeniser -->
+	<RESOURCE>
+		<CLASS>gate.creole.tokeniser.DefaultTokeniser</CLASS>			
+	</RESOURCE>
+
+	<!-- creole.xml for gazetteer -->
+	<RESOURCE>
+		<CLASS>gate.creole.gazetteer.DefaultGazetteer</CLASS>
+	</RESOURCE>
+
+	<!-- creole.xml for a SharedDefaultGazetteer instance -->
+	<RESOURCE>
+		<CLASS>gate.creole.gazetteer.SharedDefaultGazetteer</CLASS>
+	</RESOURCE>
+
+	<!-- creole.xml for Hash Gazetteer (ex Natural)-->
+	<RESOURCE>
+		<CLASS>com.ontotext.gate.gazetteer.HashGazetteer</CLASS>
+	</RESOURCE>
+
+	<!-- creole.xml for JapeTransducer -->
+	<RESOURCE>
+		<CLASS>gate.creole.Transducer</CLASS>
+	</RESOURCE>
+
+	<!-- creole.xml for ANNIE Transducer -->
+	<RESOURCE>
+		<CLASS>gate.creole.ANNIETransducer</CLASS>
+	</RESOURCE>
+
+	<!-- creole.xml for Sentence splitter-->
+	<RESOURCE>
+		<CLASS>gate.creole.splitter.SentenceSplitter</CLASS>
+	</RESOURCE>
+
+	<!-- creole.xml for RegEx Sentence splitter-->
+	<RESOURCE>
+		<CLASS>gate.creole.splitter.RegexSentenceSplitter</CLASS>
+	</RESOURCE>
+
+	<!-- creole.xml for HepTag (Mark Hepple's POS tagger)-->
+	<RESOURCE>
+		<CLASS>gate.creole.POSTagger</CLASS>		
+	</RESOURCE>
+
+	<!-- creole.xml for namematch -->
+	<RESOURCE>
+		<CLASS>gate.creole.orthomatcher.OrthoMatcher</CLASS>
+	</RESOURCE>
+
+	<!--  creole.xml for the coreferencer -->
+	<RESOURCE>
+		<CLASS>gate.creole.coref.Coreferencer</CLASS>
+	</RESOURCE>
+
+	<!--  creole.xml for the coreferencer -->
+	<RESOURCE>
+		<CLASS>gate.creole.coref.NominalCoref</CLASS>		
+	</RESOURCE>
+
+	<!--  creole.xml for the document reset -->
+	<RESOURCE>
+		<CLASS>gate.creole.annotdelete.AnnotationDeletePR</CLASS>
+	</RESOURCE>
+
+	<!-- VISUAL RESOURCES -->
+
+	<!-- creole.xml for the jape viewer -->
+	<RESOURCE>
+		<CLASS>gate.gui.jape.JapeViewer</CLASS>
+	</RESOURCE>
+
+	<!-- Gazetteer editor -->	
+	<RESOURCE>
+		<CLASS>gate.gui.GazetteerEditor</CLASS>
+	</RESOURCE>
+
+</CREOLE-DIRECTORY>

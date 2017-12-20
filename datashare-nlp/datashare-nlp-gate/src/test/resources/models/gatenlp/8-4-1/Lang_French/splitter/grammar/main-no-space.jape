@@ -1,0 +1,6 @@
+MultiPhase:	main
+Phases: 
+
+find-no-space
+split
+removelookup

@@ -1,0 +1,28 @@
+
+
+
+Phase:	Number_Clean
+Input: Percent Money
+Options: control = appelt
+
+
+
+
+
+Rule: PercentDate
+Priority: 50
+
+// If there's a Date annotation within a Percent annotation, remove the Date
+
+(
+ {Percent contains Date}
+): tag
+
+-->
+{
+  AnnotationSet tagAS = (AnnotationSet) bindings.get("tag");
+ AnnotationSet DateAS = inputAS.get("Date", tagAS.firstNode().getOffset(), tagAS.lastNode().getOffset());
+
+  outputAS.removeAll(DateAS);
+}
+ 

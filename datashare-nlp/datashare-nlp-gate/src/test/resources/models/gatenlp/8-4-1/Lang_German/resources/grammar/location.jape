@@ -1,0 +1,268 @@
+Phase: Location
+Input: Lookup Token Location TreeTaggerToken Person
+Options: control = appelt
+
+
+Rule: Locrest1
+(
+	({Lookup.minorType == "location_rest"})
+
+):CountryName
+-->
+:CountryName.Location = {kind = "Location", subtype= "location_rest", rule = "Locrest1"}
+
+Rule: Exception_Locrest1
+Priority: 50
+(
+ {Location}| 
+ {Person}
+ )
+ -->
+ {}
+ 
+Rule: Locrest_key_prefix
+ (
+ ({Lookup.minorType == "stop"})?
+ {Lookup.majorType == location_key, Lookup.minorType == external}
+ )
+ (
+  {Lookup.minorType == location_rest}
+):key
+-->
+:key.Location = {kind = "Location", subtype= "location_rest", rule = "Locrest_key_prefix"}
+
+Rule: City1
+(
+	({Lookup.minorType == "city"})
+
+):CityName
+-->
+:CityName.Location = {kind = "Location", subtype= "city", rule = "City1"}
+
+Rule: City_mayor
+
+    (
+	{Token.string == "Bürgermeisters"}
+	|
+	{Token.string == "Bürgermeister"}
+    )
+ 	{Token.string == "von"}
+(
+	{Token.orth == "upperInitial"}
+):mayor
+-->
+:mayor.Location = {kind = "Location", subtype= "city", rule = "City_mayor"}
+
+
+Rule: Country1
+(
+	({Lookup.minorType == "country"})
+
+):CountryName
+-->
+:CountryName.Location = {kind = "Location", subtype= "country", rule = "Country1"}
+
+Rule: CountryAdj
+// Englander
+(
+  {Lookup.minorType == country}
+   {Lookup.majorType == country_adj_ending}
+):tag
+-->
+:tag.Location = {kind = "Location", subtype = "nationality", rule = "CountryAdj"}
+
+Rule: Exception_Location1
+Priority: 20
+(
+	{Token.string == "."}
+	({Lookup.minorType == "stop"})
+)
+-->
+{}
+
+// Bad Homburg
+// Bad Ditzenbach-Gosbach
+// New York
+// Den Haag
+Rule: City_by_prefix
+(
+	(
+	{Token.string == "Bad"}
+	|
+	{Token.string == "BAD"}
+	|
+//	{Token.string == "Den"}
+//	|
+//	{Token.string == "DEN"}
+//	|
+	{Token.string == "New"}
+	|
+	{Token.string == "NEW"}
+	|
+	{Token.string == "Großraum"}
+	|
+	{Token.string == "Kreis"}
+	|
+	{Token.string == "Sankt"}
+
+        )
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)
+):city_name
+-->
+:city_name.Location = {kind = "Location", subtype="city", rule = "city_by_prefix"}
+
+// guess location on the basis of preposition
+//Rule: Location_by_preposition
+
+//	(
+//	{Token.string == "aus"}
+//	|
+//	{Token.string == "in"}
+//	|
+//	{Token.string == "nach"}
+//	|
+//	{Token.string == "bei"}
+//	)
+//(
+//	(
+//		{Token.orth == "upperIn<PER>[^\/]+<\/PER>itial"}
+//		|
+//		{Token.orth == "allCaps"}
+//	)+
+//):lc
+//-->
+//:lc.Location = {kind = "PREPLocation", subtype="city/country", rule = "location_by_preposition"}
+
+// guess loc on the basis of "Republik"
+// X(adj) Republik -> X=Location
+// Republik X -> X=Location
+Rule: Country_by_republik1
+(
+	(
+	{Token.string == "Republik"}
+	|
+	{Token.string == "REPUBLIK"}
+	)
+	(
+	{Token.orth == "upperInitial"}
+	|
+	{Token.orth == "allCaps"}
+	)
+):rep
+-->
+:rep.Location = {kind = "Location", subtype="country", rule = "country_by_republik1"}
+
+Rule: Country_by_republik2
+(
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)
+	(
+	{Token.string == "Republik"}
+	|
+	{Token.string == "REPUBLIK"}
+	)
+):rep
+-->
+:rep.Location = {kind = "Location", subtype="country", rule = "country_by_republik2"}
+
+
+Rule: Guess_location1
+(
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)
+	(
+	{Token.string == "am"}
+	|
+	{Token.string == "AM"}
+	|
+	{Token.string == "/"}
+	)
+	(
+	{Lookup.majorType == "location"}
+	)
+):repa
+-->
+:repa.Location = {kind = "Location", subtype="city", rule = "guess_location1"}
+
+Rule: City_by_stadt
+
+	(
+	{Token.string == "Stadt"}
+	|
+	{Token.string == "STADT"}
+	)
+(
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)
+	(
+	({Token.string == "-"})?
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)
+	)*
+):repa
+-->
+:repa.Location = {kind = "Location", subtype="city", rule = "city_by_stadt"}
+
+Rule: Location_key1
+(
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)
+	(
+	
+		(
+		{Token.string == "-"}
+		)?
+		({TreeTaggerToken.category == NN}|
+	         {TreeTaggerToken.category == NE} 
+		)
+	)*
+	(
+	({Token.string == "-"})?
+	{Lookup.minorType == "location_key"}
+	)
+	(
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)
+		(
+		({Token.string == "-"})?
+		({TreeTaggerToken.category == NN}|
+	        {TreeTaggerToken.category == NE}
+		)
+		)*
+	)*
+):key
+-->
+:key.Location = {kind = "Location", rule = "location_key1"}
+
+Rule: Location_key1_exception
+Priority: 20
+(
+	(
+	{Lookup.minorType == "stop"}
+	|
+	{Lookup.minorType == "orgtype_prefix"}
+	)
+	(
+	
+		(
+		{Token.string == "-"}
+		)?
+		({TreeTaggerToken.category == NN}|
+	         {TreeTaggerToken.category == NE} 
+		)
+	)*
+	(
+	({Token.string == "-"})?
+	{Lookup.minorType == "location_key"}
+	)
+):key
+-->
+:key.Exception = {rule = "Location_key1_exception"}

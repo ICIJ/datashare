@@ -1,0 +1,247 @@
+Phase: Organization
+Input: Lookup Token Organization Location TreeTaggerToken
+Options: control = appelt
+
+Rule: Organization1
+(
+
+	{Lookup.minorType == "main"}
+
+
+):OrgName
+-->
+:OrgName.Organization = {kind = "Organization", rule = "Organization1"}
+
+Rule: Company1
+(
+
+	{Lookup.minorType == "company"}
+	{Lookup.minorType == "orgtype"}
+
+):OrgName
+-->
+:OrgName.Organization = {kind = "Organization", subtype= "company", rule = "Company1"}
+
+Rule: Company2
+(
+
+	{Lookup.minorType == "company"}
+
+
+):OrgName
+-->
+:OrgName.Organization = {kind = "Organization", subtype= "company", rule = "Company2"}
+
+Rule: Guess_Company1
+(
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)+
+	{Lookup.minorType == "orgtype"}
+
+):OrgName
+-->
+:OrgName.Organization = {kind = "Organization", subtype= "company", rule = "Guess_Company1"}
+
+Rule: Exception_to_guess_Company1
+Priority: 20
+
+{Lookup.minorType == "stop"}
+(
+({TreeTaggerToken.category == NN}|
+ {TreeTaggerToken.category == NE}
+)+
+{Lookup.minorType == "orgtype"}
+
+):OrgName
+-->
+{}
+
+Rule: Guess_Company1_annie
+(
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)+
+	{Lookup.minorType == "annie_orgtype"}
+
+):OrgName
+-->
+:OrgName.Organization = {kind = "Organization", subtype= "company", rule = "Guess_Company1_annie"}
+
+Rule: Exception_to_guess_Company1_annie
+Priority: 20
+
+{Lookup.minorType == "stop"}
+(
+({TreeTaggerToken.category == NN}|
+ {TreeTaggerToken.category == NE}
+ )+
+{Lookup.minorType == "annie_orgtype"}
+
+):OrgName
+-->
+{}
+
+Rule: Guess_Organization1
+Priority: 20
+(
+	{Lookup.minorType == "orgtype_prefix"}
+	(
+	{TreeTaggerToken.category == NN}|
+	{TreeTaggerToken.category == NE}
+	)
+	(
+	({Token.string == "-"})?
+	(
+	{TreeTaggerToken.category == NN}|
+	{TreeTaggerToken.category == NE}
+	)
+	)*
+
+
+):OrgName2
+-->
+:OrgName2.Organization = {kind = "Organization", rule = "Guess_Organization1"}
+
+Rule: Exception1_to_guess_Organization2
+Priority: 20
+(
+	{Lookup.minorType == "stop"}
+	{Lookup.minorType == "city"}
+
+
+)
+-->
+{}
+
+Rule: Exception2_to_guess_Organization2
+Priority: 20
+(
+	{Lookup.majorType == "location"}
+	{Lookup.minorType == "city"}
+
+
+)
+-->
+{}
+
+Rule: Exception3_to_guess_Organization2
+Priority: 20
+(
+	{Token.string == "New York"}
+)
+-->
+{}
+
+Rule: Exception4_to_guess_Organization2
+Priority: 20
+(
+	{TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+)
+-->
+{}
+
+Rule: Exception5_to_guess_Organization2
+Priority: 20
+(
+	(
+	{Token.string == "Bad"}
+	|
+	{Token.string == "Großraum"}
+	|
+	{Token.string == "Kreis"}
+	|
+	{Token.string == "Stadt"}
+	|
+	{Token.string == "Land"}
+	|
+	{Token.string == "Landes"}
+	|
+	{Token.string == "Sankt"}
+	|
+	{Token.string == "Herzogtum"}
+	|
+	{Token.string == "Großherzogtum"}
+	|
+	{Token.string == "Nähe"}
+
+	)
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE})
+)
+-->
+{}
+
+Rule: Guess_Organization2
+(
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE}
+	)+
+	{Lookup.minorType == "city"}
+
+
+):OrgName3
+-->
+:OrgName3.Organization = {kind = "Organization", rule = "Guess_Organization2"}
+
+
+Rule: Org_by_gesellschaft
+(
+	(
+	{Token.string == "Gesellschaft"}
+	|
+	{Token.string == "GESELLSCHAFT"}
+	)
+	(
+	{TreeTaggerToken.category == NN}|
+	{TreeTaggerToken.category == NE}
+	)
+	(
+	({Token.string == "-"})?
+	({TreeTaggerToken.category == NN}|
+	 {TreeTaggerToken.category == NE})
+	)*
+):ges
+-->
+:ges.Organization = {kind = "org", rule = "org_by_gesellschaft"}
+
+Rule: Organization_key1
+(
+
+(
+	{Lookup.minorType == "organization_key"}
+	({Token.string == "-"})?
+		(
+		{TreeTaggerToken.category == NN}|
+	        {TreeTaggerToken.category == NE}
+		)
+)
+	
+):key
+-->
+:key.Organization = {kind = "Organization", rule = "organization_key1"}
+
+Rule: Organization_Location
+Priority:100
+
+(
+ {Organization}
+ {Location}
+ ):key
+ -->
+ {
+//removes old ORG and LOC annotation, adds a new ORG annotation
+gate.AnnotationSet key = (gate.AnnotationSet)bindings.get("key");
+gate.Annotation keyAnn = (gate.Annotation)key.iterator().next();
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule", "OrgLoc");
+outputAS.add(key.firstNode(), key.lastNode(), "Organization",
+features);
+outputAS.removeAll(key);
+}
+ 
+ 
+ 
+
+

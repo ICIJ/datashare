@@ -1,0 +1,11 @@
+// SplitMain
+// Angel Kirilov 16/03/2004
+
+
+//A sentence splitter
+MultiPhase:	main
+Phases: 
+
+find-single-nl
+split
+removelookup

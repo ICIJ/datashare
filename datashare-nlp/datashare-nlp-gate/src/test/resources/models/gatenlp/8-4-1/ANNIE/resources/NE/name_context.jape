@@ -1,0 +1,215 @@
+/*
+*  name_context.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: name_context.jape 18907 2015-09-15 10:08:00Z dgmaynard $
+*/
+
+Phase:	NameContext
+Input: Lookup Unknown Person Token Organization Title
+Options: control = appelt
+
+//Rule: Jobtitle1
+//Priority: 50
+//(
+ //{Lookup.majorType == jobtitle}
+//)
+//(
+// {Unknown}
+ //({Unknown})?
+//)
+//:person
+//-->
+//{
+//removes old "Unknown" annotation and adds a "Person" one
+//gate.AnnotationSet person = (gate.AnnotationSet) bindings.get("person");
+//gate.FeatureMap features = Factory.newFeatureMap();
+//features.put("rule", "JobTitle1");
+//outputAS.add(person.firstNode(), person.lastNode(), "Person",
+//features);
+//outputAS.removeAll(person);
+//}
+
+
+Rule: TitleUnknownSurname
+Priority: 100
+(
+ ({Title}):title
+ ({Unknown}):firstName
+ ({Person.kind == firstName}):surname
+):person
+-->
+ {
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+ 
+ gate.AnnotationSet firstNameSet = (gate.AnnotationSet)bindings.get("firstName");
+
+ gate.AnnotationSet titleSet = (gate.AnnotationSet)bindings.get("title");
+ gate.Annotation titleAnn = (gate.Annotation)titleSet.iterator().next();
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname");
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+  String contentTitle = gate.Utils.stringFor(doc, titleAnn);
+  features.put("title", contentTitle);
+  features.put("gender", titleAnn.getFeatures().get("gender"));
+
+ if (firstNameSet != null && firstNameSet.size()>0)
+ {
+  gate.Annotation firstNameAnn = (gate.Annotation)firstNameSet.iterator().next();
+  String firstNameContent = gate.Utils.stringFor(doc, firstNameAnn);
+  features.put("firstName", firstNameContent);
+ }
+  String surnameContent = gate.Utils.stringFor(doc, surnameAnn);
+  features.put("surname", surnameContent);
+
+  features.put("kind", "personName");
+  features.put("rule", "TitleUnknownSurname");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "Person",
+features);
+}
+
+
+Rule: UnknownSurname
+Priority: 100
+(
+ ({Unknown}):firstName
+ ({Person.kind == firstName}):surname
+):person
+-->
+ {
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+ 
+ gate.AnnotationSet firstNameSet = (gate.AnnotationSet)bindings.get("firstName");
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname");
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+
+ if (firstNameSet != null && firstNameSet.size()>0)
+ {
+  gate.Annotation firstNameAnn = (gate.Annotation)firstNameSet.iterator().next();
+  String firstNameContent = gate.Utils.stringFor(doc, firstNameAnn);
+  features.put("firstName", firstNameContent);
+ }
+  String surnameContent = gate.Utils.stringFor(doc, surnameAnn);
+  features.put("surname", surnameContent);
+
+  features.put("kind", "personName");
+  features.put("rule", "UnknownSurname");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "Person",
+features);
+outputAS.removeAll(surnameSet);
+}
+
+
+
+Rule:PersonTitle1
+Priority: 40
+(
+ ({Person.rule == PersonTitle}|
+  {Person.rule == PersonTitleGenderUnknown}
+ )
+ {Unknown}
+):person
+-->
+{
+//removes old "Person" and "Unknown" annotations and adds a new "Person" one
+gate.AnnotationSet person = (gate.AnnotationSet) bindings.get("person");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule", "PersonTitle1");
+outputAS.add(person.firstNode(), person.lastNode(), "Person",
+features);
+outputAS.removeAll(person);
+}
+
+
+
+Rule: PersonContext1
+Priority: 10
+//note: this should really move to grammar following co-ref
+
+(
+ {Token.orth == upperInitial}
+):person
+
+(
+ {Token.string == "from"}
+ ({Organization} 
+// | {Location}
+ )
+)
+-->
+  :person.Person = {rule = "PersonContext1"}
+
+
+Rule: NotPersonContext1
+Priority: 20
+//if the unknown thing is already an org or person, don't change it
+
+
+(
+ ({Organization}|{Person})
+):label
+
+(
+ {Token.string == "from"}
+ ({Organization} 
+// | {Location}
+ )
+)
+-->
+  {}
+
+Rule:PersonSays
+Priority: 20
+(
+ {Unknown}({Unknown})?
+):tag
+ ({Lookup.majorType == say})
+-->
+{
+//removes old  "Unknown" annotations and adds a new "Person" one
+gate.AnnotationSet person = (gate.AnnotationSet) bindings.get("tag");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule", "PersonSays");
+outputAS.add(person.firstNode(), person.lastNode(), "Person",
+features);
+outputAS.removeAll(person);
+}
+
+
+Rule: SaysPerson
+Priority: 20
+({Lookup.majorType == say})
+(
+ {Unknown}({Unknown})?
+):tag
+-->
+{
+//removes old  "Unknown" annotations and adds a new "Person" one
+gate.AnnotationSet person = (gate.AnnotationSet) bindings.get("tag");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule", "SaysPerson");
+outputAS.add(person.firstNode(), person.lastNode(), "Person",
+features);
+outputAS.removeAll(person);
+}
+
+
+
+
+
+
+
+

@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2000/10/XMLSchema">
+  <!-- XSchema deffinition for Location -->
+  <element name="Location">
+    <complexType>
+      <attribute name="locType" use="optional" value="other">
+        <simpleType>
+          <restriction base="string">
+            <enumeration value="region"/>
+            <enumeration value="airport"/>
+            <enumeration value="city"/>
+            <enumeration value="country"/>
+            <enumeration value="country"/>
+            <enumeration value="province"/>
+            <enumeration value="other"/>
+          </restriction>
+        </simpleType>   
+      </attribute>
+    </complexType>
+  </element>
+</schema>

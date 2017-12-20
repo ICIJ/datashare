@@ -1,0 +1,105 @@
+/*
+*  splitter.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Valentin Tablan, March 7th, 2007
+*
+*  $Id: split.jape 17376 2014-02-21 10:07:24Z dgmaynard $
+*/
+
+Phase:split
+Input: Split TempNoSplitText
+Options: control = first
+
+
+//sentence that consumes a split
+Rule: internalSplits
+({Split.kind == "internal"}):isplit
+-->
+{
+  Long endOffset = ((AnnotationSet)bindings.get("isplit")).
+      lastNode().getOffset();
+  //find the end offset of previous sentences
+  Long lastOffset = (Long)doc.getFeatures().get("temp-last-sentence-end");
+  if(lastOffset == null) lastOffset = new Long(0);
+//  
+//  AnnotationSet sentences = outputAS.get("Sentence");
+//  Long lastOffset = sentences == null || sentences.isEmpty() ?
+//          new Long(0) :
+//          sentences.lastNode().getOffset();  
+  //get the start offset of the first token.kind==word
+  AnnotationSet tokens = inputAS.getContained(lastOffset, endOffset);
+  if(tokens != null) tokens = tokens.get("Token");
+  if(tokens != null && tokens.size() > 0){
+    List<Annotation> tokList = new ArrayList<Annotation>(tokens);
+    Collections.sort(tokList, new OffsetComparator());
+    for(Annotation token : tokList){
+      String tokenKind = (String)token.getFeatures().get("kind");
+      //if("word".equals(tokenKind)){
+        Long startOffset = token.getStartNode().getOffset();
+        if(startOffset.compareTo(endOffset) < 0){
+          //create the new sentence
+          try{
+            outputAS.add(startOffset, endOffset, "Sentence", 
+                    Factory.newFeatureMap());
+            //save the new end offset
+            doc.getFeatures().put("temp-last-sentence-end", endOffset);
+          }catch( InvalidOffsetException ioe){
+            throw new GateRuntimeException(ioe);
+          }
+       // }
+        return;
+      }
+    }
+  }
+}
+
+//sentence that doesn't consume a split
+Rule: externalSplits
+({Split.kind == "external"}):esplit
+-->
+{
+  Long endOffset = ((AnnotationSet)bindings.get("esplit")).
+      firstNode().getOffset();
+//  //get the end offset of the previous sentence
+//  AnnotationSet sentences = outputAS.get("Sentence");
+//  Long lastOffset = sentences == null || sentences.isEmpty() ?
+//          new Long(0) :
+//          sentences.lastNode().getOffset();  
+  //find the end offset of previous sentences
+  Long lastOffset = (Long)doc.getFeatures().get("temp-last-sentence-end");
+  if(lastOffset == null) lastOffset = new Long(0);
+  
+  //get the start offset of the first token.kind==word
+  AnnotationSet tokens = inputAS.getContained(lastOffset, endOffset);
+  if(tokens != null) tokens = tokens.get("Token");
+  if(tokens != null && tokens.size() > 0){
+    //we have a more precise end offset
+    endOffset = tokens.lastNode().getOffset();
+    List<Annotation> tokList = new ArrayList<Annotation>(tokens);
+    Collections.sort(tokList, new OffsetComparator());
+    for(Annotation token : tokList){
+      String tokenKind = (String)token.getFeatures().get("kind");
+     // if("word".equals(tokenKind)){
+        Long startOffset = token.getStartNode().getOffset();
+        if(startOffset.compareTo(endOffset) < 0){
+          //create the new sentence
+          try{
+            outputAS.add(startOffset, endOffset, "Sentence", 
+                    Factory.newFeatureMap());
+            doc.getFeatures().put("temp-last-sentence-end", endOffset);
+          }catch( InvalidOffsetException ioe){
+            throw new GateRuntimeException(ioe);
+          }
+       // }
+        return;
+      }
+    }
+  }
+}

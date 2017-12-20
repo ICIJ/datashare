@@ -1,0 +1,35 @@
+/*
+*  url_pre.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 19 April 2001
+* 
+*  $Id: url_pre.jape 6376 2004-11-24 16:27:30Z diana $
+*/
+
+Phase:	UrlPre
+Input:  Token SpaceToken
+Options: control = appelt
+
+Rule: Urlpre
+
+(	(({Token.string == "http"}	|
+	  {Token.string == "ftp"})
+	 {Token.string == ":"}
+	 {Token.string == "/"}
+         {Token.string == "/"}
+        )	|
+	({Token.string == "www"}
+         {Token.string == "."}
+        )
+):urlpre
+-->
+:urlpre.UrlPre = {rule = "UrlPre"}
+
+

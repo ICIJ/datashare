@@ -1,0 +1,50 @@
+//gender.jape
+//this is a sample jape grammar to be used with the 
+//Onto Gazetteer demo.
+//borilsav popov
+//ontotext
+//01 may 2002
+// intended use: determine the gender given the CLASS annotation over a person name. 
+
+Phase:	Gender
+Input: Token Lookup
+Options: control = brill
+
+Rule: isFemale
+
+(
+ {
+   Lookup.class == female_person_first_name,
+   Lookup.ontology == "gate:/creole/ontology/demo.daml"
+ }
+):person
+-->
+{
+	gate.AnnotationSet person = (gate.AnnotationSet)bindings.get("person");
+	gate.Annotation personAnn = (gate.Annotation)person.iterator().next();
+	gate.FeatureMap features = Factory.newFeatureMap();
+	features.put("gender", "female");
+	features.put("rule", "isFemale");
+	outputAS.add(person.firstNode(), person.lastNode(), "isFemale",
+	features);
+}
+
+
+Rule: isMale
+
+(
+ {
+   Lookup.class == male_person_first_name,
+   Lookup.ontology == "gate:/creole/ontology/demo.daml"
+ }
+):person
+-->
+{
+	gate.AnnotationSet person = (gate.AnnotationSet)bindings.get("person");
+	gate.Annotation personAnn = (gate.Annotation)person.iterator().next();
+	gate.FeatureMap features = Factory.newFeatureMap();
+	features.put("gender", "male");
+	features.put("rule", "isMale");
+	outputAS.add(person.firstNode(), person.lastNode(), "isMale",
+	features);
+}

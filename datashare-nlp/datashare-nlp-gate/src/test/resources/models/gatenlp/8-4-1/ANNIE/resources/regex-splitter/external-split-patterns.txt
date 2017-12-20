@@ -1,0 +1,13 @@
+//These are patterns for sentence splits
+//
+// Valentin Tablan, 24 Aug 2007
+//
+//
+// Lines starting with // are comments; empty lines are ignored
+
+//more than 2 new lines
+(?:[\u00A0\u2007\u202F\p{javaWhitespace}&&[^\n\r]])*+(\n\r|\r\n|\n|\r)(?:(?:[\u00A0\u2007\u202F\p{javaWhitespace}&&[^\n\r]])*+\1)++
+
+//the end of the document is also an external split, so that there is no
+//orphaned text
+\s*+\z

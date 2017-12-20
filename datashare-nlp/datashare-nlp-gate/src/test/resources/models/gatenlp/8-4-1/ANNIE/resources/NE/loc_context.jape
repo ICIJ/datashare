@@ -1,0 +1,115 @@
+/*
+*  loc_context.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 02 Aug 2001
+* 
+*  $Id: loc_context.jape 18627 2015-04-10 10:47:13Z dgmaynard $
+*/
+
+Phase:	Loc_Context
+Input: Unknown Token Location Lookup
+Options: control = appelt
+
+
+//Rule: LocConjLoc1 
+//Priority: 10
+// Unknown and Location 
+
+//(
+//{Unknown.kind == PN}
+//):loc
+//(
+//{Token.category == CC}
+//({Token.category == DT}
+//)?
+//{Location}
+//)
+//-->
+//{
+//gate.AnnotationSet loc = (gate.AnnotationSet) bindings.get("loc");
+//gate.FeatureMap features = Factory.newFeatureMap();
+//features.put("rule ", "LocConjLoc1");
+//outputAS.add(loc.firstNode(), loc.lastNode(), "Location",
+//features);
+//outputAS.removeAll(loc);
+//}
+
+
+//Rule: LocConjLoc2
+//Priority: 10
+
+// Location and Unknown
+
+//(
+// {Location}
+// {Token.category == CC}
+ //({Token.category == DT}
+ //)?
+//)
+//(
+// {Unknown.kind == PN}
+//):loc
+//-->
+// {
+//gate.AnnotationSet loc = (gate.AnnotationSet) bindings.get("loc");
+//gate.FeatureMap features = Factory.newFeatureMap();
+//features.put("rule ", "LocConjLoc2");
+//outputAS.add(loc.firstNode(), loc.lastNode(), "Location",
+//features);
+//outputAS.removeAll(loc);
+//}
+
+
+Rule: UnknownLocRegion
+Priority: 50
+(
+ ({Token.string == "at"}|
+  {Token.string == "in"}
+ )
+)
+( 
+ {Unknown}
+):loc
+(
+ {Token.string == ","}
+ {Location.locType == region}
+)
+-->
+ :loc.Location = {rule = "UnknownLocRegion"},
+ {
+gate.AnnotationSet loc = (gate.AnnotationSet) bindings.get("loc");
+outputAS.removeAll(loc);
+}
+
+Rule: LocState
+Priority: 100
+(
+ {Location.locType == city}
+ ({Token.string == ","})?
+)
+(
+ {Lookup.majorType == state}
+):tag
+-->
+:tag.Location = {locType = region, rule = "LocState"}
+
+
+Rule: UnknownLocKey
+Priority: 20
+(
+ ({Unknown}):tag
+ {Lookup.majorType == loc_general_key}
+)
+-->
+:tag.Location = {locType = unknown, rule = "UnknownLocKey"},
+{
+gate.AnnotationSet loc = (gate.AnnotationSet) bindings.get("tag");
+outputAS.removeAll(loc);
+}

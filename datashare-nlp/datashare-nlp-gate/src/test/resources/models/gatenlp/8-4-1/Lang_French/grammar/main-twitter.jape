@@ -1,0 +1,38 @@
+/*
+*  main.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 02 Aug 2001
+*
+*  $Id: main.jape 9233 2007-11-23 13:01:52Z dgmaynard $
+*/
+
+MultiPhase:	TestTheGrammars
+Phases: 
+first
+firstname
+name-twitter
+name_post
+date_pre
+date
+reldate
+number
+number_clean
+address
+url_pre
+url
+email
+identifier
+jobtitle
+final
+unknown
+name_context
+org_context
+loc_context
+//clean

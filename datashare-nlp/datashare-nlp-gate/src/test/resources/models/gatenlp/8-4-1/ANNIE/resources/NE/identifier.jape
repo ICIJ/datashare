@@ -1,0 +1,95 @@
+/*
+*  identifier.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: identifier.jape 5921 2004-07-21 17:00:37Z akshay $
+*/
+
+
+Phase:	Identifier
+Options: control = appelt
+
+
+
+Macro: IDENT
+
+({Lookup.majorType == ident_key, Lookup.minorType == pre}
+ ({Token.string == "."}|{Token.string == ":"})?
+)
+
+
+Rule: GazNotIdentifier
+Priority: 100
+(
+ {Lookup.majorType == spur_ident}
+)
+:ident -->
+ :ident.Temp = {rule = "GazNotIdentifier"}  
+
+
+Rule: Identifier1
+(	(({Token.kind == number}	
+	  {Token.orth == allCaps}) |
+	 ({Token.orth == allCaps}
+	  {Token.kind == number})
+        )
+	({Token.orth == allCaps}|
+         {Token.orth == upperInitial, Token.length == "1"}| 
+         {Token.string == "."}|
+	 {Token.kind == number})*
+):ident 
+-->
+ :ident.TempIdentifier = {rule = "Identifier1"}
+
+
+
+Rule: NotContextIdentifier
+Priority: 100
+// prevents things like "reference list"
+
+(IDENT)
+(
+{Token.orth == lowercase}
+):ident 
+(SPACE|{Token.kind == punctuation})
+-->
+:ident.Temp = {rule = "NotContextIdentifier"}
+
+
+Rule: ContextIdentifier
+(IDENT)
+(	(({Token.kind == number}	
+	 {Token.orth == allCaps}) |
+	({Token.orth == allCaps}
+	 {Token.kind == number})|
+        ({Token.orth == upperInitial, Token.length == "1"}))
+	({Token.orth == allCaps}|
+         {Token.orth == upperInitial, Token.length == "1"}| 
+         {Token.string == "."}|
+	 {Token.kind == number})*
+)
+:ident 
+-->
+ :ident.TempIdentifier = {rule = "ContextIdentifier"}
+
+
+
+
+//Rule: Test
+//Priority: 500
+//(
+// {Token.orth == allCaps}
+// {Token.kind == number}
+// {Token.orth == upperInitial, Token.length == "1"}
+//)
+//:ident
+//-->
+// :ident.TempIdentifier = {rule = "Identifier1"}

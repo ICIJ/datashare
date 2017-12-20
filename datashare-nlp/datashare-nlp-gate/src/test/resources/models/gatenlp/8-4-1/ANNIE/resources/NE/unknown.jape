@@ -1,0 +1,54 @@
+/*
+*  unknown.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: unknown.jape 17326 2014-02-17 16:38:01Z dgmaynard $
+*/
+
+Phase:	Unknown
+Input: Location Person Date Organization Address Money Percent Token JobTitle Lookup
+Options: control = appelt
+
+
+Rule: Known
+Priority: 100
+(
+ {Location}| 
+ {Person}|
+ {Date}|
+ {Organization}|
+ {Address}|
+ {Money} |
+ {Percent}|
+ {Token.string == "Dear"}|
+ {JobTitle}|
+ {Lookup}
+):known
+-->
+{}
+ 
+
+Rule:Unknown
+Priority: 50
+( 
+ {Token.category == NNP, Token.length != "1"}
+) 
+:unknown
+-->
+ :unknown.Unknown = {kind = "PN", rule = Unknown}
+
+
+
+
+
+
+
+

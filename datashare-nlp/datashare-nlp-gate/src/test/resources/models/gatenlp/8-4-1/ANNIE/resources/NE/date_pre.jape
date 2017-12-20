@@ -1,0 +1,93 @@
+/*
+*  date_pre.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: date_pre.jape 17311 2014-02-14 18:49:50Z dgmaynard $
+*/
+
+
+Phase:	DatePre
+Options: control = appelt
+
+///////
+// Note: this muse come before the date phase,  because it includes extra context
+// to prevent dates being recognised erroneously in the middle of longer things
+//////
+
+
+Macro: ORDINAL
+(
+   ({Token.kind == number}
+    ({Token.string == "th"}|
+     {Token.string == "rd"}|
+     {Token.string == "nd"}|
+     {Token.string == "st"})
+    |
+   {Lookup.minorType == ordinal})
+   (SPACE
+    {Token.string == "of"})?
+)
+
+/////////////////////////////////////////////////
+
+
+Rule: GazDate
+(SPACE | {Token.kind == punctuation})
+(
+ ({Lookup.minorType == day}) |
+ ({Lookup.minorType == month}) |
+ ({Lookup.minorType == festival})
+)
+:date
+(SPACE | {Token.kind == punctuation})
+-->
+ :date.TempDate = {rule = "GazDate"}
+
+Rule: GazDateAmbig
+Priority: 200
+(SPACE | {Token.kind == punctuation})
+(
+ {Token.string == "Sun"}
+)
+:date
+(SPACE | {Token.kind == punctuation})
+-->
+ :date.TempDate = {rule = "GazDateAmbig", }
+
+Rule: PersonDateAmbig
+Priority: 100
+(
+ (ORDINAL)
+)
+:date
+
+(SPACE)
+(
+ {TempPerson.kind == personName, TempPerson.rule == PersonFull}
+):person
+-->
+:date.Date = {kind = date, rule = "PersonDateAmbig"},
+{
+//removes  TempPerson annotation, gets the rule feature and adds a new Person annotation
+gate.AnnotationSet person = (gate.AnnotationSet)bindings.get("person");
+gate.Annotation personAnn = (gate.Annotation)person.iterator().next();
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule1", personAnn.getFeatures().get("rule"));
+features.put("rule2", "PersonDateAmbig");
+outputAS.add(person.firstNode(), person.lastNode(), "Person",
+features);
+outputAS.removeAll(person);
+}
+
+
+
+
+

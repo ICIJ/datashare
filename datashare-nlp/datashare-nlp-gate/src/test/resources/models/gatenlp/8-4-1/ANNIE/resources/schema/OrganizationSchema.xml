@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2000/10/XMLSchema">
+  <!-- XSchema deffinition for Organization -->
+  <element name="Organization">
+    <complexType>
+      <attribute name="orgType" use="optional" value="other">
+        <simpleType>
+          <restriction base="string">
+            <enumeration value="company"/>
+            <enumeration value="department"/>
+            <enumeration value="government"/>
+            <enumeration value="newspaper"/>
+            <enumeration value="team"/>
+            <enumeration value="other"/>
+          </restriction>
+        </simpleType>   
+      </attribute>
+    </complexType>
+  </element>
+</schema>

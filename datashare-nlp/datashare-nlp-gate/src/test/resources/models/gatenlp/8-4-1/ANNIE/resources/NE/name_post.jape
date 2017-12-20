@@ -1,0 +1,65 @@
+/*
+*  name_post.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: name_post.jape 17683 2014-03-17 16:13:33Z dgmaynard $
+*/
+
+Phase:	NamePost
+Input: Token Lookup FirstPerson 
+Options: control = appelt
+
+// this runs after name.jape to fix some problems that may have been caused
+
+Rule: 	FirstPersonStop
+Priority: 20
+/* if the surname contains stop words e.g. "Mary And" we don't want it to be a Person
+However, it might be that the firstname is actually an Organization (and has been tagged with TempOrganization already), e.g. "U.N." If this is the case, then leave it as it is. Otherwise, just tag the first name as a person
+*/
+
+(
+ (FIRSTNAME)+
+):person
+(
+ (
+  ({Lookup.majorType == stop}|
+   {Token.category == DT})
+ )
+)
+-->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+gate.AnnotationSet firstPerson = (gate.AnnotationSet)personSet.get("FirstPerson");
+
+// get the TempOrganization annotation (previously assigned)
+gate.AnnotationSet orgSet =
+outputAS.get("TempOrganization",personSet.firstNode().getOffset(),
+personSet.lastNode().getOffset());
+// and if it's empty
+if (orgSet.size()==0)
+{
+// then if the firstPerson annotation exists
+if (firstPerson != null && firstPerson.size()>0)
+{
+  gate.Annotation personAnn = (gate.Annotation)firstPerson.iterator().next();
+  features.put("gender", personAnn.getFeatures().get("gender"));
+}
+  features.put("kind", "firstName");
+  features.put("rule", "FirstPersonStop");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+}}
+
+
+
+
+ 

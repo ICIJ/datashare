@@ -1,0 +1,352 @@
+Phase: Person
+Input: Lookup Token Jobtitle
+Options: control = appelt
+
+
+Macro: MULTIPLE_FIRST
+// multiple first names and/or initials
+// e.g. "Hans Johan"
+(
+	({Lookup.minorType == "initial"})
+   	|
+	({Lookup.minorType == "firstname"})
+)+
+
+Macro: MULTIPLE_FIRST_DASH
+// multiple surname with dash in between
+// e.g. "Hans-Jakob"
+(
+
+   	(
+	{Lookup.minorType == "firstname"}
+	)+
+	(
+        {Token.string=="-"}
+   	
+	{Lookup.minorType == "firstname"}
+	)+
+)
+
+Macro: MULTIPLE_SUR
+(
+	{Lookup.minorType == "surname"}
+	{Lookup.minorType == "surname"}
+)
+
+
+Macro: MULTIPLE_SUR_DASH
+// multiple surname with dash in between
+// e.g. "Baader-Meinhof"
+(
+     ({Token.string=="von"})?
+   	(
+	{Lookup.minorType == "surname"}
+	)+
+	{Token.string=="-"}
+   	(
+	{Lookup.minorType == "surname"}
+	)+
+)
+
+Macro: VONSURNAME
+(
+     {Token.string == "von"}
+	{Lookup.minorType == "surname"}
+)
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+Rule: Person_full_name
+(
+     ({Lookup.minorType == "fullnames"})
+     ({Lookup.minorType == "fullnames"})+
+
+):full
+-->
+:full.Person = {kind = "person", rule = "Person_full_name"}
+
+Rule: Person_surname_only
+(
+     ({Lookup.minorType == "surname"})
+)
+:sur
+-->
+:sur.Person = {kind = "person", rule = "Person_surname_only"}
+
+Rule: Person_first_name_only
+(
+     ({Lookup.minorType == "firstname"})
+)
+:sur
+-->
+:sur.Person_FirstName = {kind = "person", rule = "Person_first_name_only"}
+
+
+
+
+Rule: Guess_firstname_exception1
+Priority: 20
+// e.g Wie Karl Marx
+(    
+     
+     {Lookup.minorType == "stop"}
+    MULTIPLE_SUR | MULTIPLE_SUR_DASH | {Lookup.minorType == "surname"} | {Token.orth == "upperInitial"}
+
+)
+-->
+{}
+
+
+Rule: Guess_firstname_exception2
+Priority: 20
+// e.g Deutsche Bank
+(    
+     (
+     {Token.orth == "upperInitial"}
+     |
+     {Token.orth == "allCaps"}
+     )+
+	(
+    	{Token.string == "Bank"}
+	|
+    	{Token.string == "BANK"}
+	)
+)
+-->
+{}
+
+
+Rule: Guess_surname
+// e.g John Aaaa
+
+(
+   ({Lookup.minorType == "title"})?
+   (	  MULTIPLE_FIRST 
+	| MULTIPLE_FIRST_DASH 
+	| {Lookup.minorType == firstname}
+	| {Lookup.minorType == initial}
+    )
+   
+     ({Token.string == "von"})?
+     ({Token.orth == upperInitial})
+) :personName
+-->
+:personName.Person = {kind = "person", rule = "Guess_surname"}
+
+Rule: Exception_Guess_surname
+Priority: 20
+
+(
+   ({Lookup.minorType == "title"})?
+   (	  MULTIPLE_FIRST 
+	| MULTIPLE_FIRST_DASH 
+	| {Lookup.minorType == "firstname"}
+	| {Lookup.minorType == "initial"}
+    )
+   
+     ({Token.string == "von"})?
+     ({Lookup.majorType == "location"})
+)
+-->
+{}
+
+Rule: Exception2_Guess_surname
+Priority: 20
+
+(
+    {Lookup.majorType == currency}
+    {Token.orth == upperInitial}
+)
+
+-->
+{}
+
+
+Rule: Guess_surname_by_title
+// e.g "Herr Johan Sebastian Bach"
+// the following strings may be unfamiliar or attested first/surnames
+
+
+(
+   {Lookup.minorType == "title"}
+
+   (
+   ({Lookup.minorType == "initial"})+
+     |
+   ({Lookup.minorType == "firstname"})+
+   )?
+
+   ({Token.string == "von"})?
+
+   ({Token.orth == "upperInitial"})
+   ({Token.orth == "upperInitial"})
+
+) :personName
+-->
+:personName.Person = {kind = "person", rule = "Guess_surname_by_title"}
+
+Rule: Guess_firstname_by_title
+// e.g "Herr Johan Sebastian Bach"
+// the following strings may be unfamiliar or attested first/surnames
+
+
+(
+   {Lookup.minorType == "title"}
+
+   ({Lookup.minorType == "firstname"})+
+   
+   ({Token.string == "von"})?
+
+    MULTIPLE_SUR | MULTIPLE_SUR_DASH | {Lookup.minorType == "surname"}
+
+) :personName
+-->
+:personName.Person = {kind = "person", rule = "Guess_firstname_by_title"}
+
+Rule: Guess_full_name_by_profession
+Priority: 20
+// e.g. Wirtschaftsminister Johannes Ditz
+({Jobtitle})+
+(
+  {Token.orth == upperInitial}
+  ({Token.orth == upperInitial})?
+//  ({Token.orth == upperInitial})?
+):prof
+-->
+:prof.Person = {kind = "Person", rule = "Guess_full_name_by_profession"}
+
+Rule: Guess_long_full_name_by_profession
+Priority: 10
+// e.g. Wirtschaftsminister Johannes Ditz Fensel
+({Jobtitle})+
+(
+  {Token.orth == upperInitial}
+  ({Token.orth == upperInitial})?
+ ({Token.orth == upperInitial})?
+):prof
+-->
+:prof.Person = {kind = "Person", rule = "Guess_long_full_name_by_profession"}
+
+
+Rule: Guess_full_name_by_verb1
+(
+   ({Token.orth == "upperInitial"})+
+):po
+(
+   	{Token.string == "erklärt"}
+	|
+   	{Token.string == "erklärte"}
+	|
+   	{Token.string == "meint"}
+	|
+   	{Token.string == "meinte"}
+)
+-->
+:po.Person = {kind = "Person", rule = "Guess_full_name_by_verb1"}
+
+Rule: Guess_full_name_by_verb2
+
+({Lookup.majorType == personverb})
+(
+   ({Token.orth == "upperInitial"})+
+):po2
+-->
+:po2.Person = {kind = "Person", rule = "Guess_full_name_by_verb2"}
+
+
+Rule: Exception_guess_full_name_by_verb1
+Priority: 20
+   ({Lookup.majorType == organization}|
+    {Lookup.majorType == stop})
+(
+   	{Token.string == "erklärt"}
+	|
+   	{Token.string == "erklärte"}
+	|
+   	{Token.string == "meint"}
+	|
+   	{Token.string == "meinte"}
+)
+-->
+{}
+
+
+Rule: Exception_guess_full_name_by_verb2
+Priority: 20
+(
+ {Lookup.majorType == personverb}
+ {Lookup.majorType == "organization"}
+)
+-->
+{}
+
+Rule: PersonName_multiple
+// multiple first or surname
+// e.g. "Hans Johan" or "Baader Meinhof"
+(
+	({Lookup.minorType == "initial"})?
+   	(
+	{Lookup.minorType == "firstname"}
+	)+
+	(
+	{Lookup.minorType == "surname"}
+	)+
+):personName
+-->
+:personName.Person = {kind = "person", rule = "PersonName_Multiple"}
+
+
+
+//Rule: GetPerson_exception1
+//Priority: 20
+//(
+//   ({Lookup.majorType == "stop"})
+ //  ({Lookup.majorType == "name"})+
+//)
+//-->
+//{}
+
+
+Rule: GetPerson_exception2
+Priority: 20
+(
+   ({Token.string == "Ende"})
+   YEAR | {Lookup.minorType == month} |
+	(
+	(
+	{Token.string == "der"}
+	|
+	{Token.string == "dieser"}
+	|
+	{Token.string == "dieses"}
+	|
+	{Token.string == "des"}
+	)
+	(
+	{Token.string == "Woche"}
+	|
+	{Token.string == "Tages"}
+	)
+	)
+)
+-->
+{}
+
+
+//Rule: GetPerson2
+//(
+//   ({Lookup.majorType == "name"})+
+//) :personName
+//-->
+//:personName.Person = {kind = "person", rule = "GetPerson2"}
+
+Rule: PersonName_Von
+//
+(
+({Lookup.minorType == "firstname"})+
+VONSURNAME
+):helga
+-->
+:helga.Person = {kind = "person", rule = "PersonNameVon"}

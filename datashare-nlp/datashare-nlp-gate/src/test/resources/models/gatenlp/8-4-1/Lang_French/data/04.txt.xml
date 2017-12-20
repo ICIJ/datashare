@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<GateDocument>
+<!-- The document's features-->
+
+<GateDocumentFeatures>
+<Feature>
+  <Name className="java.lang.String">gate.SourceURL</Name>
+  <Value className="java.lang.String">file:/home/diana/french/data/le_monde/clean/04.txt</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">docNewLineType</Name>
+  <Value className="java.lang.String">LF</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">MimeType</Name>
+  <Value className="java.lang.String">text/plain</Value>
+</Feature>
+</GateDocumentFeatures>
+<!-- The document content area with serialized nodes -->
+
+<TextWithNodes><Node id="0"/>Le <Node id="3"/>roi Sihanouk<Node id="15"/> a abdiqué, selon le <Node id="36"/>prince Ranariddh<Node id="52"/>
+AFP | 07.10.04 | 05h45<Node id="75"/>
+
+<Node id="77"/>Le roi du <Node id="87"/>Cambodge<Node id="95"/> <Node id="96"/>Norodom Sihanouk<Node id="112"/>, actuellement à <Node id="129"/>Pékin<Node id="134"/>, a abdiqué, a annoncé
+<Node id="157"/>jeudi<Node id="162"/> à la presse le <Node id="178"/>prince Norodom Ranariddh<Node id="202"/>, président de l&apos;<Node id="219"/>Assemblée
+nationale<Node id="238"/>.&quot;D&apos;après un message royal que nous avons reçu et lu devant l&apos;<Node id="300"/>Assemblée
+nationale<Node id="319"/>, le roi a abdiqué&quot;, a dit le <Node id="349"/>prince Ranariddh<Node id="365"/>, l&apos;un des fils du
+monarque âgé de 81 ans. &quot;Le roi dit que <Node id="424"/>Chea Sim<Node id="432"/> (président du <Node id="447"/>Sénat<Node id="452"/>) est chef
+de l&apos;<Node id="468"/>Etat<Node id="472"/> par interim et écrit qu&apos;à partir de maintenant il se retire&quot;, a ajouté
+le prince.Le roi, qui devait rentrer <Node id="581"/>jeudi<Node id="586"/> au <Node id="590"/>Cambodge<Node id="598"/> après une absence de huit
+mois, avait à plusieurs reprises exprimé ces dernières semaines son intention
+d&apos;abdiquer, alors qu&apos;il s&apos;inquiétait publiquement de l&apos;absence de successeur
+désigné.Mais les experts s&apos;interrogent sur la constitutionalité d&apos;une
+abdication.
+<Node id="862"/></TextWithNodes>
+<!-- The default annotation set -->
+
+<AnnotationSet>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Key" >
+<Annotation Type="Location" StartNode="590" EndNode="598">
+</Annotation>
+<Annotation Type="Person" StartNode="424" EndNode="432">
+</Annotation>
+<Annotation Type="Organization" StartNode="468" EndNode="472">
+</Annotation>
+<Annotation Type="Person" StartNode="349" EndNode="365">
+</Annotation>
+<Annotation Type="Person" StartNode="3" EndNode="15">
+</Annotation>
+<Annotation Type="Organization" StartNode="300" EndNode="319">
+</Annotation>
+<Annotation Type="Person" StartNode="178" EndNode="202">
+</Annotation>
+<Annotation Type="Location" StartNode="87" EndNode="95">
+</Annotation>
+<Annotation Type="Organization" StartNode="219" EndNode="238">
+</Annotation>
+<Annotation Type="Organization" StartNode="447" EndNode="452">
+</Annotation>
+<Annotation Type="Person" StartNode="36" EndNode="52">
+</Annotation>
+<Annotation Type="Person" StartNode="96" EndNode="112">
+</Annotation>
+<Annotation Type="Date" StartNode="157" EndNode="162">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Location" StartNode="129" EndNode="134">
+</Annotation>
+<Annotation Type="Date" StartNode="581" EndNode="586">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Original markups" >
+<Annotation Type="paragraph" StartNode="77" EndNode="862">
+</Annotation>
+<Annotation Type="paragraph" StartNode="0" EndNode="75">
+</Annotation>
+</AnnotationSet>
+</GateDocument>

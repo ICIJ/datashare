@@ -1,0 +1,97 @@
+/*
+*  url.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 02 Aug 2001
+* 
+*  $Id: url.jape 18155 2014-07-04 13:22:03Z dgmaynard $
+*/
+
+Phase:	Url
+Input:  Lookup SpaceToken Token UrlPre
+Options: control = appelt
+
+
+
+// Url Rules
+
+// http://www.amazon.com
+// ftp://amazon.com
+// www.amazon.com
+
+
+
+Rule: Url1
+Priority: 50
+
+(	
+ {UrlPre}
+ ({Token})[1,7]
+):urlAddress 
+ ({SpaceToken})
+-->
+:urlAddress.Url = {kind = "urlAddress", rule = "Url1"}
+
+Rule: Url2
+Priority: 100
+
+(	
+ {UrlPre}
+ ({Token})[1,7]
+ {Token.string == "."}
+ {Lookup.majorType == country_code}
+):urlAddress 
+ 
+-->
+:urlAddress.Url = {kind = "urlAddress", rule = "Url2"}
+
+Rule: UrlContext
+Priority: 20
+
+(
+ {Token.string == "at"}
+ {Token.string == ":"}
+)
+(
+ ({Token.orth == lowercase}	|
+        {Token.orth == upperInitial}	|
+        {Token.kind == number}		|
+        {Token.kind == punctuation}	|
+        {Token.kind == symbol}		|
+	{Token.string == "."})+ 
+	
+        {Token.string == "."}
+	
+  	({Token.orth == lowercase}	|
+        {Token.orth == upperInitial}	|
+        {Token.kind == number}		|
+        {Token.kind == punctuation}	|
+        {Token.kind == symbol}		|
+	{Token.string == "/"}		|
+        {Token.string == "."})*
+)
+:urlAddress 
+-->
+ :urlAddress.Url = {kind = "urlAddress", rule = "UrlContext"}
+
+Rule: UrlGuess
+Priority: 10
+// token(s) + url_ending e.g. gate.ac.uk
+
+(
+ (	{Token}
+	{Token.string == "."})+ 
+  	{Lookup.majorType == url_key}
+	{Token.string == "."}
+        {Lookup.majorType == country_code}
+)
+:urlAddress 
+-->
+ :urlAddress.Url = {kind = "urlAddress", rule = "UrlGuess"}
+

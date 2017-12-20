@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2000/10/XMLSchema">
+  <!-- XSchema deffinition for Date -->
+  <element name="Date">
+    <complexType>
+      <attribute name="kind" use="optional">
+        <simpleType>
+          <restriction base="string">
+            <enumeration value="date"/>
+            <enumeration value="time"/>
+            <enumeration value="dateTime"/>        
+          </restriction>
+        </simpleType>   
+      </attribute>
+    </complexType>
+  </element>
+</schema>

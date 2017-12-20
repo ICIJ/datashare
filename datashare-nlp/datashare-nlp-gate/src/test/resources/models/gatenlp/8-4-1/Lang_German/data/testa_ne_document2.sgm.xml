@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<GateDocument>
+<!-- The document's features-->
+
+<GateDocumentFeatures>
+<Feature>
+  <Name className="java.lang.String">gate.SourceURL</Name>
+  <Value className="java.lang.String">file:/home/diana/German/data/marked/testa_ne_document2.sgm</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">MimeType</Name>
+  <Value className="java.lang.String">text/sgml</Value>
+</Feature>
+</GateDocumentFeatures>
+<!-- The document content area with serialized nodes -->
+
+<TextWithNodes><Node id="0"/>
+ -DOCSTART- Stöffche kommt aus Hochstadt <Node id="42"/>Bundesäppelwoifest<Node id="60"/> muß auf Sauren aus <Node id="80"/>Steinheim<Node id="89"/> verzichten <Node id="101"/>HANAU<Node id="106"/> . Seit 1740 wurde im <Node id="128"/>Steinheimer<Node id="139"/> Stadtwirtshaus Apfelwein ausgeschenkt . Aus dieser Tradition erwuchs 1952 das <Node id="218"/>Bundesäppelwoifest<Node id="236"/> . Ein Traditionsbruch tritt in diesem Jahr ausgerechnet zum 40. Geburtstag ein : Die einzige in <Node id="333"/>Steinheim<Node id="342"/> verbliebene Kelterei <Node id="364"/>Jung<Node id="368"/> ist auch nicht mehr . 1991 lieferte sie noch das Stöffche . In diesem Jahr aber muß die <Node id="457"/>Steinheimer Karnevalsgesellschaft<Node id="490"/> ( <Node id="493"/>SKG<Node id="496"/> ) als Veranstalterin auf die Kelterei <Node id="535"/>Höhl<Node id="539"/> aus <Node id="544"/>Hochstadt<Node id="553"/> zurückgreifen , wenn vom 28. bis 31. August wieder einige tausend Besucher / innen im <Node id="640"/>Schloßhof<Node id="649"/> erwartet werden . Rund 15 000 Menschen strömten im vergangenen Jahr in die Zelte . Von solchen Massen fühlen sich vor allem ältere <Node id="781"/>Steinheimer<Node id="792"/> eher abgestoßen und meiden das Fest . Der Andrang von außerhalb habe den ursprünglichen Charakter des Festes immer mehr verfälscht , die <Node id="930"/>Steinheimer<Node id="941"/> zusammenkommen zu lassen , ist in den Gassen der Altstadt oft zu hören . Dem wollen die Karnevalisten diesmal entgegenwirken . Sie setzen auf mehr Gemütlichkeit . Volkstümliche Musik ist daher angesagt , stammt sie nun von den &quot; <Node id="1171"/>Original Oberburgern<Node id="1191"/> &quot; am Festsamstag , den &quot; <Node id="1217"/>Kaiserlich Böhmischen<Node id="1238"/> &quot; am Sonntag oder dem &quot; <Node id="1263"/>Frankenland Gaudi-Express<Node id="1288"/> &quot; am Montag . Den auswärtigen Kapellen sind die Abende vorbehalten , die Einheimischen spielen zum Frühschoppen auf : der <Node id="1411"/>Evangelische Posaunenchor<Node id="1436"/> am Sonntag und der <Node id="1456"/>Orchesterverein Steinheim<Node id="1481"/> am Montag . Wie in jedem der vergangenen Jahre hat es die <Node id="1540"/>SKG<Node id="1543"/> auch diesmal schwer , genug ehrenamtliche Helfer / innen für Zeltaufbau und Bewirtung zu finden . Obschon die großen Schulferien längst vorbei sind , mußte der Verein viele Absagen hinnehmen . 200 Helfende sind während des gesamten Festes vonnöten , die meisten müssen zwei oder drei Dienste versehen . Ein Drittel davon stammt nicht von der <Node id="1886"/>SKG<Node id="1889"/> , sondern kommt von befreundeten Vereinen . Die Höhepunkte des Festes sind wie stets das Verleihen des Ehrenbembels und die Kür der <Node id="2022"/>Bundesäppelwoikönigin<Node id="2043"/> am Samstag und des - königs am Montag . Im Anfangsjahr 1952 gab es zunächst nur eine Königin , drei Jahre später gesellte sich das männliche Pendant dazu . Mehr als 40 ehemalige <Node id="2222"/>Äppelwoi-Insignienträger<Node id="2246"/> / innen haben zugesagt , der <Node id="2276"/>SKG-Einladung<Node id="2289"/> zu folgen . In den Anfangsjahren ging die <Node id="2332"/>SKG-Spitze<Node id="2342"/> kurz durch die Reihen und fragte , wer bereit sei , die Königin zu spielen . Das ist heute nicht mehr denkbar . Wochen zuvor werden die Designierten bereits ausgewählt .<Node id="2512"/></TextWithNodes>
+<!-- The default annotation set -->
+
+<AnnotationSet>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Key" >
+<Annotation Type="ORG" StartNode="1217" EndNode="1238">
+</Annotation>
+<Annotation Type="LOC" StartNode="80" EndNode="89">
+</Annotation>
+<Annotation Type="ORG" StartNode="1540" EndNode="1543">
+</Annotation>
+<Annotation Type="ORG" StartNode="1171" EndNode="1191">
+</Annotation>
+<Annotation Type="ORG" StartNode="1411" EndNode="1436">
+</Annotation>
+<Annotation Type="ORG" StartNode="1263" EndNode="1288">
+</Annotation>
+<Annotation Type="LOC" StartNode="333" EndNode="342">
+</Annotation>
+<Annotation Type="ORG" StartNode="1456" EndNode="1481">
+</Annotation>
+<Annotation Type="LOC" StartNode="101" EndNode="106">
+</Annotation>
+<Annotation Type="LOC" StartNode="640" EndNode="649">
+</Annotation>
+<Annotation Type="ORG" StartNode="535" EndNode="539">
+</Annotation>
+<Annotation Type="ORG" StartNode="457" EndNode="490">
+</Annotation>
+<Annotation Type="ORG" StartNode="364" EndNode="368">
+</Annotation>
+<Annotation Type="ORG" StartNode="1886" EndNode="1889">
+</Annotation>
+<Annotation Type="LOC" StartNode="544" EndNode="553">
+</Annotation>
+<Annotation Type="ORG" StartNode="493" EndNode="496">
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Original markups" >
+<Annotation Type="ORG" StartNode="1171" EndNode="1191">
+</Annotation>
+<Annotation Type="ORG" StartNode="457" EndNode="490">
+</Annotation>
+<Annotation Type="MISC" StartNode="2222" EndNode="2246">
+</Annotation>
+<Annotation Type="ORG" StartNode="1217" EndNode="1238">
+</Annotation>
+<Annotation Type="ORG" StartNode="364" EndNode="368">
+</Annotation>
+<Annotation Type="MISC" StartNode="2022" EndNode="2043">
+</Annotation>
+<Annotation Type="ORG" StartNode="493" EndNode="496">
+</Annotation>
+<Annotation Type="ORG" StartNode="1886" EndNode="1889">
+</Annotation>
+<Annotation Type="LOC" StartNode="333" EndNode="342">
+</Annotation>
+<Annotation Type="MISC" StartNode="42" EndNode="60">
+</Annotation>
+<Annotation Type="MISC" StartNode="930" EndNode="941">
+</Annotation>
+<Annotation Type="MISC" StartNode="2276" EndNode="2289">
+</Annotation>
+<Annotation Type="MISC" StartNode="128" EndNode="139">
+</Annotation>
+<Annotation Type="ORG" StartNode="1456" EndNode="1481">
+</Annotation>
+<Annotation Type="LOC" StartNode="544" EndNode="553">
+</Annotation>
+<Annotation Type="ORG" StartNode="1411" EndNode="1436">
+</Annotation>
+<Annotation Type="LOC" StartNode="101" EndNode="106">
+</Annotation>
+<Annotation Type="LOC" StartNode="640" EndNode="649">
+</Annotation>
+<Annotation Type="ORG" StartNode="1263" EndNode="1288">
+</Annotation>
+<Annotation Type="LOC" StartNode="80" EndNode="89">
+</Annotation>
+<Annotation Type="MISC" StartNode="781" EndNode="792">
+</Annotation>
+<Annotation Type="ORG" StartNode="1540" EndNode="1543">
+</Annotation>
+<Annotation Type="MISC" StartNode="2332" EndNode="2342">
+</Annotation>
+<Annotation Type="ORG" StartNode="535" EndNode="539">
+</Annotation>
+<Annotation Type="MISC" StartNode="218" EndNode="236">
+</Annotation>
+<Annotation Type="root" StartNode="0" EndNode="2512">
+</Annotation>
+</AnnotationSet>
+</GateDocument>

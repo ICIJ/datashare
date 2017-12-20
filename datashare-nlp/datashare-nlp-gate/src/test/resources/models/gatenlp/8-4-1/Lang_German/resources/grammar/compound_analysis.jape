@@ -1,0 +1,299 @@
+Phase: NOMINAL_COMPOUND_ANALYSIS
+Input: Lookup SpaceToken Token
+Options: control = appelt
+
+Macro: TWO_DIGIT
+({Token.kind == number, Token.length == "2"})
+
+Macro: FOUR_DIGIT
+({Token.kind == number, Token.length == "4"})
+
+Macro: YEAR
+(        
+ TWO_DIGIT | FOUR_DIGIT | 
+ {Token.string == "'"}
+ (TWO_DIGIT)
+)
+
+///////////////////////////////////////////
+// Compound analysis rules
+///////////////////////////////////////////
+
+// LOC
+
+Rule: Location_key2
+// e.g. Darmstadt,Kirchgemeinde
+(
+	(
+	(
+	{Token.orth == "allCaps"}
+	|
+	{Token.orth == "upperInitial"}
+	)
+	({Token.string == "-"})
+	)*
+	{Lookup.minorType == "location_key"}
+):tag
+-->
+
+{
+ gate.AnnotationSet tagAS = (gate.AnnotationSet)bindings.get("tag");
+ Annotation lookup = (Annotation)tagAS.iterator().next();
+ 
+ // get Token info associated with the tag found
+ 
+gate.AnnotationSet tokenAS = inputAS.get("Token", 
+								      lookup.getStartNode().getOffset(),
+								      lookup.getEndNode().getOffset());
+if(tokenAS.size() != 1) return;
+Annotation token = (Annotation)tokenAS.iterator().next();
+
+if(token.getEndNode().getOffset().compareTo(lookup.getEndNode().getOffset()) 
+== 0
+   && token.getStartNode().getOffset().compareTo(lookup.getStartNode().getOffset()) 
+< 0){
+        //create new annotation		
+	gate.FeatureMap features = Factory.newFeatureMap();
+	features.put("rule", "Location_key2");
+	outputAS.add(tokenAS.firstNode(),
+			       tokenAS.lastNode(), 
+			       "Location", features);   
+}
+}
+
+
+Rule: Exception1_Location_key2
+Priority: 20
+(
+	(
+	{Token.string == "durchaus"}
+	|
+	{Token.string == "geheim"}
+	|
+	{Token.string == "daheim"}
+	|
+	{Token.string == "Hauptstadt"}
+	|
+	{Token.string == "Heimatstadt"}
+	|
+	{Token.string == "Sportplatz"}
+	)
+)
+-->
+{}
+
+Rule: Exception2_Location_key2
+Priority: 100
+
+(
+ {Lookup.majorType == location_key, Lookup.minorType == external}
+ ({SpaceToken}
+  {Lookup.majorType == location})+
+)
+-->
+{}
+
+Rule: Exception3_Location_key2
+Priority: 100
+
+(
+ {Lookup.majorType == location_key, Lookup.minorType == external}
+ ({SpaceToken}
+  {Token.orth == upperInitial})+
+)
+-->
+{}
+
+Rule: location_key3
+
+	{SpaceToken.kind == "space"}
+(
+	{Lookup.majorType == "location"}
+	{Lookup.majorType == "location_suffix"}
+):kl
+	(
+	{SpaceToken.kind == "space"}
+	|
+	{Token.kind == "punctuation"}
+	)
+-->
+:kl.Location = {kind = "Location", subtype = "possessive loc" , rule = "Location_key3"}
+
+Rule: exception_location_key3_1
+Priority: 20
+(
+	{Lookup.majorType == "location"}
+	{Lookup.majorType == "location_suffix"}
+	{Lookup.majorType == "location_suffix_exception"}
+)
+-->
+{}
+
+Rule: exception_location_key3_2
+Priority: 20
+(
+	{Lookup.majorType == "location"}
+	{Lookup.majorType == "location_suffix"}
+	{Token.string == "-"}
+)
+-->
+{}
+
+Rule: exception_location_key3_3
+Priority: 20
+// note change the "ein" to any article when we have a POS tagger
+(
+ {Token.string == "ein"}
+ {SpaceToken.kind == "space"}
+)
+(
+	{Lookup.majorType == "location"}
+	{Lookup.majorType == "location_suffix"}
+)
+	(
+	{SpaceToken.kind == "space"}
+	|
+	{Token.kind == "punctuation"}
+	)
+ -->
+ {}
+
+
+Rule: Exception1_Organization_key2
+Priority: 20
+(
+	{Token.string == "trat"}
+)
+-->
+
+{}
+
+// e.g. Sportbund
+Rule: Organization_key2
+(
+	(
+	(
+	{Token.orth == "allCaps"}
+	|
+	{Token.orth == "upperInitial"}
+	)?
+	({Token.string == "-"})
+	)*
+	{Lookup.minorType == "organization_key"}
+):tag
+-->
+
+{
+ gate.AnnotationSet tagAS = (gate.AnnotationSet)bindings.get("tag");
+ Annotation lookup = (Annotation)tagAS.iterator().next();
+ 
+ // get Token info associated with the tag found
+ 
+gate.AnnotationSet tokenAS = inputAS.get("Token", 
+								      lookup.getStartNode().getOffset(),
+								      lookup.getEndNode().getOffset());
+if(tokenAS.size() != 1) return;
+Annotation token = (Annotation)tokenAS.iterator().next();
+
+if(token.getEndNode().getOffset().compareTo(lookup.getEndNode().getOffset()) 
+== 0
+   && token.getStartNode().getOffset().compareTo(lookup.getStartNode().getOffset()) 
+< 0){
+        //create new annotation		
+	gate.FeatureMap features = Factory.newFeatureMap();
+	features.put("rule", "Organization_key2");
+	outputAS.add(tokenAS.firstNode(),
+			       tokenAS.lastNode(), 
+			       "Organization", features);   
+}
+}
+
+
+
+Rule: Time_key2
+Priority: 20
+//e.g. Handelszeitraum
+
+(
+{Lookup.minorType == "time_key2"}
+(YEAR)?
+):tag
+-->
+
+{
+ gate.AnnotationSet tagAS = (gate.AnnotationSet)bindings.get("tag");
+ Annotation lookup = (Annotation)tagAS.iterator().next();
+ 
+ // get Token info associated with the tag found
+ 
+gate.AnnotationSet tokenAS = inputAS.get("Token", 
+								      lookup.getStartNode().getOffset(),
+								      lookup.getEndNode().getOffset());
+if(tokenAS.size() != 1) return;
+Annotation token = (Annotation)tokenAS.iterator().next();
+
+if(token.getEndNode().getOffset().compareTo(lookup.getEndNode().getOffset()) 
+== 0
+   && token.getStartNode().getOffset().compareTo(lookup.getStartNode().getOffset()) 
+< 0){
+        //create new annotation		
+	gate.FeatureMap features = Factory.newFeatureMap();
+	features.put("rule", "Time_key2");
+        features.put("kind", "Time");
+	outputAS.add(tokenAS.firstNode(),
+			       tokenAS.lastNode(), 
+			       "Date", features);   
+}
+}
+
+Rule: Exception_Time_key2
+Priority: 50
+(
+(
+{Token.string == "derzeit"}
+|
+{Token.string == "Derzeit"}
+)
+)
+-->
+{}
+
+
+
+Rule: Date_key1
+Priority: 20
+//e.g. Handelsjahr
+(
+{Lookup.minorType == "date_key"}
+   (
+   {SpaceToken}
+   YEAR
+   )?
+):tag
+-->
+
+{
+ gate.AnnotationSet tagAS = (gate.AnnotationSet)bindings.get("tag");
+ Annotation lookup = (Annotation)tagAS.iterator().next();
+ 
+ // get Token info associated with the tag found
+ 
+gate.AnnotationSet tokenAS = inputAS.get("Token", 
+								      lookup.getStartNode().getOffset(),
+								      lookup.getEndNode().getOffset());
+if(tokenAS.size() != 1) return;
+Annotation token = (Annotation)tokenAS.iterator().next();
+
+if(token.getEndNode().getOffset().compareTo(lookup.getEndNode().getOffset()) 
+== 0
+   && token.getStartNode().getOffset().compareTo(lookup.getStartNode().getOffset()) 
+< 0){
+        //create new annotation		
+	gate.FeatureMap features = Factory.newFeatureMap();
+	features.put("rule", "Date_key1");
+	outputAS.add(tokenAS.firstNode(),
+			       tokenAS.lastNode(), 
+			       "Date", features);   
+}
+}
+

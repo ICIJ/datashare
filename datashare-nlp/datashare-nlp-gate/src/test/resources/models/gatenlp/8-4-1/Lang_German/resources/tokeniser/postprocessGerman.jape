@@ -1,0 +1,225 @@
+// Brian Mitchell, December 2003 -- January 2004
+// modified from:
+// Valentin Tablan, 29/06/2001
+// $id$
+
+
+Phase:postprocess
+Input: Token SpaceToken
+Options: control = appelt
+
+//adjusts the tokeniser output
+
+
+
+Rule: addnumtype
+ (
+   {Token.kind=="number"}
+ ):original
+-->
+{
+  gate.AnnotationSet toRemove = (gate.AnnotationSet)bindings.get("original");
+  outputAS.removeAll(toRemove);
+  //get the tokens
+  java.util.ArrayList tokens = new java.util.ArrayList(toRemove);
+  //define a comparator for annotations by start offset
+  Collections.sort(tokens, new gate.util.OffsetComparator());
+  String text = "";
+  Iterator tokIter = tokens.iterator();
+  while(tokIter.hasNext())
+    text += (String)((Annotation)tokIter.next()).getFeatures().get("string");
+
+  gate.FeatureMap features = Factory.newFeatureMap();
+  features.put("kind", "number");
+  features.put("string", text);
+  features.put("length", Integer.toString(text.length()));
+  features.put("numtype", "ordinal");
+  outputAS.add(toRemove.firstNode(), toRemove.lastNode(), "Token", features);
+}
+
+
+
+////////////////////
+Rule: numberJoin
+ (
+  // 123.456
+  (
+   {Token.kind=="number"}
+   (({Token.string=="."}|{Token.string==","})
+   {Token.kind=="number"})+
+  )
+ ):original
+-->
+{
+  gate.AnnotationSet toRemove = (gate.AnnotationSet)bindings.get("original");
+  outputAS.removeAll(toRemove);
+  //get the tokens
+  java.util.ArrayList tokens = new java.util.ArrayList(toRemove);
+  //define a comparator for annotations by start offset
+  Collections.sort(tokens, new gate.util.OffsetComparator());
+  String text = "";
+  Iterator tokIter = tokens.iterator();
+  while(tokIter.hasNext())
+    text += (String)((Annotation)tokIter.next()).getFeatures().get("string");
+
+  gate.FeatureMap features = Factory.newFeatureMap();
+  features.put("kind", "number");
+  features.put("string", text);
+  features.put("length", Integer.toString(text.length()));
+  features.put("numtype", "punctuated");
+  outputAS.add(toRemove.firstNode(), toRemove.lastNode(), "Token", features);
+}
+
+
+
+
+////////////////////
+Rule: ordinal
+ (
+  // 1.   2.   3.  etc
+  (
+   {Token.kind=="number"}
+   {Token.string=="."}
+  )
+ ):original
+-->
+{
+  gate.AnnotationSet toRemove = (gate.AnnotationSet)bindings.get("original");
+  outputAS.removeAll(toRemove);
+  //get the tokens
+  java.util.ArrayList tokens = new java.util.ArrayList(toRemove);
+  //define a comparator for annotations by start offset
+  Collections.sort(tokens, new gate.util.OffsetComparator());
+  String text = "";
+  Iterator tokIter = tokens.iterator();
+  while(tokIter.hasNext())
+    text += (String)((Annotation)tokIter.next()).getFeatures().get("string");
+
+  gate.FeatureMap features = Factory.newFeatureMap();
+  features.put("kind", "number");
+  features.put("string", text);
+  features.put("length", Integer.toString(text.length()));
+  features.put("numtype", "ordinal");
+  outputAS.add(toRemove.firstNode(), toRemove.lastNode(), "Token", features);
+}
+
+
+
+////////////////////////////////////////////////////////////
+// original rules from ANNIE below
+
+Rule: simpleJoin
+ (
+  //'30s, ..., 'Cause, 'em, 'N, 'S, 's, 'T, 'd, , 'll, 'm, 're, 's, 'til, 've
+  (
+   {Token.string=="'"}
+   ({Token.string=="30s"}|{Token.string=="40s"}|{Token.string=="50s"}|{Token.string=="60s"}
+    |{Token.string=="70s"}|{Token.string=="80s"}|{Token.string=="90s"}|{Token.string=="Cause"}
+    |{Token.string=="cause"}|{Token.string=="Em"}|{Token.string=="em"}|{Token.string=="N"}
+    |{Token.string=="S"}|{Token.string=="s"}|{Token.string=="T"}|{Token.string=="d"}
+    |{Token.string=="ll"}|{Token.string=="m"}|{Token.string=="re"}|{Token.string=="s"}
+    |{Token.string=="til"}|{Token.string=="ve"})
+  )
+  |
+  //'n'
+  ({Token.string=="'"} {Token.string=="n"} {Token.string=="'"})
+  |
+  //C'mon
+  (({Token.string=="C"}|{Token.string=="c"}){Token.string=="'"} {Token.string=="mon"})
+  |
+  //o'clock
+  (({Token.string=="O"}|{Token.string=="o"}){Token.string=="'"} {Token.string=="clock"})
+  |
+  //ma'am
+  (({Token.string=="ma"}|{Token.string=="Ma"}){Token.string=="'"} {Token.string=="am"})
+
+ ):left
+-->
+{
+  gate.AnnotationSet toRemove = (gate.AnnotationSet)bindings.get("left");
+  outputAS.removeAll(toRemove);
+  //get the tokens
+  java.util.ArrayList tokens = new java.util.ArrayList(toRemove);
+  //define a comparator for annotations by start offset
+  Collections.sort(tokens, new gate.util.OffsetComparator());
+  String text = "";
+  Iterator tokIter = tokens.iterator();
+  while(tokIter.hasNext())
+    text += (String)((Annotation)tokIter.next()).getFeatures().get("string");
+
+  gate.FeatureMap features = Factory.newFeatureMap();
+  features.put("kind", "word");
+  features.put("string", text);
+  features.put("length", Integer.toString(text.length()));
+  features.put("orth", "apostrophe");
+  outputAS.add(toRemove.firstNode(), toRemove.lastNode(), "Token", features);
+}
+
+//?n't
+Rule: VBneg
+   ({Token}):one
+   ({Token.string=="'"}{Token.string=="t"}):two
+-->
+{
+  gate.Annotation firstToken = (gate.Annotation)
+                               ((gate.AnnotationSet)bindings.get("one")).iterator().next();
+  String firstTokenText = (String)firstToken.getFeatures().get("string");
+  if(firstTokenText.endsWith("n")){
+    //remove the old tokens
+    outputAS.removeAll((gate.AnnotationSet)bindings.get("one"));
+    outputAS.removeAll((gate.AnnotationSet)bindings.get("two"));
+    //create the new tokens
+    Long ofs0 = firstToken.getStartNode().getOffset();
+    Long ofs1 = new Long(firstToken.getEndNode().getOffset().longValue() - 1);
+    Long ofs2 = ((gate.AnnotationSet)bindings.get("two")).lastNode().getOffset();
+    try{
+      gate.FeatureMap features;
+      if(!ofs0.equals(ofs1)){
+        features = Factory.newFeatureMap();
+        features.put("kind", "word");
+        String text = firstTokenText.substring(0, firstTokenText.length() - 1);
+        features.put("string", text);
+        features.put("length", Integer.toString(text.length()));
+        features.put("orth", firstToken.getFeatures().get("orth"));
+        outputAS.add(ofs0, ofs1, "Token", features);
+      }
+
+      features = Factory.newFeatureMap();
+      features.put("kind", "word");
+      features.put("string", "n't");
+      features.put("length", "3");
+      features.put("orth", "lowercase");
+      outputAS.add(ofs1, ofs2, "Token", features);
+    }catch(Exception e){
+      e.printStackTrace();
+    }
+  }//if first token ends with "n"
+}
+
+// CR+LF | CR |LF+CR -> One single SpaceToken
+Rule: NewLine
+ (
+  ({SpaceToken.string=="\n"}) |
+  ({SpaceToken.string=="\r"}) |
+  ({SpaceToken.string=="\n"}{SpaceToken.string=="\r"}) |
+  ({SpaceToken.string=="\r"}{SpaceToken.string=="\n"})
+  ):left
+-->
+{
+  gate.AnnotationSet toRemove = (gate.AnnotationSet)bindings.get("left");
+  outputAS.removeAll(toRemove);
+  //get the tokens
+  java.util.ArrayList tokens = new java.util.ArrayList(toRemove);
+  //define a comparator for annotations by start offset
+  Collections.sort(tokens, new gate.util.OffsetComparator());
+  String text = "";
+  Iterator tokIter = tokens.iterator();
+  while(tokIter.hasNext())
+    text += (String)((Annotation)tokIter.next()).getFeatures().get("string");
+
+  gate.FeatureMap features = Factory.newFeatureMap();
+  features.put("kind", "control");
+  features.put("string", text);
+  features.put("length", Integer.toString(text.length()));
+  outputAS.add(toRemove.firstNode(), toRemove.lastNode(), "SpaceToken", features);
+}

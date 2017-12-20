@@ -1,0 +1,378 @@
+/*
+*  org_context.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: org_context.jape 18220 2014-07-31 15:05:47Z dgmaynard $
+*/
+
+
+Phase:	Org_Context
+Input: Token Lookup Organization Unknown Location Person JobTitle Initials
+Options: control = appelt
+
+Macro: THE
+( 
+ {Token.string == "the"}|
+ {Token.string == "The"}|
+ {Token.string == "THE"}
+)
+
+
+Rule:OrgContext1
+Priority: 1
+// company X
+// company called X
+
+(
+ {Token.string == "company"}
+ (({Token.string == "called"}|
+   {Token.string == "dubbed"}|
+   {Token.string == "named"}
+  )
+ )?
+)
+( 
+ {Unknown.kind == PN}
+)
+:org
+-->
+{
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "OrgContext1");
+features.put("orgType ", "company");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+Rule: OrgContext2
+Priority: 5
+
+// Telstar laboratory
+// Medici offices
+(
+ {Unknown.kind == PN}
+): org
+(
+ ({Token.string == "offices"} |
+ {Token.string == "Offices"} |
+ {Token.string == "laboratory"} | 
+ {Token.string == "Laboratory"} |
+ {Token.string == "laboratories"} |
+ {Token.string == "Laboratories"})
+)
+-->
+{
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "OrgContext2");
+features.put("orgType ", "company");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+Rule:OrgContext3
+Priority: 5
+// X shares
+
+(
+ {Unknown.kind == PN}
+):org
+( 
+ {Token.string == "shares"}
+)
+-->
+{
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "OrgContext3");
+features.put("orgType ", "company");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+Rule:OrgContext4
+Priority: 10
+// shares in X
+
+( 
+ {Token.string == "shares"}
+ {Token.string == "in"}
+)
+(
+ {Unknown.kind == PN}
+):org
+-->
+{
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "OrgContext4");
+features.put("orgType ", "company");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+
+Rule: OrgContext5
+Priority: 10
+// officials at X
+
+(
+ ({Token.string == "officials"}|
+  {Token.string == "Officials"})
+ {Token.string == "at"}
+)
+(
+ {Unknown.kind == PN}
+):org
+-->
+ {
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "OrgContext5");
+features.put("orgType ", "company");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+
+Rule:JoinOrg
+Priority: 50
+// Smith joined Energis
+// later we should use the morph PR to prevent having to list morphological variants
+
+(
+ ({Token.string == "joined"}|
+  {Token.string == "joining"}|
+  {Token.string == "joins"}|
+  {Token.string == "join"}
+ )
+
+)
+( 
+ {Unknown.kind ==PN}
+)
+:org
+-->
+ {
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "JoinOrg");
+features.put("orgType ", "company");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+
+Rule:OrgPerson
+Priority: 20
+// Nokia Vice-President William Plummer
+
+(
+ {Unknown.kind == PN}
+):org 
+(
+ ({Token.string == "'"}
+  ({Token.string == "s"})?
+ )?
+
+ {Person.rule1 == PersonTitle}
+)
+--> 
+ {
+//get the matched annotation(s)
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+
+//create the new annotation
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "OrgPerson");
+features.put("orgType ", "company");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+
+//delete the old annotation(s)
+outputAS.removeAll(org);
+}
+
+Rule:UnknownJobTitlePerson
+
+(
+ {Unknown.kind == PN}
+):org 
+(
+ ({Token.string == "'"}
+  ({Token.string == "s"})?
+ )?
+{JobTitle}
+ {Person}
+)
+--> 
+ {
+//get the matched annotation(s)
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+
+//create the new annotation
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "UnknownJobTitlePerson");
+features.put("orgType ", "company");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+
+//delete the old annotation(s)
+outputAS.removeAll(org);
+}
+
+Rule: OrgConjOrg1 
+Priority: 10
+
+(
+{Unknown.kind == PN}
+):org
+(
+{Token.category == CC}
+{Organization}
+)
+-->
+{
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "OrgConjOrg1");
+features.put("orgType ", "unknown");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+
+Rule: OrgConjOrg2
+Priority: 10
+
+(
+ {Organization}
+ {Token.category == CC}
+)
+(
+ {Unknown.kind == PN}
+):org
+-->
+ {
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "OrgConjOrg2");
+features.put("orgType ", "unknown");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+
+
+//Rule: OrgJobtitle
+//Priority: 30
+//(
+// {Unknown.kind == PN}
+//):org
+//( 
+// {Lookup.majorType == jobtitle}
+//)
+//-->
+//  {
+//gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+//gate.FeatureMap features = Factory.newFeatureMap();
+//features.put("rule ", "OrgJobTitle");
+//features.put("orgType ", "company");
+//outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+//features);
+//outputAS.removeAll(org);
+//}
+
+
+Rule: AcronymOrg
+Priority: 30
+
+
+ (THE)
+ ({Initials, Unknown.kind == PN}):org
+-->
+{
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "AcronymOrg");
+features.put("orgType ", "unknown");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+ 
+Rule: OrgBracketOrg
+Priority: 30
+
+(
+ {Organization}
+ {Token.string == "("}
+)
+({Initials, Unknown.kind == PN}):org
+-->
+{
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "OrgBracketOrg");
+features.put("orgType ", "unknown");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}
+
+
+Rule: PersonOrgEnding
+Priority: 30
+// J.W. Fish & Co should be an Organisation not a Person
+
+(
+ ({Person}):person
+ {Lookup.majorType == cdg}
+):org
+-->
+{
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("org");
+gate.AnnotationSet personSet = (gate.AnnotationSet) bindings.get("person");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "PersonOrgEnding");
+features.put("orgType ", "company");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(personSet);
+}
+
+
+Rule:CityUniversity
+
+(
+ {Location.locType == city}
+ {Token.string == "University"}
+ ):tag
+ -->
+ {
+gate.AnnotationSet org = (gate.AnnotationSet) bindings.get("tag");
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule ", "CityUniversity");
+features.put("orgType ", "university");
+outputAS.add(org.firstNode(), org.lastNode(), "Organization",
+features);
+outputAS.removeAll(org);
+}

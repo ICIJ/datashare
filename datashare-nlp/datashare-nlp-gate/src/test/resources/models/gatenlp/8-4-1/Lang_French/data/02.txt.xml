@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<GateDocument>
+<!-- The document's features-->
+
+<GateDocumentFeatures>
+<Feature>
+  <Name className="java.lang.String">gate.SourceURL</Name>
+  <Value className="java.lang.String">file:/home/diana/french/data/le_monde/clean/02.txt</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">docNewLineType</Name>
+  <Value className="java.lang.String">LF</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">MimeType</Name>
+  <Value className="java.lang.String">text/plain</Value>
+</Feature>
+</GateDocumentFeatures>
+<!-- The document content area with serialized nodes -->
+
+<TextWithNodes><Node id="0"/>Deux enfants palestiniens tués par des tirs israéliens à <Node id="57"/>Jabaliya<Node id="65"/>
+AFP | 07.10.04 | 08h13<Node id="88"/>
+
+<Node id="90"/>Deux enfants palestiniens ont été tués <Node id="129"/>jeudi matin<Node id="140"/> par des tirs de chars
+israéliens à <Node id="176"/>Jabaliya<Node id="184"/>, dans le nord de <Node id="202"/>la <Node id="205"/>bande de Gaza<Node id="218"/>, apprend-on de sources
+hospitalières palestiniennes.Les deux enfants, dont l&apos;identité n&apos;a pas été
+immédiatement précisée, ont été déchiquetés par un tir d&apos;obus de char israélien,
+selon ces sources.Ces nouveaux décès portent à 90 le nombre de <Node id="461"/>Palestiniens<Node id="473"/> tués
+par l&apos;armée israélienne depuis le lancement <Node id="523"/>le <Node id="526"/>28 septembre<Node id="538"/> de son offensive
+dans le nord de <Node id="572"/>la <Node id="575"/>bande de Gaza<Node id="588"/> pour mettre fin aux tirs de roquettes
+palestiniennes contre <Node id="649"/>Israël<Node id="655"/>.Depuis le début de l&apos;Intifada <Node id="686"/>fin septembre 2000<Node id="704"/>,
+les violences ont fait 4.453 morts, dont 3.425 <Node id="753"/>Palestiniens<Node id="765"/> et 954 <Node id="773"/>Israéliens<Node id="783"/>.
+<Node id="785"/></TextWithNodes>
+<!-- The default annotation set -->
+
+<AnnotationSet>
+<Annotation Type="Location" StartNode="649" EndNode="655">
+</Annotation>
+<Annotation Type="Person" StartNode="461" EndNode="473">
+</Annotation>
+<Annotation Type="Date" StartNode="523" EndNode="538">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Location" StartNode="202" EndNode="218">
+</Annotation>
+<Annotation Type="Person" StartNode="753" EndNode="765">
+</Annotation>
+<Annotation Type="Date" StartNode="686" EndNode="704">
+</Annotation>
+<Annotation Type="Person" StartNode="773" EndNode="783">
+</Annotation>
+<Annotation Type="Location" StartNode="572" EndNode="588">
+</Annotation>
+<Annotation Type="Date" StartNode="129" EndNode="140">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">dateTime</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Location" StartNode="176" EndNode="184">
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Key" >
+<Annotation Type="Location" StartNode="176" EndNode="184">
+</Annotation>
+<Annotation Type="Date" StartNode="526" EndNode="538">
+</Annotation>
+<Annotation Type="Date" StartNode="129" EndNode="140">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Location" StartNode="205" EndNode="218">
+</Annotation>
+<Annotation Type="Location" StartNode="649" EndNode="655">
+</Annotation>
+<Annotation Type="Location" StartNode="57" EndNode="65">
+</Annotation>
+<Annotation Type="Location" StartNode="575" EndNode="588">
+</Annotation>
+<Annotation Type="Date" StartNode="686" EndNode="704">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Original markups" >
+<Annotation Type="paragraph" StartNode="0" EndNode="88">
+</Annotation>
+<Annotation Type="paragraph" StartNode="90" EndNode="785">
+</Annotation>
+</AnnotationSet>
+</GateDocument>

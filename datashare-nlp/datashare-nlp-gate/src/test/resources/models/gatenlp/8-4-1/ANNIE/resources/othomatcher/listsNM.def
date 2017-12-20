@@ -1,0 +1,8 @@
+#    cdg.lst:cdg
+../gazetteer/org_ending.lst:cdg
+spur_match.lst:spur_match
+prepos.lst:prepos
+def_art.lst:def_art
+connnector.lst:connnector
+alias.lst:alias
+nickname.txt:nickname

@@ -1,0 +1,64 @@
+/*
+*  splitter.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 11 Oct 2001
+*
+*  $Id: split.jape 6377 2004-11-24 16:35:18Z diana $
+*/
+
+Phase:split
+Input: Token Split
+Options: control = first
+
+
+
+//Macro:SPLIT2
+//(
+// {CR}
+//)
+
+
+//Macro: ABBREV1
+//(
+// {Lookup.majorType=="abbreviation"} (FULLSTOP)
+//)
+
+//Macro: ABBREV2
+//({Token.orth=="upperInitial", Token.length=="1"} FULLSTOP)
+
+//Macro: ABBREV
+//(ABBREV1 | ABBREV2)
+
+//Macro: SENTENCE
+//(
+// ({Fake}|{Token})
+// ({Fake}|{Token})*
+//)
+
+
+//sentence that consumes a split
+Rule: r1
+(
+ ({Token})+ {Split.kind == "internal"}
+) :sentence
+-->
+:sentence.Sentence = {}
+
+//sentence that doesn't consume a split
+Rule: r2
+(
+ ({Token})+
+):sentence
+({Split.kind == "external"})
+-->
+:sentence.Sentence = {}
+
+
+

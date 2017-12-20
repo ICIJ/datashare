@@ -1,0 +1,6 @@
+person_male.lst:http://gate.ac.uk/tests/demo.owl:Person
+person_male_cap.lst:http://gate.ac.uk/tests/demo.owl:Person
+person_male_lower.lst:http://gate.ac.uk/tests/demo.owl:Person
+person_female.lst:http://gate.ac.uk/tests/demo.owl:Person
+person_female_cap.lst:http://gate.ac.uk/tests/demo.owl:Person
+person_female_lower.lst:http://gate.ac.uk/tests/demo.owl:Person

@@ -1,0 +1,21 @@
+
+Phase:	NumberLetter
+Input: Token SpaceToken
+Options: control = appelt
+
+
+
+
+Rule: NumberLetter
+// A word that's adjoining a number with no spaces between should not be considerd as part of any entity
+
+(
+ {Token.kind == number}
+)
+( {Token.kind == word}
+):tag
+-->
+:tag.NumberLetter = {rule = "NumberLetter"}
+
+
+

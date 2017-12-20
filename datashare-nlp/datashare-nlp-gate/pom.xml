@@ -29,18 +29,11 @@
             <artifactId>datashare-api</artifactId>
         </dependency>
 
-        <!-- OEG UPM Entity-Extractor -->
+        <!-- Gate -->
         <dependency>
-            <groupId>es.upm.oeg</groupId>
-            <artifactId>entity-extractor</artifactId>
-            <version>${entity-extractor.version}</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>es.upm.oeg</groupId>
-            <artifactId>entity-extractor-lib</artifactId>
-            <version>${entity-extractor-lib.version}</version>
-            <type>jar</type>
+          <groupId>uk.ac.gate</groupId>
+          <artifactId>gate-core</artifactId>
+          <version>8.4.1</version>
         </dependency>
 
         <!-- Logging -->
@@ -53,6 +46,24 @@
             <artifactId>log4j-over-slf4j</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
+
+        <!-- tests -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+             <groupId>junit</groupId>
+             <artifactId>junit</artifactId>
+             <scope>test</scope>
+         </dependency>
+        <dependency>
+             <groupId>org.easytesting</groupId>
+             <artifactId>fest-assert</artifactId>
+             <version>1.4</version>
+             <scope>test</scope>
+         </dependency>
 
     </dependencies>
 

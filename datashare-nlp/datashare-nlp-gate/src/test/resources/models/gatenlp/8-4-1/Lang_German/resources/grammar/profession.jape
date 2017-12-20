@@ -1,0 +1,22 @@
+Phase: Jobtitle
+Input: Lookup Token
+Options: control = appelt
+
+
+Rule: Profession1
+(
+	({Lookup.minorType == "profession"})
+
+):OrgName
+-->
+:OrgName.Jobtitle = {kind = "profession", rule = "Profession1"}
+
+Rule: Exception_Profession1
+Priority: 20
+(
+	{Lookup.minorType == "profession"}
+        {Token.string=="-"}
+
+):OrgName
+-->
+{}

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!-- gate.xml -->
+<!-- $Id: gate.xml 18850 2015-08-04 14:44:01Z domrout $ -->
+
+<!-- any entries in this file will be processed at Gate.init()
+     time - i.e. will appear in every GATE invocation -->
+
+<GATE>
+
+<GATECONFIG Save_options_on_exit="true" Save_session_on_exit="true" Toolbar_Text="true" />
+
+
+</GATE>

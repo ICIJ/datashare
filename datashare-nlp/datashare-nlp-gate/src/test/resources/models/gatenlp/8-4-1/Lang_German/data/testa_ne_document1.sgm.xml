@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<GateDocument>
+<!-- The document's features-->
+
+<GateDocumentFeatures>
+<Feature>
+  <Name className="java.lang.String">gate.SourceURL</Name>
+  <Value className="java.lang.String">file:/home/diana/German/data/marked/testa_ne_document1.sgm</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">MimeType</Name>
+  <Value className="java.lang.String">text/sgml</Value>
+</Feature>
+</GateDocumentFeatures>
+<!-- The document content area with serialized nodes -->
+
+<TextWithNodes><Node id="0"/> Großer Foto-Wettbeweb &quot; <Node id="25"/>Nordendler<Node id="35"/> &quot; laden die <Node id="48"/>Nordendler<Node id="58"/> ein <Node id="63"/>NORDEND<Node id="70"/> . Einen Fotowettbewerb mit dem Thema &quot; Leben und feiern im <Node id="130"/>Nordend<Node id="137"/> und mit den <Node id="150"/>Nordendlern<Node id="161"/> &quot; hat der Vorstand des Karneval-Clubs ausgeschrieben . Teilnehmen können alle Mitglieder und Freunde der &quot; <Node id="269"/>Nordendler<Node id="279"/> &quot; sowie alle Bürger des Stadtteils . Für die schönsten und originellsten Motive jeder Preisgruppe gibt es einen Gutschein über jeweils 100 Mark zu gewinnen . Ausgeschrieben ist der Wettbewerb in drei Preisgruppen : Kinder bis 12 Jahre , Jugendliche und Erwachsene bis 21 Jahre sowie Erwachsene über 21 Jahre . Die Gewinner werden beim Saisonauftakt am 11. November ( 20 bis 22 Uhr ) , im Saal des <Node id="677"/>Gehörlosenzentrums<Node id="695"/> ( <Node id="698"/>Rothschildallee<Node id="713"/> 16 a ) bekanntgegeben . Einsendeschluß der Fotos mit Altersangabe , Name und Anschrift ist am Samstag , 31. Oktober . Aufnahmen ( bunt oder schwarz-weiß ) können an die Geschäftsstelle der &quot; <Node id="905"/>Nordendler<Node id="915"/> &quot; , <Node id="920"/>Lenaustraße<Node id="931"/> 70 ( <Node id="937"/>Glauburgbunker<Node id="951"/> ) , geschickt werden . Am Samstag , 5. September ( 10 bis 22 Uhr ) , beteiligen sich die &quot; <Node id="1043"/>Nordendler<Node id="1053"/> &quot; am <Node id="1059"/>Oeder-Weg-Straßenfest<Node id="1080"/> mit einem Stand ( Frühschoppen von 11 bis 13 Uhr ) . Es gibt unter anderem Wurst , Steaks , Kaffee und Kuchen . Der Musikzug bestreitet ein Platzkonzert , die Garden bieten Tanz und Show zu verschiedenen Tageszeiten .<Node id="1298"/></TextWithNodes>
+<!-- The default annotation set -->
+
+<AnnotationSet>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Key" >
+<Annotation Type="ORG" StartNode="269" EndNode="279">
+</Annotation>
+<Annotation Type="ORG" StartNode="905" EndNode="915">
+</Annotation>
+<Annotation Type="ORG" StartNode="25" EndNode="35">
+</Annotation>
+<Annotation Type="ORG" StartNode="1043" EndNode="1053">
+</Annotation>
+<Annotation Type="LOC" StartNode="677" EndNode="695">
+</Annotation>
+<Annotation Type="LOC" StartNode="698" EndNode="713">
+</Annotation>
+<Annotation Type="LOC" StartNode="937" EndNode="951">
+</Annotation>
+<Annotation Type="LOC" StartNode="63" EndNode="70">
+</Annotation>
+<Annotation Type="LOC" StartNode="130" EndNode="137">
+</Annotation>
+<Annotation Type="LOC" StartNode="150" EndNode="161">
+</Annotation>
+<Annotation Type="LOC" StartNode="920" EndNode="931">
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Original markups" >
+<Annotation Type="LOC" StartNode="130" EndNode="137">
+</Annotation>
+<Annotation Type="LOC" StartNode="698" EndNode="713">
+</Annotation>
+<Annotation Type="LOC" StartNode="937" EndNode="951">
+</Annotation>
+<Annotation Type="LOC" StartNode="63" EndNode="70">
+</Annotation>
+<Annotation Type="LOC" StartNode="677" EndNode="695">
+</Annotation>
+<Annotation Type="ORG" StartNode="1043" EndNode="1053">
+</Annotation>
+<Annotation Type="MISC" StartNode="48" EndNode="58">
+</Annotation>
+<Annotation Type="MISC" StartNode="1059" EndNode="1080">
+</Annotation>
+<Annotation Type="ORG" StartNode="905" EndNode="915">
+</Annotation>
+<Annotation Type="ORG" StartNode="269" EndNode="279">
+</Annotation>
+<Annotation Type="ORG" StartNode="25" EndNode="35">
+</Annotation>
+<Annotation Type="LOC" StartNode="920" EndNode="931">
+</Annotation>
+<Annotation Type="LOC" StartNode="150" EndNode="161">
+</Annotation>
+<Annotation Type="root" StartNode="0" EndNode="1298">
+</Annotation>
+</AnnotationSet>
+</GateDocument>

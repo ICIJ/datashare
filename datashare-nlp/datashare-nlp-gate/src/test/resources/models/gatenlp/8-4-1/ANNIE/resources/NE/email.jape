@@ -1,0 +1,83 @@
+/*
+*  email.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 19 April 2002
+* 
+*  $Id: email.jape 17311 2014-02-14 18:49:50Z dgmaynard $
+*/
+
+Phase:	Email
+Input:  Token Lookup SpaceToken 
+Options: control = appelt
+
+
+// Email rules
+
+Rule:Emailaddress1
+Priority: 50
+(
+ (
+  {Token.kind == word}|
+  {Token.kind == number}
+ )[1,9]
+ (
+  {Token.string == "_"}
+ )?
+ ({Token.string == "."})?
+  ({Token.kind == word}|
+   {Token.kind == number}|
+   {Token.string == "_"}
+  )[0,9]
+ 
+ {Token.string == "@"}		
+ (
+  {Token.kind == word}|
+  {Token.kind == symbol}|
+  {Token.kind == punctuation}|
+  {Token.kind == number}
+ )
+ ({Token.string == "."})?
+ (
+  {Token.kind == word}|
+  {Token.kind == symbol}|
+  {Token.kind == punctuation}|
+  {Token.kind == number}
+ )[0,9]
+ ({Token.string == "."})?
+(
+  {Token.kind == word}|
+  {Token.kind == symbol}|
+  {Token.kind == punctuation}|
+  {Token.kind == number}
+ )?
+({Token.string == "."})?
+ (
+  {Token.string == "."}		
+  (
+   {Token.kind == word}|
+   {Token.kind == number}	
+  )
+  ({Token.string == "."})?
+  (
+   {Token.kind == word}|
+   {Token.kind == number}	
+  )?
+  ({Token.string == "."})?
+  (
+   {Token.kind == word}|
+   {Token.kind == number}	
+  )?
+ )
+)
+:emailAddress -->
+  :emailAddress.Email= {kind = "emailAddress", rule = "Emailaddress1"}
+
+
+

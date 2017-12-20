@@ -1,0 +1,97 @@
+/*
+*  cr.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: find-single-nl.jape 6473 2005-01-04 11:34:07Z diana $
+*/
+
+Phase:	find
+Input: Token SpaceToken Lookup
+Options: control = appelt
+
+Macro: FULLSTOP
+(
+ {Token.string=="."}
+)
+
+Macro: THREEDOTS
+(
+ {Token.string=="."}
+ {Token.string=="."}
+ {Token.string=="."}
+)
+
+Macro: PUNCT
+(
+ ({Token.string == "!"} | 
+  {Token.string == "?"}
+ )
+)
+
+Rule: Ldots
+(
+ ({Token})?
+ THREEDOTS (FULLSTOP)+
+):fake
+-->
+{}
+
+Rule: Split1
+(
+ (PUNCT|FULLSTOP|THREEDOTS)
+ ({Token.string == "\""})?
+)
+:split
+-->
+:split.Split = {kind = "internal"}
+
+//
+Rule: CR
+// must be at least 2 CRs or Newlines plus optional spaces to generate a split
+(
+
+// change to at least 1 CR
+// ({SpaceToken.string == "\n"}|
+//  ({SpaceToken.string=="\n"}{SpaceToken.string=="\r"}))
+// ({SpaceToken.kind == space})*
+
+ ({SpaceToken.string == "\n"}
+  | ({SpaceToken.string=="\n"}{SpaceToken.string=="\r"})
+  | {SpaceToken.string=="\n\r"}
+  | {SpaceToken.string=="\r\n"} )+
+ ({SpaceToken.kind == space})*
+):cr
+-->
+:cr.Split = {kind = "external"}
+
+
+Rule:Fake
+(
+ ({Token}{Token.string == "."})+
+ ({Token.kind == word}|{Token.kind == number})
+):fake
+-->
+{}
+
+
+Rule: Abbrev1
+(
+ {Lookup.majorType == "splitter_abbreviation"}
+ {Token.string == "."}
+):fake
+-->
+{}
+
+Rule: Abbrev2
+({Token.orth=="upperInitial", Token.length=="1"} FULLSTOP)+
+:fake
+-->
+{}

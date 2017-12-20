@@ -1,0 +1,104 @@
+#DefaultTokeniser.rules#
+#diana 28/6/00#
+#update 9/7/00#
+
+#Tokeniser rule file
+#Each rule should be on one line
+#Lines that end with "\" are appended with the next one. This facility \
+ is used for longer rules that cannot be written on a single line
+#
+#Lines starting with "#" are treated as comment
+//Lines starting with "//" are treated as comment
+# Empty lines are ignored.
+
+#A rule has a left hand side (LHS) and a right hand side (RHS);
+#the LHS is a regular expression tha has to be matched on the input
+#the RHS describes the annotations to be added to the AnnotationSet.
+#LHS is separated from the RHS by '>'
+#LHS knows about the following operators:
+#	+ (1..n)
+#	* (0..n)
+#	| (boolean OR)
+#
+#RHS uses as separator ';' and has the following format
+#{LHS} > {Annotation type};{attribute1}={value1};...;{attribute n}={value n}
+
+
+#The primitive constructs are:
+#UNASSIGNED
+#UPPERCASE_LETTER
+#LOWERCASE_LETTER
+#TITLECASE_LETTER
+#MODIFIER_LETTER
+#OTHER_LETTER
+#NON_SPACING_MARK
+#ENCLOSING_MARK
+#COMBINING_SPACING_MARK
+#DECIMAL_DIGIT_NUMBER
+#LETTER_NUMBER
+#OTHER_NUMBER
+#SPACE_SEPARATOR
+#LINE_SEPARATOR
+#PARAGRAPH_SEPARATOR
+#CONTROL
+#FORMAT
+#PRIVATE_USE
+#SURROGATE
+#DASH_PUNCTUATION
+#START_PUNCTUATION
+#END_PUNCTUATION
+#CONNECTOR_PUNCTUATION
+#OTHER_PUNCTUATION
+#MATH_SYMBOL
+#CURRENCY_SYMBOL
+#MODIFIER_SYMBOL
+#OTHER_SYMBOL
+#...representing the corresponding enumerated Unicode category types
+# See java.lang.Character for the Java version you are using
+
+#------- The rules start here -----------------
+
+#words#
+// a word can be any combination of letters, including hyphens,
+// but excluding symbols and punctuation, e.g. apostrophes
+// Note that there is an alternative version of the tokeniser that
+// treats hyphens as separate tokens
+
+
+"UPPERCASE_LETTER" (LOWERCASE_LETTER (LOWERCASE_LETTER|DASH_PUNCTUATION|FORMAT)*)* > Token;orth=upperInitial;kind=word;
+"UPPERCASE_LETTER" (DASH_PUNCTUATION|FORMAT)* (UPPERCASE_LETTER|DASH_PUNCTUATION|FORMAT)+ > Token;orth=allCaps;kind=word;
+"LOWERCASE_LETTER" (LOWERCASE_LETTER|DASH_PUNCTUATION|FORMAT)* > Token;orth=lowercase;kind=word;
+
+// MixedCaps is any mixture of caps and small letters that doesn't
+// fit in the preceding categories
+
+("LOWERCASE_LETTER" "LOWERCASE_LETTER"+"UPPERCASE_LETTER"+ \
+ (UPPERCASE_LETTER|LOWERCASE_LETTER)*)|\
+("LOWERCASE_LETTER" "LOWERCASE_LETTER"*"UPPERCASE_LETTER"+\
+ (UPPERCASE_LETTER|LOWERCASE_LETTER|DASH_PUNCTUATION|FORMAT)*)|\
+("UPPERCASE_LETTER" (DASH_PUNCTUATION)* "UPPERCASE_LETTER" (UPPERCASE_LETTER|LOWERCASE_LETTER|DASH_PUNCTUATION|FORMAT)*\
+ ("LOWERCASE_LETTER")+ (UPPERCASE_LETTER|LOWERCASE_LETTER|DASH_PUNCTUATION|FORMAT)*)|\
+("UPPERCASE_LETTER" "LOWERCASE_LETTER"+ ("UPPERCASE_LETTER"+ "LOWERCASE_LETTER"+)+)|\
+ ((UPPERCASE_LETTER)+ (LOWERCASE_LETTER)+ (UPPERCASE_LETTER)+)\
+> Token;orth=mixedCaps;kind=word;
+
+(OTHER_LETTER|COMBINING_SPACING_MARK|NON_SPACING_MARK)+ >Token;kind=word;type=other;
+
+#numbers#
+// a number is any combination of digits
+"DECIMAL_DIGIT_NUMBER"+ >Token;kind=number;
+"OTHER_NUMBER"+ >Token;kind=number;
+
+#whitespace#
+(SPACE_SEPARATOR) >SpaceToken;kind=space;
+(CONTROL) >SpaceToken;kind=control;
+
+#symbols#
+(MODIFIER_SYMBOL|MATH_SYMBOL|OTHER_SYMBOL) > Token;kind=symbol;
+CURRENCY_SYMBOL > Token;kind=symbol;symbolkind=currency;
+
+#punctuation#
+(DASH_PUNCTUATION|FORMAT) >Token;kind=punctuation;subkind=dashpunct;
+(CONNECTOR_PUNCTUATION|OTHER_PUNCTUATION)>Token;kind=punctuation;
+("START_PUNCTUATION"|"INITIAL_QUOTE_PUNCTUATION") >Token;kind=punctuation;position=startpunct;
+("END_PUNCTUATION"|"FINAL_QUOTE_PUNCTUATION") >Token;kind=punctuation;position=endpunct;

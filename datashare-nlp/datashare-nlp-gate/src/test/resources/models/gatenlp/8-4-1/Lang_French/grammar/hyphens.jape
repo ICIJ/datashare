@@ -1,0 +1,25 @@
+Phase: Hyphens
+Input: Token SpaceToken
+Options: control = appelt
+
+/* A phase to deal with weird problems in hyphenated words
+*/
+
+Rule: UpperHyphenated
+// two NNPs separated by no white space should also be an Upper. 
+// This happens when they're hyphenated and the hyphen is part of the first NNP
+
+(
+ ({Token.category == NNP}| 
+   {Token.orth == upperInitial}|
+   {Token.orth == mixedCaps} 
+  )
+ (
+  {Token.category == NNP}|
+  {Token.orth == upperInitial}|
+  {Token.orth == mixedCaps} 
+ )
+):tag
+-->
+:tag.Upper = {rule = "UpperHyphenated"}
+

@@ -1,0 +1,557 @@
+Phase:	Date_Time
+Input: Token Lookup
+Options: control = appelt
+
+Macro: DAY_NAME 
+({Lookup.minorType == "day" })
+
+Macro: ONE_DIGIT
+({Token.kind == number, Token.length == "1"})
+
+Macro: TWO_DIGIT
+({Token.kind == number, Token.length == "2"})
+
+Macro: FOUR_DIGIT
+({Token.kind == number, Token.length == "4"})
+
+Macro: DAY_MONTH_NUM
+(ONE_DIGIT | TWO_DIGIT)
+
+Macro: DATE_PRE
+// possible modifiers of dates, eg. "Mittel Oktober"
+
+({Lookup.majorType == date_pre})
+
+Macro: DAY 
+(((DATE_PRE)?
+  DAY_NAME) |
+ DAY_MONTH_NUM)
+
+Macro: MONTH_NAME
+( (DATE_PRE)?
+  {Lookup.minorType == "month"})
+
+Macro: MONTH 
+(MONTH_NAME | DAY_MONTH_NUM)
+
+Macro: SLASH
+  ({Token.string == "/"})
+  
+Macro: DASH
+  ({Token.string == "-"})
+
+Macro: DOT
+  ({Token.string == "."})
+
+Macro: DASH_SLASH_DOT
+ (SLASH | DASH | DOT)
+
+
+Macro: AD_BC
+	(  {Token.string == "ad"} | {Token.string == "AD"}
+	|
+	  ({Token.string == "a"} {Token.string == "."}
+	   {Token.string == "d"} {Token.string == "."})
+	|
+	  ({Token.string == "A"} {Token.string == "."}
+	   {Token.string == "D"} {Token.string == "."})
+	|
+
+	  {Token.string == "bc"} | {Token.string == "BC"}
+	|
+	  ({Token.string == "b"} {Token.string == "."}
+	   {Token.string == "c"} {Token.string == "."})
+	 
+	|
+ 	  ({Token.string == "B"} {Token.string == "."}
+	   {Token.string == "C"} {Token.string == "."})
+	)
+
+Macro: YEAR
+(        
+ FOUR_DIGIT | 
+ (({Token.string == "'"})?
+  TWO_DIGIT
+ )
+)
+
+
+Macro:	XDAY
+(
+ ({Token.orth == "upperInitial"} |
+  {Token.orth == "allCaps"})
+ {Token.string == "Tag"}
+)
+
+
+Macro: ORDINAL
+(
+
+   {Lookup.minorType == "ordinal"}
+   ({Token.string == "von"})?
+)
+
+Macro: NUM_OR_ORDINAL
+  (ORDINAL | DAY_MONTH_NUM)
+
+
+Macro: COMMA
+({Token.string == ","})
+
+
+
+Macro: TIME_DIFF
+(
+ ({Token.string == "+"}|{Token.string == "-"})
+ (FOUR_DIGIT)
+)
+
+
+///////////////////////////////////////////////////////////////
+// Time Rules 
+
+Rule: TimeDigital1
+// 20:14:25
+(
+ (ONE_DIGIT|TWO_DIGIT){Token.string == ":"} TWO_DIGIT 
+({Token.string == ":"} TWO_DIGIT)?
+)
+:time
+-->
+:time.Date = {kind = "time", rule = "TimeDigital1"}
+
+Rule: TimeOClock
+// zehn Uhr
+
+(
+ ({Lookup.majorType == number})+
+({Token.string == "."})?
+ ({Lookup.majorType == number})+
+ {Token.string == "Uhr"}
+)
+:time2 
+-->
+:time2.Date = {kind = "time", rule = "TimeOClock"}
+
+Rule:TimeOClockSpan
+// von 1 bis 2 Uhr
+
+
+(
+ ({Token.string == "von"})?
+ 
+ ({Lookup.majorType == number})+
+({Token.string == "."})?
+ ({Lookup.majorType == number})+
+ 
+ {Token.string == "bis"}
+ 
+ ({Lookup.majorType == number})+
+({Token.string == "."})?
+ ({Lookup.majorType == number})+
+ {Token.string == "Uhr"}
+)
+:tag 
+-->
+:tag.Date = {kind = "time", rule = "TimeOClockSpan"}
+
+
+
+Rule: Time_key1
+Priority: 50
+// seven thirty tomorrow
+
+(
+ {Lookup.majorType == number}
+ (
+  {Lookup.majorType == number}
+ )?
+):time1
+(
+(
+{Token.string == "im"}
+|
+{Token.string == "am"}
+)?
+ {Lookup.minorType == time_key}
+) 
+-->
+:time1.Date = {kind = "time", rule = "Time_key1"}
+
+Rule: TimeDigitalContext1
+
+(
+(FOUR_DIGIT)
+):time
+(
+{Token.string == "im"}
+|
+{Token.string == "am"}
+)?
+{Lookup.minorType == time_key}
+ -->
+:time.Date = {kind = "time", rule = "TimeDigitalContext"}
+
+Rule: TimeDigitalContext2
+
+(
+ {Token.string == "um"}
+)
+(
+ FOUR_DIGIT | 
+ ((ONE_DIGIT|TWO_DIGIT)
+  ({Token.string == ":"}|{Token.string == "-"}|{Token.string == "."}) TWO_DIGIT
+ )
+)
+:time
+ -->
+ :time.Date = {kind = "time", rule = "TimeDigitalContext2"}
+
+
+Rule: TimeDigitalTemp1
+
+(
+ FOUR_DIGIT | 
+ ((ONE_DIGIT|TWO_DIGIT)
+  ({Token.string == ":"}|{Token.string == "-"}|{Token.string == "."}) TWO_DIGIT
+ )
+)
+:time{Lookup.majorType == number}
+
+ -->
+ :time.Date = {kind = "time", rule = "TimeDigitalTemp"}
+
+
+Rule: TimeDigitalContext1
+(
+ {Token.string == "in"}
+)?
+((ONE_DIGIT|TWO_DIGIT)
+ ({Token.string == ":"}|{Token.string == "."})
+ TWO_DIGIT
+ ({Token.string == "Sekunden"}|
+  {Token.string == "Minuten"}|
+  {Token.string == "Stunden"}
+ )
+):time
+-->
+:time.Date = {kind = "time", rule = "TimeDigitalContext1"}
+
+
+//////////////////////////////////////////////////////////////////
+
+// Date Rules
+
+Rule: Date1
+(
+	({Lookup.minorType == "month"})
+
+):TimeName
+-->
+:TimeName.Date = {kind = "date", rule = "Date1"}
+
+Rule: Date2
+(
+   	(
+	{Lookup.majorType == "day"}
+	({Token.string == ","})?
+	)?
+   ({Lookup.majorType == "number"})+
+	({Token.string == "."})?
+   {Lookup.majorType == "date"}
+({Token.string == ","}
+ YEAR)?
+):period
+-->
+:period.Date = {kind = "date", rule = "Date2"}
+
+
+Rule: Exception1_date3
+
+{Token.string == "vor"} | {Token.string == "seit"} | {Token.string == "Vor"} | {Token.string == "Seit"} 
+
+(({Token.string == "mehr"} | {Token.string == "Mehr"}) ({Token.string == "als"} | {Token.string == "Als"})
+)?
+(
+({Lookup.majorType == "number"})+
+{Lookup.minorType == "Period"}
+)
+:T1
+-->
+:T1.TIME = {kind = "time", subtype="period", rule = "Exception1_date3"}
+
+Rule: Exception2_date3
+
+({Token.string == "mehr"} | {Token.string == "Mehr"})? ({Token.string == "als"} | {Token.string == "Als"})
+( 
+({Lookup.majorType == "number"})+
+{Lookup.minorType == "Period"}
+)
+:T2
+-->
+:T2.TIME = {kind = "time", subtype="period", rule = "Exception2_date3"}
+
+Rule: Exception3_date3
+
+{Token.string == "innerhalb"}
+{Token.string == "von"}
+({Token.orth == "lowercase"})?
+(
+({Lookup.majorType == "number"})+
+{Lookup.minorType == "Period"}
+)
+:T3
+-->
+:T3.TIME = {kind = "time", subtype="period", rule = "Exception3_date3"}
+
+Rule: Exception4_date3
+
+({Token.string == "in"} | {Token.string == "fuer"})
+({Token.string == "die"} | {Token.string == "den"} | {Token.string == "der"})
+({Token.string == "ersten"} | {Token.string == "letzten"})
+(
+({Lookup.majorType == "number"})+
+{Lookup.minorType == "Period"}
+)
+:T4
+-->
+:T4.TIME = {kind = "time", subtype="period", rule = "Exception4_date3"}
+
+Rule: Exception5_date3
+(
+({Token.string == "im"} | {Token.string == "in"})
+({Token.string == "der"})?
+({Token.string == "laufenden"} | {Token.string == "letzten"} | {Token.string =="vergangenen"})
+{Lookup.minorType == "Period"}
+)
+:T5
+-->
+:T5.TIME = {kind = "time", subtype="period", rule = "Exception5_date3"}
+
+
+
+Rule: Date4
+({Token.string == "am"} | {Token.string == "Am"}
+)?
+(
+{Lookup.minorType == "ordinal"}
+{Lookup.majorType == "date"}
+):TimeName
+-->
+:TimeName.Date = {kind = "date", rule = "Date4"}
+
+Rule:	DateDash
+// Wed 10-July-00
+// 10-July 00
+// 10-July
+
+(  
+ ((DAY_NAME (COMMA)?)?
+  (NUM_OR_ORDINAL DASH MONTH_NAME (DASH)? YEAR)) |
+
+ ((DAY_NAME (COMMA)?)?
+  NUM_OR_ORDINAL DASH MONTH_NAME)
+)
+:da1
+-->
+ :da1.Date = {rule = "DateDash"}
+
+
+
+Rule: 	DateName
+Priority: 20
+// Wed 10 July
+// Wed 10 July, 2000
+// Sun, 21 May 2000
+// 10th of July, 2000
+// 10 July
+// 10th of July
+// July, 2000
+
+(
+ (DAY_NAME NUM_OR_ORDINAL MONTH_NAME)|
+
+ (DAY_NAME (COMMA)? 
+  NUM_OR_ORDINAL ({Token.string == "."})? MONTH_NAME ((COMMA)? YEAR)?) 
+|
+
+ ((DAY_NAME (COMMA)? )?
+ NUM_OR_ORDINAL MONTH_NAME 
+ ((COMMA)? YEAR)?)
+|
+
+ (NUM_OR_ORDINAL MONTH_NAME) 
+| 
+(MONTH_NAME (COMMA)? YEAR)
+)
+:da2
+-->
+ :da2.Date = {rule = "DateName"}
+
+
+Rule: DateNameSpan1
+// 5-20 Jan
+
+(
+ NUM_OR_ORDINAL
+ {Token.string == "-"}
+ (NUM_OR_ORDINAL MONTH_NAME ((COMMA)?  YEAR)?)
+)
+:da3
+-->
+ :da3.Date = {rule = "DateNameSpan1"}
+
+Rule: DateNameSpan2
+// Jan 5-20
+
+(MONTH_NAME
+
+ NUM_OR_ORDINAL 
+ {Token.string == "-"}
+ (NUM_OR_ORDINAL ((COMMA)?  YEAR)?)
+)
+:tag
+-->
+ :tag.Date = {rule = "DateNameSpan2"}
+
+Rule:	FullDateNumbers
+// 01-07-00, 01.10.2010
+// Note: not 07-00
+  
+(
+ (DAY_MONTH_NUM DASH_SLASH_DOT DAY_MONTH_NUM DASH_SLASH_DOT YEAR)
+)
+:tag
+-->
+ :tag.Date = {rule = "FullDateNumbers"}
+
+
+
+Rule:	DateNumDashRev
+// 00-07-01
+// 2000-07
+
+(
+ (YEAR DASH_SLASH_DOT DAY_MONTH_NUM DASH_SLASH_DOT DAY_MONTH_NUM)|
+ (FOUR_DIGIT DASH_SLASH_DOT DAY_MONTH_NUM)
+)
+:da6
+-->
+ :da6.Date = {rule = "DateNumDashRev"}
+
+
+
+
+
+Rule: ModifierMonth
+//frueh Oktober
+
+ DATE_PRE 
+(  
+{Lookup.minorType == month}| YEAR
+)
+:mm -->
+:mm.Date = {rule = "ModifierMonth"}
+
+
+Rule: YearAdBc
+
+// 1900 AD
+(
+ (YEAR 
+  AD_BC)
+)
+:year -->
+ :year.Date = {rule = "YearAdBc"}
+
+
+
+Rule: YearSpan2
+// 1980/81
+
+(
+ (FOUR_DIGIT)
+ ({Token.string == "/"}|
+  {Token.string == "-"})
+ (FOUR_DIGIT|TWO_DIGIT | ONE_DIGIT)
+)
+:date1 -->
+ :date1.Date = {kind = "date", rule = "YearSpan2"}
+
+Rule: YearSpan3
+Priority: 80
+
+// von 1980 bis 1981
+// zwischen 1980 und 1985
+(
+ (({Token.string == "von"}| {Token.string == "Von"})
+  (FOUR_DIGIT)
+  {Token.string == "bis"}
+  (FOUR_DIGIT)
+ ) |
+  (({Token.string == "zwischen"}|{Token.string == "Zwischen"}) 
+  (FOUR_DIGIT)
+  {Token.string == "und"}
+  (FOUR_DIGIT)
+ )
+)
+:date2 -->
+ :date2.Date = {kind = "date", rule = "YearSpan3"}
+
+
+Rule: YearContext1
+Priority: 40
+({Token.string == "in"}|
+ {Token.string == "bis"}
+)
+(YEAR)
+:date3 -->
+ :date3.Date = {kind = "date", rule = "YearContext1"}
+
+
+
+Rule: LookupYear2
+Priority: 20
+// 1987
+
+(
+ {Lookup.minorType == year}
+)
+:date4 -->
+ :date4.Date = {kind = "date", rule = "LookupYear2"}
+
+
+Rule: Date_key2
+Priority: 50
+//e.g. Handelsjahr
+
+{Token.string == "Halbjahr"} | {Token.string == "GeschÃ¤ftsjahr"} | {Token.string == "Gesamtjahr"} | {Token.string == "Handelsjahr"}
+(
+(YEAR)
+):gg
+-->
+:gg.Date = {kind = "date", subtype="period", rule = "Date_key2"}
+
+Rule: Time_month
+Priority: 20
+(
+({Token.kind == "number"})+
+({Token.string == "."})?
+{Lookup.minorType == "month"}
+):ti
+-->
+:ti.Date = {kind = "date", rule = "Time_month"}
+
+Rule: Time_month_span
+Priority:20
+(
+ ({Token.string == "vom"}|{Token.string == Vom})
+  ({Token.kind == "number"})+
+  ({Token.string == "."})?
+   {Token.string == "bis"}
+   ({Token.kind == "number"})+
+  ({Token.string == "."})?
+  {Lookup.minorType == "month"}
+):ti
+-->
+:ti.Date = {kind = "date", rule = "Time_monthSpan"}

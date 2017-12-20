@@ -1,0 +1,162 @@
+/*
+*  reltime.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: reldate.jape 17810 2014-04-11 12:27:15Z markagreenwood $
+*/
+
+// this file must follow time.jape
+// handles relative time sequences
+
+Phase:	Name
+Input: Token Lookup TempDate
+Options: control = appelt
+
+Rule: GazDateWords
+Priority: 10
+// yesterday evening
+
+(
+ {Lookup.majorType == date_key}
+ (
+  {Lookup.majorType == time_unit}
+ )?
+)
+:date -->
+  :date.TempDate = {rule = "GazDateWords"}
+
+
+Rule: TimeAgo
+Priority:30
+// 2 hours ago
+
+(
+ {Token.kind == number}
+ ({Lookup.majorType == time_unit})
+ {Token.string == "ago"}
+)
+:date -->
+ :date.TempDate = {rule = "TimeAgo"}
+
+
+Rule: DateAgo
+Priority:30
+// 2 weeks ago
+
+(
+ {Token.kind == number}
+ ({Lookup.majorType == date_unit})
+ {Token.string == "ago"}
+)
+:date -->
+ :date.TempDate = {rule = "TimeAgo"}
+
+
+Rule: ModifierDate
+Priority: 30
+// last year
+// next 10 years
+
+(
+ {Lookup.majorType == time_modifier} 
+ (
+  ({Lookup.majorType == number}|
+   {Token.kind == number}
+  )
+ )?
+ {Lookup.majorType == date_unit}
+)
+:date -->
+ :date.TempDate = {rule = "ModifierDate"}
+
+Rule: ModifierNamedDate
+Priority: 30
+// last October
+// next Tuesday
+
+(
+ {Lookup.majorType == time_modifier} 
+ ({Lookup.minorType == month}|
+  {Lookup.minorType == day}
+ )
+)
+:date -->
+ :date.TempDate = {rule = "ModifierNamedDate"}
+
+
+Rule: EarlyDate
+// early in 2002
+// in early 2002
+
+(
+ ({Token.string == early}|
+  {Token.string == late}
+ )
+ ({Token.string == "in"}
+ )?
+ ({TempDate}|
+  (
+   {Lookup.majorType == time_modifier} 
+   {Lookup.majorType == date_unit}
+  )
+ )
+)
+:date
+-->
+ {
+//removes TempDate annotation, gets the rule feature and adds a new TempDate annotation
+gate.AnnotationSet date = (gate.AnnotationSet)bindings.get("date");
+gate.Annotation dateAnn = (gate.Annotation)date.iterator().next();
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("rule", dateAnn.getFeatures().get("rule"));
+features.put("rule2", "EarlyDate");
+outputAS.add(date.firstNode(), date.lastNode(), "TempDate",
+features);
+outputAS.removeAll(date.get("TempDate"));
+}
+ 
+Rule:FiscalDate
+// first half of next year
+// first nine months of the financial year 
+
+(
+ {Lookup.minorType == ordinal}
+ (
+  ({Lookup.majorType == number}|
+   {Token.kind == number}
+  )
+ )?
+ {Lookup.majorType == date_unit}
+ 
+ ({Token.string == "of"}
+ )?
+ ((
+   {Token.category == DT}|
+   {Token.category == "PRP$"}
+  )
+ )?
+ ({Lookup.majorType == time_modifier} 
+ )?
+ {Lookup.majorType == date_unit}
+)
+:date -->
+  :date.TempDate = {rule = FiscalDate}
+
+//[the] quarter to [date]
+
+
+
+
+
+
+
+
+

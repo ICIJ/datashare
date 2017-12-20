@@ -1,0 +1,93 @@
+Imports: {
+import static gate.Utils.*;
+}
+
+Phase: postprocess
+Input: Token SpaceToken
+Options: control = appelt
+
+//adjusts the tokeniser output
+
+// this rule is apparently no more needed by the TreeTagger
+
+Rule: simpleJoin
+/* joins a final apostrophe with the preceding word, to make it the same as the
+TreeTagger output, e.g. d' should be one Token not two */
+
+ (
+  (
+   {Token.string == "d"}|
+   {Token.string == "D"}|
+   {Token.string == "L"}|
+   {Token.string == "l"}|
+   {Token.string == "n"}|
+   {Token.string == "N"}
+  )
+  {Token.string == "'"}
+ ):left
+-->
+{
+  gate.AnnotationSet toRemove = (gate.AnnotationSet)bindings.get("left");
+  outputAS.removeAll(toRemove);
+  //get the tokens
+  java.util.ArrayList tokens = new java.util.ArrayList(toRemove);
+  //define a comparator for annotations by start offset
+  Collections.sort(tokens, new gate.util.OffsetComparator());
+  String text = "";
+  Iterator tokIter = tokens.iterator();
+  while(tokIter.hasNext())
+    text += (String)((Annotation)tokIter.next()).getFeatures().get("string");
+
+  gate.FeatureMap features = Factory.newFeatureMap();
+  features.put("kind", "word");
+  features.put("string", text);
+  features.put("length", Integer.toString(text.length()));
+  features.put("orth", "artapos");
+  outputAS.add(toRemove.firstNode(), toRemove.lastNode(), "Token", features);
+}
+
+Rule: simpleSplit
+/* split compound word, to make it the same as the
+TreeTagger output, e.g. apprend-on should be two Tokens not one */
+
+(
+  {Token.kind == word, Token.string =~ "[^-]+(-[^-]+){1,2}"}
+):match
+-->
+{
+  AnnotationSet set = bindings.get("match");
+  Annotation annotation = set.iterator().next();
+  String content = stringFor(doc, annotation);
+  long offset = start(annotation);
+  long endOffset = end(annotation);
+  try {
+    FeatureMap features;
+    int startIndex = 0;
+    int dashIndex = 0;
+    while ((dashIndex = content.indexOf('-', startIndex)) != -1) {
+     features = Factory.newFeatureMap();
+     features.putAll(annotation.getFeatures());
+     features.put("string", content.substring(startIndex, dashIndex));
+     features.put("length", dashIndex-startIndex);
+     outputAS.add(offset+startIndex, offset+dashIndex, "Token", features);
+     features = Factory.newFeatureMap();
+     features.putAll(annotation.getFeatures());
+     features.put("string", "-");
+     features.put("length", 1);
+     outputAS.add(offset+dashIndex, offset+dashIndex+1, "Token", features); // <-- MODIF HERE
+     /* offset += dashIndex; */ // <-- REMOVE THIS LINE
+     startIndex = dashIndex + 1;
+    }
+    if(content.length() > startIndex) {
+      // there is trailing content, make an extra token
+      features = Factory.newFeatureMap();
+      features.putAll(annotation.getFeatures());
+      features.put("string", content.substring(startIndex));
+      features.put("length", content.length()-startIndex);
+      outputAS.add(offset+startIndex, endOffset, "Token", features); // <-- MODIF HERE
+    }
+  } catch (InvalidOffsetException e) {
+    throw new LuckyException(e);
+  }
+  outputAS.remove(annotation);
+}

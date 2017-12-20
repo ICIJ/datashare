@@ -1,0 +1,1726 @@
+/*
+*  name.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: name.jape 18116 2014-06-23 11:35:16Z dgmaynard $
+*/
+
+
+Phase:	Name
+Input: Token Lookup Title FirstPerson Upper ClosedClass Initials Split UserID URL
+Options: control = appelt debug = false
+
+///////////////////////////////////////////////////////////////
+
+// Person Rules
+
+/////////////////////////////////////////////////////////////////
+Macro: TITLE
+(
+ {Title}
+ ({Token.string == "."})?
+)
+
+
+
+
+Macro: FIRSTNAME
+
+ ({FirstPerson.gender == male, FirstPerson.kind != ambig, FirstPerson.twittername == no} |
+  {FirstPerson.gender == female, FirstPerson.kind != ambig, FirstPerson.twittername == no})
+
+
+
+Macro: FIRSTNAMEAMBIG
+(
+ {FirstPerson.kind == ambig, FirstPerson.twittername == no}
+)
+
+Macro: FIRSTNAMETWITTER
+
+(
+ {FirstPerson.twittername == yes}
+)
+
+
+Macro: PERSONENDING
+(
+ ({Token.string == ","})?
+ {Lookup.majorType == person_ending}
+)
+
+Macro: PREFIX
+(
+ ({Lookup.majorType == surname, Lookup.minorType == prefix}
+ )|
+ (({Token.string == "O"}|{Token.string == "D"})
+  {Token.string == "'"}
+ )
+)
+
+
+
+
+///////////////////////////////////////////////////////////
+
+
+// Person Rules
+
+Rule: Pronoun
+Priority: 1000
+
+(
+ {Token.category == PP}|
+ {Token.category == PRP}|
+ {Token.category == RB}
+):pro
+-->
+{}
+
+
+Rule:Reject
+Priority: 1000
+// stops certain things being recognised as People
+(
+ ({ClosedClass}|{URL})[1,5]
+)
+-->
+{}
+
+Rule:    GazPerson
+Priority: 50
+(
+ {Lookup.majorType == person_full}
+)
+:person -->
+{
+gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+gate.Annotation personAnn = (gate.Annotation)personSet.iterator().next();
+gate.FeatureMap features = Factory.newFeatureMap();
+
+// find the Token annotations
+AnnotationSet tokenSet = gate.Utils.getContainedAnnotations(inputAS, personSet, "Token");
+// put them in order
+List<Annotation> tokenList = gate.Utils.inDocumentOrder(tokenSet);
+
+if (tokenList.size() == 1) {
+ // if there's only one Token, guess it's a surname
+
+  String surnameContent = gate.Utils.stringFor(doc, tokenList.get(0));
+  features.put("surname", surnameContent);
+ }
+
+else if (tokenList.size() > 0) {
+  // the string under the first Token
+   String firstNameContent = gate.Utils.stringFor(doc, tokenList.get(0));
+  features.put("firstName", firstNameContent);
+
+
+  // the string under the remaining Tokens if any
+  if (tokenList.size() > 1) {
+    Long lastNameStart = gate.Utils.start(tokenList.get(1));
+    Long lastNameEnd   = gate.Utils.end(tokenList.get(tokenList.size() - 1));
+    String surnameContent = gate.Utils.stringFor(doc, lastNameStart, lastNameEnd);
+    features.put("surname", surnameContent);
+  }
+}
+
+features.put("kind", "fullName");
+features.put("rule", "GazPerson");
+features.put("gender", personAnn.getFeatures().get("gender"));
+
+// this method doesn't require try-catch
+gate.Utils.addAnn(outputAS, personSet, "TempPerson", features);
+}
+
+Rule:	GazPersonFirstTwitter
+Priority: 300
+(
+ {Token.category == DT}|
+ {Token.category == PRP}|
+ {Token.category == RB}
+)?
+(
+ {FirstPerson.twittername == yes, FirstPerson.kind != ambig}
+):person 
+( 
+ {Token.orth == upperInitial, Token.length == "1"}
+)?
+-->
+{
+gate.AnnotationSet person = (gate.AnnotationSet)bindings.get("person");
+gate.Annotation personAnn = (gate.Annotation)person.iterator().next();
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("gender", personAnn.getFeatures().get("gender"));
+features.put("kind", "firstName");
+features.put("rule", "GazPersonFirstTwitter");
+
+// get the string of the first name
+String contentFirstName = gate.Utils.stringFor(doc, personAnn);
+features.put("firstName", contentFirstName);
+features.put("twittername", "yes");
+
+outputAS.add(person.firstNode(), person.lastNode(), "TempPerson",
+features);
+}
+
+
+
+
+Rule:	GazPersonFirst
+Priority: 200
+(
+ {Token.category == DT}|
+ {Token.category == PRP}|
+ {Token.category == RB}
+)?
+(
+ {FirstPerson.kind != ambig}
+):person 
+( 
+ {Token.orth == upperInitial, Token.length == "1"}
+)?
+-->
+{
+gate.AnnotationSet person = (gate.AnnotationSet)bindings.get("person");
+gate.Annotation personAnn = (gate.Annotation)person.iterator().next();
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("gender", personAnn.getFeatures().get("gender"));
+features.put("kind", "firstName");
+features.put("rule", "GazPersonFirst");
+
+// get the string of the first name
+String contentFirstName = gate.Utils.stringFor(doc, personAnn);
+features.put("firstName", contentFirstName);
+
+outputAS.add(person.firstNode(), person.lastNode(), "TempPerson",
+features);
+}
+
+
+
+Rule: PersonFirstContext
+Priority: 30
+// Anne and Kenton
+
+(FIRSTNAME):person1
+(
+ {Token.string == "and"}
+)
+({Token.orth == upperInitial, Token.length != "1"})
+:person2
+ -->
+{
+//first deal with person1
+ gate.FeatureMap features1 = Factory.newFeatureMap();
+ gate.AnnotationSet person1Set = (gate.AnnotationSet)bindings.get("person1");
+  gate.Annotation personAnn = (gate.Annotation)person1Set.iterator().next();
+ 
+  String contentFirstName = gate.Utils.stringFor(doc, personAnn);
+  features1.put("firstName", contentFirstName);
+  features1.put("gender", personAnn.getFeatures().get("gender"));
+  features1.put("kind", "firstName");
+  features1.put("rule", "PersonFirstContext");
+outputAS.add(person1Set.firstNode(), person1Set.lastNode(), "TempPerson",
+features1);
+
+//now deal with person2
+gate.FeatureMap features2 = Factory.newFeatureMap();
+gate.AnnotationSet person2Set = (gate.AnnotationSet)bindings.get("person2");
+gate.Annotation person2Ann = (gate.Annotation)person2Set.iterator().next();
+
+  String content2FirstName = gate.Utils.stringFor(doc, person2Ann);
+  features2.put("firstName", content2FirstName);
+  features2.put("kind", "firstName");
+  features2.put("rule", "PersonFirstContext");
+outputAS.add(person2Set.firstNode(), person2Set.lastNode(), "TempPerson",
+features2);
+}
+
+
+Rule:	PersonTitle
+Priority: 35
+// Mr. Jones
+// Mr Fred Jones
+// note we only allow one first and surname, 
+// but we add more in a final phase if we find adjacent unknowns
+
+( 
+ {Token.category == DT}|
+ {Token.category == PRP}|
+ {Token.category == RB}
+)?
+(
+ ({Title.rule == "TitleGender"}):title
+ ({Title})?
+ (
+  (FIRSTNAME | FIRSTNAMEAMBIG )?
+ ):firstName
+ (
+  (PREFIX)* 
+  ({Upper})
+  (PERSONENDING)?
+ ):surname
+):person 
+-->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+ 
+ gate.AnnotationSet firstNameSet = (gate.AnnotationSet)bindings.get("firstName");
+
+ gate.AnnotationSet titleSet = (gate.AnnotationSet)bindings.get("title");
+ gate.Annotation titleAnn = (gate.Annotation)titleSet.iterator().next();
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname");
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+  String contentTitle = gate.Utils.stringFor(doc, titleAnn);
+  features.put("title", contentTitle);
+  features.put("gender", titleAnn.getFeatures().get("gender"));
+
+ if (firstNameSet != null && firstNameSet.size()>0)
+ {
+  gate.Annotation firstNameAnn = (gate.Annotation)firstNameSet.iterator().next();
+  String firstNameContent = gate.Utils.stringFor(doc, firstNameAnn);
+  features.put("firstName", firstNameContent);
+ }
+  String surnameContent = gate.Utils.stringFor(doc, surnameAnn);
+  features.put("surname", surnameContent);
+
+  features.put("kind", "personName");
+  features.put("rule", "PersonTitle");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+}
+
+
+
+
+Rule:	PersonTitleInitials
+Priority: 35
+
+// Mr J. Jones
+
+
+( 
+ {Token.category == DT}|
+ {Token.category == PRP}|
+ {Token.category == RB}
+)?
+(
+ ({Title.rule == "TitleGender"}):title
+ ({Title})?
+ (
+  ({Initials})?
+ ):initials
+ (
+  (PREFIX)* 
+  ({Upper, !Initials})
+  (PERSONENDING)?
+ ):surname
+):person 
+-->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+ 
+ gate.AnnotationSet initialsSet = (gate.AnnotationSet)bindings.get("initials");
+
+ gate.AnnotationSet titleSet = (gate.AnnotationSet)bindings.get("title");
+ gate.Annotation titleAnn = (gate.Annotation)titleSet.iterator().next();
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname");
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+  String contentTitle = gate.Utils.stringFor(doc, titleAnn);
+  features.put("title", contentTitle);
+  features.put("gender", titleAnn.getFeatures().get("gender"));
+
+ if (initialsSet != null && initialsSet.size()>0)
+ {
+  List<Annotation> initialsList = gate.Utils.inDocumentOrder(initialsSet);
+
+  Long initialsStart = gate.Utils.start(initialsList.get(0));
+  Long initialsEnd   = gate.Utils.end(initialsList.get(initialsList.size() - 1));
+  String initialsContent = gate.Utils.cleanStringFor(doc, initialsStart, initialsEnd); 
+  features.put("initials", initialsContent);
+ }
+  String surnameContent = gate.Utils.stringFor(doc, surnameAnn);
+  features.put("surname", surnameContent);
+
+  features.put("kind", "personName");
+  features.put("rule", "PersonTitleInitials");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+}
+
+
+Rule:	TitleFirstName
+Priority: 55
+// use this rule when we know what gender the title indicates
+// Mr Fred
+
+(
+ ({Title.gender == male} | {Title.gender == female}):title
+ (FIRSTNAME | FIRSTNAMEAMBIG ):firstname
+
+)
+:person -->
+
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+ 
+ gate.AnnotationSet firstNameSet = (gate.AnnotationSet)bindings.get("firstName");
+
+ gate.AnnotationSet titleSet = (gate.AnnotationSet)bindings.get("title");
+ gate.Annotation titleAnn = (gate.Annotation)titleSet.iterator().next();
+
+  String contentTitle = gate.Utils.stringFor(doc, titleAnn);
+  features.put("title", contentTitle);
+  features.put("gender", titleAnn.getFeatures().get("gender"));
+
+ if (firstNameSet != null && firstNameSet.size()>0)
+ {
+  gate.Annotation firstNameAnn = (gate.Annotation)firstNameSet.iterator().next();
+  String firstNameContent = gate.Utils.stringFor(doc, firstNameAnn);
+  features.put("firstName", firstNameContent);
+ }
+ 
+ features.put("kind", "personName");
+
+ features.put("rule", "TitleFirstName");
+ outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+}
+
+
+
+Rule: PersonJobTitle
+Priority: 20
+// note we include titles but not jobtitles in markup
+
+(
+ {Lookup.majorType == jobtitle}
+):jobtitle
+(
+ (TITLE)?
+ ((FIRSTNAME | FIRSTNAMEAMBIG )
+ )
+ (PREFIX)* 
+ ({Upper,!Initials})
+ (PERSONENDING)?
+)
+:person 
+-->
+    :person.TempPerson = {kind = "fullName", rule = "PersonJobTitle"},
+   :jobtitle.JobTitle = {rule = "PersonJobTitle"} 
+
+
+
+
+Rule: NotFirstPersonStop
+Priority: 70
+// ambig first name and surname is stop word
+// e.g. Will And
+
+(
+ ((FIRSTNAMEAMBIG)+ | 
+  {Token.category == PRP}|
+  {Token.category == DT}
+ )
+ ({Lookup.majorType == stop}
+ )
+)
+:person -->
+  {}
+
+
+Rule: FirstPersonStop
+Priority: 50
+// John And
+
+(FIRSTNAME):person
+(
+ {Token.category == DT}|
+ {Token.category == PRP}|
+ {Token.category == RB}|
+ {Token.category == IN}
+)
+-->
+{
+gate.AnnotationSet person = (gate.AnnotationSet)bindings.get("person");
+gate.Annotation personAnn = (gate.Annotation)person.iterator().next();
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("gender", personAnn.getFeatures().get("gender"));
+features.put("kind", "firstName");
+features.put("rule", "FirstPersonStop");
+outputAS.add(person.firstNode(), person.lastNode(), "TempPerson",
+features);
+}
+
+
+
+
+
+Rule: NotPersonFull
+Priority: 50
+// do not allow Det + Surname
+(
+ {Token.category == DT}|
+ {Token.category == PRP}|
+ {Token.category == RB}
+)
+(
+ (PREFIX)* 
+ ({Upper})
+ (PERSONENDING)?
+):foo
+-->
+{}
+
+
+
+Rule: LocPersonAmbig1
+Priority: 50
+// Location + Possible Surname --> Location only (ignore Surname)
+
+(
+ {Lookup.majorType == location}
+):loc
+(
+ (PREFIX)* 
+ ({Upper,!Initials})
+ (PERSONENDING)
+):foo
+-->
+:loc.TempLocation = {kind = "locName", rule = LocPersonAmbig1}
+
+
+Rule: LocPersonAmbig2
+Priority: 50
+// Location + + Possible Surname --> Location only (ignore Surname)
+
+(
+ {Lookup.majorType == location}
+):loc
+(
+ (PREFIX)
+ ({Upper,!Initials})
+ (PERSONENDING)?
+):foo
+-->
+:loc.TempLocation = {kind = "locName", rule = LocPersonAmbig2}
+
+
+Rule: LocPersonAmbig3
+Priority: 100
+// Ambiguous Location/Person + Possible Surname --> Person
+
+(
+ {Lookup.majorType == location, Lookup.ambig == yes, FirstPerson}
+ (PREFIX)
+ ({Upper,!Initials})
+ (PERSONENDING)?
+):person
+-->
+{
+gate.AnnotationSet person = (gate.AnnotationSet)bindings.get("person");
+gate.Annotation personAnn = (gate.Annotation)person.iterator().next();
+gate.FeatureMap features = Factory.newFeatureMap();
+features.put("gender", personAnn.getFeatures().get("gender"));
+features.put("kind", "firstName");
+features.put("rule", "LocPersonAmbig3");
+outputAS.add(person.firstNode(), person.lastNode(), "TempPerson",
+features);
+}
+
+
+Rule: PersonFullInitialsCaps
+Priority: 100
+// TO FISH
+// If the initials is of type nopunct, we want to discard the Person if the surname is also in all caps, as it's too ambiguous
+
+(
+ {Token.category == DT}
+)?
+(
+ 
+  ({Initials.kind == nopunct})
+  ((FIRSTNAME | FIRSTNAMEAMBIG )?)
+ ((PREFIX)*
+  ({Upper.kind == allCaps})
+  (PERSONENDING)?
+ )
+):person -->
+:person.Discard = {rule = "PersonFullInitialsCaps"}
+
+
+Rule: 	PersonFull
+Priority: 10
+// F.W. Jones
+// Fred Jones
+
+(
+ 
+  (FIRSTNAME | FIRSTNAMEAMBIG ):firstName
+  ((FIRSTNAME | FIRSTNAMEAMBIG )?):middleName
+ ((PREFIX)*
+  ({Upper,!Initials})
+  (PERSONENDING)?
+ ):surname
+):person -->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+ gate.Annotation personAnn = (gate.Annotation)personSet.iterator().next();
+  
+  gate.AnnotationSet firstNameSet = (gate.AnnotationSet)bindings.get("firstName");
+  gate.Annotation firstNameAnn = (gate.Annotation)firstNameSet.iterator().next();
+ 
+ String firstNameContent = gate.Utils.stringFor(doc, firstNameAnn);
+ features.put("firstName", firstNameContent);
+ features.put("gender", firstNameAnn.getFeatures().get("gender"));
+
+ gate.AnnotationSet middleNameSet = (gate.AnnotationSet)bindings.get("middleName");
+
+ if (middleNameSet != null && middleNameSet.size()>0)
+{
+ gate.Annotation middleNameAnn = (gate.Annotation)middleNameSet.iterator().next();
+ String middleNameContent = gate.Utils.stringFor(doc, middleNameAnn);
+ features.put("middleName", middleNameContent);
+}
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname");
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+ String surnameContent = gate.Utils.stringFor(doc, surnameAnn);
+ features.put("surname", surnameContent);
+
+ features.put("kind", "fullName");
+ features.put("rule", "PersonFull");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+
+}
+
+
+
+Rule: 	PersonFullInitials
+Priority: 10
+// F.W. Jones
+
+(
+ {Token.category == DT}
+)?
+(
+ 
+  ({Initials, !Lookup}):initials
+  ((FIRSTNAME | FIRSTNAMEAMBIG )?):middleName
+ ((PREFIX)*
+  ({Upper,!Initials})
+  (PERSONENDING)?
+ ):surname
+):person -->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+ gate.Annotation personAnn = (gate.Annotation)personSet.iterator().next();
+  
+  gate.AnnotationSet initialsSet = (gate.AnnotationSet)bindings.get("initials");
+  List<Annotation> initialsList = gate.Utils.inDocumentOrder(initialsSet);
+
+  Long initialsStart = gate.Utils.start(initialsList.get(0));
+  Long initialsEnd   = gate.Utils.end(initialsList.get(initialsList.size() - 1));
+  String initialsContent = gate.Utils.cleanStringFor(doc, initialsStart, initialsEnd); 
+  features.put("initials", initialsContent);
+ 
+
+ gate.AnnotationSet middleNameSet = (gate.AnnotationSet)bindings.get("middleName");
+
+ if (middleNameSet != null && middleNameSet.size()>0)
+{
+ gate.Annotation middleNameAnn = (gate.Annotation)middleNameSet.iterator().next();
+ String middleNameContent = gate.Utils.cleanStringFor(doc, middleNameAnn);
+ features.put("middleName", middleNameContent);
+ features.put("gender", middleNameAnn.getFeatures().get("gender"));
+}
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname");
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+ String surnameContent = gate.Utils.cleanStringFor(doc, surnameAnn);
+ features.put("surname", surnameContent);
+
+ features.put("kind", "fullName");
+ features.put("rule", "PersonFullInitials");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+
+}
+
+
+
+
+
+Rule: 	PersonFullDoubleBarrelled
+Priority: 9
+// F.W. Smith Jones
+// Fred Smith Jones
+
+
+(
+ 
+  (FIRSTNAME | FIRSTNAMEAMBIG ):firstName
+ ((PREFIX)*
+  ({Upper,!Initials})
+  ({Upper,!Initials})
+  (PERSONENDING)?
+ ):surname
+):person -->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+ gate.Annotation personAnn = (gate.Annotation)personSet.iterator().next();
+  
+  gate.AnnotationSet firstNameSet = (gate.AnnotationSet)bindings.get("firstName");
+  gate.Annotation firstNameAnn = (gate.Annotation)firstNameSet.iterator().next();
+ 
+ String firstNameContent = gate.Utils.stringFor(doc, firstNameAnn);
+ features.put("firstName", firstNameContent);
+ features.put("gender", firstNameAnn.getFeatures().get("gender"));
+
+ gate.AnnotationSet middleNameSet = (gate.AnnotationSet)bindings.get("middleName");
+
+ if (middleNameSet != null && middleNameSet.size()>0)
+{
+ gate.Annotation middleNameAnn = (gate.Annotation)middleNameSet.iterator().next();
+ String middleNameContent = gate.Utils.stringFor(doc, middleNameAnn);
+ features.put("middleName", middleNameContent);
+}
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname");
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+ String surnameContent = gate.Utils.stringFor(doc, surnameAnn);
+ features.put("surname", surnameContent);
+
+ features.put("kind", "fullName");
+ features.put("rule", "PersonFullDoubleBarrelled");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+
+}
+
+
+
+Rule: 	PersonMiddleInitial
+Priority: 10
+// Fred C. Jones
+
+
+(
+ 
+  (FIRSTNAME | FIRSTNAMEAMBIG ):firstName
+  ({Initials}):initials
+ ((PREFIX)*
+  ({Upper,!Initials})
+  (PERSONENDING)?
+ ):surname
+):person -->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+ gate.Annotation personAnn = (gate.Annotation)personSet.iterator().next();
+  
+  gate.AnnotationSet firstNameSet = (gate.AnnotationSet)bindings.get("firstName");
+  gate.Annotation firstNameAnn = (gate.Annotation)firstNameSet.iterator().next();
+ 
+ String firstNameContent = gate.Utils.stringFor(doc, firstNameAnn);
+ features.put("firstName", firstNameContent);
+ features.put("gender", firstNameAnn.getFeatures().get("gender"));
+
+ gate.AnnotationSet initialsSet = (gate.AnnotationSet)bindings.get("initials");
+
+ if (initialsSet != null && initialsSet.size()>0)
+{
+ gate.Annotation initialsAnn = (gate.Annotation)initialsSet.iterator().next();
+ String initialsContent = gate.Utils.stringFor(doc, initialsAnn);
+ features.put("initials", initialsContent);
+}
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname");
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+ String surnameContent = gate.Utils.stringFor(doc, surnameAnn);
+ features.put("surname", surnameContent);
+
+ features.put("kind", "fullName");
+ features.put("rule", "PersonMiddleInitial");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+
+}
+
+
+
+Rule: PersonFullStop
+Priority: 50
+// G.Wilson Fri
+
+(
+ ((FIRSTNAME | FIRSTNAMEAMBIG) )
+ (PREFIX)* 
+ ({Upper})
+):person
+(
+ {Lookup.majorType == date}
+)
+-->
+ :person.TempPerson = {kind = "fullName", rule = "PersonFullStop"}
+
+
+Rule: NotPersonFullReverse
+Priority: 20
+// XYZ, I
+(
+ ({Upper})
+ {Token.string == ","}
+ {Token.category == PRP}
+ (PERSONENDING)?
+)
+:unknown 
+-->
+{}
+
+
+Rule:  PersonSaint
+Priority: 50
+// Note: ensure that it's not a Saints Day first
+(
+ ({Token.string == "St"} ({Token.string == "."})? |
+ {Token.string == "Saint"})
+ (FIRSTNAME)
+ )
+:person -->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person");
+gate.AnnotationSet firstPerson = (gate.AnnotationSet)personSet.get("FirstPerson");
+if (firstPerson != null && firstPerson.size()>0)
+{
+  gate.Annotation personAnn = (gate.Annotation)firstPerson.iterator().next();
+  features.put("gender", personAnn.getFeatures().get("gender"));
+}
+  features.put("kind", "firstName");
+  features.put("rule", "PersonSaint");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+}
+
+
+Rule: PersonLocAmbig
+Priority: 40
+// Ken London
+// Susan Hampshire
+
+// Christian name + Location --> Person's Name
+(
+  (FIRSTNAME):firstName
+  ({Lookup.majorType == location}):surname
+):person -->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person"); 
+ gate.Annotation personAnn = (gate.Annotation)personSet.iterator().next();
+
+ gate.AnnotationSet firstNameSet = (gate.AnnotationSet)bindings.get("firstName"); 
+ gate.Annotation firstNameAnn = (gate.Annotation)firstNameSet.iterator().next();
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname"); 
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+ features.put("gender", firstNameAnn.getFeatures().get("minorType"));
+
+ String firstNameContent = gate.Utils.stringFor(doc, firstNameAnn);
+ features.put("firstName", firstNameContent);
+
+ String surnameContent = gate.Utils.stringFor(doc, surnameAnn);
+ features.put("surname", surnameContent);
+
+  features.put("kind", "fullName");
+  features.put("rule", "PersonLocAmbig");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+}
+
+
+Rule: TitlePersonLocAmbig
+Priority: 50
+// Professor London
+// title + Location --> Person's Name
+
+(
+  ({Title}):title
+  ({Lookup.majorType == location}):surname
+):person -->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.AnnotationSet personSet = (gate.AnnotationSet)bindings.get("person"); 
+ gate.Annotation personAnn = (gate.Annotation)personSet.iterator().next();
+
+ gate.AnnotationSet titleSet = (gate.AnnotationSet)bindings.get("title"); 
+ gate.Annotation titleAnn = (gate.Annotation)titleSet.iterator().next();
+
+ gate.AnnotationSet surnameSet = (gate.AnnotationSet)bindings.get("surname"); 
+ gate.Annotation surnameAnn = (gate.Annotation)surnameSet.iterator().next();
+
+ features.put("gender", titleAnn.getFeatures().get("gender"));
+
+ String titleContent = gate.Utils.stringFor(doc, titleAnn);
+ features.put("title", titleContent);
+
+ String surnameContent = gate.Utils.stringFor(doc, surnameAnn);
+ features.put("surname", surnameContent);
+
+  features.put("kind", "fullName");
+  features.put("rule", "TitlePersonLocAmbig");
+outputAS.add(personSet.firstNode(), personSet.lastNode(), "TempPerson",
+features);
+}
+
+
+
+Rule:PersonOrgAmbig
+Priority: 50
+// if the last name is an organisation ending, treat as an organisation not person
+// e.g. A.B. Consulting
+
+(
+ {Token.category == DT}
+)?
+(
+ ((FIRSTNAME | FIRSTNAMEAMBIG) )+
+ ({Lookup.majorType == org_key}|
+  {Lookup.majorType == org_base}
+ ) 
+)
+:orgName -->
+ :orgName.TempOrganization = {kind = "unknown", rule = "PersonOrgAmbig"}
+
+
+
+///////////////////////////////////////////////////////////////////
+// Organisation Rules
+
+Macro:  CDG
+// cdg is something like "Ltd."
+ (
+  ({Lookup.majorType == cdg})|
+  ({Token.string == ","} 
+  {Lookup.majorType == cdg})
+ )
+
+
+Macro: SAINT
+(
+ ({Token.string == "St"} ({Token.string == "."})? |
+ {Token.string == "Saint"})
+)
+
+Macro: CHURCH
+(
+{Token.string == "Church"}|{Token.string == "church"}|
+{Token.string == "Cathedral"}|{Token.string == "cathedral"}|
+{Token.string == "Chapel"}|{Token.string == "chapel"}
+)
+
+/////////////////////////////////////////////////////////////
+Rule:	TheGazOrganization
+Priority: 245
+(
+ {Token.category == DT}|
+ {Token.category == RB}
+)
+(
+{Lookup.majorType == organization}
+)
+:orgName -->  
+ {
+ gate.FeatureMap features = Factory.newFeatureMap();
+// create an annotation set consisting of all the annotations for org 
+gate.AnnotationSet orgSet = (gate.AnnotationSet)bindings.get("orgName");
+// create an annotation set consisting of the annotation matching Lookup
+gate.AnnotationSet org = (gate.AnnotationSet)orgSet.get("Lookup");
+// if the annotation type Lookup doesn't exist, do nothing
+if (org != null && org.size()>0)
+{
+// if it does exist, take the first element in the set
+  gate.Annotation orgAnn = (gate.Annotation)org.iterator().next();
+//propagate minorType feature (and value) from org
+  features.put("orgType", orgAnn.getFeatures().get("minorType"));
+}
+// create some new features
+  features.put("rule", "GazOrganization");
+// create a TempOrg annotation and add the features we've created
+outputAS.add(orgSet.firstNode(), orgSet.lastNode(), "TempOrganization",
+features);
+}
+
+
+Rule:	GazOrganization
+Priority: 145
+(
+{Lookup.majorType == organization}
+)
+:orgName -->  
+ {
+ gate.FeatureMap features = Factory.newFeatureMap();
+// create an annotation set consisting of all the annotations for org 
+gate.AnnotationSet orgSet = (gate.AnnotationSet)bindings.get("orgName");
+// create an annotation set consisting of the annotation matching Lookup
+gate.AnnotationSet org = (gate.AnnotationSet)orgSet.get("Lookup");
+// if the annotation type Lookup doesn't exist, do nothing
+if (org != null && org.size()>0)
+{
+// if it does exist, take the first element in the set
+  gate.Annotation orgAnn = (gate.Annotation)org.iterator().next();
+//propagate minorType feature (and value) from org
+  features.put("orgType", orgAnn.getFeatures().get("minorType"));
+}
+// create some new features
+  features.put("rule", "GazOrganization");
+// create a TempOrg annotation and add the features we've created
+outputAS.add(orgSet.firstNode(), orgSet.lastNode(), "TempOrganization",
+features);
+}
+
+Rule:	LocOrganization
+Priority: 50
+// Ealing Police
+(
+ ({Lookup.majorType == location} |
+  {Lookup.majorType == country_adj})
+{Lookup.majorType == organization}
+({Lookup.majorType == organization})?
+)
+:orgName -->  
+  :orgName.TempOrganization = {kind = "orgName", rule=LocOrganization}
+
+
+Rule: NewspaperEnding
+Priority: 200
+// GSA Today
+
+(
+ ({Upper}|{Initials})
+ {Lookup.majorType == newspaper_ending}
+):orgName
+-->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+gate.AnnotationSet orgSet = (gate.AnnotationSet)bindings.get("orgName");
+gate.AnnotationSet org = (gate.AnnotationSet)orgSet.get("Lookup");
+
+if (org != null && org.size()>0)
+{
+  gate.Annotation orgAnn = (gate.Annotation)org.iterator().next();
+  features.put("orgType", orgAnn.getFeatures().get("minorType"));
+}
+// create some new features
+  features.put("rule", "NewspaperEndng");
+// create a TempOrg annotation and add the features we've created
+outputAS.add(orgSet.firstNode(), orgSet.lastNode(), "TempOrganization",
+features);
+}
+
+
+Rule:	INOrgXandY
+Priority: 200
+
+// Bradford & Bingley
+// Bradford & Bingley Ltd
+(
+ {Token.category == IN}
+)
+
+(
+ ({Token.category == NNP}
+  )+
+
+ {Token.string == "&"}
+
+ (
+  {Token.orth == upperInitial}
+ )+
+
+ (CDG)?
+
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "OrgXandY"}
+
+Rule:	OrgXandY
+Priority: 20
+
+// Bradford & Bingley
+// Bradford & Bingley Ltd
+
+
+(
+ ({Token.category == NNP}
+  )+
+
+ {Token.string == "&"}
+
+ (
+  {Token.orth == upperInitial}
+ )+
+
+ (CDG)?
+
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "OrgXandY"}
+
+
+Rule:OrgUni
+Priority: 25
+// University of Sheffield
+// Sheffield University
+// A Sheffield University
+(
+ {Token.string == "University"}
+ {Token.string == "of"}
+ (
+ {Token.category == NNP})+
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "other", rule = "OrgDept"}
+
+
+
+Rule: OrgDept
+Priority: 25
+// Department of Pure Mathematics and Physics
+
+(
+ {Token.string == "Department"}
+ 
+ {Token.string == "of"}
+ (
+ {Token.orth == upperInitial})+
+ (
+  {Token.string == "and"}
+  ( 
+   {Token.orth == upperInitial})+
+ )?
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "department", rule = "OrgDept"}
+
+Rule:	TheOrgXKey
+Priority: 500
+
+// The Aaaa Ltd.
+(
+ {Token.category == DT}
+)
+(
+  ({Upper})
+  ({Upper})?
+  ({Upper})?
+  ({Upper})?
+  ({Upper})?
+ {Lookup.majorType == org_key}
+ ({Lookup.majorType == org_ending})?
+)
+:org
+-->
+:org.TempOrganization = {orgType = "unknown", rule = "TheOrgXKey"}
+
+Rule: NotOrgXKey
+Priority: 150
+// if all the names are org_base or org_key, it's not an organisation
+// e.g. Business Consulting
+
+(
+ ({Lookup.majorType == org_key}|
+  {Lookup.majorType == org_base}
+ )+
+ ({Lookup.majorType == org_ending})?
+)
+:org
+-->
+{}
+
+
+
+Rule: NotTheKey
+Priority: 200
+
+(
+ {Token.category == DT}
+ {Lookup.majorType == org_key}
+ ({Lookup.majorType == org_ending})?
+)
+:org
+-->
+{}
+
+
+Rule:	OrgXKey
+Priority: 125
+
+// Aaaa Ltd.
+({Token.category == DT})?
+(
+  ({Upper})
+  ({Upper})?
+  ({Upper})?
+  ({Upper})?
+  ({Upper})?
+ {Lookup.majorType == org_key}
+ ({Lookup.majorType == org_ending})?
+)
+:org
+-->
+:org.TempOrganization = {orgType = "unknown", rule = "OrgXKey"}
+
+
+Rule: NotOrgXEnding
+Priority: 500
+// Very Limited
+
+(
+ {Token.category == DT}
+)?
+(
+ {Token.category == RB}
+ {Lookup.majorType == cdg}
+)
+:label
+-->
+{}
+ 
+ Rule:	NotOrgXEnding2
+Priority: 500
+
+// The Coca Cola Co.
+
+(
+ {Token.category == DT}
+)
+(
+  ({Upper})
+  ({Upper})?
+ {Lookup.majorType == cdg}
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "company", rule = "OrgXEnding"}
+
+
+
+Rule:	OrgXEnding
+Priority: 120
+
+// Coca Cola Co.
+
+(
+  ({Upper})
+  ({Upper})?
+ {Lookup.majorType == cdg}
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "OrgXEnding"}
+
+Rule:	TheOrgXandYKey
+Priority: 220
+
+(
+ {Token.category == DT}
+)
+(
+ ({Upper})
+ ({Upper})?
+  (({Token.string == "and"} | 
+    {Token.string == "&"})
+   ({Upper})?
+   ({Upper})?
+   ({Upper})?
+  )
+ {Lookup.majorType == org_key}
+ ({Lookup.majorType == org_ending})?
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "OrgXandYKey"}
+
+
+
+Rule:	OrgXandYKey
+Priority: 120
+
+// Aaaa Ltd.
+// Xxx Services Ltd. 
+// AA and BB Services Ltd.
+// but NOT A XXX Services Ltd.
+
+(
+ ({Upper})
+ ({Upper})?
+  (({Token.string == "and"} | 
+    {Token.string == "&"})
+   ({Upper})?
+   ({Upper})?
+   ({Upper})?
+  )
+ {Lookup.majorType == org_key}
+ ({Lookup.majorType == org_ending})?
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "OrgXandYKey"}
+
+
+Rule:	OrgXsKeyBase
+Priority: 120
+ 
+// Gandy's Circus
+// Queen's Ware
+
+(
+  ({Upper})?
+  ({Upper})?
+  ({Token.orth == upperInitial}
+   {Token.string == "'"}
+   ({Token.string == "s"})?
+  )
+ ({Lookup.majorType == org_key}|
+  {Lookup.majorType == org_base})
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "OrgXsKeybase"}
+
+
+
+Rule: NotOrgXBase
+Priority: 1000
+// not things like British National
+// or The University
+
+
+(
+ ({Token.category == DT} 
+ )?
+)
+(
+ ({Lookup.majorType == country_adj}|
+  {Token.orth == lowercase})
+ ({Lookup.majorType == org_base}|
+  {Lookup.majorType == govern_key})
+)
+:orgName -->
+  :orgName.Temp = {kind = "notorgName", rule = "NotOrgXBase"}
+
+
+Rule:	TheOrgXBase
+Priority: 230
+
+(
+ ({Token.category == DT}
+ )
+)
+(
+ (
+  ({Upper})|
+  {Lookup.majorType == organization}
+ )
+ ({Upper})?
+ ({Upper})?
+ ({Lookup.majorType == org_base}|
+  {Lookup.majorType == govern_key}
+ )
+ (
+  {Token.string == "of"}
+  ({Upper})
+  ({Upper})?
+  ({Upper})?
+ )?
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "TheOrgXBase"}
+
+
+Rule:	OrgXBase
+Priority: 130
+
+// same as OrgXKey but uses base instead of key
+// includes govern_key e.g. academy
+// Barclays Bank
+// Royal Academy of Art
+
+(
+ (
+  ({Upper})|
+  {Lookup.majorType == organization}
+ )
+ ({Upper})?
+ ({Upper})?
+ ({Lookup.majorType == org_base}|
+  {Lookup.majorType == govern_key}
+ )
+ (
+  {Token.string == "of"}
+  ({Upper})
+  ({Upper})?
+  ({Upper})?
+ )?
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "OrgXBase"}
+
+Rule:	TheBaseofOrg
+Priority: 230
+
+(
+ {Token.category == DT}
+)
+(
+ ({Lookup.majorType == org_base}|
+  {Lookup.majorType == govern_key}
+ )
+ 
+ {Token.string == "of"}
+ ( 
+  {Token.category == DT}
+ )?
+ ({Upper})
+ ({Upper})?
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "BaseofOrg"}
+
+
+
+
+Rule:	BaseofOrg
+Priority: 130
+
+(
+ ({Lookup.majorType == org_base}|
+  {Lookup.majorType == govern_key}
+ )
+ 
+ {Token.string == "of"}
+ ( 
+  {Token.category == DT}
+ )?
+ ({Upper})
+ ({Upper})?
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "BaseofOrg"}
+
+
+
+Rule:	OrgPreX
+Priority: 130
+
+// Royal Tuscan
+
+(
+ {Lookup.majorType == org_pre}
+ (
+  {Token.orth == upperInitial})+
+ ({Lookup.majorType == org_ending})?
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "unknown", rule = "OrgPreX"}
+
+
+
+Rule: OrgChurch
+Priority: 150
+// St. Andrew's Church
+
+(
+  (SAINT)
+  {Token.orth == upperInitial}
+  {Token.string == "'"}({Token.string == "s"})?
+  (CHURCH)
+)
+:orgName -->
+  :orgName.TempOrganization = {orgType = "other", rule = "OrgChurch"}
+
+
+Rule:OrgPersonAmbig
+Priority: 130
+// Alexandra Pottery should be org not person
+// overrides PersonFull
+
+(
+ (TITLE)?
+ (FIRSTNAME)
+ {Token.string == "'"}({Token.string == "s"})?
+ ({Lookup.majorType == org_key}|
+  {Lookup.majorType == org_base})
+ ({Lookup.majorType == org_ending})?
+)
+:org 
+-->
+ :org.TempOrganization= {orgType = "unknown", rule = "OrgPersonAmbig"}
+
+ 
+
+/////////////////////////////////////////////////////////////////
+// Location rules
+
+
+Rule: 	Location1
+Priority: 200
+// Lookup = city, country, province, region, water
+
+// Western Europe
+// South China sea
+
+(
+ {Token.category == DT}
+)?
+(
+ ({Lookup.majorType == loc_key, Lookup.minorType == pre}
+ )?
+ {Lookup.majorType == location}
+ (
+  {Lookup.majorType == loc_key, Lookup.minorType == post})?
+)
+:locName -->
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+// create an annotation set consisting of all the annotations for org 
+gate.AnnotationSet locSet = (gate.AnnotationSet)bindings.get("locName");
+// create an annotation set consisting of the annotation matching Lookup
+gate.AnnotationSet loc = (gate.AnnotationSet)locSet.get("Lookup");
+// if the annotation type Lookup doesn't exist, do nothing
+if (loc != null && loc.size()>0)
+{
+// if it does exist, take the first element in the set
+  gate.Annotation locAnn = (gate.Annotation)loc.iterator().next();
+//propagate minorType feature (and value) from loc
+  features.put("locType", locAnn.getFeatures().get("minorType"));
+}
+// create some new features
+  features.put("rule", "Location1");
+// create a TempLoc annotation and add the features we've created
+outputAS.add(locSet.firstNode(), locSet.lastNode(), "TempLocation",
+features);
+}
+
+Rule:	GazLocation
+Priority: 200
+(
+ {Token.category == DT}
+)?  
+(
+ {Lookup.majorType == location}
+)
+:locName
+ --> 	
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+// create an annotation set consisting of all the annotations for org 
+gate.AnnotationSet locSet = (gate.AnnotationSet)bindings.get("locName");
+// create an annotation set consisting of the annotation matching Lookup
+gate.AnnotationSet loc = (gate.AnnotationSet)locSet.get("Lookup");
+// if the annotation type Lookup doesn't exist, do nothing
+if (loc != null && loc.size()>0)
+{
+// if it does exist, take the first element in the set
+  gate.Annotation locAnn = (gate.Annotation)loc.iterator().next();
+//propagate minorType feature (and value) from loc
+  features.put("locType", locAnn.getFeatures().get("minorType"));
+}
+// create some new features
+  features.put("rule", "GazLocation");
+// create a TempLoc annotation and add the features we've created
+outputAS.add(locSet.firstNode(), locSet.lastNode(), "TempLocation",
+features);
+}
+
+Rule:	GazLocationLocation
+Priority: 100
+
+(
+ ({Lookup.majorType == location}):locName1
+ {Token.string == ","}
+ ({Lookup.majorType == location}):locName2
+) 
+--> 	
+
+{
+ gate.FeatureMap features = Factory.newFeatureMap();
+ gate.FeatureMap morefeatures = Factory.newFeatureMap();
+gate.AnnotationSet loc1Set = (gate.AnnotationSet)bindings.get("locName1");
+gate.AnnotationSet loc1 = (gate.AnnotationSet)loc1Set.get("Lookup");
+
+gate.AnnotationSet loc2Set = (gate.AnnotationSet)bindings.get("locName2");
+gate.AnnotationSet loc2 = (gate.AnnotationSet)loc2Set.get("Lookup");
+
+// if the annotation type Lookup doesn't exist, do nothing
+if (loc1 != null && loc1.size()>0)
+{
+  gate.Annotation loc1Ann = (gate.Annotation)loc1.iterator().next();
+  features.put("locType", loc1Ann.getFeatures().get("minorType"));
+}
+
+if (loc2 != null && loc2.size()>0)
+{
+  gate.Annotation loc2Ann = (gate.Annotation)loc2.iterator().next();
+  morefeatures.put("locType", loc2Ann.getFeatures().get("minorType"));
+}
+
+features.put("rule", "GazLocation");
+outputAS.add(loc1Set.firstNode(), loc1Set.lastNode(), "TempLocation", features);
+
+morefeatures.put("rule", "GazLocation");
+outputAS.add(loc2Set.firstNode(), loc2Set.lastNode(), "TempLocation", morefeatures);
+}
+
+
+
+
+
+Rule: LocationPost
+Priority: 50
+(
+ {Token.category == DT}
+)?
+(
+ {Token.category == NNP}
+ {Lookup.majorType == loc_key, Lookup.minorType == post}
+)
+:locName
+-->
+ :locName.TempLocation = {kind = "locName", rule = LocationPost}
+
+Rule:LocKey
+(
+ {Token.category == DT}
+)?
+(
+ ({Lookup.majorType == loc_key, Lookup.minorType == pre}
+ )
+ ({Upper})
+ (
+  {Lookup.majorType == loc_key, Lookup.minorType == post})?
+)
+:locName -->
+:locName.TempLocation = {kind = "locName", rule = LocKey}
+/////////////////////////////////////////////////////////////////
+
+// Context-based Rules
+
+
+Rule:InLoc1
+(
+ {Token.string == "in"}
+)
+(
+ {Lookup.majorType == location}
+)
+:locName
+-->
+ :locName.TempLocation = {kind = "locName", rule = InLoc1, locType = :locName.Lookup.minorType}
+
+Rule:LocGeneralKey
+Priority: 30
+(
+ {Lookup.majorType == loc_general_key}
+ {Token.string == "of"}
+)
+(
+ ({Upper})
+)
+:loc
+-->
+ :loc.TempLocation = {kind = "locName", rule = LocGeneralKey}
+
+
+Rule:OrgContext1
+Priority: 1
+// company X
+
+(
+ {Token.string == "company"}
+)
+(
+ ({Upper})
+ ({Upper})?
+ ({Upper})? 
+)
+:org
+-->
+ :org.TempOrganization= {orgType = "company", rule = "OrgContext1"}
+
+Rule: OrgContext2
+Priority: 5
+
+// Telstar laboratory
+// Medici offices
+
+(
+ ({Upper})
+ ({Upper})?
+ ({Upper})? 
+)
+: org
+(
+ ({Token.string == "offices"} |
+ {Token.string == "Offices"} |
+ {Token.string == "laboratory"} | 
+ {Token.string == "Laboratory"} |
+ {Token.string == "laboratories"} |
+ {Token.string == "Laboratories"})
+)
+-->
+ :org.TempOrganization= {orgType = "other", rule = "OrgContext2"}
+
+
+
+Rule:JoinOrg
+Priority: 50
+// Smith joined Energis
+
+(
+ ({Token.string == "joined"}|
+  {Token.string == "joining"}|
+  {Token.string == "joins"}|
+  {Token.string == "join"}
+ )
+)
+(
+ ({Upper})
+ ({Upper})?
+ ({Upper})?
+)
+:org
+-->
+ :org.TempOrganization= {orgType = "company", rule = "joinOrg"}
+
+
+
+
+
+
+
+
+
+
+

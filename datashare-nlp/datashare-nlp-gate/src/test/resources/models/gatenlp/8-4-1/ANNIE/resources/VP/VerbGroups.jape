@@ -1,0 +1,1753 @@
+// Finite Verb Groups
+
+Phase: FiniteVerbGroup
+Input: Token
+Options: control = appelt
+
+//////////////////////////////////////////////
+// MACROS
+
+Macro: MODALS
+
+(
+{Token.string == "can"}
+|
+{Token.string == "could"}
+|
+{Token.string == "may"}
+|
+{Token.string == "might"}
+|
+{Token.string == "must"}
+|
+({Token.string == "ought"} {Token.string == "to"}) 
+|
+{Token.string == "should"}
+|
+{Token.string == "would"}
+)
+
+
+Macro: CANNOT
+({Token.string == "cannot"}|
+ {Token.string == "Cannot"}|
+ ({Token.string == "can"}{Token.string == "not"})
+ )
+
+Macro: CANT
+(
+   ({Token.string == "ca"}|{Token.string == "wo"}|{Token.string == "Ca"}|{Token.string == "Wo"})
+   {Token.string == "n't"}
+)
+ 
+Macro: MODAL_NEG
+(
+ (CANT) | (CANNOT)
+)
+
+
+Macro: TO
+(
+({Token.string == "to"})?
+)
+
+
+
+Macro: ADVS
+(
+({Token.category == RB})[1,3]
+)
+
+Macro: DO
+({Token.string == "do"}|{Token.string == "does"} | {Token.string == "did"}|
+{Token.string == "Do"}|{Token.string == "Does"} | {Token.string == "Did"}
+)
+
+
+Macro: NEGATION
+(
+ (DO)?
+({Token.string == "not"}) |
+({Token.string == "n't"}) |
+({Token.string == "never"})
+)
+
+//////////////////////////////////////////////////////
+
+// fvgnegative.jape
+
+// Negative Verb Groups (i.e. 'not' and other adverbials)
+
+Rule: FVGSimPreActNeg2
+// Simple Present Active: does not eat
+
+(
+(DO)
+(NEGATION)
+(ADVS)?
+(
+{Token.category == "VB"}
+)
+):annotate 
+--> :annotate.VG = 
+{ type = "FVG",
+  tense = "SimPre",
+  voice = "active",
+  neg = "yes",
+  rule = "FVGSimPreActNeg2"}
+
+  
+
+Rule: FVGSimPrePasNeg
+// Simple Present Passive: is not eaten
+// (is | are) VBN
+
+(
+
+({Token.string == "is" } | { Token.string == "are" })
+
+(NEGATION) (ADVS)?
+
+{Token.category == "VBN"}
+
+
+
+):annotate --> :annotate.VG = 
+
+{ type = "FVG",
+  tense = "SimPre",
+  voice = "passive",
+  neg = "yes",
+  rule = "FVGSimPrePasNeg"
+}
+
+
+Rule: FVGPreConActNeg
+// Present Continuous Active: is not eating
+// (is | are) VBG
+
+(
+
+({Token.string == "is"} | {Token.string == "are"})
+
+(NEGATION) (ADVS)?
+
+{Token.category == "VBG"}
+
+
+):annotate -->
+:annotate.VG  = 
+{ type = "FVG",
+  tense = "PreCon",
+  voice = "active",
+  neg = "yes" ,
+  rule  = "FVGPreConActNeg"
+  }
+
+
+Rule: FVGPreConPasNeg
+// Present Continuous Passive: is not being  eaten
+// (is | are) being  VBN
+
+(
+
+({Token.string == "is"} | {Token.string == "are"})
+
+(NEGATION) (ADVS)?
+{Token.string == "being"}
+
+
+{Token.string == "been"}
+
+{Token.category == "VBN"}
+
+
+):annotate -->
+:annotate.VG = 
+{ type = "FVG",
+  tense = "PreCon",
+  voice = "active",
+  neg = "yes" ,
+  rule = "FVGPreConPasNeg"}
+
+Rule: FVGPrePerActNeg
+// Present Perfect Active: has not eaten
+// (has | have) VBN
+
+(
+
+({Token.string == "has"} | {Token.string == "have"})
+
+(NEGATION) (ADVS)?
+
+{Token.category == VBN}
+
+):annotate -->
+
+:annotate.VG = {
+type = "FVG",
+tense = "PrePer",
+voice = "active",
+neg = "yes",
+rule = "FVGPrePerActNeg"
+}
+
+Rule: FVGPrePerPasNeg
+// Present Perfect Active: has not been eaten
+// (has | have) been VBN
+
+(
+
+({Token.string == "has"} | {Token.string == "have"})
+(NEGATION) (ADVS)?
+{Token.string == "been"}
+
+{Token.category == VBN}
+
+):annotate -->
+
+:annotate.VG = {
+type = "FVG",
+tense = "PrePer",
+voice = "passive",
+neg = "yes",
+rule = "FVGPrePerPasNeg"
+}
+
+Rule: FVGPrePerConActNeg
+// Present Perfect Continuous Active: has not been eating
+// (has | have) been VBG
+
+(
+({Token.string == "has"} | {Token.string == "have"})
+
+
+(NEGATION) (ADVS)?
+{Token.string == "been"}
+{Token.category == VBG}
+):annotate
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PrePerCon",
+voice = "active",
+neg = "yes",
+rule = "FVGPrePerConActNeg"
+}
+
+Rule: FVGPrePerConPasNeg
+// Present Perfect Continuous Active: (very rare) has not been being eaten
+// (has | have) been being VBN
+
+(
+({Token.string == "has"} | {Token.string == "have"})
+(NEGATION) (ADVS)?
+{Token.string == "been"}
+{Token.string == "being"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PrePerCon",
+voice = "passive",
+neg = "yes",
+rule = "FVGPrePerConPasNeg"
+}
+
+
+
+Rule: FVGSimPasPasNeg
+// Simple Past Pasive: was not eaten
+// (was | were) VBN
+
+(
+({Token.string == "was"} | {Token.string == "were"})
+(NEGATION) (ADVS)?
+{Token.category == VBN}
+):annotate -->
+:annotate.VG = {
+type = "FVG",
+tense = "SimPas",
+voice = "passive",
+neg = "yes",
+rule = "FVGSimPasPasNeg"
+}
+
+
+Rule: FVGPasConActNeg
+// Past Continuous Active: was not eating
+// (was | were) VBG
+
+(
+({Token.string == "was"} | {Token.string == "were"})
+(NEGATION) (ADVS)?
+{Token.category == VBG}
+):annotate -->
+:annotate.VG = {
+type = "FVG",
+tense = "PasCon",
+voice = "active",
+neg = "yes",
+rule = "FVGPasConActNeg"
+}
+
+
+Rule: FVGPasConPasNeg
+// Past Continuous Passive: was not eating
+// (was | were) being VBN
+
+(
+({Token.string == "was"} | {Token.string == "were"})
+(NEGATION) (ADVS)?
+{Token.string == "being"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasCon",
+voice = "passive",
+neg = "yes",
+rule = "FVGPasConPasNeg"
+
+}
+
+Rule: FVGPasPerActNeg
+// Past Perfect Active: had not eaten
+//  had VBN
+
+(
+{Token.string == "had"}
+(NEGATION) (ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasPer",
+voice = "active",
+neg = "yes",
+rule = "FVGPasPerActNeg"
+}
+
+
+Rule: FVGPasPerPasNeg
+// Past Perfect Passive: had not been eaten
+//  had been VBN
+
+(
+{Token.string == "had"}
+
+(NEGATION) (ADVS)?
+{Token.string == "been"}
+
+{Token.category == VBN}
+):annotate
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasPer",
+voice = "passive",
+neg = "yes",
+rule = "FVGPasPerPasNeg"
+}
+
+Rule: FVGPasPerConActNeg
+// Past Perfect Continuous Active: had not been eating
+//  had been VBG
+
+(
+{Token.string == "had"}
+(NEGATION) (ADVS)?
+{Token.string == "been"}
+{Token.category == VBG}
+):annotate
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasPerCon",
+voice = "active",
+neg = "yes",
+rule = "FVGPasPerConActNeg"
+}
+
+Rule: FVGPasPerConPasNeg
+// Past Perfect Continuous Passive: had not been being eaten
+//  had been VBG
+
+(
+{Token.string == "had"}
+(NEGATION) (ADVS)?
+{Token.string == "been"}
+{Token.string == "being"}
+
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasPerCon",
+voice = "passive",
+neg = "yes",
+rule = "FVGPasPerConPasNeg"
+}
+
+
+Rule: FVGSimFutActNeg
+// Simple Future Active: will not eat
+// (will | shall) VB
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"})
+(NEGATION) (ADVS)?
+{Token.category == VB}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "SimFut",
+voice = "active",
+neg = "yes",
+rule = "FVGSimFutActNeg"
+}
+
+
+Rule: FVGSimFutPasNeg
+// Simple Future Active: will not be eaten
+// (will | shall) be  VBN
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+(NEGATION) (ADVS)?
+{Token.string == "be"}
+{Token.category == VB}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "SimFut",
+voice = "passive",
+neg = "yes",
+rule = "FVGSimFutPasNeg"
+}
+
+
+Rule: FVGFutConActNeg
+// Future Continuous Active: will not be eating
+// (will | shall) be VBG
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+
+
+(NEGATION) (ADVS)?
+{Token.string == "be"}
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutCon",
+voice = "active",
+neg = "yes",
+rule = "FVGFutConActNeg"
+
+}
+
+Rule: FVGFutConPasNeg
+// Future Continuous Pasive: will not be being  eaten
+// (will | shall) be being VBN
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+(NEGATION) (ADVS)?
+{Token.string == "be"}
+{Token.string == "being"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutCon",
+voice = "passive",
+neg = "yes",
+rule = "FVGFutConPasNeg"
+
+}
+
+
+Rule: FVGFutPerActNeg
+// Future Pefect Active: will not have eaten
+// (will | shall) have  VBN
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+(NEGATION) (ADVS)?
+{Token.string == "have"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutPer",
+voice = "active",
+neg = "yes",
+rule = "FVGFutPerActNeg"
+
+}
+
+Rule: FVGFutPerPasNeg
+// Future Pefect Active: will not have been eaten
+// (will | shall) have  been VBN
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+(NEGATION) (ADVS)?
+{Token.string == "have"}
+{Token.string == "been"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutPer",
+voice = "passive",
+neg = "yes",
+rule = "FVGFutPerPasNeg"
+}
+
+
+Rule: FVGFutPerConActNeg
+// Future Pefect Continuous Active: will not have been eating
+// (will | shall) have been VBG
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+(NEGATION) (ADVS)?
+{Token.string == "have"}
+{Token.string == "been"}
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutPerCon",
+voice = "active",
+neg = "yes",
+rule = "FVGFutPerConActNeg"
+}
+
+
+
+Rule: FVGFutPerConPasNeg
+// Future Pefect Continuous Passive: will not have been being eaten
+// (will | shall) have been being VBN
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+(NEGATION) (ADVS)?
+{Token.string == "have"}
+{Token.string == "been"}
+{Token.string == "being"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutPerCon",
+voice = "passive",
+neg = "yes",
+rule = "FVGFutPerConPasNeg"
+}
+
+
+Rule: FVGSimPreActNeg
+
+(
+(NEGATION) (ADVS)?
+({Token.category == "VB"})
+)
+:annotate 
+-->
+:annotate.VG = 
+{ type = "FVG",
+  tense = "SimPre",
+  voice = "active",
+neg = "yes",
+rule = "FVGSimPreActNeg"
+}
+
+
+Rule: FVGSimPasActNeg
+
+(
+({ Token.string == "did"})
+(NEGATION) (ADVS)?
+({Token.category == "VB"})
+)
+:annotate
+--> 
+:annotate.VG = 
+{ type = "FVG",
+  tense = "SimPas",
+  voice = "active",
+neg = "yes",
+rule = "FVGSimPasActNeg"
+}
+
+
+Rule: FVGSimPreActNeg1
+// Simple Present Active: is not
+// VB not
+
+(
+(
+({ Token.string == "is"})
+|
+({ Token.string == "are"})
+|
+({ Token.string == "be"})
+|
+({ Token.string == "am"})
+|
+({ Token.string == "have"})
+|
+({ Token.string == "has"})
+)
+(NEGATION) 
+)
+:annotate --> :annotate.VG = 
+
+{ type = "FVG",
+  tense = "SimPre",
+  voice = "active",
+neg = "yes",
+rule = "FVGSimPreActNeg1"}
+
+
+Rule: FVGSimPasActNeg
+// Simple Passive Active: was not
+
+(
+(
+({ Token.string == "was"})
+|
+({ Token.string == "were"})
+|
+({ Token.string == "had"})
+)
+(NEGATION) 
+):annotate 
+--> 
+:annotate.VG = 
+{ type = "FVG",
+  tense = "SimPas",
+  voice = "active",
+neg = "yes",
+rule = "FVGSimPasActNeg"}
+
+Rule: FVGPreConActNeg
+// Present Continuous Active: 
+
+(
+(NEGATION) (ADVS)?
+{Token.category == "VBG"}
+):annotate 
+-->
+:annotate.VG  = 
+{ type = "FVG",
+  tense = "PreCon",
+  voice = "active" ,
+neg = "yes",
+rule = "FVGPreConActNeg"}
+
+
+////////////////////////////////////////////////////////////
+// fvg.jape
+
+// Finite Verb Groups
+
+
+Rule: FVGSimPreAct
+// Simple Present Active: eats or eat
+
+(
+(
+{Token.category == "VBP"}
+|
+{Token.category == "VBZ"}
+)
+):annotate 
+--> :annotate.VG = 
+{ type = "FVG",
+  tense = "SimPre",
+  voice = "active",
+  rule = "FVGSimPreAct"}
+
+ 
+
+Rule: FVGPreConAct
+// Present Continuous Active: is eating or are eating
+// (is | are) VBG
+
+(
+({Token.string == "is"} | {Token.string == "are"})
+(ADVS)?
+{Token.category == "VBG"}
+):annotate
+-->
+:annotate.VG  = 
+{ type = "FVG",
+  tense = "PreCon",
+  voice = "active",
+  rule = "FVGPreConAct"}
+
+
+Rule: FVGPreConPas
+// Present Continuous Passive: is being  eaten or are being  eaten
+// (is | are) being  VBN
+
+(
+({Token.string == "is"} | {Token.string == "are"})?
+{Token.string == "being"}
+(ADVS)?
+{Token.category == "VBN"}
+):annotate 
+-->
+:annotate.VG = 
+{ type = "FVG",
+  tense = "PreCon",
+  voice = "active" ,
+ rule =  "FVGPreConPas"}
+
+Rule: FVGPrePerAct
+// Present Perfect Active: has eaten
+
+
+(
+({Token.string == "has"} | {Token.string == "have"})
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PrePer",
+voice = "active",
+rule = "FVGPrePerAct"
+}
+
+Rule: FVGPrePerPas
+// Present Perfect Active: has been eaten
+
+(
+({Token.string == "has"} | {Token.string == "have"})
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PrePer",
+voice = "passive",
+rule = "FVGPrePerPas"
+}
+
+Rule: FVGPrePerConAct
+// Present Perfect Continuous Active: has been eating
+
+(
+({Token.string == "has"} | {Token.string == "have"})
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PrePerCon",
+voice = "active",
+rule = "FVGPrePerConAct"
+}
+
+Rule: FVGPrePerConPas
+// Present Perfect Continuous Active: (very rare) has been being eaten
+
+(
+({Token.string == "has"} | {Token.string == "have"})
+{Token.string == "been"}
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PrePerCon",
+voice = "passive",
+rule = "FVGPrePerConPas"
+}
+
+Rule: FVGSimPasAct
+// Simple Past Active: ate
+
+(
+//(ADVS)?
+{Token.category == VBD}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "SimPas",
+voice = "active",
+rule = "FVGSimPasAct"
+}
+
+
+Rule: FVGSimPasPas
+// Simple Past Passive: was eaten
+
+(
+({Token.string == "was"} | {Token.string == "were"})
+(ADVS)?
+{Token.category == VBN}
+):annotate
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "SimPas",
+voice = "passive",
+rule = "FVGSimPasPas"
+}
+
+
+Rule: FVGPasConAct
+// Past Continuous Active: was eating
+
+(
+({Token.string == "was"} | {Token.string == "were"})
+(ADVS)?
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasCon",
+voice = "active",
+rule = "FVGPasConAct"
+}
+
+
+Rule: FVGPasConPas
+// Past Continuous Passive: was eating
+
+(
+({Token.string == "was"} | {Token.string == "were"})
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasCon",
+voice = "passive",
+rule = "FVGPasConAct"
+}
+
+Rule: FVGPasPerAct
+// Past Perfect Active: had eaten
+
+(
+{Token.string == "had"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasPer",
+voice = "active",
+rule = "FVGPasPerAct"
+}
+
+
+Rule: FVGPasPerPas
+// Past Perfect Passive: had been eaten
+
+(
+{Token.string == "had"}
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasPer",
+voice = "passive",
+rule = "FVGPasPerPas"
+}
+
+Rule: FVGPasPerConAct
+// Past Perfect Continuous Active: had been eating
+
+(
+{Token.string == "had"}
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasPerCon",
+voice = "active",
+rule = "FVGPasPerPas"
+}
+
+Rule: FVGPasPerConPas
+// Past Perfect Continuous Passive: had been being eaten
+
+(
+{Token.string == "had"}
+{Token.string == "been"}
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "PasPerCon",
+voice = "passive",
+rule = "FVGPasPerConPas"
+}
+
+
+Rule: FVGSimFutAct
+// Simple Future Active: will eat
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+(ADVS)?
+{Token.category == VB}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "SimFut",
+voice = "active",
+rule = "FVGSimFutAct"
+}
+
+
+Rule: FVGSimFutPas
+// Simple Future Active: will be eaten
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+{Token.string == "be"}
+(ADVS)?
+{Token.category == VB}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "SimFut",
+voice = "passive",
+rule = "FVGSimFutPas"
+}
+
+
+Rule: FVGFutConAct
+// Future Continuous Active: will be eating
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+
+{Token.string == "be"}
+(ADVS)?
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutCon",
+voice = "active",
+rule = "FVGFutConAct"
+}
+
+Rule: FVGFutConPas
+// Future Continuous Pasive: will be being  eaten
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+{Token.string == "be"}
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutCon",
+voice = "passive",
+rule = "FVGFutConPas"
+}
+
+
+Rule: FVGFutPerAct
+// Future Pefect Active: will have eaten
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+{Token.string == "have"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutPer",
+voice = "active",
+rule = "FVGFutPerAct"
+}
+
+Rule: FVGFutPerPas
+// Future Pefect Passive: will have being eaten
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+{Token.string == "have"}
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutPer",
+voice = "passive",
+rule = "FVGFutPerPas"
+}
+
+
+Rule: FVGFutPerConAct
+// Future Pefect Continuous Active: will have been eating
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+{Token.string == "have"}
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutPerCon",
+voice = "active",
+rule = "FVGFutPerConAct"
+}
+
+
+
+Rule: FVGFutPerConPas
+// Future Pefect Continuous Passive: will have been being eaten
+
+(
+({Token.string == "will"} | {Token.string == "shall"}
+| {Token.string == "wo"} | {Token.string == "'ll"}
+)
+{Token.string == "have"}
+{Token.string == "been"}
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "FVG",
+tense = "FutPerCon",
+voice = "passive",
+rule = "FVGFutPerConPas"
+}
+
+/////////////////////////////////////////////////
+// nfvg.jape
+
+// Non-Finite Verb Groups
+
+
+
+Rule: NFVGInfAct
+// Simple Infinitive Active: to eat
+
+(
+(TO)
+(ADVS)?
+{Token.category == VB}
+):annotate
+-->
+:annotate.VG = {
+type = "NFVG",
+tense = "Inf",
+voice = "active",
+rule = "NFVGInfAct"
+}
+
+Rule: NFVGInfActBis
+// Simple Infinitive Active: eat
+
+(
+{Token.category == VB}
+):annotate 
+-->
+:annotate.VG = {
+type = "NFVG",
+tense = "Inf",
+voice = "active",
+rule = "NFVGInfActBis"
+}
+
+Rule: NFVGInfPas
+// Simple Infinitive Passive: to be eaten
+
+(
+(TO)
+{Token.string == "be"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "NFVG",
+tense = "Inf",
+voice = "passive",
+rule = "NFVGInfPas"
+}
+
+
+Rule: NFVGPreConAct
+// Infinitive Present Continuous: to be eating
+
+(
+(TO)
+{Token.string == "be"}
+(ADVS)?
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "NFVG",
+tense = "PreCon",
+voice = "active",
+rule = "NFVGPreConAct"
+}
+
+
+Rule: NFVGPreConPas
+// Infinitive Present Continuous: to be being eaten
+
+(
+(TO)
+{Token.string == "be"}
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "NFVG",
+tense = "PreCon",
+voice = "passive",
+rule = "NFVGPreConPas"
+}
+
+
+Rule: NFVGPerAct
+// Infinitive Perfect Active:  to have eaten
+
+(
+(TO)
+{Token.string == "have"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "NFVG",
+tense = "Per",
+voice = "active",
+rule = "NFVGPerAct"
+}
+
+Rule: NFVGPerPas
+// Infinitive Perfect Passive:  to have been eaten
+
+(
+(TO)
+{Token.string == "have"}
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "NFVG",
+tense = "Per",
+voice = "passive",
+rule = "NFVGPerPas"
+}
+
+Rule: NFVGPerConAct
+// Infinitive Perfect Continuous Active:  to have been eating
+
+(
+(TO)
+{Token.string == "have"}
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "NFVG",
+tense = "PerCon",
+voice = "active",
+rule = "NFVGPerConAct"
+}
+
+Rule: NFVGPerConPas
+// Infinitive Perfect Continuous Passive:  to have been being eaten
+
+(
+(TO)
+{Token.string == "have"}
+{Token.string == "been"}
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "NFVG",
+tense = "PerCon",
+voice = "passive",
+rule = "NFVGPerConPas"
+}
+
+
+////////////////////////////////////////////////////////////////
+// modals
+
+Rule: Modal1Neg
+// cannot walk
+
+(
+((MODAL_NEG) | ((MODALS) (NEGATION)))
+(ADVS)?
+ {Token.category == VB}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "none",
+voice = "active",
+neg = "yes",
+rule = "Modal1Neg"
+}
+
+Rule: Modal1
+// can walk
+(
+(MODALS)
+(ADVS)?
+{Token.category == VB}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "none",
+voice = "active",
+rule = "Modal1"
+
+}
+
+Rule: Modal2Neg
+// might not be walking
+
+(
+(MODAL_NEG) | ((MODALS) (NEGATION))
+(ADVS)?
+{Token.string == "be"}
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "BeVBG",
+voice = "active",
+neg = "yes",
+rule = "Modal2Neg"
+}
+
+
+Rule: Modal2
+// might be walking
+
+(
+(MODALS)
+(ADVS)?
+{Token.string == "be"}
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "BeVBG",
+voice = "active",
+rule = "Modal2"
+}
+
+
+Rule: Modal3Neg
+// might not have walked
+
+(
+(MODAL_NEG) | ((MODALS) (NEGATION))
+(ADVS)?
+{Token.string == "have"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "HaveVBN",
+voice = "active",
+neg = "yes",
+rule = "Modal3Neg"
+}
+
+Rule: Modal3
+// might have walked
+
+(
+(MODALS)
+(ADVS)?
+{Token.string == "have"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "HaveVBN",
+voice = "active",
+rule = "Modal3"
+}
+
+
+Rule: Modal4Neg
+// might not be walked
+
+(
+(MODALS)
+(ADVS)?
+{Token.string == "be"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "BeVBN",
+voice = "passive",
+neg = "yes",
+rule = "Modal4Neg"
+}
+
+Rule: Modal4
+// might be walked
+
+(
+(MODALS)
+(ADVS)?
+{Token.string == "be"}
+{Token.category == VBN}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "BeVBN",
+voice = "passive",
+rule = "Modal4"
+}
+
+Rule: Modal5Neg
+// might not have been walking
+
+(
+(MODALS)
+(ADVS)?
+{Token.string == "have"}
+{Token.string == "been"}
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "HaveBeenVBG",
+voice = "active",
+neg = "yes",
+rule = "Modal5"
+}
+
+Rule: Modal5
+// might have been walking
+
+(
+(MODALS)
+(ADVS)?
+{Token.string == "have"}
+{Token.string == "been"}
+{Token.category == VBG}
+):annotate 
+-->
+:annotate.VG = {
+type = "MODAL",
+tense = "HaveBeenVBG",
+voice = "active",
+rule = "Modal5"
+}
+
+/////////////////////////////////////////////////
+
+
+// participles.jape
+
+// participles -ing, -ed, -n
+
+
+// present participles (i.e. INGs)
+
+Rule: PARTPreAct
+// Participle Present: eating
+// VBG
+
+(
+
+{Token.category == VBG}
+
+):annotate -->
+
+:annotate.VG = {
+type = "PART",
+tense = "Pre",
+voice = "active"
+
+}
+
+Rule: PARTPrePas
+// Participle Present Passive: being  eaten
+// being VBN
+
+(
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VBN}
+
+):annotate -->
+
+:annotate.VG = {
+type = "PART",
+tense = "Pre",
+voice = "passive"
+
+}
+
+
+Rule: PARTPrePerAct
+// Participle Present Perfect Active: having eaten
+// having VBN
+
+(
+{Token.string == "having"}
+(ADVS)?
+{Token.category == VBN}
+
+):annotate -->
+
+:annotate.VG = {
+type = "PART",
+tense = "PrePer",
+voice = "active"
+
+}
+
+Rule: PARTPrePerPas
+// Participle Present Perfect Passive: having been eaten
+// having been VBN
+
+(
+{Token.string == "having"}
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBN}
+
+):annotate -->
+
+:annotate.VG = {
+type = "PART",
+tense = "PrePer",
+voice = "passive"
+
+}
+
+Rule: PARTPrePerConAct
+// Participle Present Perfect Cont.  Active: having been eating
+// having VBN
+
+(
+{Token.string == "having"}
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBG}
+
+):annotate -->
+
+:annotate.VG = {
+type = "PART",
+tense = "PrePerCon",
+voice = "active"
+
+}
+
+Rule: PARTPrePerConPas
+// Participle Present Perfect Cont.  Passive: having been being eaten
+// having been being VBN
+
+(
+{Token.string == "having"}
+{Token.string == "been"}
+{Token.string == "being"}
+(ADVS)?
+{Token.category == VB}
+
+):annotate -->
+
+:annotate.VG = {
+type = "PART",
+tense = "PrePerCon",
+voice = "passive"
+
+}
+
+// present participles (i.e. -ed or irregulars)
+
+
+Rule: PARTPas
+// Past Participle: eaten
+// VBN
+
+
+(
+
+{Token.category == VBN}
+
+):annotate -->
+
+:annotate.VG = {
+type = "PART",
+tense = "Pas",
+voice = "none"
+
+}
+
+Rule: PARTPasPer
+// Past Participle: eaten
+// VBN
+
+
+(
+{Token.string == "been"}
+(ADVS)?
+{Token.category == VBN}
+
+):annotate -->
+
+:annotate.VG = {
+type = "PART",
+tense = "PasPer",
+voice = "none"
+
+}
+
+// special_vg.jape
+
+
+// Some special verbs
+
+Macro: TOBE
+
+(
+{Token.string == "be"}
+|
+{Token.string == "is"}
+|
+{Token.string == "am"}
+|
+{Token.string == "'s"}
+|
+{Token.string == "m"}
+|
+{Token.string == "are"}
+|
+{Token.string == "was"}
+|
+{Token.string == "were"}
+
+)
+
+Macro: TOHAVE
+
+(
+{Token.string == "have"}
+|
+{Token.string == "has"}
+|
+{Token.string == "'s"}
+|
+{Token.string == "had"}
+)
+
+Macro: SPECIALS
+
+(
+
+({Token.string == "had"} {Token.string == "better"})
+
+|
+
+(
+(TOBE)
+{Token.string == "supposed"} {Token.string == "to"}
+)
+
+|
+
+(
+(TOBE)
+{Token.string == "to"}
+)
+
+|
+
+
+(
+(TOHAVE)
+{Token.string == "to"}
+)
+
+
+|
+
+(
+(TOHAVE)
+{Token.string == "got"}
+{Token.string == "to"}
+
+)
+
+|
+
+
+(
+(TOBE)
+{Token.string == "going"}
+{Token.string == "to"}
+)
+
+|
+
+(
+(TOBE)
+{Token.string == "able"}
+{Token.string == "to"}
+
+)
+
+|
+
+(
+{Token.string == "used"}
+{Token.string == "to"}
+
+)
+
+
+)
+
+Rule: Special1
+// SPECIAL + VB
+
+(
+(SPECIALS)
+(ADVS)?
+{Token.category == VB}
+
+):annotate -->
+:annotate.VG = {
+type = "SPECIAL",
+tense = "Pre",
+voice = "none"
+
+}
+
+
+Rule: Special2
+// SPECIAL + VBN
+
+(
+(SPECIALS)
+(ADVS)?
+{Token.category == VBN}
+
+):annotate -->
+:annotate.VG = {
+type = "SPECIAL",
+tense = "Pas",
+voice = "none"
+
+}

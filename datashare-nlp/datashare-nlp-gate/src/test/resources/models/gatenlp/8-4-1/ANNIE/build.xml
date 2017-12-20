@@ -1,0 +1,174 @@
+<?xml version="1.0"?>
+<!-- $Id: build.xml 16174 2012-10-29 13:58:16Z ian_roberts $ -->
+<project name="GATE Tokenisers" default="jar" basedir=".">
+    <description>
+        GATE see http://gate.ac.uk
+    </description>
+  <!-- set global properties for this build -->
+  <!-- Prevent Ant from warning about includeantruntime not being set -->
+  <property name="build.sysclasspath" value="ignore" />
+
+  <!-- Name of the output jar file -->
+  <property name="jarFile"  location="heptag_wrapper.jar"/>
+  
+  <!-- Sources -->
+  <property name="srcDir" location="src"/>
+  
+  <!-- Output directory for the build process -->
+  <property name="outputDir"  location="classes"/>
+
+  <!-- Libraries directory for the build process -->
+  <property name="libDir"  location="lib"/>
+  
+  <!-- Extensions directory for the build process -->
+  <property name="extDir"  location="lib/ext"/>
+
+  <!-- Documentation directory -->
+  <property name="docDir"  location="doc"/>
+  
+  <!-- Use the new 1.3+ compiler -->
+  <property name="build.compiler"  value="modern"/>
+
+  
+  <!-- tools.jar path -->
+  <path id="tools.jar.path" location="../bin/tools14.jar"/>
+  
+  <!-- The build CLASSPATH -->
+  <path id="build.class.path">
+    <fileset file="../../bin/gate.jar"/>
+    <fileset file="lib/heptag.jar"/>
+  </path>
+  
+  <!-- Prints out some information messages -->
+  <echo level="info">
+    This is the ANT build script for a CREOLE GATE component (http://gate.ac.uk).
+    Type &quot;ant help&quot; for details about the targets available.
+    GATE ${gate.version}, build ${gate.build}</echo>
+    
+  <!-- Prints out details about the targets -->
+  <target name="help">
+    <echo level="info">
+      This is the ANT build script for gate (http://gate.ac.uk).
+      The following targets are available
+        -all (default target): compiles GUK and GATE classes and makes the gate.jar archive.
+        
+        -compile: compiles all the .java files
+        -resources: copies the resources to the output directory (${outputDir})
+        -jar: creates the gate.jar archive
+        -run: starts GATE
+        -clean: cleans up the output from all previous builds
+        
+        -doc: creates the Javadoc and Java2HTML documentation
+        -docclean: deletes all built documentation
+        -jape: rebuilds the JAPE parser files and associated documentation
+        -guk: compiles the GUK classes and builds the guk.jar archive
+        -gukdemo: starts the GUK Editor (a.k.a. GATE Unicode Editor)
+        -test: runs the GATE test suite
+        
+        -distro: make a GATE distribution (calls all build tasks in the process)
+    </echo>
+  </target>
+  
+
+	<!-- This target compiles all the classes -->  
+  <target name="compile"
+          description="compile the source " >
+    <!-- Compile the java code from ${srcDir} into ${buildDir} -->
+    <javac srcdir="${srcDir}" 
+		       destdir="${outputDir}"
+           includes="gate/**"
+           source="1.4"
+           target="1.4"
+					 classpathref="build.class.path"/>
+  </target>
+	
+  <!-- Make gate.jar archive -->
+	<target name="jar" depends="compile">
+		<jar destfile="${jarFile}" 
+         update="false"
+         index="true">
+      <fileset dir="${outputDir}/"
+               includes="gate/**"/>
+    </jar>
+	</target>
+  
+  
+  <!-- Clear all build output -->
+  <target name="clean">
+    <delete includeemptydirs="true">
+      <fileset dir="${outputDir}" excludes="**/CVS,**/CVS/**,**/.cvsignore"/>
+    </delete>
+  </target>
+  
+  <!-- Dummy javadoc as there are no sources but gate core wants the target -->
+  <target name="javadoc">
+  </target>
+  
+  <!-- Make documentation - internal -->
+  <target name="internaljavadoc">
+    <javadoc access="private" 
+              destdir="${docDir}/javadoc/internal"
+              classpathref="run.class.path"
+              Extdirs="${extDir}"
+              Encoding="UTF-8"
+              Use="yes"
+              Windowtitle="GATE JavaDoc"
+              link="http://docs.oracle.com/javase/6/docs/api/"
+              docencoding="UTF-8"
+              charset="UTF-8"
+              source="1.6"
+              breakiterator="true">
+      <fileset dir="${srcDir}"/>        
+    </javadoc>
+  </target>
+
+  
+  <!-- Convert the source to HTML using the java2html utility -->
+  <target name="java2html">
+    <java jar="${buildDir}/lib/j2h.jar"
+          fork="true"
+          spawn="false">
+      <jvmarg value="-Dfile.encoding=UTF-8"/>
+      <arg value="-d"/> <arg file="${docDir}/java2html/"/>
+      <arg value="-js"/> <arg file="${srcDir}"/>
+      <arg value="-jd"/> <arg file="${docDir}/javadoc"/>
+      <arg value="-m"/> <arg value="4"/>
+      <arg value="-t"/> <arg value="2"/>
+      <arg value="-n"/> <arg value="&quot;GATE source&quot;"/>
+    </java>
+  </target>
+ 
+  <target name="doc" depends="javadoc, internaljavadoc, java2html"/>
+ 
+  
+  <!-- Clear all built documentation -->
+  <target name="docclean">
+    <delete includeemptydirs="true">
+      <fileset dir="${docDir}/javadoc" excludes="**/CVS,**/CVS/**,**/.cvsignore,internal,internal/**"/>
+    </delete>
+    <delete includeemptydirs="true">
+      <fileset dir="${docDir}/javadoc/internal" excludes="**/CVS,**/CVS/**,**/.cvsignore"/>
+    </delete>
+    <delete includeemptydirs="true">
+      <fileset dir="${docDir}/java2html" excludes="**/CVS,**/CVS/**,**/.cvsignore"/>
+    </delete>
+  </target>
+    
+  <target name="test" depends="jar">
+    <junit fork="true" 
+           showoutput="yes"
+           printsummary="yes">
+      <classpath refid="run.class.path"/>
+      <sysproperty key="gate.config" value="${buildDir}/gate.xml"/>
+      <jvmarg value="-Djava.ext.dirs=${extDir}"/>
+      <formatter type="plain"
+                 usefile="false"/>
+      <formatter type="xml"
+                 if="write.xml"/>
+      <test name="gate.TestGate"
+            outfile="testResult"
+            todir="${buildDir}"/>
+    </junit>
+  </target>  
+</project>
+

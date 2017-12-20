@@ -1,0 +1,26 @@
+Phase: Money
+Input: Lookup Token
+Options: control = appelt
+
+
+Rule: Money1
+(
+	({Lookup.majorType == "number"})+
+	({Lookup.majorType == "number"})*
+	(
+	(
+//	{Token.string == "."}
+//	|
+//	{Token.string == "\-"}
+//	|
+	{Token.string == ","}
+	)
+	({Lookup.majorType == "number"})+
+	)?
+
+	({Lookup.majorType == "currency"})
+	
+
+):NumberName
+-->
+:NumberName.Money = {kind = "money", subtype= "number", rule = "Number1"}

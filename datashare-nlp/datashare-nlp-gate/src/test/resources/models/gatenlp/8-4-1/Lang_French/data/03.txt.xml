@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<GateDocument>
+<!-- The document's features-->
+
+<GateDocumentFeatures>
+<Feature>
+  <Name className="java.lang.String">gate.SourceURL</Name>
+  <Value className="java.lang.String">file:/home/diana/french/data/le_monde/clean/03.txt</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">docNewLineType</Name>
+  <Value className="java.lang.String">LF</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">MimeType</Name>
+  <Value className="java.lang.String">text/plain</Value>
+</Feature>
+</GateDocumentFeatures>
+<!-- The document content area with serialized nodes -->
+
+<TextWithNodes><Node id="0"/>Un soldat américain tué, deux blessés dans une attaque en <Node id="58"/>Irak<Node id="62"/>
+AFP | 07.10.04 | 05h45<Node id="85"/>
+
+<Node id="87"/>Un soldat américain a été tué et deux autres blessés <Node id="140"/>mercredi soir<Node id="153"/>, lors de
+l&apos;attaque de leur convoi près du bastion sunnite rebelle de <Node id="223"/>Falloujah<Node id="232"/>, à l&apos;ouest
+de <Node id="247"/>Bagdad<Node id="253"/>, a annoncé <Node id="265"/>jeudi<Node id="270"/> l&apos;armée américaine dans un communiqué.Un &quot;engin
+explosif de type inconnu&quot; a frappé le convoi à environ <Node id="374"/>21H45<Node id="379"/> (<Node id="381"/>18H45 GMT<Node id="390"/>),
+indique le communiqué.Les trois soldats ont été emmenés à l&apos;hôpital militaire où
+l&apos;un est mort de ses blessures une heure après son admission. L&apos;un des blessés
+est grièvement atteint, tandis que l&apos;état de l&apos;autre s&apos;est stabilisé, selon la
+même source.Selon les chiffres du <Node id="666"/>Pentagone<Node id="675"/>, ce décès porte à 1.057 le nombre
+des militaires américains tués en <Node id="744"/>Irak<Node id="748"/> depuis l&apos;invasion de ce pays <Node id="778"/>l&apos;an
+dernier<Node id="790"/>.
+<Node id="792"/></TextWithNodes>
+<!-- The default annotation set -->
+
+<AnnotationSet>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Key" >
+<Annotation Type="Date" StartNode="381" EndNode="390">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">time</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Location" StartNode="744" EndNode="748">
+</Annotation>
+<Annotation Type="Date" StartNode="265" EndNode="270">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Date" StartNode="778" EndNode="790">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Location" StartNode="58" EndNode="62">
+</Annotation>
+<Annotation Type="Location" StartNode="247" EndNode="253">
+</Annotation>
+<Annotation Type="Date" StartNode="140" EndNode="153">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">dateTime</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Date" StartNode="374" EndNode="379">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">time</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Location" StartNode="223" EndNode="232">
+</Annotation>
+<Annotation Type="Organization" StartNode="666" EndNode="675">
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Original markups" >
+<Annotation Type="paragraph" StartNode="0" EndNode="85">
+</Annotation>
+<Annotation Type="paragraph" StartNode="87" EndNode="792">
+</Annotation>
+</AnnotationSet>
+</GateDocument>

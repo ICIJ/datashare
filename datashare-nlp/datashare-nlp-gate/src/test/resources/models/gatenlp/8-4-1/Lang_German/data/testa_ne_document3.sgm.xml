@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<GateDocument>
+<!-- The document's features-->
+
+<GateDocumentFeatures>
+<Feature>
+  <Name className="java.lang.String">gate.SourceURL</Name>
+  <Value className="java.lang.String">file:/home/diana/German/data/marked/testa_ne_document3.sgm</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">MimeType</Name>
+  <Value className="java.lang.String">text/sgml</Value>
+</Feature>
+</GateDocumentFeatures>
+<!-- The document content area with serialized nodes -->
+
+<TextWithNodes><Node id="0"/>
+ -DOCSTART- Drei Nähkurse beginnen bei der Kirchengemeinde <Node id="60"/>BAD VILBEL<Node id="70"/> . Die <Node id="77"/>Evangelische Familien-Bildungsstätte<Node id="113"/> bietet drei Nähkurse für Anfänger / innen an . In einer Nähberatung sollen den Teilnehmern und Teilnehmerinnen Grundkenntnisse vermittelt werden oder sie können sie erweitern . Der Kursus beginnt am Montag , 31. August , um 19 Uhr . Spezielle Nähberatung für Kinderbekleidung wird dienstags von 9 bis 12 Uhr angeboten . Der Kursus beginnt am 8. September . Für Teenager und junge Leute , die mit Nadel und Faden selten oder noch nie Kontakt hatten , sich aber dennoch einmal damit beschäftigen wollen , ist der dritte Kursus angelegt . Ab Freitag , 11. September , sollen jeweils ab 16.30 Uhr die ersten eigenen Werke entstehen . Alle Kurse , die auf 10 Wochen angelegt sind und jeweils drei Stunden dauern , werden im <Node id="833"/>Grünen Weg<Node id="843"/> 4-6 abgehalten . Anmeldungen werden montags , dienstags und donnerstags von 9 bis 12 Uhr und von 14 bis 17 Uhr unter der Rufnummer 0 60 31 / 9 19 76 entgegengenommen .<Node id="1011"/></TextWithNodes>
+<!-- The default annotation set -->
+
+<AnnotationSet>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Key" >
+<Annotation Type="ORG" StartNode="77" EndNode="113">
+</Annotation>
+<Annotation Type="LOC" StartNode="833" EndNode="843">
+</Annotation>
+<Annotation Type="LOC" StartNode="60" EndNode="70">
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Original markups" >
+<Annotation Type="ORG" StartNode="77" EndNode="113">
+</Annotation>
+<Annotation Type="LOC" StartNode="60" EndNode="70">
+</Annotation>
+<Annotation Type="LOC" StartNode="833" EndNode="843">
+</Annotation>
+<Annotation Type="root" StartNode="0" EndNode="1011">
+</Annotation>
+</AnnotationSet>
+</GateDocument>

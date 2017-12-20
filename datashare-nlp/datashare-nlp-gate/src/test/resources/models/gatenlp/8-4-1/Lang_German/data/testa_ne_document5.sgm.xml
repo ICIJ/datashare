@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<GateDocument>
+<!-- The document's features-->
+
+<GateDocumentFeatures>
+<Feature>
+  <Name className="java.lang.String">gate.SourceURL</Name>
+  <Value className="java.lang.String">file:/home/diana/German/data/marked/testa_ne_document5.sgm</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">MimeType</Name>
+  <Value className="java.lang.String">text/sgml</Value>
+</Feature>
+</GateDocumentFeatures>
+<!-- The document content area with serialized nodes -->
+
+<TextWithNodes><Node id="0"/>
+ -DOCSTART- Tarot und Bauchtanz im Frauen-Seminar <Node id="51"/>FRIEDBERG<Node id="60"/> . Zu einem Wochenendseminar über Tarot und Bauchtanz lädt der <Node id="123"/>Frauenzentrumsverein Friedberg<Node id="153"/> für Samstag , 29. August , und Sonntag , 30. August , ein . Die Veranstaltung dauert jeweils von 11 bis 17 Uhr . Anmeldungen nimmt das <Node id="289"/>Frauenzentrum<Node id="302"/> unter Tel . 0 60 31 / 25 11 entgegen .<Node id="341"/></TextWithNodes>
+<!-- The default annotation set -->
+
+<AnnotationSet>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Key" >
+<Annotation Type="ORG" StartNode="123" EndNode="153">
+</Annotation>
+<Annotation Type="LOC" StartNode="289" EndNode="302">
+</Annotation>
+<Annotation Type="LOC" StartNode="51" EndNode="60">
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Original markups" >
+<Annotation Type="ORG" StartNode="123" EndNode="153">
+</Annotation>
+<Annotation Type="LOC" StartNode="51" EndNode="60">
+</Annotation>
+<Annotation Type="LOC" StartNode="289" EndNode="302">
+</Annotation>
+<Annotation Type="root" StartNode="0" EndNode="341">
+</Annotation>
+</AnnotationSet>
+</GateDocument>

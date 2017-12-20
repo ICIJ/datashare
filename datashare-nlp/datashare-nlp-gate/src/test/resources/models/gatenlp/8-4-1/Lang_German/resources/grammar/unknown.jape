@@ -1,0 +1,40 @@
+
+Phase:	Unknown
+Input: Location Person Date Organization Address Money Percent Token JobTitle Lookup Exception
+Options: control = appelt
+
+
+Rule: Known
+Priority: 100
+(
+ {Location}| 
+ {Person}|
+ {Date}|
+ {Organization}|
+ {Address}|
+ {Money} |
+ {Percent}|
+ {Exception}|
+ {JobTitle}|
+ {Lookup}
+):known
+-->
+{}
+ 
+
+Rule:Unknown
+Priority: 50
+( 
+ {Token.category == NE}
+) 
+:unknown
+-->
+ :unknown.Unknown = {kind = "PN", rule = Unknown}
+
+
+
+
+
+
+
+

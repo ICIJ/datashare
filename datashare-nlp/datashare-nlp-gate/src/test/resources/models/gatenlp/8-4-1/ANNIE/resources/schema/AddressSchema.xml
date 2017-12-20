@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2000/10/XMLSchema">
+  <!-- XSchema deffinition for Address -->
+  <element name="Address">
+    <complexType>
+      <attribute name="kind" use="optional" value="other" >
+        <simpleType>
+          <restriction base="string">
+            <enumeration value="email"/>
+            <enumeration value="url"/>
+            <enumeration value="phone"/>
+            <enumeration value="ip"/>
+            <enumeration value="postcode"/>
+            <enumeration value="country"/>
+            <enumeration value="complete"/>
+          </restriction>
+        </simpleType>   
+      </attribute>
+    </complexType>
+  </element>
+</schema>

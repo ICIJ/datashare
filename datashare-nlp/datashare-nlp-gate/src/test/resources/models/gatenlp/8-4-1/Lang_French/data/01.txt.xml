@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<GateDocument>
+<!-- The document's features-->
+
+<GateDocumentFeatures>
+<Feature>
+  <Name className="java.lang.String">gate.SourceURL</Name>
+  <Value className="java.lang.String">file:/home/diana/french/data/le_monde/clean/01.txt</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">docNewLineType</Name>
+  <Value className="java.lang.String">LF</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">MimeType</Name>
+  <Value className="java.lang.String">text/plain</Value>
+</Feature>
+</GateDocumentFeatures>
+<!-- The document content area with serialized nodes -->
+
+<TextWithNodes><Node id="0"/>Deux roquettes Qassam s&apos;abattent sur <Node id="37"/>Sdérot<Node id="43"/>: pas de victimes
+AFP | 07.10.04 | 09h19<Node id="83"/>
+
+<Node id="85"/>Deux roquettes artisanales Qassam, tirées de <Node id="130"/>la bande de Gaza<Node id="146"/>, se sont abattues
+<Node id="165"/>jeudi<Node id="170"/> sur la ville de <Node id="187"/>Sdérot<Node id="193"/>, dans le sud d&apos;<Node id="209"/>Israël<Node id="215"/>, sans faire de blessé mais
+endommageant une maison, apprend-on de sources militaires israéliennes.Cette
+attaque survient au neuvième jour de la vaste opération lancée par l&apos;armée
+israélienne dans le nord de 
+<Node id="424"/>la bande de Gaza<Node id="440"/> pour empêcher ces tirs de roquettes
+qui sont revendiqués par le mouvement islamiste palestinien <Node id="537"/>Hamas<Node id="542"/>.Quatre-vingt
+dix <Node id="560"/>Palestiniens<Node id="572"/> ont été tués par l&apos;armée israélienne dans <Node id="615"/>la bande de Gaza<Node id="631"/>
+depuis le lancement de cette opération <Node id="671"/>le 28 septembre<Node id="686"/> au soir.<Node id="695"/>Israël<Node id="701"/> a mis en
+place une &quot;zone de sécurité&quot; d&apos;une profondeur variant entre six et neuf
+kilomètres s&apos;enfonçant dans <Node id="811"/>la bande de Gaza<Node id="827"/> à partir de la lisière de <Node id="854"/>Sdérot<Node id="860"/>,
+afin de mettre cette localité de 24.000 habitants hors de portée des
+roquettes.Fabriquées par <Node id="956"/>les Brigades Ezzedine al-Qassam<Node id="987"/>, la branche armée du
+<Node id="1009"/>Hamas<Node id="1014"/>, les roquettes Qassam sont des engins imprécis pouvant emporter une charge
+explosive de 5 kg sur une distance d&apos;environ dix kilomètres.<Node id="1150"/>Les Brigades<Node id="1162"/> ont
+menacé mercredi d&apos;intensifier leurs tirs de roquettes contre le territoire
+israélien et affirmé qu&apos;elles développaient actuellement un engin de plus longue
+portée.Jusqu&apos;ici, les Qassam tirés sur <Node id="1362"/>Sdérot<Node id="1368"/> ont fait quatre tués israéliens,
+dont trois enfants en bas âge.Un système d&apos;alerte donnant un délai de 20
+secondes aux habitants de <Node id="1501"/>Sdérot<Node id="1507"/> pour courir aux abris dans l&apos;éventualité d&apos;un
+tir de roquettes Qassam à partir de 
+<Node id="1591"/>la bande de Gaza<Node id="1607"/>, doit être mis en place à
+compter de <Node id="1645"/>la semaine prochaine<Node id="1665"/>, a rapporté <Node id="1678"/>mercredi<Node id="1686"/> le quotidien Yediot
+Aharonot.
+<Node id="1717"/></TextWithNodes>
+<!-- The default annotation set -->
+
+<AnnotationSet>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Key" >
+<Annotation Type="Date" StartNode="165" EndNode="170">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Organization" StartNode="537" EndNode="542">
+</Annotation>
+<Annotation Type="Location" StartNode="615" EndNode="631">
+</Annotation>
+<Annotation Type="Location" StartNode="695" EndNode="701">
+</Annotation>
+<Annotation Type="Date" StartNode="671" EndNode="686">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Organization" StartNode="956" EndNode="987">
+</Annotation>
+<Annotation Type="Location" StartNode="187" EndNode="193">
+</Annotation>
+<Annotation Type="Location" StartNode="1362" EndNode="1368">
+</Annotation>
+<Annotation Type="Location" StartNode="130" EndNode="146">
+</Annotation>
+<Annotation Type="Person" StartNode="560" EndNode="572">
+</Annotation>
+<Annotation Type="Location" StartNode="209" EndNode="215">
+</Annotation>
+<Annotation Type="Date" StartNode="1645" EndNode="1665">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">date</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Date" StartNode="1678" EndNode="1686">
+</Annotation>
+<Annotation Type="Location" StartNode="854" EndNode="860">
+</Annotation>
+<Annotation Type="Location" StartNode="811" EndNode="827">
+</Annotation>
+<Annotation Type="Location" StartNode="424" EndNode="440">
+</Annotation>
+<Annotation Type="Organization" StartNode="1150" EndNode="1162">
+</Annotation>
+<Annotation Type="Location" StartNode="1501" EndNode="1507">
+</Annotation>
+<Annotation Type="Organization" StartNode="1009" EndNode="1014">
+</Annotation>
+<Annotation Type="Location" StartNode="1591" EndNode="1607">
+</Annotation>
+<Annotation Type="Location" StartNode="37" EndNode="43">
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Original markups" >
+<Annotation Type="paragraph" StartNode="0" EndNode="83">
+</Annotation>
+<Annotation Type="paragraph" StartNode="85" EndNode="1717">
+</Annotation>
+</AnnotationSet>
+</GateDocument>

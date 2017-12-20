@@ -1,0 +1,33 @@
+Phase:	DateHeader
+Input: DCT
+Options: control = appelt
+
+Rule: DCT
+(
+ {DCT}
+):tag
+-->
+{
+gate.AnnotationSet tagSet = (gate.AnnotationSet)bindings.get("tag");
+gate.Annotation tagAnn = (gate.Annotation)tagSet.iterator().next();
+
+gate.FeatureMap features = Factory.newFeatureMap();
+
+
+String s = gate.Utils.stringFor(doc, tagAnn);
+//String content = doc.getContent().getContent(tagAnn.getStartNode().getOffset(),
+ //                tagAnn.getEndNode().getOffset()).toString();
+ 
+ if (s.matches("^\\d{8}$") ) {
+String s1 = s.substring(0,4) + "-" + s.substring(4,6) + "-" + s.substring(6,8);
+
+doc.getFeatures().put("document-date", s1);
+}
+
+ }
+
+
+
+
+
+

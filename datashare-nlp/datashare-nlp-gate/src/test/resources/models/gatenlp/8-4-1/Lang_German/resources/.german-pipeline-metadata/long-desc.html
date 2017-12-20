@@ -1,0 +1,55 @@
+<p>A named entity recognition pipeline that identifies basic entity types, such 
+as <em>Person</em>, <em>Location</em>, <em>Organization</em>, <em>Money</em> 
+amounts, <em>Time</em> and <em>Date</em> expressions. It works on documents
+in the German language.</p>
+
+<p><button class="btn btn-info" data-toggle="collapse" data-target="#ldAnnotationDetails"><i class="icon-info-sign icon-white"></i> Annotation details</button></p>
+
+<div class="collapse clearfix" id="ldAnnotationDetails">
+<table>
+  <tr>
+    <td colspan="2"><b>Default annotations</b></td>
+  </tr>
+  <tr>
+    <td><tt>:Person</tt></td>
+    <td rowspan="4">Standard named entity types</td>
+  </tr>
+  <tr>
+    <td><tt>:Location</tt></td>
+  </tr>
+  <tr>
+    <td><tt>:Organization</tt></td>
+  </tr>
+  <tr>
+    <td><tt>:Date</tt></td>
+  </tr>
+  <tr>
+    <td><tt>:Address</tt></td>
+    <td>Includes email and IP addresses as well as street addresses</td>
+  </tr>
+  <tr>
+    <td colspan="2"><b>Additional annotations available if selected</b></td>
+  </tr>
+  <tr>
+    <td><tt>:Money</tt></td>
+    <td>Monetary amounts</td>
+  </tr>
+  <tr>
+    <td><tt>:Percent</tt></td>
+    <td>Expressions representing percentages</td>
+  </tr>
+  <tr>
+    <td><tt>:Token</tt></td>
+    <td>The individual tokens of the text, with "category" feature for POS</td>
+  </tr>
+  <tr>
+    <td><tt>:SpaceToken</tt></td>
+    <td>The spaces between tokens</td>
+  </tr>
+  <tr>
+    <td><tt>:Sentence</tt></td>
+    <td>Sentences detected by the sentence splitter</td>
+  </tr>
+</table>
+</div>
+

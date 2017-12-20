@@ -1,0 +1,53 @@
+/*
+*  clean.jape
+*
+* Copyright (c) 1998-2004, The University of Sheffield.
+*
+*  This file is part of GATE (see http://gate.ac.uk/), and is free
+*  software, licenced under the GNU Library General Public License,
+*  Version 2, June 1991 (in the distribution as file licence.html,
+*  and also available at http://gate.ac.uk/gate/licence.html).
+*
+*  Diana Maynard, 10 Sep 2001
+* 
+*  $Id: clean.jape 18106 2014-06-20 17:42:07Z dgmaynard $
+*/
+
+Phase:	Clean
+Input: TempPerson TempLocation TempOrganization TempDate TempTime TempYear TempZone Street Postcode Email Url Phone Ip TempIdentifier TempSpecs ClosedClass Initials Upper FirstPerson JobTitle HashtagToken HashtagLookup NumberLetter Temp Title UrlPre
+Options: control = all
+
+Rule:CleanTempAnnotations
+(
+ {TempPerson}|
+ {TempLocation}|
+ {TempOrganization}|
+ {TempDate}|
+ {TempTime}|
+ {TempYear}|
+ {TempZone}|
+ {Street}|
+ {Postcode}|
+ {Email}|
+ {Url}|
+ {Phone}|
+ {Ip}|
+ {TempIdentifier}|
+ {TempSpecs}|
+ {ClosedClass}|
+ {Upper}|
+ {Initials}|
+ {FirstPerson}|
+ {JobTitle}|
+ {HashtagToken}|
+ {HashtagLookup}|
+ {Title}|
+ {UrlPre}|
+ {Temp}|
+ {NumberLetter}
+):temp
+-->
+{
+ gate.AnnotationSet temp = (gate.AnnotationSet)bindings.get("temp");
+ outputAS.removeAll(temp);
+}

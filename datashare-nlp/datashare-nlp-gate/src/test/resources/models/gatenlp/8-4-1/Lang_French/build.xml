@@ -1,0 +1,89 @@
+<project name="french" default="dist" basedir=".">
+    <description>
+        A plugin for Multilingual data [French]
+    </description>
+
+  <!-- Prevent Ant from warning about includeantruntime not being set -->
+  <property name="build.sysclasspath" value="ignore" />
+
+  <!-- set global properties for this build -->
+  <property name="src" location="src"/>
+  <property name="build" location="build"/>
+  <property name="jar.location" location="french.jar" />
+  <property name="doc.dir" location="doc" />
+  <property name="javadoc.dir" location="${doc.dir}/javadoc" />
+
+  <property name="gate.home" location="../.." />
+  <property name="gate.jar" location="${gate.home}/bin/gate.jar" />
+  <property name="gate.lib" location="${gate.home}/lib" />
+  <property name="gate.compile.maxwarnings" value="10000" />
+
+  <path id="compile.classpath">
+    <pathelement location="${gate.jar}" />
+    <fileset dir="${gate.lib}" >
+      <include name="**/*.jar" />
+      <include name="**/*.zip" />
+    </fileset>
+  </path>
+
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build}"/>
+  </target>
+
+  <target name="compile" depends="init"
+        description="compile the source " >
+    <!-- Compile the java code from ${src} into ${build} -->
+    <javac srcdir="${src}" destdir="${build}" source="1.6" target="1.6"
+           classpathref="compile.classpath">
+		<compilerarg value="-Xmaxwarns" />
+		<compilerarg value="${gate.compile.maxwarnings}" />
+		<compilerarg value="-Xlint:all" />
+    </javac>
+  </target>
+
+  <target name="dist" depends="compile"
+        description="generate the distribution" >
+
+    <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
+    <jar jarfile="${jar.location}" basedir="${build}"/>
+  </target>
+
+  <!-- Build JavaDoc documentation -->
+  <target name="doc.prepare">
+    <mkdir dir="${javadoc.dir}" />
+  </target>
+
+  <target name="javadoc" depends="doc.prepare">
+    <javadoc destdir="${javadoc.dir}" packagenames="*"
+             classpathref="compile.classpath"
+             encoding="UTF-8"
+             windowtitle="${plugin.name} JavaDoc"
+             source="1.6">
+      <sourcepath>
+        <pathelement location="${src}" />
+      </sourcepath>
+      <link href="http://docs.oracle.com/javase/6/docs/api/" />
+      <link href="http://gate.ac.uk/gate/doc/javadoc/" />
+    </javadoc>
+  </target>
+
+  <target name="clean.classes"
+        description="clean up" >
+    <!-- Delete the ${build} directory tree -->
+    <delete dir="${build}"/>
+  </target>
+
+  <target name="clean" depends="clean.classes" >
+    <!-- full clean also removes the generated JAR file -->
+    <delete file="${jar.location}" />
+  </target>
+
+  <!-- Targets used by the main GATE build file -->
+  <target name="build" depends="dist" />
+  <target name="test" />
+  <target name="distro.prepare" depends="clean.classes" />
+</project>
+

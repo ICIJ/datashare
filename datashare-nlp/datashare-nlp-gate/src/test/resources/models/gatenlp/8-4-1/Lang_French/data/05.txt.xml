@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<GateDocument>
+<!-- The document's features-->
+
+<GateDocumentFeatures>
+<Feature>
+  <Name className="java.lang.String">gate.SourceURL</Name>
+  <Value className="java.lang.String">file:/home/diana/french/data/le_monde/clean/05.txt</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">docNewLineType</Name>
+  <Value className="java.lang.String">LF</Value>
+</Feature>
+<Feature>
+  <Name className="java.lang.String">MimeType</Name>
+  <Value className="java.lang.String">text/plain</Value>
+</Feature>
+</GateDocumentFeatures>
+<!-- The document content area with serialized nodes -->
+
+<TextWithNodes><Node id="0"/>Attentat anti-sunnite au <Node id="25"/>Pakistan<Node id="33"/>: au moins trente morts
+AFP | 07.10.04 | 03h50<Node id="79"/>
+
+<Node id="81"/>Au moins trente personnes ont été tuées et plusieurs dizaines blessés par
+l&apos;explosion d&apos;une bombe contre une réunion de <Node id="201"/>musulmans sunnites<Node id="219"/> à <Node id="222"/>Multan<Node id="228"/>
+(centre du <Node id="240"/>Pakistan<Node id="248"/>), a annoncé la police. &quot;Environ trente personnes ont été
+tuées et plusieurs dizaines blessées par l&apos;explosion&quot;, a affirmé à l&apos;<Node id="375"/>AFP<Node id="378"/> un
+officier de la police locale, <Node id="412"/>Muhammad Nazakat<Node id="428"/>. Plus d&apos;un millier de militants
+sunnites étaient réunis depuis <Node id="492"/>mercredi soir<Node id="505"/> lors d&apos;une congrégation spéciale et
+étaient en train de prier à <Node id="570"/>Chowk Rasheedabad<Node id="587"/>, dans le centre de <Node id="607"/>Multan<Node id="613"/>, lorsque
+l&apos;explosion s&apos;est produite à <Node id="652"/>04h30<Node id="657"/> (<Node id="659"/>23h30 GMT mercredi<Node id="677"/>), a précisé l&apos;officier de
+police.
+<Node id="712"/></TextWithNodes>
+<!-- The default annotation set -->
+
+<AnnotationSet>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Key" >
+<Annotation Type="Location" StartNode="240" EndNode="248">
+</Annotation>
+<Annotation Type="Location" StartNode="570" EndNode="587">
+</Annotation>
+<Annotation Type="Location" StartNode="25" EndNode="33">
+</Annotation>
+<Annotation Type="Location" StartNode="607" EndNode="613">
+</Annotation>
+<Annotation Type="Date" StartNode="659" EndNode="677">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">dateTime</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Person" StartNode="412" EndNode="428">
+</Annotation>
+<Annotation Type="Person" StartNode="201" EndNode="219">
+</Annotation>
+<Annotation Type="Date" StartNode="492" EndNode="505">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">dateTime</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Location" StartNode="222" EndNode="228">
+</Annotation>
+<Annotation Type="Date" StartNode="652" EndNode="657">
+<Feature>
+  <Name className="java.lang.String">kind</Name>
+  <Value className="java.lang.String">time</Value>
+</Feature>
+</Annotation>
+<Annotation Type="Organization" StartNode="375" EndNode="378">
+</Annotation>
+</AnnotationSet>
+<!-- Named annotation set -->
+
+<AnnotationSet Name="Original markups" >
+<Annotation Type="paragraph" StartNode="81" EndNode="712">
+</Annotation>
+<Annotation Type="paragraph" StartNode="0" EndNode="79">
+</Annotation>
+</AnnotationSet>
+</GateDocument>
