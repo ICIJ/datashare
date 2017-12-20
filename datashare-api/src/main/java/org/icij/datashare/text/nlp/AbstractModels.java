@@ -40,32 +40,25 @@ public abstract class AbstractModels<T> {
     protected abstract String getVersion();
 
     public Optional<T> get(Language language, ClassLoader loader) {
+        if (!isLoaded(language)) {
+            load(language, loader);
+        }
+        return Optional.of(models.get(language));
+    }
+
+    private void load(Language language, ClassLoader loader) {
         Lock l = modelLock.get(language);
         l.lock();
         try {
-            if (!load(language, loader))
-                return Optional.empty();
-            return Optional.of(models.get(language));
-        } finally {
-            l.unlock();
-        }
-    }
-
-    private boolean load(Language language, ClassLoader loader) {
-        if (models.get(language) != null)
-            return true;
-
-        if (!isDownloaded(language, loader)) {
-            download(language);
-        }
-
-        try {
+            if (!isDownloaded(language, loader)) {
+                download(language);
+            }
             models.put(language, loadModelFile(language, loader));
             LOGGER.info("loaded " + stage + " model for " + language);
-            return true;
         } catch (IOException e) {
             LOGGER.error("failed loading " + stage, e);
-            return false;
+        } finally {
+            l.unlock();
         }
     }
 
