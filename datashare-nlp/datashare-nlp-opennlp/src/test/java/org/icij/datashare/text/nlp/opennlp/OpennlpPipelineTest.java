@@ -21,7 +21,6 @@ public class OpennlpPipelineTest {
 
     @Test
     public void test_initialize() {
-        System.out.println(System.getProperty("java.class.path"));
         openNlpPipeline.initialize(Language.FRENCH);
 
         assertThat(openNlpPipeline.sentencer.keySet()).contains(Language.FRENCH);
