@@ -62,6 +62,17 @@ public abstract class AbstractModels<T> {
         }
     }
 
+    protected Path getModelsBasePath(Language language) {
+        return BASE_CLASSPATH.
+                resolve(type.name().toLowerCase()).
+                resolve(getVersion().replace('.', '-')).
+                resolve(language.iso6391Code());
+    }
+
+    protected Path getModelsFilesystemPath(Language language) {
+        return Paths.get("dist").resolve(getModelsBasePath(language));
+    }
+
     protected boolean isDownloaded(Language language, ClassLoader loader) {
         return loader.getResource(getModelsBasePath(language).toString()) != null;
     }
@@ -75,24 +86,6 @@ public abstract class AbstractModels<T> {
         } catch (InterruptedException | IOException e) {
             LOGGER.error("failed downloading models for " + language, e);
         }
-    }
-
-    protected Path getModelsBasePath(Language language) {
-        return getModelsBasePath().resolve(language.iso6391Code());
-    }
-
-    private Path getModelsBasePath() {
-        return BASE_CLASSPATH.
-                resolve(type.name().toLowerCase()).
-                resolve(getVersion().replace('.', '-'));
-    }
-
-    protected Path getModelsFilesystemPath(Language language) {
-        return getModelsFilesystemPath().resolve(language.iso6391Code());
-    }
-
-    public Path getModelsFilesystemPath() {
-        return BASE_DIR.resolve("dist").resolve(getModelsBasePath());
     }
 
     protected RemoteFiles getRemoteFiles() {

@@ -1,7 +1,6 @@
 package org.icij.datashare.text.nlp.gatenlp;
 
 import gate.Gate;
-import gate.LanguageAnalyser;
 import gate.creole.ANNIEConstants;
 import gate.creole.ResourceInstantiationException;
 import gate.persist.PersistenceException;
@@ -17,7 +16,7 @@ import java.nio.file.Path;
 import static org.icij.datashare.function.Functions.capitalize;
 import static org.icij.datashare.text.Language.ENGLISH;
 
-public class GateNlpPlugins extends AbstractModels<LanguageAnalyser> {
+public class GateNlpPlugins extends AbstractModels {
     private static volatile GateNlpPlugins instance;
     private static final Object mutex = new Object();
     private static final String VERSION = "8.4.1";
@@ -50,13 +49,13 @@ public class GateNlpPlugins extends AbstractModels<LanguageAnalyser> {
     }
 
     @Override
-    protected LanguageAnalyser loadModelFile(Language language, ClassLoader loader) throws IOException {
+    protected Object loadModelFile(Language language, ClassLoader loader) throws IOException {
         try {
             if (language == ENGLISH) {
-                return (LanguageAnalyser) PersistenceManager.loadObjectFromFile(new File(new File(Gate.getPluginsHome(),
+                return PersistenceManager.loadObjectFromFile(new File(new File(Gate.getPluginsHome(),
                         ANNIEConstants.PLUGIN_DIR), ANNIEConstants.DEFAULT_FILE));
             } else {
-                return (LanguageAnalyser) PersistenceManager.loadObjectFromFile(new File(new File(Gate.getPluginsHome(),
+                return PersistenceManager.loadObjectFromFile(new File(new File(Gate.getPluginsHome(),
                         getLanguagePluginName(language)), language.name().toLowerCase() + ".gapp"));
             }
         } catch (PersistenceException | ResourceInstantiationException e) {
