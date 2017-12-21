@@ -34,9 +34,7 @@
             <directory>scr</directory>
             <outputDirectory>./</outputDirectory>
             <includes>
-                <include>init*</include>
-                <include>start*</include>
-                <include>stop*</include>
+                <include>*</include>
             </includes>
         </fileSet>
 
