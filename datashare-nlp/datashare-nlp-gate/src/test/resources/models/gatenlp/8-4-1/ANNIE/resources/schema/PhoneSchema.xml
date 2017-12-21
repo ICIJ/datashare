@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<schema xmlns="http://www.w3.org/2000/10/XMLSchema">
-  <!-- XSchema deffinition for Phone -->
-  <element name="Phone" />
-</schema>
