@@ -22,9 +22,6 @@ jobs:
 
     dependencies:
       override:
-        # Install git-lfs
-        - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-        - sudo apt-get install git-lfs
 
     steps:
       - checkout
@@ -37,7 +34,13 @@ jobs:
           - v1-dependencies-
 
       - run:
-          name: Git LFS (install Git Large File Storage)
+        name: install Git LFS
+        command: |
+          curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+          sudo apt-get install git-lfs
+
+      - run:
+          name: Git LFS
           command: |
             mkdir -p ~/.ssh
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts
