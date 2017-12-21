@@ -14,7 +14,9 @@ public class OpennlpPipelineTest {
     public void test_initialize() {
         Properties props = new Properties();
         props.setProperty(STAGES.getName(), "SENTENCE,TOKEN");
+        System.out.println("before instantiation");
         OpennlpPipeline openNlpPipeline = new OpennlpPipeline(props);
+        System.out.println("after instantiation " + openNlpPipeline);
         openNlpPipeline.initialize(Language.FRENCH);
 
         assertThat(openNlpPipeline.sentencer.keySet()).contains(Language.FRENCH);
