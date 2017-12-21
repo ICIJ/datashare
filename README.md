@@ -1,5 +1,7 @@
 # DataShare
 
+[![Circle CI](https://circleci.com/gh/ICIJ/datashare.png?style=shield)](https://circleci.com/gh/ICIJ/datashare)
+
 DataShare aims at allowing for valuable knowledge about people and companies 
 locked within hundreds of pages of documents inside a computer to be sieved 
 into indexes and shared securely within a network of trusted individuals, 
