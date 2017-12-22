@@ -22,8 +22,8 @@ import java.nio.file.Paths;
 public class RemoteFiles {
     public static final String S3_DATASHARE_BUCKET_NAME = "s3.datashare.icij.org";
     private static final String S3_REGION = "us-east-1";
-    private static final int READ_TIMEOUT = 120;
-    private static final int CONNECTION_TIMEOUT = 30;
+    private static final int READ_TIMEOUT_MS = 120 * 1000;
+    private static final int CONNECTION_TIMEOUT_MS = 30 * 1000;
     private final AmazonS3 s3Client;
     private final String bucket;
 
@@ -34,8 +34,8 @@ public class RemoteFiles {
 
     public static RemoteFiles getDefault() {
         ClientConfiguration config = new ClientConfiguration(); 
-        config.setConnectionTimeout(CONNECTION_TIMEOUT);
-        config.setSocketTimeout(READ_TIMEOUT); 
+        config.setConnectionTimeout(CONNECTION_TIMEOUT_MS);
+        config.setSocketTimeout(READ_TIMEOUT_MS);
         return new RemoteFiles(AmazonS3ClientBuilder.standard().withRegion(S3_REGION)
                 .withCredentials(new ClasspathPropertiesFileCredentialsProvider("s3.properties"))
                 .withClientConfiguration(config).build(), S3_DATASHARE_BUCKET_NAME);
@@ -72,4 +72,3 @@ public class RemoteFiles {
         return s3Client.doesObjectExist(this.bucket, key);
     }
 }
-
