@@ -1,7 +1,7 @@
 *.dat filter=lfs diff=lfs merge=lfs -text
 
-./datashare-web/datashare-web-play/libexec/*.jar
-./datashare-nlp/datashare-nlp-ixapipe/lib/*.jar
-./datashare-nlp/datashare-nlp-gate/lib/*.jar
+datashare-web/datashare-web-play/libexec/*.jar filter=lfs diff=lfs merge=lfs -text
+datashare-nlp/datashare-nlp-ixapipe/lib/*.jar filter=lfs diff=lfs merge=lfs -text
+datashare-nlp/datashare-nlp-gate/lib/*.jar filter=lfs diff=lfs merge=lfs -text
 
 *.traineddata filter=lfs diff=lfs merge=lfs -text
