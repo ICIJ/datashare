@@ -41,7 +41,7 @@ public class RemoteFilesCli {
     }
 
     private static void usage() {
-        System.out.println("usage : copy-remote [-u|-d] [-D remoteDirectory] -f file1 -f file2...");
+        System.out.println("usage : remote-files [-u|-d] [-D remoteDirectory] -f file1 -f file2...");
         System.out.println("-u: to upload content to remote destination");
         System.out.println("-d: to download content from remote destination");
         System.out.println("-D: remote directory (default : /)");
