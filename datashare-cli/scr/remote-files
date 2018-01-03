@@ -2,7 +2,7 @@
 
 dir=`pwd $0`
 
-classpath="${dir}/lib/datashare-api-0.6.jar:${dir}/lib/datashare-cli-0.6.jar"
+classpath="${dir}/lib/*"
 
 PATH=$PATH:"$classpath" \
 LD_LIBRARY_PATH="$classpath"${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} \
