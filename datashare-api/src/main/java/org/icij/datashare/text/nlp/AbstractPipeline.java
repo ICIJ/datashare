@@ -146,14 +146,14 @@ public abstract class AbstractPipeline implements Pipeline {
         if (input.isEmpty())
             return Optional.empty();
         Optional<Annotation> annotation = Optional.empty();
-        if (initialize(language)) {
-            try{
+        try {
+            if (initialize(language)) {
                 annotation = process(input, HASHER.hash(input), language);
-            } catch (Exception e) {
-                LOGGER.error("failed processing [" + language + "]", e);
+                terminate(language);
             }
+        } catch (Throwable e) {
+            LOGGER.error("failed processing [" + language + "]", e);
         }
-        terminate(language);
         return annotation;
     }
 
