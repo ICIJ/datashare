@@ -30,18 +30,18 @@
         </dependency>
 
         <!-- OEG UPM Entity-Extractor -->
-        <dependency>
-            <groupId>es.upm.oeg</groupId>
-            <artifactId>entity-extractor</artifactId>
-            <version>${entity-extractor.version}</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>es.upm.oeg</groupId>
-            <artifactId>entity-extractor-lib</artifactId>
-            <version>${entity-extractor-lib.version}</version>
-            <type>jar</type>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>es.upm.oeg</groupId>-->
+            <!--<artifactId>entity-extractor</artifactId>-->
+            <!--<version>${entity-extractor.version}</version>-->
+            <!--<type>jar</type>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+            <!--<groupId>es.upm.oeg</groupId>-->
+            <!--<artifactId>entity-extractor-lib</artifactId>-->
+            <!--<version>${entity-extractor-lib.version}</version>-->
+            <!--<type>jar</type>-->
+        <!--</dependency>-->
 
         <!-- Logging -->
         <dependency>
