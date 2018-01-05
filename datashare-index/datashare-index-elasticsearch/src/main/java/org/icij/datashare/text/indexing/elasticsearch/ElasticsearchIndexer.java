@@ -294,13 +294,7 @@ public final class ElasticsearchIndexer extends AbstractIndexer {
         final String              id     = JsonObjectMapper.getId(obj);
         final Map<String, Object> json   = JsonObjectMapper.getJson(obj);
         final Optional<String>    parent = JsonObjectMapper.getParent(obj);
-        if (parent.isPresent())
-            return add(index, type, id, json, parent.get());
-        return add(index, type, id, json);
-    }
-
-    private IndexRequest indexRequest(String index, String type, String id, Map<String, Object> json) {
-        return indexRequest(index, type, id, json, null);
+        return add(index, type, id, json, parent.orElse(null));
     }
 
     private IndexRequest indexRequest(String index, String type, String id, Map<String, Object> json, String parent) {
