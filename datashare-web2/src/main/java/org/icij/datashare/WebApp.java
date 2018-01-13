@@ -11,6 +11,6 @@ public class WebApp {
     static Configuration getConfiguration() {
         return routes -> routes
                 .get("/", "Datashare REST API")
-                .add(new IndexResource());
+                .add(new ProcessResource());
     }
 }
