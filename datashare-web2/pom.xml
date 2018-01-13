@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.icij.datashare</groupId>
+        <artifactId>datashare</artifactId>
+        <version>0.6</version>
+    </parent>
+
+    <artifactId>datashare-web2</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>datashare-web2</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>net.code-story</groupId>
+            <artifactId>http</artifactId>
+            <version>2.99</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.code-story</groupId>
+            <artifactId>fluent-rest-test</artifactId>
+            <version>1.6</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+    </dependencies>
+</project>
