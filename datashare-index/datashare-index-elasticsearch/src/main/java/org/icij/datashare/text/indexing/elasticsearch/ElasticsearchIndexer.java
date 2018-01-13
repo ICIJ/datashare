@@ -78,7 +78,7 @@ import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
  *
  * Created by julien on 6/15/16.
  */
-public final class ElasticsearchIndexer extends AbstractIndexer {
+public class ElasticsearchIndexer extends AbstractIndexer {
     
     public static final String VERSION = "6.1.0";
 

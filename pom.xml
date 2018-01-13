@@ -37,7 +37,7 @@
         <module>datashare-web</module>
         <module>datashare-dist</module>
         <module>datashare-dist/assembly</module>
-    <module>datashare-web2</module>
+        <module>datashare-web2</module>
   </modules>
 
 
@@ -118,7 +118,6 @@
                 <groupId>org.icij.datashare</groupId>
                 <artifactId>datashare-api</artifactId>
                 <version>${datashare-api.version}</version>
-                <scope>provided</scope>
             </dependency>
 
             <!-- Datashare Web -->
@@ -156,7 +155,6 @@
                 <groupId>org.icij.datashare</groupId>
                 <artifactId>datashare-index-elasticsearch</artifactId>
                 <version>${datashare-elasticsearch.version}</version>
-                <scope>runtime</scope>
             </dependency>
 
             <!-- Datashare Nlp CoreNLP -->

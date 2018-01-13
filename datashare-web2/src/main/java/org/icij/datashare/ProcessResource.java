@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
+import org.icij.datashare.text.indexing.Indexer;
 
 import static java.nio.file.Paths.get;
 import static org.icij.datashare.ProcessResource.ProcessResponse.Result.Error;
@@ -9,6 +10,12 @@ import static org.icij.datashare.ProcessResource.ProcessResponse.Result.OK;
 
 @Prefix("/process")
 public class ProcessResource {
+    private final Indexer indexer;
+
+    public ProcessResource(final Indexer indexer) {
+        this.indexer = indexer;
+    }
+
     @Post("/index/file/:filePath")
     public ProcessResponse indexFile(final String filePath) {
         String path = filePath.replace("|", "/");// hack : see https://github.com/CodeStory/fluent-http/pull/143
@@ -20,8 +27,6 @@ public class ProcessResource {
 
     static class ProcessResponse {
         enum Result {OK, Error}
-
-        ;
         final Result result;
 
         ProcessResponse(Result result) {
