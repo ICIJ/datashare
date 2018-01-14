@@ -2,11 +2,17 @@ package org.icij.datashare;
 
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
+import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.Pipeline;
+
+import java.nio.file.Path;
 
 import static java.nio.file.Paths.get;
 import static org.icij.datashare.ProcessResource.ProcessResponse.Result.Error;
 import static org.icij.datashare.ProcessResource.ProcessResponse.Result.OK;
+import static org.icij.datashare.function.ThrowingFunctions.splitComma;
 
 @Prefix("/process")
 public class ProcessResource {
@@ -18,10 +24,16 @@ public class ProcessResource {
 
     @Post("/index/file/:filePath")
     public ProcessResponse indexFile(final String filePath) {
-        String path = filePath.replace("|", "/");// hack : see https://github.com/CodeStory/fluent-http/pull/143
-        if (!get(path).toFile().exists()) {
+        Path path = get(filePath.replace("|", "/"));// hack : see https://github.com/CodeStory/fluent-http/pull/143
+
+        if (!path.toFile().exists() || !path.toFile().isDirectory()) {
             return new ProcessResponse(Error);
         }
+        DataShare.StandAlone.processDirectory(
+                path, 1, splitComma.andThen(NlpStage.parseAll).apply("NER"),
+                splitComma.andThen(NamedEntity.Category.parseAll).apply("ORG,PERS,LOC"),
+                splitComma.andThen(Pipeline.Type.parseAll).apply("CORE,OPEN,GATE,IXA,MITIE"),
+                1, indexer, "doc");
         return new ProcessResponse(OK);
     }
 

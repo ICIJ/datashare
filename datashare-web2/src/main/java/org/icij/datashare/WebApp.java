@@ -14,6 +14,6 @@ public class WebApp {
         Injector injector = Guice.createInjector(new ServiceModule());
         return routes -> routes
                 .get("/", "Datashare REST API")
-                .add(new ProcessResource(null));
+                .add(new ProcessResource(injector.getInstance(InjectableIndexer.class)));
     }
 }

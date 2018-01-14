@@ -153,6 +153,10 @@ public class ElasticsearchIndexer extends AbstractIndexer {
         bulkProcessor = buildBulkProcessor();
     }
 
+    @Override
+    public Type getType() {
+        return Type.ELASTICSEARCH;
+    }
 
     @Override
     public void close() {
