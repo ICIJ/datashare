@@ -11,7 +11,7 @@ jobs:
     working_directory: ~/repo
 
     environment:
-      MAVEN_OPTS: -Xmx3200m -Xms3200m
+      MAVEN_OPTS: -Xmx4096m -Xms4096m
 
     dependencies:
       override:
