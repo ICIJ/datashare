@@ -1,5 +1,6 @@
 package org.icij.datashare;
 
+import com.google.inject.Inject;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.text.indexing.Indexer;
@@ -14,6 +15,7 @@ import static org.icij.datashare.ProcessResource.ProcessResponse.Result.OK;
 public class ProcessResource {
     private final Indexer indexer;
 
+    @Inject
     public ProcessResource(final Indexer indexer) {
         this.indexer = indexer;
     }
@@ -25,11 +27,6 @@ public class ProcessResource {
         if (!path.toFile().exists() || !path.toFile().isDirectory()) {
             return new ProcessResponse(Error);
         }
-//        DataShare.StandAlone.processDirectory(
-//                path, 1, splitComma.andThen(NlpStage.parseAll).apply("NER"),
-//                splitComma.andThen(NamedEntity.Category.parseAll).apply("ORG,PERS,LOC"),
-//                splitComma.andThen(Pipeline.Type.parseAll).apply("CORE,OPEN,GATE,IXA,MITIE"),
-//                1, indexer, "doc");
         return new ProcessResponse(OK);
     }
 

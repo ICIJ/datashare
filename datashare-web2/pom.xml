@@ -25,6 +25,10 @@
             <version>4.1.0</version>
         </dependency>
         <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-api</artifactId>
         </dependency>

@@ -4,6 +4,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import net.codestory.http.Configuration;
 import net.codestory.http.WebServer;
+import org.icij.datashare.text.indexing.Indexer;
 
 public class WebApp {
     public static void main(String[] args) {
@@ -14,6 +15,6 @@ public class WebApp {
         Injector injector = Guice.createInjector(new ServiceModule());
         return routes -> routes
                 .get("/", "Datashare REST API")
-                .add(new ProcessResource(injector.getInstance(InjectableIndexer.class)));
+                .add(new ProcessResource(injector.getInstance(Indexer.class)));
     }
 }
