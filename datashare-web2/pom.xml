@@ -15,6 +15,33 @@
 
     <dependencies>
         <dependency>
+            <artifactId>extract-lib</artifactId>
+            <groupId>org.icij.extract</groupId>
+            <version>2.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers</artifactId>
+            <version>1.16</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpcore</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+
+        <dependency>
             <groupId>net.code-story</groupId>
             <artifactId>http</artifactId>
             <version>2.99</version>
@@ -55,4 +82,29 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>install-extract-lib</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>org.icij.extract</groupId>
+                            <artifactId>extract-lib</artifactId>
+                            <version>2.0.0</version>
+                            <packaging>jar</packaging>
+                            <file>${project.basedir}/lib/extract-lib-2.0.0.jar</file>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
