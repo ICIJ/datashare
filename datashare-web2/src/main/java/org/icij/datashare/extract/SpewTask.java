@@ -9,7 +9,7 @@ public class SpewTask extends DefaultTask<Long> {
     }
 
     @Override
-    public Long run() throws Exception {
+    public Long call() throws Exception {
         return null;
     }
 }
