@@ -11,6 +11,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.net.URLEncoder;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
@@ -66,7 +67,7 @@ public class WebAppTaskTest implements FluentRestTest {
     }
 
     @Test
-    public void testIndexDirectoryWithOptions() {
+    public void testIndexAndScanDirectoryWithOptions() {
         String path = getClass().getResource("/docs/").getPath();
 
         RestAssert response = post("/task/index/file/" + path.replace("/", "%7C"),
@@ -81,6 +82,18 @@ public class WebAppTaskTest implements FluentRestTest {
             put("key1", "val1");
             put("key2", "val2");
         }}));
+    }
+
+    @Test
+    public void testIndexQueueWithOptions() {
+        RestAssert response = post("/task/index/", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+
+        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskIds\":[12]}");
+        verify(taskFactory).createSpewTask(Options.from(new HashMap<String, String>() {{
+            put("key1", "val1");
+            put("key2", "val2");
+        }}));
+        verify(taskFactory, never()).createScanTask(any(Path.class), any(Options.class));
     }
 
     static class TestModule extends AbstractModule {

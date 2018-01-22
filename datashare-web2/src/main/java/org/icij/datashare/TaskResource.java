@@ -31,10 +31,15 @@ public class TaskResource {
         if (!path.toFile().exists() || !path.toFile().isDirectory()) {
             return new TaskResponse(Error);
         }
-        Options options = optionsWrapper.asOptions();
+        Options<String> options = optionsWrapper.asOptions();
         return new TaskResponse(OK,
                 taskManager.startTask(taskFactory.createScanTask(path, options)),
                 taskManager.startTask(taskFactory.createSpewTask(options)));
+    }
+
+    @Post("/index/")
+    public TaskResponse indexQueue(final OptionsWrapper optionsWrapper) {
+        return new TaskResponse(OK, taskManager.startTask(taskFactory.createSpewTask(optionsWrapper.asOptions())));
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

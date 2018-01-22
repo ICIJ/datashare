@@ -18,7 +18,5 @@ public class OptionsWrapper {
 
     public Map<String, String> getOptions() { return options;}
 
-    public Options asOptions() {
-        return Options.from(options);
-    }
+    public Options<String> asOptions() { return Options.from(options); }
 }
