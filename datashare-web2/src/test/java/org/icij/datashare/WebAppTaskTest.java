@@ -11,6 +11,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.net.URLEncoder;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
 
@@ -61,18 +62,22 @@ public class WebAppTaskTest implements FluentRestTest {
     public void testIndexDirectory() {
         RestAssert response = post("/task/index/file/" + getClass().getResource("/docs/").getPath().replace("/", "%7C"), "{}");
 
-        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskId\":12}");
+        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskIds\":[12,12]}");
     }
 
     @Test
-    public void testIndexDirectoryWithOptions() throws Exception {
+    public void testIndexDirectoryWithOptions() {
         String path = getClass().getResource("/docs/").getPath();
 
         RestAssert response = post("/task/index/file/" + path.replace("/", "%7C"),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
-        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskId\":12}");
-        verify(taskFactory).createIndexTask(path.replace("/", "|"), Options.from(new HashMap<String, String>() {{
+        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskIds\":[12,12]}");
+        verify(taskFactory).createSpewTask(Options.from(new HashMap<String, String>() {{
+            put("key1", "val1");
+            put("key2", "val2");
+        }}));
+        verify(taskFactory).createScanTask(Paths.get(path), Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}));

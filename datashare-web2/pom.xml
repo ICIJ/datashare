@@ -13,6 +13,10 @@
     <artifactId>datashare-web2</artifactId>
     <name>datashare-web2</name>
 
+    <properties>
+        <guice.version>4.1.0</guice.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <artifactId>extract-lib</artifactId>
@@ -49,7 +53,12 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>4.1.0</version>
+            <version>${guice.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject.extensions</groupId>
+            <artifactId>guice-assistedinject</artifactId>
+            <version>${guice.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -63,7 +72,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-index-elasticsearch</artifactId>
         </dependency>
-
         <dependency>
             <groupId>net.code-story</groupId>
             <artifactId>fluent-rest-test</artifactId>

@@ -1,10 +1,12 @@
 package org.icij.datashare;
 
-import org.icij.task.DefaultTask;
+import org.icij.datashare.extract.ScanTask;
+import org.icij.datashare.extract.SpewTask;
 import org.icij.task.Options;
 
-public class TaskFactory {
-    public DefaultTask<String> createIndexTask(String filePath, Options options) {
-        return null;
-    }
+import java.nio.file.Path;
+
+interface TaskFactory {
+    SpewTask createSpewTask(final Options<String> options);
+    ScanTask createScanTask(final Path path, final Options<String> options);
 }

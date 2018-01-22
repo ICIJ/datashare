@@ -5,15 +5,16 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.extract.document.Document;
 import org.icij.extract.document.EmbeddedDocument;
 import org.icij.spewer.FieldNames;
 import org.icij.spewer.MetadataTransformer;
 import org.icij.spewer.Spewer;
-import org.icij.task.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Serializable;
@@ -21,7 +22,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 import static java.lang.System.currentTimeMillis;
@@ -30,15 +31,17 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
     private final Client client;
     private final String index_name;
+    private static final String ES_CLUSTER_NAME = "datashare";
     private static final String ES_INDEX_NAME = "datashare";
     private static final String ES_INDEX_TYPE = "doc";
     private static final String ES_DOC_TYPE_FIELD = "type";
     private static final String ES_JOIN_FIELD = "join";
     private static final String ES_CONTENT_FIELD = "content";
 
-    public ElasticsearchSpewer(final Client client, final FieldNames fields) {
-        super(fields);
-        this.client = client;
+    @Inject
+    public ElasticsearchSpewer(final PropertiesProvider propertiesProvider) throws IOException {
+        super(new FieldNames());
+        this.client = createESClient(propertiesProvider.getProperties());
         this.index_name = ES_INDEX_NAME;
     }
 
@@ -48,21 +51,19 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         this.index_name = index_name;
     }
 
-    private static ElasticsearchSpewer create(final Options<String> options, final FieldNames fields)
-            throws UnknownHostException {
+    public static Client createESClient(final Properties properties) throws UnknownHostException {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
         InetAddress esAddress = InetAddress.getByName("localhost");
         int esPort = 9300;
-        Optional<String> indexAddress = options.get("indexAddress").value();
-        if (indexAddress.isPresent()) {
-            esAddress = InetAddress.getByName(indexAddress.get().split(":")[0]);
-            esPort = Integer.parseInt(indexAddress.get().split(":")[1]);
+        String indexAddress = (String) properties.get("indexAddress");
+        if (indexAddress != null) {
+            esAddress = InetAddress.getByName(indexAddress.split(":")[0]);
+            esPort = Integer.parseInt(indexAddress.split(":")[1]);
         }
 
-        Settings settings = Settings.builder().put("cluster.name", "datashare").build();
-        Client client = new PreBuiltTransportClient(settings).addTransportAddress(
+        Settings settings = Settings.builder().put("cluster.name", ES_CLUSTER_NAME).build();
+        return (Client) new PreBuiltTransportClient(settings).addTransportAddress(
                 new TransportAddress(esAddress, esPort));
-        return new ElasticsearchSpewer(client, fields);
     }
 
     @Override

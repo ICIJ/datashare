@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.extract.OptionsWrapper;
+import org.icij.task.Options;
 
 import java.nio.file.Path;
 
@@ -24,14 +25,16 @@ public class TaskResource {
     }
 
     @Post("/index/file/:filePath")
-    public TaskResponse indexFile(final String filePath, final OptionsWrapper options) {
+    public TaskResponse indexFile(final String filePath, final OptionsWrapper optionsWrapper) {
         Path path = get(filePath.replace("|", "/"));// hack : see https://github.com/CodeStory/fluent-http/pull/143
 
         if (!path.toFile().exists() || !path.toFile().isDirectory()) {
             return new TaskResponse(Error);
         }
-        int taskId = taskManager.startTask(taskFactory.createIndexTask(filePath, options.asOptions()));
-        return new TaskResponse(OK, taskId);
+        Options options = optionsWrapper.asOptions();
+        return new TaskResponse(OK,
+                taskManager.startTask(taskFactory.createScanTask(path, options)),
+                taskManager.startTask(taskFactory.createSpewTask(options)));
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -39,15 +42,15 @@ public class TaskResource {
         enum Result {OK, Error}
 
         final Result result;
-        private Integer taskId;
+        private Integer[] taskIds;
 
         TaskResponse(Result result) {
             this.result = result;
         }
 
-        TaskResponse(Result result, int taskId) {
+        TaskResponse(Result result, Integer... taskIds) {
             this.result = result;
-            this.taskId = taskId;
+            this.taskIds = taskIds;
         }
     }
 }
