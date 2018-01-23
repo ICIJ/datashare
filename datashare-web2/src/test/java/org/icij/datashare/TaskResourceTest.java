@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
 
 import static org.mockito.Mockito.*;
 
-public class WebAppTaskTest implements FluentRestTest {
+public class TaskResourceTest implements FluentRestTest {
     private static WebServer server = new WebServer() {
         @Override
         protected Env createEnv() {
@@ -94,6 +94,20 @@ public class WebAppTaskTest implements FluentRestTest {
             put("key2", "val2");
         }}));
         verify(taskFactory, never()).createScanTask(any(Path.class), any(Options.class));
+    }
+
+    @Test
+    public void testQueueWithOptions() {
+        String path = getClass().getResource("/docs/").getPath();
+        RestAssert response = post("/task/scan/file/" + path.replace("/", "%7C"),
+                "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+
+        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskIds\":[12]}");
+        verify(taskFactory).createScanTask(Paths.get(path), Options.from(new HashMap<String, String>() {{
+            put("key1", "val1");
+            put("key2", "val2");
+        }}));
+        verify(taskFactory, never()).createSpewTask(any(Options.class));
     }
 
     static class TestModule extends AbstractModule {

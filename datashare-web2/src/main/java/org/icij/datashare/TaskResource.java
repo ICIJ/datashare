@@ -47,6 +47,16 @@ public class TaskResource {
 
     @Post("/index/file/:filePath")
     public TaskResponse indexFile(final String filePath, final OptionsWrapper optionsWrapper) {
+        TaskResponse scanResponse = scanFile(filePath, optionsWrapper);
+        if (scanResponse.result == Error) {
+            return scanResponse;
+        }
+        Options<String> options = optionsWrapper.asOptions();
+        return scanResponse.add(taskManager.startTask(taskFactory.createSpewTask(options)));
+    }
+
+    @Post("/scan/file/:filePath")
+    public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper) {
         Path path = get(filePath.replace("|", "/"));// hack : see https://github.com/CodeStory/fluent-http/pull/143
 
         if (!path.toFile().exists() || !path.toFile().isDirectory()) {
@@ -54,18 +64,15 @@ public class TaskResource {
             return new TaskResponse(Error);
         }
         Options<String> options = optionsWrapper.asOptions();
-        return new TaskResponse(OK,
-                taskManager.startTask(taskFactory.createScanTask(path, options)),
-                taskManager.startTask(taskFactory.createSpewTask(options)));
+        return new TaskResponse(OK, taskManager.startTask(taskFactory.createScanTask(path, options)));
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     static class TaskResponse {
-        enum Result {OK, Error}
-
+        enum Result {OK, Error;}
         final Result result;
-        private Integer[] taskIds;
 
+        private Integer[] taskIds;
         TaskResponse(Result result) {
             this.result = result;
         }
@@ -73,6 +80,13 @@ public class TaskResource {
         TaskResponse(Result result, Integer... taskIds) {
             this.result = result;
             this.taskIds = taskIds;
+        }
+
+        public TaskResponse add(int taskId) {
+            Integer[] newTaskIds = new Integer[taskIds.length + 1];
+            System.arraycopy(taskIds, 0, newTaskIds, 0, taskIds.length);
+            newTaskIds[newTaskIds.length - 1] = taskId;
+            return new TaskResponse(result, newTaskIds);
         }
     }
 }
