@@ -19,7 +19,7 @@ public class SpewTask extends DefaultTask<Long> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer drainer;
 
-    private Integer parallelism = 1;
+    private Integer parallelism = Runtime.getRuntime().availableProcessors();
 
     @Inject
     public SpewTask(final Spewer spewer, final DocumentQueue queue, @Assisted final Options<String> userOptions) {
