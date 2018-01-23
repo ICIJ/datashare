@@ -6,19 +6,23 @@ import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.queue.Scanner;
 import org.icij.extract.queue.ScannerVisitor;
+import org.icij.task.DefaultTask;
 import org.icij.task.Options;
+import org.icij.task.annotation.OptionsClass;
 
 import java.nio.file.Path;
-import java.util.concurrent.Callable;
 
-public class ScanTask implements Callable<Path> {
+@OptionsClass(Scanner.class)
+@OptionsClass(DocumentFactory.class)
+public class ScanTask extends DefaultTask<Path> {
     private final Scanner scanner;
     private final Path path;
 
     @Inject
-    public ScanTask(final DocumentQueue queue, @Assisted Path path, @Assisted final Options<String> options) {
+    public ScanTask(final DocumentQueue queue, @Assisted Path path, @Assisted final Options<String> userOptions) {
         this.path = path;
-        scanner = new Scanner(new DocumentFactory(options), queue).configure(options);
+        Options<String> allOptions = options().createFrom(userOptions);
+        scanner = new Scanner(new DocumentFactory(allOptions), queue).configure(allOptions);
     }
 
     @Override

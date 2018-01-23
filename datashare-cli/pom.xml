@@ -33,7 +33,6 @@
         <dependency>
            <groupId>joda-time</groupId>
            <artifactId>joda-time</artifactId>
-           <scope>runtime</scope>
         </dependency>
 
         <!-- Datashare API -->

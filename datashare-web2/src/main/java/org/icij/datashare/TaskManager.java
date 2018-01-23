@@ -1,5 +1,6 @@
 package org.icij.datashare;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -19,5 +20,9 @@ public class TaskManager {
 
     public List<Runnable> shutdownNow() {
         return executor.shutdownNow();
+    }
+
+    public Collection<Future> getTasks() {
+        return tasks.values();
     }
 }

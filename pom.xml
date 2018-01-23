@@ -253,7 +253,6 @@
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
                 <version>${joda-time.version}</version>
-                <scope>provided</scope>
             </dependency>
 
             <!-- Xslt Processor -->

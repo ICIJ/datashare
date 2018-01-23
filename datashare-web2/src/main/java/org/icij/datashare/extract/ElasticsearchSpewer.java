@@ -22,13 +22,16 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 import static java.lang.System.currentTimeMillis;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
+    private static final String INDEX_ADDRESS_PROP = "indexAddress";
+    private static final String CLUSTER_PROP = "clusterName";
+    private static final String DEFAULT_ADDRESS = "localhost:9300";
+
     private final Client client;
     private final String index_name;
     private static final String ES_CLUSTER_NAME = "datashare";
@@ -41,7 +44,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     @Inject
     public ElasticsearchSpewer(final PropertiesProvider propertiesProvider) throws IOException {
         super(new FieldNames());
-        this.client = createESClient(propertiesProvider.getProperties());
+        this.client = createESClient(propertiesProvider);
         this.index_name = ES_INDEX_NAME;
     }
 
@@ -51,18 +54,18 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         this.index_name = index_name;
     }
 
-    public static Client createESClient(final Properties properties) throws UnknownHostException {
+    public static Client createESClient(final PropertiesProvider propertiesProvider) throws UnknownHostException {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
-        InetAddress esAddress = InetAddress.getByName("localhost");
-        int esPort = 9300;
-        String indexAddress = (String) properties.get("indexAddress");
-        if (indexAddress != null) {
-            esAddress = InetAddress.getByName(indexAddress.split(":")[0]);
-            esPort = Integer.parseInt(indexAddress.split(":")[1]);
-        }
 
-        Settings settings = Settings.builder().put("cluster.name", ES_CLUSTER_NAME).build();
-        return (Client) new PreBuiltTransportClient(settings).addTransportAddress(
+        String indexAddress = propertiesProvider.getIfPresent(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
+        InetAddress esAddress = InetAddress.getByName(indexAddress.split(":")[0]);
+        int esPort = Integer.parseInt(indexAddress.split(":")[1]);
+        String clusterName = propertiesProvider.getIfPresent(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
+
+        logger.info("building elasticsearch client on {} and cluster {}", indexAddress, clusterName);
+
+        Settings settings = Settings.builder().put("cluster.name", clusterName).build();
+        return new PreBuiltTransportClient(settings).addTransportAddress(
                 new TransportAddress(esAddress, esPort));
     }
 
