@@ -21,8 +21,7 @@ public class TaskManagerTest {
         int tId1 = taskManager.startTask(() -> "task 1");
         int tId2 = taskManager.startTask(() -> "task 2");
 
-        assertThat(taskManager.getTasks().stream().map(Object::hashCode).collect(toList())).
-                containsExactly(tId1, tId2);
+        assertThat(taskManager.getTasks().stream().map(Object::hashCode).collect(toList())).contains(tId1, tId2);
     }
 
     @After
