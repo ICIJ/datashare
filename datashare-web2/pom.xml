@@ -24,6 +24,7 @@
             <version>2.0.0</version>
         </dependency>
 
+        <!--extract dependencies (should be pulled by transitive deps)-->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-parsers</artifactId>
@@ -43,7 +44,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>3.4.4</version>
+        </dependency>
+        <!--end extract deps TO REMOVE-->
 
         <dependency>
             <groupId>net.code-story</groupId>
