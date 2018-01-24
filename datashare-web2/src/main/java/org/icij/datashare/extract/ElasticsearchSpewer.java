@@ -1,5 +1,6 @@
 package org.icij.datashare.extract;
 
+import org.apache.tika.metadata.Metadata;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
@@ -20,11 +21,17 @@ import java.io.Reader;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static java.lang.System.currentTimeMillis;
+import static org.apache.tika.metadata.HttpHeaders.CONTENT_ENCODING;
+import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
+import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
@@ -77,6 +84,45 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
     }
 
+    IndexRequest prepareRequest(final Document document, final Reader reader,
+                                final Document parent, final int level) throws IOException {
+        IndexRequest req = new IndexRequest(index_name, ES_INDEX_TYPE, document.getId());
+
+        Map<String, Object> jsonDocument = getMap(document);
+
+        if (parent != null) {
+            jsonDocument.put(ES_JOIN_FIELD, new HashMap<String, String>() {{
+                put("name", "document");
+                put("parent", parent.getId());
+            }});
+            req.routing(parent.getId());
+        }
+        jsonDocument.put(fields.forLevel(), level);
+
+        if (reader != null) {
+            jsonDocument.put(ES_CONTENT_FIELD, toString(reader));
+        }
+        req = req.source(jsonDocument);
+        return req;
+    }
+
+    Map<String, Object> getMap(Document document) throws IOException {
+        Map<String, Object> jsonDocument = new HashMap<>();
+
+        Map<String, Object> metadata = new HashMap<>();
+        new MetadataTransformer(document.getMetadata(), fields).transform(
+                new MapValueConsumer(metadata), new MapValuesConsumer(metadata));
+
+        jsonDocument.put(ES_DOC_TYPE_FIELD, "document");
+        jsonDocument.put("path", document.getPath().toString());
+        jsonDocument.put("extraction_date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mmX").withZone(ZoneOffset.UTC).format(Instant.now()));
+        jsonDocument.put("metadata", metadata);
+        jsonDocument.put("content_type", getField(document.getMetadata(), CONTENT_TYPE));
+        jsonDocument.put("content_length", getField(document.getMetadata(), CONTENT_LENGTH));
+        jsonDocument.put("content_encoding", getField(document.getMetadata(), CONTENT_ENCODING));
+        return jsonDocument;
+    }
+
     private void writeTree(final Document doc, final Document parent, final int level)
             throws IOException {
         doc.clearReader();
@@ -102,57 +148,36 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
     }
 
-    private IndexRequest prepareRequest(final Document document, final Reader reader,
-                                        final Document parent, final int level) throws IOException {
-        IndexRequest req = new IndexRequest(index_name, ES_INDEX_TYPE, document.getId());
-        Map<String, Object> jsonDocument = new HashMap<>();
-        new MetadataTransformer(document.getMetadata(), fields).transform(
-                new MapValueConsumer(jsonDocument), new MapValuesConsumer(jsonDocument));
-
-        jsonDocument.put(ES_DOC_TYPE_FIELD, "document");
-        if (parent != null) {
-            jsonDocument.put(ES_JOIN_FIELD, new HashMap<String, String>() {{
-                put("name", "document");
-                put("parent", parent.getId());
-            }});
-            req.routing(parent.getId());
-        }
-        jsonDocument.put(fields.forLevel(), level);
-
-        if (reader != null) {
-            jsonDocument.put(ES_CONTENT_FIELD, toString(reader));
-        }
-        req = req.source(jsonDocument);
-        return req;
-    }
-
-    @Override
-    public void close() throws Exception {
-        client.close();
+    private String getField(Metadata metadata, String fieldname) {
+        String s = metadata.get(fieldname);
+        return s == null ? "unknown": s;
     }
 
     @Override
     public void writeMetadata(Document document) throws IOException { throw new UnsupportedOperationException();}
 
     static class MapValueConsumer implements MetadataTransformer.ValueConsumer {
-        private final Map<String, Object> map;
 
+        private final Map<String, Object> map;
         MapValueConsumer(final Map<String, Object> map) { this.map = map;}
 
         @Override
         public void accept(String name, String value) throws IOException {
             map.put(name, value);
         }
+
     }
-
     static class MapValuesConsumer implements MetadataTransformer.ValueArrayConsumer {
-        private final Map<String, Object> map;
 
+        private final Map<String, Object> map;
         MapValuesConsumer(Map<String, Object> jsonDocument) { map = jsonDocument;}
 
         @Override
         public void accept(String name, String[] values) throws IOException {
             map.put(name, String.join(",", values));
         }
+
     }
+    @Override
+    public void close() throws Exception { client.close();}
 }

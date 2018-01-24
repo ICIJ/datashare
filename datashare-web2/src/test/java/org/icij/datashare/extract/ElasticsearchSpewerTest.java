@@ -12,6 +12,7 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.icij.extract.document.Document;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
+import org.icij.extract.extractor.Extractor;
 import org.icij.extract.parser.ParsingReader;
 import org.icij.spewer.FieldNames;
 import org.junit.AfterClass;
@@ -23,6 +24,8 @@ import java.net.InetAddress;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -48,7 +51,7 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
-	public void testSimpleWrite() throws Exception {
+	public void test_simple_write() throws Exception {
 		final Document document = factory.create(Paths.get("test-file.txt"));
 		final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
 
@@ -59,8 +62,23 @@ public class ElasticsearchSpewerTest {
 		assertEquals(document.getId(), documentFields.getId());
 	}
 
-	@Test
-	public void testEmbeddedDocumentsWrite() throws Exception {
+    @Test
+    public void test_metadata() throws Exception {
+        String path = getClass().getResource("/docs/doc.txt").getPath();
+        final Document document = factory.create(path);
+        new Extractor().extract(document);
+
+        Map<String, Object> map = spewer.getMap(document);
+        assertThat(map).includes(
+                entry("content_encoding", "ISO-8859-1"),
+                entry("content_type", "text/plain; charset=ISO-8859-1"),
+                entry("content_length", "45"),
+                entry("path", path)
+        );
+    }
+
+    @Test
+	public void test_embedded_documents_write() throws Exception {
 		final Document document = factory.create(Paths.get("test-file.txt"));
 		document.addEmbed("embedded-key", new PathIdentifier(), Paths.get("embedded_file.txt"), new Metadata());
 		final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test embedded document".getBytes()));

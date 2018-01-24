@@ -61,23 +61,23 @@ function init_idx {
         "doc": {
         "properties": {
           "type": { "type": "keyword" },
-          "asOf": { "type": "date", "format": "date_time" },
+          "extraction_date": { "type": "date", "format": "date_time" },
           "path": { "type": "text" },
           "content": { "type": "text", "index_options": "offsets" },
           "length": { "type": "integer" },
           "encoding": { "type": "keyword" },
-          "contentType": { "type": "keyword" },
+          "content_type": { "type": "keyword" },
           "language": { "type": "keyword" },
           "parser": { "type": "keyword" },
           "mention": { "type": "text", "index_options": "docs" },
-          "mentionHash": { "type": "keyword" },
+          "mention_hash": { "type": "keyword" },
           "hash": { "type": "keyword" },
           "category": { "type": "keyword" },
           "document": { "type": "keyword" },
           "offset": { "type": "integer" },
           "extractor": { "type": "keyword" },
-          "extractorLanguage": { "type": "keyword" },
-          "partsOfSpeech": { "type": "text", "index_options": "docs" },
+          "extractor_language": { "type": "keyword" },
+          "parts_of_speech": { "type": "text", "index_options": "docs" },
           "join": { "type": "join", "relations": { "Document": "NamedEntity" } }
           }
         }
