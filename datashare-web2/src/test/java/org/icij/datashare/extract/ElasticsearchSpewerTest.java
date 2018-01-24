@@ -9,6 +9,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import org.icij.datashare.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.Document;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
@@ -20,6 +21,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.Reader;
 import java.net.InetAddress;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -32,10 +35,12 @@ import static org.junit.Assert.assertTrue;
 public class ElasticsearchSpewerTest {
     private static final String TEST_INDEX = "datashare-test";
 	private static Client client;
-	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(client, new FieldNames(), TEST_INDEX);
+	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(client, new OptimaizeLanguageGuesser(), new FieldNames(), TEST_INDEX);
 	private final DocumentFactory factory = new DocumentFactory().withIdentifier(new PathIdentifier());
 
-	@BeforeClass
+    public ElasticsearchSpewerTest() throws IOException {}
+
+    @BeforeClass
 	public static void setUpClass() throws Exception {
 		System.setProperty("es.set.netty.runtime.available.processors", "false");
 		Settings settings = Settings.builder().put("cluster.name", "docker-cluster").build();
@@ -68,13 +73,27 @@ public class ElasticsearchSpewerTest {
         final Document document = factory.create(path);
         new Extractor().extract(document);
 
-        Map<String, Object> map = spewer.getMap(document);
+        Map<String, Object> map = spewer.getMap(document, null);
         assertThat(map).includes(
                 entry("content_encoding", "ISO-8859-1"),
                 entry("content_type", "text/plain; charset=ISO-8859-1"),
                 entry("content_length", "45"),
                 entry("path", path)
         );
+    }
+
+    @Test
+    public void test_language() throws Exception {
+        final Document document = factory.create(getClass().getResource("/docs/doc.txt").getPath());
+        final Document document_fr = factory.create(getClass().getResource("/docs/doc-fr.txt").getPath());
+        Reader reader = new Extractor().extract(document);
+        Reader reader_fr = new Extractor().extract(document_fr);
+
+        Map<String, Object> map = spewer.getMap(document, reader);
+        Map<String, Object> map_fr = spewer.getMap(document_fr, reader_fr);
+
+        assertThat(map).includes(entry("language", "en"));
+        assertThat(map_fr).includes(entry("language", "fr"));
     }
 
     @Test

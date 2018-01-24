@@ -52,6 +52,11 @@
         <!--end extract deps TO REMOVE-->
 
         <dependency>
+            <groupId>com.optimaize.languagedetector</groupId>
+            <artifactId>language-detector</artifactId>
+            <version>0.6</version>
+        </dependency>
+        <dependency>
             <groupId>net.code-story</groupId>
             <artifactId>http</artifactId>
             <version>2.99</version>

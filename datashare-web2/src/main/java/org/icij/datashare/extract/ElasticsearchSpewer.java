@@ -7,6 +7,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.language.LanguageGuesser;
 import org.icij.extract.document.Document;
 import org.icij.extract.document.EmbeddedDocument;
 import org.icij.spewer.FieldNames;
@@ -29,9 +30,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static java.lang.System.currentTimeMillis;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_ENCODING;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
+import static org.apache.tika.metadata.HttpHeaders.*;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
@@ -48,20 +47,21 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final String ES_JOIN_FIELD = "join";
     private static final String ES_CONTENT_FIELD = "content";
 
+    private final LanguageGuesser languageGuesser;
+
     @Inject
-    public ElasticsearchSpewer(final PropertiesProvider propertiesProvider) throws IOException {
-        super(new FieldNames());
-        this.client = createESClient(propertiesProvider);
-        this.index_name = ES_INDEX_NAME;
+    public ElasticsearchSpewer(final PropertiesProvider propertiesProvider, LanguageGuesser languageGuesser) throws IOException {
+        this(createESClient(propertiesProvider), languageGuesser, new FieldNames(), ES_INDEX_NAME);
     }
 
-    public ElasticsearchSpewer(final Client client, final FieldNames fields, final String index_name) {
+    ElasticsearchSpewer(final Client client, LanguageGuesser languageGuesser, final FieldNames fields, final String index_name) throws IOException {
         super(fields);
         this.client = client;
+        this.languageGuesser = languageGuesser;
         this.index_name = index_name;
     }
 
-    public static Client createESClient(final PropertiesProvider propertiesProvider) throws UnknownHostException {
+    private static Client createESClient(final PropertiesProvider propertiesProvider) throws UnknownHostException {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
 
         String indexAddress = propertiesProvider.getIfPresent(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
@@ -88,7 +88,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                                 final Document parent, final int level) throws IOException {
         IndexRequest req = new IndexRequest(index_name, ES_INDEX_TYPE, document.getId());
 
-        Map<String, Object> jsonDocument = getMap(document);
+        Map<String, Object> jsonDocument = getMap(document, reader);
 
         if (parent != null) {
             jsonDocument.put(ES_JOIN_FIELD, new HashMap<String, String>() {{
@@ -98,15 +98,11 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             req.routing(parent.getId());
         }
         jsonDocument.put(fields.forLevel(), level);
-
-        if (reader != null) {
-            jsonDocument.put(ES_CONTENT_FIELD, toString(reader));
-        }
         req = req.source(jsonDocument);
         return req;
     }
 
-    Map<String, Object> getMap(Document document) throws IOException {
+    Map<String, Object> getMap(Document document, Reader reader) throws IOException {
         Map<String, Object> jsonDocument = new HashMap<>();
 
         Map<String, Object> metadata = new HashMap<>();
@@ -120,6 +116,12 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("content_type", getField(document.getMetadata(), CONTENT_TYPE));
         jsonDocument.put("content_length", getField(document.getMetadata(), CONTENT_LENGTH));
         jsonDocument.put("content_encoding", getField(document.getMetadata(), CONTENT_ENCODING));
+
+        if (reader != null) {
+            String content = toString(reader);
+            jsonDocument.put("language", languageGuesser.guess(content));
+            jsonDocument.put(ES_CONTENT_FIELD, content);
+        }
         return jsonDocument;
     }
 
