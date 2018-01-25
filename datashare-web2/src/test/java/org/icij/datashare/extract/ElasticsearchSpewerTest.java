@@ -1,10 +1,10 @@
 package org.icij.datashare.extract;
 
-import org.apache.tika.metadata.Metadata;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -27,6 +27,8 @@ import java.net.InetAddress;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import static org.elasticsearch.index.query.QueryBuilders.multiMatchQuery;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.junit.Assert.assertEquals;
@@ -35,7 +37,8 @@ import static org.junit.Assert.assertTrue;
 public class ElasticsearchSpewerTest {
     private static final String TEST_INDEX = "datashare-test";
 	private static Client client;
-	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(client, new OptimaizeLanguageGuesser(), new FieldNames(), TEST_INDEX);
+	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(client,
+            new OptimaizeLanguageGuesser(), new FieldNames(), TEST_INDEX).withRefresh(IMMEDIATE);
 	private final DocumentFactory factory = new DocumentFactory().withIdentifier(new PathIdentifier());
 
     public ElasticsearchSpewerTest() throws IOException {}
@@ -70,16 +73,33 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_metadata() throws Exception {
         String path = getClass().getResource("/docs/doc.txt").getPath();
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
         final Document document = factory.create(path);
         new Extractor().extract(document);
 
-        Map<String, Object> map = spewer.getMap(document, null);
+        Map<String, Object> map = spewer.getMap(document, reader);
         assertThat(map).includes(
                 entry("content_encoding", "ISO-8859-1"),
                 entry("content_type", "text/plain; charset=ISO-8859-1"),
                 entry("content_length", "45"),
                 entry("path", path)
         );
+    }
+
+    @Test
+    public void test_embedded_document() throws Exception {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        final Document document = factory.create(path);
+        Reader reader = new Extractor().extract(document);
+
+        spewer.write(document, reader);
+
+        GetResponse documentFields = client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
+        assertTrue(documentFields.isExists());
+        SearchResponse response = client.prepareSearch(TEST_INDEX).setQuery(
+                multiMatchQuery("heavy metal", "content")) .get();
+        assertThat(response.getHits().totalHits).isGreaterThan(0);
+        //assertThat(response.getHits().getAt(0).getId()).endsWith("embedded.pdf");
     }
 
     @Test
@@ -95,20 +115,4 @@ public class ElasticsearchSpewerTest {
         assertThat(map).includes(entry("language", "en"));
         assertThat(map_fr).includes(entry("language", "fr"));
     }
-
-    @Test
-	public void test_embedded_documents_write() throws Exception {
-		final Document document = factory.create(Paths.get("test-file.txt"));
-		document.addEmbed("embedded-key", new PathIdentifier(), Paths.get("embedded_file.txt"), new Metadata());
-		final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test embedded document".getBytes()));
-
-		spewer.write(document, reader);
-
-        GetRequest getRequest = new GetRequest(TEST_INDEX, "doc", "embedded_file.txt");
-        getRequest.routing("test-file.txt");
-        GetResponse documentFields = client.get(getRequest).get();
-        assertTrue(documentFields.isExists());
-		assertEquals("test-file.txt", ((Map)documentFields.getSourceAsMap().get("join")).get("parent"));
-		assertEquals("document", ((Map)documentFields.getSourceAsMap().get("join")).get("name"));
-	}
 }

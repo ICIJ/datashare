@@ -2,6 +2,7 @@ package org.icij.datashare.extract;
 
 import org.apache.tika.metadata.Metadata;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -48,6 +49,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final String ES_CONTENT_FIELD = "content";
 
     private final LanguageGuesser languageGuesser;
+    private WriteRequest.RefreshPolicy refreshPolicy = WriteRequest.RefreshPolicy.NONE;
 
     @Inject
     public ElasticsearchSpewer(final PropertiesProvider propertiesProvider, LanguageGuesser languageGuesser) throws IOException {
@@ -99,6 +101,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
         jsonDocument.put(fields.forLevel(), level);
         req = req.source(jsonDocument);
+        req.setRefreshPolicy(refreshPolicy);
         return req;
     }
 
@@ -117,17 +120,14 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("content_length", getField(document.getMetadata(), CONTENT_LENGTH));
         jsonDocument.put("content_encoding", getField(document.getMetadata(), CONTENT_ENCODING));
 
-        if (reader != null) {
-            String content = toString(reader);
-            jsonDocument.put("language", languageGuesser.guess(content));
-            jsonDocument.put(ES_CONTENT_FIELD, content);
-        }
+        String content = toString(reader);
+        jsonDocument.put("language", languageGuesser.guess(content));
+        jsonDocument.put(ES_CONTENT_FIELD, content);
         return jsonDocument;
     }
 
     private void writeTree(final Document doc, final Document parent, final int level)
             throws IOException {
-        doc.clearReader();
         try (final Reader reader = doc.getReader()) {
             indexDocument(doc, reader, parent, level);
         }
@@ -157,6 +157,11 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     @Override
     public void writeMetadata(Document document) throws IOException { throw new UnsupportedOperationException();}
+
+    public ElasticsearchSpewer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
+        this.refreshPolicy = refreshPolicy;
+        return this;
+    }
 
     static class MapValueConsumer implements MetadataTransformer.ValueConsumer {
 
