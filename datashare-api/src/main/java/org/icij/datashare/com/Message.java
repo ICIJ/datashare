@@ -25,6 +25,7 @@ public class Message {
     }
 
     public Message(final Type type) {this.type = type; this.date = new Date();}
+    public Message(final Type type, final Date date) {this.type = type; this.date = date;}
 
     public String toJson() {
         return "{" + content.entrySet().stream().map(e -> format("\"%s\":\"%s\"", e.getKey(), e.getValue())).
