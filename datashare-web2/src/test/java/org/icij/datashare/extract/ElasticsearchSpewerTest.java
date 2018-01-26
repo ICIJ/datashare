@@ -97,7 +97,7 @@ public class ElasticsearchSpewerTest {
         GetResponse documentFields = client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
         assertTrue(documentFields.isExists());
         SearchResponse response = client.prepareSearch(TEST_INDEX).setQuery(
-                multiMatchQuery("heavy metal", "content")) .get();
+                multiMatchQuery("simple.tiff", "content")) .get();
         assertThat(response.getHits().totalHits).isGreaterThan(0);
         //assertThat(response.getHits().getAt(0).getId()).endsWith("embedded.pdf");
     }
