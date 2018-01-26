@@ -20,7 +20,7 @@ public class WebApp {
         Injector injector = Guice.createInjector(ioc);
         return routes -> routes
                 .get("/", "Datashare REST API")
-                .add(new TaskResource(injector.getInstance(TaskFactory.class), injector.getInstance(TaskManager.class)))
+                .add(injector.getInstance(TaskResource.class))
                 .setExtensions(new Extensions() {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
