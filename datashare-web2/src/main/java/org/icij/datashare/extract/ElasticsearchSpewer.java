@@ -8,6 +8,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.com.Message;
+import org.icij.datashare.com.Message.Field;
+import org.icij.datashare.com.Publisher;
 import org.icij.datashare.language.LanguageGuesser;
 import org.icij.extract.document.Document;
 import org.icij.extract.document.EmbeddedDocument;
@@ -32,6 +35,7 @@ import java.util.concurrent.ExecutionException;
 
 import static java.lang.System.currentTimeMillis;
 import static org.apache.tika.metadata.HttpHeaders.*;
+import static org.icij.datashare.com.Channel.NLP;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
@@ -40,6 +44,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final String DEFAULT_ADDRESS = "localhost:9300";
 
     private final Client client;
+    private final Publisher publisher;
     private final String index_name;
     private static final String ES_CLUSTER_NAME = "datashare";
     private static final String ES_INDEX_NAME = "datashare";
@@ -52,14 +57,15 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private WriteRequest.RefreshPolicy refreshPolicy = WriteRequest.RefreshPolicy.NONE;
 
     @Inject
-    public ElasticsearchSpewer(final PropertiesProvider propertiesProvider, LanguageGuesser languageGuesser) throws IOException {
-        this(createESClient(propertiesProvider), languageGuesser, new FieldNames(), ES_INDEX_NAME);
+    public ElasticsearchSpewer(final PropertiesProvider propertiesProvider, LanguageGuesser languageGuesser, Publisher publisher) throws IOException {
+        this(createESClient(propertiesProvider), languageGuesser, new FieldNames(), publisher, ES_INDEX_NAME);
     }
 
-    ElasticsearchSpewer(final Client client, LanguageGuesser languageGuesser, final FieldNames fields, final String index_name) throws IOException {
+    ElasticsearchSpewer(final Client client, LanguageGuesser languageGuesser, final FieldNames fields, Publisher publisher, final String index_name) throws IOException {
         super(fields);
         this.client = client;
         this.languageGuesser = languageGuesser;
+        this.publisher = publisher;
         this.index_name = index_name;
     }
 
@@ -84,6 +90,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         for (EmbeddedDocument childDocument : document.getEmbeds()) {
             writeTree(childDocument, document, 1);
         }
+        publisher.publish(NLP, new Message().add(Field.DOC_ID, document.getId()));
     }
 
     IndexRequest prepareRequest(final Document document, final Reader reader,

@@ -9,6 +9,10 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import org.icij.datashare.com.Channel;
+import org.icij.datashare.com.Message;
+import org.icij.datashare.com.Message.Field;
+import org.icij.datashare.com.Publisher;
 import org.icij.datashare.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.Document;
 import org.icij.extract.document.DocumentFactory;
@@ -19,6 +23,7 @@ import org.icij.spewer.FieldNames;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -33,12 +38,16 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class ElasticsearchSpewerTest {
     private static final String TEST_INDEX = "datashare-test";
 	private static Client client;
+    private Publisher publisher = mock(Publisher.class);
 	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(client,
-            new OptimaizeLanguageGuesser(), new FieldNames(), TEST_INDEX).withRefresh(IMMEDIATE);
+            new OptimaizeLanguageGuesser(), new FieldNames(), publisher, TEST_INDEX).withRefresh(IMMEDIATE);
 	private final DocumentFactory factory = new DocumentFactory().withIdentifier(new PathIdentifier());
 
     public ElasticsearchSpewerTest() throws IOException {}
@@ -68,6 +77,10 @@ public class ElasticsearchSpewerTest {
     	GetResponse documentFields = client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
 		assertTrue(documentFields.isExists());
 		assertEquals(document.getId(), documentFields.getId());
+
+        ArgumentCaptor<Message> argument = ArgumentCaptor.forClass(Message.class);
+		verify(publisher).publish(eq(Channel.NLP), argument.capture());
+		assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
 	}
 
     @Test
