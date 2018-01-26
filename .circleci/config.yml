@@ -6,7 +6,7 @@ jobs:
       - image: docker.elastic.co/elasticsearch/elasticsearch:6.1.0
         environment:
           - "discovery.type=single-node"
-          - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+          - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
         name: elasticsearch
 
     working_directory: ~/repo
