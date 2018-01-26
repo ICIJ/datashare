@@ -8,6 +8,8 @@ jobs:
           - "discovery.type=single-node"
           - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
         name: elasticsearch
+      - image: redis:4.0.1-alpine
+        name: redis
 
     working_directory: ~/repo
 

@@ -113,6 +113,11 @@
            <artifactId>joda-time</artifactId>
         </dependency>
         <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+        <dependency>
             <groupId>net.code-story</groupId>
             <artifactId>fluent-rest-test</artifactId>
             <version>1.6</version>
