@@ -2,10 +2,10 @@ package org.icij.datashare.extract;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.icij.extract.Scanner;
+import org.icij.extract.ScannerVisitor;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.queue.DocumentQueue;
-import org.icij.extract.queue.Scanner;
-import org.icij.extract.queue.ScannerVisitor;
 import org.icij.task.DefaultTask;
 import org.icij.task.Options;
 import org.icij.task.annotation.OptionsClass;
