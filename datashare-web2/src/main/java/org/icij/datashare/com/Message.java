@@ -5,16 +5,21 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.lang.String.format;
+import static org.icij.datashare.com.Message.Field.*;
 import static org.joda.time.format.ISODateTimeFormat.dateTime;
 
 public class Message {
-    public enum Field {DATE, DOC_ID}
+    public enum Field {TYPE, DATE, DOC_ID}
+    public enum Type {EXTRACT_NLP}
     final Date date = new Date();
+    final Type type;
     public final Map<Field, String> content = new HashMap<>();
+
+    public Message(final Type type) {this.type = type;}
 
     public String toJson() {
         return "{" + content.entrySet().stream().map(e -> format("\"%s\":\"%s\"", e.getKey(), e.getValue())).
-                reduce(format("\"%s\":\"%s\"", Field.DATE, dateTime().print(date.getTime())),
+                reduce(format("\"%s\":\"%s\",\"%s\":\"%s\"", TYPE, type, DATE, dateTime().print(date.getTime())),
                         (s1, s2) -> s1 + "," + s2) + "}";
     }
 

@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutionException;
 import static java.lang.System.currentTimeMillis;
 import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.com.Channel.NLP;
+import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
@@ -90,7 +91,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         for (EmbeddedDocument childDocument : document.getEmbeds()) {
             writeTree(childDocument, document, 1);
         }
-        publisher.publish(NLP, new Message().add(Field.DOC_ID, document.getId()));
+        publisher.publish(NLP, new Message(EXTRACT_NLP).add(Field.DOC_ID, document.getId()));
     }
 
     IndexRequest prepareRequest(final Document document, final Reader reader,
