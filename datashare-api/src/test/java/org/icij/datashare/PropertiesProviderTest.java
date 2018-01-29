@@ -19,7 +19,7 @@ public class PropertiesProviderTest {
 
     @Test
     public void test_if_present() {
-        assertThat(new PropertiesProvider().getIfPresent("foo")).isEqualTo(of("bar"));
-        assertThat(new PropertiesProvider().getIfPresent("unknown")).isEqualTo(empty());
+        assertThat(new PropertiesProvider().get("foo")).isEqualTo(of("bar"));
+        assertThat(new PropertiesProvider().get("unknown")).isEqualTo(empty());
     }
 }

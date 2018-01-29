@@ -21,6 +21,20 @@
 
 
     <dependencies>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>RELEASE</version>
+        </dependency>
+        <dependency>
+             <groupId>com.google.guava</groupId>
+             <artifactId>guava</artifactId>
+         </dependency>
 
         <!-- Hazelcast -->
         <dependency>

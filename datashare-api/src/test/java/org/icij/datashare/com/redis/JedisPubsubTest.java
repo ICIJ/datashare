@@ -1,8 +1,7 @@
-package org.icij.datashare;
+package org.icij.datashare.com.redis;
 
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.ShutdownMessage;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 
@@ -36,7 +35,6 @@ public class JedisPubsubTest {
         assertThat(receivedMessage.get()).isEqualTo(doc_id);
     }
 
-    @NotNull
     private Jedis createJedis() {
         return new Jedis("redis");
     }

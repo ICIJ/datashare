@@ -73,10 +73,10 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static Client createESClient(final PropertiesProvider propertiesProvider) throws UnknownHostException {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
 
-        String indexAddress = propertiesProvider.getIfPresent(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
+        String indexAddress = propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
         InetAddress esAddress = InetAddress.getByName(indexAddress.split(":")[0]);
         int esPort = Integer.parseInt(indexAddress.split(":")[1]);
-        String clusterName = propertiesProvider.getIfPresent(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
+        String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
 
         logger.info("building elasticsearch client on {} and cluster {}", indexAddress, clusterName);
 

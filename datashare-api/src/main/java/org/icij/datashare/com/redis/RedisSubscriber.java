@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.com.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.com.Channel;
@@ -20,7 +20,7 @@ public class RedisSubscriber implements Runnable {
     private final Function<Message, Void> callback;
     private Channel channel;
 
-    RedisSubscriber(final Jedis redis, final Function<Message, Void> callback) {
+    public RedisSubscriber(final Jedis redis, final Function<Message, Void> callback) {
         this.redis = redis;
         this.callback = callback;
     }

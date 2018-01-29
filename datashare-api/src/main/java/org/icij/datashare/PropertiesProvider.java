@@ -35,7 +35,7 @@ public class PropertiesProvider {
         return cachedProperties;
     }
 
-    public Optional<String> getIfPresent(final String propertyName) {
+    public Optional<String> get(final String propertyName) {
         return getProperties().getProperty(propertyName) == null ?
                 Optional.empty():
                 Optional.of((getProperties().getProperty(propertyName)));

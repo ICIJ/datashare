@@ -3,6 +3,7 @@ package org.icij.datashare;
 import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.com.redis.RedisPublisher;
 import org.icij.datashare.extract.ElasticsearchSpewer;
 import org.icij.datashare.extract.RedisInjectableDocumentQueue;
 import org.icij.datashare.language.LanguageGuesser;

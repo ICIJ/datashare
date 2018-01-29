@@ -1,6 +1,7 @@
-package org.icij.datashare;
+package org.icij.datashare.com.redis;
 
 import com.google.inject.Inject;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
