@@ -85,6 +85,10 @@
             <version>1.0.1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-index-elasticsearch</artifactId>
+        </dependency>
     </dependencies>
 
 

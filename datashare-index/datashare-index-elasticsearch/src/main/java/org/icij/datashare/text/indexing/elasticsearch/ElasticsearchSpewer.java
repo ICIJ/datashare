@@ -1,19 +1,16 @@
-package org.icij.datashare.extract;
+package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.apache.tika.metadata.Metadata;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
-import org.icij.datashare.language.LanguageGuesser;
-import org.icij.extract.document.Document;
-import org.icij.extract.document.EmbeddedDocument;
+import org.icij.datashare.text.indexing.LanguageGuesser;
+import org.icij.extract.document.EmbeddedTikaDocument;
+import org.icij.extract.document.TikaDocument;
 import org.icij.spewer.FieldNames;
 import org.icij.spewer.MetadataTransformer;
 import org.icij.spewer.Spewer;
@@ -24,8 +21,6 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -40,14 +35,10 @@ import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
-    private static final String INDEX_ADDRESS_PROP = "indexAddress";
-    private static final String CLUSTER_PROP = "clusterName";
-    private static final String DEFAULT_ADDRESS = "localhost:9300";
 
     private final Client client;
     private final Publisher publisher;
     private final String index_name;
-    private static final String ES_CLUSTER_NAME = "datashare";
     private static final String ES_INDEX_NAME = "datashare";
     private static final String ES_INDEX_TYPE = "doc";
     private static final String ES_DOC_TYPE_FIELD = "type";
@@ -59,7 +50,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     @Inject
     public ElasticsearchSpewer(final PropertiesProvider propertiesProvider, LanguageGuesser languageGuesser, Publisher publisher) throws IOException {
-        this(createESClient(propertiesProvider), languageGuesser, new FieldNames(), publisher, ES_INDEX_NAME);
+        this(ElasticsearchIndexer.createESClient(propertiesProvider), languageGuesser, new FieldNames(), publisher, ES_INDEX_NAME);
     }
 
     ElasticsearchSpewer(final Client client, LanguageGuesser languageGuesser, final FieldNames fields, Publisher publisher, final String index_name) throws IOException {
@@ -70,32 +61,17 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         this.index_name = index_name;
     }
 
-    private static Client createESClient(final PropertiesProvider propertiesProvider) throws UnknownHostException {
-        System.setProperty("es.set.netty.runtime.available.processors", "false");
-
-        String indexAddress = propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
-        InetAddress esAddress = InetAddress.getByName(indexAddress.split(":")[0]);
-        int esPort = Integer.parseInt(indexAddress.split(":")[1]);
-        String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
-
-        logger.info("building elasticsearch client on {} and cluster {}", indexAddress, clusterName);
-
-        Settings settings = Settings.builder().put("cluster.name", clusterName).build();
-        return new PreBuiltTransportClient(settings).addTransportAddress(
-                new TransportAddress(esAddress, esPort));
-    }
-
     @Override
-    public void write(final Document document, final Reader reader) throws IOException {
+    public void write(final TikaDocument document, final Reader reader) throws IOException {
         indexDocument(document, reader, null, 0);
-        for (EmbeddedDocument childDocument : document.getEmbeds()) {
+        for (EmbeddedTikaDocument childDocument : document.getEmbeds()) {
             writeTree(childDocument, document, 1);
         }
         publisher.publish(NLP, new Message(EXTRACT_NLP).add(Field.DOC_ID, document.getId()));
     }
 
-    IndexRequest prepareRequest(final Document document, final Reader reader,
-                                final Document parent, final int level) throws IOException {
+    IndexRequest prepareRequest(final TikaDocument document, final Reader reader,
+                                final TikaDocument parent, final int level) throws IOException {
         IndexRequest req = new IndexRequest(index_name, ES_INDEX_TYPE, document.getId());
 
         Map<String, Object> jsonDocument = getMap(document, reader);
@@ -113,7 +89,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return req;
     }
 
-    Map<String, Object> getMap(Document document, Reader reader) throws IOException {
+    Map<String, Object> getMap(TikaDocument document, Reader reader) throws IOException {
         Map<String, Object> jsonDocument = new HashMap<>();
 
         Map<String, Object> metadata = new HashMap<>();
@@ -134,19 +110,19 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return jsonDocument;
     }
 
-    private void writeTree(final Document doc, final Document parent, final int level)
+    private void writeTree(final TikaDocument doc, final TikaDocument parent, final int level)
             throws IOException {
         try (final Reader reader = doc.getReader()) {
             indexDocument(doc, reader, parent, level);
         }
 
-        for (EmbeddedDocument child : doc.getEmbeds()) {
+        for (EmbeddedTikaDocument child : doc.getEmbeds()) {
             writeTree(child, doc, level + 1);
         }
     }
 
-    private void indexDocument(Document document, Reader reader,
-                               final Document parent, final int level) throws IOException {
+    private void indexDocument(TikaDocument document, Reader reader,
+                               final TikaDocument parent, final int level) throws IOException {
         final IndexRequest req = prepareRequest(document, reader, parent, level);
         try {
             long before = currentTimeMillis();
@@ -164,7 +140,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     @Override
-    public void writeMetadata(Document document) throws IOException { throw new UnsupportedOperationException();}
+    public void writeMetadata(TikaDocument document) throws IOException { throw new UnsupportedOperationException();}
 
     public ElasticsearchSpewer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
         this.refreshPolicy = refreshPolicy;

@@ -44,6 +44,7 @@ public abstract class AbstractPipeline implements Pipeline {
 
     // Keep annotators (and models) in memory from run to run?
     protected final boolean caching;
+    protected final String busAddress;
 
     // Complete set of processing stages to actually run (dependencies included)
     protected List<NlpStage> stages;
@@ -77,6 +78,8 @@ public abstract class AbstractPipeline implements Pipeline {
                             put(stage, new ArrayList<>())
                     );
         }};
+        String messageBusAddress = (String) properties.get("messageBusAddress");
+        busAddress = messageBusAddress == null ? "localhost":messageBusAddress;
     }
 
     @Override

@@ -4,10 +4,10 @@ import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
-import org.icij.datashare.extract.ElasticsearchSpewer;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.extract.RedisInjectableDocumentQueue;
-import org.icij.datashare.language.LanguageGuesser;
-import org.icij.datashare.language.OptimaizeLanguageGuesser;
+import org.icij.datashare.text.indexing.LanguageGuesser;
+import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.spewer.Spewer;
 

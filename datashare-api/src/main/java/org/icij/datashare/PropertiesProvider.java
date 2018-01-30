@@ -22,6 +22,11 @@ public class PropertiesProvider {
         this.fileName = fileName;
     }
 
+    public PropertiesProvider(final Properties properties) {
+        this.cachedProperties = properties;
+        fileName = null;
+    }
+
     public Properties getProperties() {
         if (cachedProperties == null) {
             cachedProperties = new Properties();

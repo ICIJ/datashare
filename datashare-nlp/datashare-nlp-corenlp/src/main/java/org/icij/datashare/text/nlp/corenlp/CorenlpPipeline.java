@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp.corenlp;
 
+import com.google.inject.Inject;
 import edu.stanford.nlp.ie.AbstractSequenceClassifier;
 import edu.stanford.nlp.ling.CoreAnnotations.*;
 import edu.stanford.nlp.ling.CoreLabel;
@@ -9,6 +10,7 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Triple;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -53,6 +55,10 @@ public final class CorenlpPipeline extends AbstractPipeline {
         stageDependencies.get(NER)     .add(LEMMA);
     }
 
+    @Inject
+    public CorenlpPipeline(final PropertiesProvider propertiesProvider) {
+        this(propertiesProvider.getProperties());
+    }
 
     /**
      * {@inheritDoc}

@@ -32,7 +32,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 
 
 /**
@@ -81,10 +80,6 @@ public final class DataShare {
     public static final List<NamedEntity.Category> DEFAULT_NLP_ENTITIES       = Pipeline.DEFAULT_ENTITIES;
     public static final boolean                    DEFAULT_NLP_CACHING        = Pipeline.DEFAULT_CACHING;
 
-    public static final Indexer.Type               DEFAULT_INDEXER_TYPE       = Indexer.DEFAULT_TYPE;
-    public static final Indexer.NodeType           DEFAULT_INDEXER_NODE_TYPE  = Indexer.DEFAULT_NODETYPE;
-    public static final List<String>               DEFAULT_INDEXER_NODE_HOSTS = emptyList();
-    public static final List<Integer>              DEFAULT_INDEXER_NODE_PORTS = emptyList();
     public static final String                     DEFAULT_INDEX              = "datashare-local";
 
     private static ReentrantLock datashareLock = new ReentrantLock();

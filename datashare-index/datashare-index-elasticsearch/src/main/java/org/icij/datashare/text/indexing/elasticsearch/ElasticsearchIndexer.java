@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import com.google.inject.Inject;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -22,10 +23,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -41,13 +39,12 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.icij.datashare.Entity;
-import org.icij.datashare.function.Pair;
-import org.icij.datashare.function.ThrowingConsumer;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.text.indexing.AbstractIndexer;
+import org.icij.datashare.text.indexing.Indexer;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -57,32 +54,25 @@ import java.util.stream.StreamSupport;
 import static java.net.InetAddress.getByName;
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
-import static org.elasticsearch.cluster.health.ClusterHealthStatus.GREEN;
-import static org.elasticsearch.cluster.health.ClusterHealthStatus.YELLOW;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 import static org.elasticsearch.index.query.QueryBuilders.*;
-import static org.icij.datashare.function.Functions.zip;
-import static org.icij.datashare.function.Predicates.notEmptyStr;
-import static org.icij.datashare.function.ThrowingFunctions.getProperty;
-import static org.icij.datashare.function.ThrowingFunctions.removeSpaces;
-import static org.icij.datashare.text.indexing.Indexer.NodeType.LOCAL;
-import static org.icij.datashare.text.indexing.Indexer.NodeType.REMOTE;
 
 
-/**
- * {@link org.icij.datashare.text.indexing.Indexer}
- * {@link org.icij.datashare.text.indexing.AbstractIndexer}
- * {@link Type#ELASTICSEARCH}
- *
- * <a href="https://www.elastic.co/products/elasticsearch">Elasticsearch v6.1.0</a>
- *
- * Created by julien on 6/15/16.
- */
-public class ElasticsearchIndexer extends AbstractIndexer {
-    
+public class ElasticsearchIndexer implements Indexer {
     public static final String VERSION = "6.1.0";
+    static protected final int DEFAULT_SEARCH_FROM = 0;
+    static protected final int DEFAULT_SEARCH_SIZE = 100;
+    static protected final int DEFAULT_TIMEOUT_INSEC = 10;
 
-    public static final Path HOME = Paths.get( System.getProperty("user.dir"), "opt", "elasticsearch-" + VERSION);
+    private static final String INDEX_ADDRESS_PROP = "indexAddress";
+    private static final String INDEX_TYPE_PROP = "indexType";
+    private static final String INDEX_NAME_PROP = "indexName";
+    private static final String INDEX_JOIN_FIELD_NAME_PROP = "indexJoinFieldName";
+    private static final String INDEX_TYPE_FIELD_NAME_PROP = "indexTypeFieldName";
+    private static final String CLUSTER_PROP = "clusterName";
+
+    private static final String DEFAULT_ADDRESS = "localhost:9300";
+    private static final String ES_CLUSTER_NAME = "datashare";
 
     private static final int           BULKPROCESSOR_FLUSH_ACTIONS   = 2000;
     private static final ByteSizeValue BULKPROCESSOR_FLUSH_SIZE      = new ByteSizeValue(5, ByteSizeUnit.MB);
@@ -97,65 +87,44 @@ public class ElasticsearchIndexer extends AbstractIndexer {
     private static final Set<String> PARENT_TYPES = new HashSet<>(singletonList("Document"));
     private static final String DEFAULT_INDEX_NAME = "datashare-local";
 
-    private static final Map<NodeType, ClusterHealthStatus> CLUSTER_UP_STATUS =
-            new HashMap<NodeType, ClusterHealthStatus>() {{
-                put(LOCAL,  YELLOW);
-                put(REMOTE, GREEN);
-            }};
-
-
-    // Index client service
     private final Client client;
-
-    // Index batch processor
     private final BulkProcessor bulkProcessor;
 
-    // Index unique type name
+    private final int shards = 1;
+    private final int replicas = 1;
+
     private final String indexType;
-
-    // Index unique index join field name
+    private final String indexName;
     private final String indexJoinField;
-
-    // Documents custom type field name
     private final String docTypeField;
 
-
-    public ElasticsearchIndexer(Properties properties) {
-        super(properties);
-
-        indexType = getProperty(Property.INDEX_TYPE.getName(), properties, removeSpaces)
-                .filter(notEmptyStr)
-                .orElse(DEFAULT_INDEX_TYPE);
-
-        indexJoinField = getProperty(Property.INDEX_JOIN_FIELD.getName(), properties, removeSpaces)
-                .filter(notEmptyStr)
-                .orElse(DEFAULT_INDEX_JOIN_FIELD);
-
-        docTypeField = getProperty(Property.DOC_TYPE_FIELD.getName(), properties, removeSpaces)
-                .filter(notEmptyStr)
-                .orElse(DEFAULT_DOC_TYPE_FIELD);
-
-        Settings settings = getNodeSettings(nodeType);
-        LOGGER.info("Opening connection to "+ "[" + nodeType + "]" + " node(s)");
-        LOGGER.info("Settings :\n" + settings.toDelimitedString('\n'));
-
-        TransportClient               trnspClient = new PreBuiltTransportClient(settings);
-        Stream<Pair<String, Integer>> trnspAddrs  = zip(hosts.stream(), ports.stream(), Pair::new);
-        ThrowingConsumer<Pair<String, Integer>> addTrnspAddrToClient = addr ->
-                trnspClient.addTransportAddress(new TransportAddress(getByName(addr._1()), addr._2()));
-        trnspAddrs.forEach( addTrnspAddrToClient );
-        client = trnspClient;
+    @Inject
+    public ElasticsearchIndexer(final PropertiesProvider propertiesProvider) throws UnknownHostException {
+        client = createESClient(propertiesProvider);
+        indexType = propertiesProvider.get(INDEX_TYPE_PROP).orElse(DEFAULT_INDEX_TYPE);
+        indexJoinField = propertiesProvider.get(INDEX_JOIN_FIELD_NAME_PROP).orElse(DEFAULT_INDEX_JOIN_FIELD);
+        docTypeField = propertiesProvider.get(INDEX_TYPE_FIELD_NAME_PROP).orElse(DEFAULT_DOC_TYPE_FIELD);
+        indexName = propertiesProvider.get(INDEX_NAME_PROP).orElse(DEFAULT_INDEX_NAME);
 
         if ( ! awaitConnectionIsUp() ) {
             throw new RuntimeException("Failed to connect");
         }
-
         bulkProcessor = buildBulkProcessor();
     }
 
-    @Override
-    public Type getType() {
-        return Type.ELASTICSEARCH;
+    static Client createESClient(final PropertiesProvider propertiesProvider) throws UnknownHostException {
+        System.setProperty("es.set.netty.runtime.available.processors", "false");
+
+        String indexAddress = propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
+        InetAddress esAddress = getByName(indexAddress.split(":")[0]);
+        int esPort = Integer.parseInt(indexAddress.split(":")[1]);
+        String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
+
+        Settings settings = Settings.builder().put("cluster.name", clusterName).build();
+        LOGGER.info("Opening connection to " + "[" + indexAddress + "]" + " node(s)");
+        LOGGER.info("Settings :\n" + settings.toDelimitedString('\n'));
+        return new PreBuiltTransportClient(settings).addTransportAddress(
+                new TransportAddress(esAddress, esPort));
     }
 
     @Override
@@ -171,9 +140,7 @@ public class ElasticsearchIndexer extends AbstractIndexer {
         LOGGER.info("Elasticsearch connection closed");
     }
 
-
     // __________ Admin indices __________
-
     @Override
     public boolean createIndex(String index) {
         try {
@@ -454,57 +421,6 @@ public class ElasticsearchIndexer extends AbstractIndexer {
             batchDelete(index, type, id);
     }
 
-
-    // __________ Update Document __________
-
-    @Override
-    public boolean update(String index, String type, String id, String json) {
-        try {
-            final UpdateRequest  req  = new UpdateRequest(index, indexType, id).doc(json);
-            final UpdateResponse resp = client.update(req).get();
-            return asList(RestStatus.FOUND, RestStatus.CREATED, RestStatus.OK).contains(resp.status());
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to update doc " + id + " of type " + type + " in index " + index, e);
-            return false;
-        }
-    }
-
-    @Override
-    public boolean update(String index, String type, String id, Map<String, Object> json) {
-        try {
-            final UpdateRequest  req  = new UpdateRequest(index, indexType, id).doc(json);
-            final UpdateResponse resp = client.update(req).get();
-            return asList(RestStatus.FOUND, RestStatus.CREATED, RestStatus.OK).contains(resp.status());
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to update doc " + id + " of type " + type + " in index " + index, e);
-            return false;
-        }
-    }
-
-    @Override
-    public boolean update(String index, String type, String id, Map<String, Object> json, String parent) {
-        try {
-            final UpdateRequest  req  = new UpdateRequest(index, indexType, id).doc(json).routing(parent);
-            final UpdateResponse resp = client.update(req).get();
-            return asList(RestStatus.FOUND, RestStatus.CREATED, RestStatus.OK).contains(resp.status());
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to update doc " + id + " of type " + type + " in index " + index, e);
-            return false;
-        }
-    }
-
-    @Override
-    public <T extends Entity> boolean update(String index, T obj) {
-        final String              type   = JsonObjectMapper.getType(obj);
-        final String              id     = JsonObjectMapper.getId(obj);
-        final Map<String, Object> json   = JsonObjectMapper.getJson(obj);
-        final Optional<String>    parent = JsonObjectMapper.getParent(obj);
-        if (parent.isPresent())
-            return update(index, type, id, json, parent.get());
-        return update(index, type, id, json);
-    }
-
-
     // __________ Search Document(s) __________
 
     @Override
@@ -775,30 +691,6 @@ public class ElasticsearchIndexer extends AbstractIndexer {
         return boolQuery().mustNot( hasParentQuery(type,  queryStringQuery(query)) );
     }
 
-
-    /**
-     * @return node(s) settings
-     */
-    private Settings getNodeSettings(NodeType nodeType) {
-        if (nodeType.equals(LOCAL)) {
-            return Settings.builder()
-                    .put("path.home",    HOME)
-                    .put("network.host", hosts.get(0))
-                    .put("http.host",    hosts.get(0))
-                    .put("cluster.name", cluster)
-                    .put("node.master",  true)
-                    .put("node.data",    true)
-                    .put("client.transport.sniff", false)
-                    .build();
-        } else {
-            return Settings.builder()
-                    .put("cluster.name", cluster)
-                    .put("client.transport.sniff",        true)
-                    //.put("client.transport.ping_timeout", timeValueSeconds(DEFAULT_TIMEOUT_INSEC))
-                    .build();
-        }
-    }
-
     /**
      * @return built index settings
      */
@@ -811,14 +703,13 @@ public class ElasticsearchIndexer extends AbstractIndexer {
     }
 
 
-    @Override
-    protected boolean awaitConnectionIsUp() {
+    private boolean awaitConnectionIsUp() {
         return ! client
                 .admin()
                 .cluster()
                 .prepareHealth()
                 .setTimeout(timeValueSeconds(DEFAULT_TIMEOUT_INSEC))
-                .setWaitForStatus(CLUSTER_UP_STATUS.get(nodeType))
+                .setWaitForStatus(ClusterHealthStatus.GREEN)
                 .get()
                 .isTimedOut();
     }
@@ -828,7 +719,7 @@ public class ElasticsearchIndexer extends AbstractIndexer {
      */
     @Override
     public boolean awaitIndexIsUp(String index) {
-        return awaitIndexIsUp(index, CLUSTER_UP_STATUS.get(nodeType));
+        return awaitIndexIsUp(index, ClusterHealthStatus.GREEN);
     }
 
     /**

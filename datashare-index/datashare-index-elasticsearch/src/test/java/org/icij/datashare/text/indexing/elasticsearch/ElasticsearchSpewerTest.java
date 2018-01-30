@@ -1,4 +1,4 @@
-package org.icij.datashare.extract;
+package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -9,14 +9,15 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import org.fest.assertions.Assertions;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
-import org.icij.datashare.language.OptimaizeLanguageGuesser;
-import org.icij.extract.document.Document;
+import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
+import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.parser.ParsingReader;
 import org.icij.spewer.FieldNames;
@@ -24,30 +25,29 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Matchers;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Reader;
 import java.net.InetAddress;
 import java.nio.file.Paths;
-import java.util.Map;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.elasticsearch.index.query.QueryBuilders.multiMatchQuery;
-import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class ElasticsearchSpewerTest {
     private static final String TEST_INDEX = "datashare-test";
 	private static Client client;
-    private Publisher publisher = mock(Publisher.class);
+    private Publisher publisher = Mockito.mock(Publisher.class);
+
 	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(client,
             new OptimaizeLanguageGuesser(), new FieldNames(), publisher, TEST_INDEX).withRefresh(IMMEDIATE);
+
 	private final DocumentFactory factory = new DocumentFactory().withIdentifier(new PathIdentifier());
 
     public ElasticsearchSpewerTest() throws IOException {}
@@ -69,7 +69,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
 	public void test_simple_write() throws Exception {
-		final Document document = factory.create(Paths.get("test-file.txt"));
+		final TikaDocument document = factory.create(Paths.get("test-file.txt"));
 		final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
 
 		spewer.write(document, reader);
@@ -79,19 +79,19 @@ public class ElasticsearchSpewerTest {
 		assertEquals(document.getId(), documentFields.getId());
 
         ArgumentCaptor<Message> argument = ArgumentCaptor.forClass(Message.class);
-		verify(publisher).publish(eq(Channel.NLP), argument.capture());
-		assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
+		Mockito.verify(publisher).publish(Matchers.eq(Channel.NLP), argument.capture());
+		Assertions.assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
 	}
 
     @Test
     public void test_metadata() throws Exception {
         String path = getClass().getResource("/docs/doc.txt").getPath();
-        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
-        final Document document = factory.create(path);
-        new Extractor().extract(document);
+        final TikaDocument document = factory.create(path);
 
-        Map<String, Object> map = spewer.getMap(document, reader);
-        assertThat(map).includes(
+        spewer.write(document, new Extractor().extract(document));
+
+        GetResponse documentFields = client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
+        Assertions.assertThat(documentFields.getSourceAsMap()).includes(
                 entry("content_encoding", "ISO-8859-1"),
                 entry("content_type", "text/plain; charset=ISO-8859-1"),
                 entry("content_length", "45"),
@@ -102,7 +102,7 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_embedded_document() throws Exception {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
-        final Document document = factory.create(path);
+        final TikaDocument document = factory.create(path);
         Reader reader = new Extractor().extract(document);
 
         spewer.write(document, reader);
@@ -111,21 +111,21 @@ public class ElasticsearchSpewerTest {
         assertTrue(documentFields.isExists());
         SearchResponse response = client.prepareSearch(TEST_INDEX).setQuery(
                 multiMatchQuery("simple.tiff", "content")) .get();
-        assertThat(response.getHits().totalHits).isGreaterThan(0);
+        Assertions.assertThat(response.getHits().totalHits).isGreaterThan(0);
         //assertThat(response.getHits().getAt(0).getId()).endsWith("embedded.pdf");
     }
 
     @Test
     public void test_language() throws Exception {
-        final Document document = factory.create(getClass().getResource("/docs/doc.txt").getPath());
-        final Document document_fr = factory.create(getClass().getResource("/docs/doc-fr.txt").getPath());
-        Reader reader = new Extractor().extract(document);
-        Reader reader_fr = new Extractor().extract(document_fr);
+        final TikaDocument document = factory.create(getClass().getResource("/docs/doc.txt").getPath());
+        final TikaDocument document_fr = factory.create(getClass().getResource("/docs/doc-fr.txt").getPath());
 
-        Map<String, Object> map = spewer.getMap(document, reader);
-        Map<String, Object> map_fr = spewer.getMap(document_fr, reader_fr);
+        spewer.write(document, new Extractor().extract(document));
+        spewer.write(document_fr, new Extractor().extract(document_fr));
 
-        assertThat(map).includes(entry("language", "en"));
-        assertThat(map_fr).includes(entry("language", "fr"));
+        GetResponse documentFields = client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
+        GetResponse documentFields_fr = client.get(new GetRequest(TEST_INDEX, "doc", document_fr.getId())).get();
+        Assertions.assertThat(documentFields.getSourceAsMap()).includes(entry("language", "en"));
+        Assertions.assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "fr"));
     }
 }

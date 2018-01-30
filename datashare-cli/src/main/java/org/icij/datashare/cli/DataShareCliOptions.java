@@ -6,7 +6,6 @@ import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
 import org.icij.datashare.DataShare;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
@@ -125,37 +124,14 @@ final class DataShareCliOptions {
                 "Don't keep nlpPipelines' models and annotators in memory.");
     }
 
-    static OptionSpec<Indexer.NodeType> indexerNodeType(OptionParser parser) {
+    static OptionSpec<String> indexerHost(OptionParser parser) {
         return parser.acceptsAll(
-                asList("indexing-node-type", "idxtype"),
-                "Index node connection type (LOCAL or REMOTE)")
-                .withRequiredArg()
-                .ofType( Indexer.NodeType.class )
-                .defaultsTo(DataShare.DEFAULT_INDEXER_NODE_TYPE);
-    }
-
-    static OptionSpec<String> indexerHostNames(OptionParser parser, OptionSpec idxNodeType) {
-        return parser.acceptsAll(
-                asList("indexing-hostnames", "idxhosts"),
-                "Remote indexing nodes hostnames to connect to.")
-                .requiredIf(idxNodeType)
-                .withRequiredArg()
-                .ofType( String.class )
-                .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DEFAULT_INDEXER_NODE_HOSTS.toArray(new String[DEFAULT_INDEXER_NODE_HOSTS.size()]));
-    }
-
-    static OptionSpec<Integer> indexerHostPorts(OptionParser parser, OptionSpec idxNodeType) {
-        return parser.acceptsAll(
-                asList("indexing-hostports", "idxports"),
+                asList("index-address", "indexAddress"),
                 String.join( "\n",
-                        "Remote indexing nodes ports to connect to (eg 9300).",
-                        "One port per host defined in --index-hostnames."))
-                .requiredIf(idxNodeType)
+                        "Indexing address (default localhost:9300)."))
                 .withRequiredArg()
-                .ofType( Integer.class )
-                .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DEFAULT_INDEXER_NODE_PORTS.toArray(new Integer[DEFAULT_INDEXER_NODE_PORTS.size()]));
+                .ofType(String.class)
+                .defaultsTo("localhost:9300");
     }
 
     static AbstractOptionSpec<Void> help(OptionParser parser) {

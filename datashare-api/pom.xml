@@ -22,6 +22,11 @@
 
     <dependencies>
         <dependency>
+             <artifactId>extract-lib</artifactId>
+             <groupId>org.icij.extract</groupId>
+             <version>2.0.0</version>
+         </dependency>
+        <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
             <version>2.9.0</version>
@@ -124,6 +129,26 @@
     <build>
 
         <plugins>
+            <plugin>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>install-extract-lib</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>org.icij.extract</groupId>
+                            <artifactId>extract-lib</artifactId>
+                            <version>2.0.0</version>
+                            <packaging>jar</packaging>
+                            <file>${project.basedir}/lib/extract-lib-2.0.0.jar</file>
+                            <generatePom>true</generatePom>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
             <!-- Compiler -->
             <plugin>

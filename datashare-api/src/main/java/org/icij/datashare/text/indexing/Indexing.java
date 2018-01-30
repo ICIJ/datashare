@@ -81,7 +81,7 @@ public class Indexing<I extends Entity> extends QueuesInTask<I> {
             //indexer.addBatch(index, element);
             return Result.SUCCESS;
         } catch (Exception e ) {
-            LOGGER.error( indexer.getType() + " failed indexing " + element, e);
+            LOGGER.error("failed indexing " + element, e);
             return Result.FAILURE;
         }
     }

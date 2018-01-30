@@ -1,21 +1,24 @@
 package controllers.org.icij.datashare.web;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.text.indexing.Indexer;
+import play.libs.Json;
+import play.mvc.BodyParser;
+import play.mvc.Controller;
+import play.mvc.Result;
+import play.mvc.Results;
+import scala.concurrent.ExecutionContextExecutor;
+import services.DataShareIndexer;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.inject.*;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import org.icij.datashare.json.JsonObjectMapper;
-import scala.concurrent.ExecutionContextExecutor;
-
-import play.libs.Json;
-import play.mvc.*;
-
-import services.DataShareIndexer;
-import org.icij.datashare.text.indexing.Indexer;
 
 
 /**
@@ -78,7 +81,7 @@ public class IndexController extends Controller {
         JsonNode source = request().body().asJson();
         Map<String, Object> sourceAsMap = JsonObjectMapper.MAPPER.convertValue(source, JsonObjectMapper.MAP_TYPEREF);
         return CompletableFuture
-                .supplyAsync( () ->  indexer.update(index, type, id, sourceAsMap) )
+                .supplyAsync( () ->  null )
                 .thenApplyAsync( Json::toJson )
                 .thenApplyAsync( Results::ok, exec);
     }
