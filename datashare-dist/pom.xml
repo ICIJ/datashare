@@ -41,11 +41,11 @@
         <!-- Datashare Index Elasticsearh -->
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-index-elasticsearch</artifactId>
+            <artifactId>datashare-index</artifactId>
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-index-elasticsearch</artifactId>
+            <artifactId>datashare-index</artifactId>
             <version>${datashare-elasticsearch.version}</version>
             <type>zip</type>
             <classifier>bundle</classifier>

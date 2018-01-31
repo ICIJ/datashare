@@ -33,7 +33,7 @@
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-index-elasticsearch</artifactId>
+            <artifactId>datashare-index</artifactId>
         </dependency>
         <dependency>
            <groupId>joda-time</groupId>
