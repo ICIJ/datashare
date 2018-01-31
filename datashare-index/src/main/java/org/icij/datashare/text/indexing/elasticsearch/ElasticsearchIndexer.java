@@ -259,11 +259,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public <T extends Entity> boolean add(String index, T obj) {
-        final String              type   = JsonObjectMapper.getType(obj);
-        final String              id     = JsonObjectMapper.getId(obj);
-        final Map<String, Object> json   = JsonObjectMapper.getJson(obj);
-        final Optional<String>    parent = JsonObjectMapper.getParent(obj);
-        return add(index, type, id, json, parent.orElse(null));
+        return add(index, JsonObjectMapper.getType(obj), obj.getId(), JsonObjectMapper.getJson(obj), JsonObjectMapper.getParent(obj).orElse(null));
     }
 
     private IndexRequest indexRequest(String index, String type, String id, Map<String, Object> json) {

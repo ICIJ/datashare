@@ -6,12 +6,15 @@ import org.icij.datashare.com.Message;
 import org.icij.datashare.com.redis.RedisSubscriber;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 
 public class NLPDatashareEventListener implements DatashareEventListener {
+    private Logger logger = LoggerFactory.getLogger(getClass());
     private final AbstractPipeline nlpPipeline;
     private final Indexer indexer;
     private final String busAddress;
@@ -34,8 +37,14 @@ public class NLPDatashareEventListener implements DatashareEventListener {
 
     void onMessage(Message message) {
         if (message.type == EXTRACT_NLP) {
-            Document doc = indexer.get(message.content.get(DOC_ID));
-
+            String id = message.content.get(DOC_ID);
+            Document doc = indexer.get(id);
+            if (doc != null) {
+                nlpPipeline.initialize(doc.getLanguage());
+                nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
+            } else {
+                logger.warn("no document found in index with id " + id);
+            }
         }
     }
 }

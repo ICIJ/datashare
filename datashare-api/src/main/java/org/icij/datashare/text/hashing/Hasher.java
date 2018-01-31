@@ -1,19 +1,18 @@
 package org.icij.datashare.text.hashing;
 
-import java.util.Locale;
-import java.util.Optional;
-import java.io.InputStream;
+import org.bouncycastle.util.encoders.Hex;
+import org.icij.datashare.io.FileSystemUtils;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
-import org.bouncycastle.util.encoders.Hex;
-
-import org.icij.datashare.io.FileSystemUtils;
+import java.util.Locale;
+import java.util.Optional;
 
 
 /**
@@ -93,10 +92,8 @@ public enum Hasher {
     public String hash(Path filePath) {
         try (InputStream stream = Files.newInputStream(filePath)) {
             return hash(stream);
-
         } catch (IOException e) {
-            //throw new HasherException("Failed to hash from Path", e);
-            return "";
+            throw new IllegalArgumentException("cannot hash document", e);
         }
     }
 

@@ -74,7 +74,7 @@ public final class Document implements Entity {
     }
 
     public static Optional<Document> create(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata) {
-        String hash = HASHER.hash(filePath);
+        String hash = HASHER.hash(content);
         return Optional.of(new Document(hash, filePath, content, language, new Date(), charset, mimetype, 0, metadata));
     }
 }
