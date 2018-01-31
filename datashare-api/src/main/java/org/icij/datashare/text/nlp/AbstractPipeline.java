@@ -8,21 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.*;
 
 import static org.icij.datashare.function.ThrowingFunctions.*;
-import static org.icij.datashare.text.Language.UNKNOWN;
 
 
-/**
- * Common structure and behavior of Pipeline implementations
- *
- * Pipelines (models and annotators) are loaded lazily,
- * at {@link Pipeline#run(String)} invocation)
- *
- * Created by julien on 3/29/16.
- */
 public abstract class AbstractPipeline implements Pipeline {
 
     protected static final Hasher HASHER = Document.HASHER;
@@ -97,40 +87,14 @@ public abstract class AbstractPipeline implements Pipeline {
     @Override
     public Charset getEncoding() { return encoding; }
 
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<Annotation> run(Path path) {
-        Optional<Document> document = Document.create(path);
-        if ( ! document.isPresent() )
-            return Optional.empty();
-        return run(document.get());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<Annotation> run(Path path, Language language) {
-        Optional<Document> document = Document.create(path);
-        if ( ! document.isPresent())
-            return Optional.empty();
-        return run(document.get(), language);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Optional<Annotation> run(Document document) {
-        Optional<Language> language = document.getLanguage();
-        if ( ! language.isPresent() || language.get().equals(UNKNOWN)) {
+        Language language = document.getLanguage();
+        if ( language == null) {
             LOGGER.info("unknown language; aborting processing...");
             return Optional.empty();
         }
-        return run(document.getContent(), language.get());
+        return run(document.getContent(), language);
     }
 
     /**

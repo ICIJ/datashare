@@ -106,7 +106,7 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
     protected Result process(Document document) {
         try {
             LOGGER.info(type + " running on " + document.getPath() +
-                    " - " + document.getLength() +
+                    " - " + document.getContentLength() +
                     " - " + document.getLanguage());
             Optional<Annotation> annotation = nlpPipeline.run(document);
             if ( annotation.isPresent()) {
@@ -116,7 +116,7 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
             return Result.FAILURE;
         } catch (Exception e) {
             LOGGER.error(type + " failed running on " + document.getPath() +
-                    " - " + document.getLength() +
+                    " - " + document.getContentLength() +
                     " - " + document.getLanguage(), e);
             return Result.FAILURE;
         }

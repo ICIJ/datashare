@@ -76,7 +76,7 @@ public class SourcePath implements Entity, DataSerializable {
     }
 
     @Override
-    public String getHash() {
+    public String getId() {
         return hash;
     }
 
@@ -86,7 +86,7 @@ public class SourcePath implements Entity, DataSerializable {
 
     @Override
     public String toString() {
-        return getPath() + "(" + getHash() + ")";
+        return getPath() + "(" + getId() + ")";
     }
 
 

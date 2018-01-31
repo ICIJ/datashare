@@ -8,12 +8,14 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.EmbeddedTikaDocument;
 import org.icij.extract.document.TikaDocument;
 import org.icij.spewer.FieldNames;
 import org.icij.spewer.MetadataTransformer;
 import org.icij.spewer.Spewer;
+import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,9 +23,7 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Serializable;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -39,6 +39,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final Client client;
     private final Publisher publisher;
     private final String index_name;
+    private static final String ES_DOCUMENT_TYPE = "Document";
     private static final String ES_INDEX_NAME = "datashare";
     private static final String ES_INDEX_TYPE = "doc";
     private static final String ES_DOC_TYPE_FIELD = "type";
@@ -83,7 +84,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             }});
             req.routing(parent.getId());
         }
-        jsonDocument.put(fields.forLevel(), level);
+        jsonDocument.put("extractionLevel", level);
         req = req.source(jsonDocument);
         req.setRefreshPolicy(refreshPolicy);
         return req;
@@ -96,16 +97,16 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         new MetadataTransformer(document.getMetadata(), fields).transform(
                 new MapValueConsumer(metadata), new MapValuesConsumer(metadata));
 
-        jsonDocument.put(ES_DOC_TYPE_FIELD, "document");
+        jsonDocument.put(ES_DOC_TYPE_FIELD, ES_DOCUMENT_TYPE);
         jsonDocument.put("path", document.getPath().toString());
-        jsonDocument.put("extraction_date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mmX").withZone(ZoneOffset.UTC).format(Instant.now()));
+        jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
         jsonDocument.put("metadata", metadata);
-        jsonDocument.put("content_type", getField(document.getMetadata(), CONTENT_TYPE));
-        jsonDocument.put("content_length", getField(document.getMetadata(), CONTENT_LENGTH));
-        jsonDocument.put("content_encoding", getField(document.getMetadata(), CONTENT_ENCODING));
+        jsonDocument.put("contentType", getField(document.getMetadata(), CONTENT_TYPE));
+        jsonDocument.put("contentLength", getField(document.getMetadata(), CONTENT_LENGTH));
+        jsonDocument.put("contentEncoding", getField(document.getMetadata(), CONTENT_ENCODING));
 
         String content = toString(reader);
-        jsonDocument.put("language", languageGuesser.guess(content));
+        jsonDocument.put("language", Language.parse(languageGuesser.guess(content)));
         jsonDocument.put(ES_CONTENT_FIELD, content);
         return jsonDocument;
     }

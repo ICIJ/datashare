@@ -92,9 +92,9 @@ public class ElasticsearchSpewerTest {
 
         GetResponse documentFields = client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
         Assertions.assertThat(documentFields.getSourceAsMap()).includes(
-                entry("content_encoding", "ISO-8859-1"),
-                entry("content_type", "text/plain; charset=ISO-8859-1"),
-                entry("content_length", "45"),
+                entry("contentEncoding", "ISO-8859-1"),
+                entry("contentType", "text/plain; charset=ISO-8859-1"),
+                entry("contentLength", "45"),
                 entry("path", path)
         );
     }
@@ -125,7 +125,7 @@ public class ElasticsearchSpewerTest {
 
         GetResponse documentFields = client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
         GetResponse documentFields_fr = client.get(new GetRequest(TEST_INDEX, "doc", document_fr.getId())).get();
-        Assertions.assertThat(documentFields.getSourceAsMap()).includes(entry("language", "en"));
-        Assertions.assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "fr"));
+        Assertions.assertThat(documentFields.getSourceAsMap()).includes(entry("language", "ENGLISH"));
+        Assertions.assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "FRENCH"));
     }
 }

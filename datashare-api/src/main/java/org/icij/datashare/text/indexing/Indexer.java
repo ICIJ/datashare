@@ -154,53 +154,6 @@ public interface Indexer extends Closeable {
     void addBatch(String index, String type, String id, Map<String, Object> json, String parent);
 
     /**
-     * Add a document indexing, with parent, to batch processing
-     * document source given as an Object of type {@code T}
-     */
-    <T extends Entity> void addBatch(String index, T obj);
-
-    /**
-     * Get document by id in index
-     *
-     * @param index the index store
-     * @param type  tne index document type
-     * @param id    the index document id
-     * @return true if successfully added; false otherwise
-     */
-    Map<String, Object> read(String index, String type, String id);
-
-    /**
-     * {@link Indexer#read(String, String, String)} with {@code parent}
-     */
-    Map<String, Object> read(String index, String type, String id, String parent);
-
-    /**
-     * Get document by id in index type given by {@code Class}
-     *
-     * @param index the index store
-     * @param cls   the class holding the type
-     * @param id    the index document id
-     * @param <T>   the type of result object
-     * @return the index document reified as an object of type T if it exists in index; null otherwise
-     */
-    <T extends Entity> T read(String index, Class<T> cls, String id);
-
-    /**
-     * {@link Indexer#read(String, Class, String)} with {@code parent}
-     */
-    <T extends Entity> T read(String index, Class<T> cls, String id, String parent);
-
-    /**
-     * Get document by id in index
-     *
-     * @param index the index store
-     * @param obj   the object instance holding type and id
-     * @param <T>   the type of result object
-     * @return the index document reified as an object of type T if it exists in index; null otherwise
-     */
-    <T extends Entity> T read(String index, T obj);
-
-    /**
      * Delete document {@code index} / {@code type} / {@code id}
      *
      * @param index the index store
@@ -214,16 +167,6 @@ public interface Indexer extends Closeable {
      * {@link Indexer#delete(String, String, String)} with {@code parent}
      */
     boolean delete(String index, String type, String id, String parent);
-
-    /**
-     * Delete document from {@code index}; type and id from {@code obj}
-     *
-     * @param index the index store
-     * @param obj   the object instance from which to extract document index type and id
-     * @param <T>   the obj instance type
-     * @return true if document successfully deleted; false otherwise
-     */
-    <T extends Entity> boolean delete(String index, T obj);
 
     /**
      * Add a document deletion to batch processing
@@ -252,14 +195,6 @@ public interface Indexer extends Closeable {
     Stream<Map<String, Object>> search(String query);
     Stream<Map<String, Object>> search(String query, int from, int to);
 
-    /**
-     * Get documents matching {@code query} and {@code type} in any index
-     *
-     * @param query the string query to match
-     * @param type  the index document type
-     * @return the stream of search results as JSON Maps
-     */
-    Stream<Map<String, Object>> search(String query, String type);
 
     /**
      * Get documents matching {@code query} and {@code type} in given {@code indices}
@@ -272,98 +207,4 @@ public interface Indexer extends Closeable {
     Stream<Map<String, Object>> search(String query, String type, String... indices);
     Stream<Map<String, Object>> search(String query, int from, int to, String type, String... indices);
 
-    /**
-     * Get documents matching {@code query} and type (from {@code cls}) in any {@code index}
-     *
-     * @param query the string query to match
-     * @param cls   the class of result objects
-     * @param <T>   the type of result objects
-     * @return the stream of search results as type T instances
-     */
-    <T extends Entity> Stream<T> search(String query, Class<T> cls);
-
-    /**
-     * Get documents matching {@code query} and type (from {@code cls}) in given {@code indices}
-     *
-     * @param query   the string query to match
-     * @param cls     the class holding the type
-     * @param indices the list of indices in which to search
-     * @param <T>     the type of result objects
-     * @return the stream of search results as type T instances
-     */
-    <T extends Entity> Stream<T> search(String query, Class<T> cls, String... indices);
-
-    /**
-     * Get all documents in given {@code indices}
-     *
-     * @param indices the list of indices in which to search
-     * @return the stream of search results as JSON Maps
-     */
-    Stream<Map<String, Object>> searchIndices(String... indices);
-
-    /**
-     * Get all documents in given {@code indices} of given type (from {@code cls})
-     *
-     * @param cls     the class holding the type
-     * @param indices the list of indices in which to search
-     * @return the stream of search results as JSON Maps
-     */
-    <T extends Entity> Stream<T> searchIndices(Class<T> cls, String... indices);
-
-    /**
-     * Get all documents matching one of given {@code types}
-     *
-     * @param types the list of document types to search
-     * @return the stream of search results as JSON Maps
-     */
-    Stream<Map<String, Object>> searchTypes(String... types);
-
-    /**
-     * Get all documents matching given type (from {@code cls})
-     *
-     * @param cls the class holding the type
-     * @return the stream of search results as JSON Maps
-     */
-    <T extends Entity> Stream<T> searchTypes(Class<T> cls);
-
-    /**
-     * Get parent documents from their children
-     *
-     * @param childType  the children's type
-     * @param parentType the parents' type
-     * @return the stream of search results as JSON Maps
-     */
-    Stream<Map<String, Object>> searchHasChild(String parentType, String childType);
-
-    Stream<Map<String, Object>> searchHasChild(String parentType, String childType, String query);
-
-    <T extends Entity, U extends Entity> Stream<T> searchHasChild(Class<T> parentCls, Class<U> childCls);
-
-    <T extends Entity, U extends Entity> Stream<T> searchHasChild(Class<T> parentCls, Class<U> childCls, String query);
-
-    <T extends Entity, U extends Entity> Stream<T> searchHasNoChild(Class<T> parentCls, Class<U> childCls);
-
-    <T extends Entity, U extends Entity> Stream<T> searchHasNoChild(Class<T> parentCls, Class<U> childCls, String query);
-
-    /**
-     * Get child documents from their parents
-     *
-     * @param childType  the children's type
-     * @param parentType the parents' type
-     * @return the stream of search results as JSON Maps
-     */
-    Stream<Map<String, Object>> searchHasParent(String childType, String parentType);
-
-    /**
-     * {@link Indexer#searchHasParent(String, String)} satisfying {@code query}
-     */
-    Stream<Map<String, Object>> searchHasParent(String childType, String parentType, String query);
-
-    <T extends Entity> Stream<T> searchHasParent(Class<T> childCls, String parentType);
-
-    <T extends Entity> Stream<T> searchHasParent(Class<T> childCls, String parentType, String query);
-
-    <T extends Entity> Stream<T> searchHasNoParent(Class<T> childCls, String parentType);
-
-    <T extends Entity> Stream<T> searchHasNoParent(Class<T> childCls, String parentType, String query);
 }

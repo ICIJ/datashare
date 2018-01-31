@@ -2,7 +2,6 @@ package org.icij.datashare.text;
 
 import java.io.Serializable;
 import java.util.Locale;
-import java.util.Optional;
 
 
 /**
@@ -51,26 +50,18 @@ public enum Language implements Serializable {
     public String iso6391Code() { return iso6391Code; }
     public String iso6392Code() { return iso6392Code; }
 
-    @Override
-    public String toString() { return iso6391Code(); }
-
-
-    public static Optional<Language> parse(final String language) {
+    public static Language parse(final String language) {
         if (    language == null ||
                 language.isEmpty() ||
                 language.equalsIgnoreCase(UNKNOWN.toString())) {
-            return Optional.empty();
+            throw new IllegalArgumentException("no language found for " + language);
         }
         for (Language lang : Language.values()) {
-            if (language.equalsIgnoreCase(lang.toString()) || language.equalsIgnoreCase(lang.iso6392Code())) {
-                return Optional.of(lang);
+            if (language.equalsIgnoreCase(lang.iso6391Code()) || language.equalsIgnoreCase(lang.iso6392Code())) {
+                return lang;
             }
         }
-        try {
-            return Optional.of(valueOf(language.toUpperCase(Locale.ROOT)));
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
-        }
+        return valueOf(language.toUpperCase(Locale.ROOT));
     }
 
 }

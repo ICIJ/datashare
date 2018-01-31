@@ -136,8 +136,7 @@ public final class TikaFileParser extends AbstractFileParser {
                 getLanguage(metadata).orElse(ENGLISH),
                 getEncoding(metadata).orElse(StandardCharsets.UTF_8),
                 getContentType(metadata).orElse("UNKNOWN"),
-                getMetadataAsMap(metadata).orElse(new HashMap<>()),
-                getType()
+                getMetadataAsMap(metadata).orElse(new HashMap<>())
         );
     }
 
@@ -164,7 +163,7 @@ public final class TikaFileParser extends AbstractFileParser {
     }
 
     private String applyLanguageMap(String language) {
-        Optional<Language> langOpt = Language.parse(language);
+        Optional<Language> langOpt = Optional.ofNullable(Language.parse(language));
         return langOpt.isPresent() ?
                 LANGUAGE_MAPPER.apply(langOpt.get()).toString() :
                 language;
@@ -190,7 +189,7 @@ public final class TikaFileParser extends AbstractFileParser {
     private Optional<Language> getLanguage(Metadata metadata) {
         if (! asList(metadata.names()).contains(CONTENT_LANGUAGE))
             return Optional.empty();
-        return Language.parse(metadata.get(CONTENT_LANGUAGE));
+        return Optional.ofNullable(Language.parse(metadata.get(CONTENT_LANGUAGE)));
     }
 
     private OptionalInt getLength(Metadata metadata) {

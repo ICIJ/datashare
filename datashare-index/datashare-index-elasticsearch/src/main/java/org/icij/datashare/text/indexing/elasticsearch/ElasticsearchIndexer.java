@@ -106,9 +106,6 @@ public class ElasticsearchIndexer implements Indexer {
         docTypeField = propertiesProvider.get(INDEX_TYPE_FIELD_NAME_PROP).orElse(DEFAULT_DOC_TYPE_FIELD);
         indexName = propertiesProvider.get(INDEX_NAME_PROP).orElse(DEFAULT_INDEX_NAME);
 
-        if ( ! awaitConnectionIsUp() ) {
-            throw new RuntimeException("Failed to connect");
-        }
         bulkProcessor = buildBulkProcessor();
     }
 
@@ -290,72 +287,26 @@ public class ElasticsearchIndexer implements Indexer {
         bulkProcessor.add( indexRequest(index, type, id, json, parent) );
     }
 
-    @Override
-    public <T extends Entity> void addBatch(String index, T obj) {
-        final String              type   = JsonObjectMapper.getType(obj);
-        final String              id     = JsonObjectMapper.getId(obj);
-        final Map<String, Object> json   = JsonObjectMapper.getJson(obj);
-        final Optional<String>    parent = JsonObjectMapper.getParent(obj);
-        if (parent.isPresent())
-            addBatch(index, type, id, json, parent.get());
-        else
-            addBatch(index, type, id, json);
-    }
-
-
     // __________ Read Document __________
 
-    @Override
-    public Map<String, Object> read(String index, String type, String id) {
+    public <T extends Entity> T get(String id) {
+        String type = null;
         try {
-            final GetRequest  req  = new GetRequest(index, indexType, id);
+            final GetRequest  req  = new GetRequest(indexName, indexType, id);
             final GetResponse resp = client.get(req).get();
-            return resp.getSourceAsMap();
+            Map<String, Object> sourceAsMap = resp.getSourceAsMap();
+            type = (String) sourceAsMap.get(docTypeField);
+            Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
+            return JsonObjectMapper.getObject(id, sourceAsMap, tClass);
         } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to poll doc " + id + " of type " + type + " in index " + index, e);
-            return emptyMap();
+            LOGGER.error("Failed to get entity " + id + " in index " + indexName, e);
+        } catch (ClassNotFoundException e) {
+            LOGGER.error("no entity for type " + type);
         }
+        return null;
     }
-
-    @Override
-    public Map<String, Object> read(String index, String type, String id, String parent) {
-        try {
-            final GetRequest  req  = new GetRequest(index, indexType, id).routing(parent);
-            final GetResponse resp = client.get(req).get();
-            return resp.getSourceAsMap();
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to get doc " + id + " of type " + type + " in index " + index + " with parent " + parent, e);
-            return emptyMap();
-        }
-    }
-
-    @Override
-    public <T extends Entity> T read(String index, Class<T> cls, String id) {
-        final String              type = JsonObjectMapper.getType(cls);
-        final Map<String, Object> json = read(index, type, id);
-        return JsonObjectMapper.getObject(id, json, cls);
-    }
-
-    @Override
-    public <T extends Entity> T read(String index, Class<T> cls, String id, String parent) {
-        final String              type = JsonObjectMapper.getType(cls);
-        final Map<String, Object> json = read(index, type, id, parent);
-        return JsonObjectMapper.getObject(id, json, cls);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public <T extends Entity> T read(String index, T obj) {
-        final String           type   = JsonObjectMapper.getType(obj);
-        final String           id     = JsonObjectMapper.getId(obj);
-        final Optional<String> parent = JsonObjectMapper.getParent(obj);
-        Map<String, Object> json = parent.isPresent() ? read(index, type, id, parent.get()) : read(index, type, id);
-        return JsonObjectMapper.getObject(id, json, (Class<T>) obj.getClass());
-    }
-
 
     // __________ Delete Document __________
-
     @Override
     public boolean delete(String index, String type, String id) {
         try {
@@ -377,17 +328,6 @@ public class ElasticsearchIndexer implements Indexer {
             return false;
         }
     }
-
-    @Override
-    public <T extends Entity> boolean delete(String index, T obj) {
-        final String           type   = JsonObjectMapper.getType(obj);
-        final String           id     = JsonObjectMapper.getId(obj);
-        final Optional<String> parent = JsonObjectMapper.getParent(obj);
-        if (parent.isPresent())
-            return delete(index, type, id, parent.get());
-        return delete(index, type, id);
-    }
-
 
     private DeleteRequest deleteRequest(String index, String type, String id) {
         return deleteRequest(index, type, id, null);
@@ -433,15 +373,6 @@ public class ElasticsearchIndexer implements Indexer {
         return search(queryStringQuery(query), from, size);
     }
 
-    @Override
-    public Stream<Map<String, Object>> search(String query, String type) {
-        return search( queryStringQuery(query), type );
-    }
-
-    @Override
-    public <T extends Entity> Stream<T> search(String query, Class<T> cls) {
-        return search( queryStringQuery(query), cls);
-    }
 
     @Override
     public Stream<Map<String, Object>> search(String query, String type, String... indices) {
@@ -453,109 +384,7 @@ public class ElasticsearchIndexer implements Indexer {
         return search( queryStringQuery(query), from, to, type, indices);
     }
 
-    @Override
-    public <T extends Entity> Stream<T> search(String query, Class<T> cls, String... indices) {
-        return search( queryStringQuery(query), cls, indices);
-    }
-
-
-    @Override
-    public Stream<Map<String, Object>> searchIndices(String... indices) {
-        return resultStream( searchRequest().setIndices( indices ));
-    }
-
-    @Override
-    public <T extends Entity> Stream<T> searchIndices(Class<T> cls, String... indices) {
-        final String type = JsonObjectMapper.getType(cls);
-        return resultStream( cls, searchRequest().setTypes( type ).setIndices( indices ));
-    }
-
-
-    @Override
-    public Stream<Map<String, Object>> searchTypes(String... types) {
-        return resultStream( searchRequest().setTypes( types ) );
-    }
-
-    @Override
-    public <T extends Entity> Stream<T> searchTypes(Class<T> cls) {
-        final String type = JsonObjectMapper.getType(cls);
-        return resultStream( cls, searchRequest().setTypes( type ));
-    }
-
-
     // __________ Search Document(s) with(out) children __________
-
-    @Override
-    public Stream<Map<String, Object>> searchHasChild(String parentType, String childType) {
-        return search( mustHasChildQuery(childType), parentType);
-    }
-
-    @Override
-    public Stream<Map<String, Object>> searchHasChild(String parentType, String childType, String query) {
-        return search( mustHasChildQuery(childType, query), parentType);
-    }
-
-    @Override
-    public <T extends Entity, U extends Entity> Stream<T> searchHasChild(Class<T> parentCls, Class<U> childCls) {
-        String childType = JsonObjectMapper.getType(childCls);
-        return search( mustHasChildQuery(childType), parentCls);
-    }
-
-    @Override
-    public <T extends Entity, U extends Entity> Stream<T> searchHasChild(Class<T> parentCls,
-                                                                         Class<U> childCls,
-                                                                         String query) {
-        String childType = JsonObjectMapper.getType(childCls);
-        return search( mustHasChildQuery(childType, query), parentCls);
-    }
-
-    @Override
-    public <T extends Entity, U extends Entity> Stream<T> searchHasNoChild(Class<T> parentCls,
-                                                                           Class<U> childCls,
-                                                                           String query) {
-        String childType = JsonObjectMapper.getType(childCls);
-        return search( mustNotHasChildQuery(childType, query), parentCls);
-    }
-
-    @Override
-    public <T extends Entity, U extends Entity> Stream<T> searchHasNoChild(Class<T> parentCls, Class<U> childCls) {
-        String childType = JsonObjectMapper.getType(childCls);
-        return search( mustNotHasChildQuery(childType), parentCls );
-    }
-
-
-    // __________ Search Document(s) with (no) parent __________
-
-    @Override
-    public Stream<Map<String, Object>> searchHasParent(String childType, String parentType) {
-        return search( mustHasParentQuery(parentType), childType);
-    }
-
-    @Override
-    public Stream<Map<String, Object>> searchHasParent(String childType, String parentType, String query) {
-        return search( mustHasParentQuery(parentType, query), childType);
-    }
-
-    @Override
-    public <T extends Entity> Stream<T> searchHasParent(Class<T> childCls, String parentType) {
-        return search( mustHasParentQuery(parentType), childCls);
-    }
-
-    @Override
-    public <T extends Entity> Stream<T> searchHasParent(Class<T> childCls, String parentType, String query) {
-        return search( mustHasParentQuery(parentType, query), childCls);
-    }
-
-    @Override
-    public <T extends Entity> Stream<T> searchHasNoParent(Class<T> childCls, String parentType) {
-        return search( mustNotHasParentQuery(parentType), childCls);
-    }
-
-    @Override
-    public <T extends Entity> Stream<T> searchHasNoParent(Class<T> childCls, String parentType, String query) {
-        return search( mustNotHasParentQuery(parentType, query), childCls);
-    }
-
 
     private Stream<Map<String, Object>> search(QueryBuilder query) {
         return resultStream(searchRequest().setQuery( query ));
@@ -576,17 +405,6 @@ public class ElasticsearchIndexer implements Indexer {
     private Stream<Map<String, Object>> search(QueryBuilder query, int from, int to, String type, String... indices) {
         return resultStream(searchRequest(from, to).setQuery( query ).setTypes( type ).setIndices( indices ));
     }
-
-    private <T extends Entity> Stream<T> search(QueryBuilder query, Class<T> cls) {
-        final String type = JsonObjectMapper.getType(cls);
-        return resultStream(cls, searchRequest().setQuery( query ).setTypes( type ) );
-    }
-
-    private <T extends Entity> Stream<T> search(QueryBuilder query, Class<T> cls, String... indices) {
-        final String type = JsonObjectMapper.getType(cls);
-        return resultStream( cls, searchRequest().setQuery( query ).setTypes( type ).setIndices( indices ));
-    }
-
 
     /**
      * https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/java-search.html
@@ -660,14 +478,6 @@ public class ElasticsearchIndexer implements Indexer {
         return boolQuery().must( hasChildQuery(type,  queryStringQuery(query)) );
     }
 
-    private static QueryBuilder mustNotHasChildQuery(String type) {
-        return boolQuery().mustNot( hasChildQuery(type, matchAllQuery()) );
-    }
-
-    private static QueryBuilder mustNotHasChildQuery(String type, String query) {
-        return boolQuery().mustNot( hasChildQuery(type,  queryStringQuery(query)) );
-    }
-
     /**
      * https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-has-parent-query.html
      */
@@ -681,14 +491,6 @@ public class ElasticsearchIndexer implements Indexer {
 
     private static QueryBuilder mustHasParentQuery(String type, String query) {
         return boolQuery().must( hasParentQuery(type,  queryStringQuery(query)) );
-    }
-
-    private static QueryBuilder mustNotHasParentQuery(String type) {
-        return boolQuery().mustNot( hasParentQuery(type, matchAllQuery()) );
-    }
-
-    private static QueryBuilder mustNotHasParentQuery(String type, String query) {
-        return boolQuery().mustNot( hasParentQuery(type,  queryStringQuery(query)) );
     }
 
     /**
@@ -763,5 +565,4 @@ public class ElasticsearchIndexer implements Indexer {
                 .setBackoffPolicy(BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(100), 3))
                 .build();
     }
-
 }

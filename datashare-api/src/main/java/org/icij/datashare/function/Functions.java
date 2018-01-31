@@ -69,13 +69,8 @@ public class Functions {
                 : StreamSupport.stream(split, false);
     }
 
-    /**
-     * First letter in str is upper, rest is lower
-     */
     public static final Function<String, String> capitalize =
             str -> str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
 
-    public static final Function<String, Language> parseLanguage =
-            str -> Language.parse(str).orElse(null);
-
+    public static final Function<String, Language> parseLanguage = Language::parse;
 }

@@ -33,7 +33,7 @@ public class Corpus implements Entity {
 
 
     @Override
-    public String getHash() {
+    public String getId() {
         return hash;
     }
 

@@ -90,7 +90,7 @@ public class IxaPosModels extends IxaModels<eus.ixa.ixa.pipe.pos.Annotate> {
         final Properties annotateProperties = new Properties();
         annotateProperties.setProperty("model", model);
         annotateProperties.setProperty("lemmatizerModel", lemmatizerModel);
-        annotateProperties.setProperty("language", String.valueOf(language));
+        annotateProperties.setProperty("language", language.iso6391Code());
         annotateProperties.setProperty("multiwords", String.valueOf(multiwords));
         annotateProperties.setProperty("dictag", String.valueOf(dictag));
         return annotateProperties;

@@ -1,23 +1,25 @@
 package org.icij.datashare.json;
 
-import java.util.*;
-import static java.util.Arrays.asList;
-import java.lang.reflect.Field;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
-import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
-
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexId;
-import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.indexing.IndexParent;
+import org.icij.datashare.text.indexing.IndexType;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
+import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
+import static java.util.Arrays.asList;
 
 
 /**
@@ -41,8 +43,6 @@ public class JsonObjectMapper {
         MAPPER.registerModule(new Jdk8Module());
         // Access Optional values
         MAPPER.addMixIn(Optional.class, OptionalMixin.class);
-        // Date format
-        MAPPER.setDateFormat( new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZ") );
         // Avoid annotations on domain entities by
         // using compiled methods' metadata
         MAPPER.registerModule(new ParameterNamesModule());
@@ -107,14 +107,17 @@ public class JsonObjectMapper {
      * @return a new object instance of type T filled from arguments
      *
      */
-    public static <T extends Entity> T getObject(String id, Map<String, Object> source, Class<T> type) {
+    public static <T extends Entity> T getObject(Map<String, Object> source, Class<T> type) {
         try {
-            T obj = MAPPER.readValue(MAPPER.writeValueAsString(source), type);
-            setId(obj, type, id);
-            return obj;
+            return MAPPER.readValue(MAPPER.writeValueAsString(source), type);
         } catch (IOException e) {
-            return null;
+            throw new IllegalArgumentException("cannot deserialize object map " + source, e);
         }
+    }
+
+    public static <T extends Entity> T getObject(String id, Map<String, Object> source, Class<T> type) {
+        source.put("id", id);
+        return getObject(source, type);
     }
 
     /**

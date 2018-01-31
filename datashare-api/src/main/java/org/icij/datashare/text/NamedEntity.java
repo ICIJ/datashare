@@ -1,31 +1,26 @@
 package org.icij.datashare.text;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.stream.Collectors;
-import static java.util.Arrays.fill;
-import static java.util.Collections.emptyList;
-import static java.lang.Math.min;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import org.icij.datashare.Entity;
 import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.function.ThrowingFunctions;
-import static org.icij.datashare.function.ThrowingFunctions.normal;
-import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Annotation;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.Tag;
+
+import java.io.Serializable;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.lang.Math.min;
+import static java.util.Arrays.fill;
+import static java.util.Collections.emptyList;
+import static org.icij.datashare.function.ThrowingFunctions.normal;
+import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 import static org.icij.datashare.text.nlp.NlpStage.POS;
 
@@ -164,7 +159,7 @@ public final class NamedEntity implements Entity {
      * @return the list of corresponding named entities if annotation does refer to document; an empty list otherwise
      */
     public static List<NamedEntity> allFrom(Document document, Annotation annotation) {
-        if ( ! annotation.getDocument().equals(document.getHash()))
+        if ( ! annotation.getDocument().equals(document.getId()))
             return emptyList();
         return annotation.get(NER).stream()
                 .map     ( tag -> from(document.getContent(), tag, annotation) )
@@ -267,7 +262,7 @@ public final class NamedEntity implements Entity {
 
 
     @Override
-    public String getHash() { return hash; }
+    public String getId() { return hash; }
 
     public String getMention() { return mention; }
 
@@ -297,7 +292,7 @@ public final class NamedEntity implements Entity {
         getExtractorLanguage().ifPresent(extrLang -> features[4] = extrLang.toString().toUpperCase(Locale.ROOT));
         getPartsOfSpeech().ifPresent(pos -> features[5] = pos.toUpperCase(Locale.ROOT));
         features[6] = mentionNormalForm();
-        features[7] = getHash();
+        features[7] = getId();
         getDocument().ifPresent(docHash -> features[8] = docHash);
         return String.join(";", Arrays.stream(features)
                 .map(f -> '"' + f + '"')

@@ -14,14 +14,10 @@ public class PropertiesProvider {
     private final String fileName;
     private Properties cachedProperties;
 
-    public PropertiesProvider() {
-        fileName = DEFAULT_NAME;
-    }
-
+    public PropertiesProvider() { fileName = DEFAULT_NAME;}
     public PropertiesProvider(String fileName) {
         this.fileName = fileName;
     }
-
     public PropertiesProvider(final Properties properties) {
         this.cachedProperties = properties;
         fileName = null;

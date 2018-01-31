@@ -16,9 +16,7 @@ import static org.icij.datashare.text.hashing.Hasher.SHA_384;
  */
 public interface Entity extends Serializable {
     Logger LOGGER = LoggerFactory.getLogger(Entity.class);
-
     Hasher HASHER = SHA_384;
 
-    String getHash();
-
+    String getId();
 }

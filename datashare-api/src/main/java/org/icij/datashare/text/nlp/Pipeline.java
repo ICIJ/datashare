@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -193,36 +192,6 @@ public interface Pipeline {
      * @param language the forced processing language
      */
     Optional<Annotation> run(Document document, Language language);
-
-    /**
-     * Run pipeline on a {@link Path}
-     * Use document's language
-     *
-     * @param path the file Path to process
-     */
-    Optional<Annotation> run(Path path);
-
-    /**
-     * Run pipeline from a {@link Path}
-     * Force language
-     *
-     * @param path     the file Path to process
-     * @param language the forced processing language
-     */
-    Optional<Annotation> run(Path path, Language language);
-
-    /**
-     * Run pipeline on a {@link String}
-     * Force default language
-     *
-     * @param text the input string to process
-     * @see #DEFAULT_LANGUAGE
-     */
-    default Optional<Annotation> run(String text) {
-        if (text.isEmpty())
-            return Optional.empty();
-        return run(text, DEFAULT_LANGUAGE);
-    }
 
     /**
      * Run pipeline on a {@link String} with language

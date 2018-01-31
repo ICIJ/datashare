@@ -60,7 +60,7 @@ public class IxaNerModels extends IxaModels<eus.ixa.ixa.pipe.nerc.Annotate> {
                                                      String clearFeatures) {
         Properties annotateProperties = new Properties();
         annotateProperties.setProperty("model", model);
-        annotateProperties.setProperty("language", String.valueOf(language));
+        annotateProperties.setProperty("language", language.iso6391Code());
         annotateProperties.setProperty("ruleBasedOption", lexer);
         annotateProperties.setProperty("dictTag", dictTag);
         annotateProperties.setProperty("dictPath", dictPath);
