@@ -10,22 +10,14 @@
         <version>0.6</version>
     </parent>
 
-
     <artifactId>datashare-api</artifactId>
     <packaging>jar</packaging>
-
 
     <properties>
         <hazelcast.version>3.8.2</hazelcast.version>
     </properties>
 
-
     <dependencies>
-        <dependency>
-             <artifactId>extract-lib</artifactId>
-             <groupId>org.icij.extract</groupId>
-             <version>2.0.0</version>
-         </dependency>
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
@@ -124,53 +116,20 @@
         </dependency>
     </dependencies>
 
-
     <build>
-
         <plugins>
-            <plugin>
-                <artifactId>maven-install-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>install-extract-lib</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <groupId>org.icij.extract</groupId>
-                            <artifactId>extract-lib</artifactId>
-                            <version>2.0.0</version>
-                            <packaging>jar</packaging>
-                            <file>${project.basedir}/lib/extract-lib-2.0.0.jar</file>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Compiler -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
-
-            <!-- Assembly -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
-
-            <!-- Shade -->
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
             </plugin>
-
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
-
         </plugins>
-
     </build>
-
-
 </project>

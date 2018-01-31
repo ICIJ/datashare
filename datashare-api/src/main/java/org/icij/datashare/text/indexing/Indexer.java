@@ -141,6 +141,8 @@ public interface Indexer extends Closeable {
      */
     <T extends Entity> boolean add(String index, T obj);
 
+    <T extends Entity> T get(String id);
+
     /**
      * Add an document indexing to batch processing
      * document source given as a JSON Map
