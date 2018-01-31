@@ -24,24 +24,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Datashare Web -->
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-web-play</artifactId>
-            <version>${datashare-play.version}</version>
-            <type>zip</type>
-            <classifier>dist</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-web-play</artifactId>
-            <version>${datashare-play.version}</version>
-            <type>zip</type>
-            <classifier>bundle</classifier>
-            <scope>runtime</scope>
-        </dependency>
-
         <!-- Datashare Cli -->
         <dependency>
             <groupId>org.icij.datashare</groupId>

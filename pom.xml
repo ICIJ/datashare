@@ -34,7 +34,6 @@
         <module>datashare-extract</module>
         <module>datashare-index</module>
         <module>datashare-nlp</module>
-        <module>datashare-web</module>
         <module>datashare-dist</module>
         <module>datashare-dist/assembly</module>
         <module>datashare-web2</module>
@@ -50,7 +49,6 @@
 
         <datashare-api.version>${project.version}</datashare-api.version>
         <datashare-cli.version>${project.version}</datashare-cli.version>
-        <datashare-play.version>${project.version}</datashare-play.version>
         <datashare-tika.version>${project.version}</datashare-tika.version>
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
@@ -118,14 +116,6 @@
                 <groupId>org.icij.datashare</groupId>
                 <artifactId>datashare-api</artifactId>
                 <version>${datashare-api.version}</version>
-            </dependency>
-
-            <!-- Datashare Web -->
-            <dependency>
-                <groupId>org.icij.datashare</groupId>
-                <artifactId>datashare-web-play</artifactId>
-                <version>${datashare-play.version}</version>
-                <scope>runtime</scope>
             </dependency>
 
             <!-- Datashare Cli -->

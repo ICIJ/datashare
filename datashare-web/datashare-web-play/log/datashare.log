@@ -1,2 +1,0 @@
-2016-11-21-ForkJoinPool.commonPool-worker-2--INFO -org.icij.datashare.text.nlp.corenlp.CorenlpPipeline:CORE - FR - [token, sentence, pos, lemma, ner] - ForkJoinPool.commonPool-worker-2
-2016-11-21-ForkJoinPool.commonPool-worker-2--INFO -org.icij.datashare.text.nlp.corenlp.annotators.CoreNlpNerAnnotator:Loading NER annotator for fr - ForkJoinPool.commonPool-worker-2
