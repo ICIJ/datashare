@@ -24,6 +24,20 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Datashare Web -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-web</artifactId>
+            <version>${project.version}</version>
+            <type>zip</type>
+            <classifier>bundle</classifier>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Datashare Cli -->
         <dependency>
             <groupId>org.icij.datashare</groupId>

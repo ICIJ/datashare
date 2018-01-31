@@ -10,8 +10,8 @@
         <version>0.6</version>
     </parent>
 
-    <artifactId>datashare-web2</artifactId>
-    <name>datashare-web2</name>
+    <artifactId>datashare-web</artifactId>
+    <name>datashare-web</name>
 
     <dependencies>
         <dependency>
@@ -39,6 +39,8 @@
            <groupId>joda-time</groupId>
            <artifactId>joda-time</artifactId>
         </dependency>
+
+        <!--test dependencies-->
         <dependency>
             <groupId>net.code-story</groupId>
             <artifactId>fluent-rest-test</artifactId>
@@ -62,6 +64,22 @@
             <version>2.0.2-beta</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

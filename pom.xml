@@ -35,7 +35,7 @@
         <module>datashare-nlp</module>
         <module>datashare-dist</module>
         <module>datashare-dist/assembly</module>
-        <module>datashare-web2</module>
+        <module>datashare-web</module>
   </modules>
 
 
@@ -132,11 +132,11 @@
                 <scope>provided</scope>
             </dependency>
 
-            <!-- Datashare Extract Tika -->
+            <!-- Datashare Web -->
             <dependency>
                 <groupId>org.icij.datashare</groupId>
-                <artifactId>datashare-extract-tika</artifactId>
-                <version>${datashare-tika.version}</version>
+                <artifactId>datashare-web</artifactId>
+                <version>${project.version}</version>
                 <scope>runtime</scope>
             </dependency>
 
