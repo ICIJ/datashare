@@ -56,6 +56,7 @@
         <datashare-gate.version>${project.version}</datashare-gate.version>
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-ixapipe.version>${project.version}</datashare-ixapipe.version>
+        <guice.version>4.1.0</guice.version>
 
         <opennlp.version>1.6.0</opennlp.version>
 
@@ -231,7 +232,17 @@
                 <version>${jackson.version}</version>
             </dependency>
 
-            <!-- Guava -->
+            <!-- Guava/Guice -->
+            <dependency>
+                <groupId>com.google.inject</groupId>
+                <artifactId>guice</artifactId>
+                <version>${guice.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.inject.extensions</groupId>
+                <artifactId>guice-assistedinject</artifactId>
+                <version>${guice.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>

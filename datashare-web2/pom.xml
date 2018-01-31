@@ -13,10 +13,6 @@
     <artifactId>datashare-web2</artifactId>
     <name>datashare-web2</name>
 
-    <properties>
-        <guice.version>4.1.0</guice.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>net.code-story</groupId>
@@ -26,12 +22,10 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>${guice.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.inject.extensions</groupId>
             <artifactId>guice-assistedinject</artifactId>
-            <version>${guice.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -40,11 +34,6 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-index-elasticsearch</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>transport</artifactId>
-            <version>6.1.0</version>
         </dependency>
         <dependency>
            <groupId>joda-time</groupId>
