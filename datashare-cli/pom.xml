@@ -35,10 +35,14 @@
            <artifactId>joda-time</artifactId>
         </dependency>
 
-        <!-- Datashare API -->
+        <!-- Datashare -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-index</artifactId>
         </dependency>
 
         <!-- Jopt Simple -->
@@ -66,7 +70,6 @@
             <version>2.9.1</version>
         </dependency>
 
-
         <!-- tests dependencies -->
         <dependency>
             <groupId>junit</groupId>
@@ -84,10 +87,6 @@
             <artifactId>s3mock</artifactId>
             <version>1.0.1</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-index</artifactId>
         </dependency>
     </dependencies>
 

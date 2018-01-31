@@ -13,7 +13,6 @@
     <packaging>jar</packaging>
 
     <properties>
-        <elasticsearch.version>6.1.0</elasticsearch.version>
         <jna.version>4.1.0</jna.version>
     </properties>
 
@@ -34,7 +33,6 @@
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>transport</artifactId>
-            <version>${elasticsearch.version}</version>
         </dependency>
 
         <!-- :o( pulled by extract.Document-->
@@ -105,6 +103,12 @@
         </dependency>
 
         <!-- test deps -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>commons-test</artifactId>
+            <version>0.6</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

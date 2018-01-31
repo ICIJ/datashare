@@ -23,6 +23,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -97,10 +98,16 @@ public class ElasticsearchIndexer implements Indexer {
     private final String indexName;
     private final String indexJoinField;
     private final String docTypeField;
+    private WriteRequest.RefreshPolicy refreshPolicy = WriteRequest.RefreshPolicy.NONE;
 
     @Inject
     public ElasticsearchIndexer(final PropertiesProvider propertiesProvider) throws UnknownHostException {
-        client = createESClient(propertiesProvider);
+        this(createESClient(propertiesProvider), propertiesProvider);
+    }
+
+    public ElasticsearchIndexer(final Client client, final PropertiesProvider propertiesProvider) {
+        this.client = client;
+
         indexType = propertiesProvider.get(INDEX_TYPE_PROP).orElse(DEFAULT_INDEX_TYPE);
         indexJoinField = propertiesProvider.get(INDEX_JOIN_FIELD_NAME_PROP).orElse(DEFAULT_INDEX_JOIN_FIELD);
         docTypeField = propertiesProvider.get(INDEX_TYPE_FIELD_NAME_PROP).orElse(DEFAULT_DOC_TYPE_FIELD);
@@ -122,6 +129,11 @@ public class ElasticsearchIndexer implements Indexer {
         LOGGER.info("Settings :\n" + settings.toDelimitedString('\n'));
         return new PreBuiltTransportClient(settings).addTransportAddress(
                 new TransportAddress(esAddress, esPort));
+    }
+
+    public ElasticsearchIndexer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
+        this.refreshPolicy = refreshPolicy;
+        return this;
     }
 
     @Override
@@ -294,10 +306,12 @@ public class ElasticsearchIndexer implements Indexer {
         try {
             final GetRequest  req  = new GetRequest(indexName, indexType, id);
             final GetResponse resp = client.get(req).get();
-            Map<String, Object> sourceAsMap = resp.getSourceAsMap();
-            type = (String) sourceAsMap.get(docTypeField);
-            Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
-            return JsonObjectMapper.getObject(id, sourceAsMap, tClass);
+            if (resp.isExists()) {
+                Map<String, Object> sourceAsMap = resp.getSourceAsMap();
+                type = (String) sourceAsMap.get(docTypeField);
+                Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
+                return JsonObjectMapper.getObject(id, sourceAsMap, tClass);
+            }
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to get entity " + id + " in index " + indexName, e);
         } catch (ClassNotFoundException e) {

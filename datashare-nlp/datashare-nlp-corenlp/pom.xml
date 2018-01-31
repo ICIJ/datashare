@@ -10,19 +10,14 @@
         <version>0.6</version>
     </parent>
 
-
     <artifactId>datashare-nlp-corenlp</artifactId>
     <packaging>jar</packaging>
-
 
     <properties>
         <corenlp.version>3.8.0</corenlp.version>
     </properties>
 
-
     <dependencies>
-
-        <!-- Datashare Api -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-api</artifactId>
@@ -34,7 +29,6 @@
             <artifactId>stanford-corenlp</artifactId>
             <version>${corenlp.version}</version>
         </dependency>
-
 
         <!-- Logging -->
         <dependency>
@@ -59,14 +53,10 @@
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
-
     <build>
-
         <plugins>
-
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
