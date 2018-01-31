@@ -38,20 +38,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Datashare Extract Tika -->
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-extract-tika</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-extract-tika</artifactId>
-            <version>${datashare-tika.version}</version>
-            <type>zip</type>
-            <classifier>bundle</classifier>
-            <scope>runtime</scope>
-        </dependency>
-
         <!-- Datashare Index Elasticsearh -->
         <dependency>
             <groupId>org.icij.datashare</groupId>

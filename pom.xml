@@ -31,7 +31,6 @@
     <modules>
         <module>datashare-api</module>
         <module>datashare-cli</module>
-        <module>datashare-extract</module>
         <module>datashare-index</module>
         <module>datashare-nlp</module>
         <module>datashare-dist</module>
