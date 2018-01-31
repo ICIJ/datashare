@@ -25,14 +25,13 @@ import static org.mockito.Mockito.*;
 public class NLPDatashareEventListenerTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
+    private PropertiesProvider provider = new PropertiesProvider();
+    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, provider);
+    private AbstractPipeline pipeline = mock(AbstractPipeline.class);
+    private NLPDatashareEventListener nlpDatashareEventListener = new NLPDatashareEventListener(provider, pipeline, indexer);
 
     @Test
     public void test_on_message_does_nothing__when_doc_not_found_in_index() throws Exception {
-        PropertiesProvider provider = new PropertiesProvider();
-        AbstractPipeline pipeline = mock(AbstractPipeline.class);
-        NLPDatashareEventListener nlpDatashareEventListener = new NLPDatashareEventListener(
-                provider, pipeline, new ElasticsearchIndexer(es.client, provider));
-
         nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, "unknown"));
 
         verify(pipeline, never()).initialize(any(Language.class));
@@ -41,13 +40,9 @@ public class NLPDatashareEventListenerTest {
 
     @Test
     public void test_on_message_processNLP__when_doc_found_in_index() throws Exception {
-        PropertiesProvider provider = new PropertiesProvider();
-        AbstractPipeline pipeline = mock(AbstractPipeline.class);
-        ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, provider);
         Optional<Document> doc = Document.create(Paths.get("/path/to/doc"), "content", FRENCH,
                 Charset.defaultCharset(), "test/plain", new HashMap<String, String>());
         indexer.add(TEST_INDEX, doc.get());
-        NLPDatashareEventListener nlpDatashareEventListener = new NLPDatashareEventListener(provider, pipeline, indexer);
 
         nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, doc.get().getId()));
 

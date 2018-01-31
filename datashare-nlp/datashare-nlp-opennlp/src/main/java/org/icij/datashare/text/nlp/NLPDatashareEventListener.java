@@ -29,13 +29,10 @@ public class NLPDatashareEventListener implements DatashareEventListener {
 
     @Override
     public void waitForEvents() {
-         new RedisSubscriber(new Jedis(busAddress), message -> {
-             onMessage(message);
-             return null;
-         }).run();
+         new RedisSubscriber(new Jedis(busAddress), this::onMessage).run();
      }
 
-    void onMessage(Message message) {
+    Void onMessage(Message message) {
         if (message.type == EXTRACT_NLP) {
             String id = message.content.get(DOC_ID);
             Document doc = indexer.get(id);
@@ -46,5 +43,6 @@ public class NLPDatashareEventListener implements DatashareEventListener {
                 logger.warn("no document found in index with id " + id);
             }
         }
+        return null;
     }
 }
