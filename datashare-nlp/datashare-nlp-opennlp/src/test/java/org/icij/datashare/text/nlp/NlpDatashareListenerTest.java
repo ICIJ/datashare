@@ -22,13 +22,13 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class NLPDatashareEventListenerTest {
+public class NlpDatashareListenerTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
     private PropertiesProvider provider = new PropertiesProvider();
     private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, provider);
     private AbstractPipeline pipeline = mock(AbstractPipeline.class);
-    private NLPDatashareEventListener nlpDatashareEventListener = new NLPDatashareEventListener(provider, pipeline, indexer);
+    private NlpDatashareListener nlpDatashareEventListener = new NlpDatashareListener(provider, pipeline, indexer);
 
     @Test
     public void test_on_message_does_nothing__when_doc_not_found_in_index() throws Exception {

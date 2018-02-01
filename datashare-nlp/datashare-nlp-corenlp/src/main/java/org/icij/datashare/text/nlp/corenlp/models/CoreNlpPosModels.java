@@ -4,6 +4,7 @@ import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import org.icij.datashare.text.Language;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,7 +60,8 @@ public class CoreNlpPosModels extends CoreNlpModels<MaxentTagger> {
 
     @Override
     protected CoreNlpAnnotator<MaxentTagger> loadModelFile(Language language, ClassLoader loader) throws IOException {
-        super.addJarToContextClassLoader(language, loader);
+        Path modelFilePath = getModelsBasePath(language).resolve(getJarFileName(language));
+        super.addResourceToContextClassLoader(modelFilePath, loader);
         return new CoreNlpAnnotator<>(new MaxentTagger(getInJarModelPath(language)));
     }
 

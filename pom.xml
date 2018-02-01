@@ -87,6 +87,8 @@
         <!-- Logging -->
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.1.7</logback.version>
+        <log4jtoslf4j.version>2.9.1</log4jtoslf4j.version>
+
 
         <!-- Testing -->
         <junit.version>4.12</junit.version>
@@ -257,11 +259,17 @@
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>${logback.version}</version>
+            </dependency>
+            <!--to use when having errors like
+            “StatusLogger Log4j2 could not find a logging implementation"implementation-->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-to-slf4j</artifactId>
+                <version>${log4jtoslf4j.version}</version>
             </dependency>
 
             <!-- JUnit -->

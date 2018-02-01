@@ -2,6 +2,7 @@ package org.icij.datashare.text.nlp;
 
 import com.google.inject.Inject;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.redis.RedisSubscriber;
 import org.icij.datashare.text.Document;
@@ -13,14 +14,14 @@ import redis.clients.jedis.Jedis;
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 
-public class NLPDatashareEventListener implements DatashareEventListener {
+public class NlpDatashareListener implements DatashareListener {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final AbstractPipeline nlpPipeline;
     private final Indexer indexer;
     private final String busAddress;
 
     @Inject
-    public NLPDatashareEventListener(PropertiesProvider provider, AbstractPipeline nlpPipeline, Indexer indexer) {
+    public NlpDatashareListener(PropertiesProvider provider, AbstractPipeline nlpPipeline, Indexer indexer) {
         this.nlpPipeline = nlpPipeline;
         this.indexer = indexer;
         String messageBusProperties = provider.getProperties().getProperty("messageBusProperties");
@@ -29,7 +30,8 @@ public class NLPDatashareEventListener implements DatashareEventListener {
 
     @Override
     public void waitForEvents() {
-         new RedisSubscriber(new Jedis(busAddress), this::onMessage).run();
+        logger.info("waiting for messages on host [{}]", busAddress);
+        new RedisSubscriber(new Jedis(busAddress), this::onMessage).subscribe(Channel.NLP).run();
      }
 
     Void onMessage(Message message) {
@@ -37,8 +39,12 @@ public class NLPDatashareEventListener implements DatashareEventListener {
             String id = message.content.get(DOC_ID);
             Document doc = indexer.get(id);
             if (doc != null) {
-                nlpPipeline.initialize(doc.getLanguage());
-                nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
+                try {
+                    nlpPipeline.initialize(doc.getLanguage());
+                    nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
+                } catch (Throwable e) {
+                    logger.error("cannot extract entities of doc " + doc.getId(), e);
+                }
             } else {
                 logger.warn("no document found in index with id " + id);
             }

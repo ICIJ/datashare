@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp.opennlp;
 
+import com.google.inject.Inject;
 import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.namefind.TokenNameFinderModel;
 import opennlp.tools.postag.POSModel;
@@ -13,6 +14,7 @@ import opennlp.tools.tokenize.TokenizerME;
 import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Span;
 import opennlp.tools.util.model.ArtifactProvider;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotation;
@@ -71,6 +73,10 @@ public final class OpennlpPipeline extends AbstractPipeline {
     // Annotator loading functions (per NlpStage)
     private final Map<NlpStage, BiFunction<ClassLoader, Language, Boolean>> annotatorLoader;
 
+    @Inject
+    public OpennlpPipeline(final PropertiesProvider propertiesProvider) {
+        this(propertiesProvider.getProperties());
+    }
 
     public OpennlpPipeline(final Properties properties) {
         super(properties);

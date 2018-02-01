@@ -22,7 +22,8 @@ public class CoreNlpModelsTest {
             }
         };
 
-        jarModels.addJarToContextClassLoader(GERMAN, getClass().getClassLoader());
+        jarModels.addResourceToContextClassLoader(
+                jarModels.getModelsBasePath(GERMAN).resolve(jarModels.getJarFileName(GERMAN)), getClass().getClassLoader());
 
         assertThat(getClass().getClassLoader().
                 getResource("StanfordCoreNLP-german.properties")).isNotNull();

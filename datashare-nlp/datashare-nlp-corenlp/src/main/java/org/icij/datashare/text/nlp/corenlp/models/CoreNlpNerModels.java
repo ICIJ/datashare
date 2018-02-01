@@ -6,6 +6,7 @@ import edu.stanford.nlp.ling.CoreLabel;
 import org.icij.datashare.text.Language;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,7 +62,8 @@ public class CoreNlpNerModels extends CoreNlpModels<AbstractSequenceClassifier<C
 
     @Override
     protected CoreNlpAnnotator<AbstractSequenceClassifier<CoreLabel>> loadModelFile(Language language, ClassLoader loader) throws IOException {
-        super.addJarToContextClassLoader(language, loader);
+        Path modelFilePath = getModelsBasePath(language).resolve(getJarFileName(language));
+        super.addResourceToContextClassLoader(modelFilePath, loader);
         try {
             return new CoreNlpAnnotator<>(CRFClassifier.getClassifier(getInJarModelPath(language)));
         } catch (ClassNotFoundException e) {

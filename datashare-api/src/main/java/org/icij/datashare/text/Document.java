@@ -1,6 +1,7 @@
 package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Annotation;
@@ -27,6 +28,7 @@ public final class Document implements Entity {
     private final String content;
     private final int contentLength;
     private final String contentType;
+    @JsonDeserialize(using = CharsetDeserializer.class)
     private final Charset contentEncoding;
     private final Language language;
     private final Map<String, String> metadata;

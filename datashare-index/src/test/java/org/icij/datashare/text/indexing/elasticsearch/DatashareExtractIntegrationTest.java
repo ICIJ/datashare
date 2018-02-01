@@ -19,7 +19,6 @@ import java.nio.charset.Charset;
 import static java.nio.file.Paths.get;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.mockito.Mockito.mock;
 
@@ -28,7 +27,7 @@ public class DatashareExtractIntegrationTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
 
 	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-            new OptimaizeLanguageGuesser(), new FieldNames(), mock(Publisher.class), TEST_INDEX).withRefresh(IMMEDIATE);
+            new OptimaizeLanguageGuesser(), new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE);
 	private ElasticsearchIndexer indexer = new ElasticsearchIndexer(new PropertiesProvider());
 
     public DatashareExtractIntegrationTest() throws IOException {}

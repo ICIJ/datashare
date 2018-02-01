@@ -6,6 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -18,6 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public abstract class AbstractModels<T> {
     public static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
     protected static final Path BASE_CLASSPATH = Paths.get("models");
+    public static final String PREFIX = "dist";
 
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
@@ -37,6 +42,21 @@ public abstract class AbstractModels<T> {
     }
 
     protected abstract T loadModelFile(Language language, ClassLoader loader) throws IOException;
+
+    public void addResourceToContextClassLoader(Path resourcePath, ClassLoader loader) {
+        final URL resource = loader.getResource(resourcePath.toString());
+
+        URLClassLoader classLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
+        try {
+            LOGGER.info("adding " + resourcePath + " to system classloader");
+            Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+            method.setAccessible(true);
+            method.invoke(classLoader, resource); // hack to load jar for CoreNLP resources
+        } catch (NoSuchMethodException|IllegalAccessException|InvocationTargetException e) {
+            LOGGER.error("cannot invoke SystemClassloader.addURL. Cannot load language resource for " + resourcePath);
+        }
+    }
+
     protected abstract String getVersion();
 
     public Optional<T> get(Language language, ClassLoader loader) {
@@ -62,7 +82,7 @@ public abstract class AbstractModels<T> {
         }
     }
 
-    protected Path getModelsBasePath(Language language) {
+    public Path getModelsBasePath(Language language) {
         return BASE_CLASSPATH.
                 resolve(type.name().toLowerCase()).
                 resolve(getVersion().replace('.', '-')).
@@ -70,7 +90,7 @@ public abstract class AbstractModels<T> {
     }
 
     protected Path getModelsFilesystemPath(Language language) {
-        return Paths.get("dist").resolve(getModelsBasePath(language));
+        return Paths.get(PREFIX).resolve(getModelsBasePath(language));
     }
 
     protected boolean isDownloaded(Language language, ClassLoader loader) {

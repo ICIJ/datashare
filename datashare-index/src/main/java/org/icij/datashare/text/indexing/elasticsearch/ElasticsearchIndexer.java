@@ -23,13 +23,10 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -38,13 +35,11 @@ import org.elasticsearch.join.query.JoinQueryBuilders;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -52,53 +47,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static java.net.InetAddress.getByName;
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.*;
 
 
 public class ElasticsearchIndexer implements Indexer {
-    public static final String VERSION = "6.1.0";
-    static protected final int DEFAULT_SEARCH_FROM = 0;
-    static protected final int DEFAULT_SEARCH_SIZE = 100;
-    static protected final int DEFAULT_TIMEOUT_INSEC = 10;
-
-    private static final String INDEX_ADDRESS_PROP = "indexAddress";
-    private static final String INDEX_TYPE_PROP = "indexType";
-    private static final String INDEX_NAME_PROP = "indexName";
-    private static final String INDEX_JOIN_FIELD_NAME_PROP = "indexJoinFieldName";
-    private static final String INDEX_TYPE_FIELD_NAME_PROP = "indexTypeFieldName";
-    private static final String CLUSTER_PROP = "clusterName";
-
-    private static final String DEFAULT_ADDRESS = "localhost:9300";
-    private static final String ES_CLUSTER_NAME = "datashare";
-
     private static final int           BULKPROCESSOR_FLUSH_ACTIONS   = 2000;
     private static final ByteSizeValue BULKPROCESSOR_FLUSH_SIZE      = new ByteSizeValue(5, ByteSizeUnit.MB);
     private static final TimeValue     BULKPROCESSOR_FLUSH_TIME      = timeValueSeconds(20);
     private static final int           BULKPROCESSOR_CONCURRENT_REQS = 1;
 
-    private static final int INDEX_MAX_RESULT_WINDOW = 100000;
-
-    private static final String DEFAULT_INDEX_TYPE = "doc";
-    private static final String DEFAULT_INDEX_JOIN_FIELD = "join";
-    private static final String DEFAULT_DOC_TYPE_FIELD = "type";
-    private static final Set<String> PARENT_TYPES = new HashSet<>(singletonList("Document"));
-    private static final String DEFAULT_INDEX_NAME = "datashare-local";
-
     private final Client client;
     private final BulkProcessor bulkProcessor;
-
-    private final int shards = 1;
-    private final int replicas = 1;
-
-    private final String indexType;
-    private final String indexName;
-    private final String indexJoinField;
-    private final String docTypeField;
-    private WriteRequest.RefreshPolicy refreshPolicy = WriteRequest.RefreshPolicy.NONE;
+    private final ElasticsearchConfiguration esCfg;
 
     @Inject
     public ElasticsearchIndexer(final PropertiesProvider propertiesProvider) throws UnknownHostException {
@@ -107,33 +71,9 @@ public class ElasticsearchIndexer implements Indexer {
 
     public ElasticsearchIndexer(final Client client, final PropertiesProvider propertiesProvider) {
         this.client = client;
-
-        indexType = propertiesProvider.get(INDEX_TYPE_PROP).orElse(DEFAULT_INDEX_TYPE);
-        indexJoinField = propertiesProvider.get(INDEX_JOIN_FIELD_NAME_PROP).orElse(DEFAULT_INDEX_JOIN_FIELD);
-        docTypeField = propertiesProvider.get(INDEX_TYPE_FIELD_NAME_PROP).orElse(DEFAULT_DOC_TYPE_FIELD);
-        indexName = propertiesProvider.get(INDEX_NAME_PROP).orElse(DEFAULT_INDEX_NAME);
-
+        esCfg = new ElasticsearchConfiguration(propertiesProvider);
+        LOGGER.info("indexer defined with {}", esCfg);
         bulkProcessor = buildBulkProcessor();
-    }
-
-    static Client createESClient(final PropertiesProvider propertiesProvider) throws UnknownHostException {
-        System.setProperty("es.set.netty.runtime.available.processors", "false");
-
-        String indexAddress = propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
-        InetAddress esAddress = getByName(indexAddress.split(":")[0]);
-        int esPort = Integer.parseInt(indexAddress.split(":")[1]);
-        String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
-
-        Settings settings = Settings.builder().put("cluster.name", clusterName).build();
-        LOGGER.info("Opening connection to " + "[" + indexAddress + "]" + " node(s)");
-        LOGGER.info("Settings :\n" + settings.toDelimitedString('\n'));
-        return new PreBuiltTransportClient(settings).addTransportAddress(
-                new TransportAddress(esAddress, esPort));
-    }
-
-    public ElasticsearchIndexer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
-        this.refreshPolicy = refreshPolicy;
-        return this;
     }
 
     @Override
@@ -153,7 +93,7 @@ public class ElasticsearchIndexer implements Indexer {
     @Override
     public boolean createIndex(String index) {
         try {
-            final CreateIndexRequest  req  = new CreateIndexRequest(index).settings(getIndexSettings());
+            final CreateIndexRequest  req  = new CreateIndexRequest(index).settings(esCfg.getIndexSettings());
             final CreateIndexResponse resp = client.admin()
                     .indices()
                     .create(req)
@@ -267,13 +207,13 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private IndexRequest indexRequest(String index, String type, String id, Map<String, Object> json, String parent) {
-        IndexRequest req = new IndexRequest(index, indexType, id);
+        IndexRequest req = new IndexRequest(index, esCfg.indexType, id);
 
-        json.put(docTypeField, type);
-        if(PARENT_TYPES.contains(type))
-            json.put(indexJoinField, type);
+        json.put(esCfg.docTypeField, type);
+        if(esCfg.PARENT_TYPES.contains(type))
+            json.put(esCfg.indexJoinField, type);
         if (parent != null)
-            json.put(indexJoinField, new HashMap<String, String>() {{
+            json.put(esCfg.indexJoinField, new HashMap<String, String>() {{
                 put("name", type);
                 put("parent", parent);
             }});
@@ -300,16 +240,16 @@ public class ElasticsearchIndexer implements Indexer {
     public <T extends Entity> T get(String id) {
         String type = null;
         try {
-            final GetRequest  req  = new GetRequest(indexName, indexType, id);
+            final GetRequest  req  = new GetRequest(esCfg.indexName, esCfg.indexType, id);
             final GetResponse resp = client.get(req).get();
             if (resp.isExists()) {
                 Map<String, Object> sourceAsMap = resp.getSourceAsMap();
-                type = (String) sourceAsMap.get(docTypeField);
+                type = (String) sourceAsMap.get(esCfg.docTypeField);
                 Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
                 return JsonObjectMapper.getObject(id, sourceAsMap, tClass);
             }
         } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to get entity " + id + " in index " + indexName, e);
+            LOGGER.error("Failed to get entity " + id + " in index " + esCfg.indexName, e);
         } catch (ClassNotFoundException e) {
             LOGGER.error("no entity for type " + type);
         }
@@ -344,7 +284,7 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private DeleteRequest deleteRequest(String index, String type, String id, String parent) {
-        DeleteRequest req = new DeleteRequest(index, indexType, id);
+        DeleteRequest req = new DeleteRequest(index, esCfg.indexType, id);
         return (parent != null) ? req.routing(parent) : req;
     }
 
@@ -503,18 +443,6 @@ public class ElasticsearchIndexer implements Indexer {
         return boolQuery().must( hasParentQuery(type,  queryStringQuery(query)) );
     }
 
-    /**
-     * @return built index settings
-     */
-    private Settings getIndexSettings() {
-        return Settings.builder()
-                .put("index.number_of_shards",   shards)
-                .put("index.number_of_replicas", replicas)
-                .put("index.max_result_window",  INDEX_MAX_RESULT_WINDOW)
-                .build();
-    }
-
-
     private boolean awaitConnectionIsUp() {
         return ! client
                 .admin()
@@ -526,17 +454,11 @@ public class ElasticsearchIndexer implements Indexer {
                 .isTimedOut();
     }
 
-    /**
-     * Await {@code index} is up and living wrt current node type up status
-     */
     @Override
     public boolean awaitIndexIsUp(String index) {
         return awaitIndexIsUp(index, ClusterHealthStatus.GREEN);
     }
 
-    /**
-     * Await {@code index} is up and living wrt {@code status} (node type-dependent)
-     */
     private boolean awaitIndexIsUp(String index, ClusterHealthStatus status) {
         ClusterHealthResponse resp = client.admin()
                 .cluster()

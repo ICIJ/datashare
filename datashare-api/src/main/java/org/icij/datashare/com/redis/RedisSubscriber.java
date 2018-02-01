@@ -49,6 +49,7 @@ public class RedisSubscriber implements Runnable {
                 Message msg = new Message(result);
                 if (msg.type == SHUTDOWN) {
                     unsubscribe();
+                    logger.info("Shutdown called. Unsubscribe done.");
                     return;
                 }
                 callback.apply(msg);

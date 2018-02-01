@@ -32,34 +32,30 @@ import static java.lang.System.currentTimeMillis;
 import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.com.Channel.NLP;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.ES_CONTENT_FIELD;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.ES_DOCUMENT_TYPE;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
 
     private final Client client;
+    private final ElasticsearchConfiguration esCfg;
     private final Publisher publisher;
-    private final String index_name;
-    private static final String ES_DOCUMENT_TYPE = "Document";
-    private static final String ES_INDEX_NAME = "datashare";
-    private static final String ES_INDEX_TYPE = "doc";
-    private static final String ES_DOC_TYPE_FIELD = "type";
-    private static final String ES_JOIN_FIELD = "join";
-    private static final String ES_CONTENT_FIELD = "content";
-
     private final LanguageGuesser languageGuesser;
-    private WriteRequest.RefreshPolicy refreshPolicy = WriteRequest.RefreshPolicy.NONE;
 
     @Inject
     public ElasticsearchSpewer(final PropertiesProvider propertiesProvider, LanguageGuesser languageGuesser, Publisher publisher) throws IOException {
-        this(ElasticsearchIndexer.createESClient(propertiesProvider), languageGuesser, new FieldNames(), publisher, ES_INDEX_NAME);
+        this(createESClient(propertiesProvider), languageGuesser, new FieldNames(), publisher, propertiesProvider);
     }
 
-    ElasticsearchSpewer(final Client client, LanguageGuesser languageGuesser, final FieldNames fields, Publisher publisher, final String index_name) throws IOException {
+    ElasticsearchSpewer(final Client client, LanguageGuesser languageGuesser, final FieldNames fields, Publisher publisher, final PropertiesProvider propertiesProvider) throws IOException {
         super(fields);
         this.client = client;
         this.languageGuesser = languageGuesser;
         this.publisher = publisher;
-        this.index_name = index_name;
+        this.esCfg = new ElasticsearchConfiguration(propertiesProvider);
+        logger.info("spewer defined with {}", esCfg);
     }
 
     @Override
@@ -73,12 +69,12 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     IndexRequest prepareRequest(final TikaDocument document, final Reader reader,
                                 final TikaDocument parent, final int level) throws IOException {
-        IndexRequest req = new IndexRequest(index_name, ES_INDEX_TYPE, document.getId());
+        IndexRequest req = new IndexRequest(esCfg.indexName, esCfg.indexType, document.getId());
 
         Map<String, Object> jsonDocument = getMap(document, reader);
 
         if (parent != null) {
-            jsonDocument.put(ES_JOIN_FIELD, new HashMap<String, String>() {{
+            jsonDocument.put(esCfg.indexJoinField, new HashMap<String, String>() {{
                 put("name", "document");
                 put("parent", parent.getId());
             }});
@@ -86,7 +82,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
         jsonDocument.put("extractionLevel", level);
         req = req.source(jsonDocument);
-        req.setRefreshPolicy(refreshPolicy);
+        req.setRefreshPolicy(esCfg.refreshPolicy);
         return req;
     }
 
@@ -97,7 +93,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         new MetadataTransformer(document.getMetadata(), fields).transform(
                 new MapValueConsumer(metadata), new MapValuesConsumer(metadata));
 
-        jsonDocument.put(ES_DOC_TYPE_FIELD, ES_DOCUMENT_TYPE);
+        jsonDocument.put(esCfg.docTypeField, ES_DOCUMENT_TYPE);
         jsonDocument.put("path", document.getPath().toString());
         jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
         jsonDocument.put("metadata", metadata);
@@ -144,7 +140,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     public void writeMetadata(TikaDocument document) throws IOException { throw new UnsupportedOperationException();}
 
     public ElasticsearchSpewer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
-        this.refreshPolicy = refreshPolicy;
+        this.esCfg.withRefresh(refreshPolicy);
         return this;
     }
 
