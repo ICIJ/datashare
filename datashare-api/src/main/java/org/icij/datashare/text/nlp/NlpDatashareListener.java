@@ -15,7 +15,7 @@ import redis.clients.jedis.Jedis;
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 
-public class NlpDatashareListener implements DatashareListener, Runnable {
+public class NlpDatashareListener implements DatashareListener {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final AbstractPipeline nlpPipeline;
     private final Indexer indexer;
@@ -37,27 +37,27 @@ public class NlpDatashareListener implements DatashareListener, Runnable {
 
     Void onMessage(Message message) {
         if (message.type == EXTRACT_NLP) {
-            String id = message.content.get(DOC_ID);
-            Document doc = indexer.get(id);
-            if (doc != null) {
-                try {
-                    logger.info("{} extracting entities for document {}", nlpPipeline.getType(), doc.getId());
-                    nlpPipeline.initialize(doc.getLanguage());
-                    Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
-                    for (NamedEntity ne : NamedEntity.allFrom(doc, annotations)) {
-                        indexer.add(ne);
-                    }
-                    nlpPipeline.terminate(doc.getLanguage());
-                } catch (Throwable e) {
-                    logger.error("cannot extract entities of doc " + doc.getId(), e);
-                }
-            } else {
-                logger.warn("no document found in index with id " + id);
-            }
+            extractNamedEntities(message.content.get(DOC_ID));
         }
         return null;
     }
 
-    @Override
-    public void run() { waitForEvents();}
+    private void extractNamedEntities(String id) {
+        try {
+            Document doc = indexer.get(id);
+            if (doc != null) {
+                logger.info("{} extracting entities for document {}", nlpPipeline.getType(), doc.getId());
+                nlpPipeline.initialize(doc.getLanguage());
+                Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
+                for (NamedEntity ne : NamedEntity.allFrom(doc, annotations)) {
+                    indexer.add(ne);
+                }
+                nlpPipeline.terminate(doc.getLanguage());
+            } else {
+                logger.warn("no document found in index with id " + id);
+            }
+        } catch (Throwable e) {
+            logger.error("cannot extract entities of doc " + id, e);
+        }
+    }
 }
