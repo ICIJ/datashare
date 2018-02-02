@@ -1,6 +1,8 @@
 package org.icij.datashare.text.nlp.mitie;
 
+import com.google.inject.Inject;
 import edu.mit.ll.mitie.*;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
@@ -36,8 +38,9 @@ public class MitiePipeline extends AbstractPipeline {
             }};
 
 
-    public MitiePipeline(Properties properties) {
-        super(properties);
+    @Inject
+    public MitiePipeline(PropertiesProvider propertiesProvider) {
+        super(propertiesProvider.getProperties());
 
         // TOKEN <-- NER
         stageDependencies.get(NER).add(TOKEN);
