@@ -1,6 +1,5 @@
 package org.icij.datashare.text.hashing;
 
-import org.bouncycastle.util.encoders.Hex;
 import org.icij.datashare.io.FileSystemUtils;
 
 import java.io.IOException;
@@ -15,32 +14,20 @@ import java.util.Locale;
 import java.util.Optional;
 
 
-/**
- * Family of String Hash algorithms
- *
- * Created by julien on 5/9/16.
- */
 public enum Hasher {
-    MD5     (32),
     SHA_1   (40),
     SHA_256 (64),
     SHA_384 (96),
     SHA_512 (128);
 
     public static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
-
-    // Hash algorithm name
     private final String algorithm;
-
-    // Hash code length
     private final int digestLength;
-
 
     Hasher(int dgstLen) {
         algorithm    = name().replace('_', '-');
         digestLength = dgstLen;
     }
-
 
     @Override
     public String toString() {
@@ -48,15 +35,21 @@ public enum Hasher {
     }
 
 
-    /**
-     * Hash message String with algorithm
-     *
-     * @param message the String to hash
-     * @return the corresponding hash String;
-     * empty if algorithm is UNKNOWN or NONE or if message is empty.
-     */
     public String hash(String message) {
         return hash(message, DEFAULT_ENCODING);
+    }
+
+    static final String HEXES = "0123456789abcdef";
+
+    public static String getHex(byte[] raw) {
+        if (raw == null) {
+            return null;
+        }
+        final StringBuilder hex = new StringBuilder(2 * raw.length);
+        for (final byte b : raw) {
+            hex.append(HEXES.charAt((b & 0xF0) >> 4)).append(HEXES.charAt((b & 0x0F)));
+        }
+        return hex.toString();
     }
 
     /**
@@ -73,9 +66,8 @@ public enum Hasher {
         }
         try {
             MessageDigest digest = MessageDigest.getInstance(algorithm);
-            byte[] hashedBytes = digest.digest(message.getBytes(charset));
-            return new String(Hex.encode(hashedBytes));
-
+            digest.update(message.getBytes(charset));
+            return getHex(digest.digest());
         } catch (NoSuchAlgorithmException e) {
             //throw new HasherException("Failed to hash from String", e);
             return "";
@@ -119,7 +111,7 @@ public enum Hasher {
                 digest.update(buffer, 0, readCount);
             }
             byte[] hashedBytes = digest.digest();
-            return new String(Hex.encode(hashedBytes));
+            return new String(hashedBytes);
 
         } catch (NoSuchAlgorithmException | IOException e) {
             // throw new HasherException("Failed to hash from InputStream", e);
@@ -145,15 +137,4 @@ public enum Hasher {
             return Optional.empty();
         }
     }
-
-    /**
-     * Is the String a valid hash code?
-     *
-     * @param str the hash code candidate to check (syntactically)
-     * @return true if str is a valid hash code; false otherwise
-     */
-    public boolean isValidHash(String str) {
-        return str.matches(String.format(Locale.ROOT, "[a-fA-F0-9]{%d}", digestLength));
-    }
-
 }

@@ -3,7 +3,7 @@ package org.icij.datashare.text.nlp.gatenlp;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
@@ -79,9 +79,9 @@ public final class GatenlpPipeline extends AbstractPipeline {
     }
 
     @Override
-    protected Optional<Annotation> process(String input, String hash, Language language) {
+    protected Annotations process(String input, String hash, Language language) {
         LOGGER.warn("process GATENLP pipeline is disabled");
-        return Optional.empty();
+        return null;
     }
 
     @Override

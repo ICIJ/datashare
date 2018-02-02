@@ -43,8 +43,6 @@
         <dependency>
             <groupId>me.xuender</groupId>
             <artifactId>unidecode</artifactId>
-            <version>${unidecode.version}</version>
-            <scope>compile</scope>
         </dependency>
 
         <!-- Bouncycastle -->

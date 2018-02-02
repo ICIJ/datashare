@@ -17,7 +17,7 @@ import opennlp.tools.util.model.ArtifactProvider;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.opennlp.models.*;
@@ -123,22 +123,22 @@ public final class OpennlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    protected Optional<Annotation> process(String input, String hash, Language language) {
-        Annotation annotation = new Annotation(hash, getType(), language);
-        String annotators = " - SENTENCING ~ TOKENIZING";
+    protected Annotations process(String input, String hash, Language language) {
+        Annotations annotations = new Annotations(hash, getType(), language);
+        String annotators = "SENTENCING ~ TOKENIZING";
         if (targetStages.contains(POS))
             annotators += " ~ POS-TAGGING";
         if (targetStages.contains(NER))
             annotators += " ~ NAME-FINDING";
-        LOGGER.info(getClass().getName() + annotators + " for " + language.toString());
+        LOGGER.info(annotators + " for " + language);
 
         // Split input into sentences
         Span[] sentenceSpans = sentences(input, language);
         for (Span sentenceSpan : sentenceSpans) {
-            // Feed annotation
+            // Feed annotations
             int sentenceOffsetBegin = sentenceSpan.getStart();
             int sentenceOffsetEnd   = sentenceSpan.getEnd();
-            annotation.add(SENTENCE, sentenceOffsetBegin, sentenceOffsetEnd);
+            annotations.add(SENTENCE, sentenceOffsetBegin, sentenceOffsetEnd);
 
             // Tokenize sentence
             String sentence = sentenceSpan.getCoveredText(input).toString();
@@ -151,14 +151,14 @@ public final class OpennlpPipeline extends AbstractPipeline {
                 sentencePosTags = postag(sentenceTokens, language);
             }
 
-            // Feed annotation with token and pos
+            // Feed annotations with token and pos
             for (Span sentenceTokenSpan : sentenceTokenSpans) {
                 int tokenOffsetBegin = sentenceOffsetBegin + sentenceTokenSpan.getStart();
                 int tokenOffsetEnd   = sentenceOffsetBegin + sentenceTokenSpan.getEnd();
-                annotation.add(TOKEN, tokenOffsetBegin, tokenOffsetEnd);
+                annotations.add(TOKEN, tokenOffsetBegin, tokenOffsetEnd);
                 if (targetStages.contains(POS)) {
                     String pos = spanToString(sentenceTokenSpan, sentencePosTags);
-                    annotation.add(POS, tokenOffsetBegin, tokenOffsetEnd, pos);
+                    annotations.add(POS, tokenOffsetBegin, tokenOffsetEnd, pos);
                 }
             }
 
@@ -166,18 +166,15 @@ public final class OpennlpPipeline extends AbstractPipeline {
             if (targetStages.contains(NER)) {
                 for (NameFinderME nameFinderME : nerFinder.get(language)) {
                     Span[] nerSpans = nameFinderME.find(sentenceTokens);
-
-                    // Feed annotation with ne
                     for (Span nerSpan : nerSpans) {
                         int nerStart = sentenceOffsetBegin + sentenceTokenSpans[nerSpan.getStart()].getStart();
                         int nerEnd   = sentenceOffsetBegin + sentenceTokenSpans[nerSpan.getEnd()-1].getEnd();
-                        // TODO is nameFinderME.toString() tells if it is EntityName.Type ?
-                        annotation.add(NER, nerStart, nerEnd, nameFinderME.toString());
+                        annotations.add(NER, nerStart, nerEnd, nerSpan.getType());
                     }
                 }
             }
         }
-        return Optional.of( annotation );
+        return annotations;
     }
 
     private String spanToString(Span span, String[] elements) {

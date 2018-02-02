@@ -9,7 +9,7 @@ import ixa.kaflib.Term;
 import ixa.kaflib.WF;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
@@ -89,22 +89,22 @@ public class IxapipePipeline extends AbstractPipeline {
     }
 
     @Override
-    protected Optional<Annotation> process(String input, String hash, Language language) {
-        Annotation annotation = new Annotation(hash, getType(), language);
+    protected Annotations process(String input, String hash, Language language) {
+        Annotations annotations = new Annotations(hash, getType(), language);
         // KAF document annotated by IXAPIPE annotators
         KAFDocument kafDocument = new KAFDocument(language.toString(), KAF_VERSION);
 
         // tokenize( input )
         LOGGER.info("tokenizing for " + language.toString());
         if (!tokenize(new StringReader(input), kafDocument, hash, language))
-            return Optional.empty();
+            return annotations;
 
         // pos-tag( tokenize( input ) )
         LOGGER.info("POS-tagging for " + language.toString());
         if (!postag(kafDocument, hash, language))
-            return Optional.of(annotation);
+            return annotations;
 
-        // Feed annotation with tokens and pos
+        // Feed annotations with tokens and pos
         for (int s = kafDocument.getFirstSentence(); s <= kafDocument.getNumSentences(); s++) {
             List<Term> sentenceTerms = kafDocument.getSentenceTerms(s);
             for (Term term : sentenceTerms) {
@@ -112,10 +112,10 @@ public class IxapipePipeline extends AbstractPipeline {
                 WF wfEnd = term.getWFs().get(term.getWFs().size() - 1);
                 int tokenBegin = wfBegin.getOffset();
                 int tokenEnd = wfEnd.getOffset() + wfEnd.getLength();
-                annotation.add(TOKEN, tokenBegin, tokenEnd);
+                annotations.add(TOKEN, tokenBegin, tokenEnd);
                 if (targetStages.contains(POS)) {
                     String posTag = term.getPos();
-                    annotation.add(POS, tokenBegin, tokenEnd, posTag);
+                    annotations.add(POS, tokenBegin, tokenEnd, posTag);
                 }
             }
             Term termBegin = sentenceTerms.get(0);
@@ -124,16 +124,16 @@ public class IxapipePipeline extends AbstractPipeline {
             WF wfEnd = termEnd.getWFs().get(termEnd.getWFs().size() - 1);
             int sentenceBegin = wfBegin.getOffset();
             int sentenceEnd = wfEnd.getOffset() + wfEnd.getLength();
-            annotation.add(SENTENCE, sentenceBegin, sentenceEnd);
+            annotations.add(SENTENCE, sentenceBegin, sentenceEnd);
         }
 
         // ner( pos-tag( tokenize( input ) ) )
         if (targetStages.contains(NER)) {
             LOGGER.info("name-finding for " + language.toString());
             if (!recognize(kafDocument, hash, language))
-                return Optional.of(annotation);
+                return annotations;
 
-            // Feed annotation with ne
+            // Feed annotations with ne
             for (Entity entity : kafDocument.getEntities()) {
                 List<Term> terms = entity.getTerms();
                 Term termBegin = terms.get(0);
@@ -143,11 +143,11 @@ public class IxapipePipeline extends AbstractPipeline {
                 String cat = entity.getType();
                 int nerBegin = wfBegin.getOffset();
                 int nerEnd = wfEnd.getOffset() + wfEnd.getLength();
-                annotation.add(NER, nerBegin, nerEnd, cat);
+                annotations.add(NER, nerBegin, nerEnd, cat);
             }
         }
 
-        return Optional.of(annotation);
+        return annotations;
     }
 
     private boolean tokenize(Reader reader, KAFDocument kafDocument, String hash, Language language) {

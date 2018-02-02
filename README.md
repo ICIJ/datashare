@@ -61,7 +61,7 @@ Web API
 
  - `org.icij.datashare.text.Language`
  
- - `org.icij.datashare.text.nlp.Annotation`  
+ - `org.icij.datashare.text.nlp.Annotations`  
 
  - `org.icij.datashare.text.NamedEntity`
 

@@ -3,7 +3,7 @@ package org.icij.datashare.text.nlp.mitie;
 import edu.mit.ll.mitie.*;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
@@ -50,8 +50,8 @@ public class MitiePipeline extends AbstractPipeline {
     }
 
     @Override
-    protected Optional<Annotation> process(String input, String hash, Language language) {
-        Annotation annotation = new Annotation(hash, getType(), language);
+    protected Annotations process(String input, String hash, Language language) {
+        Annotations annotations = new Annotations(hash, getType(), language);
 
         // Tokenize input
         LOGGER.info("tokenizing for " + language.toString());
@@ -62,19 +62,19 @@ public class MitiePipeline extends AbstractPipeline {
             LOGGER.error("failed tokenizing input ", e);
         }
 
-        // Feed annotation
+        // Feed annotations
         for (int i = 0; i < tokens.size(); ++i) {
             TokenIndexPair tokenIndexPair = tokens.get(i);
             int tokenBegin = toIntExact(tokenIndexPair.getIndex());
             int tokenEnd = toIntExact(tokenBegin + tokenIndexPair.getToken().length());
-            annotation.add(TOKEN, tokenBegin, tokenEnd);
+            annotations.add(TOKEN, tokenBegin, tokenEnd);
         }
 
         // NER input
         if (targetStages.contains(NER)) {
             LOGGER.info("name-finding for " + language);
             EntityMentionVector entities = MitieNlpModels.getInstance().extract(tokens, language);
-            // Feed annotation
+            // Feed annotations
             // transform index offset given in bytes of utf-8 representation to chars offset in string
             byte[] inputBytes = input.getBytes(getEncoding());
             for (int i = 0; i < entities.size(); ++i) {
@@ -88,10 +88,10 @@ public class MitiePipeline extends AbstractPipeline {
                 int nerBegin = nerPrefix.length();
                 int nerEnd = nerBegin + nerContent.length();
                 String category = MitieNlpModels.getInstance().getTagSet(language).get(entity.getTag());
-                annotation.add(NER, nerBegin, nerEnd, category);
+                annotations.add(NER, nerBegin, nerEnd, category);
             }
         }
-        return Optional.of(annotation);
+        return annotations;
     }
 
     private static void printEntity(TokenIndexVector tokens, EntityMention entity) {

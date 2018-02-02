@@ -14,7 +14,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpAnnotator;
@@ -89,7 +89,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    protected Optional<Annotation> process(String input, String hash, Language language) {
+    protected Annotations process(String input, String hash, Language language) {
         // Is NER the unique target stage?
         if (singletonList(NER).equals(targetStages))
             return processNerClassifier(input, hash, language);
@@ -135,11 +135,11 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * @param language the input language
      * @return
      */
-    private Optional<Annotation> processPipeline(String input, String hash, Language language) {
+    private Annotations processPipeline(String input, String hash, Language language) {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        Annotation annotation = new Annotation(hash, getType(), language);
+        Annotations annotations = new Annotations(hash, getType(), language);
 
-        // CoreNLP annotation data-structure
+        // CoreNLP annotations data-structure
         edu.stanford.nlp.pipeline.Annotation coreNlpAnnotation = new edu.stanford.nlp.pipeline.Annotation(input);
 
         LOGGER.info("sentencing ~ tokenizing ~ POS-tagging ~ name-finding for " + language.toString());
@@ -153,26 +153,26 @@ public final class CorenlpPipeline extends AbstractPipeline {
 
         final BiPredicate<Optional<NamedEntity.Category>, Optional<NamedEntity.Category>>
                 differentCategories = (c1, c2) -> ! c1.equals(c2);
-        // Feed annotation
+        // Feed annotations
         List<CoreMap> sentences = coreNlpAnnotation.get(SentencesAnnotation.class);
         for (CoreMap sentence: sentences) {
             int sentenceBegin = sentence.get(CharacterOffsetBeginAnnotation.class);
             int sentenceEnd   = sentence.get(CharacterOffsetEndAnnotation.class);
-            annotation.add(SENTENCE, sentenceBegin, sentenceEnd);
+            annotations.add(SENTENCE, sentenceBegin, sentenceEnd);
 
             int                            nerBegin   = 0;
             List<String>                   nerComps   = new ArrayList<>();
             List<String>                   nerPoSs    = new ArrayList<>();
             Optional<NamedEntity.Category> prevCat = Optional.empty();
 
-            // Feed annotation with TOKEN, POS, NER
+            // Feed annotations with TOKEN, POS, NER
             List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
             for (CoreLabel token: tokens) {
                 int    tokenBegin = token.get(CharacterOffsetBeginAnnotation.class);
                 int    tokenEnd   = token.get(CharacterOffsetEndAnnotation.class);
                 String pos        = token.get(PartOfSpeechAnnotation.class);
-                annotation.add(TOKEN, tokenBegin, tokenEnd);
-                annotation.add(POS, tokenBegin, tokenEnd, pos);
+                annotations.add(TOKEN, tokenBegin, tokenEnd);
+                annotations.add(POS, tokenBegin, tokenEnd, pos);
 
                 // Current named entity category
                 String word = token.get(TextAnnotation.class);
@@ -189,7 +189,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
                         String               mention    = String.join(" ", nerComps);
                         String               mentionPos = String.join(" ", nerPoSs);
                         NamedEntity.Category category   = prevCat.orElse(NamedEntity.Category.UNKNOWN);
-                        annotation.add(NER, nerBegin, tokenBegin, category.toString());
+                        annotations.add(NER, nerBegin, tokenBegin, category.toString());
                         nerComps = new ArrayList<>();
                         nerPoSs  = new ArrayList<>();
                     }
@@ -198,7 +198,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
                 prevCat = currCat;
             }
         }
-        return Optional.of( annotation );
+        return annotations;
     }
 
 
@@ -220,9 +220,9 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * @param hash     the input hash code
      * @param language the input language
      */
-    private Optional<Annotation> processNerClassifier(String input, String hash, Language language) {
+    private Annotations processNerClassifier(String input, String hash, Language language) {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        Annotation annotation = new Annotation(hash, getType(), language);
+        Annotations annotations = new Annotations(hash, getType(), language);
 
         LOGGER.info("name-finding for " + language.toString());
         // Recognize named entities from input
@@ -236,10 +236,10 @@ public final class CorenlpPipeline extends AbstractPipeline {
                 NamedEntity.Category category = NamedEntity.Category.parse(item.first()).orElse(NamedEntity.Category.NONE);
                 int begin = item.second();
                 int end = item.third();
-                annotation.add(NER, begin, end, category.toString());
+                annotations.add(NER, begin, end, category.toString());
             }
         }
-        return Optional.of( annotation );
+        return annotations;
     }
 
 
@@ -260,8 +260,8 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * @param hash     the input hash code
      * @param language the input language
      */
-    private Optional<Annotation> processPosClassifier(String input, String hash, Language language) {
-        Annotation annotation = new Annotation(hash, getType(), language);
+    private Annotations processPosClassifier(String input, String hash, Language language) {
+        Annotations annotations = new Annotations(hash, getType(), language);
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         LOGGER.info("POS-tagging for " + language.toString());
 
@@ -278,11 +278,11 @@ public final class CorenlpPipeline extends AbstractPipeline {
                     int begin = word.beginPosition();
                     int end = word.endPosition();
                     String pos = word.tag();
-                    annotation.add(POS, begin, end, pos);
+                    annotations.add(POS, begin, end, pos);
                 }
             }
         }
-        return Optional.of( annotation );
+        return annotations;
     }
 
     @Override

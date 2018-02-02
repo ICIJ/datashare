@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexType;
-import org.icij.datashare.text.nlp.Annotation;
+import org.icij.datashare.text.nlp.Annotations;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -66,8 +66,8 @@ public final class Document implements Entity {
     @JsonIgnore
     public String getName() { return path.getName(path.getNameCount()-1).toString(); }
 
-    public List<NamedEntity> namedEntities(Annotation annotation) {
-        return NamedEntity.allFrom(this, annotation);
+    public List<NamedEntity> namedEntities(Annotations annotations) {
+        return NamedEntity.allFrom(this, annotations);
     }
 
     @Override

@@ -141,6 +141,8 @@ public interface Indexer extends Closeable {
      */
     <T extends Entity> boolean add(String index, T obj);
 
+    <T extends Entity> boolean add(T obj);
+
     <T extends Entity> T get(String id);
 
     /**

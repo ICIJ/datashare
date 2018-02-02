@@ -182,7 +182,7 @@ public interface Pipeline {
      *
      * @param document the document to process
      */
-    Optional<Annotation> run(Document document);
+    Optional<Annotations> run(Document document);
 
     /**
      * Run pipeline on a {@link  org.icij.datashare.text.Document}
@@ -191,7 +191,7 @@ public interface Pipeline {
      * @param document the document to process
      * @param language the forced processing language
      */
-    Optional<Annotation> run(Document document, Language language);
+    Optional<Annotations> run(Document document, Language language);
 
     /**
      * Run pipeline on a {@link String} with language
@@ -199,7 +199,7 @@ public interface Pipeline {
      * @param text     the input string to process
      * @param language the forced processing language
      */
-    Optional<Annotation> run(String text, Language language);
+    Optional<Annotations> run(String text, Language language);
 
     /**
      * Is stage supported for language?

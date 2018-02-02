@@ -56,13 +56,13 @@ There are two files that contain different rules for street/address detection.
 
 "Street2.jape" contains a more general rule for the address detection. The rule is based in the detection of places annotated by gazeetters (street, square, st. ...), and like the other, the detection must stop with a country.
 ## COUNTRY
-The file "country.jape" contains the rule to transform the annotations marked by the gazeetteers as countries (Lookup.country) into an own annotation. The rules also consider that if a variant of EEUU or UK has been detected by the gazetteers, the country annotation must show United States and United Kingdom as result. 
+The file "country.jape" contains the rule to transform the annotations marked by the gazeetteers as countries (Lookup.country) into an own annotations. The rules also consider that if a variant of EEUU or UK has been detected by the gazetteers, the country annotations must show United States and United Kingdom as result. 
 
 
 ## COMPANY
 There are four jape files to identify companies. Two of them are involved in the identification of company suffixes and the other two to identify the entity.
 
-"CompanySuffixLookup.jape" contains the rule that transforms the componay suffixes identified by the gazetteer with annotation "lookup" to the annotation "CompanySuffix".
+"CompanySuffixLookup.jape" contains the rule that transforms the componay suffixes identified by the gazetteer with annotations "lookup" to the annotations "CompanySuffix".
 "CompanySuffix1.jape" contains the rule to identify the suffix Sarl with OCR errors. (e.g., S.ar.l, S.ar.f, s.ar1,etc.)
 "Company1.jape". Once the suffixes are identified. The words words before a suffix are identified as a company (the suffix is included). These words must start or contain capital letters. There rule also allows words as "No","de" or "and" and punctuation marks as "/" or "(".
 "Company2.jape" contains the another rule to identify companies entities. If the words "distributed by" is identified, the next words are annotated as a company.

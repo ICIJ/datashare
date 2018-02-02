@@ -108,7 +108,7 @@ public class NamedEntityRecognition extends NaturalLanguageProcessing<Document, 
             LOGGER.info(type + " running on " + document.getPath() +
                     " - " + document.getContentLength() +
                     " - " + document.getLanguage());
-            Optional<Annotation> annotation = nlpPipeline.run(document);
+            Optional<Annotations> annotation = nlpPipeline.run(document);
             if ( annotation.isPresent()) {
                 document.namedEntities(annotation.get()).forEach( this::put );
                 return Result.SUCCESS;

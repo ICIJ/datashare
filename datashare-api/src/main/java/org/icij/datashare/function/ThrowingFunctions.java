@@ -1,12 +1,13 @@
 package org.icij.datashare.function;
 
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import me.xuender.unidecode.Unidecode;
 
 
 /**
@@ -49,13 +50,6 @@ public class ThrowingFunctions {
             ints.stream().map( parseInt ).collect(Collectors.toList());
     public static final ThrowingFunction<List<String>, List<Boolean>> parseBooleans = ints ->
             ints.stream().map( parseBoolean ).collect(Collectors.toList());
-
-    // Normalize string
-    public static final ThrowingFunction<String, String> normal = str ->
-            Unidecode.decode(str)
-                    .trim()
-                    .replaceAll("(\\s+)", " ")
-                    .toLowerCase();
 
     // Filter list
     public static final ThrowingFunction<Predicate<String>, ThrowingFunction<List<String>, List<String>>> filterElements = pred -> list ->

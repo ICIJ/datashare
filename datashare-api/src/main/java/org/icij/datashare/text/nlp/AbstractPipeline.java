@@ -88,7 +88,7 @@ public abstract class AbstractPipeline implements Pipeline {
     public Charset getEncoding() { return encoding; }
 
     @Override
-    public Optional<Annotation> run(Document document) {
+    public Optional<Annotations> run(Document document) {
         Language language = document.getLanguage();
         if ( language == null) {
             LOGGER.info("unknown language; aborting processing...");
@@ -101,7 +101,7 @@ public abstract class AbstractPipeline implements Pipeline {
      * {@inheritDoc}
      */
     @Override
-    public Optional<Annotation> run(Document document, Language language) {
+    public Optional<Annotations> run(Document document, Language language) {
         return run(document.getContent(), language);
      }
 
@@ -109,13 +109,13 @@ public abstract class AbstractPipeline implements Pipeline {
      * {@inheritDoc}
      */
     @Override
-    public Optional<Annotation> run(String input, Language language) {
+    public Optional<Annotations> run(String input, Language language) {
         if (input.isEmpty())
             return Optional.empty();
-        Optional<Annotation> annotation = Optional.empty();
+        Optional<Annotations> annotation = Optional.empty();
         try {
             if (initialize(language)) {
-                annotation = process(input, HASHER.hash(input), language);
+                annotation = Optional.ofNullable(process(input, HASHER.hash(input), language));
                 terminate(language);
             }
         } catch (Throwable e) {
@@ -150,7 +150,7 @@ public abstract class AbstractPipeline implements Pipeline {
      * @param input is the source String to process
      * @param hash  the input hash code
      */
-    protected abstract Optional<Annotation>  process(String input, String hash, Language language);
+    protected abstract Annotations process(String input, String hash, Language language);
 
     /**
      * Post-processing operations

@@ -172,7 +172,6 @@
                 <groupId>me.xuender</groupId>
                 <artifactId>unidecode</artifactId>
                 <version>${unidecode.version}</version>
-                <scope>provided</scope>
             </dependency>
 
             <dependency>

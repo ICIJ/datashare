@@ -1,7 +1,7 @@
 package org.icij.datashare.text.indexing;
 
 /**
- * DataShare Entity Type Annotation
+ * DataShare Entity Type Annotations
  *
  * Created by julien on 6/22/16.
  */
