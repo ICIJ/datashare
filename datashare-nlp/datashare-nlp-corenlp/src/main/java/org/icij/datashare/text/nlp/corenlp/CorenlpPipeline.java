@@ -45,19 +45,15 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
  * Created by julien on 3/24/16.
  */
 public final class CorenlpPipeline extends AbstractPipeline {
-    public CorenlpPipeline(final Properties properties) {
-        super(properties);
+    @Inject
+    public CorenlpPipeline(final PropertiesProvider propertiesProvider) {
+        super(propertiesProvider.getProperties());
 
         // TOKEN <-- SENTENCE <-- POS <-- LEMMA <-- NER
         stageDependencies.get(SENTENCE).add(TOKEN);
         stageDependencies.get(POS)     .add(SENTENCE);
         stageDependencies.get(LEMMA)   .add(POS);
         stageDependencies.get(NER)     .add(LEMMA);
-    }
-
-    @Inject
-    public CorenlpPipeline(final PropertiesProvider propertiesProvider) {
-        this(propertiesProvider.getProperties());
     }
 
     /**
