@@ -18,7 +18,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.min;
-import static java.util.Arrays.fill;
 import static java.util.Collections.emptyList;
 import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 import static org.icij.datashare.text.NamedEntity.Category.UNKNOWN;
@@ -34,14 +33,14 @@ public final class NamedEntity implements Entity {
 
     @IndexId
     @JsonIgnore
-    private String hash;
-    private Category category;
+    private final String id;
+    private final Category category;
     @IndexParent
-    private String document;
-    private int offset;
-    private Pipeline.Type extractor;
-    private Language extractorLanguage;
-    private String partsOfSpeech;
+    private final String document;
+    private final int offset;
+    private final Pipeline.Type extractor;
+    private final Language extractorLanguage;
+    private final String partsOfSpeech;
 
     public enum Category implements Serializable {
         PERSON       ("PERS"),
@@ -90,28 +89,12 @@ public final class NamedEntity implements Entity {
 
 
     /**
-     * Instantiate a new {@code NamedEntity} from mere category and mention, without context document
-     *
-     * @param cat      the named entity category
-     * @param mention  the string denoting the named entity
-     * @return a new immutable {@link NamedEntity} if instantiation succeeded; empty Optional otherwise
-     */
-    public static Optional<NamedEntity> create(Category cat, String mention)  {
-        try {
-            return Optional.of( new NamedEntity(mention, cat, "", -1, null, null, null) );
-        } catch (IllegalArgumentException e) {
-            LOGGER.error("Failed to create named entity", e);
-            return Optional.empty();
-        }
-    }
-
-    /**
      * Instantiate new {@code NamedEntity}, with context document, without part-of-speech
      *
      * @param cat      the named entity category
      * @param mention  the string denoting the named entity
      * @param offset   the offset in context document
-     * @param doc      the context document hash
+     * @param doc      the context document id
      * @param extr     the pipeline that extracted mention
      * @param extrLang the pipeline language
      * @return a new immutable {@link NamedEntity} if instantiation succeeded; empty Optional otherwise
@@ -136,7 +119,7 @@ public final class NamedEntity implements Entity {
      * @param cat      the named entity category
      * @param mention  the string denoting the named entity
      * @param offset   the offset in context document
-     * @param doc      the context document hash
+     * @param doc      the context document id
      * @param extr     the pipeline that extracted mention
      * @param extrLang the pipeline language
      * @param pos      the part(s)-of-speech associated to mention
@@ -203,8 +186,6 @@ public final class NamedEntity implements Entity {
         );
     }
 
-    private NamedEntity() {}
-
     @JsonCreator
     private NamedEntity(String           mention,
                         Category         category,
@@ -221,7 +202,7 @@ public final class NamedEntity implements Entity {
         this.document = document;
         this.offset = offset;
         this.extractor = extractor;
-        this.hash = HASHER.hash( String.join("|",
+        this.id = HASHER.hash( String.join("|",
                 getDocument().toString(),
                 String.valueOf(offset),
                 getExtractor().toString(),
@@ -232,7 +213,7 @@ public final class NamedEntity implements Entity {
     }
 
     @Override
-    public String getId() { return hash; }
+    public String getId() { return id; }
 
     public String getMention() { return mention; }
 
@@ -250,20 +231,11 @@ public final class NamedEntity implements Entity {
 
     @Override
     public String toString() {
-        String[] features = new String[9];
-        fill(features, "NONE");
-        features[0] = getMention();
-        features[1] = getCategory().toString();
-        getOffset().ifPresent(off -> features[2] = String.valueOf(off));
-        getExtractor().ifPresent(extr -> features[3] = extr.toString());
-        getExtractorLanguage().ifPresent(extrLang -> features[4] = extrLang.toString().toUpperCase(Locale.ROOT));
-        getPartsOfSpeech().ifPresent(pos -> features[5] = pos.toUpperCase(Locale.ROOT));
-        features[6] = normalize(mention);
-        features[7] = getId();
-        getDocument().ifPresent(docHash -> features[8] = docHash);
-        return String.join(";", Arrays.stream(features)
-                .map(f -> '"' + f + '"')
-                .collect(Collectors.toList()));
+        return "NamedEntity{" +
+                "mention='" + mention + '\'' +
+                ", id='" + id + '\'' +
+                ", category=" + category +
+                '}';
     }
 
     @JsonIgnore
