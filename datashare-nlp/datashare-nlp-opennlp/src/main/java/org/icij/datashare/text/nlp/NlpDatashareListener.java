@@ -41,6 +41,7 @@ public class NlpDatashareListener implements DatashareListener, Runnable {
             Document doc = indexer.get(id);
             if (doc != null) {
                 try {
+                    logger.info("{} extracting entities for document {}", nlpPipeline.getType(), doc.getId());
                     nlpPipeline.initialize(doc.getLanguage());
                     Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
                     for (NamedEntity ne : NamedEntity.allFrom(doc, annotations)) {
