@@ -1,12 +1,14 @@
 package org.icij.datashare.text.nlp.ixapipe;
 
 import com.google.common.io.Files;
+import com.google.inject.Inject;
 import eus.ixa.ixa.pipe.pos.Annotate;
 import ixa.kaflib.Entity;
 import ixa.kaflib.KAFDocument;
 import ixa.kaflib.KAFDocument.LinguisticProcessor;
 import ixa.kaflib.Term;
 import ixa.kaflib.WF;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
@@ -66,8 +68,9 @@ public class IxapipePipeline extends AbstractPipeline {
     private static final String DEFAULT_UNTOKENIZABLE = "no";      // yes, no
     private static final String DEFAULT_HARD_PARAGRAPH = "no";      // yes, no
 
-    public IxapipePipeline(Properties properties) {
-        super(properties);
+    @Inject
+    public IxapipePipeline(PropertiesProvider propertiesProvider) {
+        super(propertiesProvider.getProperties());
 
         // TOKEN <-- POS <-- NER
         stageDependencies.get(POS).add(TOKEN);
