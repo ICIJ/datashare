@@ -1,5 +1,7 @@
 package org.icij.datashare.text.nlp.gatenlp;
 
+import com.google.inject.Inject;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -58,8 +60,9 @@ public final class GatenlpPipeline extends AbstractPipeline {
                 put(SENTENCE, "Sentence");
             }};
 
-    public GatenlpPipeline(Properties properties) {
-        super(properties);
+    @Inject
+    public GatenlpPipeline(PropertiesProvider propertiesProvider) {
+        super(propertiesProvider.getProperties());
         // TOKEN <-- NER
         stageDependencies.get(NER).add(TOKEN);
     }
