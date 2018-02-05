@@ -31,7 +31,7 @@ public class JedisPubsubTest {
         publisher.publish(NLP, doc_id);
         publisher.publish(NLP, new ShutdownMessage());
 
-        executorService.awaitTermination(1, SECONDS);
+        executorService.awaitTermination(5, SECONDS);
         assertThat(receivedMessage.get()).isEqualTo(doc_id);
     }
 
