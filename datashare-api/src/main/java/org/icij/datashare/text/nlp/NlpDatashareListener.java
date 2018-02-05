@@ -47,12 +47,13 @@ public class NlpDatashareListener implements DatashareListener {
             Document doc = indexer.get(id);
             if (doc != null) {
                 logger.info("{} extracting entities for document {}", nlpPipeline.getType(), doc.getId());
-                nlpPipeline.initialize(doc.getLanguage());
-                Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
-                for (NamedEntity ne : NamedEntity.allFrom(doc, annotations)) {
-                    indexer.add(ne);
+                if (nlpPipeline.initialize(doc.getLanguage())) {
+                    Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
+                    for (NamedEntity ne : NamedEntity.allFrom(doc, annotations)) {
+                        indexer.add(ne);
+                    }
+                    nlpPipeline.terminate(doc.getLanguage());
                 }
-                nlpPipeline.terminate(doc.getLanguage());
             } else {
                 logger.warn("no document found in index with id " + id);
             }

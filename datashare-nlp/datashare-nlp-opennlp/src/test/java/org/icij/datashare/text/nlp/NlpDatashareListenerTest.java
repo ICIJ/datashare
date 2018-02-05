@@ -39,9 +39,21 @@ public class NlpDatashareListenerTest {
     }
 
     @Test
-    public void test_on_message_processNLP__when_doc_found_in_index() throws Exception {
+    public void test_on_message_do_not_processNLP__when_init_fails() throws Exception {
+        when(pipeline.initialize(any())).thenReturn(true);
         Optional<Document> doc = Document.create(Paths.get("/path/to/doc"), "content", FRENCH,
-                Charset.defaultCharset(), "test/plain", new HashMap<String, String>());
+                        Charset.defaultCharset(), "test/plain", new HashMap<>());
+        indexer.add(TEST_INDEX, doc.get());
+
+        nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, doc.get().getId()));
+        verify(pipeline, never()).process(anyString(), anyString(), any());
+    }
+
+    @Test
+    public void test_on_message_processNLP__when_doc_found_in_index() throws Exception {
+        when(pipeline.initialize(any())).thenReturn(true);
+        Optional<Document> doc = Document.create(Paths.get("/path/to/doc"), "content", FRENCH,
+                Charset.defaultCharset(), "test/plain", new HashMap<>());
         indexer.add(TEST_INDEX, doc.get());
 
         nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, doc.get().getId()));
