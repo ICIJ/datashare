@@ -25,7 +25,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-index</artifactId>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
         </dependency>
 
         <!-- Stanford CoreNLP -->
@@ -44,6 +44,10 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-to-slf4j</artifactId>
+        </dependency>
 
         <!-- test dependencies -->
         <dependency>
@@ -57,40 +61,35 @@
            <version>1.4</version>
            <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-            </plugin>
-
-            <plugin>
-                <artifactId>maven-shade-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.icij.datashare.text.nlp.CoreNlpApp</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
                 <executions>
                     <execution>
-                        <configuration>
-                            <relocations>
-                                <!-- Isolate this lucene from elasticsearch's -->
-                                <relocation>
-                                    <pattern>org.apache.lucene</pattern>
-                                    <shadedPattern>for.corenlp.org.apache.lucene</shadedPattern>
-                                </relocation>
-                            </relocations>
-                        </configuration>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
-
         </plugins>
 
     </build>
