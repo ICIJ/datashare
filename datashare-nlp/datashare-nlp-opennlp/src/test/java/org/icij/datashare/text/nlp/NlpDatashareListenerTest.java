@@ -40,7 +40,7 @@ public class NlpDatashareListenerTest {
 
     @Test
     public void test_on_message_do_not_processNLP__when_init_fails() throws Exception {
-        when(pipeline.initialize(any())).thenReturn(true);
+        when(pipeline.initialize(any())).thenReturn(false);
         Optional<Document> doc = Document.create(Paths.get("/path/to/doc"), "content", FRENCH,
                         Charset.defaultCharset(), "test/plain", new HashMap<>());
         indexer.add(TEST_INDEX, doc.get());
