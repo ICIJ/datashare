@@ -18,11 +18,19 @@ public class RedisSubscriber implements Runnable {
     private static Logger logger = LoggerFactory.getLogger(RedisSubscriber.class);
     private final Jedis redis;
     private final Function<Message, Void> callback;
+    private final Runnable subscribedCallback;
     private Channel channel;
 
     public RedisSubscriber(final Jedis redis, final Function<Message, Void> callback) {
         this.redis = redis;
         this.callback = callback;
+        subscribedCallback = () -> logger.debug("subscribed done");
+    }
+
+    public RedisSubscriber(final Jedis redis, final Function<Message, Void> callback, final Runnable subscribedCallback) {
+        this.redis = redis;
+        this.callback = callback;
+        this.subscribedCallback = subscribedCallback;
     }
 
     public RedisSubscriber subscribe(Channel channel) {
@@ -32,14 +40,21 @@ public class RedisSubscriber implements Runnable {
 
     @Override
     public void run() {
-        redis.subscribe(new JedisListener(callback), channel.name());
+        redis.subscribe(new JedisListener(callback, subscribedCallback), channel.name());
     }
 
     static class JedisListener extends JedisPubSub {
         private final Function<Message, Void> callback;
+        private final Runnable subscribedCallback;
 
-        JedisListener(Function<Message, Void> callback) {
+        JedisListener(Function<Message, Void> callback, Runnable subscribedCallback) {
             this.callback = callback;
+            this.subscribedCallback = subscribedCallback;
+        }
+
+        @Override
+        public void onSubscribe(String channel, int subscribedChannels) {
+            subscribedCallback.run();
         }
 
         @Override
