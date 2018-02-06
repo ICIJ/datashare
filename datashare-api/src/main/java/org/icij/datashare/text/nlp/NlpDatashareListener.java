@@ -35,11 +35,10 @@ public class NlpDatashareListener implements DatashareListener {
         new RedisSubscriber(new Jedis(busAddress), this::onMessage).subscribe(Channel.NLP).run();
      }
 
-    Void onMessage(Message message) {
+    void onMessage(Message message) {
         if (message.type == EXTRACT_NLP) {
             extractNamedEntities(message.content.get(DOC_ID));
         }
-        return null;
     }
 
     private void extractNamedEntities(String id) {

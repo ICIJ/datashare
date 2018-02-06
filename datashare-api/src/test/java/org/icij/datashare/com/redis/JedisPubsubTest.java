@@ -23,10 +23,7 @@ public class JedisPubsubTest {
     public void test_publish_subscribe() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Message> receivedMessage = new AtomicReference<>();
-        executorService.submit(new RedisSubscriber(createJedis(), message -> {
-            receivedMessage.set(message);
-            return null;
-        }, latch::countDown).subscribe(NLP));
+        executorService.submit(new RedisSubscriber(createJedis(), receivedMessage::set, latch::countDown).subscribe(NLP));
         latch.await(2, SECONDS);
 
         RedisPublisher publisher = new RedisPublisher(createJedis());

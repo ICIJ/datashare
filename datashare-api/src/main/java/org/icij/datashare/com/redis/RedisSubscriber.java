@@ -10,24 +10,24 @@ import redis.clients.jedis.JedisPubSub;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.function.Function;
+import java.util.function.Consumer;
 
 import static org.icij.datashare.com.Message.Type.SHUTDOWN;
 
 public class RedisSubscriber implements Runnable {
     private static Logger logger = LoggerFactory.getLogger(RedisSubscriber.class);
     private final Jedis redis;
-    private final Function<Message, Void> callback;
+    private final Consumer<Message> callback;
     private final Runnable subscribedCallback;
     private Channel channel;
 
-    public RedisSubscriber(final Jedis redis, final Function<Message, Void> callback) {
+    public RedisSubscriber(final Jedis redis, final Consumer<Message> callback) {
         this.redis = redis;
         this.callback = callback;
         subscribedCallback = () -> logger.debug("subscribed done");
     }
 
-    public RedisSubscriber(final Jedis redis, final Function<Message, Void> callback, final Runnable subscribedCallback) {
+    public RedisSubscriber(final Jedis redis, final Consumer<Message> callback, final Runnable subscribedCallback) {
         this.redis = redis;
         this.callback = callback;
         this.subscribedCallback = subscribedCallback;
@@ -44,10 +44,10 @@ public class RedisSubscriber implements Runnable {
     }
 
     static class JedisListener extends JedisPubSub {
-        private final Function<Message, Void> callback;
+        private final Consumer<Message> callback;
         private final Runnable subscribedCallback;
 
-        JedisListener(Function<Message, Void> callback, Runnable subscribedCallback) {
+        JedisListener(Consumer<Message> callback, Runnable subscribedCallback) {
             this.callback = callback;
             this.subscribedCallback = subscribedCallback;
         }
@@ -67,7 +67,7 @@ public class RedisSubscriber implements Runnable {
                     logger.info("Shutdown called. Unsubscribe done.");
                     return;
                 }
-                callback.apply(msg);
+                callback.accept(msg);
             } catch (IOException e) {
                 logger.error("cannot deserialize json message " + message, e);
             }
