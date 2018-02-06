@@ -113,21 +113,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <artifactId>maven-shade-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <artifactId>maven-dependency-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
 </project>
