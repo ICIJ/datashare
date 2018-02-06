@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp.gatenlp;
 
+import com.google.inject.Inject;
 import es.upm.oeg.icij.entityextractor.GATENLPApplication;
 import es.upm.oeg.icij.entityextractor.GATENLPDocument;
 import es.upm.oeg.icij.entityextractor.GATENLPFactory;
@@ -68,6 +69,7 @@ public final class GatenlpPipeline extends AbstractPipeline {
 
     private GATENLPApplication pipeline;
 
+    @Inject
     public GatenlpPipeline(PropertiesProvider propertiesProvider) {
         super(propertiesProvider.getProperties());
         stageDependencies.get(NER).add(TOKEN);

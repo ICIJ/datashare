@@ -10,20 +10,15 @@
         <version>0.6</version>
     </parent>
 
-
     <artifactId>datashare-nlp-gate</artifactId>
     <packaging>jar</packaging>
-
 
     <properties>
         <entity-extractor.version>1.1</entity-extractor.version>
         <entity-extractor-lib.version>1.1</entity-extractor-lib.version>
     </properties>
 
-
     <dependencies>
-
-        <!-- Datashare Api -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-api</artifactId>
@@ -33,7 +28,6 @@
             <artifactId>datashare-index</artifactId>
         </dependency>
 
-        <!-- OEG UPM Entity-Extractor -->
         <dependency>
             <groupId>es.upm.oeg</groupId>
             <artifactId>entity-extractor</artifactId>
@@ -61,25 +55,15 @@
             <artifactId>log4j-to-slf4j</artifactId>
         </dependency>
     </dependencies>
+
     <build>
-
-        <resources>
-            <!-- Exclude models and configs from Jar -->
-            <resource>
-                <directory>src/main/resources</directory>
-                <excludes>
-                    <exclude>**</exclude>
-                </excludes>
-            </resource>
-        </resources>
-
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.icij.datashare.text.nlp.MitieNlpApp</mainClass>
+                            <mainClass>org.icij.datashare.text.nlp.GateNlpApp</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -96,8 +80,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- Install -->
             <plugin>
                 <artifactId>maven-install-plugin</artifactId>
                 <executions>
@@ -133,13 +115,9 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
-
         </plugins>
-
     </build>
-
 </project>
