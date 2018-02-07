@@ -35,7 +35,6 @@
         <module>datashare-index</module>
         <module>datashare-nlp</module>
         <module>datashare-dist</module>
-        <module>datashare-dist/assembly</module>
         <module>datashare-web</module>
     </modules>
 
