@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
+import java.util.List;
+
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 
@@ -48,9 +50,11 @@ public class NlpDatashareListener implements DatashareListener {
                 logger.info("{} extracting entities for document {}", nlpPipeline.getType(), doc.getId());
                 if (nlpPipeline.initialize(doc.getLanguage())) {
                     Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
-                    for (NamedEntity ne : NamedEntity.allFrom(doc, annotations)) {
+                    List<NamedEntity> namedEntities = NamedEntity.allFrom(doc, annotations);
+                    for (NamedEntity ne : namedEntities) {
                         indexer.add(ne);
                     }
+                    logger.info("added {} named entities to document {}", namedEntities.size(), doc.getId());
                     nlpPipeline.terminate(doc.getLanguage());
                 }
             } else {
