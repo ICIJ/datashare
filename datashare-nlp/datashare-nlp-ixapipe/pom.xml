@@ -111,10 +111,6 @@
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-            </plugin>
-
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <archive>
                         <manifest>
@@ -193,9 +189,6 @@
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
-
         </plugins>
-
     </build>
-
 </project>

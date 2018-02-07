@@ -98,6 +98,7 @@
         <maven-surefire.version>2.19.1</maven-surefire.version>
         <maven-jar.version>3.0.2</maven-jar.version>
         <maven-assembly.version>2.6</maven-assembly.version>
+        <maven-resources-plugin>3.0.2</maven-resources-plugin>
         <maven-shade.version>3.1.0</maven-shade.version>
         <maven-dependency.version>2.10</maven-dependency.version>
         <maven-build-helper.version>1.10</maven-build-helper.version>

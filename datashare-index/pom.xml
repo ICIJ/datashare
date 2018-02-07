@@ -156,10 +156,11 @@
                 </executions>
             </plugin>
             <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
+                <configuration>
+                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                    <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
+                </configuration>
                 <executions>
                     <execution>
                         <configuration>
@@ -172,9 +173,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>

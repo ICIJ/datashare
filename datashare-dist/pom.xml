@@ -10,21 +10,10 @@
         <version>0.6</version>
     </parent>
 
-
     <artifactId>datashare-dist</artifactId>
     <packaging>pom</packaging>
 
-
     <dependencies>
-
-        <!-- Datashare Api -->
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-api</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Datashare Web -->
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-web</artifactId>
@@ -33,12 +22,10 @@
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-web</artifactId>
             <version>${project.version}</version>
-            <type>zip</type>
-            <classifier>bundle</classifier>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- Datashare Cli -->
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-cli</artifactId>
@@ -46,47 +33,36 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-cli</artifactId>
-            <version>${datashare-cli.version}</version>
-            <type>zip</type>
-            <classifier>bundle</classifier>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Datashare Index Elasticsearh -->
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-index</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-index</artifactId>
-            <version>${datashare-elasticsearch.version}</version>
-            <type>zip</type>
-            <classifier>bundle</classifier>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Datashare Nlp CoreNLP -->
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-corenlp</artifactId>
         </dependency>
-
-        <!-- Datashare Nlp OpenNLP -->
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-nlp-corenlp</artifactId>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
+        </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-opennlp</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-opennlp</artifactId>
-            <version>${datashare-opennlp.version}</version>
-            <type>zip</type>
-            <classifier>bundle</classifier>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- Datashare Nlp OEG Gate -->
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-gate</artifactId>
@@ -94,13 +70,11 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-gate</artifactId>
-            <version>${datashare-gate.version}</version>
-            <type>zip</type>
-            <classifier>bundle</classifier>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
             <scope>runtime</scope>
         </dependency>
-
-         <!-- Datashare Nlp Mitie -->
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-mitie</artifactId>
@@ -108,63 +82,27 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-mitie</artifactId>
-            <version>${datashare-mitie.version}</version>
-            <type>zip</type>
-            <classifier>bundle</classifier>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- Datashare Nlp Ixa Pipe -->
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-ixapipe</artifactId>
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <version>${datashare-ixapipe.version}</version>
             <artifactId>datashare-nlp-ixapipe</artifactId>
-            <type>zip</type>
-            <classifier>bundle</classifier>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Joda Time -->
-        <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Xslt Processor -->
-        <dependency>
-            <groupId>xalan</groupId>
-            <artifactId>xalan</artifactId>
-            <version>${xalan.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Xml parser-->
-        <dependency>
-            <groupId>xerces</groupId>
-            <artifactId>xercesImpl</artifactId>
-            <version>${xerces.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!-- Slf4j/logback -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
             <scope>runtime</scope>
         </dependency>
     </dependencies>
 
-
     <build>
-
         <plugins>
-
-            <!-- Assembly -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
@@ -189,10 +127,49 @@
                     </execution>
                 </executions>
             </plugin>
-
+            <!--<plugin>-->
+                <!--<artifactId>maven-resources-plugin</artifactId>-->
+                <!--<version>${maven-resources-plugin}</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>copy-resources</id>-->
+                        <!--<phase>validate</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>copy-resources</goal>-->
+                        <!--</goals>-->
+                        <!--<configuration>-->
+                            <!--<outputDirectory>${basedir}/target</outputDirectory>-->
+                            <!--<resources>-->
+                                <!--<resource>-->
+                                    <!--<directory>src/main/docker</directory>-->
+                                    <!--<filtering>true</filtering>-->
+                                <!--</resource>-->
+                            <!--</resources>-->
+                        <!--</configuration>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <exec executable="docker">
+                                    <arg value="build"/>
+                                    <arg value="-t"/>
+                                    <arg value="icij/datashare:${project.version}"/>
+                                    <arg value="target/datashare-dist-${project.version}-all"/>
+                                </exec>
+                            </target>
+                        </configuration>
+                        <goals><goal>run</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
-
     </build>
-
-
 </project>
