@@ -328,13 +328,6 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>${maven-assembly.version}</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.icij.assembly</groupId>
-                            <artifactId>bundle</artifactId>
-                            <version>1.0.0</version>
-                        </dependency>
-                    </dependencies>
                     <executions>
                         <execution>
                             <id>assembly</id>
@@ -342,11 +335,6 @@
                             <goals>
                                 <goal>single</goal>
                             </goals>
-                            <configuration>
-                                <descriptorRefs>
-                                    <descriptorRef>bundle</descriptorRef>
-                                </descriptorRefs>
-                            </configuration>
                         </execution>
                     </executions>
                 </plugin>
