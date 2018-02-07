@@ -10,10 +10,8 @@
         <version>0.6</version>
     </parent>
 
-
     <artifactId>datashare-nlp-opennlp</artifactId>
     <packaging>jar</packaging>
-
 
     <dependencies>
         <dependency>

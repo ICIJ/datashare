@@ -10,7 +10,6 @@
         <version>0.6</version>
     </parent>
 
-
     <artifactId>datashare-nlp-mitie</artifactId>
     <packaging>jar</packaging>
 
@@ -19,10 +18,7 @@
         <mitie.version>0.8</mitie.version>
     </properties>
 
-
     <dependencies>
-
-        <!-- Datashare Api -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-api</artifactId>
@@ -31,7 +27,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-index</artifactId>
         </dependency>
-
 
         <!-- Mitie -->
         <dependency>
@@ -57,7 +52,6 @@
     </dependencies>
 
     <build>
-
         <resources>
             <resource>
                 <!-- Exclude models from jar -->
@@ -97,7 +91,5 @@
             </plugin>
 
         </plugins>
-
     </build>
-
 </project>
