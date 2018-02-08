@@ -323,22 +323,6 @@
                     </configuration>
                 </plugin>
 
-                <!-- Assembly -->
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>${maven-assembly.version}</version>
-                    <executions>
-                        <execution>
-                            <id>assembly</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>single</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-
                 <!-- Shade -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

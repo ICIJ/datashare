@@ -78,28 +78,6 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>org.icij.datashare.text.nlp.OpenNlpApp</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-                <executions>
-                    <execution>
-                      <id>make-assembly</id>
-                      <phase>package</phase>
-                      <goals>
-                        <goal>single</goal>
-                      </goals>
-                    </execution>
-                  </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
         </plugins>
