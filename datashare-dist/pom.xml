@@ -20,23 +20,7 @@
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-web</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-cli</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-cli</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
         </dependency>
 
         <dependency>
@@ -45,23 +29,7 @@
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-nlp-corenlp</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-opennlp</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-nlp-opennlp</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
@@ -69,35 +37,11 @@
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-nlp-gate</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-mitie</artifactId>
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-nlp-mitie</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-ixapipe</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-nlp-ixapipe</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
         </dependency>
     </dependencies>
 
