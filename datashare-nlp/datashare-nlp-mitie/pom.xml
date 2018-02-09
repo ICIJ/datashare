@@ -26,6 +26,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-index</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Mitie -->
@@ -33,7 +34,6 @@
             <groupId>edu.mit.ll</groupId>
             <artifactId>mitie</artifactId>
             <version>${mitie.version}</version>
-            <type>jar</type>
         </dependency>
 
         <!-- Logging -->
@@ -64,9 +64,31 @@
 
         <plugins>
             <plugin>
-                <artifactId>maven-dependency-plugin</artifactId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.icij.datashare.text.nlp.MitieNlpApp</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
 </project>

@@ -23,8 +23,6 @@
 
 
     <dependencies>
-
-        <!-- Datashare Api -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-api</artifactId>
@@ -32,6 +30,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-index</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Ixa-Pipe-Tok -->
@@ -109,6 +108,28 @@
         </resources>
 
         <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.icij.datashare.text.nlp.IxaPipeApp</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>maven-install-plugin</artifactId>
                 <executions>

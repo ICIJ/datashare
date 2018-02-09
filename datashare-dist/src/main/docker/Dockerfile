@@ -12,5 +12,5 @@ VOLUME /data
 WORKDIR /data
 
 EXPOSE 8080
-CMD ["java", "-jar", "/home/datashare/lib/datashare-web-0.6-jar-with-dependencies.jar"]
+CMD ["java", "-cp", "/home/datashare/lib/datashare-web-0.6-jar-with-dependencies.jar:/home/datashare/lib/datashare-index-0.6-jar-with-dependencies.jar", "org.icij.datashare.WebApp"]
 #CMD ["java", "-jar", "/home/datashare/extract.jar"]
