@@ -73,7 +73,7 @@
                     <configuration>
                         <archive>
                             <manifest>
-                                <mainClass>org.icij.datashare.text.nlp.OpenNlpApp</mainClass>
+                                <mainClass>org.icij.datashare.WebApp</mainClass>
                             </manifest>
                         </archive>
                         <descriptorRefs>
