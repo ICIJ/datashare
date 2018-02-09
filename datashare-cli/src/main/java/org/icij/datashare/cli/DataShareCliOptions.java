@@ -5,8 +5,6 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
 import org.icij.datashare.DataShare;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.File;
@@ -15,13 +13,7 @@ import static java.util.Arrays.asList;
 import static org.icij.datashare.DataShare.*;
 
 
-/**
- * {@link DataShareCli} options specification
- *
- * Created by julien on 10/10/16.
- */
 final class DataShareCliOptions {
-
     private static final char ARG_VALS_SEP = ',';
 
     static OptionSpec<DataShare.Stage> stages(OptionParser parser) {
@@ -34,12 +26,15 @@ final class DataShareCliOptions {
                 .defaultsTo(DEFAULT_STAGES.toArray(new DataShare.Stage[DEFAULT_STAGES.size()]));
     }
 
-    static OptionSpecBuilder asNode(OptionParser parser) {
+    static OptionSpec<Boolean> web(OptionParser parser) {
         return parser.acceptsAll(
-                asList("node", "n"),
-                "Run as a cluster node.");
+                asList("web", "w"),
+                "Run as a web server")
+                .withRequiredArg()
+                .ofType( Boolean.class )
+                .withValuesSeparatedBy(ARG_VALS_SEP)
+                .defaultsTo(false);
     }
-
 
     static OptionSpec<File> inputDir(OptionParser parser) {
         return parser.acceptsAll(
@@ -92,46 +87,14 @@ final class DataShareCliOptions {
                 .defaultsTo(DEFAULT_NLP_PARALLELISM);
     }
 
-    static OptionSpec<NlpStage> nlpPipelinesStages(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("nlp-stages", "nlps"),
-                "Targeted natural language processing stages.")
-                .withRequiredArg()
-                .ofType( NlpStage.class )
-                .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DEFAULT_NLP_STAGES.toArray(new NlpStage[DEFAULT_NLP_STAGES.size()]));
-    }
-
-    static OptionSpec<NamedEntity.Category> nlpPipelinesEntities(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("nlp-ner-categories", "nlpnerc"),
-                "Targeted named entity categories.")
-                .withRequiredArg()
-                .ofType( NamedEntity.Category.class )
-                .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DEFAULT_NLP_ENTITIES.toArray(new NamedEntity.Category[DEFAULT_NLP_ENTITIES.size()]));
-    }
-
-    static OptionSpecBuilder nlpPipelinesEnableCaching(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("nlp-caching", "nlpcach"),
-                "Keep nlpPipelines' models and annotators in memory. The default.");
-    }
-
-    static OptionSpecBuilder nlpPipelinesDisableCaching(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("nlp-no-caching", "nlpnocach"),
-                "Don't keep nlpPipelines' models and annotators in memory.");
-    }
-
     static OptionSpec<String> indexerHost(OptionParser parser) {
         return parser.acceptsAll(
                 asList("index-address", "indexAddress"),
                 String.join( "\n",
-                        "Indexing address (default localhost:9300)."))
+                        "Indexing address (default elasticsearch:9300)."))
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("localhost:9300");
+                .defaultsTo("elasticsearch:9300");
     }
 
     static AbstractOptionSpec<Void> help(OptionParser parser) {

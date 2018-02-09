@@ -4,11 +4,8 @@ import com.google.common.base.Joiner;
 import joptsimple.*;
 import org.icij.datashare.DataShare;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.extraction.FileParser;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
-import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,52 +18,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.icij.datashare.DataShare.Stage.*;
 
-
-/**
- * Command Line Interface to Datashare
- * <p>
- * Created by julien on 3/9/16.
- */
 public final class DataShareCli {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(DataShareCli.class);
     private static List<DataShare.Stage> stages = new ArrayList<>();
 
-    private static boolean runAsNode;
-
     private static Path inputDir;
 
-    private static FileParser.Type fileParserType = DataShare.DEFAULT_PARSER_TYPE;
     private static int fileParserParallelism;
     private static boolean enableOcr;
 
     private static List<Pipeline.Type> nlpPipelineTypes;
-    private static List<NlpStage> nlpStages;
-    private static List<NamedEntity.Category> nlpTargetEntities;
-    private static boolean nlpPipelineCaching;
     private static int nlpPipelineParallelism;
 
     private static String index = DataShare.DEFAULT_INDEX;
     private static String indexAddress;
     private static Properties properties;
 
-    /**
-     * Parse command line arguments
-     *
-     * @param args the array of arguments
-     */
     private static boolean parseArguments(String[] args) {
         OptionParser parser = new OptionParser();
 
         AbstractOptionSpec<Void> helpOpt = DataShareCliOptions.help(parser);
 
         OptionSpec<DataShare.Stage> stagesOpt = DataShareCliOptions.stages(parser);
-        OptionSpecBuilder asNodeOpt = DataShareCliOptions.asNode(parser);
-
         OptionSpec<File> scanningInputDirOpt = DataShareCliOptions.inputDir(parser);
 
         OptionSpec<Integer> parsingParallelismOpt = DataShareCliOptions.fileParserParallelism(parser);
@@ -75,17 +49,11 @@ public final class DataShareCli {
         parser.mutuallyExclusive(parsingEnableOcrOpt, parsingDisableOcrOpt);
 
         OptionSpec<Pipeline.Type> nlpPipelinesOpt = DataShareCliOptions.nlpPipelines(parser);
-        OptionSpec<NlpStage> nlpStagesOpt = DataShareCliOptions.nlpPipelinesStages(parser);
-        OptionSpec<NamedEntity.Category> nlpEntitiesOpt = DataShareCliOptions.nlpPipelinesEntities(parser);
         OptionSpec<Integer> nlpParallelismOpt = DataShareCliOptions.nlpPipelinesParallelism(parser);
-        OptionSpecBuilder nlpEnableCachingOpt = DataShareCliOptions.nlpPipelinesEnableCaching(parser);
-        OptionSpecBuilder nlpDisableCachingOpt = DataShareCliOptions.nlpPipelinesDisableCaching(parser);
-        parser.mutuallyExclusive(nlpEnableCachingOpt, nlpDisableCachingOpt);
 
         OptionSpec<String> indexerAddressOpt = DataShareCliOptions.indexerHost(parser);
 
         try {
-            // Parse arguments w.r.t. options specifications
             OptionSet options = parser.parse(args);
 
             if (options.has(helpOpt)) {
@@ -96,22 +64,13 @@ public final class DataShareCli {
             stages.addAll(options.valuesOf(stagesOpt));
             stages.sort(DataShare.Stage.comparator);
 
-            // Run as a Cluster Node
-            runAsNode = options.has(asNodeOpt);
-
-            // File System Scanning Options
             inputDir = options.valueOf(scanningInputDirOpt).toPath();
 
-            // File Parsing Options
             enableOcr = options.has(parsingEnableOcrOpt);
             fileParserParallelism = options.valueOf(parsingParallelismOpt);
 
-            // Natural Language Processing Options
             nlpPipelineTypes = options.valuesOf(nlpPipelinesOpt);
             nlpPipelineParallelism = options.valueOf(nlpParallelismOpt);
-            nlpStages = options.valuesOf(nlpStagesOpt);
-            nlpPipelineCaching = !options.has(nlpDisableCachingOpt);
-            nlpTargetEntities = options.valuesOf(nlpEntitiesOpt);
             indexAddress = options.valueOf(indexerAddressOpt);
             properties = asProperties(options, "");
             return true;
@@ -147,7 +106,6 @@ public final class DataShareCli {
         return values.isEmpty() ? String.valueOf(present) : Joiner.on(",").join(values);
     }
 
-
     private static void printHelp(OptionParser parser) {
         try {
             System.out.println("Usage: ");
@@ -157,17 +115,6 @@ public final class DataShareCli {
         }
     }
 
-    private static String environment() {
-        List<String> envList = new ArrayList<>();
-        System.getenv().forEach((key, value) -> envList.add(key + " = " + value));
-        return String.join("\n", envList);
-    }
-
-    /**
-     * Datashare CLI Main
-     *
-     * @param args the arguments from command line call
-     */
     public static void main(String[] args) throws Exception {
         if (!parseArguments(args)) {
             LOGGER.info("Exiting...");
@@ -179,42 +126,15 @@ public final class DataShareCli {
 
         Indexer indexer = new ElasticsearchIndexer(new PropertiesProvider(properties));
 
-        if (runAsNode) {
-            if (stages.equals(asList(SCANNING, PARSING))) {
-                DataShare.Node.parseDirectory(
-                        inputDir,
-                        fileParserType,
-                        fileParserParallelism,
-                        enableOcr,
-                        indexer,
-                        index
-                );
-            } else if (stages.equals(singletonList(NLP))) {
-                DataShare.Node.extractNamedEntities(
-                        nlpStages,
-                        nlpTargetEntities,
-                        nlpPipelineTypes,
-                        nlpPipelineParallelism,
-                        nlpPipelineCaching,
-                        indexer,
-                        index
-                );
-            }
-        } else {
-            DataShare.StandAlone.processDirectory(
-                    inputDir,
-                    fileParserType,
-                    fileParserParallelism,
-                    enableOcr,
-                    nlpPipelineTypes,
-                    nlpPipelineParallelism,
-                    nlpPipelineCaching,
-                    nlpStages,
-                    nlpTargetEntities,
-                    indexer,
-                    index
-            );
-        }
+        DataShare.processDirectory(
+                inputDir,
+                fileParserParallelism,
+                enableOcr,
+                nlpPipelineTypes,
+                nlpPipelineParallelism,
+                indexer,
+                index
+        );
         indexer.close();
     }
 }
