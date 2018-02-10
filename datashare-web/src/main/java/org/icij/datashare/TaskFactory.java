@@ -6,7 +6,7 @@ import org.icij.task.Options;
 
 import java.nio.file.Path;
 
-interface TaskFactory {
+public interface TaskFactory {
     SpewTask createSpewTask(final Options<String> options);
     ScanTask createScanTask(final Path path, final Options<String> options);
 }

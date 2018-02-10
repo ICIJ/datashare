@@ -2,56 +2,51 @@ package org.icij.datashare.cli;
 
 import com.google.common.base.Joiner;
 import joptsimple.*;
-import org.icij.datashare.DataShare;
-import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
-import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.WebApp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+
+import static org.icij.datashare.cli.DataShareCliOptions.web;
 
 
 public final class DataShareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DataShareCli.class);
-    private static List<DataShare.Stage> stages = new ArrayList<>();
+    private static List<DataShareCli.Stage> stages = new ArrayList<>();
 
-    private static Path inputDir;
-
-    private static int fileParserParallelism;
-    private static boolean enableOcr;
-
-    private static List<Pipeline.Type> nlpPipelineTypes;
-    private static int nlpPipelineParallelism;
-
-    private static String index = DataShare.DEFAULT_INDEX;
-    private static String indexAddress;
     private static Properties properties;
+    private static boolean webServer = false;
+
+    public static void main(String[] args) throws Exception {
+        if (!parseArguments(args)) {
+            LOGGER.info("Exiting...");
+            System.exit(1);
+        }
+        LOGGER.info("Running datashare " + (webServer ? "web server" : ""));
+        LOGGER.info("with properties: " + properties);
+
+        if (webServer) {
+            WebApp.start(properties);
+        } else {
+            CliApp.start(properties);
+        }
+    }
 
     private static boolean parseArguments(String[] args) {
         OptionParser parser = new OptionParser();
 
         AbstractOptionSpec<Void> helpOpt = DataShareCliOptions.help(parser);
 
-        OptionSpec<DataShare.Stage> stagesOpt = DataShareCliOptions.stages(parser);
-        OptionSpec<File> scanningInputDirOpt = DataShareCliOptions.inputDir(parser);
-
-        OptionSpec<Integer> parsingParallelismOpt = DataShareCliOptions.fileParserParallelism(parser);
-        OptionSpecBuilder parsingEnableOcrOpt = DataShareCliOptions.enableOcr(parser);
-        OptionSpecBuilder parsingDisableOcrOpt = DataShareCliOptions.disableOcr(parser);
-        parser.mutuallyExclusive(parsingEnableOcrOpt, parsingDisableOcrOpt);
-
-        OptionSpec<Pipeline.Type> nlpPipelinesOpt = DataShareCliOptions.nlpPipelines(parser);
-        OptionSpec<Integer> nlpParallelismOpt = DataShareCliOptions.nlpPipelinesParallelism(parser);
-
-        OptionSpec<String> indexerAddressOpt = DataShareCliOptions.indexerHost(parser);
+        OptionSpec<DataShareCli.Stage> stagesOpt = DataShareCliOptions.stages(parser);
+        DataShareCliOptions.inputDir(parser);
+        DataShareCliOptions.fileParserParallelism(parser);
+        DataShareCliOptions.enableOcr(parser);
+        DataShareCliOptions.nlpPipelines(parser);
+        DataShareCliOptions.nlpPipelinesParallelism(parser);
+        DataShareCliOptions.indexerHost(parser);
+        DataShareCliOptions.web(parser);
 
         try {
             OptionSet options = parser.parse(args);
@@ -62,17 +57,9 @@ public final class DataShareCli {
             }
 
             stages.addAll(options.valuesOf(stagesOpt));
-            stages.sort(DataShare.Stage.comparator);
-
-            inputDir = options.valueOf(scanningInputDirOpt).toPath();
-
-            enableOcr = options.has(parsingEnableOcrOpt);
-            fileParserParallelism = options.valueOf(parsingParallelismOpt);
-
-            nlpPipelineTypes = options.valuesOf(nlpPipelinesOpt);
-            nlpPipelineParallelism = options.valueOf(nlpParallelismOpt);
-            indexAddress = options.valueOf(indexerAddressOpt);
-            properties = asProperties(options, "");
+            stages.sort(DataShareCli.Stage.comparator);
+            webServer = options.valueOf(web(parser));
+            properties = asProperties(options, null);
             return true;
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);
@@ -115,26 +102,21 @@ public final class DataShareCli {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        if (!parseArguments(args)) {
-            LOGGER.info("Exiting...");
-            System.exit(1);
+    public enum Stage {
+        SCAN,
+        INDEX,
+        NLP;
+
+        public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
+
+        public static Optional<Stage> parse(final String stage) {
+            if (stage == null || stage.isEmpty())
+                return Optional.empty();
+            try {
+                return Optional.of(valueOf(stage.toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException e) {
+                return Optional.empty();
+            }
         }
-
-        LOGGER.info("Stage:             " + stages);
-        LOGGER.info("Indexer Address: " + indexAddress);
-
-        Indexer indexer = new ElasticsearchIndexer(new PropertiesProvider(properties));
-
-        DataShare.processDirectory(
-                inputDir,
-                fileParserParallelism,
-                enableOcr,
-                nlpPipelineTypes,
-                nlpPipelineParallelism,
-                indexer,
-                index
-        );
-        indexer.close();
     }
 }

@@ -1,44 +1,39 @@
 package org.icij.datashare.cli;
 
-import joptsimple.AbstractOptionSpec;
-import joptsimple.OptionParser;
-import joptsimple.OptionSpec;
-import joptsimple.OptionSpecBuilder;
-import org.icij.datashare.DataShare;
+import joptsimple.*;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.File;
 
 import static java.util.Arrays.asList;
-import static org.icij.datashare.DataShare.*;
 
 
 final class DataShareCliOptions {
-    private static final char ARG_VALS_SEP = ',';
+    static final char ARG_VALS_SEP = ',';
+    private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
+    private static final Integer DEFAULT_NLP_PARALLELISM = 1;
+    static final String STAGES_OPT = "stages";
+    static final String SCANNING_INPUT_DIR_OPT = "scanning-input-dir";
+    static final String NLP_PIPELINES_OPT = "nlp-pipelines";
 
-    static OptionSpec<DataShare.Stage> stages(OptionParser parser) {
+    static OptionSpec<DataShareCli.Stage> stages(OptionParser parser) {
         return parser.acceptsAll(
-                asList("stages", "s"),
+                asList(STAGES_OPT, "s"),
                 "Stages to be run.")
                 .withRequiredArg()
-                .ofType( DataShare.Stage.class )
+                .ofType( DataShareCli.Stage.class )
                 .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DEFAULT_STAGES.toArray(new DataShare.Stage[DEFAULT_STAGES.size()]));
+                .defaultsTo(DataShareCli.Stage.values());
     }
 
-    static OptionSpec<Boolean> web(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("web", "w"),
-                "Run as a web server")
-                .withRequiredArg()
-                .ofType( Boolean.class )
-                .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(false);
+    static ArgumentAcceptingOptionSpec<Boolean> web(OptionParser parser) {
+        return parser.acceptsAll(asList("web", "w"), "Run as a web server").
+                withRequiredArg().ofType(boolean.class).defaultsTo(false);
     }
 
     static OptionSpec<File> inputDir(OptionParser parser) {
         return parser.acceptsAll(
-                asList( "scanning-input-dir", "i"),
+                asList(SCANNING_INPUT_DIR_OPT, "i"),
                 "Source files directory." )
                 .withRequiredArg()
                 .ofType( File.class )
@@ -61,21 +56,14 @@ final class DataShareCliOptions {
                         "(Tesseract must be installed beforehand).");
     }
 
-    static OptionSpecBuilder disableOcr(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("parsing-no-ocr", "nocr"),
-                "Prevent optical character recognition from being run at file parsing time. " +
-                        "(Tesseract must be installed otherwise).");
-    }
-
     static OptionSpec<Pipeline.Type> nlpPipelines(OptionParser parser) {
         return parser.acceptsAll(
-                asList("nlp-pipelines", "nlpp"),
+                asList(NLP_PIPELINES_OPT, "nlpp"),
                 "NLP pipelines to be run.")
                 .withRequiredArg()
                 .ofType( Pipeline.Type.class )
                 .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DEFAULT_NLP_PIPELINES.toArray(new Pipeline.Type[DEFAULT_NLP_PIPELINES.size()]));
+                .defaultsTo(Pipeline.Type.values());
     }
 
     static OptionSpec<Integer> nlpPipelinesParallelism(OptionParser parser) {

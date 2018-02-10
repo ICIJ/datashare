@@ -21,7 +21,7 @@ public class WebAppAcceptanceTest implements FluentRestTest {
 
     @BeforeClass
     public static void setUpClass() {
-        server.configure(WebApp.getConfiguration(new ProdServiceModule()));
+        server.configure(WebApp.getConfiguration(new ProdServiceModule(null)));
     }
 
     @Test

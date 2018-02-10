@@ -10,32 +10,10 @@
         <version>0.6</version>
     </parent>
 
-
     <artifactId>datashare-cli</artifactId>
     <packaging>jar</packaging>
 
-
     <dependencies>
-
-        <!-- for amazon S3 -->
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-           <groupId>joda-time</groupId>
-           <artifactId>joda-time</artifactId>
-        </dependency>
-
-        <!-- Datashare -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-api</artifactId>
@@ -43,9 +21,14 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-index</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-web</artifactId>
+            <scope>provided</scope>
         </dependency>
 
-        <!-- Jopt Simple -->
         <dependency>
             <groupId>net.sf.jopt-simple</groupId>
             <artifactId>jopt-simple</artifactId>
@@ -92,33 +75,27 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-shade-plugin</artifactId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.icij.datashare.cli.DataShareCli</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
                 <executions>
                     <execution>
+                        <id>make-assembly</id>
                         <phase>package</phase>
                         <goals>
-                            <goal>shade</goal>
+                            <goal>single</goal>
                         </goals>
-                        <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
-                            <transformers>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <manifestEntries>
-                                        <Main-Class>org.icij.datashare.cli.DataShareCli</Main-Class>
-                                        <X-Compile-Source-JDK>${project.build.jdk.source}</X-Compile-Source-JDK>
-                                        <X-Compile-Target-JDK>${project.build.jdk.target}</X-Compile-Target-JDK>
-                                    </manifestEntries>
-                                </transformer>
-                            </transformers>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>

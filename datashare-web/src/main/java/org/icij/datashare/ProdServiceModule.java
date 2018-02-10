@@ -11,9 +11,20 @@ import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguage
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.spewer.Spewer;
 
+import java.util.Properties;
+
 public class ProdServiceModule extends AbstractModule{
+    private final Properties properties;
+
+    public ProdServiceModule(Properties properties) {
+        this.properties = properties;
+    }
+
     @Override
     protected void configure() {
+        if (properties != null) {
+            bind(PropertiesProvider.class).toInstance(new PropertiesProvider(properties));
+        }
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
         bind(Publisher.class).to(RedisPublisher.class);
         bind(Spewer.class).to(ElasticsearchSpewer.class);

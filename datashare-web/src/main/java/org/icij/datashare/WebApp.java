@@ -9,11 +9,13 @@ import net.codestory.http.WebServer;
 import net.codestory.http.extensions.Extensions;
 import net.codestory.http.misc.Env;
 
+import java.util.Properties;
+
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 
 public class WebApp {
     public static void main(String[] args) {
-        new WebServer().configure(getConfiguration(new ProdServiceModule())).start();
+        start(null);
     }
 
     static Configuration getConfiguration(final Module ioc) {
@@ -28,5 +30,9 @@ public class WebApp {
                         return defaultObjectMapper;
                     }
                 });
+    }
+
+    public static void start(Properties properties) {
+        new WebServer().configure(getConfiguration(new ProdServiceModule(properties))).start();
     }
 }
