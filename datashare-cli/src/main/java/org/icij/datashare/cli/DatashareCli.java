@@ -9,12 +9,12 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 
-import static org.icij.datashare.cli.DataShareCliOptions.web;
+import static org.icij.datashare.cli.DatashareCliOptions.web;
 
 
-public final class DataShareCli {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DataShareCli.class);
-    private static List<DataShareCli.Stage> stages = new ArrayList<>();
+public final class DatashareCli {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
+    private static List<DatashareCli.Stage> stages = new ArrayList<>();
 
     private static Properties properties;
     private static boolean webServer = false;
@@ -37,16 +37,16 @@ public final class DataShareCli {
     private static boolean parseArguments(String[] args) {
         OptionParser parser = new OptionParser();
 
-        AbstractOptionSpec<Void> helpOpt = DataShareCliOptions.help(parser);
+        AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
-        OptionSpec<DataShareCli.Stage> stagesOpt = DataShareCliOptions.stages(parser);
-        DataShareCliOptions.inputDir(parser);
-        DataShareCliOptions.fileParserParallelism(parser);
-        DataShareCliOptions.enableOcr(parser);
-        DataShareCliOptions.nlpPipelines(parser);
-        DataShareCliOptions.nlpPipelinesParallelism(parser);
-        DataShareCliOptions.indexerHost(parser);
-        DataShareCliOptions.web(parser);
+        OptionSpec<DatashareCli.Stage> stagesOpt = DatashareCliOptions.stages(parser);
+        DatashareCliOptions.inputDir(parser);
+        DatashareCliOptions.fileParserParallelism(parser);
+        DatashareCliOptions.enableOcr(parser);
+        DatashareCliOptions.nlpPipelines(parser);
+        DatashareCliOptions.nlpPipelinesParallelism(parser);
+        DatashareCliOptions.indexerHost(parser);
+        DatashareCliOptions.web(parser);
 
         try {
             OptionSet options = parser.parse(args);
@@ -57,7 +57,7 @@ public final class DataShareCli {
             }
 
             stages.addAll(options.valuesOf(stagesOpt));
-            stages.sort(DataShareCli.Stage.comparator);
+            stages.sort(DatashareCli.Stage.comparator);
             webServer = options.valueOf(web(parser));
             properties = asProperties(options, null);
             return true;

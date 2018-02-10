@@ -8,7 +8,7 @@ import java.io.File;
 import static java.util.Arrays.asList;
 
 
-final class DataShareCliOptions {
+final class DatashareCliOptions {
     static final char ARG_VALS_SEP = ',';
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
@@ -16,14 +16,14 @@ final class DataShareCliOptions {
     static final String SCANNING_INPUT_DIR_OPT = "scanning-input-dir";
     static final String NLP_PIPELINES_OPT = "nlp-pipelines";
 
-    static OptionSpec<DataShareCli.Stage> stages(OptionParser parser) {
+    static OptionSpec<DatashareCli.Stage> stages(OptionParser parser) {
         return parser.acceptsAll(
                 asList(STAGES_OPT, "s"),
                 "Stages to be run.")
                 .withRequiredArg()
-                .ofType( DataShareCli.Stage.class )
+                .ofType( DatashareCli.Stage.class )
                 .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DataShareCli.Stage.values());
+                .defaultsTo(DatashareCli.Stage.values());
     }
 
     static ArgumentAcceptingOptionSpec<Boolean> web(OptionParser parser) {

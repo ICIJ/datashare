@@ -19,16 +19,16 @@ import static java.lang.String.valueOf;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.stream.Collectors.toSet;
-import static org.icij.datashare.cli.DataShareCli.Stage.*;
-import static org.icij.datashare.cli.DataShareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCli.Stage.*;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 public class CliApp {
     public static void start(Properties properties) throws Exception {
         Injector injector = createInjector(new ProdServiceModule(properties));
         TaskManager taskManager = injector.getInstance(TaskManager.class);
         TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
-        Set<DataShareCli.Stage> stages = stream(properties.getProperty(STAGES_OPT).
-                split(valueOf(ARG_VALS_SEP))).map(DataShareCli.Stage::valueOf).collect(toSet());
+        Set<DatashareCli.Stage> stages = stream(properties.getProperty(STAGES_OPT).
+                split(valueOf(ARG_VALS_SEP))).map(DatashareCli.Stage::valueOf).collect(toSet());
 
         if (stages.contains(SCAN)) {
             taskManager.startTask(taskFactory.createScanTask(Paths.get(properties.getProperty(SCANNING_INPUT_DIR_OPT)), Options.from(properties)));

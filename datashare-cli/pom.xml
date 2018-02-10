@@ -79,7 +79,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.icij.datashare.cli.DataShareCli</mainClass>
+                            <mainClass>org.icij.datashare.cli.DatashareCli</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
