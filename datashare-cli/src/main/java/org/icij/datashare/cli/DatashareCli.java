@@ -9,8 +9,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 
-import static org.icij.datashare.cli.DatashareCliOptions.web;
-
 
 public final class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
@@ -36,7 +34,6 @@ public final class DatashareCli {
 
     private static boolean parseArguments(String[] args) {
         OptionParser parser = new OptionParser();
-
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
         OptionSpec<DatashareCli.Stage> stagesOpt = DatashareCliOptions.stages(parser);
@@ -46,7 +43,9 @@ public final class DatashareCli {
         DatashareCliOptions.nlpPipelines(parser);
         DatashareCliOptions.nlpPipelinesParallelism(parser);
         DatashareCliOptions.indexerHost(parser);
-        DatashareCliOptions.web(parser);
+        ArgumentAcceptingOptionSpec<Boolean> webOpt = DatashareCliOptions.web(parser);
+        DatashareCliOptions.messageBusAddress(parser);
+        DatashareCliOptions.redisAddress(parser);
 
         try {
             OptionSet options = parser.parse(args);
@@ -58,7 +57,7 @@ public final class DatashareCli {
 
             stages.addAll(options.valuesOf(stagesOpt));
             stages.sort(DatashareCli.Stage.comparator);
-            webServer = options.valueOf(web(parser));
+            webServer = options.valueOf(webOpt);
             properties = asProperties(options, null);
             return true;
         } catch (Exception e) {

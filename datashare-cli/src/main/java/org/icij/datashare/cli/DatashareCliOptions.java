@@ -15,6 +15,7 @@ final class DatashareCliOptions {
     static final String STAGES_OPT = "stages";
     static final String SCANNING_INPUT_DIR_OPT = "scanning-input-dir";
     static final String NLP_PIPELINES_OPT = "nlp-pipelines";
+    static final String MESSAGE_BUS_OPT = "messageBusAddress";
 
     static OptionSpec<DatashareCli.Stage> stages(OptionParser parser) {
         return parser.acceptsAll(
@@ -28,7 +29,7 @@ final class DatashareCliOptions {
 
     static ArgumentAcceptingOptionSpec<Boolean> web(OptionParser parser) {
         return parser.acceptsAll(asList("web", "w"), "Run as a web server").
-                withRequiredArg().ofType(boolean.class).defaultsTo(false);
+                withRequiredArg().ofType(Boolean.class).defaultsTo(false);
     }
 
     static OptionSpec<File> inputDir(OptionParser parser) {
@@ -39,6 +40,22 @@ final class DatashareCliOptions {
                 .ofType( File.class )
                 .defaultsTo(new File("."));
     }
+
+    static OptionSpec<String> messageBusAddress(OptionParser parser) {
+        return parser.acceptsAll(
+                asList(MESSAGE_BUS_OPT, "m"),
+                "Message bus address")
+                .withRequiredArg()
+                .defaultsTo("redis");
+    }
+
+    static OptionSpec<String> redisAddress(OptionParser parser) {
+            return parser.acceptsAll(
+                    asList("redisAddress"),
+                    "Redis queue address")
+                    .withRequiredArg()
+                    .defaultsTo("redis://redis:6379");
+        }
 
     static OptionSpec<Integer> fileParserParallelism(OptionParser parser) {
         return parser.acceptsAll(

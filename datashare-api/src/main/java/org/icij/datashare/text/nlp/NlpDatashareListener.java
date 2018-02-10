@@ -27,8 +27,8 @@ public class NlpDatashareListener implements DatashareListener {
     public NlpDatashareListener(PropertiesProvider provider, AbstractPipeline nlpPipeline, Indexer indexer) {
         this.nlpPipeline = nlpPipeline;
         this.indexer = indexer;
-        String messageBusProperties = provider.getProperties().getProperty("messageBusProperties");
-        busAddress = messageBusProperties == null ? "localhost": messageBusProperties;
+        String messageBusAddress = provider.getProperties().getProperty("messageBusAddress");
+        busAddress = messageBusAddress == null ? "localhost": messageBusAddress;
     }
 
     @Override
