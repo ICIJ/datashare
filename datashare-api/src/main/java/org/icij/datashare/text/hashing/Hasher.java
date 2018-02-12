@@ -1,7 +1,5 @@
 package org.icij.datashare.text.hashing;
 
-import org.icij.datashare.io.FileSystemUtils;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -102,7 +100,7 @@ public enum Hasher {
                 return "";
             }
             MessageDigest digest = MessageDigest.getInstance(algorithm);
-            byte[] buffer = new byte[FileSystemUtils.CHAR_BUFFER_SIZE];
+            byte[] buffer = new byte[4096];
             while (true) {
                 int readCount = stream.read(buffer);
                 if (readCount < 0) {
