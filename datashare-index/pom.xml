@@ -166,6 +166,7 @@
                         <configuration>
                             <relocations>
                                 <relocation>
+                                    <!--because of conflict with code-story/webjar-locator-->
                                     <pattern>org.apache.commons.compress</pattern>
                                     <shadedPattern>org.apache.commons.compress14-tika</shadedPattern>
                                 </relocation>

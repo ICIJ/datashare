@@ -73,6 +73,7 @@
                     <execution>
                         <configuration>
                             <transformers>
+                                <!--remove models from jar-->
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
                                     <resource>.dat</resource>
