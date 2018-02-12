@@ -42,7 +42,7 @@ public class CliApp {
 
             for (Pipeline.Type nlp : nlpPipelines) {
                 Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
-                taskManager.startTask(new NlpApp().withNlp(pipelineClass).withIndexer(ElasticsearchIndexer.class));
+                taskManager.startTask(new NlpApp().withNlp(pipelineClass).withIndexer(ElasticsearchIndexer.class).withProperties(properties));
             }
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, HOURS);

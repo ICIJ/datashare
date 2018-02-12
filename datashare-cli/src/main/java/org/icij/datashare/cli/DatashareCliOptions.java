@@ -13,8 +13,8 @@ final class DatashareCliOptions {
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
     static final String STAGES_OPT = "stages";
-    static final String SCANNING_INPUT_DIR_OPT = "scanning-input-dir";
-    static final String NLP_PIPELINES_OPT = "nlp-pipelines";
+    static final String SCANNING_INPUT_DIR_OPT = "inputDir";
+    static final String NLP_PIPELINES_OPT = "nlpPipelines";
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
 
     static OptionSpec<DatashareCli.Stage> stages(OptionParser parser) {
@@ -59,7 +59,7 @@ final class DatashareCliOptions {
 
     static OptionSpec<Integer> fileParserParallelism(OptionParser parser) {
         return parser.acceptsAll(
-                asList("parsing-parallelism", "parsingt"),
+                asList("parallelism", "p"),
                 "Number of file parser threads.")
                 .withRequiredArg()
                 .ofType( Integer.class )
@@ -68,7 +68,7 @@ final class DatashareCliOptions {
 
     static OptionSpecBuilder enableOcr(OptionParser parser) {
         return parser.acceptsAll(
-                asList("parsing-ocr", "ocr"),
+                asList("parsingOcr", "ocr"),
                 "Run optical character recognition at file parsing time. " +
                         "(Tesseract must be installed beforehand).");
     }
@@ -85,7 +85,7 @@ final class DatashareCliOptions {
 
     static OptionSpec<Integer> nlpPipelinesParallelism(OptionParser parser) {
         return parser.acceptsAll(
-                asList("nlp-parallelism", "nlpt"),
+                asList("nlpParallelism", "l"),
                 "Number of threads per specified pipeline.")
                 .withRequiredArg()
                 .ofType( Integer.class )
@@ -94,16 +94,29 @@ final class DatashareCliOptions {
 
     static OptionSpec<String> indexerHost(OptionParser parser) {
         return parser.acceptsAll(
-                asList("index-address", "indexAddress"),
-                String.join( "\n",
-                        "Indexing address (default elasticsearch:9300)."))
+                asList("indexAddress"), "Indexing address")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("elasticsearch:9300");
     }
 
+    static OptionSpec<String> indexName(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("indexName", "n"), "Index name")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo("datashare-local");
+    }
+
+    static OptionSpec<String> clusterName(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("clusterName", "c"), "Cluster name")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo("datashare");
+    }
+
     static AbstractOptionSpec<Void> help(OptionParser parser) {
         return parser.acceptsAll(asList("help", "h", "?")).forHelp();
     }
-
 }

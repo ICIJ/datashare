@@ -43,6 +43,8 @@ public final class DatashareCli {
         DatashareCliOptions.nlpPipelines(parser);
         DatashareCliOptions.nlpPipelinesParallelism(parser);
         DatashareCliOptions.indexerHost(parser);
+        DatashareCliOptions.indexName(parser);
+        DatashareCliOptions.clusterName(parser);
         ArgumentAcceptingOptionSpec<Boolean> webOpt = DatashareCliOptions.web(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
