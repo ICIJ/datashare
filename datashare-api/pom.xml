@@ -13,10 +13,6 @@
     <artifactId>datashare-api</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <hazelcast.version>3.8.2</hazelcast.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>redis.clients</groupId>
@@ -31,13 +27,6 @@
              <groupId>com.google.guava</groupId>
              <artifactId>guava</artifactId>
          </dependency>
-
-        <!-- Hazelcast -->
-        <dependency>
-            <groupId>com.hazelcast</groupId>
-            <artifactId>hazelcast-all</artifactId>
-            <version>${hazelcast.version}</version>
-        </dependency>
 
         <!-- Unidecode -->
         <dependency>

@@ -1,18 +1,13 @@
 package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.hazelcast.nio.ObjectDataInput;
-import com.hazelcast.nio.ObjectDataOutput;
-import com.hazelcast.nio.serialization.DataSerializable;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.hashing.HasherException;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexType;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Date;
 import java.util.Optional;
 
@@ -25,7 +20,7 @@ import java.util.Optional;
  * Created by julien on 2/3/17.
  */
 @IndexType("SourcePath")
-public class SourcePath implements Entity, DataSerializable {
+public class SourcePath implements Entity {
     private static final long serialVersionUID = 1587956432685458L;
 
     /**
@@ -88,20 +83,4 @@ public class SourcePath implements Entity, DataSerializable {
     public String toString() {
         return getPath() + "(" + getId() + ")";
     }
-
-
-    @Override
-    public void writeData(ObjectDataOutput out) throws IOException {
-        out.writeUTF(path.toString());
-        out.writeObject(asOf);
-        out.writeUTF(hash);
-    }
-
-    @Override
-    public void readData(ObjectDataInput in) throws IOException {
-        path = Paths.get(in.readUTF());
-        asOf = in.readObject();
-        hash = in.readUTF();
-    }
-
 }
