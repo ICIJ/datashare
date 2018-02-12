@@ -2,7 +2,6 @@ package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.icij.datashare.Entity;
-import org.icij.datashare.text.hashing.HasherException;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexType;
 
@@ -32,7 +31,7 @@ public class SourcePath implements Entity {
     public static Optional<SourcePath> create(Path path) {
         try {
             return Optional.of( new SourcePath(path) );
-        } catch (IllegalStateException | HasherException e) {
+        } catch (IllegalStateException e) {
             LOGGER.error("Failed to create document", e);
             return Optional.empty();
         }
@@ -51,7 +50,7 @@ public class SourcePath implements Entity {
 
     private SourcePath() {};
 
-    private SourcePath(Path path) throws HasherException, IllegalArgumentException {
+    private SourcePath(Path path) throws IllegalArgumentException {
         if ( ! Files.exists(path))
             throw new IllegalArgumentException("File " + path + " does not exist.");
         if ( ! Files.isRegularFile(path))
@@ -60,8 +59,6 @@ public class SourcePath implements Entity {
             throw new IllegalArgumentException("File " + path + " is not readable.");
         this.path = path;
         this.hash = HASHER.hash(getPath().toString());
-        if (this.hash.isEmpty())
-            throw new HasherException("Failed to hash content of " + this.path);
         this.asOf = new Date();
     }
 

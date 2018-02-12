@@ -1,5 +1,6 @@
 package org.icij.datashare.text.hashing;
 
+import org.icij.datashare.text.Hasher;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;

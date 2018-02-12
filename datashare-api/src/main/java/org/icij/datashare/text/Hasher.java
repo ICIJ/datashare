@@ -1,4 +1,4 @@
-package org.icij.datashare.text.hashing;
+package org.icij.datashare.text;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -67,8 +67,7 @@ public enum Hasher {
             digest.update(message.getBytes(charset));
             return getHex(digest.digest());
         } catch (NoSuchAlgorithmException e) {
-            //throw new HasherException("Failed to hash from String", e);
-            return "";
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -112,8 +111,7 @@ public enum Hasher {
             return new String(hashedBytes);
 
         } catch (NoSuchAlgorithmException | IOException e) {
-            // throw new HasherException("Failed to hash from InputStream", e);
-            return "";
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -129,9 +127,7 @@ public enum Hasher {
         }
         try {
             return Optional.of(valueOf(algo.toUpperCase(Locale.ROOT).replace('-', '_')));
-
         } catch (IllegalArgumentException e) {
-            //throw new IllegalArgumentException(String.format("\"%s\" is not a valid hash algorithm.", algo));
             return Optional.empty();
         }
     }
