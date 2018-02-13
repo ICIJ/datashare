@@ -14,11 +14,8 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
-import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiFunction;
 
@@ -28,17 +25,6 @@ import static org.icij.datashare.text.NamedEntity.Category.*;
 import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
-/**
- * {@link Pipeline}
- * {@link AbstractPipeline}
- * {@link Type#GATENLP}
- *
- * <a href="https://github.com/ICIJ/entity-extractor/tree/production">OEG UPM Gate-based entity-extractor</a>
- * <a href="https://gate.ac.uk/">Gate</a>
- * JAPE rules defined in {@code src/main/resources/org/icij/datashare/text/nlp/gatenlp/ner/rules/} (to evolve)
- *
- * Created by julien on 5/19/16.
- */
 public final class GatenlpPipeline extends AbstractPipeline {
 
     private static final Map<Language, Set<NlpStage>> SUPPORTED_STAGES =
@@ -48,11 +34,6 @@ public final class GatenlpPipeline extends AbstractPipeline {
                 put(FRENCH,  new HashSet<>(asList(TOKEN, NER)));
                 put(GERMAN,  new HashSet<>(asList(TOKEN, NER)));
             }};
-
-    private static final Path RESOURCES_DIR = Paths.get(
-            System.getProperty("user.dir"), "src", "main", "resources",
-            Paths.get( GatenlpPipeline.class.getPackage().getName().replace(".", "/") ).toString()
-    );
 
     private static final Map<NamedEntity.Category, String> GATE_NER_CATEGORY_NAME =
             new HashMap<NamedEntity.Category, String>(){{
@@ -84,14 +65,13 @@ public final class GatenlpPipeline extends AbstractPipeline {
     protected boolean initialize(Language language) {
         if ( ! super.initialize(language))
             return false;
-        // Already loaded?
         if (pipeline != null) {
             return true;
         }
         try {
-            // Load and store pipeline
-            pipeline = GATENLPFactory.create(RESOURCES_DIR.toFile());
-
+            GateNlpModels gateNlpModels = new GateNlpModels();
+            gateNlpModels.get(language, Thread.currentThread().getContextClassLoader());// just to download if necessary
+            pipeline = GATENLPFactory.create(gateNlpModels.getModelsFilesystemPath(language).toFile());
         } catch (GateException | IOException e) {
             LOGGER.error("failed building GateNLP Application", e);
             return false;

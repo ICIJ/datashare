@@ -15,7 +15,9 @@ import static org.icij.datashare.function.ThrowingFunctions.*;
 
 public abstract class AbstractPipeline implements Pipeline {
     protected static final Hasher HASHER = Document.HASHER;
+    public static final String NLP_STAGES_PROP = "nlpStages";
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
+
 
     protected final Charset encoding;
     protected final Map<NlpStage, List<NlpStage>> stageDependencies;
@@ -31,7 +33,9 @@ public abstract class AbstractPipeline implements Pipeline {
                         .andThen(NamedEntity.Category.parseAll))
                 .orElse(DEFAULT_ENTITIES);
 
-        targetStages = DEFAULT_TARGET_STAGES;
+        targetStages = getProperty(NLP_STAGES_PROP, properties,
+                        removeSpaces.andThen(splitComma).andThen(NlpStage.parseAll))
+                        .orElse(DEFAULT_TARGET_STAGES);
 
         encoding = getProperty(Property.ENCODING.getName(), properties,
                 parseCharset.compose(String::trim))

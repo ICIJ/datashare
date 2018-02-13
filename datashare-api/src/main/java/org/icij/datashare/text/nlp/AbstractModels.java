@@ -33,7 +33,7 @@ public abstract class AbstractModels<T> {
     }};
     public final NlpStage stage;
     protected final Map<Language, T> models;
-    private final Pipeline.Type type;
+    protected final Pipeline.Type type;
 
     protected AbstractModels(final Pipeline.Type type, final NlpStage stage) {
         this.stage = stage;
@@ -89,7 +89,7 @@ public abstract class AbstractModels<T> {
                 resolve(language.iso6391Code());
     }
 
-    protected Path getModelsFilesystemPath(Language language) {
+    public Path getModelsFilesystemPath(Language language) {
         return Paths.get(PREFIX).resolve(getModelsBasePath(language));
     }
 
