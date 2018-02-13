@@ -14,31 +14,15 @@ import static org.icij.datashare.function.ThrowingFunctions.*;
 
 
 public abstract class AbstractPipeline implements Pipeline {
-
     protected static final Hasher HASHER = Document.HASHER;
-
-
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
-    // Content charset
     protected final Charset encoding;
-
-    // Processing stages' dependencies
     protected final Map<NlpStage, List<NlpStage>> stageDependencies;
-
-    // Final processing stages
     protected final List<NlpStage> targetStages;
-
-    // Named entity categories to recognize
     protected final List<NamedEntity.Category> targetEntities;
-
-    // Keep annotators (and models) in memory from run to run?
     protected final boolean caching;
-
-    // Complete set of processing stages to actually run (dependencies included)
     protected List<NlpStage> stages;
-
-
 
     protected AbstractPipeline(Properties properties) {
         targetEntities = getProperty(Property.ENTITIES.getName(), properties,
@@ -47,11 +31,7 @@ public abstract class AbstractPipeline implements Pipeline {
                         .andThen(NamedEntity.Category.parseAll))
                 .orElse(DEFAULT_ENTITIES);
 
-        targetStages = getProperty(Property.STAGES.getName(), properties,
-                removeSpaces
-                        .andThen(splitComma)
-                        .andThen(NlpStage.parseAll))
-                .orElse(DEFAULT_TARGET_STAGES);
+        targetStages = DEFAULT_TARGET_STAGES;
 
         encoding = getProperty(Property.ENCODING.getName(), properties,
                 parseCharset.compose(String::trim))

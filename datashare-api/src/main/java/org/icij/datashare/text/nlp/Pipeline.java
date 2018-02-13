@@ -5,10 +5,7 @@ import org.icij.datashare.reflect.EnumTypeToken;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Optional;
@@ -20,19 +17,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.function.ThrowingFunctions.joinComma;
-import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.NamedEntity.Category.*;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 
 
-/**
- * Extract tokens, sentences, parts-of-speech or named entities from text
- *
- * Created by julien on 4/4/16.
- */
 public interface Pipeline {
-    Logger LOGGER = LoggerFactory.getLogger(Pipeline.class);
-
     enum Type implements EnumTypeToken {
         CORENLP,
         GATENLP,
@@ -85,103 +74,13 @@ public interface Pipeline {
                 };
     }
 
-
     Charset DEFAULT_ENCODING = UTF_8;
-
-    Language DEFAULT_LANGUAGE = ENGLISH;
-
-    Type DEFAULT_TYPE = Type.GATENLP;
-
-    int DEFAULT_PARALLELISM = 1;
-
     List<NlpStage> DEFAULT_TARGET_STAGES = singletonList(NER);
-
     List<NamedEntity.Category> DEFAULT_ENTITIES = asList(PERSON, ORGANIZATION, LOCATION);
-
     boolean DEFAULT_CACHING = true;
 
-
-    /**
-     * Instantiate a concrete {@code Pipeline} reflectively, implementation determined by {@link Type} enum value
-     *
-     * @param type       the {@link Type} enum value denoting a {@code Pipeline} implementation
-     * @param properties the {@code Pipeline} settings as Properties
-     * @return the corresponding Pipeline implementation instance if succeeded; empty Optional otherwise
-     * @see Type
-     * @see EnumTypeToken
-     * @see Property
-     * */
-    static Optional<Pipeline> create(Type type, Properties properties)  {
-        String interfaceName = Pipeline.class.getName();
-        if ( ! asList(Type.values()).contains(type)) {
-            LOGGER.error("Unknown " + type + " " + interfaceName);
-            return Optional.empty();
-        }
-        try {
-            Object pipelineInstance = Class.forName( type.getClassName() )
-                    .getDeclaredConstructor( new Class[]{Properties.class} )
-                    .newInstance           (             properties        );
-            return Optional.of( (Pipeline) pipelineInstance );
-        } catch (ClassNotFoundException e) {
-            LOGGER.error( type.getClassName() + " not found in the classpath.", e);
-            return Optional.empty();
-        } catch (InvocationTargetException e) {
-            LOGGER.error( "Failed to instantiate " + type + " " + interfaceName, e.getCause());
-            return Optional.empty();
-        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException e) {
-            LOGGER.error("Failed to instantiate " + type + " " + interfaceName, e);
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Instantiate a concrete {@code Pipeline} of {@link Pipeline#DEFAULT_TYPE}
-     *
-     * @param properties the {@code Pipeline} settings as Properties
-     * @return the corresponding Pipeline implementation instance if succeeded; empty Optional otherwise
-     * @see Type
-     * @see EnumTypeToken
-     * @see Property
-     */
-    static Optional<Pipeline> create(Properties properties) {
-        return create(DEFAULT_TYPE, properties);
-    }
-
-    /**
-     * Instantiate a concrete default {@code Pipeline}
-     *
-     * @param type the {@link Type} enum value denoting a {@code Pipeline} implementation
-     * @return the corresponding Pipeline implementation instance if succeeded; empty Optional otherwise
-     * @see Type
-     * @see EnumTypeToken
-     * @see Property
-     */
-    static Optional<Pipeline> create(Type type) {
-        return create(type, new Properties());
-    }
-
-    /**
-     * Instantiate a default concrete {@code Pipeline}
-     *
-     * @return the corresponding Pipeline implementation instance if succeeded; empty Optional otherwise
-     */
-    static Optional<Pipeline> create() {
-        return create(new Properties());
-    }
-
-
-    /**
-     * @return the corresponding implementation {@link Type} enum value
-     */
     Type getType();
 
-
-    /**
-     * Run pipeline on a {@link  org.icij.datashare.text.Document}
-     * Use document's language
-     *
-     * @param document the document to process
-     */
     Optional<Annotations> run(Document document);
 
     /**

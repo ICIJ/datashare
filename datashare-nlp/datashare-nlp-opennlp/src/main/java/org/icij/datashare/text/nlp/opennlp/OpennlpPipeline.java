@@ -75,11 +75,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
 
     @Inject
     public OpennlpPipeline(final PropertiesProvider propertiesProvider) {
-        this(propertiesProvider.getProperties());
-    }
-
-    public OpennlpPipeline(final Properties properties) {
-        super(properties);
+        super(propertiesProvider.getProperties());
 
         // SENTENCE <-- TOKEN <-- {POS, NER}
         stageDependencies.get(TOKEN).add(SENTENCE);
@@ -98,7 +94,6 @@ public final class OpennlpPipeline extends AbstractPipeline {
         posTagger = new HashMap<>();
         nerFinder = new HashMap<>();
     }
-
 
     /**
      * {@inheritDoc}
