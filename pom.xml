@@ -47,7 +47,6 @@
 
         <datashare-api.version>${project.version}</datashare-api.version>
         <datashare-cli.version>${project.version}</datashare-cli.version>
-        <datashare-tika.version>${project.version}</datashare-tika.version>
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
         <datashare-opennlp.version>${project.version}</datashare-opennlp.version>
