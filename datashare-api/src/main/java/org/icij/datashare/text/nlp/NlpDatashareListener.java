@@ -18,13 +18,14 @@ import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 
 public class NlpDatashareListener implements DatashareListener {
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger;
     private final AbstractPipeline nlpPipeline;
     private final Indexer indexer;
     private final String busAddress;
 
     @Inject
     public NlpDatashareListener(PropertiesProvider provider, AbstractPipeline nlpPipeline, Indexer indexer) {
+        this.logger = LoggerFactory.getLogger(nlpPipeline.getClass());
         this.nlpPipeline = nlpPipeline;
         this.indexer = indexer;
         String messageBusAddress = provider.getProperties().getProperty("messageBusAddress");
