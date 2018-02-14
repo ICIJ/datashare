@@ -1,16 +1,31 @@
-FROM jolokia/alpine-jre-8
+FROM frolvlad/alpine-glibc
+
+# install java Runtime for alpine cf https://wiki.alpinelinux.org/wiki/Installing_Oracle_Java
+# without glibc stuffs because we're using alpine-glibc
+RUN cd /tmp && \
+  wget  --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
+  "http://download.oracle.com/otn-pub/java/jdk/8u161-b12/2f38c3b165be4555a1fa6e98c45e0808/server-jre-8u161-linux-x64.tar.gz" && \
+  mkdir -p /opt/java && cd /opt/java && \
+  tar -zxf  /tmp/server-jre-8u161-linux-x64.tar.gz && \
+  ln -s /opt/java/jdk1.8.0_161 /opt/java/current && \
+  echo 'export JAVA_HOME=/opt/java/current' > /etc/profile.d/java.sh && \
+  echo 'export PATH=$PATH:$JAVA_HOME/bin' >> /etc/profile.d/java.sh && \
+  chmod +x /etc/profile.d/java.sh
+
+# install tesseract OCR
+RUN apk add --update tesseract-ocr
 
 # add user/group datashare
 RUN addgroup -g 1000 datashare && adduser -D -u 1000 -G datashare datashare
 
-RUN mkdir -p /home/datashare/lib
+RUN mkdir -p /home/datashare/lib /home/datashare/data /home/datashare/dist
 COPY lib /home/datashare/lib
 RUN chown -R datashare:datashare /home/datashare/
-RUN mkdir /data && chown datashare:datashare /data
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-VOLUME /data
+WORKDIR /home/datashare/
 EXPOSE 8080
 
 ENTRYPOINT ["/entrypoint.sh"]
