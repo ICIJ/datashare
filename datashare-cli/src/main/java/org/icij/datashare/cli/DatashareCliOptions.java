@@ -68,7 +68,7 @@ final class DatashareCliOptions {
 
     static OptionSpecBuilder enableOcr(OptionParser parser) {
         return parser.acceptsAll(
-                asList("parsingOcr", "ocr"),
+                asList("enableOcr", "o"),
                 "Run optical character recognition at file parsing time. " +
                         "(Tesseract must be installed beforehand).");
     }
