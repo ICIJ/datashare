@@ -7,7 +7,6 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.1.0
     environment:
       - "discovery.type=single-node"
-      #- "ES_JAVA_OPTS=-Des.enforce.bootstrap.checks=false"
     ports:
       - "9200:9200"
       - "9300:9300"

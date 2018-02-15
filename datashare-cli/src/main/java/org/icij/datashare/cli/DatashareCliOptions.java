@@ -38,7 +38,7 @@ final class DatashareCliOptions {
                 "Source files directory." )
                 .withRequiredArg()
                 .ofType( File.class )
-                .defaultsTo(new File("."));
+                .defaultsTo(new File("/home/datashare/data"));
     }
 
     static OptionSpec<String> messageBusAddress(OptionParser parser) {
