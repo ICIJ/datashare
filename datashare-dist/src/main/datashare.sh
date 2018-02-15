@@ -14,6 +14,7 @@ services:
     image: ${elasticsearch_container_name}
     environment:
       - "discovery.type=single-node"
+      - "cluster.name=datashare"
     ports:
       - "9200:9200"
 EOF
@@ -26,7 +27,5 @@ read -p 'Folder path for cache (datashare will store models here) [/tmp/dist] :'
 data_path=${data_path:-${PWD}}
 dist_path=${dist_path:-/tmp/dist}
 
-mkdir -p ${dist_path}
-
-docker run -ti -u 1000 -p 8080:8080 --network datashare_default \
- -v ${data_path}:/home/datashare/data -v ${dist_path}:/home/datashare/dist icij/datashare:${datashare_version} $@
+docker run -ti -p 8080:8080 --network datashare_default \
+ -v ${data_path}:/home/datashare/data:ro -v ${dist_path}:/home/datashare/dist icij/datashare:${datashare_version} $@
