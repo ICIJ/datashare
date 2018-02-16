@@ -341,7 +341,7 @@ Browse the JavaDoc from **datashare/doc/index.html**
 
 ## License
 
-DataShare is released under the [GNU General Public License](http://www.gnu.org/licenses/gpl.html)
+DataShare is released under the [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.en.html)
 
 
 ## Feedback
