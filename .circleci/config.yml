@@ -6,6 +6,7 @@ jobs:
       - image: docker.elastic.co/elasticsearch/elasticsearch:6.1.0
         environment:
           - "discovery.type=single-node"
+          - "cluster.name=datashare"
           - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
         name: elasticsearch
       - image: redis:4.0.1-alpine

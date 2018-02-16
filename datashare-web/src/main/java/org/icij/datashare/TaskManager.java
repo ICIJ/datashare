@@ -1,12 +1,25 @@
 package org.icij.datashare;
 
+import com.google.inject.Inject;
+
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.*;
 
+import static java.lang.Integer.valueOf;
+import static java.util.concurrent.Executors.newFixedThreadPool;
+
 public class TaskManager {
-    private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private final ExecutorService executor;
     private final ConcurrentMap<Integer, Future> tasks = new ConcurrentHashMap<>();
+
+    @Inject
+    public TaskManager(final PropertiesProvider provider) {
+        Optional<String> parallelism1 = provider.get("parallelism");
+        executor = parallelism1.map(s -> newFixedThreadPool(valueOf(s))).
+                orElseGet(() -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+    }
 
     public int startTask(final Runnable task) {
         Future<?> fut = executor.submit(task);

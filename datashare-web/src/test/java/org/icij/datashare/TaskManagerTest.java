@@ -7,7 +7,7 @@ import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class TaskManagerTest {
-    private TaskManager taskManager= new TaskManager();
+    private TaskManager taskManager= new TaskManager(new PropertiesProvider());
 
     @Test
     public void test_run_task() throws Exception {

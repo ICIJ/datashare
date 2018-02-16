@@ -17,7 +17,7 @@ public class ElasticsearchRule extends ExternalResource {
 
     public ElasticsearchRule() {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
-        Settings settings = Settings.builder().put("cluster.name", "docker-cluster").build();
+        Settings settings = Settings.builder().put("cluster.name", "datashare").build();
         try {
             client = new PreBuiltTransportClient(settings).addTransportAddress(
                     new TransportAddress(InetAddress.getByName("elasticsearch"), 9300));

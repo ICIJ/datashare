@@ -12,8 +12,9 @@ RUN cd /tmp && \
   echo 'export PATH=$PATH:$JAVA_HOME/bin' >> /etc/profile.d/java.sh && \
   chmod +x /etc/profile.d/java.sh
 
-# install tesseract OCR
-RUN apk add --update tesseract-ocr
+# install tesseract OCR and the 14 PDF standard fonts
+# cf https://pdfbox.apache.org/1.8/cookbook/workingwithfonts.html
+RUN apk add --update tesseract-ocr ttf-dejavu ttf-droid ttf-freefont ttf-liberation ttf-ubuntu-font-family
 
 # add user/group datashare
 RUN addgroup -g 1000 datashare && adduser -D -u 1000 -G datashare datashare

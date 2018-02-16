@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Inject;
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
@@ -118,6 +119,11 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     static class DummyTaskManager extends TaskManager {
+        @Inject
+        public DummyTaskManager(PropertiesProvider provider) {
+            super(provider);
+        }
+
         @Override public <V> int startTask(Callable<V> task) {
             return 12;
         }

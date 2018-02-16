@@ -11,11 +11,12 @@ import static java.util.Arrays.asList;
 final class DatashareCliOptions {
     static final char ARG_VALS_SEP = ',';
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
-    private static final Integer DEFAULT_NLP_PARALLELISM = 1;
+    private static final Integer DEFAULT_NLP_PARALLELISM = Runtime.getRuntime().availableProcessors();
     static final String STAGES_OPT = "stages";
     static final String SCANNING_INPUT_DIR_OPT = "inputDir";
     static final String NLP_PIPELINES_OPT = "nlpPipelines";
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
+    public static final String PARALLELISM = "parallelism";
 
     static OptionSpec<DatashareCli.Stage> stages(OptionParser parser) {
         return parser.acceptsAll(
@@ -59,7 +60,7 @@ final class DatashareCliOptions {
 
     static OptionSpec<Integer> fileParserParallelism(OptionParser parser) {
         return parser.acceptsAll(
-                asList("parallelism", "p"),
+                asList("pp", "parserParallelism"),
                 "Number of file parser threads.")
                 .withRequiredArg()
                 .ofType( Integer.class )
@@ -83,10 +84,10 @@ final class DatashareCliOptions {
                 .defaultsTo(Pipeline.Type.values());
     }
 
-    static OptionSpec<Integer> nlpPipelinesParallelism(OptionParser parser) {
+    static OptionSpec<Integer> parallelism(OptionParser parser) {
         return parser.acceptsAll(
-                asList("nlpParallelism", "l"),
-                "Number of threads per specified pipeline.")
+                asList("p", PARALLELISM),
+                "Number of threads allocated for task management.")
                 .withRequiredArg()
                 .ofType( Integer.class )
                 .defaultsTo(DEFAULT_NLP_PARALLELISM);
