@@ -101,7 +101,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("contentLength", getField(document.getMetadata(), CONTENT_LENGTH));
         jsonDocument.put("contentEncoding", getField(document.getMetadata(), CONTENT_ENCODING));
 
-        String content = toString(reader);
+        String content = toString(reader).trim();
         jsonDocument.put("language", Language.parse(languageGuesser.guess(content)));
         jsonDocument.put(ES_CONTENT_FIELD, content);
         return jsonDocument;

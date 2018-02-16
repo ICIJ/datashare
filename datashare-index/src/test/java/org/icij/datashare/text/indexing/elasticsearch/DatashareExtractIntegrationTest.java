@@ -41,7 +41,7 @@ public class DatashareExtractIntegrationTest {
         Document doc = indexer.get(tikaDocument.getId());
 
         assertThat(doc.getId()).isEqualTo(tikaDocument.getId());
-        assertThat(doc.getContent()).isEqualTo("This is a document to be parsed by datashare.\n");
+        assertThat(doc.getContent()).isEqualTo("This is a document to be parsed by datashare.");
         assertThat(doc.getLanguage()).isEqualTo(ENGLISH);
         assertThat(doc.getContentLength()).isEqualTo(45);
         assertThat(doc.getPath()).contains(get("doc.txt"));
