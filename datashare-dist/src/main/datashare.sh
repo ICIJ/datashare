@@ -4,6 +4,19 @@ datashare_version=0.7
 redis_container_name=redis:4.0.1-alpine
 elasticsearch_container_name=docker.elastic.co/elasticsearch/elasticsearch:6.1.0
 
+cat > /tmp/elasticsearch.yml << EOF
+http.host: 0.0.0.0
+transport.host: 0.0.0.0
+cluster.name: "datashare"
+discovery.type: "single-node"
+discovery.zen.minimum_master_nodes: 1
+xpack.license.self_generated.type: basic
+# CORS
+http.cors.enabled : true
+http.cors.allow-origin : "*"
+http.cors.allow-methods : OPTIONS, HEAD, GET, POST, PUT, DELETE
+EOF
+
 cat > /tmp/datashare.yml << EOF
 version: '2'
 services:
@@ -12,9 +25,8 @@ services:
 
   elasticsearch:
     image: ${elasticsearch_container_name}
-    environment:
-      - "discovery.type=single-node"
-      - "cluster.name=datashare"
+    volumes:
+      - /tmp/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
     ports:
       - "9200:9200"
 EOF
