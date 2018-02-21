@@ -218,13 +218,16 @@ public class ElasticsearchIndexer implements Indexer {
         IndexRequest req = new IndexRequest(index, esCfg.indexType, id);
 
         json.put(esCfg.docTypeField, type);
-        if(esCfg.PARENT_TYPES.contains(type))
-            json.put(esCfg.indexJoinField, type);
         if (parent != null)
             json.put(esCfg.indexJoinField, new HashMap<String, String>() {{
                 put("name", type);
                 put("parent", parent);
             }});
+        else {
+            json.put(esCfg.indexJoinField, new HashMap<String, String>() {{
+                put("name", type);
+            }});
+        }
         req = req.source(json);
 
         return (parent != null) ? req.routing(parent) : req;

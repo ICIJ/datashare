@@ -36,7 +36,7 @@ public final class NamedEntity implements Entity {
     private final String id;
     private final Category category;
     @IndexParent
-    private final String document;
+    private final String documentId;
     private final int offset;
     private final Pipeline.Type extractor;
     private final Language extractorLanguage;
@@ -89,12 +89,12 @@ public final class NamedEntity implements Entity {
 
 
     /**
-     * Instantiate new {@code NamedEntity}, with context document, without part-of-speech
+     * Instantiate new {@code NamedEntity}, with context documentId, without part-of-speech
      *
      * @param cat      the named entity category
      * @param mention  the string denoting the named entity
-     * @param offset   the offset in context document
-     * @param doc      the context document id
+     * @param offset   the offset in context documentId
+     * @param doc      the context documentId id
      * @param extr     the pipeline that extracted mention
      * @param extrLang the pipeline language
      * @return a new immutable {@link NamedEntity} if instantiation succeeded; empty Optional otherwise
@@ -114,12 +114,12 @@ public final class NamedEntity implements Entity {
     }
 
     /**
-     * Instantiate new {@code NamedEntity}, with context document, with part-of-speech
+     * Instantiate new {@code NamedEntity}, with context documentId, with part-of-speech
      *
      * @param cat      the named entity category
      * @param mention  the string denoting the named entity
-     * @param offset   the offset in context document
-     * @param doc      the context document id
+     * @param offset   the offset in context documentId
+     * @param doc      the context documentId id
      * @param extr     the pipeline that extracted mention
      * @param extrLang the pipeline language
      * @param pos      the part(s)-of-speech associated to mention
@@ -144,9 +144,9 @@ public final class NamedEntity implements Entity {
     /**
      * Named entities from {@link Document}, {@link Annotations}
      *
-     * @param document   the document holding textual content
-     * @param annotations the annotations holding named entities coordinates within document
-     * @return the list of corresponding named entities if annotations does refer to document; an empty list otherwise
+     * @param document   the documentId holding textual content
+     * @param annotations the annotations holding named entities coordinates within documentId
+     * @return the list of corresponding named entities if annotations does refer to documentId; an empty list otherwise
      */
     public static List<NamedEntity> allFrom(Document document, Annotations annotations) {
         if ( ! annotations.getDocumentId().equals(document.getId()))
@@ -189,7 +189,7 @@ public final class NamedEntity implements Entity {
     @JsonCreator
     private NamedEntity(String           mention,
                         Category         category,
-                        String           document,
+                        String documentId,
                         int              offset,
                         Pipeline.Type extractor,
                         Language         extractorLanguage,
@@ -199,11 +199,11 @@ public final class NamedEntity implements Entity {
         }
         this.category = Optional.ofNullable(category).orElse(UNKNOWN);
         this.mention = mention;
-        this.document = document;
+        this.documentId = documentId;
         this.offset = offset;
         this.extractor = extractor;
         this.id = HASHER.hash( String.join("|",
-                getDocument().toString(),
+                getDocumentId().toString(),
                 String.valueOf(offset),
                 getExtractor().toString(),
                 normalize(mention)
@@ -219,7 +219,7 @@ public final class NamedEntity implements Entity {
 
     public Category getCategory() { return category; }
 
-    public Optional<String> getDocument() { return Optional.ofNullable(document); }
+    public Optional<String> getDocumentId() { return Optional.ofNullable(documentId); }
 
     public OptionalInt getOffset() { return OptionalInt.of(offset); }
 

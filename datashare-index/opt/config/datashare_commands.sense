@@ -60,7 +60,7 @@ PUT http://localhost:9200/_template/datashare_mappings
         "mentionHash":       { "type": "keyword" },
         "hash":              { "type": "keyword" },
         "category":          { "type": "keyword" },
-        "document":          { "type": "keyword" },
+        "documentId":          { "type": "keyword" },
         "offset":            { "type": "integer" },
         "extractor":         { "type": "keyword" },
         "extractorLanguage": { "type": "keyword" },

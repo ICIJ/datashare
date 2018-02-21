@@ -11,11 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.HashSet;
-import java.util.Set;
 
 import static java.net.InetAddress.getByName;
-import static java.util.Collections.singletonList;
 
 class ElasticsearchConfiguration {
     static final int INDEX_MAX_RESULT_WINDOW = 100000;
@@ -40,8 +37,9 @@ class ElasticsearchConfiguration {
 
     private static final String DEFAULT_INDEX_TYPE = "doc";
     private static final String DEFAULT_INDEX_JOIN_FIELD = "join";
+    static final String DEFAULT_PARENT_DOC_FIELD = "parentDocument";
+
     private static final String DEFAULT_DOC_TYPE_FIELD = "type";
-    static final Set<String> PARENT_TYPES = new HashSet<>(singletonList("Document"));
     private static final String DEFAULT_INDEX_NAME = "datashare-local";
 
     final String indexType;

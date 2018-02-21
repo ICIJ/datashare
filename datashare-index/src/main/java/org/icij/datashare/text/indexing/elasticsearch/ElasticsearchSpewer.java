@@ -32,12 +32,11 @@ import static java.lang.System.currentTimeMillis;
 import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.com.Channel.NLP;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.ES_CONTENT_FIELD;
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.ES_DOCUMENT_TYPE;
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.*;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
+    public static final String DEFAULT_VALUE_UNKNOWN = "unknown";
 
     private final Client client;
     private final ElasticsearchConfiguration esCfg;
@@ -70,14 +69,10 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     IndexRequest prepareRequest(final TikaDocument document, final Reader reader,
                                 final TikaDocument parent, final int level) throws IOException {
         IndexRequest req = new IndexRequest(esCfg.indexName, esCfg.indexType, document.getId());
-
         Map<String, Object> jsonDocument = getMap(document, reader);
 
         if (parent != null) {
-            jsonDocument.put(esCfg.indexJoinField, new HashMap<String, String>() {{
-                put("name", "document");
-                put("parent", parent.getId());
-            }});
+            jsonDocument.put(DEFAULT_PARENT_DOC_FIELD, parent.getId());
             req.routing(parent.getId());
         }
         jsonDocument.put("extractionLevel", level);
@@ -94,12 +89,15 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 new MapValueConsumer(metadata), new MapValuesConsumer(metadata));
 
         jsonDocument.put(esCfg.docTypeField, ES_DOCUMENT_TYPE);
+        jsonDocument.put(esCfg.indexJoinField, new HashMap<String, String>() {{
+            put("name", "Document");
+        }});
         jsonDocument.put("path", document.getPath().toString());
         jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
         jsonDocument.put("metadata", metadata);
-        jsonDocument.put("contentType", getField(document.getMetadata(), CONTENT_TYPE));
-        jsonDocument.put("contentLength", getField(document.getMetadata(), CONTENT_LENGTH));
-        jsonDocument.put("contentEncoding", getField(document.getMetadata(), CONTENT_ENCODING));
+        jsonDocument.put("contentType", getField(document.getMetadata(), CONTENT_TYPE, DEFAULT_VALUE_UNKNOWN));
+        jsonDocument.put("contentLength", getField(document.getMetadata(), CONTENT_LENGTH, "-1"));
+        jsonDocument.put("contentEncoding", getField(document.getMetadata(), CONTENT_ENCODING, DEFAULT_VALUE_UNKNOWN));
 
         String content = toString(reader).trim();
         jsonDocument.put("language", Language.parse(languageGuesser.guess(content)));
@@ -131,9 +129,9 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
     }
 
-    private String getField(Metadata metadata, String fieldname) {
+    private String getField(Metadata metadata, String fieldname, String defaultValue) {
         String s = metadata.get(fieldname);
-        return s == null ? "unknown": s;
+        return s == null ? defaultValue: s;
     }
 
     @Override

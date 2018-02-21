@@ -27,6 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Paths;
+import java.util.HashMap;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.elasticsearch.index.query.QueryBuilders.multiMatchQuery;
@@ -56,6 +57,9 @@ public class ElasticsearchSpewerTest {
     	GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
 		assertTrue(documentFields.isExists());
 		assertEquals(document.getId(), documentFields.getId());
+		assertEquals(new HashMap<String, String>() {{
+		    put("name", "Document");
+        }}, documentFields.getSourceAsMap().get("join"));
 
         ArgumentCaptor<Message> argument = ArgumentCaptor.forClass(Message.class);
 		Mockito.verify(publisher).publish(Matchers.eq(Channel.NLP), argument.capture());

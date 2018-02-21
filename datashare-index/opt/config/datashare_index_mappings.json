@@ -1,76 +1,59 @@
-// DataShare Indices Mappings Template
-//
-// curl -XPUT    'localhost:9200/_template/datashare_mappings' -d '(...)'
-// curl -XGET    'localhost:9200/_template/datashare_mappings?pretty'
-// curl -XDELETE 'localhost:9200/_template/datashare_mappings?pretty'
-//
 {
-  "template": "datashare*",
-
   "mappings": {
-
-    "SourcePath": {
-      "properties": {
-        "asOf": {
-          "type": "date",
-          "format": "date_time"
-        },
-        "path": {
-          "type": "text"
-        }
-      }
-    },
-
-    "Document": {
+    "doc": {
       "properties": {
         "content": {
           "type": "text",
           "index_options": "offsets"
         },
-        "asOf": {
+        "extractionDate": {
           "type": "date",
           "format": "date_time"
+        },
+        "extractionLevel": {
+          "type": "integer"
         },
         "path": {
           "type": "text"
         },
-        "length": {
+        "contentLength": {
           "type": "integer"
         },
-        "encoding": {
+        "contentEncoding": {
           "type": "keyword"
         },
-        "type": {
+        "parentDocument": {
           "type": "keyword"
+        },
+        "contentType": {
+          "type": "text"
         },
         "language": {
           "type": "keyword"
         },
-        "parser": {
-          "type": "keyword"
-        }
-      }
-    },
+        "metadata": {
+          "type": "object"
+        },
 
-    "NamedEntity": {
-      "_parent": {
-        "type": "Document"
-      },
-      "properties": {
+        "type": {
+          "type": "keyword"
+        },
+
+        "join": {
+          "type": "join",
+          "relations": {
+            "Document": "NamedEntity"
+          }
+        },
+
         "mention": {
           "type": "text",
           "index_options": "docs"
         },
-        "mentionHash": {
-          "type": "keyword"
-        },
-        "hash": {
-          "type": "keyword"
-        },
         "category": {
           "type": "keyword"
         },
-        "document": {
+        "documentId": {
           "type": "keyword"
         },
         "offset": {
@@ -88,7 +71,5 @@
         }
       }
     }
-
   }
-
 }
