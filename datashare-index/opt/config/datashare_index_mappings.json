@@ -50,6 +50,9 @@
           "type": "text",
           "index_options": "docs"
         },
+        "mention_norm": {
+          "type": "keyword"
+        },
         "category": {
           "type": "keyword"
         },
