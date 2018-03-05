@@ -50,7 +50,7 @@
           "type": "text",
           "index_options": "docs"
         },
-        "mention_norm": {
+        "mentionNorm": {
           "type": "keyword"
         },
         "category": {

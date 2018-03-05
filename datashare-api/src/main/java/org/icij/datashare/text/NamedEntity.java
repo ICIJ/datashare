@@ -30,7 +30,7 @@ public final class NamedEntity implements Entity {
     private static final long serialVersionUID = 1946532866377498L;
 
     private String mention;
-    private final String mention_norm;
+    private final String mentionNorm;
 
     @IndexId
     @JsonIgnore
@@ -200,7 +200,7 @@ public final class NamedEntity implements Entity {
         }
         this.category = Optional.ofNullable(category).orElse(UNKNOWN);
         this.mention = mention;
-        this.mention_norm = normalize(mention);
+        this.mentionNorm = normalize(mention);
         this.documentId = documentId;
         this.offset = offset;
         this.extractor = extractor;
@@ -208,7 +208,7 @@ public final class NamedEntity implements Entity {
                 getDocumentId().toString(),
                 String.valueOf(offset),
                 getExtractor().toString(),
-                mention_norm
+                mentionNorm
         ));
         this.extractorLanguage = extractorLanguage;
         this.partsOfSpeech = partsOfSpeech;
