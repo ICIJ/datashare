@@ -39,5 +39,5 @@ read -p 'Folder path for cache (datashare will store models here) [/tmp/dist] :'
 data_path=${data_path:-${PWD}}
 dist_path=${dist_path:-/tmp/dist}
 
-docker run -ti -p 8080:8080 --network datashare_default \
+docker run -ti -p 8080:8080 --network datashare_default -e DS_JAVA_OPTS="${DS_JAVA_OPTS}" \
  -v ${data_path}:/home/datashare/data:ro -v ${dist_path}:/home/datashare/dist icij/datashare:${datashare_version} $@

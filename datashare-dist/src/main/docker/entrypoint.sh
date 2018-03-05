@@ -9,5 +9,5 @@ then
 else
     source /etc/profile.d/java.sh
     CLASSPATH=$(find /home/datashare/lib/ -name '*.jar' -exec echo {} \+ | sed 's/ /:/g')
-    exec java -cp "/home/datashare/dist/:${CLASSPATH}" ${MAIN_CLASS} "$@"
+    exec java ${DS_JAVA_OPTS} -cp "/home/datashare/dist/:${CLASSPATH}" ${MAIN_CLASS} "$@"
 fi
