@@ -42,11 +42,6 @@ public class TaskResourceTest implements FluentRestTest {
     public void setUp() { reset(taskFactory);}
 
     @Test
-    public void testRoot() {
-        get("/").should().contain("Datashare REST API");
-    }
-
-    @Test
     public void testIndexUnknownDirectory() throws Exception {
         RestAssert response = post("/task/index/file/" + URLEncoder.encode("foo|bar", "utf-8"), "{}");
 

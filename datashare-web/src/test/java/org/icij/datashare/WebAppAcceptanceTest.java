@@ -25,7 +25,7 @@ public class WebAppAcceptanceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_root_display_datashare_info() {
-            get("/").should().contain("Datashare REST API");
-        }
+    public void test_root_serve_app() {
+        get("/").should().contain("<title>datashare-client</title>");
+    }
 }

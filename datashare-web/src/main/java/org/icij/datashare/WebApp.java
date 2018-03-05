@@ -21,7 +21,6 @@ public class WebApp {
     static Configuration getConfiguration(final Module ioc) {
         Injector injector = Guice.createInjector(ioc);
         return routes -> routes
-                .get("/", "Datashare REST API")
                 .add(injector.getInstance(TaskResource.class))
                 .setExtensions(new Extensions() {
                     @Override
