@@ -28,12 +28,14 @@ public class ElasticsearchRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        client.admin().indices().create(new CreateIndexRequest(TEST_INDEX));
+        if (! client.admin().indices().prepareExists(TEST_INDEX).execute().actionGet().isExists()) {
+            client.admin().indices().create(new CreateIndexRequest(TEST_INDEX)).actionGet();
+        }
     }
 
     @Override
     protected void after() {
-        client.admin().indices().delete(new DeleteIndexRequest(TEST_INDEX));
+        client.admin().indices().delete(new DeleteIndexRequest(TEST_INDEX)).actionGet();
         client.close();
     }
 }

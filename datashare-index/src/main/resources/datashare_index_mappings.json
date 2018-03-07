@@ -1,5 +1,4 @@
 {
-  "mappings": {
     "doc": {
       "properties": {
         "content": {
@@ -74,5 +73,4 @@
         }
       }
     }
-  }
 }

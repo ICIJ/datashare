@@ -40,7 +40,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
 
-import java.net.UnknownHostException;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +65,7 @@ public class ElasticsearchIndexer implements Indexer {
     private final ElasticsearchConfiguration esCfg;
 
     @Inject
-    public ElasticsearchIndexer(final PropertiesProvider propertiesProvider) throws UnknownHostException {
+    public ElasticsearchIndexer(final PropertiesProvider propertiesProvider) throws IOException {
         this(createESClient(propertiesProvider), propertiesProvider);
     }
 
