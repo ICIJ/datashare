@@ -54,6 +54,7 @@
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-ixapipe.version>${project.version}</datashare-ixapipe.version>
         <guice.version>4.1.0</guice.version>
+        <amazon.version>1.11.238</amazon.version>
 
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>6.1.0</elasticsearch.version>
@@ -281,7 +282,7 @@
             <dependency>
               <groupId>com.amazonaws</groupId>
               <artifactId>aws-java-sdk-bom</artifactId>
-              <version>1.11.238</version>
+              <version>${amazon.version}</version>
               <type>pom</type>
               <scope>import</scope>
             </dependency>
