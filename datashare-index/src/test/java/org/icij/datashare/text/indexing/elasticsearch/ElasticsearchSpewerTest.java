@@ -20,7 +20,6 @@ import org.icij.spewer.FieldNames;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
@@ -35,6 +34,10 @@ import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class ElasticsearchSpewerTest {
     @ClassRule
@@ -62,7 +65,7 @@ public class ElasticsearchSpewerTest {
         }}, documentFields.getSourceAsMap().get("join"));
 
         ArgumentCaptor<Message> argument = ArgumentCaptor.forClass(Message.class);
-		Mockito.verify(publisher).publish(Matchers.eq(Channel.NLP), argument.capture());
+		verify(publisher).publish(eq(Channel.NLP), argument.capture());
 		Assertions.assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
 	}
 
@@ -96,6 +99,8 @@ public class ElasticsearchSpewerTest {
                 multiMatchQuery("simple.tiff", "content")) .get();
         Assertions.assertThat(response.getHits().totalHits).isGreaterThan(0);
         //assertThat(response.getHits().getAt(0).getId()).endsWith("embedded.pdf");
+
+        verify(publisher, times(3)).publish(eq(Channel.NLP), any(Message.class));
     }
 
     @Test

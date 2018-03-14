@@ -249,9 +249,14 @@ public class ElasticsearchIndexer implements Indexer {
     // __________ Read Document __________
 
     public <T extends Entity> T get(String id) {
+        return get(id, id);
+    }
+
+    @Override
+    public <T extends Entity> T get(String id, String parent) {
         String type = null;
         try {
-            final GetRequest  req  = new GetRequest(esCfg.indexName, esCfg.indexType, id);
+            final GetRequest req = new GetRequest(esCfg.indexName, esCfg.indexType, id).routing(parent);
             final GetResponse resp = client.get(req).get();
             if (resp.isExists()) {
                 Map<String, Object> sourceAsMap = resp.getSourceAsMap();

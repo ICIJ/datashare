@@ -15,6 +15,7 @@ import redis.clients.jedis.Jedis;
 import java.util.List;
 
 import static org.icij.datashare.com.Message.Field.DOC_ID;
+import static org.icij.datashare.com.Message.Field.P_ID;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 
 public class NlpDatashareListener implements DatashareListener {
@@ -40,13 +41,13 @@ public class NlpDatashareListener implements DatashareListener {
 
     void onMessage(Message message) {
         if (message.type == EXTRACT_NLP) {
-            extractNamedEntities(message.content.get(DOC_ID));
+            extractNamedEntities(message.content.get(DOC_ID), message.content.get(P_ID));
         }
     }
 
-    private void extractNamedEntities(String id) {
+    private void extractNamedEntities(final String id, final String routing) {
         try {
-            Document doc = indexer.get(id);
+            Document doc = indexer.get(id, routing);
             if (doc != null) {
                 logger.info("{} extracting entities for document {}", nlpPipeline.getType(), doc.getId());
                 if (nlpPipeline.initialize(doc.getLanguage())) {

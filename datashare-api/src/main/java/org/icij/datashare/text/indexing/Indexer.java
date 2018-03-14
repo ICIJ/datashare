@@ -144,6 +144,7 @@ public interface Indexer extends Closeable {
     <T extends Entity> boolean add(T obj);
 
     <T extends Entity> T get(String id);
+    <T extends Entity> T get(String id, String parent);
 
     /**
      * Add an document indexing to batch processing

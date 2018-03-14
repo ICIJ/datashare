@@ -32,4 +32,9 @@ public class HasherTest {
                 isEqualTo("8c37b5a8bf4a3ede1e0d4567b2ef0c933bf246923d89226c01b264336ac333333b7f2" +
                         "43e06ee3299b770aa7ff72aa9ccc470725ca3d12c1f0aa1fd85c2eb83fc");
     }
+
+    @Test
+    public void test_shorten() throws Exception {
+        assertThat(Hasher.shorten("my_very_long_hash_string", 2)).isEqualTo("my...ng");
+    }
 }

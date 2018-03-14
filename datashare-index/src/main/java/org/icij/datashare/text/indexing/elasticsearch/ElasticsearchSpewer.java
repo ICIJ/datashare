@@ -2,11 +2,11 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.apache.tika.metadata.Metadata;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Client;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
-import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.LanguageGuesser;
@@ -32,6 +32,7 @@ import static java.lang.System.currentTimeMillis;
 import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.com.Channel.NLP;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
+import static org.icij.datashare.text.Hasher.shorten;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.*;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
@@ -63,7 +64,6 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         for (EmbeddedTikaDocument childDocument : document.getEmbeds()) {
             writeTree(childDocument, document, 1);
         }
-        publisher.publish(NLP, new Message(EXTRACT_NLP).add(Field.DOC_ID, document.getId()));
     }
 
     IndexRequest prepareRequest(final TikaDocument document, final Reader reader,
@@ -121,9 +121,12 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         final IndexRequest req = prepareRequest(document, reader, parent, level);
         try {
             long before = currentTimeMillis();
-            client.index(req).get();
-            logger.info("{} added to elasticsearch in {}ms: \"{}\".", parent == null ? "Document" : "Child",
-                    currentTimeMillis() - before, document);
+            IndexResponse indexResponse = client.index(req).get();
+            logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
+                    shorten(indexResponse.getId(), 4), currentTimeMillis() - before, document);
+            publisher.publish(NLP, new Message(EXTRACT_NLP)
+                    .add(Message.Field.DOC_ID, indexResponse.getId())
+                    .add(Message.Field.P_ID, parent == null ? document.getId(): parent.getId() ));
         } catch (InterruptedException | ExecutionException e) {
             logger.warn("interrupted execution of request", e);
         }

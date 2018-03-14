@@ -131,4 +131,8 @@ public enum Hasher {
             return Optional.empty();
         }
     }
+
+    public static String shorten(final String s, final int l) {
+        return s.substring(0, l) + "..." + s.substring(s.length() - l);
+    }
 }
