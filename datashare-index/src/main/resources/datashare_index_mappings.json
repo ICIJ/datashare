@@ -25,7 +25,7 @@
           "type": "keyword"
         },
         "contentType": {
-          "type": "text"
+          "type": "keyword"
         },
         "language": {
           "type": "keyword"
