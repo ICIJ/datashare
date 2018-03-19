@@ -46,7 +46,7 @@ public class DatashareExtractIntegrationTest {
         assertThat(doc.getContentLength()).isEqualTo(45);
         assertThat(doc.getPath()).contains(get("doc.txt"));
         assertThat(doc.getContentEncoding()).isEqualTo(Charset.forName("iso-8859-1"));
-        assertThat(doc.getContentType()).isEqualTo("text/plain; charset=ISO-8859-1");
+        assertThat(doc.getContentType()).isEqualTo("text/plain");
         assertThat(doc.getExtractionLevel()).isEqualTo(0);
         assertThat(doc.getMetadata()).hasSize(6);
     }

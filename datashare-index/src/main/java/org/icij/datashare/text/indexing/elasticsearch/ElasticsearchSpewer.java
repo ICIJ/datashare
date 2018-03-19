@@ -95,7 +95,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("path", document.getPath().toString());
         jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
         jsonDocument.put("metadata", metadata);
-        jsonDocument.put("contentType", getField(document.getMetadata(), CONTENT_TYPE, DEFAULT_VALUE_UNKNOWN));
+        jsonDocument.put("contentType", getField(document.getMetadata(), CONTENT_TYPE, DEFAULT_VALUE_UNKNOWN).split(";")[0]);
         jsonDocument.put("contentLength", getField(document.getMetadata(), CONTENT_LENGTH, "-1"));
         jsonDocument.put("contentEncoding", getField(document.getMetadata(), CONTENT_ENCODING, DEFAULT_VALUE_UNKNOWN));
 

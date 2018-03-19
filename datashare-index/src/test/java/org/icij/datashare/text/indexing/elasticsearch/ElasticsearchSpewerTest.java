@@ -79,7 +79,7 @@ public class ElasticsearchSpewerTest {
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
         Assertions.assertThat(documentFields.getSourceAsMap()).includes(
                 entry("contentEncoding", "ISO-8859-1"),
-                entry("contentType", "text/plain; charset=ISO-8859-1"),
+                entry("contentType", "text/plain"),
                 entry("contentLength", "45"),
                 entry("path", path)
         );
