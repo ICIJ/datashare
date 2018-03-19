@@ -19,8 +19,10 @@ RUN apk add --update tesseract-ocr ttf-dejavu ttf-droid ttf-freefont ttf-liberat
 # add user/group datashare
 RUN addgroup -g 1000 datashare && adduser -D -u 1000 -G datashare datashare
 
-RUN mkdir -p /home/datashare/lib /home/datashare/data /home/datashare/dist
+RUN mkdir -p /home/datashare/lib /home/datashare/data /home/datashare/dist /home/datashare/app && \
+  ln -s /home/datashare/data /home/datashare/app/data
 COPY lib /home/datashare/lib
+COPY app /home/datashare/app
 RUN chown -R datashare:datashare /home/datashare/
 
 COPY entrypoint.sh /entrypoint.sh
