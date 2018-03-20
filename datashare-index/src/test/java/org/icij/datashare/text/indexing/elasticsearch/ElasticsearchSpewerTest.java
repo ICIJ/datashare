@@ -80,7 +80,7 @@ public class ElasticsearchSpewerTest {
         Assertions.assertThat(documentFields.getSourceAsMap()).includes(
                 entry("contentEncoding", "ISO-8859-1"),
                 entry("contentType", "text/plain"),
-                entry("contentLength", "45"),
+                entry("contentLength", 45),
                 entry("path", path)
         );
     }

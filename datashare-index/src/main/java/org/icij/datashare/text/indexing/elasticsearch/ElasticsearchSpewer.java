@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import static java.lang.Integer.valueOf;
 import static java.lang.System.currentTimeMillis;
 import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.com.Channel.NLP;
@@ -96,7 +97,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
         jsonDocument.put("metadata", metadata);
         jsonDocument.put("contentType", getField(document.getMetadata(), CONTENT_TYPE, DEFAULT_VALUE_UNKNOWN).split(";")[0]);
-        jsonDocument.put("contentLength", getField(document.getMetadata(), CONTENT_LENGTH, "-1"));
+        jsonDocument.put("contentLength", valueOf(getField(document.getMetadata(), CONTENT_LENGTH, "-1")));
         jsonDocument.put("contentEncoding", getField(document.getMetadata(), CONTENT_ENCODING, DEFAULT_VALUE_UNKNOWN));
 
         String content = toString(reader).trim();
