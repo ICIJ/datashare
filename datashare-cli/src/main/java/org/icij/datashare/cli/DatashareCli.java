@@ -9,13 +9,16 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.*;
 
+import static java.lang.Boolean.parseBoolean;
+import static org.icij.datashare.cli.DatashareCliOptions.WEB_SERVER_OPT;
+
 
 public final class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
     private static List<DatashareCli.Stage> stages = new ArrayList<>();
 
     private static Properties properties;
-    private static boolean webServer = false;
+    static boolean webServer = false;
 
     public static void main(String[] args) throws Exception {
         if (!parseArguments(args)) {
@@ -32,7 +35,7 @@ public final class DatashareCli {
         }
     }
 
-    private static boolean parseArguments(String[] args) {
+    static boolean parseArguments(String[] args) {
         OptionParser parser = new OptionParser();
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
@@ -45,7 +48,7 @@ public final class DatashareCli {
         DatashareCliOptions.indexerHost(parser);
         DatashareCliOptions.indexName(parser);
         DatashareCliOptions.clusterName(parser);
-        ArgumentAcceptingOptionSpec<Boolean> webOpt = DatashareCliOptions.web(parser);
+        DatashareCliOptions.web(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
 
@@ -59,8 +62,8 @@ public final class DatashareCli {
 
             stages.addAll(options.valuesOf(stagesOpt));
             stages.sort(DatashareCli.Stage.comparator);
-            webServer = options.valueOf(webOpt);
             properties = asProperties(options, null);
+            webServer = parseBoolean(properties.getProperty(WEB_SERVER_OPT));
             return true;
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);

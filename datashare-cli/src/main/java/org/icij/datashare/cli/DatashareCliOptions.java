@@ -16,6 +16,7 @@ final class DatashareCliOptions {
     static final String SCANNING_INPUT_DIR_OPT = "inputDir";
     static final String NLP_PIPELINES_OPT = "nlpPipelines";
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
+    static final String WEB_SERVER_OPT = "web";
     public static final String PARALLELISM = "parallelism";
 
     static OptionSpec<DatashareCli.Stage> stages(OptionParser parser) {
@@ -28,9 +29,8 @@ final class DatashareCliOptions {
                 .defaultsTo(DatashareCli.Stage.values());
     }
 
-    static ArgumentAcceptingOptionSpec<Boolean> web(OptionParser parser) {
-        return parser.acceptsAll(asList("web", "w"), "Run as a web server").
-                withRequiredArg().ofType(Boolean.class).defaultsTo(false);
+    static OptionSpecBuilder web(OptionParser parser) {
+        return parser.acceptsAll(asList(WEB_SERVER_OPT, "w"), "Run as a web server");
     }
 
     static OptionSpec<File> inputDir(OptionParser parser) {
