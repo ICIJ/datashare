@@ -206,7 +206,7 @@ public final class NamedEntity implements Entity {
     public Category getCategory() { return category; }
     public Optional<String> getDocumentId() { return Optional.ofNullable(documentId); }
     public OptionalInt getOffset() { return OptionalInt.of(offset); }
-    public Optional<Pipeline.Type> getExtractor() { return Optional.ofNullable(extractor); }
+    public Pipeline.Type getExtractor() { return extractor; }
     public Optional<Language> getExtractorLanguage() { return Optional.ofNullable(extractorLanguage); }
     public Optional<String> getPartsOfSpeech() { return Optional.ofNullable(partsOfSpeech); }
 

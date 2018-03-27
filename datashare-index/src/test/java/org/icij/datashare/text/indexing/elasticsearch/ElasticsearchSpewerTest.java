@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -80,6 +81,7 @@ public class ElasticsearchSpewerTest {
         Assertions.assertThat(documentFields.getSourceAsMap()).includes(
                 entry("contentEncoding", "ISO-8859-1"),
                 entry("contentType", "text/plain"),
+                entry("nerTags", new ArrayList<>()),
                 entry("contentLength", 45),
                 entry("status", "INDEXED"),
                 entry("path", path)

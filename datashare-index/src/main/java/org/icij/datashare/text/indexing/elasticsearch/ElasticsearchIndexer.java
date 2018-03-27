@@ -42,6 +42,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.IOException;
 import java.util.*;
@@ -51,6 +52,7 @@ import java.util.stream.StreamSupport;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toSet;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.*;
@@ -195,13 +197,19 @@ public class ElasticsearchIndexer implements Indexer {
     @Override
     public boolean bulkAdd(List<NamedEntity> namedEntities, Document parent) throws IOException {
         BulkRequestBuilder bulkRequest = client.prepareBulk();
-        bulkRequest.add(new UpdateRequest(esCfg.indexName, esCfg.indexType, parent.getId()).doc(
-                jsonBuilder().startObject().field("status", Document.Status.DONE).endObject()));
+        Set<Pipeline.Type> nerTags = namedEntities.stream().map(NamedEntity::getExtractor).collect(toSet());
+        nerTags.addAll(parent.getNerTags());
 
+        bulkRequest.add(new UpdateRequest(esCfg.indexName, esCfg.indexType, parent.getId()).doc(
+                jsonBuilder().startObject()
+                        .field("status", Document.Status.DONE)
+                        .field("nerTags", nerTags)
+                        .endObject()));
         for (Entity child : namedEntities) {
             bulkRequest.add(indexRequest(esCfg.indexName, JsonObjectMapper.getType(child), child.getId(),
                             JsonObjectMapper.getJson(child), parent.getId()));
         }
+
         bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
         BulkResponse bulkResponse = bulkRequest.get();
         if (bulkResponse.hasFailures()) {

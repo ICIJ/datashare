@@ -4,11 +4,11 @@ import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexType;
+import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Date;
-import java.util.Map;
+import java.util.*;
 
 
 @IndexType("Document")
@@ -16,11 +16,8 @@ import java.util.Map;
 public final class Document implements Entity {
     private static final long serialVersionUID = 5913568429773112L;
 
-    public Status getStatus() {
-        return status;
-    }
-
     public enum Status {PARSED, INDEXED, DONE}
+
     private final String id;
     private final Path path;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
@@ -35,9 +32,14 @@ public final class Document implements Entity {
     private final Language language;
     private final Map<String, String> metadata;
     private final Status status;
+    private final Set<Pipeline.Type> nerTags;
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
-        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status);
+        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>());
+    }
+
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags) {
+        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags);
     }
 
     @JsonCreator
@@ -45,7 +47,9 @@ public final class Document implements Entity {
                      @JsonProperty("language") Language language, @JsonProperty("extractionDate") Date extractionDate,
                      @JsonProperty("contentEncoding") Charset contentEncoding, @JsonProperty("contentType") String contentType,
                      @JsonProperty("extractionLevel") int extractionLevel,
-                     @JsonProperty("metadata") Map<String, String> metadata, @JsonProperty("status") Status status) {
+                     @JsonProperty("metadata") Map<String, String> metadata,
+                     @JsonProperty("status") Status status,
+                     @JsonProperty("nerTags") Set<Pipeline.Type> nerTags) {
         this.id = id;
         this.path = path;
         this.content = content;
@@ -57,7 +61,9 @@ public final class Document implements Entity {
         this.contentEncoding = contentEncoding;
         this.metadata = metadata;
         this.status = status;
+        this.nerTags = nerTags;
     }
+
     @Override
     public String getId() { return id; }
     public String getContent() { return content; }
@@ -68,6 +74,9 @@ public final class Document implements Entity {
     public Language getLanguage() { return language; }
     public int getExtractionLevel() { return extractionLevel;}
 
+    public Status getStatus() { return status;}
+
+    public Set<Pipeline.Type> getNerTags() { return nerTags;}
     public Map<String, String> getMetadata() { return metadata; }
 
     @JsonIgnore

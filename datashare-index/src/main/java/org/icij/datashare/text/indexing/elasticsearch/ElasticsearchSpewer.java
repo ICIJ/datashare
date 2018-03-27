@@ -26,6 +26,7 @@ import java.io.Reader;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -96,6 +97,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }});
         jsonDocument.put("path", document.getPath().toString());
         jsonDocument.put("status", Document.Status.INDEXED);
+        jsonDocument.put("nerTags", new HashSet<>());
         jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
         jsonDocument.put("metadata", metadata);
         jsonDocument.put("contentType", getField(document.getMetadata(), CONTENT_TYPE, DEFAULT_VALUE_UNKNOWN).split(";")[0]);

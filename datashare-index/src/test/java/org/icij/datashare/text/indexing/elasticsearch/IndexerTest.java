@@ -14,12 +14,16 @@ import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.Document.Status.INDEXED;
 import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
+import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 
 public class IndexerTest {
     @ClassRule
@@ -34,15 +38,32 @@ public class IndexerTest {
 
     @Test
     public void test_bulk_add() throws IOException {
-        Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), org.icij.datashare.text.Document.Status.INDEXED);
+        Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED);
         indexer.add(doc);
-        NamedEntity ne1 = NamedEntity.create(PERSON, "John Doe", 12, "doc.txt", Pipeline.Type.CORENLP, Language.FRENCH);
-        NamedEntity ne2 = NamedEntity.create(ORGANIZATION, "AAA", 123, "doc.txt", Pipeline.Type.CORENLP, Language.FRENCH);
+        NamedEntity ne1 = NamedEntity.create(PERSON, "John Doe", 12, "doc.txt", CORENLP, Language.FRENCH);
+        NamedEntity ne2 = NamedEntity.create(ORGANIZATION, "AAA", 123, "doc.txt", MITIE, Language.FRENCH);
+
         assertThat(indexer.bulkAdd(asList(ne1, ne2), doc)).isTrue();
 
         assertThat(((Document) indexer.get(doc.getId())).getStatus()).isEqualTo(Document.Status.DONE);
+        assertThat(((Document) indexer.get(doc.getId())).getNerTags()).containsOnly(CORENLP, MITIE);
         assertThat((NamedEntity) indexer.get(ne1.getId(), doc.getId())).isNotNull();
         assertThat((NamedEntity) indexer.get(ne2.getId(), doc.getId())).isNotNull();
+    }
+
+    @Test
+    public void test_bulk_add_should_merge_ner_tags() throws IOException {
+        Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED,
+                new HashSet<Pipeline.Type>() {{ add(OPENNLP);}});
+        indexer.add(doc);
+
+        assertThat(indexer.bulkAdd(
+                singletonList(NamedEntity.create(PERSON, "Jane Die", 18, "doc.txt", CORENLP, Language.FRENCH)),
+                doc)).isTrue();
+
+        assertThat(((Document) indexer.get(doc.getId())).getNerTags()).containsOnly(CORENLP, OPENNLP);
     }
 
     public IndexerTest() throws UnknownHostException {}
