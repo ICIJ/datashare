@@ -23,8 +23,10 @@ import org.icij.datashare.text.nlp.corenlp.models.CoreNlpPipelineModels;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpPosModels;
 
 import java.io.StringReader;
-import java.util.*;
-import java.util.function.BiPredicate;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.text.nlp.NlpStage.*;
@@ -147,8 +149,6 @@ public final class CorenlpPipeline extends AbstractPipeline {
         CoreNlpPipelineModels.getInstance().get(language, classLoader).
                 ifPresent(stanfordCoreNLP1 -> stanfordCoreNLP1.annotate(coreNlpAnnotation));
 
-        final BiPredicate<Optional<NamedEntity.Category>, Optional<NamedEntity.Category>>
-                differentCategories = (c1, c2) -> ! c1.equals(c2);
         // Feed annotations
         List<CoreMap> sentences = coreNlpAnnotation.get(SentencesAnnotation.class);
         for (CoreMap sentence: sentences) {
@@ -157,11 +157,8 @@ public final class CorenlpPipeline extends AbstractPipeline {
             annotations.add(SENTENCE, sentenceBegin, sentenceEnd);
 
             int                            nerBegin   = 0;
-            List<String>                   nerComps   = new ArrayList<>();
-            List<String>                   nerPoSs    = new ArrayList<>();
-            Optional<NamedEntity.Category> prevCat = Optional.empty();
+            NamedEntity.Category prevCat = NamedEntity.Category.NONE;
 
-            // Feed annotations with TOKEN, POS, NER
             List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
             for (CoreLabel token: tokens) {
                 int    tokenBegin = token.get(CharacterOffsetBeginAnnotation.class);
@@ -170,27 +167,17 @@ public final class CorenlpPipeline extends AbstractPipeline {
                 annotations.add(TOKEN, tokenBegin, tokenEnd);
                 annotations.add(POS, tokenBegin, tokenEnd, pos);
 
-                // Current named entity category
-                String word = token.get(TextAnnotation.class);
                 String cat   = token.get(NamedEntityTagAnnotation.class);
-                Optional<NamedEntity.Category> currCat = NamedEntity.Category.parse(cat);
-                if (currCat.isPresent()) {
-                    nerComps.add(word);
-                    nerPoSs .add(pos);
-                    if ( differentCategories.test(prevCat, currCat) ) {
+                NamedEntity.Category currCat = NamedEntity.Category.parse(cat);
+                if (currCat != NamedEntity.Category.NONE) {
+                    if ( prevCat != currCat ) {
                         nerBegin = tokenBegin;
                     }
                 } else {
-                    if ( differentCategories.test(prevCat, currCat) ) {
-                        String               mention    = String.join(" ", nerComps);
-                        String               mentionPos = String.join(" ", nerPoSs);
-                        NamedEntity.Category category   = prevCat.orElse(NamedEntity.Category.UNKNOWN);
-                        annotations.add(NER, nerBegin, tokenBegin, category.toString());
-                        nerComps = new ArrayList<>();
-                        nerPoSs  = new ArrayList<>();
+                    if ( prevCat != currCat ) {
+                        annotations.add(NER, nerBegin, tokenBegin, prevCat.toString());
                     }
                 }
-                // Update category
                 prevCat = currCat;
             }
         }
@@ -229,7 +216,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
             // For each recognized named entity
             for (Triple<String, Integer, Integer> item : items) {
                 // Triple: <category, begin, end>
-                NamedEntity.Category category = NamedEntity.Category.parse(item.first()).orElse(NamedEntity.Category.NONE);
+                NamedEntity.Category category = NamedEntity.Category.parse(item.first());
                 int begin = item.second();
                 int end = item.third();
                 annotations.add(NER, begin, end, category.toString());

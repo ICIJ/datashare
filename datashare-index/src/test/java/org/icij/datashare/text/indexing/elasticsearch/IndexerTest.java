@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
@@ -64,6 +65,24 @@ public class IndexerTest {
                 doc)).isTrue();
 
         assertThat(((Document) indexer.get(doc.getId())).getNerTags()).containsOnly(CORENLP, OPENNLP);
+    }
+
+    @Test
+    public void test_bulk_add_for_embedded_doc() throws IOException {
+        Document parent = new org.icij.datashare.text.Document(Paths.get("mail.eml"), "content",
+                Language.FRENCH, Charset.defaultCharset(), "message/rfc822", new HashMap<>(), INDEXED);
+        Document child = new org.icij.datashare.text.Document(Paths.get("mail.eml"), "mail body",
+                Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, new HashSet<>(), parent.getId());
+        indexer.add(parent);
+        indexer.add(child);
+        NamedEntity ne1 = NamedEntity.create(PERSON, "Jane Daffodil", 12, parent.getId(), CORENLP, Language.FRENCH);
+
+        assertThat(indexer.bulkAdd(singletonList(ne1), child)).isTrue();
+
+        Entity doc = indexer.get(child.getId(), parent.getId());
+        assertThat(((Document) doc).getNerTags()).containsOnly(CORENLP);
+        assertThat(((Document) doc).getStatus()).isEqualTo(Document.Status.DONE);
+        assertThat((NamedEntity) indexer.get(ne1.getId(), doc.getId())).isNotNull();
     }
 
     public IndexerTest() throws UnknownHostException {}

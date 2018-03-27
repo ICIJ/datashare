@@ -3,12 +3,16 @@ package org.icij.datashare.text;
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.icij.datashare.Entity;
+import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 
 @IndexType("Document")
@@ -33,13 +37,19 @@ public final class Document implements Entity {
     private final Map<String, String> metadata;
     private final Status status;
     private final Set<Pipeline.Type> nerTags;
+    @IndexParent
+    private final String parentDocument;
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
-        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>());
+        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null);
     }
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags) {
-        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags);
+        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null);
+    }
+
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags, String parentDocument) {
+        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument);
     }
 
     @JsonCreator
@@ -49,7 +59,8 @@ public final class Document implements Entity {
                      @JsonProperty("extractionLevel") int extractionLevel,
                      @JsonProperty("metadata") Map<String, String> metadata,
                      @JsonProperty("status") Status status,
-                     @JsonProperty("nerTags") Set<Pipeline.Type> nerTags) {
+                     @JsonProperty("nerTags") Set<Pipeline.Type> nerTags,
+                     @JsonProperty("parentDocument") String parentDocument) {
         this.id = id;
         this.path = path;
         this.content = content;
@@ -62,6 +73,7 @@ public final class Document implements Entity {
         this.metadata = metadata;
         this.status = status;
         this.nerTags = nerTags;
+        this.parentDocument = parentDocument;
     }
 
     @Override
@@ -73,7 +85,7 @@ public final class Document implements Entity {
     public String getContentType() { return contentType; }
     public Language getLanguage() { return language; }
     public int getExtractionLevel() { return extractionLevel;}
-
+    public String getParentDocument() { return parentDocument;}
     public Status getStatus() { return status;}
 
     public Set<Pipeline.Type> getNerTags() { return nerTags;}

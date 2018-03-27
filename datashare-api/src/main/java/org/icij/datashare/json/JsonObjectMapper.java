@@ -171,18 +171,18 @@ public class JsonObjectMapper {
      * @param <T> the concrete type of entity
      * @return the parent's hash String
      */
-    public static <T extends Entity> Optional<String> getParent(T obj) {
+    public static <T extends Entity> String getParent(T obj) {
         for(Field field : obj.getClass().getDeclaredFields()) {
             if (field.isAnnotationPresent(IndexParent.class)) {
                 field.setAccessible(true);
                 try {
-                    return Optional.of( (String) field.get(obj) );
+                    return (String) field.get(obj);
                 } catch (IllegalAccessException e) {
                     break;
                 }
             }
         }
-        return Optional.empty();
+        return null;
     }
 
     /**

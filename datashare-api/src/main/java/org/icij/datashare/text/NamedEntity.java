@@ -54,7 +54,7 @@ public final class NamedEntity implements Entity {
         MONEY        ("MON"),
         NUMBER       ("NUM"),
         NONE         ("NONE"),
-        UNKNOWN      ("UNKNOWN");
+        UNKNOWN      ("UNK");
 
         private static final long serialVersionUID = -1596432856473673L;
 
@@ -65,18 +65,18 @@ public final class NamedEntity implements Entity {
         public String getAbbreviation() { return abbreviation; }
 
         public static Category parse(String entityCategory) {
-            if (entityCategory == null || entityCategory.isEmpty())
-                return UNKNOWN;
-            if (entityCategory.trim().equals("0") || entityCategory.trim().equals("O"))
+            if (entityCategory == null || entityCategory.isEmpty() ||
+                entityCategory.trim().equals("0") || entityCategory.trim().equals("O")) {
                 return NONE;
+            }
             try {
                 return valueOf(entityCategory.toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException e) {
                 String normEntityCategory = removePattFrom.apply("^I-").apply(entityCategory);
                 for (Category cat : values()) {
                     String catAbbreviation = cat.getAbbreviation();
-                    if (    normEntityCategory.equalsIgnoreCase(catAbbreviation) ||
-                            normEntityCategory.equalsIgnoreCase(catAbbreviation.substring(0, min(catAbbreviation.length(), 3))) )
+                    if (normEntityCategory.equalsIgnoreCase(catAbbreviation) ||
+                        normEntityCategory.equalsIgnoreCase(catAbbreviation.substring(0, min(catAbbreviation.length(), 3))) )
                         return cat;
                 }
                 return UNKNOWN;

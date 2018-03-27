@@ -52,6 +52,7 @@ import java.util.stream.StreamSupport;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -204,7 +205,7 @@ public class ElasticsearchIndexer implements Indexer {
                 jsonBuilder().startObject()
                         .field("status", Document.Status.DONE)
                         .field("nerTags", nerTags)
-                        .endObject()));
+                        .endObject()).routing(ofNullable(parent.getParentDocument()).orElse(parent.getId())));
         for (Entity child : namedEntities) {
             bulkRequest.add(indexRequest(esCfg.indexName, JsonObjectMapper.getType(child), child.getId(),
                             JsonObjectMapper.getJson(child), parent.getId()));
@@ -225,7 +226,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public <T extends Entity> boolean add(String index, T obj) {
-        return add(index, JsonObjectMapper.getType(obj), obj.getId(), JsonObjectMapper.getJson(obj), JsonObjectMapper.getParent(obj).orElse(null));
+        return add(index, JsonObjectMapper.getType(obj), obj.getId(), JsonObjectMapper.getJson(obj), JsonObjectMapper.getParent(obj));
     }
 
     @Override
@@ -233,7 +234,7 @@ public class ElasticsearchIndexer implements Indexer {
         return add(esCfg.indexName,
                 JsonObjectMapper.getType(obj), obj.getId(),
                 JsonObjectMapper.getJson(obj),
-                JsonObjectMapper.getParent(obj).orElse(null));
+                JsonObjectMapper.getParent(obj));
     }
 
     private IndexRequest indexRequest(String index, String type, String id, Map<String, Object> json) {
@@ -244,7 +245,7 @@ public class ElasticsearchIndexer implements Indexer {
         IndexRequest req = new IndexRequest(index, esCfg.indexType, id);
 
         json.put(esCfg.docTypeField, type);
-        if (parent != null)
+        if (parent != null && type.equals("NamedEntity"))
             json.put(esCfg.indexJoinField, new HashMap<String, String>() {{
                 put("name", type);
                 put("parent", parent);
