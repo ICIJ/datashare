@@ -2,6 +2,8 @@ package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import me.xuender.unidecode.Unidecode;
 import org.icij.datashare.Entity;
 import org.icij.datashare.function.ThrowingFunction;
@@ -26,6 +28,7 @@ import static org.icij.datashare.text.nlp.NlpStage.POS;
 
 
 @IndexType("NamedEntity")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class NamedEntity implements Entity {
     private static final long serialVersionUID = 1946532866377498L;
 
@@ -51,7 +54,7 @@ public final class NamedEntity implements Entity {
         MONEY        ("MON"),
         NUMBER       ("NUM"),
         NONE         ("NONE"),
-        UNKNOWN      ("UNK");
+        UNKNOWN      ("UNKNOWN");
 
         private static final long serialVersionUID = -1596432856473673L;
 
@@ -61,30 +64,29 @@ public final class NamedEntity implements Entity {
 
         public String getAbbreviation() { return abbreviation; }
 
-        public static Optional<Category> parse(String entityCategory) {
+        public static Category parse(String entityCategory) {
             if (entityCategory == null || entityCategory.isEmpty())
-                return Optional.empty();
+                return UNKNOWN;
             if (entityCategory.trim().equals("0") || entityCategory.trim().equals("O"))
-                return Optional.of(NONE);
+                return NONE;
             try {
-                return Optional.of(valueOf(entityCategory.toUpperCase(Locale.ROOT)));
+                return valueOf(entityCategory.toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException e) {
                 String normEntityCategory = removePattFrom.apply("^I-").apply(entityCategory);
                 for (Category cat : values()) {
                     String catAbbreviation = cat.getAbbreviation();
                     if (    normEntityCategory.equalsIgnoreCase(catAbbreviation) ||
                             normEntityCategory.equalsIgnoreCase(catAbbreviation.substring(0, min(catAbbreviation.length(), 3))) )
-                        return Optional.of(cat);
+                        return cat;
                 }
-                return Optional.empty();
+                return UNKNOWN;
             }
         }
 
         public static ThrowingFunction<List<String>, List<Category>> parseAll =
                 list -> list.stream()
                         .map(Category::parse)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
+                        .filter((Category cat) -> cat != UNKNOWN)
                         .collect(Collectors.toList());
     }
 
@@ -100,18 +102,13 @@ public final class NamedEntity implements Entity {
      * @param extrLang the pipeline language
      * @return a new immutable {@link NamedEntity} if instantiation succeeded; empty Optional otherwise
      */
-    public static Optional<NamedEntity> create(Category cat,
-                                               String mention,
-                                               int offset,
-                                               String doc,
-                                               Pipeline.Type extr,
-                                               Language extrLang) {
-        try {
-            return Optional.of( new NamedEntity(mention, cat, doc, offset, extr, extrLang, null) );
-        } catch (IllegalArgumentException e) {
-            LOGGER.error("Failed to createList named entity", e);
-            return Optional.empty();
-        }
+    public static NamedEntity create(Category cat,
+                                     String mention,
+                                     int offset,
+                                     String doc,
+                                     Pipeline.Type extr,
+                                     Language extrLang) {
+        return new NamedEntity(mention, cat, doc, offset, extr, extrLang, null);
     }
 
     /**
@@ -154,23 +151,12 @@ public final class NamedEntity implements Entity {
             return emptyList();
         return annotations.get(NER).stream()
                 .map     ( tag -> from(document.getContent(), tag, annotations) )
-                .filter  ( Optional::isPresent )
-                .map     ( Optional::get )
+                .filter  ( ne -> ne.category != UNKNOWN)
                 .collect ( Collectors.toList() );
     }
 
-    public static List<NamedEntity> allFrom(String text, Annotations annotations) {
-        return annotations.get(NER).stream()
-                .map     ( tag -> from(text, tag, annotations) )
-                .filter  ( Optional::isPresent )
-                .map     ( Optional::get )
-                .collect ( Collectors.toList() );
-    }
-
-    public static Optional<NamedEntity> from(String text, Tag tag, Annotations annotations) {
-        Optional<NamedEntity.Category> category = NamedEntity.Category.parse(tag.getValue());
-        if ( ! category.isPresent())
-            return Optional.empty();
+    public static NamedEntity from(String text, Tag tag, Annotations annotations) {
+        Category category = Category.parse(tag.getValue());
         String mention = ThrowingFunctions.removeNewLines.apply(text.substring(tag.getBegin(), tag.getEnd()));
         List<Tag> posTags = annotations.get(POS);
         int posTagIndex = Collections.binarySearch(posTags, tag, Tag.comparator);
@@ -178,7 +164,7 @@ public final class NamedEntity implements Entity {
             LOGGER.info(posTagIndex + ", " + posTags.get(posTagIndex));
         }
         return NamedEntity.create(
-                category.get(),
+                category,
                 mention,
                 tag.getBegin(),
                 annotations.getDocumentId(),
@@ -188,13 +174,13 @@ public final class NamedEntity implements Entity {
     }
 
     @JsonCreator
-    private NamedEntity(String           mention,
-                        Category         category,
-                        String documentId,
-                        int              offset,
-                        Pipeline.Type extractor,
-                        Language         extractorLanguage,
-                        String           partsOfSpeech) {
+    private NamedEntity(@JsonProperty("mention") String mention,
+                        @JsonProperty("category") Category category,
+                        @JsonProperty("documentId") String documentId,
+                        @JsonProperty("offset") int offset,
+                        @JsonProperty("extractor") Pipeline.Type extractor,
+                        @JsonProperty("extractorLanguage") Language extractorLanguage,
+                        @JsonProperty("partOfSpeech") String partsOfSpeech) {
         if (mention == null || mention.isEmpty()) {
             throw new IllegalArgumentException("Mention is undefined");
         }
@@ -216,19 +202,12 @@ public final class NamedEntity implements Entity {
 
     @Override
     public String getId() { return id; }
-
     public String getMention() { return mention; }
-
     public Category getCategory() { return category; }
-
     public Optional<String> getDocumentId() { return Optional.ofNullable(documentId); }
-
     public OptionalInt getOffset() { return OptionalInt.of(offset); }
-
     public Optional<Pipeline.Type> getExtractor() { return Optional.ofNullable(extractor); }
-
     public Optional<Language> getExtractorLanguage() { return Optional.ofNullable(extractorLanguage); }
-
     public Optional<String> getPartsOfSpeech() { return Optional.ofNullable(partsOfSpeech); }
 
     @Override

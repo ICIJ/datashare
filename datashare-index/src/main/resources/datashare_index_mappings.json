@@ -30,6 +30,9 @@
         "language": {
           "type": "keyword"
         },
+        "status": {
+          "type": "keyword"
+        },
         "metadata": {
           "type": "object"
         },

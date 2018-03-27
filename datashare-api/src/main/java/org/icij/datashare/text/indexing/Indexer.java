@@ -1,10 +1,13 @@
 package org.icij.datashare.text.indexing;
 
 import org.icij.datashare.Entity;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.NamedEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -130,6 +133,7 @@ public interface Indexer extends Closeable {
      * {@link Indexer#add(String, String, String, Map)} with {@code parent}
      */
     boolean add(String index, String type, String id, Map<String, Object> json, String parent);
+    boolean bulkAdd(List<NamedEntity> namedEntities, Document parent) throws IOException;
 
     /**
      * Add document to index from Object
@@ -147,18 +151,6 @@ public interface Indexer extends Closeable {
     <T extends Entity> T get(String id, String parent);
 
     /**
-     * Add an document indexing to batch processing
-     * document source given as a JSON Map
-     */
-    void addBatch(String index, String type, String id, Map<String, Object> json);
-
-    /**
-     * Add a document indexing, with parent, to batch processing
-     * document source given as a JSON Map
-     */
-    void addBatch(String index, String type, String id, Map<String, Object> json, String parent);
-
-    /**
      * Delete document {@code index} / {@code type} / {@code id}
      *
      * @param index the index store
@@ -172,24 +164,6 @@ public interface Indexer extends Closeable {
      * {@link Indexer#delete(String, String, String)} with {@code parent}
      */
     boolean delete(String index, String type, String id, String parent);
-
-    /**
-     * Add a document deletion to batch processing
-     * document's id given as a String
-     */
-    void batchDelete(String index, String type, String id);
-
-    /**
-     * Add a document deletion, with parent, to batch processing
-     * document's id given as a String
-     */
-    void batchDelete(String index, String type, String id, String parent);
-
-    /**
-     * Add a document deletion to batch processing
-     * document's id given in {@code obj}
-     */
-    <T extends Entity> void batchDelete(String index, T obj);
 
     /**
      * Get documents matching {@code query}, any type in any index

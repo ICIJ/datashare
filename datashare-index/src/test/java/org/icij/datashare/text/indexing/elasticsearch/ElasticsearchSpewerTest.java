@@ -81,6 +81,7 @@ public class ElasticsearchSpewerTest {
                 entry("contentEncoding", "ISO-8859-1"),
                 entry("contentType", "text/plain"),
                 entry("contentLength", 45),
+                entry("status", "INDEXED"),
                 entry("path", path)
         );
     }

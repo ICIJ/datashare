@@ -12,9 +12,8 @@ import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.action.bulk.BulkProcessor;
-import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkItemResponse;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -23,6 +22,8 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.support.WriteRequest;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -38,18 +39,20 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.*;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.*;
 
@@ -61,7 +64,6 @@ public class ElasticsearchIndexer implements Indexer {
     private static final int           BULKPROCESSOR_CONCURRENT_REQS = 1;
 
     private final Client client;
-    private final BulkProcessor bulkProcessor;
     private final ElasticsearchConfiguration esCfg;
 
     @Inject
@@ -73,18 +75,11 @@ public class ElasticsearchIndexer implements Indexer {
         this.client = client;
         esCfg = new ElasticsearchConfiguration(propertiesProvider);
         LOGGER.info("indexer defined with {}", esCfg);
-        bulkProcessor = buildBulkProcessor();
     }
 
     @Override
     public void close() {
         LOGGER.info("Closing Elasticsearch connection");
-        try {
-            LOGGER.info("Awaiting bulk processor termination...");
-            bulkProcessor.awaitClose(10, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            LOGGER.error("Failed to close bulk processor", e);
-        }
         client.close();
         LOGGER.info("Elasticsearch connection closed");
     }
@@ -198,6 +193,29 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public boolean bulkAdd(List<NamedEntity> namedEntities, Document parent) throws IOException {
+        BulkRequestBuilder bulkRequest = client.prepareBulk();
+        bulkRequest.add(new UpdateRequest(esCfg.indexName, esCfg.indexType, parent.getId()).doc(
+                jsonBuilder().startObject().field("status", Document.Status.DONE).endObject()));
+
+        for (Entity child : namedEntities) {
+            bulkRequest.add(indexRequest(esCfg.indexName, JsonObjectMapper.getType(child), child.getId(),
+                            JsonObjectMapper.getJson(child), parent.getId()));
+        }
+        bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
+        BulkResponse bulkResponse = bulkRequest.get();
+        if (bulkResponse.hasFailures()) {
+            for (BulkItemResponse resp : bulkResponse.getItems()) {
+                if (resp.isFailed()) {
+                    LOGGER.error("bulk add failed : {}", resp.getFailureMessage());
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     public <T extends Entity> boolean add(String index, T obj) {
         return add(index, JsonObjectMapper.getType(obj), obj.getId(), JsonObjectMapper.getJson(obj), JsonObjectMapper.getParent(obj).orElse(null));
     }
@@ -229,24 +247,9 @@ public class ElasticsearchIndexer implements Indexer {
             }});
         }
         req = req.source(json);
-
         return (parent != null) ? req.routing(parent) : req;
     }
 
-
-    // __________ Batched Add Document(s) __________
-
-    @Override
-    public void addBatch(String index, String type, String id, Map<String, Object> json) {
-        bulkProcessor.add( indexRequest(index, type, id, json) );
-    }
-
-    @Override
-    public void addBatch(String index, String type, String id, Map<String, Object> json, String parent) {
-        bulkProcessor.add( indexRequest(index, type, id, json, parent) );
-    }
-
-    // __________ Read Document __________
 
     public <T extends Entity> T get(String id) {
         return get(id, id);
@@ -302,29 +305,6 @@ public class ElasticsearchIndexer implements Indexer {
     private DeleteRequest deleteRequest(String index, String type, String id, String parent) {
         DeleteRequest req = new DeleteRequest(index, esCfg.indexType, id);
         return (parent != null) ? req.routing(parent) : req;
-    }
-
-        // __________ Batched Delete Document(s) __________
-
-    @Override
-    public void batchDelete(String index, String type, String id) {
-        bulkProcessor.add( deleteRequest(index, type, id) );
-    }
-
-    @Override
-    public void batchDelete(String index, String type, String id, String parent) {
-        bulkProcessor.add( deleteRequest(index, type, id, parent) );
-    }
-
-    @Override
-    public <T extends Entity> void batchDelete(String index, T obj) {
-        final String           type   = JsonObjectMapper.getType(obj);
-        final String           id     = JsonObjectMapper.getId(obj);
-        final Optional<String> parent = JsonObjectMapper.getParent(obj);
-        if (parent.isPresent())
-            batchDelete(index, type, id, parent.get());
-        else
-            batchDelete(index, type, id);
     }
 
     // __________ Search Document(s) __________
@@ -451,25 +431,6 @@ public class ElasticsearchIndexer implements Indexer {
         return JoinQueryBuilders.hasParentQuery(type, query, false);
     }
 
-    private static QueryBuilder mustHasParentQuery(String type) {
-        return boolQuery().must( hasParentQuery(type, matchAllQuery()) );
-    }
-
-    private static QueryBuilder mustHasParentQuery(String type, String query) {
-        return boolQuery().must( hasParentQuery(type,  queryStringQuery(query)) );
-    }
-
-    private boolean awaitConnectionIsUp() {
-        return ! client
-                .admin()
-                .cluster()
-                .prepareHealth()
-                .setTimeout(timeValueSeconds(DEFAULT_TIMEOUT_INSEC))
-                .setWaitForStatus(ClusterHealthStatus.GREEN)
-                .get()
-                .isTimedOut();
-    }
-
     @Override
     public boolean awaitIndexIsUp(String index) {
         return awaitIndexIsUp(index, ClusterHealthStatus.GREEN);
@@ -485,32 +446,8 @@ public class ElasticsearchIndexer implements Indexer {
         return ! resp.isTimedOut();
     }
 
-    /**
-     * @return new {@link BulkProcessor} instance which flushes when reached
-     *   - {@link this#BULKPROCESSOR_FLUSH_ACTIONS} index actions or
-     *   - {@link this#BULKPROCESSOR_FLUSH_SIZE} of data or
-     *   - {@link this#BULKPROCESSOR_FLUSH_TIME} has passed and
-     * and allows {@link this#BULKPROCESSOR_CONCURRENT_REQS} actions to be executed while accumullating bulk requests.
-     */
-    private BulkProcessor buildBulkProcessor() {
-        return BulkProcessor.builder( client,
-                new BulkProcessor.Listener() {
-                    public void beforeBulk(long executionId, BulkRequest request) {
-                        LOGGER.info("Indexing - bulk processing of " + String.valueOf(request.numberOfActions()) + " actions");
-                    }
-                    public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
-                        if ( ! response.hasFailures())
-                            LOGGER.info("Indexing - bulk processing took: " + String.valueOf(response.getTook()));
-                    }
-                    public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
-                        LOGGER.error("Indexing - bulk processor failed: " + String.valueOf(request.toString()), failure);
-                    }
-                })
-                .setBulkActions(BULKPROCESSOR_FLUSH_ACTIONS)
-                .setBulkSize(BULKPROCESSOR_FLUSH_SIZE)
-                .setFlushInterval(BULKPROCESSOR_FLUSH_TIME)
-                .setConcurrentRequests(BULKPROCESSOR_CONCURRENT_REQS)
-                .setBackoffPolicy(BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(100), 3))
-                .build();
+    public ElasticsearchIndexer withRefresh(WriteRequest.RefreshPolicy refresh) {
+        esCfg.withRefresh(refresh);
+        return this;
     }
 }

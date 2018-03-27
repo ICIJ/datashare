@@ -8,6 +8,7 @@ import org.elasticsearch.client.Client;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.EmbeddedTikaDocument;
@@ -94,6 +95,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             put("name", "Document");
         }});
         jsonDocument.put("path", document.getPath().toString());
+        jsonDocument.put("status", Document.Status.INDEXED);
         jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
         jsonDocument.put("metadata", metadata);
         jsonDocument.put("contentType", getField(document.getMetadata(), CONTENT_TYPE, DEFAULT_VALUE_UNKNOWN).split(";")[0]);

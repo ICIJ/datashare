@@ -12,7 +12,6 @@ import org.junit.Test;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.Optional;
 
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
@@ -41,24 +40,24 @@ public class NlpDatashareListenerTest {
     @Test
     public void test_on_message_do_not_processNLP__when_init_fails() throws Exception {
         when(pipeline.initialize(any())).thenReturn(false);
-        Optional<Document> doc = Document.create(Paths.get("/path/to/doc"), "content", FRENCH,
-                        Charset.defaultCharset(), "test/plain", new HashMap<>());
-        indexer.add(TEST_INDEX, doc.get());
+        Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
+                        Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
+        indexer.add(TEST_INDEX, doc);
 
-        nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, doc.get().getId()));
+        nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, doc.getId()));
         verify(pipeline, never()).process(anyString(), anyString(), any());
     }
 
     @Test
     public void test_on_message_processNLP__when_doc_found_in_index() throws Exception {
         when(pipeline.initialize(any())).thenReturn(true);
-        Optional<Document> doc = Document.create(Paths.get("/path/to/doc"), "content", FRENCH,
-                Charset.defaultCharset(), "test/plain", new HashMap<>());
-        indexer.add(TEST_INDEX, doc.get());
+        Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
+                Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
+        indexer.add(TEST_INDEX, doc);
 
-        nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, doc.get().getId()));
+        nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, doc.getId()));
 
         verify(pipeline).initialize(FRENCH);
-        verify(pipeline).process("content", doc.get().getId(), FRENCH);
+        verify(pipeline).process("content", doc.getId(), FRENCH);
     }
 }
