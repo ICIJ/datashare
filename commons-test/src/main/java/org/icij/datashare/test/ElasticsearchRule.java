@@ -5,6 +5,8 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.reindex.DeleteByQueryAction;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.junit.rules.ExternalResource;
 
@@ -37,5 +39,9 @@ public class ElasticsearchRule extends ExternalResource {
     protected void after() {
         client.admin().indices().delete(new DeleteIndexRequest(TEST_INDEX)).actionGet();
         client.close();
+    }
+
+    public void removeAll() {
+        DeleteByQueryAction.INSTANCE.newRequestBuilder(client).source(TEST_INDEX).filter(QueryBuilders.matchAllQuery()).get();
     }
 }

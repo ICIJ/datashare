@@ -1,4 +1,4 @@
-package org.icij.datashare.extract;
+package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;

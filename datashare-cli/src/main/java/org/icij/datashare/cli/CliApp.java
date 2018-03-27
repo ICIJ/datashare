@@ -15,6 +15,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static com.google.inject.Guice.createInjector;
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.valueOf;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -30,7 +31,7 @@ public class CliApp {
         Set<DatashareCli.Stage> stages = stream(properties.getProperty(STAGES_OPT).
                 split(valueOf(ARG_VALS_SEP))).map(DatashareCli.Stage::valueOf).collect(toSet());
 
-        if (stages.contains(SCAN)) {
+        if (stages.contains(SCAN) && !resume(properties)) {
             taskManager.startTask(taskFactory.createScanTask(Paths.get(properties.getProperty(SCANNING_INPUT_DIR_OPT)), Options.from(properties)));
         }
         if (stages.contains(INDEX)) {
@@ -44,7 +45,15 @@ public class CliApp {
                 Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
                 taskManager.startTask(new NlpApp().withNlp(pipelineClass).withIndexer(ElasticsearchIndexer.class).withProperties(properties));
             }
+
+            if (resume(properties)) {
+                taskManager.startTask(taskFactory.resumeNerTask(properties));
+            }
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, HOURS);
+    }
+
+    protected static boolean resume(Properties properties) {
+        return parseBoolean(properties.getProperty(RESUME_OPT, "false"));
     }
 }

@@ -18,6 +18,8 @@ import static org.icij.datashare.function.ThrowingFunctions.joinComma;
 public interface Indexer extends Closeable {
     Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
 
+    Searcher search(Class<? extends Entity> entityClass);
+
     enum NodeType {
         LOCAL ("localhost",   1, 0),
         REMOTE("kc.icij.org", 8, 2);
@@ -186,4 +188,9 @@ public interface Indexer extends Closeable {
     Stream<Map<String, Object>> search(String query, String type, String... indices);
     Stream<Map<String, Object>> search(String query, int from, int to, String type, String... indices);
 
+    interface Searcher {
+        Searcher ofStatus(Document.Status indexed);
+        Stream<? extends Entity> execute();
+        Searcher withSource(String... fields);
+    }
 }

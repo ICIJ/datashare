@@ -45,7 +45,7 @@ class ElasticsearchConfiguration {
     static final String  ES_DOCUMENT_TYPE = "Document";
     static final String  ES_CONTENT_FIELD = "content";
 
-    private static final String DEFAULT_INDEX_TYPE = "doc";
+    static final String DEFAULT_INDEX_TYPE = "doc";
     private static final String DEFAULT_INDEX_JOIN_FIELD = "join";
     static final String DEFAULT_PARENT_DOC_FIELD = "parentDocument";
 

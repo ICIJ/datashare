@@ -17,6 +17,7 @@ final class DatashareCliOptions {
     static final String NLP_PIPELINES_OPT = "nlpPipelines";
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String WEB_SERVER_OPT = "web";
+    static final String RESUME_OPT = "resume";
     public static final String PARALLELISM = "parallelism";
 
     static OptionSpec<DatashareCli.Stage> stages(OptionParser parser) {
@@ -31,6 +32,10 @@ final class DatashareCliOptions {
 
     static OptionSpecBuilder web(OptionParser parser) {
         return parser.acceptsAll(asList(WEB_SERVER_OPT, "w"), "Run as a web server");
+    }
+
+    static OptionSpecBuilder resume(OptionParser parser) {
+        return parser.acceptsAll(asList(RESUME_OPT, "r"), "Resume pending operations");
     }
 
     static OptionSpec<File> inputDir(OptionParser parser) {

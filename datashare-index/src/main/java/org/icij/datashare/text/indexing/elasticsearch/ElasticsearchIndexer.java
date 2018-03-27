@@ -22,6 +22,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
@@ -31,10 +32,12 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.join.query.JoinQueryBuilders;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
@@ -187,7 +190,7 @@ public class ElasticsearchIndexer implements Indexer {
     @Override
     public boolean add(String index, String type, String id, Map<String, Object> json, String parent) {
         try {
-            final IndexResponse resp = client.index( indexRequest(index, type, id, json, parent) ).get();
+            final IndexResponse resp = client.index( indexRequest(index, type, id, json, parent).setRefreshPolicy(esCfg.refreshPolicy)).get();
             return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
         } catch (InterruptedException | ExecutionException e) {
             LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + index, e);
@@ -339,6 +342,11 @@ public class ElasticsearchIndexer implements Indexer {
         return search( queryStringQuery(query), from, to, type, indices);
     }
 
+    @Override
+    public Searcher search(Class<? extends Entity> entityClass) {
+        return new ElasticsearchSearcher(client, esCfg, entityClass);
+    }
+
     // __________ Search Document(s) with(out) children __________
 
     private Stream<Map<String, Object>> search(QueryBuilder query) {
@@ -458,5 +466,35 @@ public class ElasticsearchIndexer implements Indexer {
     public ElasticsearchIndexer withRefresh(WriteRequest.RefreshPolicy refresh) {
         esCfg.withRefresh(refresh);
         return this;
+    }
+
+    static class ElasticsearchSearcher implements Searcher {
+        private final SearchRequestBuilder searchBuilder;
+        private final BoolQueryBuilder boolQuery;
+        private final Class<? extends Entity> cls;
+
+        ElasticsearchSearcher(Client client, ElasticsearchConfiguration config, final Class<? extends Entity> cls) {
+            this.cls = cls;
+            this.searchBuilder = client.prepareSearch(config.indexName).setTypes(config.indexType);
+            this.boolQuery = boolQuery().must(matchQuery("type", JsonObjectMapper.getType(cls)));
+        }
+
+        @Override
+        public Searcher ofStatus(Document.Status status) {
+            this.boolQuery.must(matchQuery("status", status.toString()));
+            return this;
+        }
+
+        @Override
+        public Stream<? extends Entity> execute() {
+            SearchResponse response = searchBuilder.setQuery(boolQuery).execute().actionGet();
+            return resultStream(this.cls, () -> response.getHits().iterator());
+        }
+
+        @Override
+        public Searcher withSource(String... fields) {
+            searchBuilder.setSource(new SearchSourceBuilder().query(boolQuery).fetchSource(fields, new String[] {}));
+            return this;
+        }
     }
 }

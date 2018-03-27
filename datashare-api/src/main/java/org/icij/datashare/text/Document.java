@@ -14,6 +14,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Optional.ofNullable;
+
 
 @IndexType("Document")
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -63,10 +65,10 @@ public final class Document implements Entity {
                      @JsonProperty("parentDocument") String parentDocument) {
         this.id = id;
         this.path = path;
-        this.content = content;
+        this.content = ofNullable(content).orElse("");
         this.extractionDate = extractionDate;
         this.extractionLevel = extractionLevel;
-        this.contentLength = content.length();
+        this.contentLength = this.content.length();
         this.language = language;
         this.contentType = contentType;
         this.contentEncoding = contentEncoding;
