@@ -1,6 +1,5 @@
 package org.icij.datashare.text.nlp;
 
-import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.reflect.EnumTypeToken;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -11,10 +10,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.function.ThrowingFunctions.joinComma;
 import static org.icij.datashare.text.NamedEntity.Category.*;
@@ -44,12 +43,9 @@ public interface Pipeline {
             return EnumTypeToken.parseClassName(Pipeline.class, Type.class, className);
         }
 
-        public static ThrowingFunction<List<String>, List<Pipeline.Type>> parseAll =
-                list -> list.stream()
-                        .map(Pipeline.Type::parse)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .collect(Collectors.toList());
+        public static Pipeline.Type[] parseAll(final String comaSeparatedTypes) {
+            return stream(comaSeparatedTypes.split(",")).map(Type::valueOf).toArray(Type[]::new);
+        }
     }
 
     enum Property {

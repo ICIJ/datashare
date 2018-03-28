@@ -37,6 +37,8 @@ import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.join.query.JoinQueryBuilders;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.script.Script;
+import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -58,7 +60,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.*;
@@ -201,16 +202,21 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public boolean bulkAdd(List<NamedEntity> namedEntities, Document parent) throws IOException {
+    public boolean bulkAdd(Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException {
         BulkRequestBuilder bulkRequest = client.prepareBulk();
-        Set<Pipeline.Type> nerTags = namedEntities.stream().map(NamedEntity::getExtractor).collect(toSet());
-        nerTags.addAll(parent.getNerTags());
 
+        String routing = ofNullable(parent.getParentDocument()).orElse(parent.getId());
         bulkRequest.add(new UpdateRequest(esCfg.indexName, esCfg.indexType, parent.getId()).doc(
                 jsonBuilder().startObject()
                         .field("status", Document.Status.DONE)
-                        .field("nerTags", nerTags)
-                        .endObject()).routing(ofNullable(parent.getParentDocument()).orElse(parent.getId())));
+                        .endObject()).routing(routing));
+        bulkRequest.add(new UpdateRequest(esCfg.indexName, esCfg.indexType, parent.getId())
+                .script(new Script(
+                        ScriptType.INLINE,
+                        "painless",
+                        "if (!ctx._source.nerTags.contains(params.nerTag)) ctx._source.nerTags.add(params.nerTag)",
+                        new HashMap<String, Object>() {{put("nerTag", nerType.toString());}})).routing(routing));
+
         for (Entity child : namedEntities) {
             bulkRequest.add(indexRequest(esCfg.indexName, JsonObjectMapper.getType(child), child.getId(),
                             JsonObjectMapper.getJson(child), parent.getId()));
@@ -496,6 +502,12 @@ public class ElasticsearchIndexer implements Indexer {
         @Override
         public Searcher withSource(String... fields) {
             searchBuilder.setSource(new SearchSourceBuilder().query(boolQuery).fetchSource(fields, new String[] {}));
+            return this;
+        }
+
+        @Override
+        public Searcher withSource(boolean source) {
+            searchBuilder.setSource(new SearchSourceBuilder().fetchSource(false));
             return this;
         }
 

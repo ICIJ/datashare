@@ -136,7 +136,8 @@ public interface Indexer extends Closeable {
      * {@link Indexer#add(String, String, String, Map)} with {@code parent}
      */
     boolean add(String index, String type, String id, Map<String, Object> json, String parent);
-    boolean bulkAdd(List<NamedEntity> namedEntities, Document parent) throws IOException;
+
+    boolean bulkAdd(Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
 
     /**
      * Add document to index from Object
@@ -193,6 +194,7 @@ public interface Indexer extends Closeable {
         Searcher ofStatus(Document.Status indexed);
         Stream<? extends Entity> execute();
         Searcher withSource(String... fields);
+        Searcher withSource(boolean source);
         Searcher without(Pipeline.Type... nlpPipelines);
         Searcher with(Pipeline.Type... nlpPipelines);
     }

@@ -53,7 +53,7 @@ public class NlpDatashareListener implements DatashareListener {
                 if (nlpPipeline.initialize(doc.getLanguage())) {
                     Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
                     List<NamedEntity> namedEntities = NamedEntity.allFrom(doc, annotations);
-                    indexer.bulkAdd(namedEntities, doc);
+                    indexer.bulkAdd(nlpPipeline.getType(), namedEntities, doc);
                     logger.info("added {} named entities to document {}", namedEntities.size(), doc.getId());
                     nlpPipeline.terminate(doc.getLanguage());
                 }

@@ -30,8 +30,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.cli.DatashareCli.Stage.*;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
-import static org.icij.datashare.text.Document.Status.DONE;
-import static org.icij.datashare.text.Document.Status.INDEXED;
+import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
 public class CliApp {
     static Logger logger = LoggerFactory.getLogger(CliApp.class);
@@ -42,20 +41,16 @@ public class CliApp {
         TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
         Set<DatashareCli.Stage> stages = stream(properties.getProperty(STAGES_OPT).
                 split(valueOf(ARG_VALS_SEP))).map(DatashareCli.Stage::valueOf).collect(toSet());
-        List<Pipeline.Type> nlpPipelines = stream(properties.getProperty(NLP_PIPELINES_OPT).
-                            split(valueOf(ARG_VALS_SEP))).map(Pipeline.Type::valueOf).collect(toList());
-        Pipeline.Type[] nlpp = nlpPipelines.toArray(new Pipeline.Type[nlpPipelines.size()]);
+        Pipeline.Type[] nlpPipelines = parseAll(properties.getProperty(NLP_PIPELINES_OPT));
 
         if (resume(properties)) {
             DocumentQueue queue = injector.getInstance(DocumentQueue.class);
             Indexer indexer = injector.getInstance(Indexer.class);
 
-            List<? extends Entity> indexedDocsToProcess =
-                indexer.search(Document.class).withSource("parentDocument").ofStatus(INDEXED).execute().collect(toList());
-            List<? extends Entity> doneDocsToProcess =
-                indexer.search(Document.class).withSource("parentDocument").ofStatus(DONE).without(nlpp).execute().collect(toList());
+            List<? extends Entity> docsToProcess =
+                indexer.search(Document.class).withSource(false).without(nlpPipelines).execute().collect(toList());
 
-            if (queue.isEmpty() && indexedDocsToProcess.size() == 0 && doneDocsToProcess.size() == 0) {
+            if (queue.isEmpty() && docsToProcess.size() == 0) {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
             }
@@ -68,7 +63,7 @@ public class CliApp {
             taskManager.startTask(taskFactory.createSpewTask(Options.from(properties)));
         }
         if (stages.contains(NLP)) {
-            for (Pipeline.Type nlp : nlpp) {
+            for (Pipeline.Type nlp : nlpPipelines) {
                 Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
                 taskManager.startTask(new NlpApp().withNlp(pipelineClass).withIndexer(ElasticsearchIndexer.class).withProperties(properties));
             }

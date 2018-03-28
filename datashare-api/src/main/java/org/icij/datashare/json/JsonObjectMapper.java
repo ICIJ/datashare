@@ -20,6 +20,7 @@ import java.util.Optional;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
 import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
 import static java.util.Arrays.asList;
+import static java.util.Optional.ofNullable;
 
 
 /**
@@ -116,7 +117,7 @@ public class JsonObjectMapper {
     }
 
     public static <T extends Entity> T getObject(String id, Map<String, Object> source, Class<T> type) {
-        source.put("id", id);
+        ofNullable(source).ifPresent(s -> s.put("id", id));
         return getObject(source, type);
     }
 

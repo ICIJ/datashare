@@ -42,6 +42,6 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     public void removeAll() {
-        DeleteByQueryAction.INSTANCE.newRequestBuilder(client).source(TEST_INDEX).filter(QueryBuilders.matchAllQuery()).get();
+        DeleteByQueryAction.INSTANCE.newRequestBuilder(client).source(TEST_INDEX).filter(QueryBuilders.matchAllQuery()).refresh(true).get();
     }
 }
