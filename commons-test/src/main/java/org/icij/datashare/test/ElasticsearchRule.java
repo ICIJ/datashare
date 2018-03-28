@@ -13,8 +13,12 @@ import org.junit.rules.ExternalResource;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import static org.elasticsearch.common.xcontent.XContentType.JSON;
+import static com.google.common.io.ByteStreams.toByteArray;
+
 public class ElasticsearchRule extends ExternalResource {
     public static final String TEST_INDEX = "datashare-test";
+    static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     public final Client client;
 
     public ElasticsearchRule() {
@@ -32,6 +36,9 @@ public class ElasticsearchRule extends ExternalResource {
     protected void before() throws Throwable {
         if (! client.admin().indices().prepareExists(TEST_INDEX).execute().actionGet().isExists()) {
             client.admin().indices().create(new CreateIndexRequest(TEST_INDEX)).actionGet();
+            byte[] mapping = toByteArray(getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
+            client.admin().indices().preparePutMapping(TEST_INDEX).setType("doc").setSource(new String(mapping), JSON).
+                            execute().actionGet();
         }
     }
 
