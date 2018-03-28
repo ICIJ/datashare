@@ -3,6 +3,7 @@ package org.icij.datashare.text.indexing;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,5 +193,7 @@ public interface Indexer extends Closeable {
         Searcher ofStatus(Document.Status indexed);
         Stream<? extends Entity> execute();
         Searcher withSource(String... fields);
+        Searcher without(Pipeline.Type... nlpPipelines);
+        Searcher with(Pipeline.Type... nlpPipelines);
     }
 }

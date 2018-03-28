@@ -33,6 +33,7 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.join.query.JoinQueryBuilders;
 import org.elasticsearch.rest.RestStatus;
@@ -56,6 +57,7 @@ import java.util.stream.StreamSupport;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -494,6 +496,20 @@ public class ElasticsearchIndexer implements Indexer {
         @Override
         public Searcher withSource(String... fields) {
             searchBuilder.setSource(new SearchSourceBuilder().query(boolQuery).fetchSource(fields, new String[] {}));
+            return this;
+        }
+
+        @Override
+        public Searcher without(Pipeline.Type... nlpPipelines) {
+            boolQuery.mustNot(new MatchQueryBuilder("nerTags",
+                              Arrays.stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList())));
+            return this;
+        }
+
+        @Override
+        public Searcher with(Pipeline.Type... nlpPipelines) {
+            boolQuery.must(new MatchQueryBuilder("nerTags",
+                           Arrays.stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList())));
             return this;
         }
     }
