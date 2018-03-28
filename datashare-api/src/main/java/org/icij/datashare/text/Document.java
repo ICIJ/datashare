@@ -98,6 +98,6 @@ public final class Document implements Entity {
 
     @Override
     public String toString() {
-        return getName() + "(" + this.getId() + ")";
+        return (path != null ? getName(): "") + "(" + this.getId() + ")";
     }
 }

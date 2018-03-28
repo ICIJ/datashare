@@ -1,7 +1,6 @@
 package org.icij.datashare.cli;
 
 import com.google.inject.Injector;
-import org.icij.datashare.Entity;
 import org.icij.datashare.ProdServiceModule;
 import org.icij.datashare.TaskFactory;
 import org.icij.datashare.TaskManager;
@@ -17,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -26,7 +24,6 @@ import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.valueOf;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.cli.DatashareCli.Stage.*;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -47,10 +44,8 @@ public class CliApp {
             DocumentQueue queue = injector.getInstance(DocumentQueue.class);
             Indexer indexer = injector.getInstance(Indexer.class);
 
-            List<? extends Entity> docsToProcess =
-                indexer.search(Document.class).withSource(false).without(nlpPipelines).execute().collect(toList());
-
-            if (queue.isEmpty() && docsToProcess.size() == 0) {
+            if (indexer.search(Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 &&
+                    queue.isEmpty()) {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
             }

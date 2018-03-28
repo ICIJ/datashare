@@ -33,7 +33,9 @@ import static org.icij.datashare.text.Document.Status.DONE;
 import static org.icij.datashare.text.Document.Status.INDEXED;
 import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
-import static org.icij.datashare.text.nlp.Pipeline.Type.*;
+import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
+import static org.icij.datashare.text.nlp.Pipeline.Type.IXAPIPE;
+import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
 
 public class ElasticsearchIndexerTest {
     @ClassRule
@@ -117,7 +119,7 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_search_with_and_without_NLP_tags() {
+    public void test_search_with_and_without_NLP_tags() throws IOException {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), DONE, new HashSet<Pipeline.Type>() {{ add(CORENLP); add(OPENNLP);}});
         indexer.add(doc);
@@ -141,6 +143,16 @@ public class ElasticsearchIndexerTest {
         assertThat(actualDoc.getParentDocument()).isEqualTo("parent");
         assertThat(actualDoc.getId()).isNotNull();
         assertThat(actualDoc.getContent()).isEmpty();
+    }
+
+    @Test
+    public void test_search_source_false() {
+        Document doc = new org.icij.datashare.text.Document(Paths.get("doc_with_parent.txt"), "content", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), "parent");
+        indexer.add(doc);
+
+        Document actualDoc = (Document) indexer.search(Document.class).withSource(false).execute().collect(toList()).get(0);
+        assertThat(actualDoc.getId()).isNotNull();
     }
 
 

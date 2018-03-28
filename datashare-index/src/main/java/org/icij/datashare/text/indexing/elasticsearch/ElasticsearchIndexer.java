@@ -32,9 +32,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.join.query.JoinQueryBuilders;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.Script;
@@ -513,15 +511,15 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Searcher without(Pipeline.Type... nlpPipelines) {
-            boolQuery.mustNot(new MatchQueryBuilder("nerTags",
-                              Arrays.stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList())));
+            boolQuery.mustNot(new ConstantScoreQueryBuilder(new TermsQueryBuilder("nerTags",
+                              Arrays.stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList()))));
             return this;
         }
 
         @Override
         public Searcher with(Pipeline.Type... nlpPipelines) {
-            boolQuery.must(new MatchQueryBuilder("nerTags",
-                           Arrays.stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList())));
+            boolQuery.must(new ConstantScoreQueryBuilder(new TermsQueryBuilder("nerTags",
+                           Arrays.stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList()))));
             return this;
         }
 

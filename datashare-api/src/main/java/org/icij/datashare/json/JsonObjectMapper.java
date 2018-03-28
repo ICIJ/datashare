@@ -12,10 +12,7 @@ import org.icij.datashare.text.indexing.IndexType;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
 import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
@@ -117,8 +114,13 @@ public class JsonObjectMapper {
     }
 
     public static <T extends Entity> T getObject(String id, Map<String, Object> source, Class<T> type) {
-        ofNullable(source).ifPresent(s -> s.put("id", id));
-        return getObject(source, type);
+        HashMap<String, Object> map;
+        if (source == null) {
+            map = new HashMap<String, Object>() {{put("id", id);}};
+        } else {
+            map = new HashMap<String, Object>() {{putAll(source); put("id", id);}};
+        }
+        return getObject(map, type);
     }
 
     /**
@@ -221,5 +223,4 @@ public class JsonObjectMapper {
         }
         return fields;
     }
-
 }
