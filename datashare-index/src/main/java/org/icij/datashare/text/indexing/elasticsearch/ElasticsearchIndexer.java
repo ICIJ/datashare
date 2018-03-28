@@ -524,5 +524,10 @@ public class ElasticsearchIndexer implements Indexer {
                            Arrays.stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList())));
             return this;
         }
+
+        @Override
+        public String toString() {
+            return "boolQuery : " + boolQuery + " searchBuilder : " + searchBuilder;
+        }
     }
 }
