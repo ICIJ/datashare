@@ -30,7 +30,7 @@ import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 
-public class IndexerTest {
+public class ElasticsearchIndexerTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
     private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
@@ -118,5 +118,5 @@ public class IndexerTest {
     }
 
 
-    public IndexerTest() throws UnknownHostException {}
+    public ElasticsearchIndexerTest() throws UnknownHostException {}
 }
