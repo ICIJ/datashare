@@ -48,12 +48,12 @@ public abstract class AbstractModels<T> {
 
         URLClassLoader classLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
         try {
-            LOGGER.info("adding " + resourcePath + " to system classloader");
+            LOGGER.info("adding {} to system classloader", resourcePath);
             Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
             method.setAccessible(true);
             method.invoke(classLoader, resource); // hack to load jar for CoreNLP resources
         } catch (NoSuchMethodException|IllegalAccessException|InvocationTargetException e) {
-            LOGGER.error("cannot invoke SystemClassloader.addURL. Cannot load language resource for " + resourcePath);
+            LOGGER.error("cannot invoke SystemClassloader.addURL. Cannot load language resource for " + resourcePath, e);
         }
     }
 
@@ -74,7 +74,7 @@ public abstract class AbstractModels<T> {
                 download(language);
             }
             models.put(language, loadModelFile(language, loader));
-            LOGGER.info("loaded " + stage + " model for " + language);
+            LOGGER.info("loaded {} model for {}", stage, language);
         } catch (IOException e) {
             LOGGER.error("failed loading " + stage, e);
         } finally {
@@ -99,10 +99,10 @@ public abstract class AbstractModels<T> {
 
     private void download(Language language) {
         String remoteKey = getModelsFilesystemPath(language).toString();
-        LOGGER.info("downloading models for language " + language + " under " + remoteKey);
+        LOGGER.info("downloading models for language {} under {}", language, remoteKey);
         try {
             getRemoteFiles().download(remoteKey, BASE_DIR.toFile());
-            LOGGER.info("models successfully downloaded for language " + language);
+            LOGGER.info("models successfully downloaded for language {}", language);
         } catch (InterruptedException | IOException e) {
             LOGGER.error("failed downloading models for " + language, e);
         }
