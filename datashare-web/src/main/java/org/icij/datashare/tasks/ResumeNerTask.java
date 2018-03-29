@@ -40,7 +40,7 @@ public class ResumeNerTask implements Callable<Integer> {
         docsToProcess.forEach(doc -> this.publisher.publish(Channel.NLP,
                         new Message(Message.Type.EXTRACT_NLP)
                                 .add(Message.Field.DOC_ID, doc.getId())
-                                .add(Message.Field.P_ID, ofNullable(((Document)doc).getParentDocument()).orElse(doc.getId()))));
+                                .add(Message.Field.R_ID, ofNullable(((Document)doc).getParentDocument()).orElse(doc.getId()))));
         logger.info("sent {} message for {} files without {} pipeline tags", Message.Type.EXTRACT_NLP, docsToProcess.size(), nlpPipelines);
         return docsToProcess.size();
     }

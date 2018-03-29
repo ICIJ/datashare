@@ -70,32 +70,10 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public boolean add(String index, String type, String id, Map<String, Object> json) {
-        try {
-            final IndexResponse resp = client.index( indexRequest(index, type, id, json) ).get();
-            return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + index, e);
-            return false;
-        }
-    }
-
-    @Override
-    public boolean add(String index, String type, String id, Map<String, Object> json, String parent) {
-        try {
-            final IndexResponse resp = client.index( indexRequest(index, type, id, json, parent).setRefreshPolicy(esCfg.refreshPolicy)).get();
-            return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + index, e);
-            return false;
-        }
-    }
-
-    @Override
     public boolean bulkAdd(Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException {
         BulkRequestBuilder bulkRequest = client.prepareBulk();
 
-        String routing = ofNullable(parent.getParentDocument()).orElse(parent.getId());
+        String routing = ofNullable(parent.getRootDocument()).orElse(parent.getId());
         bulkRequest.add(new UpdateRequest(esCfg.indexName, esCfg.indexType, parent.getId()).doc(
                 jsonBuilder().startObject()
                         .field("status", Document.Status.DONE)
@@ -106,8 +84,8 @@ public class ElasticsearchIndexer implements Indexer {
                         new HashMap<String, Object>() {{put("nerTag", nerType.toString());}})).routing(routing));
 
         for (Entity child : namedEntities) {
-            bulkRequest.add(indexRequest(esCfg.indexName, JsonObjectMapper.getType(child), child.getId(),
-                            JsonObjectMapper.getJson(child), parent.getId()));
+            bulkRequest.add(createIndexRequest(esCfg.indexName, JsonObjectMapper.getType(child), child.getId(),
+                            JsonObjectMapper.getJson(child), parent.getId(), routing));
         }
 
         bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
@@ -124,23 +102,22 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public <T extends Entity> boolean add(String index, T obj) {
-        return add(index, JsonObjectMapper.getType(obj), obj.getId(), JsonObjectMapper.getJson(obj), JsonObjectMapper.getParent(obj));
-    }
-
-    @Override
     public <T extends Entity> boolean add(T obj) {
-        return add(esCfg.indexName,
-                JsonObjectMapper.getType(obj), obj.getId(),
-                JsonObjectMapper.getJson(obj),
-                JsonObjectMapper.getParent(obj));
+        String type = JsonObjectMapper.getType(obj);
+        String id = obj.getId();
+        try {
+            final IndexResponse resp = client.index( createIndexRequest(esCfg.indexName, type, id,
+                    JsonObjectMapper.getJson(obj),
+                    JsonObjectMapper.getParent(obj),
+                    JsonObjectMapper.getRoot(obj)).setRefreshPolicy(esCfg.refreshPolicy) ).get();
+            return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + esCfg.indexName, e);
+            return false;
+        }
     }
 
-    private IndexRequest indexRequest(String index, String type, String id, Map<String, Object> json) {
-        return indexRequest(index, type, id, json, null);
-    }
-
-    private IndexRequest indexRequest(String index, String type, String id, Map<String, Object> json, String parent) {
+    private IndexRequest createIndexRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
         IndexRequest req = new IndexRequest(index, esCfg.indexType, id);
 
         json.put(esCfg.docTypeField, type);
@@ -155,7 +132,7 @@ public class ElasticsearchIndexer implements Indexer {
             }});
         }
         req = req.source(json);
-        return (parent != null) ? req.routing(parent) : req;
+        return (parent != null) ? req.routing(root) : req;
     }
 
     public <T extends Entity> T get(String id) {
@@ -163,10 +140,10 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public <T extends Entity> T get(String id, String parent) {
+    public <T extends Entity> T get(String id, String root) {
         String type = null;
         try {
-            final GetRequest req = new GetRequest(esCfg.indexName, esCfg.indexType, id).routing(parent);
+            final GetRequest req = new GetRequest(esCfg.indexName, esCfg.indexType, id).routing(root);
             final GetResponse resp = client.get(req).get();
             if (resp.isExists()) {
                 Map<String, Object> sourceAsMap = resp.getSourceAsMap();

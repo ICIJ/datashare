@@ -63,20 +63,21 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     @Override
     public void write(final TikaDocument document, final Reader reader) throws IOException {
-        indexDocument(document, reader, null, 0);
+        indexDocument(document, reader, null, null, 0);
         for (EmbeddedTikaDocument childDocument : document.getEmbeds()) {
-            writeTree(childDocument, document, 1);
+            writeTree(childDocument, document, document, 1);
         }
     }
 
-    IndexRequest prepareRequest(final TikaDocument document, final Reader reader,
-                                final TikaDocument parent, final int level) throws IOException {
+    private IndexRequest prepareRequest(final TikaDocument document, final Reader reader,
+                                        final TikaDocument parent, TikaDocument root, final int level) throws IOException {
         IndexRequest req = new IndexRequest(esCfg.indexName, esCfg.indexType, document.getId());
         Map<String, Object> jsonDocument = getMap(document, reader);
 
         if (parent != null) {
             jsonDocument.put(DEFAULT_PARENT_DOC_FIELD, parent.getId());
-            req.routing(parent.getId());
+            jsonDocument.put("rootDocument", root.getId());
+            req.routing(root.getId());
         }
         jsonDocument.put("extractionLevel", level);
         req = req.source(jsonDocument);
@@ -110,20 +111,20 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return jsonDocument;
     }
 
-    private void writeTree(final TikaDocument doc, final TikaDocument parent, final int level)
+    private void writeTree(final TikaDocument doc, final TikaDocument parent, TikaDocument root, final int level)
             throws IOException {
         try (final Reader reader = doc.getReader()) {
-            indexDocument(doc, reader, parent, level);
+            indexDocument(doc, reader, parent, root, level);
         }
 
         for (EmbeddedTikaDocument child : doc.getEmbeds()) {
-            writeTree(child, doc, level + 1);
+            writeTree(child, doc, root, level + 1);
         }
     }
 
     private void indexDocument(TikaDocument document, Reader reader,
-                               final TikaDocument parent, final int level) throws IOException {
-        final IndexRequest req = prepareRequest(document, reader, parent, level);
+                               final TikaDocument parent, TikaDocument root, final int level) throws IOException {
+        final IndexRequest req = prepareRequest(document, reader, parent, root, level);
         try {
             long before = currentTimeMillis();
             IndexResponse indexResponse = client.index(req).get();
@@ -131,7 +132,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                     shorten(indexResponse.getId(), 4), currentTimeMillis() - before, document);
             publisher.publish(NLP, new Message(EXTRACT_NLP)
                     .add(Message.Field.DOC_ID, indexResponse.getId())
-                    .add(Message.Field.P_ID, parent == null ? document.getId(): parent.getId() ));
+                    .add(Message.Field.R_ID, parent == null ? document.getId(): root.getId() ));
         } catch (InterruptedException | ExecutionException e) {
             logger.warn("interrupted execution of request", e);
         }

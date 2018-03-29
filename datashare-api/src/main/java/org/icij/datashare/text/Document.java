@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexParent;
+import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Pipeline;
 
@@ -41,17 +42,19 @@ public final class Document implements Entity {
     private final Set<Pipeline.Type> nerTags;
     @IndexParent
     private final String parentDocument;
+    @IndexRoot
+    private final String rootDocument;
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
-        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null);
+        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
     }
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags) {
-        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null);
+        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null);
     }
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags, String parentDocument) {
-        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument);
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument) {
+        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument());
     }
 
     @JsonCreator
@@ -62,7 +65,8 @@ public final class Document implements Entity {
                      @JsonProperty("metadata") Map<String, String> metadata,
                      @JsonProperty("status") Status status,
                      @JsonProperty("nerTags") Set<Pipeline.Type> nerTags,
-                     @JsonProperty("parentDocument") String parentDocument) {
+                     @JsonProperty("parentDocument") String parentDocument,
+                     @JsonProperty("rootDocument") String rootDocument) {
         this.id = id;
         this.path = path;
         this.content = ofNullable(content).orElse("");
@@ -76,6 +80,7 @@ public final class Document implements Entity {
         this.status = status;
         this.nerTags = nerTags;
         this.parentDocument = parentDocument;
+        this.rootDocument = rootDocument;
     }
 
     @Override
@@ -87,6 +92,7 @@ public final class Document implements Entity {
     public String getContentType() { return contentType; }
     public Language getLanguage() { return language; }
     public int getExtractionLevel() { return extractionLevel;}
+    public String getRootDocument() {return ofNullable(rootDocument).orElse(getId());}
     public String getParentDocument() { return parentDocument;}
     public Status getStatus() { return status;}
 

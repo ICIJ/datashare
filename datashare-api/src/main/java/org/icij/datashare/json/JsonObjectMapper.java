@@ -8,16 +8,17 @@ import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexParent;
+import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
 import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
-import static java.util.Arrays.asList;
-import static java.util.Optional.ofNullable;
 
 
 /**
@@ -48,9 +49,6 @@ public class JsonObjectMapper {
         MAPPER.setVisibility(FIELD, ANY);
     }
 
-    public static final TypeReference< Map<String, Object> > MAP_TYPEREF = new TypeReference< Map<String, Object> >(){};
-
-
     /**
      * Get JSON representation (as a Map) of an Object instance
      *
@@ -76,43 +74,6 @@ public class JsonObjectMapper {
         }
     }
 
-    /**
-     * Reifies domain entity Object instance of type {@code T} from fields given as JSON String
-     *
-     * @param id     the document's index unique identifier
-     * @param source the source JSON String representation
-     * @param type   the document's index type
-     * @param <T>    the type of constructed object
-     * @return a new object instance of type T filled from arguments
-     */
-    public static <T extends Entity> T getObject(String id, String source, Class<T> type) {
-        try {
-            T obj = MAPPER.readValue(source, type);
-            setId(obj, type, id);
-            return obj;
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    /**
-     * Reifies domain entity object instance of type {@code T} from class and fields given as JSON Map
-     *
-     * @param id     the document's index unique identifier
-     * @param source the source JSON Map representation
-     * @param type   the document's index type
-     * @param <T>    the concrete type of entity
-     * @return a new object instance of type T filled from arguments
-     *
-     */
-    public static <T extends Entity> T getObject(Map<String, Object> source, Class<T> type) {
-        try {
-            return MAPPER.readValue(MAPPER.writeValueAsString(source), type);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("cannot deserialize object map " + source, e);
-        }
-    }
-
     public static <T extends Entity> T getObject(String id, Map<String, Object> source, Class<T> type) {
         HashMap<String, Object> map;
         if (source == null) {
@@ -121,6 +82,14 @@ public class JsonObjectMapper {
             map = new HashMap<String, Object>() {{putAll(source); put("id", id);}};
         }
         return getObject(map, type);
+    }
+
+    private static <T extends Entity> T getObject(Map<String, Object> source, Class<T> type) {
+        try {
+            return MAPPER.readValue(MAPPER.writeValueAsString(source), type);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("cannot deserialize object map " + source, e);
+        }
     }
 
     /**
@@ -188,39 +157,17 @@ public class JsonObjectMapper {
         return null;
     }
 
-    /**
-     * Set the field value annotated with {@link IndexId} from DataShare domain entity object instance
-     *
-     * @param obj   the object holding the index id-annotated field
-     * @param type  the type class
-     * @param value the index id-annotated field value
-     * @param <T>   the type of returned entity object
-     */
-    private static <T extends Entity> void setId(T obj, Class<T> type, String value) {
-        for(Field field : getAllFields(type)) {
-            if (field.isAnnotationPresent(IndexId.class)) {
+    public static <T extends Entity> String getRoot(T obj) {
+        for (Field field : obj.getClass().getDeclaredFields()) {
+            if (field.isAnnotationPresent(IndexRoot.class)) {
                 field.setAccessible(true);
                 try {
-                    field.set(obj, value);
+                    return (String) field.get(obj);
                 } catch (IllegalAccessException e) {
                     break;
                 }
-                break;
             }
         }
-    }
-
-    /**
-     * Get all declared fields
-     *
-     * @param cls the scrutinized class
-     * @return the list of declared fields
-     */
-    private static List<Field> getAllFields(Class<?> cls) {
-        List<Field> fields = new ArrayList<Field>();
-        for (Class<?> c = cls; c != null; c = c.getSuperclass()) {
-            fields.addAll(asList(c.getDeclaredFields()));
-        }
-        return fields;
+        return null;
     }
 }

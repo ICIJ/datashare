@@ -10,6 +10,7 @@ import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
 import org.icij.spewer.FieldNames;
+import org.icij.task.Options;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -49,5 +50,20 @@ public class DatashareExtractIntegrationTest {
         assertThat(doc.getContentType()).isEqualTo("text/plain");
         assertThat(doc.getExtractionLevel()).isEqualTo(0);
         assertThat(doc.getMetadata()).hasSize(6);
+        assertThat(doc.getParentDocument()).isNull();
+        assertThat(doc.getRootDocument()).isEqualTo(doc.getId());
+    }
+
+    @Test
+    public void test_spew_and_read_embedded_doc() throws Exception {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        final TikaDocument tikaDocument = new DocumentFactory().configure(new Options<>()).create(path);
+
+        spewer.write(tikaDocument, new Extractor().extract(tikaDocument));
+        Document doc = indexer.get(tikaDocument.getEmbeds().get(0).getId(), tikaDocument.getId());
+
+        assertThat(doc).isNotNull();
+        assertThat(doc.getId()).isNotEqualTo(doc.getRootDocument());
+        assertThat(doc.getRootDocument()).isEqualTo(tikaDocument.getId());
     }
 }

@@ -88,17 +88,17 @@ public class ElasticsearchIndexerTest {
         Document parent = new org.icij.datashare.text.Document(Paths.get("mail.eml"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "message/rfc822", new HashMap<>(), INDEXED);
         Document child = new org.icij.datashare.text.Document(Paths.get("mail.eml"), "mail body",
-                Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, new HashSet<>(), parent.getId());
+                Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, new HashSet<>(), parent);
         indexer.add(parent);
         indexer.add(child);
         NamedEntity ne1 = NamedEntity.create(PERSON, "Jane Daffodil", 12, parent.getId(), CORENLP, Language.FRENCH);
 
         assertThat(indexer.bulkAdd(CORENLP, singletonList(ne1), child)).isTrue();
 
-        Entity doc = indexer.get(child.getId(), parent.getId());
-        assertThat(((Document) doc).getNerTags()).containsOnly(CORENLP);
-        assertThat(((Document) doc).getStatus()).isEqualTo(Document.Status.DONE);
-        assertThat((NamedEntity) indexer.get(ne1.getId(), doc.getId())).isNotNull();
+        Document doc = indexer.get(child.getId(), parent.getId());
+        assertThat(doc.getNerTags()).containsOnly(CORENLP);
+        assertThat(doc.getStatus()).isEqualTo(Document.Status.DONE);
+        assertThat((NamedEntity) indexer.get(ne1.getId(), doc.getRootDocument())).isNotNull();
     }
 
     @Test
@@ -119,7 +119,7 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_search_with_and_without_NLP_tags() throws IOException {
+    public void test_search_with_and_without_NLP_tags() {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), DONE, new HashSet<Pipeline.Type>() {{ add(CORENLP); add(OPENNLP);}});
         indexer.add(doc);
@@ -136,19 +136,19 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_search_source_filtering() {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc_with_parent.txt"), "content", Language.FRENCH,
-                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), "parent");
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());
         indexer.add(doc);
 
-        Document actualDoc = (Document) indexer.search(Document.class).withSource("parentDocument").execute().collect(toList()).get(0);
-        assertThat(actualDoc.getParentDocument()).isEqualTo("parent");
-        assertThat(actualDoc.getId()).isNotNull();
+        Document actualDoc = (Document) indexer.search(Document.class).withSource("contentType").execute().collect(toList()).get(0);
+        assertThat(actualDoc.getContentType()).isEqualTo("application/pdf");
+        assertThat(actualDoc.getId()).isEqualTo(doc.getId());
         assertThat(actualDoc.getContent()).isEmpty();
     }
 
     @Test
     public void test_search_source_false() {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc_with_parent.txt"), "content", Language.FRENCH,
-                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), "parent");
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());
         indexer.add(doc);
 
         Document actualDoc = (Document) indexer.search(Document.class).withSource(false).execute().collect(toList()).get(0);

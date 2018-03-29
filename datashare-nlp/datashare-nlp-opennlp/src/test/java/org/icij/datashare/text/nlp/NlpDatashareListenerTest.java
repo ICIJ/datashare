@@ -15,7 +15,6 @@ import java.util.HashMap;
 
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -42,7 +41,7 @@ public class NlpDatashareListenerTest {
         when(pipeline.initialize(any())).thenReturn(false);
         Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
                         Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(doc);
 
         nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, doc.getId()));
         verify(pipeline, never()).process(anyString(), anyString(), any());
@@ -53,7 +52,7 @@ public class NlpDatashareListenerTest {
         when(pipeline.initialize(any())).thenReturn(true);
         Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
                 Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
-        indexer.add(TEST_INDEX, doc);
+        indexer.add(doc);
 
         nlpDatashareEventListener.onMessage(new Message(EXTRACT_NLP).add(DOC_ID, doc.getId()));
 
