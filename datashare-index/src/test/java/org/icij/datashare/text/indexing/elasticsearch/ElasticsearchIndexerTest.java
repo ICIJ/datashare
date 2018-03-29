@@ -134,6 +134,15 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_search_with_and_without_NLP_tags_no_tags() {
+        Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());
+        indexer.add(doc);
+
+        assertThat(indexer.search(Document.class).without().execute().collect(toList()).size()).isEqualTo(1);
+    }
+
+    @Test
     public void test_search_source_filtering() {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc_with_parent.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());

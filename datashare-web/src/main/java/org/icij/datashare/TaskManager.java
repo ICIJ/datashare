@@ -16,9 +16,9 @@ public class TaskManager {
 
     @Inject
     public TaskManager(final PropertiesProvider provider) {
-        Optional<String> parallelism1 = provider.get("parallelism");
-        executor = parallelism1.map(s -> newFixedThreadPool(valueOf(s))).
-                orElseGet(() -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+        Optional<String> parallelism = provider.get("parallelism");
+        executor = parallelism.map(s -> newFixedThreadPool(valueOf(s))).
+                   orElseGet( () -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
     }
 
     public int startTask(final Runnable task) {

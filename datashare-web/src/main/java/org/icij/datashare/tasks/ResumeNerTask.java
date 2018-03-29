@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
@@ -36,11 +35,11 @@ public class ResumeNerTask implements Callable<Integer> {
     @Override
     public Integer call() {
         List<? extends Entity> docsToProcess =
-                indexer.search(Document.class).withSource("parentDocument").without(nlpPipelines).execute().collect(toList());
+                indexer.search(Document.class).withSource("rootDocument").without(nlpPipelines).execute().collect(toList());
         docsToProcess.forEach(doc -> this.publisher.publish(Channel.NLP,
                         new Message(Message.Type.EXTRACT_NLP)
                                 .add(Message.Field.DOC_ID, doc.getId())
-                                .add(Message.Field.R_ID, ofNullable(((Document)doc).getParentDocument()).orElse(doc.getId()))));
+                                .add(Message.Field.R_ID, ((Document)doc).getRootDocument())));
         logger.info("sent {} message for {} files without {} pipeline tags", Message.Type.EXTRACT_NLP, docsToProcess.size(), nlpPipelines);
         return docsToProcess.size();
     }
