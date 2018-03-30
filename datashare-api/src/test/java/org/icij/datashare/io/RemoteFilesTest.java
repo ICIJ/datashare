@@ -59,4 +59,16 @@ public class RemoteFilesTest {
 
         assertThat(new File(folder.getRoot().getPath() + "/prefix/sampleFile.txt")).exists();
     }
+
+    @Test
+    public void test_check_simple_file_integrity() throws Exception {
+        remoteFiles.upload(new File("src/test/resources"), "prefix");
+        File file = new File(folder.getRoot().getPath() + "/prefix/sampleFile.txt");
+        file.getParentFile().mkdirs();
+        file.createNewFile();
+
+        assertThat(remoteFiles.check("prefix/sampleFile.txt", file)).isFalse();
+        remoteFiles.download("prefix", folder.getRoot());
+        assertThat(remoteFiles.check("prefix/sampleFile.txt", file)).isTrue();
+    }
 }

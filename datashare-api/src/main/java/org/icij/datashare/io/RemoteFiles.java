@@ -71,4 +71,9 @@ public class RemoteFiles {
     public boolean objectExists(final String key) {
         return s3Client.doesObjectExist(this.bucket, key);
     }
+
+    public boolean check(final String remoteKey, final File localFile) {
+        ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
+        return objectMetadata.getContentLength() == localFile.length();
+    }
 }
