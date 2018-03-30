@@ -4,9 +4,7 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.ClasspathPropertiesFileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.s3.transfer.MultipleFileUpload;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
@@ -17,7 +15,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.Map;
+
+import static java.nio.file.Paths.get;
+import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toMap;
 
 public class RemoteFiles {
     public static final String S3_DATASHARE_BUCKET_NAME = "s3.datashare.icij.org";
@@ -64,16 +67,29 @@ public class RemoteFiles {
             transferManager.shutdownNow(false);
         } else {
             final S3Object s3Object = s3Client.getObject(this.bucket, remoteKey);
-            Files.copy(s3Object.getObjectContent(), Paths.get(localFile.getPath()));
+            Files.copy(s3Object.getObjectContent(), get(localFile.getPath()));
+        }
+    }
+
+    public boolean check(final String remoteKey, final File localFile) {
+        if (localFile.isDirectory()) {
+            File localDir = localFile.toPath().resolve(remoteKey).toFile();
+            if (! localDir.isDirectory()) {
+                return false;
+            }
+            ObjectListing remoteS3Objects = s3Client.listObjects(bucket, remoteKey);
+            Map<String, Long> remoteObjectsMap = remoteS3Objects.getObjectSummaries().stream().collect(
+                    toMap(S3ObjectSummary::getKey, S3ObjectSummary::getSize));
+            Map<String, Long> localFilesMap = stream(ofNullable(localDir.listFiles()).orElse(new File[] {})).collect(
+                    toMap(f -> get(remoteKey).resolve(f.getName()).toString(), File::length));
+            return localFilesMap.equals(remoteObjectsMap);
+        } else {
+            ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
+            return objectMetadata.getContentLength() == localFile.length();
         }
     }
 
     public boolean objectExists(final String key) {
         return s3Client.doesObjectExist(this.bucket, key);
-    }
-
-    public boolean check(final String remoteKey, final File localFile) {
-        ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
-        return objectMetadata.getContentLength() == localFile.length();
     }
 }
