@@ -42,21 +42,6 @@ public abstract class AbstractModels<T> {
     }
 
     protected abstract T loadModelFile(Language language, ClassLoader loader) throws IOException;
-
-    public void addResourceToContextClassLoader(Path resourcePath, ClassLoader loader) {
-        final URL resource = loader.getResource(resourcePath.toString());
-
-        URLClassLoader classLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
-        try {
-            LOGGER.info("adding {} to system classloader", resourcePath);
-            Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-            method.setAccessible(true);
-            method.invoke(classLoader, resource); // hack to load jar for CoreNLP resources
-        } catch (NoSuchMethodException|IllegalAccessException|InvocationTargetException e) {
-            LOGGER.error("cannot invoke SystemClassloader.addURL. Cannot load language resource for " + resourcePath, e);
-        }
-    }
-
     protected abstract String getVersion();
 
     public Optional<T> get(Language language, ClassLoader loader) {
@@ -89,6 +74,20 @@ public abstract class AbstractModels<T> {
 
     public Path getModelsFilesystemPath(Language language) {
         return Paths.get(PREFIX).resolve(getModelsBasePath(language));
+    }
+
+    public void addResourceToContextClassLoader(Path resourcePath, ClassLoader loader) {
+        final URL resource = loader.getResource(resourcePath.toString());
+
+        URLClassLoader classLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
+        try {
+            LOGGER.info("adding {} to system classloader", resourcePath);
+            Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+            method.setAccessible(true);
+            method.invoke(classLoader, resource); // hack to load jar for CoreNLP resources
+        } catch (NoSuchMethodException|IllegalAccessException|InvocationTargetException e) {
+            LOGGER.error("cannot invoke SystemClassloader.addURL. Cannot load language resource for " + resourcePath, e);
+        }
     }
 
     protected boolean isPresent(Language language, ClassLoader loader) {
