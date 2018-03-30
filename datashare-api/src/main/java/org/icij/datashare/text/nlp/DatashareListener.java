@@ -1,5 +1,4 @@
 package org.icij.datashare.text.nlp;
 
-public interface DatashareListener {
-    void waitForEvents();
+interface DatashareListener extends Runnable {
 }

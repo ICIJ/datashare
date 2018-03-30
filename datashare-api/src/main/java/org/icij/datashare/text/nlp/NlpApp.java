@@ -16,7 +16,7 @@ public class NlpApp implements Runnable {
     public void run() {
         Injector injector = Guice.createInjector(new NlpModule(pipelineClass, indexerClass, properties));
         DatashareListener listener = injector.getInstance(NlpDatashareSubscriber.class);
-        listener.waitForEvents();
+        listener.run();
     }
 
     public NlpApp withNlp(Class<? extends AbstractPipeline> pipelineClass) {

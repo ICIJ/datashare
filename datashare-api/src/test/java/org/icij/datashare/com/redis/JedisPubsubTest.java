@@ -5,11 +5,13 @@ import org.icij.datashare.com.ShutdownMessage;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.com.Channel.NLP;
@@ -22,8 +24,8 @@ public class JedisPubsubTest {
     @Test
     public void test_publish_subscribe() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
-        AtomicReference<Message> receivedMessage = new AtomicReference<>();
-        executorService.submit(new RedisSubscriber(createJedis(), receivedMessage::set, latch::countDown).subscribe(NLP));
+        List<Message> msgList = synchronizedList(new ArrayList<Message>());
+        executorService.submit(new RedisSubscriber(createJedis(), msgList::add, latch::countDown).subscribe(NLP));
         latch.await(2, SECONDS);
 
         RedisPublisher publisher = new RedisPublisher(createJedis());
@@ -33,7 +35,7 @@ public class JedisPubsubTest {
 
         executorService.shutdown();
         executorService.awaitTermination(1, SECONDS);
-        assertThat(receivedMessage.get()).isEqualTo(doc_id);
+        assertThat(msgList.get(0)).isEqualTo(doc_id);
     }
 
     private Jedis createJedis() {
