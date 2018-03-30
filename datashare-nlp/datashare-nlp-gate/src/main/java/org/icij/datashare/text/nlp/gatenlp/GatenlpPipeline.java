@@ -80,12 +80,12 @@ public final class GatenlpPipeline extends AbstractPipeline {
     }
 
     @Override
-    protected Annotations process(String input, String hash, Language language) {
-        Annotations annotations = new Annotations(hash, getType(), language);
+    protected Annotations process(String content, String docId, Language language) {
+        Annotations annotations = new Annotations(docId, getType(), language);
         try {
             // Gate annotated document
-            String gateDocName = String.join(".", asList(Document.HASHER.hash(input), "txt"));
-            GATENLPDocument gateDoc = new GATENLPDocument(gateDocName, input);
+            String gateDocName = String.join(".", asList(Document.HASHER.hash(content), "txt"));
+            GATENLPDocument gateDoc = new GATENLPDocument(gateDocName, content);
 
             // Tokenize input
             // NER input

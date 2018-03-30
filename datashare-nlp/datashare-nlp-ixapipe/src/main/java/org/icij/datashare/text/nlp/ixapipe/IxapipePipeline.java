@@ -92,19 +92,19 @@ public class IxapipePipeline extends AbstractPipeline {
     }
 
     @Override
-    protected Annotations process(String input, String hash, Language language) {
-        Annotations annotations = new Annotations(hash, getType(), language);
+    protected Annotations process(String content, String docId, Language language) {
+        Annotations annotations = new Annotations(docId, getType(), language);
         // KAF document annotated by IXAPIPE annotators
         KAFDocument kafDocument = new KAFDocument(language.toString(), KAF_VERSION);
 
         // tokenize( input )
         LOGGER.info("tokenizing for " + language.toString());
-        if (!tokenize(new StringReader(input), kafDocument, hash, language))
+        if (!tokenize(new StringReader(content), kafDocument, docId, language))
             return annotations;
 
         // pos-tag( tokenize( input ) )
         LOGGER.info("POS-tagging for " + language.toString());
-        if (!postag(kafDocument, hash, language))
+        if (!postag(kafDocument, docId, language))
             return annotations;
 
         // Feed annotations with tokens and pos
@@ -133,7 +133,7 @@ public class IxapipePipeline extends AbstractPipeline {
         // ner( pos-tag( tokenize( input ) ) )
         if (targetStages.contains(NER)) {
             LOGGER.info("name-finding for " + language.toString());
-            if (!recognize(kafDocument, hash, language))
+            if (!recognize(kafDocument, docId, language))
                 return annotations;
 
             // Feed annotations with ne

@@ -53,14 +53,14 @@ public class MitiePipeline extends AbstractPipeline {
     }
 
     @Override
-    protected Annotations process(String input, String hash, Language language) {
-        Annotations annotations = new Annotations(hash, getType(), language);
+    protected Annotations process(String content, String docId, Language language) {
+        Annotations annotations = new Annotations(docId, getType(), language);
 
         // Tokenize input
         LOGGER.info("tokenizing for " + language.toString());
         TokenIndexVector tokens = new TokenIndexVector();
         try {
-            tokens = global.tokenizeWithOffsets(input);
+            tokens = global.tokenizeWithOffsets(content);
         } catch (Exception e) {
             LOGGER.error("failed tokenizing input ", e);
         }
@@ -79,7 +79,7 @@ public class MitiePipeline extends AbstractPipeline {
             EntityMentionVector entities = MitieNlpModels.getInstance().extract(tokens, language);
             // Feed annotations
             // transform index offset given in bytes of utf-8 representation to chars offset in string
-            byte[] inputBytes = input.getBytes(getEncoding());
+            byte[] inputBytes = content.getBytes(getEncoding());
             for (int i = 0; i < entities.size(); ++i) {
                 EntityMention entity = entities.get(i);
                 TokenIndexPair tokenBegin = tokens.get(entity.getStart());

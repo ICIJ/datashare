@@ -118,8 +118,8 @@ public final class OpennlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    protected Annotations process(String input, String hash, Language language) {
-        Annotations annotations = new Annotations(hash, getType(), language);
+    protected Annotations process(String content, String docId, Language language) {
+        Annotations annotations = new Annotations(docId, getType(), language);
         String annotators = "SENTENCING ~ TOKENIZING";
         if (targetStages.contains(POS))
             annotators += " ~ POS-TAGGING";
@@ -128,7 +128,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
         LOGGER.info(annotators + " for " + language);
 
         // Split input into sentences
-        Span[] sentenceSpans = sentences(input, language);
+        Span[] sentenceSpans = sentences(content, language);
         for (Span sentenceSpan : sentenceSpans) {
             // Feed annotations
             int sentenceOffsetBegin = sentenceSpan.getStart();
@@ -136,7 +136,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
             annotations.add(SENTENCE, sentenceOffsetBegin, sentenceOffsetEnd);
 
             // Tokenize sentence
-            String sentence = sentenceSpan.getCoveredText(input).toString();
+            String sentence = sentenceSpan.getCoveredText(content).toString();
             Span[] sentenceTokenSpans = tokenize(sentence, language);
             String[] sentenceTokens  = spansToStrings(sentenceTokenSpans, sentence);
 

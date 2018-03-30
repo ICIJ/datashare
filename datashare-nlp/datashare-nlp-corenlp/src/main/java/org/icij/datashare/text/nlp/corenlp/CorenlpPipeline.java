@@ -87,17 +87,17 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    protected Annotations process(String input, String hash, Language language) {
+    protected Annotations process(String content, String docId, Language language) {
         // Is NER the unique target stage?
         if (singletonList(NER).equals(targetStages))
-            return processNerClassifier(input, hash, language);
+            return processNerClassifier(content, docId, language);
 
         // Is POS the unique target stage?
         if (singletonList(POS).equals(targetStages))
-            return processPosClassifier(input, hash, language);
+            return processPosClassifier(content, docId, language);
 
         // Otherwise
-        return processPipeline(input, hash, language);
+        return processPipeline(content, docId, language);
     }
 
     /**

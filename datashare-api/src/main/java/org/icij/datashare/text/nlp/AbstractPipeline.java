@@ -127,11 +127,9 @@ public abstract class AbstractPipeline implements Pipeline {
 
     /**
      * Apply all specified stages/annotators on input
-     *
-     * @param input is the source String to process
-     * @param hash  the input hash code
-     */
-    protected abstract Annotations process(String input, String hash, Language language);
+     *  @param content is the source String to process
+     * @param docId  the input hash code*/
+    protected abstract Annotations process(String content, String docId, Language language);
 
     /**
      * Post-processing operations
