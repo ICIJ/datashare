@@ -70,9 +70,7 @@ public abstract class AbstractModels<T> {
         Lock l = modelLock.get(language);
         l.lock();
         try {
-            if (!isDownloaded(language, loader)) {
-                download(language);
-            }
+            downloadIfNecessary(language, loader);
             models.put(language, loadModelFile(language, loader));
             LOGGER.info("loaded {} model for {}", stage, language);
         } catch (IOException e) {
@@ -93,23 +91,25 @@ public abstract class AbstractModels<T> {
         return Paths.get(PREFIX).resolve(getModelsBasePath(language));
     }
 
-    protected boolean isDownloaded(Language language, ClassLoader loader) {
+    protected boolean isPresent(Language language, ClassLoader loader) {
         return loader.getResource(getModelsBasePath(language).toString()) != null;
     }
 
-    private void download(Language language) {
+    private void downloadIfNecessary(Language language, ClassLoader loader) {
         String remoteKey = getModelsFilesystemPath(language).toString();
-        LOGGER.info("downloading models for language {} under {}", language, remoteKey);
+        RemoteFiles remoteFiles = getRemoteFiles();
         try {
-            getRemoteFiles().download(remoteKey, BASE_DIR.toFile());
+            if (isPresent(language, loader) && remoteFiles.isSync(remoteKey, BASE_DIR.toFile())) {
+                return;
+            }
+            LOGGER.info("downloading models for language {} under {}", language, remoteKey);
+            remoteFiles.download(remoteKey, BASE_DIR.toFile());
             LOGGER.info("models successfully downloaded for language {}", language);
         } catch (InterruptedException | IOException e) {
             LOGGER.error("failed downloading models for " + language, e);
+        } finally {
+            remoteFiles.shutdown();
         }
-    }
-
-    protected RemoteFiles getRemoteFiles() {
-        return RemoteFiles.getDefault();
     }
 
     public void unload(Language language) {
@@ -122,7 +122,6 @@ public abstract class AbstractModels<T> {
         }
     }
 
-    public boolean isLoaded(Language language) {
-        return models.containsKey(language);
-    }
+    public boolean isLoaded(Language language) { return models.containsKey(language);}
+    protected RemoteFiles getRemoteFiles() { return RemoteFiles.getDefault();}
 }

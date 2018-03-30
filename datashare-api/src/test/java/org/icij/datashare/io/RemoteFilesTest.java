@@ -67,25 +67,25 @@ public class RemoteFilesTest {
         file.getParentFile().mkdirs();
         file.createNewFile();
 
-        assertThat(remoteFiles.check("prefix/sampleFile.txt", file)).isFalse();
+        assertThat(remoteFiles.isSync("prefix/sampleFile.txt", file)).isFalse();
         remoteFiles.download("prefix", folder.getRoot());
-        assertThat(remoteFiles.check("prefix/sampleFile.txt", file)).isTrue();
+        assertThat(remoteFiles.isSync("prefix/sampleFile.txt", file)).isTrue();
     }
 
     @Test
     public void test_check_directory_integrity__file_names_and_sizes_should_be_the_same() throws Exception {
-        assertThat(remoteFiles.check("prefix", folder.getRoot())).isFalse();
+        assertThat(remoteFiles.isSync("prefix", folder.getRoot())).isFalse();
 
         remoteFiles.upload(new File("src/test/resources"), "prefix");
         File file = new File(folder.getRoot().getPath() + "/prefix/sampleFile.txt");
         file.getParentFile().mkdirs();
-        assertThat(remoteFiles.check("prefix", folder.getRoot())).isFalse();
+        assertThat(remoteFiles.isSync("prefix", folder.getRoot())).isFalse();
 
         file.createNewFile();
         new File(folder.getRoot().getPath() + "/prefix/datashare.properties").createNewFile();
-        assertThat(remoteFiles.check("prefix", folder.getRoot())).isFalse();
+        assertThat(remoteFiles.isSync("prefix", folder.getRoot())).isFalse();
 
         remoteFiles.download("prefix", folder.getRoot());
-        assertThat(remoteFiles.check("prefix", folder.getRoot())).isTrue();
+        assertThat(remoteFiles.isSync("prefix", folder.getRoot())).isTrue();
     }
 }

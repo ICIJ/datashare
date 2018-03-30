@@ -71,7 +71,7 @@ public class RemoteFiles {
         }
     }
 
-    public boolean check(final String remoteKey, final File localFile) {
+    public boolean isSync(final String remoteKey, final File localFile) {
         if (localFile.isDirectory()) {
             File localDir = localFile.toPath().resolve(remoteKey).toFile();
             if (! localDir.isDirectory()) {
@@ -92,4 +92,6 @@ public class RemoteFiles {
     public boolean objectExists(final String key) {
         return s3Client.doesObjectExist(this.bucket, key);
     }
+
+    public void shutdown() { s3Client.shutdown();}
 }
