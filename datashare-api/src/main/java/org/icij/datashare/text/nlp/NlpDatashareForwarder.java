@@ -32,7 +32,7 @@ public class NlpDatashareForwarder implements DatashareListener {
         logger.debug("forwarding message {} to {} queue(s)", message, messageQueues.size());
         messageQueues.forEach(q -> {
             if (!q.offer(message)) {
-                logger.warn("cannot offer message {} to queue, it must be reprocessed later");
+                logger.warn("cannot offer message {} to queue, it must be reprocessed later", message);
             }
         });
     }
