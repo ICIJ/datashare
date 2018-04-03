@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.concurrent.*;
 
 import static java.nio.file.Paths.get;
-import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Field.R_ID;
@@ -85,7 +84,7 @@ public class NlpDatashareListenerTest {
     }
 
     private NlpDatashareForwarder createForwarder(BlockingQueue<Message> messagesQueue, Runnable subscribedCb) {
-        return new NlpDatashareForwarder(new PropertiesProvider(), singletonList(messagesQueue)) {
+        return new NlpDatashareForwarder(new PropertiesProvider(), messagesQueue) {
             @Override
             RedisSubscriber createRedisSubscriber() {
                 return new RedisSubscriber(new Jedis(this.busAddress), this::onMessage, subscribedCb);

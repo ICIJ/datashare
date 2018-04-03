@@ -44,6 +44,7 @@ import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 
@@ -188,7 +189,7 @@ public class ElasticsearchIndexer implements Indexer {
 
         ElasticsearchSearcher(Client client, ElasticsearchConfiguration config, final Class<? extends Entity> cls) {
             this.cls = cls;
-            this.searchBuilder = client.prepareSearch(config.indexName).setTypes(config.indexType);
+            this.searchBuilder = client.prepareSearch(config.indexName).setTypes(config.indexType).setSize(DEFAULT_SEARCH_SIZE);
             this.boolQuery = boolQuery().must(matchQuery("type", JsonObjectMapper.getType(cls)));
         }
 

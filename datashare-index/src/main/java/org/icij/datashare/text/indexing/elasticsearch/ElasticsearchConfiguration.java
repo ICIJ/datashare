@@ -30,7 +30,7 @@ class ElasticsearchConfiguration {
     public static final String VERSION = "6.1.0";
 
     static protected final int DEFAULT_SEARCH_FROM = 0;
-    static protected final int DEFAULT_SEARCH_SIZE = 100;
+    static protected final int DEFAULT_SEARCH_SIZE = 10000;
     static protected final int DEFAULT_TIMEOUT_INSEC = 10;
 
     private static final String INDEX_ADDRESS_PROP = "indexAddress";

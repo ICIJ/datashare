@@ -62,7 +62,6 @@ public class CliApp {
                 Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
                 taskManager.startTask(new NlpApp().withNlp(pipelineClass).withIndexer(ElasticsearchIndexer.class).withProperties(properties));
             }
-
             if (resume(properties)) {
                 taskManager.startTask(taskFactory.resumeNerTask(properties));
             }

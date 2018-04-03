@@ -8,16 +8,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
-import java.util.List;
+import javax.inject.Inject;
 import java.util.concurrent.BlockingQueue;
 
 public class NlpDatashareForwarder implements DatashareListener {
-    private final List<BlockingQueue<Message>> messageQueues;
+    private final BlockingQueue<Message> messageQueue;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     final String busAddress;
 
-    NlpDatashareForwarder(PropertiesProvider provider, List<BlockingQueue<Message>> messageQueues) {
-        this.messageQueues = messageQueues;
+    @Inject
+    NlpDatashareForwarder(PropertiesProvider provider, BlockingQueue<Message> messageQueue) {
+        this.messageQueue = messageQueue;
         String messageBusAddress = provider.getProperties().getProperty("messageBusAddress");
         busAddress = messageBusAddress == null ? "localhost": messageBusAddress;
     }
@@ -29,12 +30,10 @@ public class NlpDatashareForwarder implements DatashareListener {
     }
 
     void onMessage(final Message message) {
-        logger.debug("forwarding message {} to {} queue(s)", message, messageQueues.size());
-        messageQueues.forEach(q -> {
-            if (!q.offer(message)) {
-                logger.warn("cannot offer message {} to queue, it must be reprocessed later", message);
-            }
-        });
+        logger.debug("forwarding message {} to message queue", message);
+        if (!messageQueue.offer(message)) {
+            logger.warn("cannot offer message {} to queue, it must be reprocessed later", message);
+        }
     }
 
     RedisSubscriber createRedisSubscriber() {

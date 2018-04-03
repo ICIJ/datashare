@@ -41,11 +41,12 @@ public final class DatashareCli {
 
         OptionSpec<DatashareCli.Stage> stagesOpt = DatashareCliOptions.stages(parser);
         DatashareCliOptions.inputDir(parser);
-        DatashareCliOptions.fileParserParallelism(parser);
         DatashareCliOptions.enableOcr(parser);
         DatashareCliOptions.nlpPipelines(parser);
         DatashareCliOptions.resume(parser);
         DatashareCliOptions.parallelism(parser);
+        DatashareCliOptions.fileParserParallelism(parser);
+        DatashareCliOptions.nlpParallelism(parser);
         DatashareCliOptions.indexerHost(parser);
         DatashareCliOptions.indexName(parser);
         DatashareCliOptions.clusterName(parser);

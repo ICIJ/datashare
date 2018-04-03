@@ -6,12 +6,14 @@ import org.icij.datashare.text.nlp.Pipeline;
 import java.io.File;
 
 import static java.util.Arrays.asList;
+import static org.icij.datashare.text.nlp.NlpApp.NLP_PARALLELISM_OPT;
 
 
 final class DatashareCliOptions {
     static final char ARG_VALS_SEP = ',';
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
-    private static final Integer DEFAULT_NLP_PARALLELISM = Runtime.getRuntime().availableProcessors();
+    private static final Integer DEFAULT_NLP_PARALLELISM = 1;
+    private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors();
     static final String STAGES_OPT = "stages";
     static final String SCANNING_INPUT_DIR_OPT = "inputDir";
     static final String NLP_PIPELINES_OPT = "nlpPipelines";
@@ -72,6 +74,15 @@ final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_PARSER_PARALLELISM);
     }
 
+    static OptionSpec<Integer> nlpParallelism(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("np", NLP_PARALLELISM_OPT),
+                "Number of NLP extraction threads per pipeline.")
+                .withRequiredArg()
+                .ofType( Integer.class )
+                .defaultsTo(DEFAULT_NLP_PARALLELISM);
+    }
+
     static OptionSpecBuilder enableOcr(OptionParser parser) {
         return parser.acceptsAll(
                 asList("enableOcr", "o"),
@@ -95,7 +106,7 @@ final class DatashareCliOptions {
                 "Number of threads allocated for task management.")
                 .withRequiredArg()
                 .ofType( Integer.class )
-                .defaultsTo(DEFAULT_NLP_PARALLELISM);
+                .defaultsTo(DEFAULT_PARALLELISM);
     }
 
     static OptionSpec<String> indexerHost(OptionParser parser) {

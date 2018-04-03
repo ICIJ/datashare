@@ -29,9 +29,9 @@ public class ProdServiceModule extends AbstractModule{
         }
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
         bind(Publisher.class).to(RedisPublisher.class);
-        bind(Spewer.class).to(ElasticsearchSpewer.class);
-        bind(Indexer.class).to(ElasticsearchIndexer.class);
-        bind(DocumentQueue.class).to(RedisInjectableDocumentQueue.class);
+        bind(Spewer.class).to(ElasticsearchSpewer.class).asEagerSingleton();
+        bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
+        bind(DocumentQueue.class).to(RedisInjectableDocumentQueue.class).asEagerSingleton();
         install(new FactoryModuleBuilder().build(TaskFactory.class));
     }
 }
