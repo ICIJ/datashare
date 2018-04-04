@@ -33,10 +33,8 @@ import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class NlpDatashareListenerTest {
-    @Mock
-    private AbstractPipeline pipeline;
-    @Mock
-    private Indexer indexer;
+    @Mock private AbstractPipeline pipeline;
+    @Mock private Indexer indexer;
     private RedisPublisher publisher = new RedisPublisher(new PropertiesProvider());
     private final ExecutorService executor = Executors.newFixedThreadPool(3);
 
@@ -98,7 +96,6 @@ public class NlpDatashareListenerTest {
         when(indexer.get(anyString(), anyString())).thenReturn(
                 new Document(get("doc/path"), "content", FRENCH, Charset.defaultCharset(),
                         "application/pdf", new HashMap<>(), INDEXED));
-        when(pipeline.initialize(any(Language.class))).thenReturn(true);
         when(pipeline.initialize(any(Language.class))).thenReturn(true);
         when(pipeline.process(anyString(), anyString(), any(Language.class))).thenReturn(
                 new Annotations("doc", CORENLP, FRENCH));
