@@ -76,22 +76,27 @@ public class MitiePipeline extends AbstractPipeline {
         // NER input
         if (targetStages.contains(NER)) {
             LOGGER.info("name-finding for " + language);
-            EntityMentionVector entities = MitieNlpModels.getInstance().extract(tokens, language);
-            // Feed annotations
-            // transform index offset given in bytes of utf-8 representation to chars offset in string
-            byte[] inputBytes = content.getBytes(getEncoding());
-            for (int i = 0; i < entities.size(); ++i) {
-                EntityMention entity = entities.get(i);
-                TokenIndexPair tokenBegin = tokens.get(entity.getStart());
-                TokenIndexPair tokenEnd = tokens.get(entity.getEnd() - 1);
-                int nerBeginBytes = toIntExact(tokenBegin.getIndex());
-                int nerEndBytes = toIntExact(tokenEnd.getIndex() + tokenEnd.getToken().length());
-                final String nerPrefix = new String(inputBytes, 0, nerBeginBytes, getEncoding());
-                final String nerContent = new String(inputBytes, nerBeginBytes, nerEndBytes - nerBeginBytes, getEncoding());
-                int nerBegin = nerPrefix.length();
-                int nerEnd = nerBegin + nerContent.length();
-                String category = MitieNlpModels.getInstance().getTagSet(language).get(entity.getTag());
-                annotations.add(NER, nerBegin, nerEnd, category);
+            EntityMentionVector entities = null;
+            try {
+                entities = MitieNlpModels.getInstance().extract(tokens, language);
+                // Feed annotations
+                // transform index offset given in bytes of utf-8 representation to chars offset in string
+                byte[] inputBytes = content.getBytes(getEncoding());
+                for (int i = 0; i < entities.size(); ++i) {
+                    EntityMention entity = entities.get(i);
+                    TokenIndexPair tokenBegin = tokens.get(entity.getStart());
+                    TokenIndexPair tokenEnd = tokens.get(entity.getEnd() - 1);
+                    int nerBeginBytes = toIntExact(tokenBegin.getIndex());
+                    int nerEndBytes = toIntExact(tokenEnd.getIndex() + tokenEnd.getToken().length());
+                    final String nerPrefix = new String(inputBytes, 0, nerBeginBytes, getEncoding());
+                    final String nerContent = new String(inputBytes, nerBeginBytes, nerEndBytes - nerBeginBytes, getEncoding());
+                    int nerBegin = nerPrefix.length();
+                    int nerEnd = nerBegin + nerContent.length();
+                    String category = MitieNlpModels.getInstance().getTagSet(language).get(entity.getTag());
+                    annotations.add(NER, nerBegin, nerEnd, category);
+                }
+            } catch (InterruptedException e) {
+                LOGGER.error("entities extraction interrupted", e);
             }
         }
         return annotations;

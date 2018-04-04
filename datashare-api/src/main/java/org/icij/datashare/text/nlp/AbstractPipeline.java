@@ -134,7 +134,7 @@ public abstract class AbstractPipeline implements Pipeline {
     /**
      * Post-processing operations
      */
-    protected void terminate(Language language) {
+    protected void terminate(Language language) throws InterruptedException {
         LOGGER.info("ending " + getType() + " " + language + " " + stages.toString());
     }
 

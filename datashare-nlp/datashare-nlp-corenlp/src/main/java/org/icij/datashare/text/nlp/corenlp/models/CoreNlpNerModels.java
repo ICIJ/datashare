@@ -64,7 +64,11 @@ public class CoreNlpNerModels extends CoreNlpModels<AbstractSequenceClassifier<C
     protected CoreNlpAnnotator<AbstractSequenceClassifier<CoreLabel>> loadModelFile(Language language, ClassLoader loader) throws IOException {
         Path modelFilePath = getModelsBasePath(language).resolve(getJarFileName(language));
         if (language != ENGLISH) {
-            get(ENGLISH); // english models needs to be loaded and added to classpath for all languages
+            try {
+                get(ENGLISH); // english models needs to be loaded and added to classpath for all languages
+            } catch (InterruptedException e) {
+                throw new IllegalStateException("cannot load english models ", e);
+            }
         }
         super.addResourceToContextClassLoader(modelFilePath, loader);
         try {

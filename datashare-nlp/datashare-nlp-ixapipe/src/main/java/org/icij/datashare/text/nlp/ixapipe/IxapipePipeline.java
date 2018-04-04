@@ -175,7 +175,12 @@ public class IxapipePipeline extends AbstractPipeline {
         String modelName = Files.getNameWithoutExtension(IxaPosModels.MODEL_NAMES.get(language));
         LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("terms", "ixapipe-pipe-pos-" + modelName, VERSION_POS);
         newLp.setBeginTimestamp();
-        final IxaAnnotate<Annotate> annotate = IxaPosModels.getInstance().get(language);
+        final IxaAnnotate<Annotate> annotate;
+        try {
+            annotate = IxaPosModels.getInstance().get(language);
+        } catch (InterruptedException e) {
+            return false;
+        }
         annotate.annotate.annotatePOSToKAF(kafDocument);
         newLp.setEndTimestamp();
         return true;
@@ -191,7 +196,7 @@ public class IxapipePipeline extends AbstractPipeline {
             ixaAnnotate.annotate.annotateNEs(kafDocument);
             newLp.setEndTimestamp();
             return true;
-        } catch (IOException e) {
+        } catch (IOException|InterruptedException e) {
             LOGGER.error("failed name-finding for " + language.toString().toUpperCase(), e);
             return false;
         }
@@ -216,11 +221,19 @@ public class IxapipePipeline extends AbstractPipeline {
     }
 
     private boolean loadPos(ClassLoader classLoader, Language language) {
-        return IxaPosModels.getInstance().get(language) != null;
+        try {
+            return IxaPosModels.getInstance().get(language) != null;
+        } catch (InterruptedException e) {
+            return false;
+        }
     }
 
     private boolean loadName(ClassLoader classLoader, Language language) {
-        return IxaNerModels.getInstance().get(language) != null;
+        try {
+            return IxaNerModels.getInstance().get(language) != null;
+        } catch (InterruptedException e) {
+            return false;
+        }
     }
 
     private boolean loadToken(ClassLoader classLoader, Language language) {

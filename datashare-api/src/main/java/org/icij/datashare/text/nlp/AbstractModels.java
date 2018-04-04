@@ -16,21 +16,18 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.Semaphore;
 
 import static java.lang.Boolean.parseBoolean;
 
 public abstract class AbstractModels<T> {
-    public static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
-    protected static final Path BASE_CLASSPATH = Paths.get("models");
-    public static final String PREFIX = "dist";
-
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
-
-    protected final ConcurrentHashMap<Language, Lock> modelLock = new ConcurrentHashMap<Language, Lock>() {{
+    private static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
+    protected static final Path BASE_CLASSPATH = Paths.get("models");
+    private static final String PREFIX = "dist";
+    protected final ConcurrentHashMap<Language, Semaphore> modelLock = new ConcurrentHashMap<Language, Semaphore>() {{
         for (Language l : Language.values()) {
-            put(l, new ReentrantLock());
+            put(l, new Semaphore(1, true));
         }
     }};
     public final NlpStage stage;
@@ -53,17 +50,18 @@ public abstract class AbstractModels<T> {
     protected abstract T loadModelFile(Language language, ClassLoader loader) throws IOException;
     protected abstract String getVersion();
 
-    public T get(Language language) {
+    public T get(Language language) throws InterruptedException {
         if (!isLoaded(language)) {
             load(language);
         }
         return models.get(language);
     }
 
-    private void load(Language language) {
-        Lock l = modelLock.get(language);
-        l.lock();
+    private void load(Language language) throws InterruptedException {
+        Semaphore l = modelLock.get(language);
+        l.acquire();
         try {
+            if (isLoaded(language)) return;
             if (syncModels) {
                 downloadIfNecessary(language, getLoader());
             }
@@ -72,7 +70,7 @@ public abstract class AbstractModels<T> {
         } catch (IOException e) {
             LOGGER.error("failed loading " + stage, e);
         } finally {
-            l.unlock();
+            l.release();
         }
     }
 
@@ -126,13 +124,13 @@ public abstract class AbstractModels<T> {
         return Thread.currentThread().getContextClassLoader();
     }
 
-    public void unload(Language language) {
-        Lock l = modelLock.get(language);
-        l.lock();
+    public void unload(Language language) throws InterruptedException {
+        Semaphore l = modelLock.get(language);
+        l.acquire();
         try {
             models.remove(language);
         } finally {
-            l.unlock();
+            l.release();
         }
     }
 

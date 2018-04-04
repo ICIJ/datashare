@@ -72,7 +72,7 @@ public final class GatenlpPipeline extends AbstractPipeline {
             GateNlpModels gateNlpModels = new GateNlpModels();
             gateNlpModels.get(language);// just to download if necessary
             pipeline = GATENLPFactory.create(gateNlpModels.getModelsFilesystemPath(language).toFile());
-        } catch (GateException | IOException e) {
+        } catch (GateException | IOException | InterruptedException e) {
             LOGGER.error("failed building GateNLP Application", e);
             return false;
         }
@@ -129,7 +129,7 @@ public final class GatenlpPipeline extends AbstractPipeline {
     }
 
     @Override
-    protected void terminate(Language language) {
+    protected void terminate(Language language) throws InterruptedException {
         super.terminate(language);
         if ( ! caching) {
             pipeline.cleanApplication();

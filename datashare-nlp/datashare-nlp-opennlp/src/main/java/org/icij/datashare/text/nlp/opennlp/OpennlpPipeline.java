@@ -106,13 +106,13 @@ public final class OpennlpPipeline extends AbstractPipeline {
      */
     @Override
     protected boolean initialize(Language language) {
-        if ( ! super.initialize(language))
+        if (!super.initialize(language)) {
             return false;
+        }
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        stages.forEach( stage -> annotatorLoader.get(stage).apply(classLoader, language));
+        stages.forEach(stage -> annotatorLoader.get(stage).apply(classLoader, language));
         return true;
     }
-
 
     /**
      * {@inheritDoc}
@@ -180,7 +180,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    protected void terminate(Language language) {
+    protected void terminate(Language language) throws InterruptedException {
         super.terminate(language);
 
         if (nerFinder.containsKey(language)) {
@@ -205,7 +205,12 @@ public final class OpennlpPipeline extends AbstractPipeline {
     private boolean loadSentenceDetector(ClassLoader loader, Language language) {
         if (sentencer.containsKey(language))
             return true;
-        ArtifactProvider model = OpenNlpSentenceModels.getInstance().get(language);
+        ArtifactProvider model = null;
+        try {
+            model = OpenNlpSentenceModels.getInstance().get(language);
+        } catch (InterruptedException e) {
+            return false;
+        }
         sentencer.put(language, new SentenceDetectorME((SentenceModel) model));
         return true;
     }
@@ -232,7 +237,12 @@ public final class OpennlpPipeline extends AbstractPipeline {
     private boolean loadTokenizer(ClassLoader loader, Language language) {
         if ( tokenizer.containsKey(language) )
             return true;
-        ArtifactProvider model = OpenNlpTokenModels.getInstance().get(language);
+        ArtifactProvider model = null;
+        try {
+            model = OpenNlpTokenModels.getInstance().get(language);
+        } catch (InterruptedException e) {
+            return false;
+        }
         tokenizer.put(language, new TokenizerME((TokenizerModel) model));
         return true;
     }
@@ -258,7 +268,12 @@ public final class OpennlpPipeline extends AbstractPipeline {
     private boolean loadPosTagger(ClassLoader loader, Language language) {
         if ( posTagger.containsKey(language) )
             return true;
-        ArtifactProvider model = OpenNlpPosModels.getInstance().get(language);
+        ArtifactProvider model = null;
+        try {
+            model = OpenNlpPosModels.getInstance().get(language);
+        } catch (InterruptedException e) {
+            return false;
+        }
         posTagger.put(language, new POSTaggerME((POSModel) model));
         return true;
     }
@@ -282,7 +297,12 @@ public final class OpennlpPipeline extends AbstractPipeline {
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadNameFinder(ClassLoader loader, Language language) {
-        OpenNlpCompositeModel nerModels = (OpenNlpCompositeModel) OpenNlpNerModels.getInstance().get(language);
+        OpenNlpCompositeModel nerModels = null;
+        try {
+            nerModels = (OpenNlpCompositeModel) OpenNlpNerModels.getInstance().get(language);
+        } catch (InterruptedException e) {
+            return false;
+        }
         final Stream<NameFinderME> nameFinderMEStream =
                 nerModels.models.stream().map(m -> new NameFinderME((TokenNameFinderModel) m));
         nerFinder.put(language, nameFinderMEStream.collect(toList()));

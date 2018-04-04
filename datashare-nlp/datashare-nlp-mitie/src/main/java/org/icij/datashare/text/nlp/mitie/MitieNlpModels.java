@@ -11,7 +11,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
+import java.util.concurrent.Semaphore;
 
 import static org.icij.datashare.text.nlp.NlpStage.NER;
 
@@ -43,16 +43,16 @@ public final class MitieNlpModels extends AbstractModels<NamedEntityExtractor> {
         return new NamedEntityExtractor(getModelsFilesystemPath(language).resolve(NER_MODEL_NAME).toAbsolutePath().toString());
     }
 
-    public EntityMentionVector extract(TokenIndexVector tokens, Language language) {
+    public EntityMentionVector extract(TokenIndexVector tokens, Language language) throws InterruptedException {
         NamedEntityExtractor namedEntityExtractor = get(language);
 
         if (namedEntityExtractor != null) {
-            Lock l = modelLock.get(language);
-            l.lock(); // TODO : is extractEntities not threadsafe ?
+            Semaphore l = modelLock.get(language);
+            l.acquire(); // TODO : is extractEntities not threadsafe ?
             try {
                 return namedEntityExtractor.extractEntities(tokens);
             } finally {
-                l.unlock();
+                l.release();
             }
         } else {
             return new EntityMentionVector();
