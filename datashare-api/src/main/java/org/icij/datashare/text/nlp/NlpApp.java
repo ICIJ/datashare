@@ -51,8 +51,8 @@ public class NlpApp implements Runnable {
             logger.info("running NlpApp for {} pipeline with {} thread(s)", pipeline.getType(), parallelism);
             this.threadPool = Executors.newFixedThreadPool(parallelism,
                     new ThreadFactoryBuilder().setNameFormat(pipeline.getType().name() + "-%d").build());
-            generate(() -> new NlpDatashareConsumer(pipeline, indexer, queue)).limit(parallelism).forEach(l -> threadPool.execute(l));
-            NlpDatashareForwarder forwarder = new NlpDatashareForwarder(properties, queue, subscribedCb);
+            generate(() -> new NlpConsumer(pipeline, indexer, queue)).limit(parallelism).forEach(l -> threadPool.execute(l));
+            NlpForwarder forwarder = new NlpForwarder(properties, queue, subscribedCb);
             forwarder.run();
             logger.info("forwarder exited waiting for consumer(s) to finish");
             threadPool.shutdown();

@@ -20,12 +20,12 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class NlpConsumerTest {
     @Mock private Indexer indexer;
     @Mock private AbstractPipeline pipeline;
-    private NlpDatashareConsumer nlpListener;
+    private NlpConsumer nlpListener;
 
     @Before
     public void setUp() {
         initMocks(this);
-        nlpListener = new NlpDatashareConsumer(pipeline, indexer,  null);
+        nlpListener = new NlpConsumer(pipeline, indexer,  null);
     }
 
     @Test

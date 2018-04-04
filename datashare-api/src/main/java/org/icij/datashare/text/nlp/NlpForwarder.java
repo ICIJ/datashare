@@ -10,13 +10,13 @@ import redis.clients.jedis.Jedis;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 
-public class NlpDatashareForwarder implements DatashareListener {
+public class NlpForwarder implements DatashareListener {
     private final BlockingQueue<Message> messageQueue;
     private final Runnable subscribedCallback;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     final String busAddress;
 
-    NlpDatashareForwarder(Properties properties, BlockingQueue<Message> messageQueue, Runnable subscribedCallback) {
+    NlpForwarder(Properties properties, BlockingQueue<Message> messageQueue, Runnable subscribedCallback) {
         this.messageQueue = messageQueue;
         this.subscribedCallback = subscribedCallback;
         String messageBusAddress = properties.getProperty("messageBusAddress");

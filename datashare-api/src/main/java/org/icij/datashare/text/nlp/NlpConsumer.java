@@ -15,14 +15,14 @@ import java.util.concurrent.TimeUnit;
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Field.R_ID;
 
-public class NlpDatashareConsumer implements DatashareListener {
+public class NlpConsumer implements DatashareListener {
     private final Indexer indexer;
     private final BlockingQueue<Message> messageQueue;
     private final AbstractPipeline nlpPipeline;
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    public NlpDatashareConsumer(AbstractPipeline pipeline, Indexer indexer, BlockingQueue<Message> messageQueue) {
+    public NlpConsumer(AbstractPipeline pipeline, Indexer indexer, BlockingQueue<Message> messageQueue) {
         this.indexer = indexer;
         this.messageQueue = messageQueue;
         this.nlpPipeline = pipeline;
