@@ -15,7 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -54,21 +53,21 @@ public abstract class AbstractModels<T> {
     protected abstract T loadModelFile(Language language, ClassLoader loader) throws IOException;
     protected abstract String getVersion();
 
-    public Optional<T> get(Language language, ClassLoader loader) {
+    public T get(Language language) {
         if (!isLoaded(language)) {
-            load(language, loader);
+            load(language);
         }
-        return Optional.of(models.get(language));
+        return models.get(language);
     }
 
-    private void load(Language language, ClassLoader loader) {
+    private void load(Language language) {
         Lock l = modelLock.get(language);
         l.lock();
         try {
             if (syncModels) {
-                downloadIfNecessary(language, loader);
+                downloadIfNecessary(language, getLoader());
             }
-            models.put(language, loadModelFile(language, loader));
+            models.put(language, loadModelFile(language, getLoader()));
             LOGGER.info("loaded {} model for {}", stage, language);
         } catch (IOException e) {
             LOGGER.error("failed loading " + stage, e);
@@ -121,6 +120,10 @@ public abstract class AbstractModels<T> {
         } finally {
             remoteFiles.shutdown();
         }
+    }
+
+    protected ClassLoader getLoader() {
+        return Thread.currentThread().getContextClassLoader();
     }
 
     public void unload(Language language) {

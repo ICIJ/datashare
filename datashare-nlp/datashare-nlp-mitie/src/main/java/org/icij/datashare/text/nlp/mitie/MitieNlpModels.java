@@ -11,7 +11,6 @@ import org.icij.datashare.text.nlp.Pipeline;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 
 import static org.icij.datashare.text.nlp.NlpStage.NER;
@@ -45,14 +44,13 @@ public final class MitieNlpModels extends AbstractModels<NamedEntityExtractor> {
     }
 
     public EntityMentionVector extract(TokenIndexVector tokens, Language language) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        Optional<NamedEntityExtractor> namedEntityExtractor = get(language, classLoader);
+        NamedEntityExtractor namedEntityExtractor = get(language);
 
-        if (namedEntityExtractor.isPresent()) {
+        if (namedEntityExtractor != null) {
             Lock l = modelLock.get(language);
             l.lock(); // TODO : is extractEntities not threadsafe ?
             try {
-                return namedEntityExtractor.get().extractEntities(tokens);
+                return namedEntityExtractor.extractEntities(tokens);
             } finally {
                 l.unlock();
             }

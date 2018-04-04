@@ -205,10 +205,8 @@ public final class OpennlpPipeline extends AbstractPipeline {
     private boolean loadSentenceDetector(ClassLoader loader, Language language) {
         if (sentencer.containsKey(language))
             return true;
-        Optional<ArtifactProvider> model = OpenNlpSentenceModels.getInstance().get(language, loader);
-        if ( ! model.isPresent())
-            return false;
-        sentencer.put(language, new SentenceDetectorME((SentenceModel) model.get()));
+        ArtifactProvider model = OpenNlpSentenceModels.getInstance().get(language);
+        sentencer.put(language, new SentenceDetectorME((SentenceModel) model));
         return true;
     }
 
@@ -234,10 +232,8 @@ public final class OpennlpPipeline extends AbstractPipeline {
     private boolean loadTokenizer(ClassLoader loader, Language language) {
         if ( tokenizer.containsKey(language) )
             return true;
-        Optional<ArtifactProvider> model = OpenNlpTokenModels.getInstance().get(language, loader);
-        if ( ! model.isPresent())
-            return false;
-        tokenizer.put(language, new TokenizerME((TokenizerModel) model.get()));
+        ArtifactProvider model = OpenNlpTokenModels.getInstance().get(language);
+        tokenizer.put(language, new TokenizerME((TokenizerModel) model));
         return true;
     }
 
@@ -262,10 +258,8 @@ public final class OpennlpPipeline extends AbstractPipeline {
     private boolean loadPosTagger(ClassLoader loader, Language language) {
         if ( posTagger.containsKey(language) )
             return true;
-        Optional<ArtifactProvider> model = OpenNlpPosModels.getInstance().get(language, loader);
-        if ( ! model.isPresent())
-            return false;
-        posTagger.put(language, new POSTaggerME((POSModel) model.get()));
+        ArtifactProvider model = OpenNlpPosModels.getInstance().get(language);
+        posTagger.put(language, new POSTaggerME((POSModel) model));
         return true;
     }
 
@@ -288,16 +282,11 @@ public final class OpennlpPipeline extends AbstractPipeline {
      * @return true if successfully loaded; false otherwise
      */
     private boolean loadNameFinder(ClassLoader loader, Language language) {
-        Optional<ArtifactProvider> optNerModels = OpenNlpNerModels.getInstance().get(language, loader);
-        if (optNerModels.isPresent()) {
-            OpenNlpCompositeModel nerModels = (OpenNlpCompositeModel) optNerModels.get();
-            final Stream<NameFinderME> nameFinderMEStream =
-                    nerModels.models.stream().map(m -> new NameFinderME((TokenNameFinderModel) m));
-            nerFinder.put(language, nameFinderMEStream.collect(toList()));
-            return true;
-        } else {
-            return false;
-        }
+        OpenNlpCompositeModel nerModels = (OpenNlpCompositeModel) OpenNlpNerModels.getInstance().get(language);
+        final Stream<NameFinderME> nameFinderMEStream =
+                nerModels.models.stream().map(m -> new NameFinderME((TokenNameFinderModel) m));
+        nerFinder.put(language, nameFinderMEStream.collect(toList()));
+        return true;
     }
 
     @Override

@@ -6,7 +6,6 @@ import edu.stanford.nlp.ling.CoreAnnotations.*;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.ling.HasWord;
 import edu.stanford.nlp.ling.TaggedWord;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Triple;
@@ -116,12 +115,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
 
 
     private boolean initializePipelineAnnotator(Language language) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        Optional<StanfordCoreNLP> stanfordCoreNLP = CoreNlpPipelineModels.getInstance().get(language, classLoader);
-        if ( ! stanfordCoreNLP.isPresent() ) {
-            LOGGER.error("failed to get pipelines annotator. Aborting...");
-            return false;
-        }
+        CoreNlpPipelineModels.getInstance().get(language);
         return true;
     }
 
@@ -134,7 +128,6 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * @return
      */
     private Annotations processPipeline(String input, String hash, Language language) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         Annotations annotations = new Annotations(hash, getType(), language);
 
         // CoreNLP annotations data-structure
@@ -146,8 +139,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
         // Tokenize
         // Pos-tag
         // NER
-        CoreNlpPipelineModels.getInstance().get(language, classLoader).
-                ifPresent(stanfordCoreNLP1 -> stanfordCoreNLP1.annotate(coreNlpAnnotation));
+        CoreNlpPipelineModels.getInstance().get(language).annotate(coreNlpAnnotation);
 
         // Feed annotations
         List<CoreMap> sentences = coreNlpAnnotation.get(SentencesAnnotation.class);
@@ -186,13 +178,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
 
 
     private boolean initializeNerAnnotator(Language language) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        Optional<CoreNlpAnnotator<AbstractSequenceClassifier<CoreLabel>>> classifier =
-                CoreNlpNerModels.getInstance().get(language, classLoader);
-        if ( ! classifier.isPresent()) {
-            LOGGER.error("failed initializing NER annotator. Aborting...");
-            return false;
-        }
+        CoreNlpNerModels.getInstance().get(language);
         return true;
     }
 
@@ -204,35 +190,27 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * @param language the input language
      */
     private Annotations processNerClassifier(String input, String hash, Language language) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         Annotations annotations = new Annotations(hash, getType(), language);
 
         LOGGER.info("name-finding for " + language.toString());
         // Recognize named entities from input
-        final Optional<CoreNlpAnnotator<AbstractSequenceClassifier<CoreLabel>>> abstractSequenceClassifierCoreNlpAnnotator =
-                CoreNlpNerModels.getInstance().get(language, classLoader);
-        if (abstractSequenceClassifierCoreNlpAnnotator.isPresent()) {
-            List<Triple<String, Integer, Integer>> items = abstractSequenceClassifierCoreNlpAnnotator.get().annotator.classifyToCharacterOffsets(input);
-            // For each recognized named entity
-            for (Triple<String, Integer, Integer> item : items) {
-                // Triple: <category, begin, end>
-                NamedEntity.Category category = NamedEntity.Category.parse(item.first());
-                int begin = item.second();
-                int end = item.third();
-                annotations.add(NER, begin, end, category.toString());
-            }
+        final CoreNlpAnnotator<AbstractSequenceClassifier<CoreLabel>> abstractSequenceClassifierCoreNlpAnnotator =
+                CoreNlpNerModels.getInstance().get(language);
+        List<Triple<String, Integer, Integer>> items = abstractSequenceClassifierCoreNlpAnnotator.annotator.classifyToCharacterOffsets(input);
+        // For each recognized named entity
+        for (Triple<String, Integer, Integer> item : items) {
+            // Triple: <category, begin, end>
+            NamedEntity.Category category = NamedEntity.Category.parse(item.first());
+            int begin = item.second();
+            int end = item.third();
+            annotations.add(NER, begin, end, category.toString());
         }
         return annotations;
     }
 
 
     private boolean initializePosAnnotator(Language language) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        Optional<CoreNlpAnnotator<MaxentTagger>> tagger = CoreNlpPosModels.getInstance().get(language, classLoader);
-        if ( ! tagger.isPresent()) {
-            LOGGER.error("failed initializing POS annotator. Aborting...");
-            return false;
-        }
+        CoreNlpPosModels.getInstance().get(language);
         return true;
     }
 
@@ -245,24 +223,21 @@ public final class CorenlpPipeline extends AbstractPipeline {
      */
     private Annotations processPosClassifier(String input, String hash, Language language) {
         Annotations annotations = new Annotations(hash, getType(), language);
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         LOGGER.info("POS-tagging for " + language.toString());
 
         // Split input into sentences
-        final Optional<CoreNlpAnnotator<MaxentTagger>> nlpAnnotator = CoreNlpPosModels.getInstance().get(language, classLoader);
-        if (nlpAnnotator.isPresent()) {
+        final CoreNlpAnnotator<MaxentTagger> nlpAnnotator = CoreNlpPosModels.getInstance().get(language);
 
-            List<List<HasWord>> sentences = MaxentTagger.tokenizeText(new StringReader(input));
-            for (List<HasWord> sentence : sentences) {
-                // Tag with parts-of-speech
-                List<TaggedWord> taggedSentence = nlpAnnotator.get().annotator.tagSentence(sentence);
-                // Feed annotatopn
-                for (TaggedWord word : taggedSentence) {
-                    int begin = word.beginPosition();
-                    int end = word.endPosition();
-                    String pos = word.tag();
-                    annotations.add(POS, begin, end, pos);
-                }
+        List<List<HasWord>> sentences = MaxentTagger.tokenizeText(new StringReader(input));
+        for (List<HasWord> sentence : sentences) {
+            // Tag with parts-of-speech
+            List<TaggedWord> taggedSentence = nlpAnnotator.annotator.tagSentence(sentence);
+            // Feed annotatopn
+            for (TaggedWord word : taggedSentence) {
+                int begin = word.beginPosition();
+                int end = word.endPosition();
+                String pos = word.tag();
+                annotations.add(POS, begin, end, pos);
             }
         }
         return annotations;

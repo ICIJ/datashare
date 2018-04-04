@@ -172,30 +172,25 @@ public class IxapipePipeline extends AbstractPipeline {
     }
 
     private boolean postag(KAFDocument kafDocument, String hash, Language language) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         String modelName = Files.getNameWithoutExtension(IxaPosModels.MODEL_NAMES.get(language));
         LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("terms", "ixapipe-pipe-pos-" + modelName, VERSION_POS);
         newLp.setBeginTimestamp();
-        final Optional<IxaAnnotate<Annotate>> annotate = IxaPosModels.getInstance().get(language, classLoader);
-        annotate.ifPresent(annotateIxaAnnotate -> annotateIxaAnnotate.annotate.annotatePOSToKAF(kafDocument));
+        final IxaAnnotate<Annotate> annotate = IxaPosModels.getInstance().get(language);
+        annotate.annotate.annotatePOSToKAF(kafDocument);
         newLp.setEndTimestamp();
-        return annotate.isPresent();
+        return true;
     }
 
     private boolean recognize(KAFDocument kafDocument, String hash, Language language) {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         String model = IxaNerModels.MODEL_NAMES.get(language);
         String modelName = Files.getNameWithoutExtension(model);
         LinguisticProcessor newLp = kafDocument.addLinguisticProcessor("entities", "ixapipe-pipe-nerc-" + modelName, VERSION_NER);
         try {
             newLp.setBeginTimestamp();
-            final Optional<IxaAnnotate<eus.ixa.ixa.pipe.nerc.Annotate>> ixaAnnotate = IxaNerModels.getInstance().get(language, classLoader);
-            if (ixaAnnotate.isPresent()) {
-                ixaAnnotate.get().annotate.annotateNEs(kafDocument);
-                newLp.setEndTimestamp();
-                return true;
-            }
-            return false;
+            final IxaAnnotate<eus.ixa.ixa.pipe.nerc.Annotate> ixaAnnotate = IxaNerModels.getInstance().get(language);
+            ixaAnnotate.annotate.annotateNEs(kafDocument);
+            newLp.setEndTimestamp();
+            return true;
         } catch (IOException e) {
             LOGGER.error("failed name-finding for " + language.toString().toUpperCase(), e);
             return false;
@@ -221,11 +216,11 @@ public class IxapipePipeline extends AbstractPipeline {
     }
 
     private boolean loadPos(ClassLoader classLoader, Language language) {
-        return IxaPosModels.getInstance().get(language, classLoader).isPresent();
+        return IxaPosModels.getInstance().get(language) != null;
     }
 
     private boolean loadName(ClassLoader classLoader, Language language) {
-        return IxaNerModels.getInstance().get(language, classLoader).isPresent();
+        return IxaNerModels.getInstance().get(language) != null;
     }
 
     private boolean loadToken(ClassLoader classLoader, Language language) {

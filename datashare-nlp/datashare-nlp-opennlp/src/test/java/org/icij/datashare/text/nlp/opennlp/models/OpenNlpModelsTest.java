@@ -20,11 +20,11 @@ public class OpenNlpModelsTest {
     public void test_download_model() throws Exception {
         final OpenNlpModels model = new OpenNlpModels(NlpStage.TOKEN);
 
-        model.get(Language.FRENCH, getClass().getClassLoader());
+        model.get(Language.FRENCH);
         verify(mockRemoteFiles).download("dist/models/opennlp/1-5/fr", new File(System.getProperty("user.dir")));
         reset(mockRemoteFiles);
 
-        model.get(Language.FRENCH, getClass().getClassLoader());
+        model.get(Language.FRENCH);
         verify(mockRemoteFiles, never()).download(any(String.class), any(File.class));
     }
 

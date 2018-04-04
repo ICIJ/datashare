@@ -70,7 +70,7 @@ public final class GatenlpPipeline extends AbstractPipeline {
         }
         try {
             GateNlpModels gateNlpModels = new GateNlpModels();
-            gateNlpModels.get(language, Thread.currentThread().getContextClassLoader());// just to download if necessary
+            gateNlpModels.get(language);// just to download if necessary
             pipeline = GATENLPFactory.create(gateNlpModels.getModelsFilesystemPath(language).toFile());
         } catch (GateException | IOException e) {
             LOGGER.error("failed building GateNLP Application", e);
