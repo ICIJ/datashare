@@ -15,7 +15,7 @@ jobs:
     working_directory: ~/repo
 
     environment:
-      MAVEN_OPTS: "-Xms256m -Xmx1024m"
+      MAVEN_OPTS: "-Xms256m -Xmx256m"
 
     dependencies:
       override:
