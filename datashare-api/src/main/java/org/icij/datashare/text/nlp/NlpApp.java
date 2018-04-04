@@ -62,8 +62,6 @@ public class NlpApp implements Runnable {
         }
     }
 
-    private boolean isInServerMode() { return parallelism > 1;}
-
     public static class NlpModule extends AbstractModule {
         private final Class<? extends AbstractPipeline> pipelineClass;
         private final Class<? extends Indexer> indexerClass;
