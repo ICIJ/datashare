@@ -1,6 +1,5 @@
 package org.icij.datashare.text.nlp;
 
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.redis.RedisSubscriber;
@@ -8,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
-import javax.inject.Inject;
+import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 
 public class NlpDatashareForwarder implements DatashareListener {
@@ -16,10 +15,9 @@ public class NlpDatashareForwarder implements DatashareListener {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     final String busAddress;
 
-    @Inject
-    NlpDatashareForwarder(PropertiesProvider provider, BlockingQueue<Message> messageQueue) {
+    NlpDatashareForwarder(Properties properties, BlockingQueue<Message> messageQueue) {
         this.messageQueue = messageQueue;
-        String messageBusAddress = provider.getProperties().getProperty("messageBusAddress");
+        String messageBusAddress = properties.getProperty("messageBusAddress");
         busAddress = messageBusAddress == null ? "localhost": messageBusAddress;
     }
 

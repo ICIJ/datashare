@@ -26,7 +26,7 @@ public class NlpDatashareSubscriberTest {
     private PropertiesProvider provider = new PropertiesProvider();
     private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, provider);
     private AbstractPipeline pipeline = mock(AbstractPipeline.class);
-    private NlpDatashareSubscriber nlpDatashareEventListener = new NlpDatashareSubscriber(provider, pipeline, indexer);
+    private NlpDatashareSubscriber nlpDatashareEventListener = new NlpDatashareSubscriber(pipeline, indexer,  provider.getProperties());
 
     @Test
     public void test_on_message_does_nothing__when_doc_not_found_in_index() throws Exception {

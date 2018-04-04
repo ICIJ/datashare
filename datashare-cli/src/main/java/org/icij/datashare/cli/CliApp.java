@@ -6,9 +6,7 @@ import org.icij.datashare.TaskFactory;
 import org.icij.datashare.TaskManager;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.NlpApp;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.task.Options;
@@ -60,7 +58,7 @@ public class CliApp {
         if (stages.contains(NLP)) {
             for (Pipeline.Type nlp : nlpPipelines) {
                 Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
-                taskManager.startTask(new NlpApp().withNlp(pipelineClass).withIndexer(ElasticsearchIndexer.class).withProperties(properties));
+                taskManager.startTask(taskFactory.createNlpTask(injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
                 taskManager.startTask(taskFactory.resumeNerTask(properties));

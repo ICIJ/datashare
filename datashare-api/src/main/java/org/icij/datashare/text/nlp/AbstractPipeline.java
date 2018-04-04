@@ -1,9 +1,9 @@
 package org.icij.datashare.text.nlp;
 
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.Hasher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

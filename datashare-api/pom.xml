@@ -93,5 +93,9 @@
            <version>2.0.2-beta</version>
            <scope>test</scope>
        </dependency>
+        <dependency>
+            <groupId>com.google.inject.extensions</groupId>
+            <artifactId>guice-assistedinject</artifactId>
+        </dependency>
     </dependencies>
 </project>

@@ -75,7 +75,7 @@ public class NlpDatashareListenerTest {
     }
 
     private NlpDatashareSubscriber createSubscriber(Runnable subscribedCb) {
-        return new NlpDatashareSubscriber(new PropertiesProvider(), pipeline, indexer) {
+        return new NlpDatashareSubscriber(pipeline, indexer, new PropertiesProvider().getProperties()) {
             @Override
             RedisSubscriber createRedisSubscriber() {
                 return new RedisSubscriber(new Jedis(this.busAddress), this::onMessage, subscribedCb);
@@ -84,7 +84,7 @@ public class NlpDatashareListenerTest {
     }
 
     private NlpDatashareForwarder createForwarder(BlockingQueue<Message> messagesQueue, Runnable subscribedCb) {
-        return new NlpDatashareForwarder(new PropertiesProvider(), messagesQueue) {
+        return new NlpDatashareForwarder(new PropertiesProvider().getProperties(), messagesQueue) {
             @Override
             RedisSubscriber createRedisSubscriber() {
                 return new RedisSubscriber(new Jedis(this.busAddress), this::onMessage, subscribedCb);

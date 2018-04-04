@@ -1,12 +1,12 @@
 package org.icij.datashare.text.nlp;
 
-import com.google.inject.Inject;
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.redis.RedisSubscriber;
 import org.icij.datashare.text.indexing.Indexer;
 import redis.clients.jedis.Jedis;
+
+import java.util.Properties;
 
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Field.R_ID;
@@ -15,10 +15,9 @@ import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 public class NlpDatashareSubscriber extends NlpDatashareListener {
     protected final String busAddress;
 
-    @Inject
-    public NlpDatashareSubscriber(PropertiesProvider provider, AbstractPipeline nlpPipeline, Indexer indexer) {
-        super(nlpPipeline, indexer);
-        String messageBusAddress = provider.getProperties().getProperty("messageBusAddress");
+    public NlpDatashareSubscriber(AbstractPipeline pipeline, Indexer indexer, Properties properties) {
+        super(pipeline, indexer);
+        String messageBusAddress = properties.getProperty("messageBusAddress");
         busAddress = messageBusAddress == null ? "localhost": messageBusAddress;
     }
 

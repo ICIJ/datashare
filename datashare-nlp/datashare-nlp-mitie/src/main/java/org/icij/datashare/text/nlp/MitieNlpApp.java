@@ -1,10 +1,14 @@
 package org.icij.datashare.text.nlp;
 
+import com.google.inject.Injector;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.mitie.MitiePipeline;
 
-public class MitieNlpApp extends NlpApp {
+import static com.google.inject.Guice.createInjector;
+
+public class MitieNlpApp {
     public static void main(String[] args) {
-        new NlpApp().withNlp(MitiePipeline.class).withIndexer(ElasticsearchIndexer.class).run();
+        Injector injector = createInjector(new NlpApp.NlpModule(MitiePipeline.class, ElasticsearchIndexer.class));
+        injector.getInstance(NlpApp.NlpModule.NlpAppFactory.class).createNlpApp(injector.getInstance(AbstractPipeline.class)).run();
     }
 }

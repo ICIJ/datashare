@@ -1,10 +1,14 @@
 package org.icij.datashare.text.nlp;
 
+import com.google.inject.Injector;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.gatenlp.GatenlpPipeline;
 
-public class GateNlpApp extends NlpApp {
+import static com.google.inject.Guice.createInjector;
+
+public class GateNlpApp {
     public static void main(String[] args) {
-        new NlpApp().withNlp(GatenlpPipeline.class).withIndexer(ElasticsearchIndexer.class).run();
+        Injector injector = createInjector(new NlpApp.NlpModule(GatenlpPipeline.class, ElasticsearchIndexer.class));
+        injector.getInstance(NlpApp.NlpModule.NlpAppFactory.class).createNlpApp(injector.getInstance(AbstractPipeline.class)).run();
     }
 }
