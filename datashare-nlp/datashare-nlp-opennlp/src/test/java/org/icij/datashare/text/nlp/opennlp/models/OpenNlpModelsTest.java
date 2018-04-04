@@ -29,7 +29,7 @@ public class OpenNlpModelsTest {
     }
 
     class OpenNlpModels extends org.icij.datashare.text.nlp.opennlp.models.OpenNlpModels {
-        protected OpenNlpModels(NlpStage stage) {super(stage);}
+        protected OpenNlpModels(NlpStage stage) {super(stage, true);}
         @Override
         protected ArtifactProvider createModel(InputStream io) {return mock(BaseModel.class);}
         @Override

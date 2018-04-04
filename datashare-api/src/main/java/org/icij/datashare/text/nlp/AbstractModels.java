@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp;
 
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
 import org.slf4j.Logger;
@@ -19,6 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static java.lang.Boolean.parseBoolean;
+
 public abstract class AbstractModels<T> {
     public static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
     protected static final Path BASE_CLASSPATH = Paths.get("models");
@@ -34,11 +37,18 @@ public abstract class AbstractModels<T> {
     public final NlpStage stage;
     protected final Map<Language, T> models;
     protected final Pipeline.Type type;
+    private final boolean syncModels;
 
     protected AbstractModels(final Pipeline.Type type, final NlpStage stage) {
+        this(type, stage, parseBoolean(new PropertiesProvider().getProperties()
+                .getProperty("syncNlpModels", "true")));
+    }
+
+    protected AbstractModels(final Pipeline.Type type, final NlpStage stage, final boolean syncModels) {
         this.stage = stage;
         this.type = type;
-        models = new HashMap<>();
+        this.models = new HashMap<>();
+        this.syncModels = syncModels;
     }
 
     protected abstract T loadModelFile(Language language, ClassLoader loader) throws IOException;
@@ -55,7 +65,9 @@ public abstract class AbstractModels<T> {
         Lock l = modelLock.get(language);
         l.lock();
         try {
-            downloadIfNecessary(language, loader);
+            if (syncModels) {
+                downloadIfNecessary(language, loader);
+            }
             models.put(language, loadModelFile(language, loader));
             LOGGER.info("loaded {} model for {}", stage, language);
         } catch (IOException e) {
@@ -94,7 +106,7 @@ public abstract class AbstractModels<T> {
         return loader.getResource(getModelsBasePath(language).toString()) != null;
     }
 
-    private void downloadIfNecessary(Language language, ClassLoader loader) {
+    protected void downloadIfNecessary(Language language, ClassLoader loader) {
         String remoteKey = getModelsFilesystemPath(language).toString();
         RemoteFiles remoteFiles = getRemoteFiles();
         try {

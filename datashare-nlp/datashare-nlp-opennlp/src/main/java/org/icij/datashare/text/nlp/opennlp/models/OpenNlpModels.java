@@ -14,6 +14,10 @@ public abstract class OpenNlpModels extends AbstractModels<ArtifactProvider> {
 
     OpenNlpModels(NlpStage stage) { super(Pipeline.Type.OPENNLP, stage);}
 
+    OpenNlpModels(NlpStage stage, boolean syncModels) {
+        super(Pipeline.Type.OPENNLP, stage, syncModels);
+    }
+
     @Override
     protected String getVersion() { return VERSION;}
 
