@@ -12,11 +12,13 @@ import java.util.concurrent.BlockingQueue;
 
 public class NlpDatashareForwarder implements DatashareListener {
     private final BlockingQueue<Message> messageQueue;
+    private final Runnable subscribedCallback;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     final String busAddress;
 
-    NlpDatashareForwarder(Properties properties, BlockingQueue<Message> messageQueue) {
+    NlpDatashareForwarder(Properties properties, BlockingQueue<Message> messageQueue, Runnable subscribedCallback) {
         this.messageQueue = messageQueue;
+        this.subscribedCallback = subscribedCallback;
         String messageBusAddress = properties.getProperty("messageBusAddress");
         busAddress = messageBusAddress == null ? "localhost": messageBusAddress;
     }
@@ -34,7 +36,7 @@ public class NlpDatashareForwarder implements DatashareListener {
         }
     }
 
-    RedisSubscriber createRedisSubscriber() {
-        return new RedisSubscriber(new Jedis(busAddress), this::onMessage);
+    private RedisSubscriber createRedisSubscriber() {
+        return new RedisSubscriber(new Jedis(busAddress), this::onMessage, subscribedCallback);
     }
 }

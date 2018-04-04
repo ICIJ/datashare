@@ -1,6 +1,5 @@
 package org.icij.datashare.text.nlp;
 
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
@@ -18,8 +17,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class ExtractNamedEntitiesTest {
-    private PropertiesProvider provider = new PropertiesProvider();
+public class NlpConsumerTest {
     @Mock private Indexer indexer;
     @Mock private AbstractPipeline pipeline;
     private NlpDatashareConsumer nlpListener;
