@@ -8,6 +8,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -46,14 +47,14 @@ public class NlpConsumer implements DatashareListener {
                             logger.warn("cannot handle {}", message);
                     }
                 }
-            } catch (InterruptedException e) {
-                logger.warn("poll interrupted", e);
+            } catch (Throwable e) {
+                logger.warn("error in consumer main loop", e);
             }
         }
         logger.info("exiting main loop");
     }
 
-    void extractNamedEntities(final String id, final String routing) {
+    void extractNamedEntities(final String id, final String routing) throws InterruptedException {
         try {
             Document doc = indexer.get(id, routing);
             if (doc != null) {
@@ -68,7 +69,7 @@ public class NlpConsumer implements DatashareListener {
             } else {
                 logger.warn("no document found in index with id " + id);
             }
-        } catch (Throwable e) {
+        } catch (IOException e) {
             logger.error("cannot extract entities of doc " + id, e);
         }
     }
