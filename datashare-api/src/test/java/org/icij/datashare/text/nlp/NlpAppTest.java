@@ -67,9 +67,8 @@ public class NlpAppTest {
         publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1"));
         publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2"));
         publisher.publish(Channel.NLP, new ShutdownMessage());
-        publisher.publish(Channel.NLP, new ShutdownMessage());
         executor.shutdown();
-        executor.awaitTermination(5, SECONDS);
+        executor.awaitTermination(50, SECONDS);
 
         verify(pipeline, times(2)).process(anyString(), anyString(), any(Language.class));
     }

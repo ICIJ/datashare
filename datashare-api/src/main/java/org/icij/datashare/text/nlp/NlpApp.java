@@ -7,6 +7,7 @@ import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
+import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,8 @@ import java.util.concurrent.Executors;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
-import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.generate;
 
 public class NlpApp implements Runnable {
@@ -58,12 +60,25 @@ public class NlpApp implements Runnable {
             NlpForwarder forwarder = new NlpForwarder(properties, queue, subscribedCb);
             forwarder.run();
             logger.info("forwarder exited waiting for consumer(s) to finish");
-            threadPool.shutdown();
-            threadPool.awaitTermination(Integer.MAX_VALUE, HOURS); // should leave when each consumer has finished
+            shutdown();
         } catch (Throwable throwable) {
             logger.error("error running NlpApp", throwable);
         }
         logger.info("exiting run");
+    }
+
+    private void shutdown() throws InterruptedException {
+        threadPool.shutdown();
+        generate(() -> queue.offer(new ShutdownMessage())).limit(parallelism).collect(toList()); // trying to clean exit
+        if (! threadPool.awaitTermination(30, SECONDS)) {
+            logger.info("consumers have not finished yet, interrupting...");
+            threadPool.shutdownNow();
+            if (! threadPool.awaitTermination(30, SECONDS)) {
+                logger.info("consumers still not interrupted (should maybe hit CTRL-C to exit)");
+            } else {
+                logger.info("consumers interrupted");
+            }
+        }
     }
 
     public static class NlpModule extends AbstractModule {
