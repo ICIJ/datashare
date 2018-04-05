@@ -4,6 +4,8 @@ import com.google.inject.Injector;
 import org.icij.datashare.ProdServiceModule;
 import org.icij.datashare.TaskFactory;
 import org.icij.datashare.TaskManager;
+import org.icij.datashare.com.Publisher;
+import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -23,8 +25,10 @@ import static java.lang.String.valueOf;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.stream.Collectors.toSet;
-import static org.icij.datashare.cli.DatashareCli.Stage.*;
+import static org.icij.datashare.cli.DatashareCli.Stage.INDEX;
+import static org.icij.datashare.cli.DatashareCli.Stage.SCAN;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.com.Channel.NLP;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
 public class CliApp {
@@ -55,13 +59,14 @@ public class CliApp {
         if (stages.contains(INDEX)) {
             taskManager.startTask(taskFactory.createSpewTask(Options.from(properties)));
         }
-        if (stages.contains(NLP)) {
+        if (stages.contains(DatashareCli.Stage.NLP)) {
             for (Pipeline.Type nlp : nlpPipelines) {
                 Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
                 taskManager.startTask(taskFactory.createNlpTask(injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.resumeNerTask(properties));
+                taskManager.startTask(taskFactory.resumeNerTask(properties),
+                        () -> injector.getInstance(Publisher.class).publish(NLP, new ShutdownMessage()));
             }
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, HOURS);

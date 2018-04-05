@@ -3,7 +3,10 @@ package org.icij.datashare;
 import org.junit.After;
 import org.junit.Test;
 
-import static java.util.stream.Collectors.toList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class TaskManagerTest {
@@ -11,17 +14,27 @@ public class TaskManagerTest {
 
     @Test
     public void test_run_task() throws Exception {
-        int tId = taskManager.startTask(() -> "run");
-        assertThat(taskManager.getTask(tId).get()).isEqualTo("run");
-        assertThat(taskManager.getTask(tId).isDone()).isTrue();
+        FutureTask<String> t = taskManager.startTask(() -> "run");
+        assertThat(taskManager.getTask(t.hashCode()).get()).isEqualTo("run");
+        assertThat(taskManager.getTask(t.hashCode()).isDone()).isTrue();
     }
 
     @Test
-    public void test_get_tasks() throws Exception {
-        int tId1 = taskManager.startTask(() -> "task 1");
-        int tId2 = taskManager.startTask(() -> "task 2");
+    public void test_get_tasks() {
+        FutureTask<String> t1 = taskManager.startTask(() -> "task 1");
+        FutureTask<String> t2 = taskManager.startTask(() -> "task 2");
 
-        assertThat(taskManager.getTasks().stream().map(Object::hashCode).collect(toList())).contains(tId1, tId2);
+        assertThat(taskManager.getTasks()).contains(t1, t2);
+    }
+
+    @Test
+    public void test_callback() throws Exception {
+        CountDownLatch l = new CountDownLatch(1);
+        FutureTask<String> t1 = taskManager.startTask(() -> "task", l::countDown);
+        l.await(1, SECONDS);
+
+        assertThat(l.getCount()).isEqualTo(0);
+        assertThat(taskManager.getTask(t1.hashCode()).get()).isEqualTo("task");
     }
 
     @After

@@ -11,10 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.concurrent.Future;
+import java.util.List;
+import java.util.concurrent.FutureTask;
 
 import static java.nio.file.Paths.get;
+import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.TaskResource.TaskResponse.Result.Error;
 import static org.icij.datashare.TaskResource.TaskResponse.Result.OK;
 
@@ -31,18 +32,18 @@ public class TaskResource {
     }
 
     @Get("/")
-    public Collection<Future> tasks() {
-        return taskManager.getTasks();
+    public List<Integer> tasks() {
+        return taskManager.getTasks().stream().map(FutureTask::hashCode).collect(toList());
     }
 
     @Get("/id/:id")
-    public Future getTask(Integer id) {
+    public FutureTask getTask(Integer id) {
         return taskManager.getTask(id);
     }
 
     @Post("/index/")
     public TaskResponse indexQueue(final OptionsWrapper optionsWrapper) {
-        return new TaskResponse(OK, taskManager.startTask(taskFactory.createSpewTask(optionsWrapper.asOptions())));
+        return new TaskResponse(OK, taskManager.startTask(taskFactory.createSpewTask(optionsWrapper.asOptions())).hashCode());
     }
 
     @Post("/index/file/:filePath")
@@ -52,7 +53,7 @@ public class TaskResource {
             return scanResponse;
         }
         Options<String> options = optionsWrapper.asOptions();
-        return scanResponse.add(taskManager.startTask(taskFactory.createSpewTask(options)));
+        return scanResponse.add(taskManager.startTask(taskFactory.createSpewTask(options)).hashCode());
     }
 
     @Post("/scan/file/:filePath")
@@ -64,7 +65,7 @@ public class TaskResource {
             return new TaskResponse(Error);
         }
         Options<String> options = optionsWrapper.asOptions();
-        return new TaskResponse(OK, taskManager.startTask(taskFactory.createScanTask(path, options)));
+        return new TaskResponse(OK, taskManager.startTask(taskFactory.createScanTask(path, options)).hashCode());
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

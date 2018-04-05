@@ -12,11 +12,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.stream.Stream.generate;
 
 public class NlpApp implements Runnable {
@@ -56,10 +59,11 @@ public class NlpApp implements Runnable {
             forwarder.run();
             logger.info("forwarder exited waiting for consumer(s) to finish");
             threadPool.shutdown();
-            threadPool.awaitTermination(10, SECONDS);
+            threadPool.awaitTermination(Integer.MAX_VALUE, HOURS); // should leave when each consumer has finished
         } catch (Throwable throwable) {
             logger.error("error running NlpApp", throwable);
         }
+        logger.info("exiting run");
     }
 
     public static class NlpModule extends AbstractModule {

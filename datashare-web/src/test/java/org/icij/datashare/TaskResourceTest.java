@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 
 import static org.mockito.Mockito.*;
 
@@ -119,8 +120,12 @@ public class TaskResourceTest implements FluentRestTest {
             super(provider);
         }
 
-        @Override public <V> int startTask(Callable<V> task) {
-            return 12;
+        @Override public <V> FutureTask<V> startTask(Callable<V> task) {
+            return new FutureTask<V>(() -> null) {
+                @Override public int hashCode() {
+                    return 12;
+                }
+            };
         }
     }
 }

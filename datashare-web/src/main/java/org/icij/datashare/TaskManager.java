@@ -12,7 +12,7 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 
 public class TaskManager {
     private final ExecutorService executor;
-    private final ConcurrentMap<Integer, Future> tasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, FutureTask> tasks = new ConcurrentHashMap<>();
 
     @Inject
     public TaskManager(final PropertiesProvider provider) {
@@ -21,19 +21,42 @@ public class TaskManager {
                    orElseGet( () -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
     }
 
-    public int startTask(final Runnable task) {
-        Future<?> fut = executor.submit(task);
-        tasks.put(fut.hashCode(), fut);
-        return fut.hashCode();
+    public FutureTask<Void> startTask(final Runnable task) {
+        FutureTask<Void> futureTask = new FutureTask<>(task, null);
+        executor.submit(futureTask);
+        tasks.put(futureTask.hashCode(), futureTask);
+        return futureTask;
     }
 
-    public <V> int startTask(final Callable<V> task) {
-        Future<?> fut = executor.submit(task);
-        tasks.put(fut.hashCode(), fut);
-        return fut.hashCode();
+    public FutureTask<Void> startTask(final Runnable task, final Runnable callback) {
+        FutureTask<Void> futureTask = new FutureTask<Void>(task, null) {
+            @Override protected void done() {
+                callback.run();
+            }
+        };
+        executor.submit(futureTask);
+        tasks.put(futureTask.hashCode(), futureTask);
+        return futureTask;
+    }
+    public <V> FutureTask<V> startTask(final Callable<V> task, final Runnable callback) {
+        FutureTask<V> futureTask = new FutureTask<V>(task) {
+            @Override protected void done() {
+                callback.run();
+            }
+        };
+        executor.submit(futureTask);
+        tasks.put(futureTask.hashCode(), futureTask);
+        return futureTask;
     }
 
-    public Future getTask(final int tId) {
+    public <V> FutureTask<V> startTask(final Callable<V> task) {
+        FutureTask<V> futureTask = new FutureTask<>(task);
+        executor.submit(futureTask);
+        tasks.put(futureTask.hashCode(), futureTask);
+        return futureTask;
+    }
+
+    public FutureTask getTask(final int tId) {
         return tasks.get(tId);
     }
 
@@ -46,7 +69,7 @@ public class TaskManager {
         executor.awaitTermination(timeout, timeUnit);
     }
 
-    public Collection<Future> getTasks() {
+    public Collection<FutureTask> getTasks() {
         return tasks.values();
     }
 }
