@@ -105,7 +105,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    protected boolean initialize(Language language) {
+    public boolean initialize(Language language) {
         if (!super.initialize(language)) {
             return false;
         }
@@ -118,7 +118,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    protected Annotations process(String content, String docId, Language language) {
+    public Annotations process(String content, String docId, Language language) {
         Annotations annotations = new Annotations(docId, getType(), language);
         String annotators = "SENTENCING ~ TOKENIZING";
         if (targetStages.contains(POS))
@@ -180,7 +180,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    protected void terminate(Language language) throws InterruptedException {
+    public void terminate(Language language) throws InterruptedException {
         super.terminate(language);
 
         if (nerFinder.containsKey(language)) {

@@ -1,7 +1,5 @@
 package org.icij.datashare.text.nlp;
 
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.slf4j.Logger;
@@ -14,7 +12,6 @@ import static org.icij.datashare.function.ThrowingFunctions.*;
 
 
 public abstract class AbstractPipeline implements Pipeline {
-    protected static final Hasher HASHER = Document.HASHER;
     public static final String NLP_STAGES_PROP = "nlpStages";
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
@@ -68,51 +65,13 @@ public abstract class AbstractPipeline implements Pipeline {
     @Override
     public Charset getEncoding() { return encoding; }
 
-    @Override
-    public Optional<Annotations> run(Document document) {
-        Language language = document.getLanguage();
-        if ( language == null) {
-            LOGGER.info("unknown language; aborting processing...");
-            return Optional.empty();
-        }
-        return run(document.getContent(), language);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<Annotations> run(Document document, Language language) {
-        return run(document.getContent(), language);
-     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<Annotations> run(String input, Language language) {
-        if (input.isEmpty())
-            return Optional.empty();
-        Optional<Annotations> annotation = Optional.empty();
-        try {
-            if (initialize(language)) {
-                annotation = Optional.ofNullable(process(input, HASHER.hash(input), language));
-                terminate(language);
-            }
-        } catch (Throwable e) {
-            LOGGER.error("failed processing [" + language + "]", e);
-        }
-        return annotation;
-    }
-
-
     /**
      * Prepare pipeline run
      * Check language support for implied stages.
      *
      * @return false if any stage is not supported in language; true otherwise
      */
-    protected boolean initialize(Language language) {
+    public boolean initialize(Language language) {
         // Pull all dependencies from targeted stages
         stages = stagesDependenciesTC(targetStages);
         // Check all dependencies for support in language
@@ -129,12 +88,12 @@ public abstract class AbstractPipeline implements Pipeline {
      * Apply all specified stages/annotators on input
      *  @param content is the source String to process
      * @param docId  the input hash code*/
-    protected abstract Annotations process(String content, String docId, Language language);
+    public abstract Annotations process(String content, String docId, Language language);
 
     /**
      * Post-processing operations
      */
-    protected void terminate(Language language) throws InterruptedException {
+    public void terminate(Language language) throws InterruptedException {
         LOGGER.info("ending " + getType() + " " + language + " " + stages.toString());
     }
 

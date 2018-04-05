@@ -53,7 +53,7 @@ public class MitiePipeline extends AbstractPipeline {
     }
 
     @Override
-    protected Annotations process(String content, String docId, Language language) {
+    public Annotations process(String content, String docId, Language language) {
         Annotations annotations = new Annotations(docId, getType(), language);
 
         // Tokenize input

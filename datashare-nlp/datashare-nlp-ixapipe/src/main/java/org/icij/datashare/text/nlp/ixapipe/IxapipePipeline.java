@@ -83,7 +83,7 @@ public class IxapipePipeline extends AbstractPipeline {
     }
 
     @Override
-    protected boolean initialize(Language language) {
+    public boolean initialize(Language language) {
         if (!super.initialize(language))
             return false;
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -92,7 +92,7 @@ public class IxapipePipeline extends AbstractPipeline {
     }
 
     @Override
-    protected Annotations process(String content, String docId, Language language) {
+    public Annotations process(String content, String docId, Language language) {
         Annotations annotations = new Annotations(docId, getType(), language);
         // KAF document annotated by IXAPIPE annotators
         KAFDocument kafDocument = new KAFDocument(language.toString(), KAF_VERSION);

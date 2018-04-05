@@ -1,7 +1,6 @@
 package org.icij.datashare.text.nlp;
 
 import org.icij.datashare.reflect.EnumTypeToken;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 
@@ -77,24 +76,9 @@ public interface Pipeline {
 
     Type getType();
 
-    Optional<Annotations> run(Document document);
-
-    /**
-     * Run pipeline on a {@link  org.icij.datashare.text.Document}
-     * Force language
-     *
-     * @param document the document to process
-     * @param language the forced processing language
-     */
-    Optional<Annotations> run(Document document, Language language);
-
-    /**
-     * Run pipeline on a {@link String} with language
-     *
-     * @param text     the input string to process
-     * @param language the forced processing language
-     */
-    Optional<Annotations> run(String text, Language language);
+    boolean initialize(Language language);
+    Annotations process(String content, String docId, Language language);
+    void terminate(Language language) throws InterruptedException ;
 
     /**
      * Is stage supported for language?

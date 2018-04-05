@@ -62,7 +62,7 @@ public final class GatenlpPipeline extends AbstractPipeline {
     }
 
     @Override
-    protected boolean initialize(Language language) {
+    public boolean initialize(Language language) {
         if ( ! super.initialize(language))
             return false;
         if (pipeline != null) {
@@ -80,7 +80,7 @@ public final class GatenlpPipeline extends AbstractPipeline {
     }
 
     @Override
-    protected Annotations process(String content, String docId, Language language) {
+    public Annotations process(String content, String docId, Language language) {
         Annotations annotations = new Annotations(docId, getType(), language);
         try {
             // Gate annotated document
@@ -129,7 +129,7 @@ public final class GatenlpPipeline extends AbstractPipeline {
     }
 
     @Override
-    protected void terminate(Language language) throws InterruptedException {
+    public void terminate(Language language) throws InterruptedException {
         super.terminate(language);
         if ( ! caching) {
             pipeline.cleanApplication();
