@@ -13,11 +13,15 @@ import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentQueueDrainer.class)
 public class SpewTask extends DefaultTask<Long> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer drainer;
+    private final DocumentConsumer consumer;
 
     private Integer parallelism = Runtime.getRuntime().availableProcessors();
 
@@ -25,15 +29,21 @@ public class SpewTask extends DefaultTask<Long> {
     public SpewTask(final Spewer spewer, final DocumentQueue queue, @Assisted final Options<String> userOptions) {
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
         Options<String> allTaskOptions = options().createFrom(userOptions);
-        drainer = new DocumentQueueDrainer(queue,
-                new DocumentConsumer(spewer, new Extractor().configure(allTaskOptions), this.parallelism)
-        ).configure(allTaskOptions);
+        consumer = new DocumentConsumer(spewer, new Extractor().configure(allTaskOptions), this.parallelism);
+        drainer = new DocumentQueueDrainer(queue, consumer).configure(allTaskOptions);
     }
 
     @Override
     public Long call() throws Exception {
-        logger.info(String.format("Processing up to %d file(s) in parallel.", parallelism));
-        return drainer.drain().get();
+        logger.info("Processing up to {} file(s) in parallel", parallelism);
+        Long nbDocs = drainer.drain().get();
+        drainer.shutdown();
+        drainer.awaitTermination(10, SECONDS); // drain is finished
+        logger.info("drained {} documents. Waiting for consumer to shutdown", nbDocs);
+        consumer.shutdown();
+        consumer.awaitTermination(5, MINUTES); // documents could be currently processed
+        logger.info("exiting");
+        return nbDocs;
     }
 
     private void setParallelism(Integer integer) { this.parallelism = integer;}
