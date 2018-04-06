@@ -11,7 +11,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.net.URLEncoder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -43,24 +42,17 @@ public class TaskResourceTest implements FluentRestTest {
     public void setUp() { reset(taskFactory);}
 
     @Test
-    public void testIndexUnknownDirectory() throws Exception {
-        RestAssert response = post("/task/index/file/" + URLEncoder.encode("foo|bar", "utf-8"), "{}");
-
-        response.should().haveType("application/json").should().contain("{\"result\":\"Error\"}");
-    }
-
-    @Test
     public void testIndexFile() {
         RestAssert response = post("/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().replace("/", "%7C"), "{}");
 
-        response.should().haveType("application/json").should().contain("{\"result\":\"Error\"}");
+        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"},{\"hash\":12,\"state\":\"RUNNING\"}");
     }
 
     @Test
     public void testIndexDirectory() {
         RestAssert response = post("/task/index/file/" + getClass().getResource("/docs/").getPath().replace("/", "%7C"), "{}");
 
-        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskIds\":[12,12]}");
+        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"},{\"hash\":12,\"state\":\"RUNNING\"}");
     }
 
     @Test
@@ -70,7 +62,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/task/index/file/" + path.replace("/", "%7C"),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
-        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskIds\":[12,12]}");
+        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"}");
         verify(taskFactory).createSpewTask(Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
@@ -85,7 +77,7 @@ public class TaskResourceTest implements FluentRestTest {
     public void testIndexQueueWithOptions() {
         RestAssert response = post("/task/index/", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
-        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskIds\":[12]}");
+        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"}");
         verify(taskFactory).createSpewTask(Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
@@ -99,7 +91,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/task/scan/file/" + path.replace("/", "%7C"),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
-        response.should().haveType("application/json").should().contain("{\"result\":\"OK\",\"taskIds\":[12]}");
+        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"}");
         verify(taskFactory).createScanTask(Paths.get(path), Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
