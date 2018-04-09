@@ -20,7 +20,7 @@ public class IxapipePipelineTest {
     }
 
     @Test
-    public void test_initialize() {
+    public void test_initialize() throws InterruptedException {
         ixapipePipeline.initialize(ITALIAN);
 
         assertThat(IxaPosModels.getInstance().isLoaded(ITALIAN)).isEqualTo(true);

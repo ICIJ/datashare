@@ -62,7 +62,7 @@ public final class GatenlpPipeline extends AbstractPipeline {
     }
 
     @Override
-    public boolean initialize(Language language) {
+    public boolean initialize(Language language) throws InterruptedException {
         if ( ! super.initialize(language))
             return false;
         if (pipeline != null) {

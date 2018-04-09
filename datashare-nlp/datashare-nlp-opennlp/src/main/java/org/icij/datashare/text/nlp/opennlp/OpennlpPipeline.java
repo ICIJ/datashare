@@ -23,7 +23,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.opennlp.models.*;
 
 import java.util.*;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
@@ -58,20 +58,10 @@ public final class OpennlpPipeline extends AbstractPipeline {
                 put(GERMAN,  new HashSet<>(asList(SENTENCE, TOKEN, POS)));
             }};
 
-    // Sentence annotators (split string into sentences)
     Map<Language, SentenceDetector> sentencer;
-
-    // Token annotators (split string into tokens)
     Map<Language, Tokenizer> tokenizer;
-
-    // Part-of-Speech annotators (associate pos with tokens)
     Map<Language, POSTagger> posTagger;
-
-    // Named Entity Recognition annotators (associate entity category with tokens)
     Map<Language, List<NameFinderME>> nerFinder;
-
-    // Annotator loading functions (per NlpStage)
-    private final Map<NlpStage, BiFunction<ClassLoader, Language, Boolean>> annotatorLoader;
 
     @Inject
     public OpennlpPipeline(final PropertiesProvider propertiesProvider) {
@@ -82,41 +72,30 @@ public final class OpennlpPipeline extends AbstractPipeline {
         stageDependencies.get(POS)  .add(TOKEN);
         stageDependencies.get(NER)  .add(TOKEN);
 
-        annotatorLoader = new HashMap<NlpStage, BiFunction<ClassLoader, Language, Boolean>>(){{
-            put(TOKEN,    OpennlpPipeline.this::loadTokenizer);
-            put(SENTENCE, OpennlpPipeline.this::loadSentenceDetector);
-            put(POS,      OpennlpPipeline.this::loadPosTagger);
-            put(NER,      OpennlpPipeline.this::loadNameFinder);
-        }};
-
         sentencer = new HashMap<>();
         tokenizer = new HashMap<>();
         posTagger = new HashMap<>();
         nerFinder = new HashMap<>();
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Map<Language, Set<NlpStage>> supportedStages() { return SUPPORTED_STAGES; }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public boolean initialize(Language language) {
+    public boolean initialize(Language language) throws InterruptedException {
         if (!super.initialize(language)) {
             return false;
         }
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        stages.forEach(stage -> annotatorLoader.get(stage).apply(classLoader, language));
+        HashMap<NlpStage, Function<Language, Boolean>> annotatorLoader = new HashMap<NlpStage, Function<Language, Boolean>>() {{
+            put(TOKEN, wrap(OpennlpPipeline.this::loadTokenizer));
+            put(SENTENCE, wrap(OpennlpPipeline.this::loadSentenceDetector));
+            put(POS, wrap(OpennlpPipeline.this::loadPosTagger));
+            put(NER, wrap(OpennlpPipeline.this::loadNameFinder));
+        }};
+        stages.forEach(stage -> annotatorLoader.get(stage).apply(language));
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public Annotations process(String content, String docId, Language language) {
         Annotations annotations = new Annotations(docId, getType(), language);
@@ -176,9 +155,6 @@ public final class OpennlpPipeline extends AbstractPipeline {
         return String.join(" ", asList(copyOfRange(elements, span.getStart(), span.getEnd())));
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void terminate(Language language) throws InterruptedException {
         super.terminate(language);
@@ -196,123 +172,75 @@ public final class OpennlpPipeline extends AbstractPipeline {
         }
     }
 
-    /**
-     * Load sentence splitter from models (language-specific)
-     *
-     * @param loader the ClassLoader used to load models resources
-     * @return true if successfully loaded; false otherwise
-     */
-    private boolean loadSentenceDetector(ClassLoader loader, Language language) {
-        if (sentencer.containsKey(language))
-            return true;
-        ArtifactProvider model = null;
-        try {
-            model = OpenNlpSentenceModels.getInstance().get(language);
-        } catch (InterruptedException e) {
-            return false;
-        }
-        sentencer.put(language, new SentenceDetectorME((SentenceModel) model));
-        return true;
+    @FunctionalInterface
+    interface Interruptible<P, R, E extends Throwable> {
+        R apply(P t) throws E;
     }
 
-    /**
-     * Split input string into sentences
-     *
-     * @param input is the String to split
-     * @return Detected sentences as an array of String
-     */
-    private Span[] sentences(String input, Language language) {
-        if ( ! stages.contains(SENTENCE) || ! sentencer.containsKey(language) )
-            return new Span[0];
-        return sentencer.get(language).sentPosDetect(input);
+    public Function<Language, Boolean> wrap(Interruptible<Language, Boolean, InterruptedException> fun) {
+        return val -> {
+            try {
+                return fun.apply(val);
+            } catch (InterruptedException e) {
+                LOGGER.error("interrupted", e);
+                return false;
+            }
+        };
     }
 
-
-    /**
-     * Load tokenizer from models (language-specific)
-     *
-     * @param loader the ClassLoader used to load models resources
-     * @return true if successfully loaded; false otherwise
-     */
-    private boolean loadTokenizer(ClassLoader loader, Language language) {
+    private Boolean loadTokenizer(Language language) throws InterruptedException {
         if ( tokenizer.containsKey(language) )
             return true;
-        ArtifactProvider model = null;
-        try {
-            model = OpenNlpTokenModels.getInstance().get(language);
-        } catch (InterruptedException e) {
-            return false;
-        }
+        ArtifactProvider model = OpenNlpTokenModels.getInstance().get(language);
         tokenizer.put(language, new TokenizerME((TokenizerModel) model));
         return true;
     }
 
-    /**
-     * Tokenize input string
-     *
-     * @param input is the String to tokenize
-     * @return Detected token Spans (tokens boundaries)
-     */
-    private Span[] tokenize(String input, Language language) {
-        if ( ! stages.contains(TOKEN) || ! tokenizer.containsKey(language) )
-            return new Span[0];
-        return tokenizer.get(language).tokenizePos(input);
+    private boolean loadSentenceDetector(Language language) throws InterruptedException {
+        if (sentencer.containsKey(language))
+            return true;
+        ArtifactProvider model = OpenNlpSentenceModels.getInstance().get(language);;
+        sentencer.put(language, new SentenceDetectorME((SentenceModel) model));
+        return true;
     }
 
-    /**
-     * Load part-of-speech tagging models (language-specific)
-     *
-     * @param loader the ClassLoader used to load models resources
-     * @return true if successfully loaded; false otherwise
-     */
-    private boolean loadPosTagger(ClassLoader loader, Language language) {
+    private boolean loadPosTagger(Language language) throws InterruptedException {
         if ( posTagger.containsKey(language) )
             return true;
-        ArtifactProvider model = null;
-        try {
-            model = OpenNlpPosModels.getInstance().get(language);
-        } catch (InterruptedException e) {
-            return false;
-        }
+        ArtifactProvider model = OpenNlpPosModels.getInstance().get(language);
         posTagger.put(language, new POSTaggerME((POSModel) model));
         return true;
     }
 
-    /**
-     * Get part-of-speech from tokens
-     *
-     * @param tokens is the sequence of tokens to annotate
-     * @return Detected PoS as an array of String
-     */
-    private String[] postag(String[] tokens, Language language) {
-        if ( ! stages.contains(POS) || ! posTagger.containsKey(language))
-            return new String[0];
-        return posTagger.get(language).tag(tokens);
-    }
-
-    /**
-     * Load named entity recognisers (for each category) from models (language-specific)
-     *
-     * @param loader the ClassLoader used to load models resources
-     * @return true if successfully loaded; false otherwise
-     */
-    private boolean loadNameFinder(ClassLoader loader, Language language) {
-        OpenNlpCompositeModel nerModels = null;
-        try {
-            nerModels = (OpenNlpCompositeModel) OpenNlpNerModels.getInstance().get(language);
-        } catch (InterruptedException e) {
-            return false;
-        }
+    private boolean loadNameFinder(Language language) throws InterruptedException {
+        OpenNlpCompositeModel nerModels = (OpenNlpCompositeModel) OpenNlpNerModels.getInstance().get(language);
         final Stream<NameFinderME> nameFinderMEStream =
                 nerModels.models.stream().map(m -> new NameFinderME((TokenNameFinderModel) m));
         nerFinder.put(language, nameFinderMEStream.collect(toList()));
         return true;
     }
 
+    private Span[] sentences(String input, Language language) {
+        if (!stages.contains(SENTENCE) || !sentencer.containsKey(language))
+            return new Span[0];
+        return sentencer.get(language).sentPosDetect(input);
+    }
+
+    private String[] postag(String[] tokens, Language language) {
+        if (!stages.contains(POS) || !posTagger.containsKey(language))
+            return new String[0];
+        return posTagger.get(language).tag(tokens);
+    }
+
+    private Span[] tokenize(String input, Language language) {
+        if (!stages.contains(TOKEN) || !tokenizer.containsKey(language))
+            return new Span[0];
+        return tokenizer.get(language).tokenizePos(input);
+    }
+
     @Override
     public Optional<String> getPosTagSet(Language language) {
         return Optional.of(OpenNlpPosModels.POS_TAGSET.get(language));
     }
-
 }
 

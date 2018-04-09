@@ -12,7 +12,7 @@ import static org.icij.datashare.text.nlp.AbstractPipeline.NLP_STAGES_PROP;
 public class OpennlpPipelineTest {
 
     @Test
-    public void test_initialize() {
+    public void test_initialize() throws InterruptedException {
         Properties props = new Properties();
         props.setProperty(NLP_STAGES_PROP, "SENTENCE,TOKEN");
         OpennlpPipeline openNlpPipeline = new OpennlpPipeline(new PropertiesProvider(props));

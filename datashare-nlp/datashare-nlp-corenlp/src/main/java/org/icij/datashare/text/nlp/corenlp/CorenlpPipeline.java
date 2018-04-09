@@ -69,7 +69,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    public boolean initialize(Language language) {
+    public boolean initialize(Language language) throws InterruptedException {
         if( ! super.initialize(language) )
             return false;
 
@@ -86,7 +86,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * {@inheritDoc}
      */
     @Override
-    public Annotations process(String content, String docId, Language language) {
+    public Annotations process(String content, String docId, Language language) throws InterruptedException {
         // Is NER the unique target stage?
         if (singletonList(NER).equals(targetStages))
             return processNerClassifier(content, docId, language);
@@ -114,12 +114,8 @@ public final class CorenlpPipeline extends AbstractPipeline {
     }
 
 
-    private boolean initializePipelineAnnotator(Language language) {
-        try {
-            CoreNlpPipelineModels.getInstance().get(language);
-        } catch (InterruptedException e) {
-            return false;
-        }
+    private boolean initializePipelineAnnotator(Language language) throws InterruptedException {
+        CoreNlpPipelineModels.getInstance().get(language);
         return true;
     }
 
@@ -131,7 +127,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * @param language the input language
      * @return
      */
-    private Annotations processPipeline(String input, String hash, Language language) {
+    private Annotations processPipeline(String input, String hash, Language language) throws InterruptedException {
         Annotations annotations = new Annotations(hash, getType(), language);
 
         // CoreNLP annotations data-structure
@@ -143,53 +139,45 @@ public final class CorenlpPipeline extends AbstractPipeline {
         // Tokenize
         // Pos-tag
         // NER
-        try {
-            CoreNlpPipelineModels.getInstance().get(language).annotate(coreNlpAnnotation);
-            // Feed annotations
-            List<CoreMap> sentences = coreNlpAnnotation.get(SentencesAnnotation.class);
-            for (CoreMap sentence : sentences) {
-                int sentenceBegin = sentence.get(CharacterOffsetBeginAnnotation.class);
-                int sentenceEnd = sentence.get(CharacterOffsetEndAnnotation.class);
-                annotations.add(SENTENCE, sentenceBegin, sentenceEnd);
+        CoreNlpPipelineModels.getInstance().get(language).annotate(coreNlpAnnotation);
+        // Feed annotations
+        List<CoreMap> sentences = coreNlpAnnotation.get(SentencesAnnotation.class);
+        for (CoreMap sentence : sentences) {
+            int sentenceBegin = sentence.get(CharacterOffsetBeginAnnotation.class);
+            int sentenceEnd = sentence.get(CharacterOffsetEndAnnotation.class);
+            annotations.add(SENTENCE, sentenceBegin, sentenceEnd);
 
-                int nerBegin = 0;
-                NamedEntity.Category prevCat = NamedEntity.Category.NONE;
+            int nerBegin = 0;
+            NamedEntity.Category prevCat = NamedEntity.Category.NONE;
 
-                List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
-                for (CoreLabel token : tokens) {
-                    int tokenBegin = token.get(CharacterOffsetBeginAnnotation.class);
-                    int tokenEnd = token.get(CharacterOffsetEndAnnotation.class);
-                    String pos = token.get(PartOfSpeechAnnotation.class);
-                    annotations.add(TOKEN, tokenBegin, tokenEnd);
-                    annotations.add(POS, tokenBegin, tokenEnd, pos);
+            List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
+            for (CoreLabel token : tokens) {
+                int tokenBegin = token.get(CharacterOffsetBeginAnnotation.class);
+                int tokenEnd = token.get(CharacterOffsetEndAnnotation.class);
+                String pos = token.get(PartOfSpeechAnnotation.class);
+                annotations.add(TOKEN, tokenBegin, tokenEnd);
+                annotations.add(POS, tokenBegin, tokenEnd, pos);
 
-                    String cat = token.get(NamedEntityTagAnnotation.class);
-                    NamedEntity.Category currCat = NamedEntity.Category.parse(cat);
-                    if (currCat != NamedEntity.Category.NONE) {
-                        if (prevCat != currCat) {
-                            nerBegin = tokenBegin;
-                        }
-                    } else {
-                        if (prevCat != currCat) {
-                            annotations.add(NER, nerBegin, tokenBegin, prevCat.toString());
-                        }
+                String cat = token.get(NamedEntityTagAnnotation.class);
+                NamedEntity.Category currCat = NamedEntity.Category.parse(cat);
+                if (currCat != NamedEntity.Category.NONE) {
+                    if (prevCat != currCat) {
+                        nerBegin = tokenBegin;
                     }
-                    prevCat = currCat;
+                } else {
+                    if (prevCat != currCat) {
+                        annotations.add(NER, nerBegin, tokenBegin, prevCat.toString());
+                    }
                 }
+                prevCat = currCat;
             }
-        } catch (InterruptedException e) {
-            LOGGER.error("extraction interrupted", e);
         }
         return annotations;
     }
 
 
-    private boolean initializeNerAnnotator(Language language) {
-        try {
-            CoreNlpNerModels.getInstance().get(language);
-        } catch (InterruptedException e) {
-            return false;
-        }
+    private boolean initializeNerAnnotator(Language language) throws InterruptedException {
+        CoreNlpNerModels.getInstance().get(language);
         return true;
     }
 
@@ -200,25 +188,21 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * @param hash     the input hash code
      * @param language the input language
      */
-    private Annotations processNerClassifier(String input, String hash, Language language) {
+    private Annotations processNerClassifier(String input, String hash, Language language) throws InterruptedException {
         Annotations annotations = new Annotations(hash, getType(), language);
 
         LOGGER.info("name-finding for " + language.toString());
         // Recognize named entities from input
         final CoreNlpAnnotator<AbstractSequenceClassifier<CoreLabel>> abstractSequenceClassifierCoreNlpAnnotator;
-        try {
-            abstractSequenceClassifierCoreNlpAnnotator = CoreNlpNerModels.getInstance().get(language);
-            List<Triple<String, Integer, Integer>> items = abstractSequenceClassifierCoreNlpAnnotator.annotator.classifyToCharacterOffsets(input);
-            // For each recognized named entity
-            for (Triple<String, Integer, Integer> item : items) {
-                // Triple: <category, begin, end>
-                NamedEntity.Category category = NamedEntity.Category.parse(item.first());
-                int begin = item.second();
-                int end = item.third();
-                annotations.add(NER, begin, end, category.toString());
-            }
-        } catch (InterruptedException e) {
-            LOGGER.error("extraction interrupted", e);
+        abstractSequenceClassifierCoreNlpAnnotator = CoreNlpNerModels.getInstance().get(language);
+        List<Triple<String, Integer, Integer>> items = abstractSequenceClassifierCoreNlpAnnotator.annotator.classifyToCharacterOffsets(input);
+        // For each recognized named entity
+        for (Triple<String, Integer, Integer> item : items) {
+            // Triple: <category, begin, end>
+            NamedEntity.Category category = NamedEntity.Category.parse(item.first());
+            int begin = item.second();
+            int end = item.third();
+            annotations.add(NER, begin, end, category.toString());
         }
 
         return annotations;
@@ -241,28 +225,24 @@ public final class CorenlpPipeline extends AbstractPipeline {
      * @param hash     the input hash code
      * @param language the input language
      */
-    private Annotations processPosClassifier(String input, String hash, Language language) {
+    private Annotations processPosClassifier(String input, String hash, Language language) throws InterruptedException {
         Annotations annotations = new Annotations(hash, getType(), language);
         LOGGER.info("POS-tagging for " + language.toString());
 
         // Split input into sentences
         final CoreNlpAnnotator<MaxentTagger> nlpAnnotator;
-        try {
-            nlpAnnotator = CoreNlpPosModels.getInstance().get(language);
-            List<List<HasWord>> sentences = MaxentTagger.tokenizeText(new StringReader(input));
-            for (List<HasWord> sentence : sentences) {
-                // Tag with parts-of-speech
-                List<TaggedWord> taggedSentence = nlpAnnotator.annotator.tagSentence(sentence);
-                // Feed annotatopn
-                for (TaggedWord word : taggedSentence) {
-                    int begin = word.beginPosition();
-                    int end = word.endPosition();
-                    String pos = word.tag();
-                    annotations.add(POS, begin, end, pos);
-                }
+        nlpAnnotator = CoreNlpPosModels.getInstance().get(language);
+        List<List<HasWord>> sentences = MaxentTagger.tokenizeText(new StringReader(input));
+        for (List<HasWord> sentence : sentences) {
+            // Tag with parts-of-speech
+            List<TaggedWord> taggedSentence = nlpAnnotator.annotator.tagSentence(sentence);
+            // Feed annotatopn
+            for (TaggedWord word : taggedSentence) {
+                int begin = word.beginPosition();
+                int end = word.endPosition();
+                String pos = word.tag();
+                annotations.add(POS, begin, end, pos);
             }
-        } catch (InterruptedException e) {
-            LOGGER.error("extraction interrupted", e);
         }
         return annotations;
     }

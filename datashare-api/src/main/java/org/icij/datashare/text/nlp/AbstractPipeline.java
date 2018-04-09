@@ -71,7 +71,7 @@ public abstract class AbstractPipeline implements Pipeline {
      *
      * @return false if any stage is not supported in language; true otherwise
      */
-    public boolean initialize(Language language) {
+    public boolean initialize(Language language) throws InterruptedException {
         // Pull all dependencies from targeted stages
         stages = stagesDependenciesTC(targetStages);
         // Check all dependencies for support in language
@@ -88,7 +88,7 @@ public abstract class AbstractPipeline implements Pipeline {
      * Apply all specified stages/annotators on input
      *  @param content is the source String to process
      * @param docId  the input hash code*/
-    public abstract Annotations process(String content, String docId, Language language);
+    public abstract Annotations process(String content, String docId, Language language) throws InterruptedException;
 
     /**
      * Post-processing operations

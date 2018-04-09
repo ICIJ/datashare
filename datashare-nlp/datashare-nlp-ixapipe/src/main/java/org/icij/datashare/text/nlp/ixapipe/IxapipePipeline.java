@@ -83,7 +83,7 @@ public class IxapipePipeline extends AbstractPipeline {
     }
 
     @Override
-    public boolean initialize(Language language) {
+    public boolean initialize(Language language) throws InterruptedException {
         if (!super.initialize(language))
             return false;
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();

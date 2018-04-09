@@ -76,8 +76,8 @@ public interface Pipeline {
 
     Type getType();
 
-    boolean initialize(Language language);
-    Annotations process(String content, String docId, Language language);
+    boolean initialize(Language language) throws InterruptedException;
+    Annotations process(String content, String docId, Language language) throws InterruptedException;
     void terminate(Language language) throws InterruptedException ;
 
     /**
