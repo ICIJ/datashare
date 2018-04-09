@@ -46,6 +46,11 @@ public class NlpConsumer implements DatashareListener {
                         default:
                             logger.warn("cannot handle {}", message);
                     }
+                    synchronized (messageQueue) {
+                        if (messageQueue.isEmpty()) {
+                            messageQueue.notify();
+                        }
+                    }
                 }
             } catch (Throwable e) {
                 logger.warn("error in consumer main loop", e);

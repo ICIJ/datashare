@@ -13,41 +13,41 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.generate;
 
 public class NlpApp implements Runnable {
+    private static final long DEFAULT_TIMEOUT_MILLIS = 30 * 1000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
     private static final int DEFAULT_QUEUE_SIZE = 10000;
     private final AbstractPipeline pipeline;
     private final Indexer indexer;
-    private Runnable subscribedCb;
-    private Properties properties;
-    private BlockingQueue<Message> queue;
-    private ExecutorService threadPool = null;
+    private final long shutdownTimeoutMillis;
+    private final Runnable subscribedCb;
+    private final Properties properties;
+    private final BlockingQueue<Message> queue;
     private final int parallelism;
+    private ExecutorService threadPool = null;
 
     @Inject
     public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, final PropertiesProvider propertiesProvider) {
-        this.pipeline = pipeline;
-        this.indexer = indexer;
-        this.queue = new ArrayBlockingQueue<>(DEFAULT_QUEUE_SIZE, true);
-        this.properties = propertiesProvider.getProperties();
-        parallelism = parseInt(ofNullable(properties.getProperty(NLP_PARALLELISM_OPT)).orElse("1"));
-        subscribedCb = () -> {};
+        this(indexer, pipeline, propertiesProvider, () -> {}, 0);
     }
 
-    NlpApp(final Indexer indexer, final AbstractPipeline pipeline, final PropertiesProvider propertiesProvider, Runnable subscribedCb) {
-        this(indexer, pipeline, propertiesProvider);
+    NlpApp(final Indexer indexer, final AbstractPipeline pipeline, final PropertiesProvider propertiesProvider,
+                   Runnable subscribedCb, long shutdownTimeoutMillis) {
+        this.pipeline = pipeline;
+        this.indexer = indexer;
+        this.shutdownTimeoutMillis = shutdownTimeoutMillis == 0 ? DEFAULT_TIMEOUT_MILLIS : shutdownTimeoutMillis;
+        this.queue = new LinkedBlockingQueue<>(DEFAULT_QUEUE_SIZE);
+        this.properties = propertiesProvider.getProperties();
+        parallelism = parseInt(ofNullable(properties.getProperty(NLP_PARALLELISM_OPT)).orElse("1"));
         this.subscribedCb = subscribedCb;
     }
 
@@ -68,15 +68,24 @@ public class NlpApp implements Runnable {
     }
 
     private void shutdown() throws InterruptedException {
+        waitForQueueToBeEmpty();
         threadPool.shutdown();
         generate(() -> queue.offer(new ShutdownMessage())).limit(parallelism).collect(toList()); // trying to clean exit
-        if (! threadPool.awaitTermination(30, SECONDS)) {
+        if (! threadPool.awaitTermination(shutdownTimeoutMillis, MILLISECONDS)) {
             logger.info("consumers have not finished yet, interrupting...");
             threadPool.shutdownNow();
-            if (! threadPool.awaitTermination(30, SECONDS)) {
+            if (! threadPool.awaitTermination(shutdownTimeoutMillis, MILLISECONDS)) {
                 logger.info("consumers still not interrupted (should maybe hit CTRL-C to exit)");
             } else {
                 logger.info("consumers interrupted");
+            }
+        }
+    }
+
+    private void waitForQueueToBeEmpty() throws InterruptedException {
+        if (! queue.isEmpty()) {
+            synchronized (queue) {
+                queue.wait();
             }
         }
     }

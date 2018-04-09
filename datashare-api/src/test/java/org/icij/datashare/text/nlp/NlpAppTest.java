@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.stubbing.Answer;
 
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.IntStream;
 
 import static java.nio.file.Paths.get;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -41,36 +43,57 @@ public class NlpAppTest {
     private RedisPublisher publisher = new RedisPublisher(new PropertiesProvider());
     private final ExecutorService executor = Executors.newFixedThreadPool(3);
 
-    @Test
+    @Test(timeout = 5000)
     public void test_subscriber_mode_for_standalone_extraction() throws Exception {
-        CountDownLatch latch = new CountDownLatch(1);
-        executor.execute(new NlpApp(indexer, pipeline, new PropertiesProvider(), latch::countDown));
-        latch.await(2, SECONDS);
+        runNlpApp("1", 0);
 
         publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id").add(R_ID, "routing"));
         publisher.publish(Channel.NLP, new ShutdownMessage());
-        executor.shutdown();
-        executor.awaitTermination(5, SECONDS);
 
+        shutdownNlpApp();
         verify(pipeline, times(1)).process(anyString(), anyString(), any(Language.class));
     }
 
-    @Test
+    @Test(timeout = 5000)
     public void test_consumer_mode_for_multithreaded_server_extraction() throws Exception {
-        Properties properties = new Properties();
-        properties.setProperty(NLP_PARALLELISM_OPT, "2");
-        properties.setProperty("messageBusAddress", "redis");
-        CountDownLatch latch = new CountDownLatch(1);
-        executor.execute(new NlpApp(indexer, pipeline, new PropertiesProvider(properties), latch::countDown));
-        latch.await(2, SECONDS);
+        runNlpApp("2", 0);
 
         publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1"));
         publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2"));
         publisher.publish(Channel.NLP, new ShutdownMessage());
-        executor.shutdown();
-        executor.awaitTermination(50, SECONDS);
 
+        shutdownNlpApp();
         verify(pipeline, times(2)).process(anyString(), anyString(), any(Language.class));
+    }
+
+    @Test(timeout = 5000)
+    public void test_nlp_app_should_wait_queue_to_be_empty_to_shutdown() throws Exception {
+        runNlpApp("1", 200);
+
+        IntStream.range(1,4).forEach(i -> publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id" + i).add(R_ID, "routing" + i)));
+        publisher.publish(Channel.NLP, new ShutdownMessage());
+
+        shutdownNlpApp();
+        verify(pipeline, times(3)).process(anyString(), anyString(), any(Language.class));
+    }
+
+    protected void runNlpApp(String parallelism, int nlpProcessDelayMillis) throws InterruptedException {
+        Properties properties = new Properties();
+        properties.setProperty(NLP_PARALLELISM_OPT, parallelism);
+        properties.setProperty("messageBusAddress", "redis");
+        CountDownLatch latch = new CountDownLatch(1);
+
+        when(pipeline.process(anyString(), anyString(), any())).thenAnswer((Answer<Annotations>) invocationOnMock -> {
+            Thread.sleep(nlpProcessDelayMillis);
+            return new Annotations("docid_mock", Pipeline.Type.CORENLP, Language.FRENCH);
+        });
+        executor.execute(new NlpApp(indexer, pipeline, new PropertiesProvider(properties), latch::countDown, 1));
+        latch.await(2, SECONDS);
+    }
+
+    protected void shutdownNlpApp() throws InterruptedException {
+        executor.shutdown();
+        executor.awaitTermination(5, SECONDS);
     }
 
     @Before
