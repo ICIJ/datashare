@@ -87,10 +87,10 @@ public final class OpennlpPipeline extends AbstractPipeline {
             return false;
         }
         HashMap<NlpStage, Function<Language, Boolean>> annotatorLoader = new HashMap<NlpStage, Function<Language, Boolean>>() {{
-            put(TOKEN, wrap(OpennlpPipeline.this::loadTokenizer));
-            put(SENTENCE, wrap(OpennlpPipeline.this::loadSentenceDetector));
-            put(POS, wrap(OpennlpPipeline.this::loadPosTagger));
-            put(NER, wrap(OpennlpPipeline.this::loadNameFinder));
+            put(TOKEN, logIfInterrupted(OpennlpPipeline.this::loadTokenizer));
+            put(SENTENCE, logIfInterrupted(OpennlpPipeline.this::loadSentenceDetector));
+            put(POS, logIfInterrupted(OpennlpPipeline.this::loadPosTagger));
+            put(NER, logIfInterrupted(OpennlpPipeline.this::loadNameFinder));
         }};
         stages.forEach(stage -> annotatorLoader.get(stage).apply(language));
         return true;
@@ -177,7 +177,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
         R apply(P t) throws E;
     }
 
-    public Function<Language, Boolean> wrap(Interruptible<Language, Boolean, InterruptedException> fun) {
+    public Function<Language, Boolean> logIfInterrupted(Interruptible<Language, Boolean, InterruptedException> fun) {
         return val -> {
             try {
                 return fun.apply(val);
