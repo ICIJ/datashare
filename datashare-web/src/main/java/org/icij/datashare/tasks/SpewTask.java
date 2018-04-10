@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.icij.datashare.monitoring.Monitorable;
 import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.queue.DocumentQueue;
@@ -18,16 +19,20 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentQueueDrainer.class)
-public class SpewTask extends DefaultTask<Long> {
+public class SpewTask extends DefaultTask<Long> implements Monitorable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer drainer;
     private final DocumentConsumer consumer;
+    private final DocumentQueue queue;
+    private final int totalToProcess;
 
     private Integer parallelism = Runtime.getRuntime().availableProcessors();
 
     @Inject
     public SpewTask(final Spewer spewer, final DocumentQueue queue, @Assisted final Options<String> userOptions) {
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
+        this.totalToProcess = queue.size();
+        this.queue = queue;
         Options<String> allTaskOptions = options().createFrom(userOptions);
         consumer = new DocumentConsumer(spewer, new Extractor().configure(allTaskOptions), this.parallelism);
         drainer = new DocumentQueueDrainer(queue, consumer).configure(allTaskOptions);
@@ -44,6 +49,11 @@ public class SpewTask extends DefaultTask<Long> {
         consumer.awaitTermination(5, MINUTES); // documents could be currently processed
         logger.info("exiting");
         return nbDocs;
+    }
+
+    @Override
+    public double getProgressRate() {
+        return queue.size() / totalToProcess;
     }
 
     private void setParallelism(Integer integer) { this.parallelism = integer;}
