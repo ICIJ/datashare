@@ -44,7 +44,7 @@ public class NlpConsumer implements DatashareListener {
                             exitAsked = true;
                             break;
                         default:
-                            logger.warn("cannot handle {}", message);
+                            logger.info("ignore {}", message);
                     }
                     synchronized (messageQueue) {
                         if (messageQueue.isEmpty()) {

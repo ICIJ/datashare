@@ -8,6 +8,7 @@ import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.ShutdownMessage;
+import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.generate;
 
-public class NlpApp implements Runnable {
+public class NlpApp implements Runnable, Monitorable {
     private static final long DEFAULT_TIMEOUT_MILLIS = 30 * 1000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
@@ -29,10 +30,9 @@ public class NlpApp implements Runnable {
     private final AbstractPipeline pipeline;
     private final Indexer indexer;
     private final long shutdownTimeoutMillis;
-    private final Runnable subscribedCb;
-    private final Properties properties;
     private final BlockingQueue<Message> queue;
     private final int parallelism;
+    private final NlpForwarder forwarder;
     private ExecutorService threadPool = null;
 
     @Inject
@@ -46,9 +46,10 @@ public class NlpApp implements Runnable {
         this.indexer = indexer;
         this.shutdownTimeoutMillis = shutdownTimeoutMillis == 0 ? DEFAULT_TIMEOUT_MILLIS : shutdownTimeoutMillis;
         this.queue = new LinkedBlockingQueue<>(DEFAULT_QUEUE_SIZE);
-        this.properties = propertiesProvider.getProperties();
+
+        Properties properties = propertiesProvider.getProperties();
         parallelism = parseInt(ofNullable(properties.getProperty(NLP_PARALLELISM_OPT)).orElse("1"));
-        this.subscribedCb = subscribedCb;
+        forwarder = new NlpForwarder(properties, queue, subscribedCb);
     }
 
     public void run() {
@@ -57,7 +58,6 @@ public class NlpApp implements Runnable {
             this.threadPool = Executors.newFixedThreadPool(parallelism,
                     new ThreadFactoryBuilder().setNameFormat(pipeline.getType().name() + "-%d").build());
             generate(() -> new NlpConsumer(pipeline, indexer, queue)).limit(parallelism).forEach(l -> threadPool.execute(l));
-            NlpForwarder forwarder = new NlpForwarder(properties, queue, subscribedCb);
             forwarder.run();
             logger.info("forwarder exited waiting for consumer(s) to finish");
             shutdown();
@@ -88,6 +88,11 @@ public class NlpApp implements Runnable {
                 queue.wait();
             }
         }
+    }
+
+    @Override
+    public double getProgressRate() {
+        return forwarder.getProgressRate();
     }
 
     public static class NlpModule extends AbstractModule {

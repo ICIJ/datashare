@@ -24,9 +24,12 @@ import java.util.stream.IntStream;
 
 import static java.nio.file.Paths.get;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Field.R_ID;
+import static org.icij.datashare.com.Message.Field.VALUE;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
+import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 import static org.icij.datashare.text.Document.Status.INDEXED;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.nlp.NlpApp.NLP_PARALLELISM_OPT;
@@ -77,7 +80,21 @@ public class NlpAppTest {
         verify(pipeline, times(3)).process(anyString(), anyString(), any(Language.class));
     }
 
-    protected void runNlpApp(String parallelism, int nlpProcessDelayMillis) throws InterruptedException {
+    @Test(timeout = 5000)
+    public void test_nlp_app_progress_rate() throws Exception {
+        NlpApp nlpApp = runNlpApp("1", 0);
+
+        assertThat(nlpApp.getProgressRate()).isEqualTo(-1);
+        publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, "4"));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1"));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2"));
+        publisher.publish(Channel.NLP, new ShutdownMessage());
+
+        shutdownNlpApp();
+        assertThat(nlpApp.getProgressRate()).isEqualTo(0.5);
+    }
+
+    private NlpApp runNlpApp(String parallelism, int nlpProcessDelayMillis) throws InterruptedException {
         Properties properties = new Properties();
         properties.setProperty(NLP_PARALLELISM_OPT, parallelism);
         properties.setProperty("messageBusAddress", "redis");
@@ -87,11 +104,13 @@ public class NlpAppTest {
             Thread.sleep(nlpProcessDelayMillis);
             return new Annotations("docid_mock", Pipeline.Type.CORENLP, Language.FRENCH);
         });
-        executor.execute(new NlpApp(indexer, pipeline, new PropertiesProvider(properties), latch::countDown, 1));
+        NlpApp nlpApp = new NlpApp(indexer, pipeline, new PropertiesProvider(properties), latch::countDown, 1);
+        executor.execute(nlpApp);
         latch.await(2, SECONDS);
+        return nlpApp;
     }
 
-    protected void shutdownNlpApp() throws InterruptedException {
+    private void shutdownNlpApp() throws InterruptedException {
         executor.shutdown();
         executor.awaitTermination(5, SECONDS);
     }

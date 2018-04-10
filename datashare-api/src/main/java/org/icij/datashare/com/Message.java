@@ -10,8 +10,8 @@ import static org.icij.datashare.com.Message.Field.*;
 import static org.joda.time.format.ISODateTimeFormat.dateTime;
 
 public class Message {
-    public enum Field {TYPE, DATE, DOC_ID, R_ID}
-    public enum Type {SHUTDOWN, EXTRACT_NLP}
+    public enum Field {TYPE, DATE, DOC_ID, R_ID, VALUE}
+    public enum Type {SHUTDOWN, INIT_MONITORING, EXTRACT_NLP}
 
     public final Date date;
     public final Type type;
