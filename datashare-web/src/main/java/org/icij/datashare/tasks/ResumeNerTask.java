@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 
+import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
@@ -36,6 +37,7 @@ public class ResumeNerTask implements Callable<Integer> {
     public Integer call() {
         List<? extends Entity> docsToProcess =
                 indexer.search(Document.class).withSource("rootDocument").without(nlpPipelines).execute().collect(toList());
+        this.publisher.publish(Channel.NLP, new Message(Message.Type.INIT_MONITORING).add(Message.Field.VALUE, valueOf(docsToProcess.size())));
         docsToProcess.forEach(doc -> this.publisher.publish(Channel.NLP,
                         new Message(Message.Type.EXTRACT_NLP)
                                 .add(Message.Field.DOC_ID, doc.getId())
