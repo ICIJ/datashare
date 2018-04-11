@@ -101,7 +101,7 @@ public class NlpAppTest {
         CountDownLatch latch = new CountDownLatch(1);
 
         when(pipeline.process(anyString(), anyString(), any())).thenAnswer((Answer<Annotations>) invocationOnMock -> {
-            Thread.sleep(nlpProcessDelayMillis);
+            if (nlpProcessDelayMillis > 0) Thread.sleep(nlpProcessDelayMillis);
             return new Annotations("docid_mock", Pipeline.Type.CORENLP, Language.FRENCH);
         });
         NlpApp nlpApp = new NlpApp(indexer, pipeline, new PropertiesProvider(properties), latch::countDown, 1);
