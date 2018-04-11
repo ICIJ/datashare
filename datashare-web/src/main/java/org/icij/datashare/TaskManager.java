@@ -46,9 +46,7 @@ public class TaskManager {
     }
     public <V> MonitorableFutureTask<V> startTask(final Callable<V> task, final Runnable callback) {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<V>(task) {
-            @Override protected void done() {
-                callback.run();
-            }
+            @Override protected void done() { callback.run();}
         };
         executor.submit(futureTask);
         tasks.put(futureTask.toString(), futureTask);
@@ -80,13 +78,12 @@ public class TaskManager {
     }
 
     List<MonitorableFutureTask> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
-        return getTasks().stream().map(monitorableFutureTask -> {
+        return getTasks().stream().peek(monitorableFutureTask -> {
             try {
                 monitorableFutureTask.get(timeout, timeUnit);
             } catch (InterruptedException|ExecutionException|TimeoutException e) {
                 logger.error("task interrupted while running", e);
             }
-            return monitorableFutureTask;
         }).collect(toList());
     }
 
@@ -95,15 +92,15 @@ public class TaskManager {
     }
 
     static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable {
-        private final Monitorable monitorable;
+        private final Object runnableOrCallable;
         MonitorableFutureTask(@NotNull Callable<V> callable) {
             super(callable);
-            monitorable = getMonitorable(callable);
+            runnableOrCallable = callable;
         }
 
         MonitorableFutureTask(@NotNull Runnable runnable, V result) {
             super(runnable, result);
-            monitorable = getMonitorable(runnable);
+            runnableOrCallable = runnable;
         }
 
         private Monitorable getMonitorable(@NotNull Object runnableOrCallable) {
@@ -115,7 +112,10 @@ public class TaskManager {
 
         @Override
         public double getProgressRate() {
-            return monitorable.getProgressRate();
+            return getMonitorable(runnableOrCallable).getProgressRate();
         }
+
+        @Override
+        public String toString() { return runnableOrCallable.toString();}
     }
 }

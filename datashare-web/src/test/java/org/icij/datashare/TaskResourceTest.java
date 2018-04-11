@@ -153,7 +153,9 @@ public class TaskResourceTest implements FluentRestTest {
         }
 
         @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task) {
-            return super.startTask(() -> null);
+            return super.startTask(new Callable<V>() {    // do not replace by lambda
+                @Override public V call() { return null;} // else tasks will have the same lambda name and test will fail
+            });
         }
     }
 }
