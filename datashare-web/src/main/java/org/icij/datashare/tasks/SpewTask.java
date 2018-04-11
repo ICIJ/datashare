@@ -14,6 +14,7 @@ import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.Math.max;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -45,13 +46,14 @@ public class SpewTask extends DefaultTask<Long> implements Monitorable {
         drainer.awaitTermination(10, SECONDS); // drain is finished
         logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
         consumer.shutdown();
-        consumer.awaitTermination(5, MINUTES); // documents could be currently processed
+        consumer.awaitTermination(30, MINUTES); // documents could be currently processed
         logger.info("exiting");
         return totalToProcess;
     }
 
     @Override
     public double getProgressRate() {
+        totalToProcess = max(queue.size(), totalToProcess);
         return (double)(totalToProcess - queue.size()) / totalToProcess;
     }
 
