@@ -42,21 +42,21 @@ public class TaskResourceTest implements FluentRestTest {
     public void setUp() { reset(taskFactory);}
 
     @Test
-    public void testIndexFile() {
+    public void test_index_file() {
         RestAssert response = post("/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().replace("/", "%7C"), "{}");
 
         response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"},{\"hash\":12,\"state\":\"RUNNING\"}");
     }
 
     @Test
-    public void testIndexDirectory() {
+    public void test_index_directory() {
         RestAssert response = post("/task/index/file/" + getClass().getResource("/docs/").getPath().replace("/", "%7C"), "{}");
 
         response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"},{\"hash\":12,\"state\":\"RUNNING\"}");
     }
 
     @Test
-    public void testIndexAndScanDirectoryWithOptions() {
+    public void test_index_and_scan_directory_with_options() {
         String path = getClass().getResource("/docs/").getPath();
 
         RestAssert response = post("/task/index/file/" + path.replace("/", "%7C"),
@@ -74,7 +74,7 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void testIndexQueueWithOptions() {
+    public void test_index_queue_with_options() {
         RestAssert response = post("/task/index/", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"}");
@@ -86,7 +86,7 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void testQueueWithOptions() {
+    public void test_queue_with_options() {
         String path = getClass().getResource("/docs/").getPath();
         RestAssert response = post("/task/scan/file/" + path.replace("/", "%7C"),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
