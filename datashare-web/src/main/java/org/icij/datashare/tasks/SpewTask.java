@@ -24,14 +24,13 @@ public class SpewTask extends DefaultTask<Long> implements Monitorable {
     private final DocumentQueueDrainer drainer;
     private final DocumentConsumer consumer;
     private final DocumentQueue queue;
-    private final int totalToProcess;
+    private long totalToProcess;
 
     private Integer parallelism = Runtime.getRuntime().availableProcessors();
 
     @Inject
     public SpewTask(final Spewer spewer, final DocumentQueue queue, @Assisted final Options<String> userOptions) {
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
-        this.totalToProcess = queue.size();
         this.queue = queue;
         Options<String> allTaskOptions = options().createFrom(userOptions);
         consumer = new DocumentConsumer(spewer, new Extractor().configure(allTaskOptions), this.parallelism);
@@ -41,19 +40,19 @@ public class SpewTask extends DefaultTask<Long> implements Monitorable {
     @Override
     public Long call() throws Exception {
         logger.info("Processing up to {} file(s) in parallel", parallelism);
-        Long nbDocs = drainer.drain().get();
+        totalToProcess = drainer.drain().get();
         drainer.shutdown();
         drainer.awaitTermination(10, SECONDS); // drain is finished
-        logger.info("drained {} documents. Waiting for consumer to shutdown", nbDocs);
+        logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
         consumer.shutdown();
         consumer.awaitTermination(5, MINUTES); // documents could be currently processed
         logger.info("exiting");
-        return nbDocs;
+        return totalToProcess;
     }
 
     @Override
     public double getProgressRate() {
-        return queue.size() / totalToProcess;
+        return (double)(totalToProcess - queue.size()) / totalToProcess;
     }
 
     private void setParallelism(Integer integer) { this.parallelism = integer;}
