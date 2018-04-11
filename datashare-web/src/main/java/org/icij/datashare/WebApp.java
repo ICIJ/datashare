@@ -3,7 +3,6 @@ package org.icij.datashare;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.Module;
 import net.codestory.http.Configuration;
 import net.codestory.http.WebServer;
 import net.codestory.http.extensions.Extensions;
@@ -18,8 +17,7 @@ public class WebApp {
         start(null);
     }
 
-    static Configuration getConfiguration(final Module ioc) {
-        Injector injector = Guice.createInjector(ioc);
+    static Configuration getConfiguration(final Injector injector) {
         return routes -> routes
                 .add(injector.getInstance(TaskResource.class))
                 .setExtensions(new Extensions() {
@@ -32,6 +30,6 @@ public class WebApp {
     }
 
     public static void start(Properties properties) {
-        new WebServer().configure(getConfiguration(new ProdServiceModule(properties))).start();
+        new WebServer().configure(getConfiguration(Guice.createInjector(new ProdServiceModule(properties)))).start();
     }
 }

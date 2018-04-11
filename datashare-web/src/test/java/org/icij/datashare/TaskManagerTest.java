@@ -15,8 +15,8 @@ public class TaskManagerTest {
     @Test
     public void test_run_task() throws Exception {
         FutureTask<String> t = taskManager.startTask(() -> "run");
-        assertThat(taskManager.getTask(t.hashCode()).get()).isEqualTo("run");
-        assertThat(taskManager.getTask(t.hashCode()).isDone()).isTrue();
+        assertThat(taskManager.getTask(t.toString()).get()).isEqualTo("run");
+        assertThat(taskManager.getTask(t.toString()).isDone()).isTrue();
     }
 
     @Test
@@ -34,7 +34,7 @@ public class TaskManagerTest {
         l.await(1, SECONDS);
 
         assertThat(l.getCount()).isEqualTo(0);
-        assertThat(taskManager.getTask(t1.hashCode()).get()).isEqualTo("task");
+        assertThat(taskManager.getTask(t1.toString()).get()).isEqualTo("task");
     }
 
     @After

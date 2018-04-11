@@ -1,5 +1,6 @@
 package org.icij.datashare;
 
+import com.google.inject.Guice;
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
@@ -21,7 +22,7 @@ public class WebAppAcceptanceTest implements FluentRestTest {
 
     @BeforeClass
     public static void setUpClass() {
-        server.configure(WebApp.getConfiguration(new ProdServiceModule(null)));
+        server.configure(WebApp.getConfiguration(Guice.createInjector(new ProdServiceModule(null))));
     }
 
     @Test

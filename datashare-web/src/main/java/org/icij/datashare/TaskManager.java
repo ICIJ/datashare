@@ -3,6 +3,8 @@ package org.icij.datashare;
 import com.google.inject.Inject;
 import org.icij.datashare.monitoring.Monitorable;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -11,10 +13,12 @@ import java.util.concurrent.*;
 
 import static java.lang.Integer.valueOf;
 import static java.util.concurrent.Executors.newFixedThreadPool;
+import static java.util.stream.Collectors.toList;
 
 public class TaskManager {
+    private Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
-    private final ConcurrentMap<Integer, MonitorableFutureTask> tasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, MonitorableFutureTask> tasks = new ConcurrentHashMap<>();
 
     @Inject
     public TaskManager(final PropertiesProvider provider) {
@@ -26,7 +30,7 @@ public class TaskManager {
     public MonitorableFutureTask<Void> startTask(final Runnable task) {
         MonitorableFutureTask<Void> futureTask = new MonitorableFutureTask<>(task, null);
         executor.submit(futureTask);
-        tasks.put(futureTask.hashCode(), futureTask);
+        tasks.put(futureTask.toString(), futureTask);
         return futureTask;
     }
 
@@ -37,7 +41,7 @@ public class TaskManager {
             }
         };
         executor.submit(futureTask);
-        tasks.put(futureTask.hashCode(), futureTask);
+        tasks.put(futureTask.toString(), futureTask);
         return futureTask;
     }
     public <V> MonitorableFutureTask<V> startTask(final Callable<V> task, final Runnable callback) {
@@ -47,19 +51,19 @@ public class TaskManager {
             }
         };
         executor.submit(futureTask);
-        tasks.put(futureTask.hashCode(), futureTask);
+        tasks.put(futureTask.toString(), futureTask);
         return futureTask;
     }
 
     public <V> MonitorableFutureTask<V> startTask(final Callable<V> task) {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task);
         executor.submit(futureTask);
-        tasks.put(futureTask.hashCode(), futureTask);
+        tasks.put(futureTask.toString(), futureTask);
         return futureTask;
     }
 
-    public MonitorableFutureTask getTask(final int tId) {
-        return tasks.get(tId);
+    public MonitorableFutureTask getTask(final String taskName) {
+        return tasks.get(taskName);
     }
 
     public List<Runnable> shutdownNow() {
@@ -73,6 +77,21 @@ public class TaskManager {
 
     public Collection<MonitorableFutureTask> getTasks() {
         return tasks.values();
+    }
+
+    List<MonitorableFutureTask> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
+        return getTasks().stream().map(monitorableFutureTask -> {
+            try {
+                monitorableFutureTask.get(timeout, timeUnit);
+            } catch (InterruptedException|ExecutionException|TimeoutException e) {
+                logger.error("task interrupted while running", e);
+            }
+            return monitorableFutureTask;
+        }).collect(toList());
+    }
+
+    List<MonitorableFutureTask> cleanDoneTasks() {
+        return getTasks().stream().filter(FutureTask::isDone).map(t -> tasks.remove(t.toString())).collect(toList());
     }
 
     static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable {

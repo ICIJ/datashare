@@ -36,7 +36,7 @@ public class TaskResource {
     }
 
     @Get("/id/:id")
-    public TaskResponse getTask(Integer id) {
+    public TaskResponse getTask(String id) {
         return new TaskResponse(taskManager.getTask(id));
     }
 
@@ -62,12 +62,12 @@ public class TaskResource {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     static class TaskResponse {
         enum State {RUNNING, ERROR, DONE, CANCELLED}
-        private final int hash;
+        private final String name;
         private final State state;
         private final double progress;
 
         TaskResponse(TaskManager.MonitorableFutureTask task) {
-            this.hash = task.hashCode();
+            this.name = task.toString();
             State state;
             if (task.isDone()) {
                 try {
