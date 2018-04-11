@@ -20,7 +20,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentQueueDrainer.class)
-public class SpewTask extends DefaultTask<Long> implements Monitorable {
+public class IndexTask extends DefaultTask<Long> implements Monitorable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer drainer;
     private final DocumentConsumer consumer;
@@ -30,7 +30,7 @@ public class SpewTask extends DefaultTask<Long> implements Monitorable {
     private Integer parallelism = Runtime.getRuntime().availableProcessors();
 
     @Inject
-    public SpewTask(final Spewer spewer, final DocumentQueue queue, @Assisted final Options<String> userOptions) {
+    public IndexTask(final Spewer spewer, final DocumentQueue queue, @Assisted final Options<String> userOptions) {
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
         this.queue = queue;
         Options<String> allTaskOptions = options().createFrom(userOptions);
