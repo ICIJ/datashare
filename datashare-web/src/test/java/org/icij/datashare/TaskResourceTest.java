@@ -127,6 +127,18 @@ public class TaskResourceTest implements FluentRestTest {
         verify(taskFactory, never()).createSpewTask(any(Options.class));
     }
 
+    @Test
+    public void test_clean_tasks() throws Exception {
+        post("/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().replace("/", "%7C"), "{}").response();
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
+
+        ShouldChain responseBody = post("/task/clean/", "{}").should().haveType("application/json");
+
+        responseBody.should().contain(taskNames.get(0));
+        responseBody.should().contain(taskNames.get(1));
+        assertThat(taskManager.getTasks()).isEmpty();
+    }
+
     static class TestModule extends AbstractModule {
         @Override protected void configure() {
             bind(TaskFactory.class).toInstance(taskFactory);

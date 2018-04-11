@@ -59,6 +59,11 @@ public class TaskResource {
         return new TaskResponse(taskManager.startTask(taskFactory.createScanTask(path, options)));
     }
 
+    @Post("/clean/")
+    public List<TaskResponse> cleanDoneTasks() {
+        return taskManager.cleanDoneTasks().stream().map(TaskResponse::new).collect(toList());
+    }
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     static class TaskResponse {
         enum State {RUNNING, ERROR, DONE, CANCELLED}
