@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
 
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
@@ -65,8 +64,9 @@ public class TaskResource {
         enum State {RUNNING, ERROR, DONE, CANCELLED}
         private final int hash;
         private final State state;
+        private final double progress;
 
-        TaskResponse(FutureTask task) {
+        TaskResponse(TaskManager.MonitorableFutureTask task) {
             this.hash = task.hashCode();
             State state;
             if (task.isDone()) {
@@ -80,6 +80,7 @@ public class TaskResource {
             } else {
                 this.state = State.RUNNING;
             }
+            progress = task.getProgressRate();
         }
     }
 }

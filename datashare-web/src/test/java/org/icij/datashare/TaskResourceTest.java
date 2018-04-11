@@ -15,7 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
 
 import static org.mockito.Mockito.*;
 
@@ -45,14 +44,18 @@ public class TaskResourceTest implements FluentRestTest {
     public void test_index_file() {
         RestAssert response = post("/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().replace("/", "%7C"), "{}");
 
-        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"},{\"hash\":12,\"state\":\"RUNNING\"}");
+        response.should().haveType("application/json").should().contain(
+                "{\"hash\":12,\"state\":\"RUNNING\",\"progress\":-2.0}," +
+                        "{\"hash\":12,\"state\":\"RUNNING\",\"progress\":-2.0}");
     }
 
     @Test
     public void test_index_directory() {
         RestAssert response = post("/task/index/file/" + getClass().getResource("/docs/").getPath().replace("/", "%7C"), "{}");
 
-        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"},{\"hash\":12,\"state\":\"RUNNING\"}");
+        response.should().haveType("application/json").should().contain(
+                "{\"hash\":12,\"state\":\"RUNNING\",\"progress\":-2.0}," +
+                        "{\"hash\":12,\"state\":\"RUNNING\",\"progress\":-2.0}");
     }
 
     @Test
@@ -62,7 +65,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/task/index/file/" + path.replace("/", "%7C"),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
-        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"}");
+        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\",\"progress\":-2.0}");
         verify(taskFactory).createSpewTask(Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
@@ -77,7 +80,7 @@ public class TaskResourceTest implements FluentRestTest {
     public void test_index_queue_with_options() {
         RestAssert response = post("/task/index/", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
-        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"}");
+        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\",\"progress\":-2.0}");
         verify(taskFactory).createSpewTask(Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
@@ -91,7 +94,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/task/scan/file/" + path.replace("/", "%7C"),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
-        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\"}");
+        response.should().haveType("application/json").should().contain("{\"hash\":12,\"state\":\"RUNNING\",\"progress\":-2.0}");
         verify(taskFactory).createScanTask(Paths.get(path), Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
@@ -112,8 +115,8 @@ public class TaskResourceTest implements FluentRestTest {
             super(provider);
         }
 
-        @Override public <V> FutureTask<V> startTask(Callable<V> task) {
-            return new FutureTask<V>(() -> null) {
+        @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task) {
+            return new MonitorableFutureTask<V>(() -> null) {
                 @Override public int hashCode() {
                     return 12;
                 }

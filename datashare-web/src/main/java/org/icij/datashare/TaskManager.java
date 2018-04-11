@@ -1,6 +1,8 @@
 package org.icij.datashare;
 
 import com.google.inject.Inject;
+import org.icij.datashare.monitoring.Monitorable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,7 +14,7 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 
 public class TaskManager {
     private final ExecutorService executor;
-    private final ConcurrentMap<Integer, FutureTask> tasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, MonitorableFutureTask> tasks = new ConcurrentHashMap<>();
 
     @Inject
     public TaskManager(final PropertiesProvider provider) {
@@ -21,15 +23,15 @@ public class TaskManager {
                    orElseGet( () -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
     }
 
-    public FutureTask<Void> startTask(final Runnable task) {
-        FutureTask<Void> futureTask = new FutureTask<>(task, null);
+    public MonitorableFutureTask<Void> startTask(final Runnable task) {
+        MonitorableFutureTask<Void> futureTask = new MonitorableFutureTask<>(task, null);
         executor.submit(futureTask);
         tasks.put(futureTask.hashCode(), futureTask);
         return futureTask;
     }
 
-    public FutureTask<Void> startTask(final Runnable task, final Runnable callback) {
-        FutureTask<Void> futureTask = new FutureTask<Void>(task, null) {
+    public MonitorableFutureTask<Void> startTask(final Runnable task, final Runnable callback) {
+        MonitorableFutureTask<Void> futureTask = new MonitorableFutureTask<Void>(task, null) {
             @Override protected void done() {
                 callback.run();
             }
@@ -38,8 +40,8 @@ public class TaskManager {
         tasks.put(futureTask.hashCode(), futureTask);
         return futureTask;
     }
-    public <V> FutureTask<V> startTask(final Callable<V> task, final Runnable callback) {
-        FutureTask<V> futureTask = new FutureTask<V>(task) {
+    public <V> MonitorableFutureTask<V> startTask(final Callable<V> task, final Runnable callback) {
+        MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<V>(task) {
             @Override protected void done() {
                 callback.run();
             }
@@ -49,14 +51,14 @@ public class TaskManager {
         return futureTask;
     }
 
-    public <V> FutureTask<V> startTask(final Callable<V> task) {
-        FutureTask<V> futureTask = new FutureTask<>(task);
+    public <V> MonitorableFutureTask<V> startTask(final Callable<V> task) {
+        MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task);
         executor.submit(futureTask);
         tasks.put(futureTask.hashCode(), futureTask);
         return futureTask;
     }
 
-    public FutureTask getTask(final int tId) {
+    public MonitorableFutureTask getTask(final int tId) {
         return tasks.get(tId);
     }
 
@@ -69,7 +71,32 @@ public class TaskManager {
         executor.awaitTermination(timeout, timeUnit);
     }
 
-    public Collection<FutureTask> getTasks() {
+    public Collection<MonitorableFutureTask> getTasks() {
         return tasks.values();
+    }
+
+    static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable {
+        private final Monitorable monitorable;
+        MonitorableFutureTask(@NotNull Callable<V> callable) {
+            super(callable);
+            monitorable = getMonitorable(callable);
+        }
+
+        MonitorableFutureTask(@NotNull Runnable runnable, V result) {
+            super(runnable, result);
+            monitorable = getMonitorable(runnable);
+        }
+
+        private Monitorable getMonitorable(@NotNull Object runnableOrCallable) {
+            if (runnableOrCallable instanceof Monitorable) {
+                return (Monitorable) runnableOrCallable;
+            }
+            return () -> -2;
+        }
+
+        @Override
+        public double getProgressRate() {
+            return monitorable.getProgressRate();
+        }
     }
 }
