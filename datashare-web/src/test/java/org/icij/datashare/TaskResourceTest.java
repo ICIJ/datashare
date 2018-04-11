@@ -9,16 +9,20 @@ import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
+import org.icij.datashare.text.nlp.AbstractPipeline;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.task.Options;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 
 import static java.lang.String.format;
@@ -125,6 +129,21 @@ public class TaskResourceTest implements FluentRestTest {
             put("key2", "val2");
         }}));
         verify(taskFactory, never()).createSpewTask(any(Options.class));
+    }
+
+    @Test
+    public void test_extract() throws Exception {
+        RestAssert response = post("/task/extract/CORENLP", "{}");
+
+        response.should().haveType("application/json");
+
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
+        assertThat(taskNames.size()).isEqualTo(2);
+        verify(taskFactory).resumeNerTask(new Properties());
+
+        ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
+        verify(taskFactory).createNlpTask(pipelineArgumentCaptor.capture());
+        assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.CORENLP);
     }
 
     @Test

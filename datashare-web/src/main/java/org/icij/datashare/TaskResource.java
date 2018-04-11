@@ -6,17 +6,22 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.extract.OptionsWrapper;
+import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.task.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
+import static org.icij.datashare.text.nlp.Pipeline.Type.valueOf;
 
 @Prefix("/task")
 public class TaskResource {
@@ -62,6 +67,20 @@ public class TaskResource {
     @Post("/clean/")
     public List<TaskResponse> cleanDoneTasks() {
         return taskManager.cleanDoneTasks().stream().map(TaskResponse::new).collect(toList());
+    }
+
+    @Post("/extract/:pipeline")
+    public List<TaskResponse> extractNlp(final String pipeline, final OptionsWrapper optionsWrapper)
+            throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+        Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipeline).getClassName());
+
+        Properties properties = new Properties();
+        optionsWrapper.getOptions().forEach(properties::setProperty);
+
+        AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(new PropertiesProvider(properties));
+        TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask(abstractPipeline));
+        TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.resumeNerTask(properties));
+        return Arrays.asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
