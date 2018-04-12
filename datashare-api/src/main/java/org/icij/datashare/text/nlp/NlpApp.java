@@ -17,6 +17,7 @@ import java.util.Properties;
 import java.util.concurrent.*;
 
 import static java.lang.Integer.parseInt;
+import static java.lang.Integer.toHexString;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
@@ -93,6 +94,11 @@ public class NlpApp implements Runnable, Monitorable {
     @Override
     public double getProgressRate() {
         return forwarder.getProgressRate();
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + "[" + pipeline.getType() + "]@" + toHexString(hashCode());
     }
 
     public static class NlpModule extends AbstractModule {
