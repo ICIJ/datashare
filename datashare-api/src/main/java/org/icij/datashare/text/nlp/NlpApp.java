@@ -2,8 +2,8 @@ package org.icij.datashare.text.nlp;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.inject.AbstractModule;
-import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import com.google.inject.assistedinject.AssistedInject;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
@@ -14,7 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static java.lang.Integer.parseInt;
 import static java.lang.Integer.toHexString;
@@ -36,19 +39,23 @@ public class NlpApp implements Runnable, Monitorable {
     private final NlpForwarder forwarder;
     private ExecutorService threadPool = null;
 
-    @Inject
+    @AssistedInject
     public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, final PropertiesProvider propertiesProvider) {
-        this(indexer, pipeline, propertiesProvider, () -> {}, 0);
+        this(indexer, pipeline, propertiesProvider.getProperties(), () -> {}, 0);
     }
 
-    NlpApp(final Indexer indexer, final AbstractPipeline pipeline, final PropertiesProvider propertiesProvider,
+    @AssistedInject
+    public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties) {
+        this(indexer, pipeline, properties, () -> {}, 0);
+    }
+
+    NlpApp(final Indexer indexer, final AbstractPipeline pipeline, final Properties properties,
                    Runnable subscribedCb, long shutdownTimeoutMillis) {
         this.pipeline = pipeline;
         this.indexer = indexer;
         this.shutdownTimeoutMillis = shutdownTimeoutMillis == 0 ? DEFAULT_TIMEOUT_MILLIS : shutdownTimeoutMillis;
         this.queue = new LinkedBlockingQueue<>(DEFAULT_QUEUE_SIZE);
 
-        Properties properties = propertiesProvider.getProperties();
         parallelism = parseInt(ofNullable(properties.getProperty(NLP_PARALLELISM_OPT)).orElse("1"));
         forwarder = new NlpForwarder(properties, queue, subscribedCb);
     }

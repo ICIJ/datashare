@@ -1,8 +1,8 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
@@ -27,10 +27,10 @@ public class ResumeNlpTask implements Callable<Integer> {
     private final Indexer indexer;
 
     @Inject
-    public ResumeNlpTask(final Publisher publisher, final Indexer indexer, final PropertiesProvider propertiesProvider) {
+    public ResumeNlpTask(final Publisher publisher, final Indexer indexer, @Assisted final String nlpPipelines) {
         this.publisher = publisher;
         this.indexer = indexer;
-        this.nlpPipelines = parseAll(propertiesProvider.getProperties().getProperty("nlpPipelines"));
+        this.nlpPipelines = parseAll(nlpPipelines);
     }
 
     @Override

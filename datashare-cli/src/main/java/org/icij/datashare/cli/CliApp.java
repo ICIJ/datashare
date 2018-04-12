@@ -72,7 +72,7 @@ public class CliApp {
                 taskManager.startTask(taskFactory.createNlpTask(injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.createResumeNlpTask());
+                taskManager.startTask(taskFactory.createResumeNlpTask(properties.getProperty(NLP_PIPELINES_OPT)));
             }
         } else {
             indexer.close();

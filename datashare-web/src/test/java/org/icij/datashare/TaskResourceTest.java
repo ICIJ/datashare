@@ -29,6 +29,7 @@ import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 import static org.mockito.Mockito.*;
 
 public class TaskResourceTest implements FluentRestTest {
@@ -139,11 +140,26 @@ public class TaskResourceTest implements FluentRestTest {
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(2);
-        verify(taskFactory).createResumeNlpTask();
+        verify(taskFactory).createResumeNlpTask("OPENNLP");
 
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
-        verify(taskFactory).createNlpTask(pipelineArgumentCaptor.capture());
+        verify(taskFactory).createNlpTask(pipelineArgumentCaptor.capture(), eq(new Properties()));
         assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
+    }
+
+    @Test
+    public void test_extract_with_options_should_merge_with_property_provider() {
+        RestAssert response = post("/task/extract/OPENNLP", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+        response.should().haveType("application/json");
+
+        verify(taskFactory).createResumeNlpTask("OPENNLP");
+
+        ArgumentCaptor<AbstractPipeline> pipelineCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
+        ArgumentCaptor<Properties> propertiesCaptor = ArgumentCaptor.forClass(Properties.class);
+        verify(taskFactory).createNlpTask(pipelineCaptor.capture(), propertiesCaptor.capture());
+        assertThat(propertiesCaptor.getValue()).includes(entry("key1", "val1"), entry("key2", "val2"));
+
+        assertThat(pipelineCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
     }
 
     @Test
