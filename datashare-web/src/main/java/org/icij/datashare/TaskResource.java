@@ -80,7 +80,7 @@ public class TaskResource {
 
         AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
         TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask(abstractPipeline));
-        TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.resumeNerTask());
+        TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.resumeNlpTask());
         return Arrays.asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
     }
 

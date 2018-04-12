@@ -4,8 +4,6 @@ import com.google.inject.Injector;
 import org.icij.datashare.ProdServiceModule;
 import org.icij.datashare.TaskFactory;
 import org.icij.datashare.TaskManager;
-import org.icij.datashare.com.Publisher;
-import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -30,7 +28,6 @@ import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.cli.DatashareCli.Stage.INDEX;
 import static org.icij.datashare.cli.DatashareCli.Stage.SCAN;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
-import static org.icij.datashare.com.Channel.NLP;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
 public class CliApp {
@@ -75,8 +72,7 @@ public class CliApp {
                 taskManager.startTask(taskFactory.createNlpTask(injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.resumeNerTask(),
-                        () -> injector.getInstance(Publisher.class).publish(NLP, new ShutdownMessage()));
+                taskManager.startTask(taskFactory.resumeNlpTask());
             }
         } else {
             indexer.close();

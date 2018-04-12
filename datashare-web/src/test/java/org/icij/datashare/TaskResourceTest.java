@@ -139,7 +139,7 @@ public class TaskResourceTest implements FluentRestTest {
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(2);
-        verify(taskFactory).resumeNerTask();
+        verify(taskFactory).resumeNlpTask();
 
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
         verify(taskFactory).createNlpTask(pipelineArgumentCaptor.capture());
