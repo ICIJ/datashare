@@ -41,4 +41,10 @@ public class PropertiesProvider {
                 Optional.empty():
                 Optional.of((getProperties().getProperty(propertyName)));
     }
+
+    public Properties mergeWith(final Properties properties) {
+        Properties providerProperties = (Properties) getProperties().clone();
+        providerProperties.putAll(properties);
+        return providerProperties;
+    }
 }
