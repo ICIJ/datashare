@@ -15,7 +15,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 import static java.nio.file.Paths.get;
@@ -28,11 +27,13 @@ public class TaskResource {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private TaskFactory taskFactory;
     private TaskManager taskManager;
+    private final PropertiesProvider propertiesProvider;
 
     @Inject
-    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager) {
+    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
+        this.propertiesProvider = propertiesProvider;
     }
 
     @Get("/")
@@ -70,16 +71,16 @@ public class TaskResource {
     }
 
     @Post("/extract/:pipeline")
-    public List<TaskResponse> extractNlp(final String pipeline, final OptionsWrapper optionsWrapper)
+    public List<TaskResponse> extractNlp(final String pipeline)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipeline).getClassName());
 
-        Properties properties = new Properties();
-        optionsWrapper.getOptions().forEach(properties::setProperty);
+        //Properties properties = new Properties();
+        //optionsWrapper.getOptions().forEach(properties::setProperty);
 
-        AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(new PropertiesProvider(properties));
+        AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
         TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask(abstractPipeline));
-        TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.resumeNerTask(properties));
+        TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.resumeNerTask());
         return Arrays.asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
     }
 

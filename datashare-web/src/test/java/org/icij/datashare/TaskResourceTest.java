@@ -132,22 +132,22 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_extract() throws Exception {
-        RestAssert response = post("/task/extract/CORENLP", "{}");
+    public void test_extract_without_options() {
+        RestAssert response = post("/task/extract/OPENNLP", "{}");
 
         response.should().haveType("application/json");
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(2);
-        verify(taskFactory).resumeNerTask(new Properties());
+        verify(taskFactory).resumeNerTask();
 
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
         verify(taskFactory).createNlpTask(pipelineArgumentCaptor.capture());
-        assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.CORENLP);
+        assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
     }
 
     @Test
-    public void test_clean_tasks() throws Exception {
+    public void test_clean_tasks() {
         post("/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().replace("/", "%7C"), "{}").response();
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
 
@@ -162,6 +162,7 @@ public class TaskResourceTest implements FluentRestTest {
         @Override protected void configure() {
             bind(TaskFactory.class).toInstance(taskFactory);
             bind(TaskManager.class).to(DummyTaskManager.class).asEagerSingleton();
+            bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new Properties()));
         }
     }
 
@@ -174,6 +175,11 @@ public class TaskResourceTest implements FluentRestTest {
         @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task) {
             return super.startTask(new Callable<V>() {    // do not replace by lambda
                 @Override public V call() { return null;} // else tasks will have the same lambda name and test will fail
+            });
+        }
+        @Override public MonitorableFutureTask<Void> startTask(Runnable task) {
+            return super.startTask(new Runnable() { // do not replace by lambda neither
+                @Override public void run() {}
             });
         }
     }

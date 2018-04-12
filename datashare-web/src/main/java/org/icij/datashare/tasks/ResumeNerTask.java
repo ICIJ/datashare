@@ -1,8 +1,8 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 
 import static java.lang.String.valueOf;
@@ -27,10 +26,10 @@ public class ResumeNerTask implements Callable<Integer> {
     private final Indexer indexer;
 
     @Inject
-    public ResumeNerTask(final Publisher publisher, final Indexer indexer, @Assisted final Properties properties) {
+    public ResumeNerTask(final Publisher publisher, final Indexer indexer, final PropertiesProvider propertiesProvider) {
         this.publisher = publisher;
         this.indexer = indexer;
-        this.nlpPipelines = parseAll(properties.getProperty("nlpPipelines"));
+        this.nlpPipelines = parseAll(propertiesProvider.getProperties().getProperty("nlpPipelines"));
     }
 
     @Override

@@ -75,7 +75,7 @@ public class CliApp {
                 taskManager.startTask(taskFactory.createNlpTask(injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.resumeNerTask(properties),
+                taskManager.startTask(taskFactory.resumeNerTask(),
                         () -> injector.getInstance(Publisher.class).publish(NLP, new ShutdownMessage()));
             }
         } else {
