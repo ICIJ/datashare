@@ -71,7 +71,7 @@ public class TaskResource {
         return taskManager.cleanDoneTasks().stream().map(TaskResponse::new).collect(toList());
     }
 
-    @Post("/extract/:pipeline")
+    @Post("/findNames/:pipeline")
     public List<TaskResponse> extractNlp(final String pipeline, final OptionsWrapper optionsWrapper)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipeline).getClassName());

@@ -133,8 +133,8 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_extract_without_options() {
-        RestAssert response = post("/task/extract/OPENNLP", "{}");
+    public void test_findNames_without_options() {
+        RestAssert response = post("/task/findNames/OPENNLP", "{}");
 
         response.should().haveType("application/json");
 
@@ -148,8 +148,8 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_extract_with_options_should_merge_with_property_provider() {
-        RestAssert response = post("/task/extract/OPENNLP", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+    public void test_findNames_with_options_should_merge_with_property_provider() {
+        RestAssert response = post("/task/findNames/OPENNLP", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
         response.should().haveType("application/json");
 
         verify(taskFactory).createResumeNlpTask("OPENNLP");
