@@ -92,7 +92,7 @@ public class TaskResourceTest implements FluentRestTest {
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createSpewTask(Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}));
@@ -107,7 +107,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/task/index/", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createSpewTask(Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}));
@@ -129,7 +129,7 @@ public class TaskResourceTest implements FluentRestTest {
             put("key1", "val1");
             put("key2", "val2");
         }}));
-        verify(taskFactory, never()).createSpewTask(any(Options.class));
+        verify(taskFactory, never()).createIndexTask(any(Options.class));
     }
 
     @Test

@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 public interface TaskFactory {
-    IndexTask createSpewTask(final Options<String> options);
+    IndexTask createIndexTask(final Options<String> options);
     ScanTask createScanTask(final Path path, final Options<String> options);
     ResumeNlpTask createResumeNlpTask(String nlpPipelines);
     NlpApp createNlpTask(AbstractPipeline pipeline, Properties properties);

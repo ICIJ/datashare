@@ -57,7 +57,7 @@ public class CliApp {
         }
 
         if (stages.contains(INDEX)) {
-            taskManager.startTask(taskFactory.createSpewTask(Options.from(properties)), () -> {
+            taskManager.startTask(taskFactory.createIndexTask(Options.from(properties)), () -> {
                 closeAndLogException(injector.getInstance(Spewer.class)).run();
                 closeAndLogException(injector.getInstance(DocumentQueue.class)).run();
             });

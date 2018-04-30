@@ -50,14 +50,14 @@ public class TaskResource {
 
     @Post("/index/")
     public TaskResponse indexQueue(final OptionsWrapper optionsWrapper) {
-        return new TaskResponse(taskManager.startTask(taskFactory.createSpewTask(optionsWrapper.asOptions())));
+        return new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(optionsWrapper.asOptions())));
     }
 
     @Post("/index/file/:filePath")
     public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper) {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper);
         Options<String> options = optionsWrapper.asOptions();
-        return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createSpewTask(options))));
+        return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(options))));
     }
 
     @Post("/scan/file/:filePath")
