@@ -13,13 +13,14 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.nlp.Pipeline.Type.valueOf;
 
@@ -82,8 +83,11 @@ public class TaskResource {
 
         AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
         TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask(abstractPipeline, mergedProps));
-        TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask(pipeline));
-        return Arrays.asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
+        if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
+            TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask(pipeline));
+            return asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
+        }
+        return singletonList(new TaskResponse(nlpTask));
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

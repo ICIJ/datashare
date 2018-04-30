@@ -163,6 +163,14 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_findNames_with_resume_false_should_not_launch_resume_task() {
+        RestAssert response = post("/task/findNames/OPENNLP", "{\"options\":{\"resume\":\"false\"}}");
+        response.should().haveType("application/json");
+
+        verify(taskFactory, never()).createResumeNlpTask(anyString());
+    }
+
+    @Test
     public void test_clean_tasks() {
         post("/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().replace("/", "%7C"), "{}").response();
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
