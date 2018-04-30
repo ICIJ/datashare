@@ -2,6 +2,10 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.icij.datashare.com.Channel;
+import org.icij.datashare.com.Message;
+import org.icij.datashare.com.Publisher;
+import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
@@ -15,8 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.lang.Math.max;
+import static java.lang.String.valueOf;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icij.datashare.com.Message.Field.VALUE;
+import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentQueueDrainer.class)
@@ -25,13 +32,16 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable {
     private final DocumentQueueDrainer drainer;
     private final DocumentConsumer consumer;
     private final DocumentQueue queue;
+    private final Publisher publisher;
     private long totalToProcess;
 
     private Integer parallelism = Runtime.getRuntime().availableProcessors();
 
     @Inject
-    public IndexTask(final Spewer spewer, final DocumentQueue queue, @Assisted final Options<String> userOptions) {
+    public IndexTask(final Spewer spewer, final DocumentQueue queue, final Publisher publisher,
+                     @Assisted final Options<String> userOptions) {
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
+        this.publisher = publisher;
         this.queue = queue;
         Options<String> allTaskOptions = options().createFrom(userOptions);
         consumer = new DocumentConsumer(spewer, new Extractor().configure(allTaskOptions), this.parallelism);
@@ -45,8 +55,10 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable {
         drainer.shutdown();
         drainer.awaitTermination(10, SECONDS); // drain is finished
         logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
+        publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, valueOf(totalToProcess)));
         consumer.shutdown();
         consumer.awaitTermination(30, MINUTES); // documents could be currently processed
+        publisher.publish(Channel.NLP, new ShutdownMessage());
         logger.info("exiting");
         return totalToProcess;
     }
