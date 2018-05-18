@@ -23,27 +23,26 @@ Multithreaded and Distributed Processings
 
 Local or Remote Indexing
 
-Web API 
+
+## Installing and using
+
+You can download the script [datashare.sh](datashare-dist/src/main/datashare.sh) and execute it. It will :
+
+- download [redis](https://redis.io), [elasticsearch](https://www.elastic.co/) and datashare [docker](https://www.docker.com/docker-community) containers
+- initialise an elasticsearch index with datashare mapping
+- provide CLI to run datashare extract, index, name finding tasks
+- provide a WEB GUI to run datashare extract, index, name finding tasks, and search in the documents
+
 
 ### **Extract Text from Files** 
   
-*API*
-
- - **`org.icij.datashare.text.extraction.FileParser`** 
-
- - `org.icij.datashare.text.SourcePath`
-
- - `org.icij.datashare.text.Document`
-  
-  
 *Implementations*
   
-  - `org.icij.datashare.text.extraction.tika.TikaFileParser` 
+  - [TikaDocument](https://github.com/ICIJ/extract/blob/extractlib/extract-lib/src/main/java/org/icij/extract/document/TikaDocument.java) from ICIJ/extract 
   
     [Apache Tika](https://tika.apache.org/) v1.15 (Apache Licence v2.0)
   
-    with [Tess4J](http://tess4j.sourceforge.net/) v3.4.0 (Apache Licence v2.0),
-    [Tesseract](https://github.com/tesseract-ocr/tesseract/wiki/4.0-with-LSTM) v4.0 alpha compiled for arch x86-64 
+    with [Tesseract](https://github.com/tesseract-ocr/tesseract/wiki/4.0-with-LSTM) v4.0 alpha 
 
 
 *Support*
@@ -52,19 +51,6 @@ Web API
 
   
 ### **Extract Persons, Organizations or Locations from Text** 
-  
-*API* 
-
- - **`org.icij.datashare.text.nlp.Pipeline`**  
-
- - `org.icij.datashare.text.Document`
-
- - `org.icij.datashare.text.Language`
- 
- - `org.icij.datashare.text.nlp.Annotations`  
-
- - `org.icij.datashare.text.NamedEntity`
-
    
 *Implementations*
   
@@ -140,15 +126,6 @@ Web API
 
 ### **Store and Search Documents and Named Entities**
 
-*API* 
-
- - **`org.icij.datashare.text.indexing.Indexer`**
- 
- - `org.icij.datashare.text.Document`
- 
- - `org.icij.datashare.text.NamedEntity`
-
-
  *Implementations*
   
  - `org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer`
@@ -166,178 +143,6 @@ Requires
 
 From `datashare` root directory, type: `mvn package`
 
-## Usage 
-
-### Distribution Directory Structure
-
-Build process yields the following structure
-
-**`datashare-dist-<VERSION>-all`**
-
-`|__ `**`lib`**
-
-`|__ `**`logs`**
-
-`|__ `**`opt`**
-
-`|__ `**`src`**
-
-`|__ start-cli`
-
-`|__ start-cli-with-idx`
-
-`|__ start-idx`
-
-`|__ stop-idx`
-
-`|__ start-ws`
-
-`|__ start-ws-with-idx`
-
-`|__ stop-ws`
-
-
-### Execution
-
-*Requirements*:
-
- - Version `JRE8+`
- - Memory `8+GB`
-
-#### Command-Line Interface
-
-**`./start-cli`**
-
-`--stages`, `-s`:
-Processing stages to be run. 
-Defaults to all: {`SCANNING`, `PARSING`, `NLP`}.
-
-`--node`, `-n`:
-Run as a cluster node.
-
-SCANNING
-
-`--scanning-input-dir`, `-i`:
-Path towards source directory containing documents to be processed.
-
-PARSING
-
-`--parsing-ocr`, `-ocr`:
-Enable OCR when parsing source documents.
-
-`--parsing-parallelism`, `-prst`:
-Number of file parser threads.
-Defaults to `1`.
-
-NLP
-
-`--nlp-pipelines`, `-nlpp`:
-NLP pipelines to be run; in {`GATE`,`CORE`,`MITIE`,`OPEN`,`IXA`}.
-Defaults to `GATE`.
-
-`--nlp-parallelism`, `-nlpt`:
-Number of threads per NLP pipeline.
-Defaults to `1`.
-
-`--nlp-stages`, `-nlps`:
-NLP stages to be run by pipelines; in {`POS`,`NER`}.
-Defaults to `NER`.
-
-`--nlp-ner-categories`, `-nlpnerc`:
-Named entity categories to be extracted.
-Defaults to  all: {`ORGANIZATION`,`PERSON`,`LOCATION`}.
-
-`--nlp-no-caching`, `-nlpnocach`:
-Disable caching of pipeline's models and annotators.
-
-INDEXING
-
-`--indexing-node-type`, `-idxtype`:
-Index node type ; in {`LOCAL`,`REMOTE`}.
-Defaults to `LOCAL`.
-
-`--indexing-hostnames`, `-idxhosts`:
-Remote indexing nodes hostnames to connect to.
-
-`--indexing-hostports`, `-idxports`:
-Remote indexing nodes ports to connect on.
-
-
-*Command examples:*
-
-Stand-alone 
-
- - `./start-cli-with-idx --input-dir path/to/source/docs/`
-
- - `./start-cli-with-idx --scanning-input-dir path/to/source/docs/ --ocr --nlp-pipelines OPEN,CORE --nlp-stages NER -cat PERS,ORG` 
-
-Node 
-
- - `./start-cli --node --stages SCANNING,PARSING --input-dir path/to/source/docs/ --ocr --index-hostnames http://192.168.0.1 --index-hostports 9300` 
- 
- - `./start-cli --node --stages NLP -pipelines OPEN,CORE --nlp-stages NER -cat PERS,ORG --ocr  --index-hostnames http://192.168.0.1 --index-hostports 9300` 
-
-
-#### Web Server
-
-**`./start-ws-with-idx`**
-
-Starts local elasticsearch node and then the web server.
-
-**`./start-ws`**
-
-Start the web server only. 
-
-Define remote Elasticsearch nodes to connect to with the following environnement variables.
-
-`export DATASHARE_WEB_INDEXER_TYPE="ELASTICSEARCH"`
-
-`export DATASHARE_WEB_INDEXER_NODETYPE="REMOTE"`
-
-`export DATASHARE_WEB_INDEXER_HOSTS="host-1.cluster.es,host-2.cluster.es,host-3.cluster.es"`
-
-`export DATASHARE_WEB_INDEXER_PORTS="9100,9200,9300"`
-
-USAGE
-
-*See all routes at `datashare/datashare-web/datashare-web-play/conf/routes`*
-
-*PROCESSING examples:*
-
-  - `curl -XPOST 'localhost:9000/datashare/process/<INPUT_DIR>'`
-  
-  - `curl -XPOST 'localhost:9000/datashare/process/<INPUT_DIR>?parallelism=2'`
-  
-*nb*: concrete `INPUT_DIR` is evaluated on web server and must be escaped, eg `%2Fpath%2Fto%2Fsource%2Fdocs`
-
-TODO: pass options as JSON
-
-*INDEXING examples:*
-  
-  - list all indices: `curl -XGET 'localhost:9000/datashare/index'`
-    
-  - commit index: `curl -XPUT 'localhost:9000/datashare/index/<INDEX>'`
-    
-  - delete index: `curl -XDELETE 'localhost:9000/datashare/index/<INDEX>'`
-    
-  - search all indices: `curl -XPOST 'localhost:9000/datashare/index?<QUERY_STRING>'`
-  
-  - search index/type/query: `curl -XPOST 'localhost:9000/datashare/index/<INDEX>/<TYPE>?<QUERY_STRING>'`
-        
-*See [Query String syntax](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax)* 
-
-TODO: pass options as JSON       
-
-#### Index
-
-**`./start-idx`**
-
-Starts an index instance on the local machine.
-
-## Documentation
-
-Browse the JavaDoc from **datashare/doc/index.html**
-
 
 ## License
 
@@ -354,12 +159,6 @@ please contact us at jmartin@icij.org or julien.pierre.martin@gmail.com
 
 
 ## What's next
-
- - Test suite
- 
- - Integrate Extract
- 
- - Web graphical user interface
  
  - Data Sharing module
  
