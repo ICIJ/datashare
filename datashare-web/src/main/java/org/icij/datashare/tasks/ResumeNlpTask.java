@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
 public class ResumeNlpTask implements Callable<Integer> {
+    private final static int SEARCH_SIZE = 10000;
     Logger logger = LoggerFactory.getLogger(getClass());
     private final Pipeline.Type[] nlpPipelines;
     private final Publisher publisher;
@@ -36,7 +37,7 @@ public class ResumeNlpTask implements Callable<Integer> {
     @Override
     public Integer call() {
         List<? extends Entity> docsToProcess =
-                indexer.search(Document.class).withSource("rootDocument").without(nlpPipelines).execute().collect(toList());
+                indexer.search(Document.class).withSource("rootDocument").limit(SEARCH_SIZE).without(nlpPipelines).execute().collect(toList());
 
         this.publisher.publish(Channel.NLP, new Message(Message.Type.INIT_MONITORING).add(Message.Field.VALUE, valueOf(docsToProcess.size())));
 

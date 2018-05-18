@@ -70,6 +70,12 @@
             <artifactId>datashare-nlp-opennlp</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>commons-test</artifactId>
+            <version>0.7</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
