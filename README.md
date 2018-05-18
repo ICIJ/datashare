@@ -33,6 +33,7 @@ You can download the script [datashare.sh](datashare-dist/src/main/datashare.sh)
 - provide CLI to run datashare extract, index, name finding tasks
 - provide a WEB GUI to run datashare extract, index, name finding tasks, and search in the documents
 
+To access web GUI, go in your documents folder and launch `path/to/datashare.sh -w` then connect datashare on http://localhost:8080
 
 ### **Extract Text from Files** 
   
