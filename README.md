@@ -29,7 +29,7 @@ Local or Remote Indexing
 You can download the script [datashare.sh](datashare-dist/src/main/datashare.sh) and execute it. It will :
 
 - download [redis](https://redis.io), [elasticsearch](https://www.elastic.co/) and datashare [docker](https://www.docker.com/docker-community) containers
-- initialise an elasticsearch index with datashare mapping
+- initialize an elasticsearch index with datashare mapping
 - provide CLI to run datashare extract, index, name finding tasks
 - provide a WEB GUI to run datashare extract, index, name finding tasks, and search in the documents
 
