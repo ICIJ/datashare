@@ -232,6 +232,12 @@ public class ElasticsearchIndexer implements Indexer {
         }
 
         @Override
+        public Searcher limit(int maxCount) {
+            searchBuilder.setSize(maxCount);
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "boolQuery : " + boolQuery + " searchBuilder : " + searchBuilder;
         }

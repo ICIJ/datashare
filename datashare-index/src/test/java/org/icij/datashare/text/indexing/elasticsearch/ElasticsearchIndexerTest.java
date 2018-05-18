@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -164,6 +165,16 @@ public class ElasticsearchIndexerTest {
         assertThat(actualDoc.getId()).isNotNull();
     }
 
+    @Test
+    public void test_search_size_limit() {
+        for (int i = 0 ; i < 20; i++) {
+            Document doc = new org.icij.datashare.text.Document(Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
+                Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE);
+            indexer.add(doc);
+        }
+        assertThat(indexer.search(Document.class).limit(5).execute().count()).isEqualTo(5);
+        assertThat(indexer.search(Document.class).execute().count()).isEqualTo(20);
+    }
 
     public ElasticsearchIndexerTest() throws UnknownHostException {}
 }

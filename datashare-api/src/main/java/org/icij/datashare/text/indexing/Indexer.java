@@ -33,5 +33,6 @@ public interface Indexer extends Closeable {
         Searcher withSource(boolean source);
         Searcher without(Pipeline.Type... nlpPipelines);
         Searcher with(Pipeline.Type... nlpPipelines);
+        Searcher limit(int maxCount);
     }
 }
