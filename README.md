@@ -35,6 +35,8 @@ You can download the script [datashare.sh](datashare-dist/src/main/datashare.sh)
 
 To access web GUI, go in your documents folder and launch `path/to/datashare.sh -w` then connect datashare on http://localhost:8080
 
+If you want to avoid synchronization of NLP models (offline use) then do `export DS_JAVA_OPTS="-DDS_SYNC_NLP_MODELS=false"` before launching the `datashare.sh` script.
+
 ### **Extract Text from Files** 
   
 *Implementations*

@@ -1,6 +1,7 @@
 package org.icij.datashare.text.nlp.ixapipe;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.nlp.AbstractModels;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -16,6 +17,7 @@ public class IxapipePipelineTest {
     public void setUp() throws Exception {
         Properties props = new Properties();
         props.setProperty(STAGES.getName(), "POS,NER");
+        AbstractModels.syncModels(false);
         ixapipePipeline = new IxapipePipeline(new PropertiesProvider(props));
     }
 

@@ -1,6 +1,5 @@
 package org.icij.datashare.text.nlp;
 
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
 import org.slf4j.Logger;
@@ -21,6 +20,7 @@ import java.util.concurrent.Semaphore;
 import static java.lang.Boolean.parseBoolean;
 
 public abstract class AbstractModels<T> {
+    private static final String JVM_PROPERTY_NAME = "DS_SYNC_NLP_MODELS";
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
     private static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
     protected static final Path BASE_CLASSPATH = Paths.get("models");
@@ -36,8 +36,7 @@ public abstract class AbstractModels<T> {
     private final boolean syncModels;
 
     protected AbstractModels(final Pipeline.Type type, final NlpStage stage) {
-        this(type, stage, parseBoolean(new PropertiesProvider().getProperties()
-                .getProperty("syncNlpModels", "true")));
+        this(type, stage, parseBoolean(System.getProperty(JVM_PROPERTY_NAME, "true")));
     }
 
     protected AbstractModels(final Pipeline.Type type, final NlpStage stage, final boolean syncModels) {
@@ -45,6 +44,7 @@ public abstract class AbstractModels<T> {
         this.type = type;
         this.models = new HashMap<>();
         this.syncModels = syncModels;
+        LOGGER.info("sync models : {}", this.syncModels);
     }
 
     protected abstract T loadModelFile(Language language, ClassLoader loader) throws IOException;
@@ -132,6 +132,9 @@ public abstract class AbstractModels<T> {
         } finally {
             l.release();
         }
+    }
+    public static void syncModels(final boolean sync) {
+        System.setProperty(JVM_PROPERTY_NAME, String.valueOf(sync));
     }
 
     public boolean isLoaded(Language language) { return models.containsKey(language);}
