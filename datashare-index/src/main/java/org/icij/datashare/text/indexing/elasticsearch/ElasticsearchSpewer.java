@@ -130,9 +130,11 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             IndexResponse indexResponse = client.index(req).get();
             logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
                     shorten(indexResponse.getId(), 4), currentTimeMillis() - before, document);
-            publisher.publish(NLP, new Message(EXTRACT_NLP)
-                    .add(Message.Field.DOC_ID, indexResponse.getId())
-                    .add(Message.Field.R_ID, parent == null ? document.getId(): root.getId() ));
+            synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads
+                publisher.publish(NLP, new Message(EXTRACT_NLP)
+                        .add(Message.Field.DOC_ID, indexResponse.getId())
+                        .add(Message.Field.R_ID, parent == null ? document.getId() : root.getId()));
+            }
         } catch (InterruptedException | ExecutionException e) {
             logger.warn("interrupted execution of request", e);
         }
