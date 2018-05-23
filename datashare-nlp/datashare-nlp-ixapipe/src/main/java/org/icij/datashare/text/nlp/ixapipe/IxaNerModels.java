@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp.ixapipe;
 
+import eus.ixa.ixa.pipe.ml.utils.Flags;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.nlp.NlpStage;
 
@@ -46,10 +47,10 @@ public class IxaNerModels extends IxaModels<eus.ixa.ixa.pipe.nerc.Annotate> {
 
         Properties properties = IxaNerModels.nerAnnotatorProperties(language,
                 resource.getPath(),
-                eus.ixa.ixa.pipe.nerc.train.Flags.DEFAULT_LEXER,
-                eus.ixa.ixa.pipe.nerc.train.Flags.DEFAULT_DICT_OPTION,
-                eus.ixa.ixa.pipe.nerc.train.Flags.DEFAULT_DICT_PATH,
-                eus.ixa.ixa.pipe.nerc.train.Flags.DEFAULT_FEATURE_FLAG);
+                Flags.DEFAULT_LEXER,
+                Flags.DEFAULT_DICT_OPTION,
+                Flags.DEFAULT_DICT_PATH,
+                Flags.DEFAULT_FEATURE_FLAG);
         return new IxaAnnotate<>(new eus.ixa.ixa.pipe.nerc.Annotate(properties));
     }
 

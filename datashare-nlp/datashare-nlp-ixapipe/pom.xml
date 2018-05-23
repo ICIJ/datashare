@@ -18,9 +18,15 @@
     <properties>
         <ixa-pipe-tok.version>2.0.0</ixa-pipe-tok.version>
         <ixa-pipe-pos.version>1.5.2</ixa-pipe-pos.version>
-        <ixa-pipe-nerc.version>1.6.1</ixa-pipe-nerc.version>
+        <ixa-pipe-nerc.version>299cb49</ixa-pipe-nerc.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
@@ -33,15 +39,19 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Ixa-Pipe-Tok -->
         <dependency>
             <groupId>eus.ixa</groupId>
             <artifactId>ixa-pipe-tok</artifactId>
             <version>${ixa-pipe-tok.version}</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>eus.ixa</groupId>
+            <artifactId>ixa-pipe-ml</artifactId>
+            <version>0.0.7</version>
+            <type>jar</type>
+        </dependency>
 
-        <!-- Ixa-Pipe-Pos -->
         <dependency>
             <groupId>eus.ixa</groupId>
             <artifactId>ixa-pipe-pos</artifactId>
@@ -49,15 +59,13 @@
             <type>jar</type>
         </dependency>
 
-        <!-- Ixa-Pipe-Nerc -->
         <dependency>
-            <groupId>eus.ixa</groupId>
-            <artifactId>ixa-pipe-nerc</artifactId>
-            <version>${ixa-pipe-nerc.version}</version>
+       	    <groupId>com.github.ixa-ehu</groupId>
+       	    <artifactId>ixa-pipe-nerc</artifactId>
+       	    <version>aaeef2a</version>
             <type>jar</type>
         </dependency>
 
-        <!-- OpenNLP Tools -->
         <dependency>
             <groupId>org.apache.opennlp</groupId>
             <artifactId>opennlp-tools</artifactId>
@@ -130,60 +138,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <artifactId>maven-install-plugin</artifactId>
-                <executions>
-                    <!-- ixa-pipe-tok -->
-                    <execution>
-                        <id>install-ixa-pipe-tok</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <groupId>eus.ixa</groupId>
-                            <artifactId>ixa-pipe-tok</artifactId>
-                            <version>${ixa-pipe-tok.version}</version>
-                            <packaging>jar</packaging>
-                            <file>${project.basedir}/lib/ixa-pipe-tok-${ixa-pipe-tok.version}.jar</file>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                    </execution>
-                    <!-- ixa-pipe-pos -->
-                    <execution>
-                        <id>install-ixa-pipe-pos</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <groupId>eus.ixa</groupId>
-                            <artifactId>ixa-pipe-pos</artifactId>
-                            <version>${ixa-pipe-pos.version}</version>
-                            <packaging>jar</packaging>
-                            <file>${project.basedir}/lib/ixa-pipe-pos-${ixa-pipe-pos.version}.jar</file>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                    </execution>
-                    <!-- ixa-pipe-nerc -->
-                    <execution>
-                        <id>install-ixa-pipe-nerc</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <groupId>eus.ixa</groupId>
-                            <artifactId>ixa-pipe-nerc</artifactId>
-                            <version>${ixa-pipe-nerc.version}</version>
-                            <packaging>jar</packaging>
-                            <file>${project.basedir}/lib/ixa-pipe-nerc-${ixa-pipe-nerc.version}.jar</file>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>

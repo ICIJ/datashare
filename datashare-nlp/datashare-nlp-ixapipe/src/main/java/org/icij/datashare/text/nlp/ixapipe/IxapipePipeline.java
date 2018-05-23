@@ -196,7 +196,7 @@ public class IxapipePipeline extends AbstractPipeline {
             ixaAnnotate.annotate.annotateNEs(kafDocument);
             newLp.setEndTimestamp();
             return true;
-        } catch (IOException|InterruptedException e) {
+        } catch (IOException |InterruptedException e) {
             LOGGER.error("failed name-finding for " + language.toString().toUpperCase(), e);
             return false;
         }
