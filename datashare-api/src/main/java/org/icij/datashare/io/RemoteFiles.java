@@ -14,12 +14,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
+import static java.nio.file.Files.walk;
 import static java.nio.file.Paths.get;
-import static java.util.Arrays.stream;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toMap;
 
 public class RemoteFiles {
@@ -71,7 +72,7 @@ public class RemoteFiles {
         }
     }
 
-    public boolean isSync(final String remoteKey, final File localFile) {
+    public boolean isSync(final String remoteKey, final File localFile) throws IOException {
         if (localFile.isDirectory()) {
             File localDir = localFile.toPath().resolve(remoteKey).toFile();
             if (! localDir.isDirectory()) {
@@ -80,8 +81,14 @@ public class RemoteFiles {
             ObjectListing remoteS3Objects = s3Client.listObjects(bucket, remoteKey);
             Map<String, Long> remoteObjectsMap = remoteS3Objects.getObjectSummaries().stream().collect(
                     toMap(S3ObjectSummary::getKey, S3ObjectSummary::getSize));
-            Map<String, Long> localFilesMap = stream(ofNullable(localDir.listFiles()).orElse(new File[] {})).collect(
-                    toMap(f -> get(remoteKey).resolve(f.getName()).toString(), File::length));
+
+            Map<String, Long> localFilesMap = walk(localDir.toPath(), FileVisitOption.FOLLOW_LINKS)
+                    .map(Path::toFile)
+                    .filter(File::isFile)
+                    .collect(toMap(f -> get(f.getPath()
+                            .replace(localFile.getPath(), "")
+                            .replaceAll("^/+", "")).toString(),
+                            File::length));
             return localFilesMap.equals(remoteObjectsMap);
         } else {
             ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
