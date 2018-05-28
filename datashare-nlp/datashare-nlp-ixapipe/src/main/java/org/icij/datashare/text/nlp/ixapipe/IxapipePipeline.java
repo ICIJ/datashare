@@ -121,13 +121,15 @@ public class IxapipePipeline extends AbstractPipeline {
                     annotations.add(POS, tokenBegin, tokenEnd, posTag);
                 }
             }
-            Term termBegin = sentenceTerms.get(0);
-            Term termEnd = sentenceTerms.get(sentenceTerms.size() - 1);
-            WF wfBegin = termBegin.getWFs().get(0);
-            WF wfEnd = termEnd.getWFs().get(termEnd.getWFs().size() - 1);
-            int sentenceBegin = wfBegin.getOffset();
-            int sentenceEnd = wfEnd.getOffset() + wfEnd.getLength();
-            annotations.add(SENTENCE, sentenceBegin, sentenceEnd);
+            if (sentenceTerms.size() > 0) {
+                Term termBegin = sentenceTerms.get(0);
+                Term termEnd = sentenceTerms.get(sentenceTerms.size() - 1);
+                WF wfBegin = termBegin.getWFs().get(0);
+                WF wfEnd = termEnd.getWFs().get(termEnd.getWFs().size() - 1);
+                int sentenceBegin = wfBegin.getOffset();
+                int sentenceEnd = wfEnd.getOffset() + wfEnd.getLength();
+                annotations.add(SENTENCE, sentenceBegin, sentenceEnd);
+            }
         }
 
         // ner( pos-tag( tokenize( input ) ) )
@@ -207,7 +209,7 @@ public class IxapipePipeline extends AbstractPipeline {
                                                        String untokenizable,
                                                        String hardParagraph) {
         final Properties annotateProperties = new Properties();
-        annotateProperties.setProperty("language", lang.toString());
+        annotateProperties.setProperty("language", lang.iso6391Code());
         annotateProperties.setProperty("normalize", normalize);
         annotateProperties.setProperty("untokenizable", untokenizable);
         annotateProperties.setProperty("hardParagraph", hardParagraph);

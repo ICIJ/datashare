@@ -2,6 +2,8 @@ package org.icij.datashare.text.nlp.ixapipe;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.nlp.AbstractModels;
+import org.icij.datashare.text.nlp.Annotations;
+import org.icij.datashare.text.nlp.NlpStage;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,5 +29,15 @@ public class IxapipePipelineTest {
 
         assertThat(IxaPosModels.getInstance().isLoaded(ITALIAN)).isEqualTo(true);
         assertThat(IxaNerModels.getInstance().isLoaded(ITALIAN)).isEqualTo(true);
+    }
+
+    @Test
+    public void test_process() throws Exception {
+        ixapipePipeline.initialize(ITALIAN);
+        Annotations annotations = ixapipePipeline.process("italiano contenuto de Firenze", "docId", ITALIAN);
+
+        assertThat(annotations).isNotNull();
+        assertThat(annotations.get(NlpStage.TOKEN).size()).isEqualTo(4);
+        assertThat(annotations.get(NlpStage.NER).size()).isEqualTo(1);
     }
 }
