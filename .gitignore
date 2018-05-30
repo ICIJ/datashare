@@ -3,3 +3,5 @@ out/
 dependency-reduced-pom.xml
 .idea/
 *.iml
+dist/
+logs/
