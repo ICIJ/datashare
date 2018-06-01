@@ -30,6 +30,10 @@ public class WebApp {
     }
 
     public static void start(Properties properties) {
-        new WebServer().configure(getConfiguration(Guice.createInjector(new ProdServiceModule(properties)))).start();
+        new WebServer()
+                .withThreadCount(10)
+                .withSelectThreads(2)
+                .withWebSocketThreads(1)
+                .configure(getConfiguration(Guice.createInjector(new ProdServiceModule(properties)))).start();
     }
 }
