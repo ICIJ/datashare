@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -20,6 +21,11 @@ public class PropertiesProvider {
     }
     public PropertiesProvider(final Properties properties) {
         this.cachedProperties = properties;
+        fileName = null;
+    }
+    public PropertiesProvider(final HashMap<String, String> hashMap) {
+        cachedProperties = new Properties();
+        cachedProperties.putAll(hashMap);
         fileName = null;
     }
 
