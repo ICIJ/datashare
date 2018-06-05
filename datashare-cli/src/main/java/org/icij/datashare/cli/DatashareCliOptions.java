@@ -1,11 +1,15 @@
 package org.icij.datashare.cli;
 
-import joptsimple.*;
+import joptsimple.AbstractOptionSpec;
+import joptsimple.OptionParser;
+import joptsimple.OptionSpec;
+import joptsimple.OptionSpecBuilder;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.File;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.icij.datashare.text.nlp.NlpApp.NLP_PARALLELISM_OPT;
 
 
@@ -34,6 +38,10 @@ final class DatashareCliOptions {
 
     static OptionSpecBuilder web(OptionParser parser) {
         return parser.acceptsAll(asList(WEB_SERVER_OPT, "w"), "Run as a web server");
+    }
+
+    static OptionSpecBuilder auth(OptionParser parser) {
+        return parser.acceptsAll(singletonList("auth"), "Run as a web server with authentication (needs the web option)").availableIf("w");
     }
 
     static OptionSpecBuilder resume(OptionParser parser) {

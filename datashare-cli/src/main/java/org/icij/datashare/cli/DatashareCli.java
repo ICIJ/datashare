@@ -17,7 +17,7 @@ public final class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
     private static List<DatashareCli.Stage> stages = new ArrayList<>();
 
-    private static Properties properties;
+    static Properties properties;
     static boolean webServer = false;
 
     public static void main(String[] args) throws Exception {
@@ -51,6 +51,7 @@ public final class DatashareCli {
         DatashareCliOptions.indexName(parser);
         DatashareCliOptions.clusterName(parser);
         DatashareCliOptions.web(parser);
+        DatashareCliOptions.auth(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
 

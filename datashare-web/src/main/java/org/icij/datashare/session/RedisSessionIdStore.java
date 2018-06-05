@@ -1,5 +1,6 @@
 package org.icij.datashare.session;
 
+import com.google.inject.Inject;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import redis.clients.jedis.Jedis;
@@ -11,6 +12,7 @@ public class RedisSessionIdStore implements SessionIdStore {
     private final Jedis redis;
     private final Integer ttl;
 
+    @Inject
     public RedisSessionIdStore(PropertiesProvider propertiesProvider) {
         this.redis = new Jedis(propertiesProvider.getProperties().getProperty("messageBusAddress"));
         this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("1"));

@@ -1,5 +1,6 @@
 package org.icij.datashare.session;
 
+import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
@@ -16,7 +17,8 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     private final String oauthRedirectUrl;
     private final String oauthClientId;
 
-    OAuth2CookieAuthFilter(PropertiesProvider propertiesProvider, Users users, SessionIdStore sessionIdStore) {
+    @Inject
+    public OAuth2CookieAuthFilter(PropertiesProvider propertiesProvider, Users users, SessionIdStore sessionIdStore) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
         this.oauthLoginPath = propertiesProvider.get("oauthLoginPath").orElse("/auth/login");
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
