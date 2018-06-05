@@ -8,16 +8,20 @@ import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 
+import static java.lang.String.format;
+
 public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     private final String oauthLoginPath;
     private final String oauthCallbackPath;
     private final String oauthRedirectUrl;
+    private final String oauthClientId;
 
     OAuth2CookieAuthFilter(PropertiesProvider propertiesProvider, Users users, SessionIdStore sessionIdStore) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
         this.oauthLoginPath = propertiesProvider.get("oauthLoginPath").orElse("/auth/login");
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthRedirectUrl = propertiesProvider.get("oauthRedirectUrl").orElse("http://localhost");
+        this.oauthClientId = propertiesProvider.get("oauthClientId").orElse("");
     }
 
     @Override
@@ -31,7 +35,14 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
 
     @Override
     protected Payload signin(Context context) {
-        return Payload.seeOther(oauthRedirectUrl);
+        String myHost = context.request().isSecure() ? "https://" : "http://"
+                + context.request().header("Host") + this.oauthCallbackPath;
+        return Payload.seeOther(oauthRedirectUrl + "?" +
+                format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, myHost, createState()));
+    }
+
+    protected String createState() {
+        return Long.toHexString(RANDOM.nextLong()) + Long.toHexString(RANDOM.nextLong());
     }
 
     @Override
