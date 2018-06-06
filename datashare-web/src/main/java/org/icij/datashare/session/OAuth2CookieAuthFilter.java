@@ -23,10 +23,12 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     @Inject
     public OAuth2CookieAuthFilter(PropertiesProvider propertiesProvider, Users users, SessionIdStore sessionIdStore) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
-        this.oauthLoginPath = propertiesProvider.get("oauthLoginPath").orElse("/auth/login");
-        this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthRedirectUrl = propertiesProvider.get("oauthRedirectUrl").orElse("http://localhost");
         this.oauthClientId = propertiesProvider.get("oauthClientId").orElse("");
+        this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
+        this.oauthLoginPath = propertiesProvider.get("oauthLoginPath").orElse("/auth/login");
+        logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
+                oauthRedirectUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthLoginPath);
     }
 
     @Override

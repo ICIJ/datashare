@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Properties;
@@ -32,9 +32,10 @@ public class PropertiesProvider {
     public Properties getProperties() {
         if (cachedProperties == null) {
             cachedProperties = new Properties();
-            InputStream inStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
+            URL propertiesUrl = Thread.currentThread().getContextClassLoader().getResource(fileName);
             try {
-                cachedProperties.load(inStream);
+                logger.info("reading properties from {}", propertiesUrl);
+                cachedProperties.load(propertiesUrl.openStream());
             } catch (IOException|NullPointerException e) {
                 logger.warn("no datashare.properties found, using empty properties");
             }
