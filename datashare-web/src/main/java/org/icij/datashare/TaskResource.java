@@ -79,7 +79,7 @@ public class TaskResource {
 
         Properties properties = new Properties();
         optionsWrapper.getOptions().forEach(properties::setProperty);
-        Properties mergedProps = propertiesProvider.mergeWith(properties);
+        Properties mergedProps = propertiesProvider.createMerged(properties);
 
         AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
         TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask(abstractPipeline, mergedProps));

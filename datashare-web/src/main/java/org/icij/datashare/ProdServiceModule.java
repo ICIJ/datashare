@@ -30,7 +30,7 @@ public class ProdServiceModule extends AbstractModule{
 
     @Override
     protected void configure() {
-        PropertiesProvider propertiesProvider = properties == null ? new PropertiesProvider() : new PropertiesProvider(properties);
+        PropertiesProvider propertiesProvider = properties == null ? new PropertiesProvider() : new PropertiesProvider().mergeWith(properties);
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
 
         String authProp = propertiesProvider.get("auth").orElse("false");

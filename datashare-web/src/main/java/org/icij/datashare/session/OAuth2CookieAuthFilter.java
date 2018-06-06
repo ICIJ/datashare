@@ -8,10 +8,13 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.lang.String.format;
 
 public class OAuth2CookieAuthFilter extends CookieAuthFilter {
+    private Logger logger = LoggerFactory.getLogger(getClass());
     private final String oauthLoginPath;
     private final String oauthCallbackPath;
     private final String oauthRedirectUrl;

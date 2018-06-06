@@ -27,12 +27,25 @@ public class PropertiesProviderTest {
     }
 
     @Test
-    public void test_merge_properties() {
+    public void test_merge_properties_in_provider() {
         Properties properties = new Properties();
         properties.setProperty("foo", "baz");
         properties.setProperty("bar", "qux");
 
-        Properties merged = new PropertiesProvider().mergeWith(properties);
+        Properties merged = new PropertiesProvider().mergeWith(properties).getProperties();
         assertThat(merged).includes(entry("foo", "baz"), entry("messageBusAddress", "redis"), entry("bar", "qux"));
+    }
+
+    @Test
+    public void test_create_merged_properties() {
+        Properties properties = new Properties();
+        properties.setProperty("foo", "baz");
+        properties.setProperty("bar", "qux");
+
+        PropertiesProvider propertiesProvider = new PropertiesProvider();
+        Properties merged = propertiesProvider.createMerged(properties);
+
+        assertThat(merged).includes(entry("foo", "baz"), entry("messageBusAddress", "redis"), entry("bar", "qux"));
+        assertThat(propertiesProvider.getProperties()).excludes(entry("foo", "baz"), entry("bar", "qux"));
     }
 }
