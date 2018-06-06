@@ -11,13 +11,11 @@ public class OAuth2User implements User {
         this.userMap = userMap;
     }
 
-    @Override
-    public String login() {
-        return userMap.get("login");
+    @Override public String login() {
+        return userMap.get("uid");
     }
-
-    @Override
-    public String[] roles() {
+    @Override public String name() { return userMap.get("name");}
+    @Override public String[] roles() {
         return new String[0];
     }
 }

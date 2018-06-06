@@ -36,7 +36,7 @@ public class RedisUsers implements Users {
         transaction.exec();
     }
 
-    private OAuth2User getUser(String login) {
+    OAuth2User getUser(String login) {
         return new OAuth2User(this.redis.hgetAll(login));
     }
 
