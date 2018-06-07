@@ -23,6 +23,7 @@ public class WebApp {
         if (parseBoolean(injector.getInstance(PropertiesProvider.class).get("auth").orElse("false"))) {
             return routes -> routes
                             .add(injector.getInstance(TaskResource.class))
+                            .add(injector.getInstance(SearchResource.class))
                             .setExtensions(new Extensions() {
                                 @Override
                                 public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
@@ -33,6 +34,7 @@ public class WebApp {
         } else {
             return routes -> routes
                     .add(injector.getInstance(TaskResource.class))
+                    .add(injector.getInstance(SearchResource.class))
                     .setExtensions(new Extensions() {
                         @Override
                         public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
