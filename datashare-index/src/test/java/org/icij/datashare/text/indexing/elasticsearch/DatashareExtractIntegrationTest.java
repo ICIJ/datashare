@@ -1,6 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.User;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
@@ -20,6 +21,7 @@ import java.nio.charset.Charset;
 import static java.nio.file.Paths.get;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.mockito.Mockito.mock;
 
@@ -27,9 +29,9 @@ public class DatashareExtractIntegrationTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
 
-	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-            new OptimaizeLanguageGuesser(), new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE);
-	private ElasticsearchIndexer indexer = new ElasticsearchIndexer(new PropertiesProvider());
+	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client, new OptimaizeLanguageGuesser(),
+            new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withUser(new User("test"));
+	private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider());
 
     public DatashareExtractIntegrationTest() throws IOException {}
 
@@ -39,7 +41,7 @@ public class DatashareExtractIntegrationTest {
         final TikaDocument tikaDocument = new DocumentFactory().withIdentifier(new PathIdentifier()).create(path);
 
         spewer.write(tikaDocument, new Extractor().extract(tikaDocument));
-        Document doc = indexer.get(tikaDocument.getId());
+        Document doc = indexer.get(TEST_INDEX, tikaDocument.getId());
 
         assertThat(doc.getId()).isEqualTo(tikaDocument.getId());
         assertThat(doc.getContent()).isEqualTo("This is a document to be parsed by datashare.");
@@ -60,7 +62,7 @@ public class DatashareExtractIntegrationTest {
         final TikaDocument tikaDocument = new DocumentFactory().configure(new Options<>()).create(path);
 
         spewer.write(tikaDocument, new Extractor().extract(tikaDocument));
-        Document doc = indexer.get(tikaDocument.getEmbeds().get(0).getId(), tikaDocument.getId());
+        Document doc = indexer.get(TEST_INDEX, tikaDocument.getEmbeds().get(0).getId(), tikaDocument.getId());
 
         assertThat(doc).isNotNull();
         assertThat(doc.getId()).isNotEqualTo(doc.getRootDocument());

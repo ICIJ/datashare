@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.inject.Inject;
+import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
@@ -49,15 +50,15 @@ public class TaskResource {
     }
 
     @Post("/index/")
-    public TaskResponse indexQueue(final OptionsWrapper optionsWrapper) {
-        return new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(optionsWrapper.asOptions())));
+    public TaskResponse indexQueue(final OptionsWrapper optionsWrapper, Context context) {
+        return new TaskResponse(taskManager.startTask(taskFactory.createIndexTask((User) context.currentUser(), optionsWrapper.asOptions())));
     }
 
     @Post("/index/file/:filePath")
-    public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper) {
+    public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper);
         Options<String> options = optionsWrapper.asOptions();
-        return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(options))));
+        return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask((User) context.currentUser(), options))));
     }
 
     @Post("/scan/file/:filePath")
@@ -73,7 +74,7 @@ public class TaskResource {
     }
 
     @Post("/findNames/:pipeline")
-    public List<TaskResponse> extractNlp(final String pipeline, final OptionsWrapper optionsWrapper)
+    public List<TaskResponse> extractNlp(final String pipeline, final OptionsWrapper optionsWrapper, Context context)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipeline).getClassName());
 
@@ -84,7 +85,7 @@ public class TaskResource {
         AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
         TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask(abstractPipeline, mergedProps));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask(pipeline));
+            TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), pipeline));
             return asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
         }
         return singletonList(new TaskResponse(nlpTask));

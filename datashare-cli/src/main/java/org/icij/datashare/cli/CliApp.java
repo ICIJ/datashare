@@ -25,6 +25,7 @@ import static java.lang.String.valueOf;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
+import static org.icij.datashare.User.local;
 import static org.icij.datashare.cli.DatashareCli.Stage.INDEX;
 import static org.icij.datashare.cli.DatashareCli.Stage.SCAN;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -45,7 +46,7 @@ public class CliApp {
         if (resume(properties)) {
             DocumentQueue queue = injector.getInstance(DocumentQueue.class);
 
-            if (indexer.search(Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 &&
+            if (indexer.search(local().indexName(), Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 &&
                     queue.isEmpty()) {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
@@ -57,7 +58,7 @@ public class CliApp {
         }
 
         if (stages.contains(INDEX)) {
-            taskManager.startTask(taskFactory.createIndexTask(Options.from(properties)), () -> {
+            taskManager.startTask(taskFactory.createIndexTask(local(), Options.from(properties)), () -> {
                 closeAndLogException(injector.getInstance(Spewer.class)).run();
                 closeAndLogException(injector.getInstance(DocumentQueue.class)).run();
             });
@@ -72,7 +73,7 @@ public class CliApp {
                 taskManager.startTask(taskFactory.createNlpTask(injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.createResumeNlpTask(properties.getProperty(NLP_PIPELINES_OPT)));
+                taskManager.startTask(taskFactory.createResumeNlpTask(local(), properties.getProperty(NLP_PIPELINES_OPT)));
             }
         } else {
             indexer.close();

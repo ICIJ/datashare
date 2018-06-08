@@ -16,15 +16,15 @@ import java.util.stream.Stream;
 public interface Indexer extends Closeable {
     Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
 
-    Searcher search(Class<? extends Entity> entityClass);
+    Searcher search(String indexName, Class<? extends Entity> entityClass);
 
     void close();
 
-    boolean bulkAdd(Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
-    <T extends Entity> boolean add(T obj);
+    boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
+    <T extends Entity> boolean add(String indexName, T obj);
 
-    <T extends Entity> T get(String id);
-    <T extends Entity> T get(String id, String root);
+    <T extends Entity> T get(String indexName, String id);
+    <T extends Entity> T get(String indexName, String id, String root);
 
     interface Searcher {
         Searcher ofStatus(Document.Status indexed);

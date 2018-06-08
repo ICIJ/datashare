@@ -50,7 +50,7 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_get_unknown_document() throws Exception {
-        Document doc = indexer.get("unknown");
+        Document doc = indexer.get(TEST_INDEX, "unknown");
         assertThat(doc).isNull();
     }
 
@@ -58,16 +58,16 @@ public class ElasticsearchIndexerTest {
     public void test_bulk_add() throws IOException {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED);
-        indexer.add(doc);
+        indexer.add(TEST_INDEX, doc);
         NamedEntity ne1 = NamedEntity.create(PERSON, "John Doe", 12, "doc.txt", CORENLP, Language.FRENCH);
         NamedEntity ne2 = NamedEntity.create(ORGANIZATION, "AAA", 123, "doc.txt", CORENLP, Language.FRENCH);
 
-        assertThat(indexer.bulkAdd(CORENLP, asList(ne1, ne2), doc)).isTrue();
+        assertThat(indexer.bulkAdd(TEST_INDEX, CORENLP, asList(ne1, ne2), doc)).isTrue();
 
-        assertThat(((Document) indexer.get(doc.getId())).getStatus()).isEqualTo(Document.Status.DONE);
-        assertThat(((Document) indexer.get(doc.getId())).getNerTags()).containsOnly(CORENLP);
-        assertThat((NamedEntity) indexer.get(ne1.getId(), doc.getId())).isNotNull();
-        assertThat((NamedEntity) indexer.get(ne2.getId(), doc.getId())).isNotNull();
+        assertThat(((Document) indexer.get(TEST_INDEX, doc.getId())).getStatus()).isEqualTo(Document.Status.DONE);
+        assertThat(((Document) indexer.get(TEST_INDEX, doc.getId())).getNerTags()).containsOnly(CORENLP);
+        assertThat((NamedEntity) indexer.get(TEST_INDEX, ne1.getId(), doc.getId())).isNotNull();
+        assertThat((NamedEntity) indexer.get(TEST_INDEX, ne2.getId(), doc.getId())).isNotNull();
     }
 
     @Test
@@ -75,9 +75,9 @@ public class ElasticsearchIndexerTest {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED,
                 new HashSet<Pipeline.Type>() {{ add(OPENNLP);}});
-        indexer.add(doc);
+        indexer.add(TEST_INDEX, doc);
 
-        assertThat(indexer.bulkAdd(OPENNLP, emptyList(), doc)).isTrue();
+        assertThat(indexer.bulkAdd(TEST_INDEX, OPENNLP, emptyList(), doc)).isTrue();
 
         GetResponse resp = es.client.get(new GetRequest(TEST_INDEX, "doc", doc.getId())).actionGet();
         assertThat(resp.getSourceAsMap().get("status")).isEqualTo("DONE");
@@ -90,21 +90,21 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "message/rfc822", new HashMap<>(), INDEXED);
         Document child = new org.icij.datashare.text.Document(Paths.get("mail.eml"), "mail body",
                 Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, new HashSet<>(), parent);
-        indexer.add(parent);
-        indexer.add(child);
+        indexer.add(TEST_INDEX,parent);
+        indexer.add(TEST_INDEX,child);
         NamedEntity ne1 = NamedEntity.create(PERSON, "Jane Daffodil", 12, parent.getId(), CORENLP, Language.FRENCH);
 
-        assertThat(indexer.bulkAdd(CORENLP, singletonList(ne1), child)).isTrue();
+        assertThat(indexer.bulkAdd(TEST_INDEX,CORENLP, singletonList(ne1), child)).isTrue();
 
-        Document doc = indexer.get(child.getId(), parent.getId());
+        Document doc = indexer.get(TEST_INDEX, child.getId(), parent.getId());
         assertThat(doc.getNerTags()).containsOnly(CORENLP);
         assertThat(doc.getStatus()).isEqualTo(Document.Status.DONE);
-        assertThat((NamedEntity) indexer.get(ne1.getId(), doc.getRootDocument())).isNotNull();
+        assertThat((NamedEntity) indexer.get(TEST_INDEX, ne1.getId(), doc.getRootDocument())).isNotNull();
     }
 
     @Test
     public void test_search_no_results() {
-        List<? extends Entity> lst = indexer.search(Document.class).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).execute().collect(toList());
         assertThat(lst).isEmpty();
     }
 
@@ -112,44 +112,44 @@ public class ElasticsearchIndexerTest {
     public void test_search_with_status() {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED);
-        indexer.add(doc);
+        indexer.add(TEST_INDEX,doc);
 
-        List<? extends Entity> lst = indexer.search(Document.class).ofStatus(INDEXED).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).ofStatus(INDEXED).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
-        assertThat(indexer.search(Document.class).ofStatus(DONE).execute().collect(toList()).size()).isEqualTo(0);
+        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).execute().collect(toList()).size()).isEqualTo(0);
     }
 
     @Test
     public void test_search_with_and_without_NLP_tags() {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), DONE, new HashSet<Pipeline.Type>() {{ add(CORENLP); add(OPENNLP);}});
-        indexer.add(doc);
+        indexer.add(TEST_INDEX,doc);
 
-        assertThat(indexer.search(Document.class).ofStatus(DONE).without(CORENLP).execute().collect(toList()).size()).isEqualTo(0);
-        assertThat(indexer.search(Document.class).ofStatus(DONE).without(CORENLP, OPENNLP).execute().collect(toList()).size()).isEqualTo(0);
+        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).without(CORENLP).execute().collect(toList()).size()).isEqualTo(0);
+        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).without(CORENLP, OPENNLP).execute().collect(toList()).size()).isEqualTo(0);
 
-        assertThat(indexer.search(Document.class).ofStatus(DONE).without(IXAPIPE).execute().collect(toList()).size()).isEqualTo(1);
-        assertThat(indexer.search(Document.class).ofStatus(DONE).with(CORENLP).execute().collect(toList()).size()).isEqualTo(1);
-        assertThat(indexer.search(Document.class).ofStatus(DONE).with(CORENLP, OPENNLP).execute().collect(toList()).size()).isEqualTo(1);
-        assertThat(indexer.search(Document.class).ofStatus(DONE).with(CORENLP, IXAPIPE).execute().collect(toList()).size()).isEqualTo(1);
+        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).without(IXAPIPE).execute().collect(toList()).size()).isEqualTo(1);
+        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).with(CORENLP).execute().collect(toList()).size()).isEqualTo(1);
+        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).with(CORENLP, OPENNLP).execute().collect(toList()).size()).isEqualTo(1);
+        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).with(CORENLP, IXAPIPE).execute().collect(toList()).size()).isEqualTo(1);
     }
 
     @Test
     public void test_search_with_and_without_NLP_tags_no_tags() {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());
-        indexer.add(doc);
+        indexer.add(TEST_INDEX,doc);
 
-        assertThat(indexer.search(Document.class).without().execute().collect(toList()).size()).isEqualTo(1);
+        assertThat(indexer.search(TEST_INDEX,Document.class).without().execute().collect(toList()).size()).isEqualTo(1);
     }
 
     @Test
     public void test_search_source_filtering() {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc_with_parent.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());
-        indexer.add(doc);
+        indexer.add(TEST_INDEX,doc);
 
-        Document actualDoc = (Document) indexer.search(Document.class).withSource("contentType").execute().collect(toList()).get(0);
+        Document actualDoc = (Document) indexer.search(TEST_INDEX,Document.class).withSource("contentType").execute().collect(toList()).get(0);
         assertThat(actualDoc.getContentType()).isEqualTo("application/pdf");
         assertThat(actualDoc.getId()).isEqualTo(doc.getId());
         assertThat(actualDoc.getContent()).isEmpty();
@@ -159,9 +159,9 @@ public class ElasticsearchIndexerTest {
     public void test_search_source_false() {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc_with_parent.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());
-        indexer.add(doc);
+        indexer.add(TEST_INDEX,doc);
 
-        Document actualDoc = (Document) indexer.search(Document.class).withSource(false).execute().collect(toList()).get(0);
+        Document actualDoc = (Document) indexer.search(TEST_INDEX,Document.class).withSource(false).execute().collect(toList()).get(0);
         assertThat(actualDoc.getId()).isNotNull();
     }
 
@@ -170,10 +170,10 @@ public class ElasticsearchIndexerTest {
         for (int i = 0 ; i < 20; i++) {
             Document doc = new org.icij.datashare.text.Document(Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
                 Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE);
-            indexer.add(doc);
+            indexer.add(TEST_INDEX,doc);
         }
-        assertThat(indexer.search(Document.class).limit(5).execute().count()).isEqualTo(5);
-        assertThat(indexer.search(Document.class).execute().count()).isEqualTo(20);
+        assertThat(indexer.search(TEST_INDEX,Document.class).limit(5).execute().count()).isEqualTo(5);
+        assertThat(indexer.search(TEST_INDEX,Document.class).execute().count()).isEqualTo(20);
     }
 
     public ElasticsearchIndexerTest() throws UnknownHostException {}

@@ -130,7 +130,7 @@ final class DatashareCliOptions {
                 asList("indexName", "n"), "Index name")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("datashare-local");
+                .defaultsTo("local-datashare");
     }
 
     static OptionSpec<String> clusterName(OptionParser parser) {

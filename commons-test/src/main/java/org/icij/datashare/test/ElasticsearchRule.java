@@ -17,11 +17,16 @@ import static org.elasticsearch.common.xcontent.XContentType.JSON;
 import static com.google.common.io.ByteStreams.toByteArray;
 
 public class ElasticsearchRule extends ExternalResource {
-    public static final String TEST_INDEX = "datashare-test";
-    static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
+    public static final String TEST_INDEX = "test-datashare";
+    private static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     public final Client client;
+    private final String indexName;
 
     public ElasticsearchRule() {
+        this(TEST_INDEX);
+    }
+    public ElasticsearchRule(final String indexName) {
+        this.indexName = indexName;
         System.setProperty("es.set.netty.runtime.available.processors", "false");
         Settings settings = Settings.builder().put("cluster.name", "datashare").build();
         try {
@@ -34,21 +39,21 @@ public class ElasticsearchRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        if (! client.admin().indices().prepareExists(TEST_INDEX).execute().actionGet().isExists()) {
-            client.admin().indices().create(new CreateIndexRequest(TEST_INDEX)).actionGet();
+        if (! client.admin().indices().prepareExists(indexName).execute().actionGet().isExists()) {
+            client.admin().indices().create(new CreateIndexRequest(indexName)).actionGet();
             byte[] mapping = toByteArray(getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
-            client.admin().indices().preparePutMapping(TEST_INDEX).setType("doc").setSource(new String(mapping), JSON).
+            client.admin().indices().preparePutMapping(indexName).setType("doc").setSource(new String(mapping), JSON).
                             execute().actionGet();
         }
     }
 
     @Override
     protected void after() {
-        client.admin().indices().delete(new DeleteIndexRequest(TEST_INDEX)).actionGet();
+        client.admin().indices().delete(new DeleteIndexRequest(indexName)).actionGet();
         client.close();
     }
 
     public void removeAll() {
-        DeleteByQueryAction.INSTANCE.newRequestBuilder(client).source(TEST_INDEX).filter(QueryBuilders.matchAllQuery()).refresh(true).get();
+        DeleteByQueryAction.INSTANCE.newRequestBuilder(client).source(indexName).filter(QueryBuilders.matchAllQuery()).refresh(true).get();
     }
 }

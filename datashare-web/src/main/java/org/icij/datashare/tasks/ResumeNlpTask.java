@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
+import org.icij.datashare.User;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
@@ -24,25 +25,28 @@ public class ResumeNlpTask implements Callable<Integer> {
     private final static int SEARCH_SIZE = 10000;
     Logger logger = LoggerFactory.getLogger(getClass());
     private final Pipeline.Type[] nlpPipelines;
+    private final User user;
     private final Publisher publisher;
     private final Indexer indexer;
 
     @Inject
-    public ResumeNlpTask(final Publisher publisher, final Indexer indexer, @Assisted final String nlpPipelines) {
+    public ResumeNlpTask(final Publisher publisher, final Indexer indexer, @Assisted final String nlpPipelines, @Assisted final User user) {
         this.publisher = publisher;
         this.indexer = indexer;
         this.nlpPipelines = parseAll(nlpPipelines);
+        this.user = user;
     }
 
     @Override
     public Integer call() {
         List<? extends Entity> docsToProcess =
-                indexer.search(Document.class).withSource("rootDocument").limit(SEARCH_SIZE).without(nlpPipelines).execute().collect(toList());
+                indexer.search(user.indexName(), Document.class).withSource("rootDocument").limit(SEARCH_SIZE).without(nlpPipelines).execute().collect(toList());
 
         this.publisher.publish(Channel.NLP, new Message(Message.Type.INIT_MONITORING).add(Message.Field.VALUE, valueOf(docsToProcess.size())));
 
         docsToProcess.forEach(doc -> this.publisher.publish(Channel.NLP,
                         new Message(Message.Type.EXTRACT_NLP)
+                                .add(Message.Field.USER_ID, user.id)
                                 .add(Message.Field.DOC_ID, doc.getId())
                                 .add(Message.Field.R_ID, ((Document)doc).getRootDocument())));
 

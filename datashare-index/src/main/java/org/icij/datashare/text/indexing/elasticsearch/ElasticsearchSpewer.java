@@ -6,6 +6,7 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Client;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.text.Document;
@@ -46,19 +47,22 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final ElasticsearchConfiguration esCfg;
     private final Publisher publisher;
     private final LanguageGuesser languageGuesser;
+    private User user;
 
     @Inject
-    public ElasticsearchSpewer(final PropertiesProvider propertiesProvider, LanguageGuesser languageGuesser, Publisher publisher) throws IOException {
-        this(createESClient(propertiesProvider), languageGuesser, new FieldNames(), publisher, propertiesProvider);
-    }
-
-    ElasticsearchSpewer(final Client client, LanguageGuesser languageGuesser, final FieldNames fields, Publisher publisher, final PropertiesProvider propertiesProvider) throws IOException {
+    public ElasticsearchSpewer(final Client client, LanguageGuesser languageGuesser, final FieldNames fields,
+                               Publisher publisher, final PropertiesProvider propertiesProvider) {
         super(fields);
         this.client = client;
         this.languageGuesser = languageGuesser;
         this.publisher = publisher;
         this.esCfg = new ElasticsearchConfiguration(propertiesProvider);
         logger.info("spewer defined with {}", esCfg);
+    }
+
+    public ElasticsearchSpewer withUser(User user) {
+        this.user = user ;
+        return this;
     }
 
     @Override
@@ -71,7 +75,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     private IndexRequest prepareRequest(final TikaDocument document, final Reader reader,
                                         final TikaDocument parent, TikaDocument root, final int level) throws IOException {
-        IndexRequest req = new IndexRequest(esCfg.indexName, esCfg.indexType, document.getId());
+        IndexRequest req = new IndexRequest(user.indexName(), esCfg.indexType, document.getId());
         Map<String, Object> jsonDocument = getMap(document, reader);
 
         if (parent != null) {
@@ -132,6 +136,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                     shorten(indexResponse.getId(), 4), currentTimeMillis() - before, document);
             synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads
                 publisher.publish(NLP, new Message(EXTRACT_NLP)
+                        .add(Message.Field.USER_ID, user.id)
                         .add(Message.Field.DOC_ID, indexResponse.getId())
                         .add(Message.Field.R_ID, parent == null ? document.getId() : root.getId()));
             }

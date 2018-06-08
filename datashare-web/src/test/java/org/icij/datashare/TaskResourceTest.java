@@ -30,6 +30,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 public class TaskResourceTest implements FluentRestTest {
@@ -92,7 +93,7 @@ public class TaskResourceTest implements FluentRestTest {
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(null, Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}));
@@ -107,7 +108,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/task/index/", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(null,  Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}));
@@ -129,7 +130,7 @@ public class TaskResourceTest implements FluentRestTest {
             put("key1", "val1");
             put("key2", "val2");
         }}));
-        verify(taskFactory, never()).createIndexTask(any(Options.class));
+        verify(taskFactory, never()).createIndexTask(any(User.class), any(Options.class));
     }
 
     @Test
@@ -140,7 +141,7 @@ public class TaskResourceTest implements FluentRestTest {
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(2);
-        verify(taskFactory).createResumeNlpTask("OPENNLP");
+        verify(taskFactory).createResumeNlpTask(null, "OPENNLP");
 
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
         verify(taskFactory).createNlpTask(pipelineArgumentCaptor.capture(), eq(new Properties()));
@@ -152,7 +153,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/task/findNames/OPENNLP", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
         response.should().haveType("application/json");
 
-        verify(taskFactory).createResumeNlpTask("OPENNLP");
+        verify(taskFactory).createResumeNlpTask(null,"OPENNLP");
 
         ArgumentCaptor<AbstractPipeline> pipelineCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
         ArgumentCaptor<Properties> propertiesCaptor = ArgumentCaptor.forClass(Properties.class);
@@ -167,7 +168,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/task/findNames/OPENNLP", "{\"options\":{\"resume\":\"false\"}}");
         response.should().haveType("application/json");
 
-        verify(taskFactory, never()).createResumeNlpTask(anyString());
+        verify(taskFactory, never()).createResumeNlpTask(eq(null), anyString());
     }
 
     @Test

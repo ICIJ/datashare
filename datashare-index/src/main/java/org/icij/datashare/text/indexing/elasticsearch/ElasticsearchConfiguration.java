@@ -5,14 +5,12 @@ import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.icij.datashare.PropertiesProvider;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +21,7 @@ import static com.google.common.io.ByteStreams.toByteArray;
 import static java.net.InetAddress.getByName;
 import static org.elasticsearch.common.xcontent.XContentType.JSON;
 
-class ElasticsearchConfiguration {
+public class ElasticsearchConfiguration {
     static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     static final int INDEX_MAX_RESULT_WINDOW = 100000;
     static Logger LOGGER = LoggerFactory.getLogger(ElasticsearchConfiguration.class);
@@ -50,10 +48,8 @@ class ElasticsearchConfiguration {
     static final String DEFAULT_PARENT_DOC_FIELD = "parentDocument";
 
     private static final String DEFAULT_DOC_TYPE_FIELD = "type";
-    private static final String DEFAULT_INDEX_NAME = "datashare-local";
 
     final String indexType;
-    final String indexName;
     final String indexJoinField;
     final String docTypeField;
     WriteRequest.RefreshPolicy refreshPolicy = WriteRequest.RefreshPolicy.NONE;
@@ -65,14 +61,12 @@ class ElasticsearchConfiguration {
         indexType = propertiesProvider.get(INDEX_TYPE_PROP).orElse(DEFAULT_INDEX_TYPE);
         indexJoinField = propertiesProvider.get(INDEX_JOIN_FIELD_NAME_PROP).orElse(DEFAULT_INDEX_JOIN_FIELD);
         docTypeField = propertiesProvider.get(INDEX_TYPE_FIELD_NAME_PROP).orElse(DEFAULT_DOC_TYPE_FIELD);
-        indexName = getIndexName(propertiesProvider);
     }
 
-    static Client createESClient(final PropertiesProvider propertiesProvider) throws IOException {
+    public static Client createESClient(final PropertiesProvider propertiesProvider) {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
 
         String indexAddress = propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
-        InetAddress esAddress = getByName(indexAddress.split(":")[0]);
         int esPort = Integer.parseInt(indexAddress.split(":")[1]);
         String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
 
@@ -81,26 +75,29 @@ class ElasticsearchConfiguration {
         LOGGER.info("Settings :");
         LOGGER.info(settings.toDelimitedString('\n'));
 
-        TransportClient client = new PreBuiltTransportClient(settings).addTransportAddress(
-                new TransportAddress(esAddress, esPort));
-
-        GetMappingsResponse mappings = client.admin().indices().getMappings(new GetMappingsRequest()).actionGet();
-        ImmutableOpenMap<String, MappingMetaData> mapping = mappings.getMappings().get(getIndexName(propertiesProvider));
-        if (mapping == null || mapping.isEmpty()) {
-            createMapping(client, getIndexName(propertiesProvider));
+        try {
+            InetAddress esAddress = getByName(indexAddress.split(":")[0]);
+            return new PreBuiltTransportClient(settings).addTransportAddress(
+                    new TransportAddress(esAddress, esPort));
+        } catch (IOException ioex) {
+            throw new ConfigurationException(ioex);
         }
-        return client;
     }
 
-    private static void createMapping(Client client, String indexName) throws IOException {
-        if (! client.admin().indices().prepareExists(indexName).execute().actionGet().isExists()) {
+    public static void createIndex(Client client, String indexName) throws IOException {
+        if (!client.admin().indices().prepareExists(indexName).execute().actionGet().isExists()) {
             LOGGER.info("index {} does not exist, creating one", indexName);
             client.admin().indices().create(new CreateIndexRequest(indexName)).actionGet();
         }
-        LOGGER.info("creating mapping for index {}", indexName);
-        byte[] mapping = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
-        client.admin().indices().preparePutMapping(indexName).setType("doc").setSource(new String(mapping), JSON).
-                execute().actionGet();
+
+        GetMappingsResponse mappings = client.admin().indices().getMappings(new GetMappingsRequest()).actionGet();
+        ImmutableOpenMap<String, MappingMetaData> mapping = mappings.getMappings().get(indexName);
+        if (mapping == null || mapping.isEmpty()) {
+            LOGGER.info("creating mapping for index {}", indexName);
+            byte[] mappingAsBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
+            client.admin().indices().preparePutMapping(indexName).setType("doc").setSource(new String(mappingAsBytes), JSON).
+                    execute().actionGet();
+        }
     }
 
     ElasticsearchConfiguration withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
@@ -111,8 +108,7 @@ class ElasticsearchConfiguration {
     @Override
     public String toString() {
         return "cfg{" +
-                "indexName='" + indexName + '\'' +
-                ", indexType='" + indexType + '\'' +
+                "indexType='" + indexType + '\'' +
                 ", indexJoinField='" + indexJoinField + '\'' +
                 ", docTypeField='" + docTypeField + '\'' +
                 ", shards=" + shards +
@@ -128,8 +124,9 @@ class ElasticsearchConfiguration {
                 .build();
     }
 
-    @NotNull
-    private static String getIndexName(PropertiesProvider propertiesProvider) {
-        return propertiesProvider.get(INDEX_NAME_PROP).orElse(DEFAULT_INDEX_NAME);
+    static class ConfigurationException extends RuntimeException {
+        ConfigurationException(Exception source) {
+            super(source);
+        }
     }
 }

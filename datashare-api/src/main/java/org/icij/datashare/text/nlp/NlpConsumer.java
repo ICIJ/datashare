@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.icij.datashare.com.Message.Field.DOC_ID;
 import static org.icij.datashare.com.Message.Field.R_ID;
+import static org.icij.datashare.com.Message.Field.USER_ID;
 
 public class NlpConsumer implements DatashareListener {
     private final Indexer indexer;
@@ -38,7 +39,7 @@ public class NlpConsumer implements DatashareListener {
                 if (message != null) {
                     switch (message.type) {
                         case EXTRACT_NLP:
-                            extractNamedEntities(message.content.get(DOC_ID), message.content.get(R_ID));
+                            extractNamedEntities(message.content.get(USER_ID), message.content.get(DOC_ID), message.content.get(R_ID));
                             break;
                         case SHUTDOWN:
                             exitAsked = true;
@@ -59,7 +60,7 @@ public class NlpConsumer implements DatashareListener {
         logger.info("exiting main loop");
     }
 
-    void extractNamedEntities(final String id, final String routing) throws InterruptedException {
+    void extractNamedEntities(final String indexName, final String id, final String routing) throws InterruptedException {
         try {
             Document doc = indexer.get(id, routing);
             if (doc != null) {
@@ -67,7 +68,7 @@ public class NlpConsumer implements DatashareListener {
                 if (nlpPipeline.initialize(doc.getLanguage())) {
                     Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
                     List<NamedEntity> namedEntities = NamedEntity.allFrom(doc, annotations);
-                    indexer.bulkAdd(nlpPipeline.getType(), namedEntities, doc);
+                    indexer.bulkAdd(indexName, nlpPipeline.getType(), namedEntities, doc);
                     logger.info("added {} named entities to document {}", namedEntities.size(), doc.getId());
                     nlpPipeline.terminate(doc.getLanguage());
                 }

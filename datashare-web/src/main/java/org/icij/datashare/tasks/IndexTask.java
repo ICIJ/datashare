@@ -2,16 +2,17 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.icij.datashare.User;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.monitoring.Monitorable;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.queue.DocumentQueueDrainer;
-import org.icij.spewer.Spewer;
 import org.icij.task.DefaultTask;
 import org.icij.task.Options;
 import org.icij.task.annotation.OptionsClass;
@@ -33,15 +34,18 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable {
     private final DocumentConsumer consumer;
     private final DocumentQueue queue;
     private final Publisher publisher;
+    private final User user;
     private long totalToProcess;
 
     private Integer parallelism = Runtime.getRuntime().availableProcessors();
 
     @Inject
-    public IndexTask(final Spewer spewer, final DocumentQueue queue, final Publisher publisher,
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentQueue queue, final Publisher publisher, @Assisted User user,
                      @Assisted final Options<String> userOptions) {
+        this.user = user;
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
         this.publisher = publisher;
+        spewer.withUser(user);
         this.queue = queue;
         Options<String> allTaskOptions = options().createFrom(userOptions);
         consumer = new DocumentConsumer(spewer, new Extractor().configure(allTaskOptions), this.parallelism);

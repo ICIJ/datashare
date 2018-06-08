@@ -4,6 +4,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
+import org.elasticsearch.client.Client;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
 import org.icij.datashare.extract.RedisInjectableDocumentQueue;
@@ -20,6 +21,7 @@ import org.icij.spewer.Spewer;
 import java.util.Properties;
 
 import static java.lang.Boolean.parseBoolean;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.*;
 
 public class ProdServiceModule extends AbstractModule{
     private final Properties properties;
@@ -38,11 +40,12 @@ public class ProdServiceModule extends AbstractModule{
             bind(Users.class).to(RedisUsers.class);
             bind(SessionIdStore.class).to(RedisSessionIdStore.class);
         }
+        bind(Client.class).toInstance(createESClient(propertiesProvider));
 
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
         bind(Publisher.class).to(RedisPublisher.class);
-        bind(Spewer.class).to(ElasticsearchSpewer.class).asEagerSingleton();
-        bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
+        bind(Spewer.class).to(ElasticsearchSpewer.class);
+        bind(Indexer.class).to(ElasticsearchIndexer.class);
         bind(DocumentQueue.class).to(RedisInjectableDocumentQueue.class).asEagerSingleton();
         install(new FactoryModuleBuilder().build(TaskFactory.class));
     }

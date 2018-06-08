@@ -5,6 +5,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.fest.assertions.Assertions;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.User;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Message.Field;
@@ -47,7 +48,7 @@ public class ElasticsearchSpewerTest {
     private final DocumentFactory factory = new DocumentFactory().withIdentifier(new PathIdentifier());
 
     private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-            new OptimaizeLanguageGuesser(), new FieldNames(), publisher, new PropertiesProvider()).withRefresh(IMMEDIATE);
+            new OptimaizeLanguageGuesser(), new FieldNames(), publisher, new PropertiesProvider()).withRefresh(IMMEDIATE).withUser(new User("test"));
 
     public ElasticsearchSpewerTest() throws IOException {}
 
