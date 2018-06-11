@@ -6,9 +6,8 @@ import org.icij.extract.redis.RedisDocumentQueue;
 import org.icij.task.Options;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
-@Singleton
+
 public class RedisInjectableDocumentQueue extends RedisDocumentQueue {
     @Inject
     public RedisInjectableDocumentQueue(PropertiesProvider propertiesProvider) {

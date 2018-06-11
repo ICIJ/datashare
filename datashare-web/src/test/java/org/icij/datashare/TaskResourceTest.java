@@ -144,7 +144,7 @@ public class TaskResourceTest implements FluentRestTest {
         verify(taskFactory).createResumeNlpTask(null, "OPENNLP");
 
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
-        verify(taskFactory).createNlpTask(pipelineArgumentCaptor.capture(), eq(new Properties()));
+        verify(taskFactory).createNlpTask(eq(null), pipelineArgumentCaptor.capture(), eq(new Properties()));
         assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
     }
 
@@ -157,7 +157,7 @@ public class TaskResourceTest implements FluentRestTest {
 
         ArgumentCaptor<AbstractPipeline> pipelineCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
         ArgumentCaptor<Properties> propertiesCaptor = ArgumentCaptor.forClass(Properties.class);
-        verify(taskFactory).createNlpTask(pipelineCaptor.capture(), propertiesCaptor.capture());
+        verify(taskFactory).createNlpTask(eq(null), pipelineCaptor.capture(), propertiesCaptor.capture());
         assertThat(propertiesCaptor.getValue()).includes(entry("key1", "val1"), entry("key2", "val2"));
 
         assertThat(pipelineCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);

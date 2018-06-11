@@ -14,6 +14,6 @@ public interface TaskFactory {
     IndexTask createIndexTask(final User user, final Options<String> options);
     ScanTask createScanTask(final Path path, final Options<String> options);
     ResumeNlpTask createResumeNlpTask(final User user, String nlpPipelines);
-    NlpApp createNlpTask(AbstractPipeline pipeline, Properties properties);
-    NlpApp createNlpTask(AbstractPipeline pipeline);
+    NlpApp createNlpTask(User user, AbstractPipeline pipeline, Properties properties);
+    NlpApp createNlpTask(User user, AbstractPipeline pipeline);
 }

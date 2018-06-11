@@ -70,7 +70,7 @@ public class CliApp {
         if (stages.contains(DatashareCli.Stage.NLP)) {
             for (Pipeline.Type nlp : nlpPipelines) {
                 Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
-                taskManager.startTask(taskFactory.createNlpTask(injector.getInstance(pipelineClass)));
+                taskManager.startTask(taskFactory.createNlpTask(local(), injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
                 taskManager.startTask(taskFactory.createResumeNlpTask(local(), properties.getProperty(NLP_PIPELINES_OPT)));

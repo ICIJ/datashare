@@ -6,6 +6,7 @@ import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.AssistedInject;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.monitoring.Monitorable;
@@ -40,12 +41,12 @@ public class NlpApp implements Runnable, Monitorable {
     private ExecutorService threadPool = null;
 
     @AssistedInject
-    public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, final PropertiesProvider propertiesProvider) {
+    public NlpApp(final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted final AbstractPipeline pipeline, @Assisted final User user) {
         this(indexer, pipeline, propertiesProvider.getProperties(), () -> {}, 0);
     }
 
     @AssistedInject
-    public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties) {
+    public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties, @Assisted final User user) {
         this(indexer, pipeline, properties, () -> {}, 0);
     }
 

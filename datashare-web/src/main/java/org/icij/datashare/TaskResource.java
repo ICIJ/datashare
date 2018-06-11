@@ -83,7 +83,7 @@ public class TaskResource {
         Properties mergedProps = propertiesProvider.createMerged(properties);
 
         AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
-        TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask(abstractPipeline, mergedProps));
+        TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), abstractPipeline, mergedProps));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
             TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), pipeline));
             return asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
