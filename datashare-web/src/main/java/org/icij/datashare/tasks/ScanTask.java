@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.icij.datashare.User;
 import org.icij.extract.Scanner;
 import org.icij.extract.ScannerVisitor;
 import org.icij.extract.document.DocumentFactory;
@@ -19,7 +20,7 @@ public class ScanTask extends DefaultTask<Path> {
     private final Path path;
 
     @Inject
-    public ScanTask(final DocumentQueue queue, @Assisted Path path, @Assisted final Options<String> userOptions) {
+    public ScanTask(final DocumentQueue queue, @Assisted User user, @Assisted Path path, @Assisted final Options<String> userOptions) {
         this.path = path;
         Options<String> allOptions = options().createFrom(userOptions);
         scanner = new Scanner(new DocumentFactory(allOptions), queue).configure(allOptions);

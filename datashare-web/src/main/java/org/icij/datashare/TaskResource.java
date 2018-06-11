@@ -56,16 +56,16 @@ public class TaskResource {
 
     @Post("/index/file/:filePath")
     public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
-        TaskResponse scanResponse = scanFile(filePath, optionsWrapper);
+        TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
         Options<String> options = optionsWrapper.asOptions();
         return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask((User) context.currentUser(), options))));
     }
 
     @Post("/scan/file/:filePath")
-    public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper) {
+    public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         Path path = get(filePath.replace("|", "/"));// hack : see https://github.com/CodeStory/fluent-http/pull/143
         Options<String> options = optionsWrapper.asOptions();
-        return new TaskResponse(taskManager.startTask(taskFactory.createScanTask(path, options)));
+        return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, options)));
     }
 
     @Post("/clean/")

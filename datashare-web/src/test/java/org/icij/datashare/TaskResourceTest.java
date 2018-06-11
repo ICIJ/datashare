@@ -97,7 +97,7 @@ public class TaskResourceTest implements FluentRestTest {
             put("key1", "val1");
             put("key2", "val2");
         }}));
-        verify(taskFactory).createScanTask(Paths.get(path), Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createScanTask(null, Paths.get(path), Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}));
@@ -112,7 +112,7 @@ public class TaskResourceTest implements FluentRestTest {
             put("key1", "val1");
             put("key2", "val2");
         }}));
-        verify(taskFactory, never()).createScanTask(any(Path.class), any(Options.class));
+        verify(taskFactory, never()).createScanTask(eq(null), any(Path.class), any(Options.class));
     }
 
     @Test
@@ -126,7 +126,7 @@ public class TaskResourceTest implements FluentRestTest {
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
-        verify(taskFactory).createScanTask(Paths.get(path), Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createScanTask(null, Paths.get(path), Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}));
