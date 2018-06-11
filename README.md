@@ -43,7 +43,7 @@ If you want to avoid synchronization of NLP models (offline use) then do `export
   
   - [TikaDocument](https://github.com/ICIJ/extract/blob/extractlib/extract-lib/src/main/java/org/icij/extract/document/TikaDocument.java) from ICIJ/extract 
   
-    [Apache Tika](https://tika.apache.org/) v1.15 (Apache Licence v2.0)
+    [Apache Tika](https://tika.apache.org/) v1.18 (Apache Licence v2.0)
   
     with [Tesseract](https://github.com/tesseract-ocr/tesseract/wiki/4.0-with-LSTM) v4.0 alpha 
 
@@ -133,7 +133,7 @@ If you want to avoid synchronization of NLP models (offline use) then do `export
   
  - `org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer`
  
-   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v5.4.1, *Apache Licence v2.0*
+   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v6.1.0, *Apache Licence v2.0*
 
 
 
