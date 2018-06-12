@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.User;
+import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.extract.Scanner;
 import org.icij.extract.ScannerVisitor;
 import org.icij.extract.document.DocumentFactory;
@@ -20,9 +21,10 @@ public class ScanTask extends DefaultTask<Path> {
     private final Path path;
 
     @Inject
-    public ScanTask(final DocumentQueue queue, @Assisted User user, @Assisted Path path, @Assisted final Options<String> userOptions) {
-        this.path = path;
+    public ScanTask(@Assisted User user, @Assisted Path path, @Assisted final Options<String> userOptions) {
+        this.path = user == null ? path: path.resolve(user.id);
         Options<String> allOptions = options().createFrom(userOptions);
+        DocumentQueue queue = new RedisUserDocumentQueue(user, userOptions);
         scanner = new Scanner(new DocumentFactory(allOptions), queue).configure(allOptions);
     }
 

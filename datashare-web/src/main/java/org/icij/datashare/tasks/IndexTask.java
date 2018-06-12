@@ -7,6 +7,7 @@ import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.ShutdownMessage;
+import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.extract.extractor.DocumentConsumer;
@@ -40,13 +41,13 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable {
     private Integer parallelism = Runtime.getRuntime().availableProcessors();
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentQueue queue, final Publisher publisher, @Assisted User user,
+    public IndexTask(final ElasticsearchSpewer spewer, final Publisher publisher, @Assisted User user,
                      @Assisted final Options<String> userOptions) {
         this.user = user;
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
         this.publisher = publisher;
         spewer.withUser(user);
-        this.queue = queue;
+        this.queue = new RedisUserDocumentQueue(user, userOptions);
         Options<String> allTaskOptions = options().createFrom(userOptions);
         consumer = new DocumentConsumer(spewer, new Extractor().configure(allTaskOptions), this.parallelism);
         drainer = new DocumentQueueDrainer(queue, consumer).configure(allTaskOptions);

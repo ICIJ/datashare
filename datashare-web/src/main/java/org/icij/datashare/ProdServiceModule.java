@@ -7,7 +7,6 @@ import net.codestory.http.security.Users;
 import org.elasticsearch.client.Client;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
-import org.icij.datashare.extract.RedisInjectableDocumentQueue;
 import org.icij.datashare.session.RedisSessionIdStore;
 import org.icij.datashare.session.RedisUsers;
 import org.icij.datashare.text.indexing.Indexer;
@@ -15,13 +14,12 @@ import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
-import org.icij.extract.queue.DocumentQueue;
 import org.icij.spewer.Spewer;
 
 import java.util.Properties;
 
 import static java.lang.Boolean.parseBoolean;
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.*;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public class ProdServiceModule extends AbstractModule{
     private final Properties properties;
@@ -46,7 +44,6 @@ public class ProdServiceModule extends AbstractModule{
         bind(Publisher.class).to(RedisPublisher.class);
         bind(Spewer.class).to(ElasticsearchSpewer.class);
         bind(Indexer.class).to(ElasticsearchIndexer.class);
-        bind(DocumentQueue.class).to(RedisInjectableDocumentQueue.class);
         install(new FactoryModuleBuilder().build(TaskFactory.class));
     }
 }
