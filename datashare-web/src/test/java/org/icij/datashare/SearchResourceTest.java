@@ -46,9 +46,9 @@ public class SearchResourceTest implements FluentRestTest {
                 }}))).filter(new BasicAuthFilter("/", "icij", Users.singleUser("cecile","pass"))));
 
         get("/search/index_name/foo/bar").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
-                .contain("uri=cecile_index_name/foo/bar");
+                .contain("uri=cecile-index_name/foo/bar");
         post("/search/index_name/foo/bar").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
-                .contain("uri=cecile_index_name/foo/bar");
+                .contain("uri=cecile-index_name/foo/bar");
     }
     @Test
     public void test_delete_should_return_method_not_allowed() {

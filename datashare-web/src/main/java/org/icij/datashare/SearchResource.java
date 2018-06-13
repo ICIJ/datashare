@@ -45,6 +45,6 @@ public class SearchResource {
 
     @NotNull
     private String getUrl(String path, Context context) {
-        return context.currentUser() == null ? es_url + "/" + path : es_url + "/" + context.currentUser().login() + "_" + path;
+        return context.currentUser() == null ? es_url + "/" + path : es_url + "/" + context.currentUser().login() + "-" + path;
     }
 }
