@@ -160,6 +160,11 @@ public class ElasticsearchIndexer implements Indexer {
         return new ElasticsearchSearcher(client, esCfg, indexName, entityClass);
     }
 
+    @Override
+    public void createIndex(final String indexName) {
+        ElasticsearchConfiguration.createIndex(client, indexName);
+    }
+
     private static Stream<SearchHit> searchHitStream(Iterable<SearchHit> searchHitIterable) {
         return StreamSupport.stream(searchHitIterable.spliterator(), false);
     }

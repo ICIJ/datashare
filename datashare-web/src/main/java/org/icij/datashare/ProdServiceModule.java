@@ -19,7 +19,9 @@ import org.icij.spewer.Spewer;
 import java.util.Properties;
 
 import static java.lang.Boolean.parseBoolean;
+import static org.icij.datashare.User.local;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createIndex;
 
 public class ProdServiceModule extends AbstractModule{
     private final Properties properties;
@@ -38,7 +40,9 @@ public class ProdServiceModule extends AbstractModule{
             bind(Users.class).to(RedisUsers.class);
             bind(SessionIdStore.class).to(RedisSessionIdStore.class);
         }
-        bind(Client.class).toInstance(createESClient(propertiesProvider));
+        Client esClient = createESClient(propertiesProvider);
+        createIndex(esClient, local().indexName());
+        bind(Client.class).toInstance(esClient);
 
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
         bind(Publisher.class).to(RedisPublisher.class);

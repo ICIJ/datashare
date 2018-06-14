@@ -84,7 +84,7 @@ public class ElasticsearchConfiguration {
         }
     }
 
-    public static void createIndex(Client client, String indexName) throws IOException {
+    public static void createIndex(Client client, String indexName) {
         if (!client.admin().indices().prepareExists(indexName).execute().actionGet().isExists()) {
             LOGGER.info("index {} does not exist, creating one", indexName);
             client.admin().indices().create(new CreateIndexRequest(indexName)).actionGet();
@@ -94,7 +94,12 @@ public class ElasticsearchConfiguration {
         ImmutableOpenMap<String, MappingMetaData> mapping = mappings.getMappings().get(indexName);
         if (mapping == null || mapping.isEmpty()) {
             LOGGER.info("creating mapping for index {}", indexName);
-            byte[] mappingAsBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
+            byte[] mappingAsBytes;
+            try {
+                mappingAsBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
+            } catch (IOException e) {
+                throw new RuntimeException("cannot read mapping file " + MAPPING_RESOURCE_NAME, e);
+            }
             client.admin().indices().preparePutMapping(indexName).setType("doc").setSource(new String(mappingAsBytes), JSON).
                     execute().actionGet();
         }

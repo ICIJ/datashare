@@ -18,6 +18,8 @@ public interface Indexer extends Closeable {
 
     Searcher search(String indexName, Class<? extends Entity> entityClass);
 
+    void createIndex(String indexName);
+
     void close();
 
     boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
