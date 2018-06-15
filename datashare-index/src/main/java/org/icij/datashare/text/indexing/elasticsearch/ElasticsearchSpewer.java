@@ -180,5 +180,5 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     }
     @Override
-    public void close() throws Exception { client.close();}
+    public void close(){}
 }

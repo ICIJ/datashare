@@ -60,9 +60,9 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public void close() {
-        LOGGER.info("Closing Elasticsearch connection");
+        LOGGER.info("Closing Elasticsearch connections");
         client.close();
-        LOGGER.info("Elasticsearch connection closed");
+        LOGGER.info("Elasticsearch connections closed");
     }
 
     @Override

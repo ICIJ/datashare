@@ -9,7 +9,6 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
-import org.icij.spewer.Spewer;
 import org.icij.task.Options;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -59,11 +58,9 @@ public class CliApp {
 
         if (stages.contains(INDEX)) {
             taskManager.startTask(taskFactory.createIndexTask(local(), Options.from(properties)), () -> {
-                closeAndLogException(injector.getInstance(Spewer.class)).run();
                 closeAndLogException(injector.getInstance(DocumentQueue.class)).run();
             });
         } else {
-            injector.getInstance(Spewer.class).close();
             injector.getInstance(DocumentQueue.class).close();
         }
 
@@ -75,10 +72,9 @@ public class CliApp {
             if (resume(properties)) {
                 taskManager.startTask(taskFactory.createResumeNlpTask(local(), properties.getProperty(NLP_PIPELINES_OPT)));
             }
-        } else {
-            indexer.close();
         }
-        taskManager.shutdownAndAwaitTermination(10, SECONDS);
+        taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
+        indexer.close();
     }
 
     @NotNull

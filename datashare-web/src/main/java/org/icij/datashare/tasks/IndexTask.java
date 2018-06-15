@@ -64,6 +64,7 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable {
         consumer.shutdown();
         consumer.awaitTermination(30, MINUTES); // documents could be currently processed
         publisher.publish(Channel.NLP, new ShutdownMessage());
+        queue.close();
         logger.info("exiting");
         return totalToProcess;
     }

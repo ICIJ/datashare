@@ -8,6 +8,7 @@ public class User {
     public User(final String id) { this.id = id;}
 
     public String indexName() { return id + "-datashare";}
+    public String getPath() { return this.equals(local()) ? "": id;}
 
     public static User local() { return new User("local");}
     @Override public int hashCode() { return Objects.hash(id);}

@@ -98,7 +98,7 @@ public class ElasticsearchConfiguration {
             try {
                 mappingAsBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
             } catch (IOException e) {
-                throw new RuntimeException("cannot read mapping file " + MAPPING_RESOURCE_NAME, e);
+                throw new ConfigurationException(e);
             }
             client.admin().indices().preparePutMapping(indexName).setType("doc").setSource(new String(mappingAsBytes), JSON).
                     execute().actionGet();
