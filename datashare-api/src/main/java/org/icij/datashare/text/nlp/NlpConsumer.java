@@ -1,6 +1,7 @@
 package org.icij.datashare.text.nlp;
 
 import com.google.inject.Inject;
+import org.icij.datashare.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
@@ -13,9 +14,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.icij.datashare.com.Message.Field.DOC_ID;
-import static org.icij.datashare.com.Message.Field.R_ID;
-import static org.icij.datashare.com.Message.Field.USER_ID;
+import static org.icij.datashare.com.Message.Field.*;
 
 public class NlpConsumer implements DatashareListener {
     private final Indexer indexer;
@@ -39,7 +38,7 @@ public class NlpConsumer implements DatashareListener {
                 if (message != null) {
                     switch (message.type) {
                         case EXTRACT_NLP:
-                            extractNamedEntities(message.content.get(USER_ID), message.content.get(DOC_ID), message.content.get(R_ID));
+                            extractNamedEntities(new User(message.content.get(USER_ID)).indexName(), message.content.get(DOC_ID), message.content.get(R_ID));
                             break;
                         case SHUTDOWN:
                             exitAsked = true;
@@ -62,7 +61,7 @@ public class NlpConsumer implements DatashareListener {
 
     void extractNamedEntities(final String indexName, final String id, final String routing) throws InterruptedException {
         try {
-            Document doc = indexer.get(id, routing);
+            Document doc = indexer.get(indexName, id, routing);
             if (doc != null) {
                 logger.info("extracting {} entities for document {}", nlpPipeline.getType(), doc.getId());
                 if (nlpPipeline.initialize(doc.getLanguage())) {

@@ -4,6 +4,7 @@ import com.google.inject.Injector;
 import org.icij.datashare.ProdServiceModule;
 import org.icij.datashare.TaskFactory;
 import org.icij.datashare.TaskManager;
+import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -43,10 +44,11 @@ public class CliApp {
         Indexer indexer = injector.getInstance(Indexer.class);
 
         if (resume(properties)) {
-            DocumentQueue queue = injector.getInstance(DocumentQueue.class);
+            RedisUserDocumentQueue queue = new RedisUserDocumentQueue(local(), Options.from(properties));
+            boolean queueIsEmpty = queue.isEmpty();
+            queue.close();
 
-            if (indexer.search(local().indexName(), Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 &&
-                    queue.isEmpty()) {
+            if (indexer.search(local().indexName(), Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 && queueIsEmpty) {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
             }

@@ -25,9 +25,8 @@ import java.util.stream.IntStream;
 import static java.nio.file.Paths.get;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.com.Message.Field.DOC_ID;
-import static org.icij.datashare.com.Message.Field.R_ID;
-import static org.icij.datashare.com.Message.Field.VALUE;
+import static org.icij.datashare.User.local;
+import static org.icij.datashare.com.Message.Field.*;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 import static org.icij.datashare.text.Document.Status.INDEXED;
@@ -50,7 +49,7 @@ public class NlpAppTest {
     public void test_subscriber_mode_for_standalone_extraction() throws Exception {
         runNlpApp("1", 0);
 
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id").add(R_ID, "routing"));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id").add(R_ID, "routing").add(USER_ID, local().id));
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
@@ -61,8 +60,8 @@ public class NlpAppTest {
     public void test_consumer_mode_for_multithreaded_server_extraction() throws Exception {
         runNlpApp("2", 0);
 
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1"));
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2"));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1").add(USER_ID, local().id));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2").add(USER_ID, local().id));
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
@@ -73,7 +72,7 @@ public class NlpAppTest {
     public void test_nlp_app_should_wait_queue_to_be_empty_to_shutdown() throws Exception {
         runNlpApp("1", 200);
 
-        IntStream.range(1,4).forEach(i -> publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id" + i).add(R_ID, "routing" + i)));
+        IntStream.range(1,4).forEach(i -> publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id" + i).add(R_ID, "routing" + i).add(USER_ID, local().id)));
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
@@ -86,8 +85,8 @@ public class NlpAppTest {
 
         assertThat(nlpApp.getProgressRate()).isEqualTo(-1);
         publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, "4"));
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1"));
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2"));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1").add(USER_ID, local().id));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2").add(USER_ID, local().id));
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
@@ -118,7 +117,7 @@ public class NlpAppTest {
     @Before
     public void setUp() throws Exception {
         initMocks(this);
-        when(indexer.get(anyString(), anyString())).thenReturn(
+        when(indexer.get(anyString(), anyString(), anyString())).thenReturn(
                 new Document(get("doc/path"), "content", FRENCH, Charset.defaultCharset(),
                         "application/pdf", new HashMap<>(), INDEXED));
         when(pipeline.getType()).thenReturn(OPENNLP);

@@ -41,7 +41,7 @@ public class NlpConsumerTest {
         when(pipeline.initialize(any())).thenReturn(false);
         Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
                 Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
-        when(indexer.get(anyString(), anyString())).thenReturn(doc);
+        when(indexer.get(anyString(), anyString(), anyString())).thenReturn(doc);
 
         nlpListener.extractNamedEntities("indexName","id", "routing");
         verify(pipeline, never()).process(anyString(), anyString(), any());
@@ -53,9 +53,9 @@ public class NlpConsumerTest {
         Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
                 Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
         when(pipeline.process(anyString(), anyString(), any())).thenReturn(new Annotations(doc.getId(), Pipeline.Type.MITIE, FRENCH));
-        when(indexer.get(anyString(), anyString())).thenReturn(doc);
+        when(indexer.get("indexName", doc.getId(), "routing")).thenReturn(doc);
 
-        nlpListener.extractNamedEntities("indexName","id", "routing");
+        nlpListener.extractNamedEntities("indexName", doc.getId(), "routing");
 
         verify(pipeline).initialize(FRENCH);
         verify(pipeline).process("content", doc.getId(), FRENCH);
