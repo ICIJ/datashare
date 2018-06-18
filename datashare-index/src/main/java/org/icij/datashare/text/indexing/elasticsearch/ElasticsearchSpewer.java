@@ -6,7 +6,7 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Client;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.User;
+import org.icij.datashare.user.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.text.Language;

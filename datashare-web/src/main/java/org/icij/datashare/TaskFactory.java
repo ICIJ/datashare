@@ -5,6 +5,7 @@ import org.icij.datashare.tasks.ResumeNlpTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.NlpApp;
+import org.icij.datashare.user.User;
 import org.icij.task.Options;
 
 import java.nio.file.Path;

@@ -3,7 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
-import org.icij.datashare.User;
+import org.icij.datashare.user.User;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
@@ -11,6 +11,7 @@ import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +22,7 @@ import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
-public class ResumeNlpTask implements Callable<Integer> {
+public class ResumeNlpTask implements Callable<Integer>, UserTask {
     private final static int SEARCH_SIZE = 10000;
     Logger logger = LoggerFactory.getLogger(getClass());
     private final Pipeline.Type[] nlpPipelines;
@@ -54,5 +55,10 @@ public class ResumeNlpTask implements Callable<Integer> {
 
         logger.info("sent {} message for {} files without {} pipeline tags", Message.Type.EXTRACT_NLP, docsToProcess.size(), nlpPipelines);
         return docsToProcess.size();
+    }
+
+    @Override
+    public User getUser() {
+        return user;
     }
 }

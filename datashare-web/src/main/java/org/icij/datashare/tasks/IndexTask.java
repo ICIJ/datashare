@@ -2,7 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import org.icij.datashare.User;
+import org.icij.datashare.user.User;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
@@ -10,6 +10,7 @@ import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
+import org.icij.datashare.user.UserTask;
 import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.queue.DocumentQueue;
@@ -29,7 +30,7 @@ import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentQueueDrainer.class)
-public class IndexTask extends DefaultTask<Long> implements Monitorable {
+public class IndexTask extends DefaultTask<Long> implements Monitorable, UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer drainer;
     private final DocumentConsumer consumer;
@@ -76,4 +77,9 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable {
     }
 
     private void setParallelism(Integer integer) { this.parallelism = integer;}
+
+    @Override
+    public User getUser() {
+        return user;
+    }
 }

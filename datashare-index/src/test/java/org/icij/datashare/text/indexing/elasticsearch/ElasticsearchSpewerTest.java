@@ -5,7 +5,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.fest.assertions.Assertions;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.User;
+import org.icij.datashare.user.User;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Message.Field;

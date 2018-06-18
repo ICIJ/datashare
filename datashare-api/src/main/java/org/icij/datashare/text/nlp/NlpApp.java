@@ -6,11 +6,12 @@ import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.AssistedInject;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.User;
+import org.icij.datashare.user.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.generate;
 
-public class NlpApp implements Runnable, Monitorable {
+public class NlpApp implements Runnable, Monitorable, UserTask {
     private static final long DEFAULT_TIMEOUT_MILLIS = 30 * 1000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
@@ -38,24 +39,26 @@ public class NlpApp implements Runnable, Monitorable {
     private final BlockingQueue<Message> queue;
     private final int parallelism;
     private final NlpForwarder forwarder;
+    private final User user;
     private ExecutorService threadPool = null;
 
     @AssistedInject
     public NlpApp(final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted final AbstractPipeline pipeline, @Assisted final User user) {
-        this(indexer, pipeline, propertiesProvider.getProperties(), () -> {}, 0);
+        this(indexer, pipeline, propertiesProvider.getProperties(), () -> {}, 0, user);
     }
 
     @AssistedInject
     public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties, @Assisted final User user) {
-        this(indexer, pipeline, properties, () -> {}, 0);
+        this(indexer, pipeline, properties, () -> {}, 0, user);
     }
 
     NlpApp(final Indexer indexer, final AbstractPipeline pipeline, final Properties properties,
-                   Runnable subscribedCb, long shutdownTimeoutMillis) {
+           Runnable subscribedCb, long shutdownTimeoutMillis, User user) {
         this.pipeline = pipeline;
         this.indexer = indexer;
         this.shutdownTimeoutMillis = shutdownTimeoutMillis == 0 ? DEFAULT_TIMEOUT_MILLIS : shutdownTimeoutMillis;
         this.queue = new LinkedBlockingQueue<>(DEFAULT_QUEUE_SIZE);
+        this.user = user;
 
         parallelism = parseInt(ofNullable(properties.getProperty(NLP_PARALLELISM_OPT)).orElse("1"));
         forwarder = new NlpForwarder(properties, queue, subscribedCb);
@@ -107,6 +110,11 @@ public class NlpApp implements Runnable, Monitorable {
     @Override
     public String toString() {
         return getClass().getName() + "[" + pipeline.getType() + "]@" + toHexString(hashCode());
+    }
+
+    @Override
+    public User getUser() {
+        return user;
     }
 
     public static class NlpModule extends AbstractModule {

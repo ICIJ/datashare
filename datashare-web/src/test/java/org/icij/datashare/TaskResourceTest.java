@@ -11,6 +11,7 @@ import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.User;
 import org.icij.task.Options;
 import org.junit.After;
 import org.junit.Before;

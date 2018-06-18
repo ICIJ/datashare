@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.user;
 
 import java.util.Objects;
 

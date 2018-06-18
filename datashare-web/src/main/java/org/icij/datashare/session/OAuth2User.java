@@ -1,6 +1,6 @@
 package org.icij.datashare.session;
 
-import org.icij.datashare.User;
+import org.icij.datashare.user.User;
 
 import java.util.Map;
 

@@ -8,6 +8,7 @@ import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.text.nlp.AbstractPipeline;
+import org.icij.datashare.user.User;
 import org.icij.task.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

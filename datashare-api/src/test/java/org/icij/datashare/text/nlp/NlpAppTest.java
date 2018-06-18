@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
 import static java.nio.file.Paths.get;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.User.local;
+import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.com.Message.Field.*;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
@@ -103,7 +103,7 @@ public class NlpAppTest {
             if (nlpProcessDelayMillis > 0) Thread.sleep(nlpProcessDelayMillis);
             return new Annotations("docid_mock", Pipeline.Type.CORENLP, Language.FRENCH);
         });
-        NlpApp nlpApp = new NlpApp(indexer, pipeline, properties, latch::countDown, 1);
+        NlpApp nlpApp = new NlpApp(indexer, pipeline, properties, latch::countDown, 1, local());
         executor.execute(nlpApp);
         latch.await(2, SECONDS);
         return nlpApp;

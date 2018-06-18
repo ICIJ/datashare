@@ -17,7 +17,7 @@ import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguage
 import java.util.Properties;
 
 import static java.lang.Boolean.parseBoolean;
-import static org.icij.datashare.User.local;
+import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createIndex;
 

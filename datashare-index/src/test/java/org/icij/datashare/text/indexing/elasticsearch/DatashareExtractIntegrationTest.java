@@ -1,7 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.User;
+import org.icij.datashare.user.User;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;

@@ -1,6 +1,6 @@
 package org.icij.datashare.extract;
 
-import org.icij.datashare.User;
+import org.icij.datashare.user.User;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.redis.RedisDocumentQueue;
 import org.icij.task.Option;

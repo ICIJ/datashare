@@ -1,7 +1,7 @@
 package org.icij.datashare.text.nlp;
 
 import com.google.inject.Inject;
-import org.icij.datashare.User;
+import org.icij.datashare.user.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;

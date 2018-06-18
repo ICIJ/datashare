@@ -2,6 +2,8 @@ package org.icij.datashare;
 
 import com.google.inject.Inject;
 import org.icij.datashare.monitoring.Monitorable;
+import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserTask;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +93,7 @@ public class TaskManager {
         return getTasks().stream().filter(FutureTask::isDone).map(t -> tasks.remove(t.toString())).collect(toList());
     }
 
-    static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable {
+    static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable, UserTask {
         private final Object runnableOrCallable;
         MonitorableFutureTask(@NotNull Callable<V> callable) {
             super(callable);
@@ -117,5 +119,13 @@ public class TaskManager {
 
         @Override
         public String toString() { return runnableOrCallable.toString();}
+
+        @Override
+        public User getUser() {
+            if (runnableOrCallable instanceof UserTask) {
+                return ((UserTask) runnableOrCallable).getUser();
+            }
+            return User.local();
+        }
     }
 }

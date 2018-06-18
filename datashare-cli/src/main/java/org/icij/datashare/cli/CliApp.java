@@ -25,7 +25,7 @@ import static java.lang.String.valueOf;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
-import static org.icij.datashare.User.local;
+import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.cli.DatashareCli.Stage.INDEX;
 import static org.icij.datashare.cli.DatashareCli.Stage.SCAN;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
