@@ -93,6 +93,20 @@ public class NlpAppTest {
         assertThat(nlpApp.getProgressRate()).isEqualTo(0.5);
     }
 
+    @Test(timeout = 5000)
+    public void test_nlp_app_progress_rate__two_init_add_values() throws Exception {
+        NlpApp nlpApp = runNlpApp("1", 0);
+
+        assertThat(nlpApp.getProgressRate()).isEqualTo(-1);
+        publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, "4"));
+        publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, "6"));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id").add(R_ID, "routing").add(USER_ID, local().id));
+        publisher.publish(Channel.NLP, new ShutdownMessage());
+
+        shutdownNlpApp();
+        assertThat(nlpApp.getProgressRate()).isEqualTo(0.1);
+    }
+
     private NlpApp runNlpApp(String parallelism, int nlpProcessDelayMillis) throws InterruptedException {
         Properties properties = new Properties();
         properties.setProperty(NLP_PARALLELISM_OPT, parallelism);

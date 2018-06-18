@@ -41,8 +41,7 @@ public class NlpForwarder implements DatashareListener,Monitorable {
         if (message.type == INIT_MONITORING) {
             String stringValue = message.content.get(Message.Field.VALUE);
             logger.debug("init monitoring with value {}", stringValue);
-            totalToProcess.set(parseLong(stringValue));
-            processed.set(0);
+            totalToProcess.getAndAdd(parseLong(stringValue));
         }
         if (message.type == EXTRACT_NLP) {
             logger.debug("forwarding message {} to message queue", message);
