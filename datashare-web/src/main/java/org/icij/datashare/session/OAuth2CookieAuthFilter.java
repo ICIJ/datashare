@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -72,10 +74,14 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
 
     @Override
     protected Payload signin(Context context) {
-        String myHost = context.request().isSecure() ? "https://" : "http://"
+        String callbackUrl = context.request().isSecure() ? "https://" : "http://"
                 + context.request().header("Host") + this.oauthCallbackPath;
-        return Payload.seeOther(oauthRedirectUrl + "?" +
-                format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, myHost, createState()));
+        try {
+            return Payload.seeOther(oauthRedirectUrl + "?" +
+                    format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(callbackUrl, "utf-8"), createState()));
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     protected String createState() {
