@@ -2,15 +2,13 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
-import net.codestory.http.convert.TypeConvert;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 import org.icij.datashare.PropertiesProvider;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +20,7 @@ import java.util.HashMap;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
+import static net.codestory.http.convert.TypeConvert.fromJson;
 
 public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -29,6 +28,7 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     public static final String REQUEST_CODE_KEY = "code";
     public static final String REQUEST_STATE_KEY = "state";
 
+    private final String oauthClientSecret;
     private final String oauthApiUrl;
     private final String oauthLoginPath;
     private final String oauthCallbackPath;
@@ -43,6 +43,7 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
         this.oauthRedirectUrl = propertiesProvider.get("oauthRedirectUrl").orElse("http://localhost");
         this.oauthApiUrl = propertiesProvider.get("oauthApiUrl").orElse("http://localhost");
         this.oauthClientId = propertiesProvider.get("oauthClientId").orElse("");
+        this.oauthClientSecret = propertiesProvider.get("oauthClientSecret").orElse("");
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthLoginPath = propertiesProvider.get("oauthLoginPath").orElse("/auth/login");
         logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
@@ -68,20 +69,31 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
                 sessionIdStore.getLogin(context.get(REQUEST_STATE_KEY)) == null) {
             return Payload.badRequest();
         }
-        String url = oauthApiUrl + "?code=" + context.get(REQUEST_CODE_KEY);
-        Response response = client.newCall(new Request.Builder().url(url).build()).execute();
-        OAuth2User user = new OAuth2User(TypeConvert.fromJson(response.body().string(), HashMap.class));
+        RequestBody formBody = new FormBody.Builder()
+                .add("client_id", oauthClientId)
+                .add("client_secret", oauthClientSecret)
+                .add("code", context.get(REQUEST_CODE_KEY))
+                .add("grant_type", "authorization_code")
+                .add("redirect_uri", getCallbackUrl(context)).build();
+        Response tokenResponse = client.newCall(new Request.Builder().url("http://xemx:3001/oauth/token").post(formBody).build()).execute();
+        Response apiResponse = client.newCall(new Request.Builder().url(oauthApiUrl)
+                .addHeader("Authorization", "Bearer " + fromJson(tokenResponse.body().string(), HashMap.class).get("access_token")).build()).execute();
+        OAuth2User user = new OAuth2User(fromJson(apiResponse.body().string(), HashMap.class));
         redisUsers().createUser(user);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(user, "/")));
     }
 
     @Override
     protected Payload signin(Context context) {
-        String callbackUrl = context.request().isSecure() ? "https://" : "http://"
-                + context.request().header("Host") + this.oauthCallbackPath;
+        return Payload.seeOther(oauthRedirectUrl + "?" +
+                format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, getCallbackUrl(context), createState()));
+    }
+
+    @NotNull
+    private String getCallbackUrl(Context context) {
         try {
-            return Payload.seeOther(oauthRedirectUrl + "?" +
-                    format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(callbackUrl, "utf-8"), createState()));
+            return URLEncoder.encode(context.request().isSecure() ? "https://" : "http://"
+                    + context.request().header("Host") + this.oauthCallbackPath, "utf-8");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
