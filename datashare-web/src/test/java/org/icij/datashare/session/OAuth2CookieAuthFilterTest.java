@@ -31,6 +31,14 @@ public class OAuth2CookieAuthFilterTest implements FluentRestTest {
     static OAuth2CookieAuthFilter oAuth2Filter = new OAuth2CookieAuthFilter(propertiesProvider,
             new RedisUsers(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
 
+    @Test(expected = IllegalStateException.class)
+    public void test_callback_url_should_not_start_with_login_url() {
+        oAuth2Filter = new OAuth2CookieAuthFilter(new PropertiesProvider(new HashMap<String, String>() {{
+            put("oauthLoginPath", "/auth/login/");
+            put("oauthCallbackPath", "/auth/login/callback");
+        }}), new RedisUsers(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
+    }
+
     @Test
     public void test_redirect_to_authorization_server() {
         this.get("/auth/login")

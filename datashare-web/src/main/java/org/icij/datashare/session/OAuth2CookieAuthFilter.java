@@ -47,6 +47,9 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
         this.oauthLoginPath = propertiesProvider.get("oauthLoginPath").orElse("/auth/login");
         logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
                 oauthRedirectUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthLoginPath);
+        if (this.oauthCallbackPath.startsWith(this.oauthLoginPath)) {
+            throw new IllegalStateException(format("oauthCallbackPath (%s) cannot start with oauthLoginPath (%s)", oauthCallbackPath, oauthLoginPath));
+        }
     }
 
     @Override
