@@ -22,10 +22,12 @@ public class OAuth2CookieAuthFilterTest implements FluentRestTest {
     }.startOnRandomPort();
     static PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
         put("messageBusAddress", "redis");
-        put("oauthRedirectUrl", "http://localhost:" + xemx.port() + "/oauth/authorize");
+        put("oauthTokenUrl", "http://localhost:" + xemx.port() + "/oauth/token");
+        put("oauthAuthorizeUrl", "http://localhost:" + xemx.port() + "/oauth/authorize");
         put("oauthApiUrl", "http://localhost:" + xemx.port() + "/api/v1/me.json");
         put("oauthLoginPath", "/auth/login");
         put("oauthClientId", "12345");
+        put("oauthClientSecret", "abcdef");
         put("oauthCallbackPath", "/auth/callback");
     }});
     static OAuth2CookieAuthFilter oAuth2Filter = new OAuth2CookieAuthFilter(propertiesProvider,
@@ -75,9 +77,13 @@ public class OAuth2CookieAuthFilterTest implements FluentRestTest {
         xemx.configure(routes -> routes
                 .get("/api/v1/me.json", new HashMap<String, String>() {{
                     put("uid", "123");
+                    put("country", null);
                     put("name", "Nobody");
                     put("email", "no@bo.dy");
                 }})
+                .post("/oauth/token", (context -> new HashMap<String, String>() {{
+                    put("access_token", "access_token_value");
+                }}))
                 .get("/oauth/authorize?client_id=:client_id&redirect_uri=:redirect_uri&response_type=:response_type&state=:state",
                         (c, client_id, redirect_uri, response_type, state) -> format(
                                 "OAuth Authorize for client=%s redirect_uri=%s response_type=%s state=%s",

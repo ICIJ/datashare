@@ -21,9 +21,14 @@
             <type>jar</type>
         </dependency>
         <dependency>
-          <groupId>com.squareup.okhttp3</groupId>
-          <artifactId>okhttp</artifactId>
-          <version>3.10.0</version>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.10.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.scribejava</groupId>
+            <artifactId>scribejava-core</artifactId>
+            <version>5.5.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>

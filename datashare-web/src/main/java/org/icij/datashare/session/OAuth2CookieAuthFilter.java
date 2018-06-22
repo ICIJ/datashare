@@ -1,12 +1,18 @@
 package org.icij.datashare.session;
 
+import com.github.scribejava.core.builder.ServiceBuilder;
+import com.github.scribejava.core.builder.api.DefaultApi20;
+import com.github.scribejava.core.model.OAuth2AccessToken;
+import com.github.scribejava.core.model.OAuthRequest;
+import com.github.scribejava.core.model.Response;
+import com.github.scribejava.core.model.Verb;
+import com.github.scribejava.core.oauth.OAuth20Service;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
-import okhttp3.*;
 import org.icij.datashare.PropertiesProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -16,13 +22,14 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
-import static net.codestory.http.convert.TypeConvert.fromJson;
+import static org.icij.datashare.session.OAuth2User.fromJson;
 
 public class OAuth2CookieAuthFilter extends CookieAuthFilter {
+    private final DefaultApi20 defaultOauthApi;
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String REQUEST_CODE_KEY = "code";
@@ -32,25 +39,29 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     private final String oauthApiUrl;
     private final String oauthLoginPath;
     private final String oauthCallbackPath;
-    private final String oauthRedirectUrl;
+    private final String oauthAuthorizeUrl;
+    private final String oauthTokenUrl;
     private final String oauthClientId;
-
-    private OkHttpClient client = new OkHttpClient();
 
     @Inject
     public OAuth2CookieAuthFilter(PropertiesProvider propertiesProvider, RedisUsers users, SessionIdStore sessionIdStore) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
-        this.oauthRedirectUrl = propertiesProvider.get("oauthRedirectUrl").orElse("http://localhost");
+        this.oauthAuthorizeUrl = propertiesProvider.get("oauthAuthorizeUrl").orElse("http://localhost");
+        this.oauthTokenUrl = propertiesProvider.get("oauthTokenUrl").orElse("http://localhost");
         this.oauthApiUrl = propertiesProvider.get("oauthApiUrl").orElse("http://localhost");
         this.oauthClientId = propertiesProvider.get("oauthClientId").orElse("");
         this.oauthClientSecret = propertiesProvider.get("oauthClientSecret").orElse("");
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthLoginPath = propertiesProvider.get("oauthLoginPath").orElse("/auth/login");
         logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
-                oauthRedirectUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthLoginPath);
+                oauthAuthorizeUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthLoginPath);
         if (this.oauthCallbackPath.startsWith(this.oauthLoginPath)) {
             throw new IllegalStateException(format("oauthCallbackPath (%s) cannot start with oauthLoginPath (%s)", oauthCallbackPath, oauthLoginPath));
         }
+        this.defaultOauthApi = new DefaultApi20() {
+            @Override public String getAccessTokenEndpoint() { return oauthTokenUrl;}
+            @Override protected String getAuthorizationBaseUrl() { return oauthAuthorizeUrl;}
+        };
     }
 
     @Override
@@ -64,39 +75,37 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
         }
     }
 
-    protected Payload callback(Context context) throws IOException {
+    protected Payload callback(Context context) throws IOException, ExecutionException, InterruptedException {
         if (context.get(REQUEST_CODE_KEY) == null || context.get(REQUEST_STATE_KEY) == null || !"GET".equals(context.method()) ||
                 sessionIdStore.getLogin(context.get(REQUEST_STATE_KEY)) == null) {
             return Payload.badRequest();
         }
-        RequestBody formBody = new FormBody.Builder()
-                .add("client_id", oauthClientId)
-                .add("client_secret", oauthClientSecret)
-                .add("code", context.get(REQUEST_CODE_KEY))
-                .add("grant_type", "authorization_code")
-                .add("redirect_uri", getCallbackUrl(context)).build();
-        Response tokenResponse = client.newCall(new Request.Builder().url("http://xemx:3001/oauth/token").post(formBody).build()).execute();
-        Response apiResponse = client.newCall(new Request.Builder().url(oauthApiUrl)
-                .addHeader("Authorization", "Bearer " + fromJson(tokenResponse.body().string(), HashMap.class).get("access_token")).build()).execute();
-        OAuth2User user = new OAuth2User(fromJson(apiResponse.body().string(), HashMap.class));
+        OAuth20Service service = new ServiceBuilder(oauthClientId).apiSecret(oauthClientSecret).callback(getCallbackUrl(context)).build(defaultOauthApi);
+        OAuth2AccessToken accessToken = service.getAccessToken(context.get(REQUEST_CODE_KEY));
+
+        final OAuthRequest request = new OAuthRequest(Verb.GET, oauthApiUrl);
+        service.signRequest(accessToken, request);
+        final Response oauthApiResponse = service.execute(request);
+
+        OAuth2User user = fromJson(oauthApiResponse.getBody());
         redisUsers().createUser(user);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(user, "/")));
     }
 
     @Override
     protected Payload signin(Context context) {
-        return Payload.seeOther(oauthRedirectUrl + "?" +
-                format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, getCallbackUrl(context), createState()));
+        try {
+            return Payload.seeOther(oauthAuthorizeUrl + "?" +
+                    format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(getCallbackUrl(context), "utf-8"), createState()));
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @NotNull
     private String getCallbackUrl(Context context) {
-        try {
-            return URLEncoder.encode(context.request().isSecure() ? "https://" : "http://"
-                    + context.request().header("Host") + this.oauthCallbackPath, "utf-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return context.request().isSecure() ? "https://" : "http://"
+                + context.request().header("Host") + this.oauthCallbackPath;
     }
 
     protected String createState() {
