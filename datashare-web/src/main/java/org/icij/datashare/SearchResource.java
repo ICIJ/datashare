@@ -2,9 +2,7 @@ package org.icij.datashare;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Post;
-import net.codestory.http.annotations.Prefix;
+import net.codestory.http.annotations.*;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -41,6 +39,16 @@ public class SearchResource {
                 bufferedSink.write(request.contentAsBytes());
             }
         }).build()).execute().body().string();
+    }
+
+    @Head("/:path")
+    public String esHead(final String path, Context context) throws IOException {
+        return http.newCall(new Request.Builder().url(getUrl(path, context)).head().build()).execute().body().string();
+    }
+
+    @Options("/:path")
+    public String esOptions(final String path, Context context) throws IOException {
+        return http.newCall(new Request.Builder().url(getUrl(path, context)).method("OPTIONS", null).build()).execute().body().string();
     }
 
     @NotNull
