@@ -161,8 +161,8 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public void createIndex(final String indexName) {
-        ElasticsearchConfiguration.createIndex(client, indexName);
+    public boolean createIndex(final String indexName) {
+        return ElasticsearchConfiguration.createIndex(client, indexName);
     }
 
     private static Stream<SearchHit> searchHitStream(Iterable<SearchHit> searchHitIterable) {

@@ -18,7 +18,7 @@ public interface Indexer extends Closeable {
 
     Searcher search(String indexName, Class<? extends Entity> entityClass);
 
-    void createIndex(String indexName);
+    boolean createIndex(String indexName);
 
     void close();
 

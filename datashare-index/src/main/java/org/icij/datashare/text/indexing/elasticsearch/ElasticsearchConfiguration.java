@@ -84,7 +84,7 @@ public class ElasticsearchConfiguration {
         }
     }
 
-    public static void createIndex(Client client, String indexName) {
+    public static boolean createIndex(Client client, String indexName) {
         if (!client.admin().indices().prepareExists(indexName).execute().actionGet().isExists()) {
             LOGGER.info("index {} does not exist, creating one", indexName);
             client.admin().indices().create(new CreateIndexRequest(indexName)).actionGet();
@@ -102,7 +102,9 @@ public class ElasticsearchConfiguration {
             }
             client.admin().indices().preparePutMapping(indexName).setType("doc").setSource(new String(mappingAsBytes), JSON).
                     execute().actionGet();
+            return true;
         }
+        return false;
     }
 
     ElasticsearchConfiguration withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
