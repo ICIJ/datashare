@@ -9,6 +9,7 @@ import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -187,6 +188,7 @@ public class TaskResourceTest implements FluentRestTest {
     static class TestModule extends AbstractModule {
         @Override protected void configure() {
             bind(TaskFactory.class).toInstance(taskFactory);
+            bind(Indexer.class).toInstance(mock(Indexer.class));
             bind(TaskManager.class).to(DummyTaskManager.class).asEagerSingleton();
             bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new Properties()));
         }
