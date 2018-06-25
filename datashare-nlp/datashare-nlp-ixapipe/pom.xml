@@ -16,7 +16,7 @@
 
 
     <properties>
-        <ixa-pipe-tok.version>2.0.0</ixa-pipe-tok.version>
+        <ixa-pipe-tok.version>1.8.6</ixa-pipe-tok.version>
         <ixa-pipe-pos.version>1.5.2</ixa-pipe-pos.version>
         <ixa-pipe-nerc.version>299cb49</ixa-pipe-nerc.version>
     </properties>
