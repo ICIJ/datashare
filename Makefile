@@ -12,7 +12,7 @@ clean:
 
 .PHONY: dist
 dist:
-		mvn package -Dmaven.test.skip=true
+		mvn validate package -Dmaven.test.skip=true
 
 install:
 		mvn install
