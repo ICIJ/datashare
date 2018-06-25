@@ -68,6 +68,15 @@ public class SearchResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_get_returns_backend_status_405() {
+        server.configure(routes -> routes.add(new SearchResource(new PropertiesProvider(new HashMap<String, String>() {{
+                                    put("elasticsearchUrl", "http://localhost:" + mockElastic.port());
+                                }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", OAuth2User.singleUser("cecile"))));
+
+        put("/search/unknown").withPreemptiveAuthentication("cecile", "pass").should().respond(405);
+    }
+
+    @Test
     public void test_put_createIndex_calls_indexer() throws Exception {
         server.configure(routes -> routes.add(new SearchResource(new PropertiesProvider(new HashMap<String, String>() {{
                             put("elasticsearchUrl", "http://localhost:" + mockElastic.port());

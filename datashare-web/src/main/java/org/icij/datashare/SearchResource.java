@@ -4,10 +4,7 @@ import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
+import okhttp3.*;
 import okio.BufferedSink;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -32,13 +29,13 @@ public class SearchResource {
     }
 
     @Get("/:path")
-    public String esGet(final String path, Context context) throws IOException {
-        return http.newCall(new Request.Builder().url(getUrl(path, context)).get().build()).execute().body().string();
+    public Payload esGet(final String path, Context context) throws IOException {
+        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).get().build()).execute());
     }
 
     @Post("/:path")
-    public String esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
-        return http.newCall(new Request.Builder().url(getUrl(path, context)).post(new RequestBody() {
+    public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
+        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).post(new RequestBody() {
             @Override
             public MediaType contentType() {
                 return MediaType.parse(request.contentType());
@@ -47,7 +44,7 @@ public class SearchResource {
             public void writeTo(BufferedSink bufferedSink) throws IOException {
                 bufferedSink.write(request.contentAsBytes());
             }
-        }).build()).execute().body().string();
+        }).build()).execute());
     }
 
     @Put("/createIndex")
@@ -59,17 +56,22 @@ public class SearchResource {
     }
 
     @Head("/:path")
-    public String esHead(final String path, Context context) throws IOException {
-        return http.newCall(new Request.Builder().url(getUrl(path, context)).head().build()).execute().body().string();
+    public Payload esHead(final String path, Context context) throws IOException {
+        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).head().build()).execute());
     }
 
     @Options("/:path")
-    public String esOptions(final String path, Context context) throws IOException {
-        return http.newCall(new Request.Builder().url(getUrl(path, context)).method("OPTIONS", null).build()).execute().body().string();
+    public Payload esOptions(final String path, Context context) throws IOException {
+        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).method("OPTIONS", null).build()).execute());
     }
 
     @NotNull
     private String getUrl(String path, Context context) {
         return context.currentUser() == null ? es_url + "/" + path : es_url + "/" + context.currentUser().login() + "-" + path;
+    }
+
+    @NotNull
+    private Payload createPayload(Response esResponse) throws IOException {
+        return new Payload(esResponse.header("Content-Type"), esResponse.body().string(), esResponse.code());
     }
 }
