@@ -64,7 +64,7 @@ public class TaskResource {
 
     @Post("/scan/file/:filePath")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
-        Path path = get(filePath.replace("|", "/"));// hack : see https://github.com/CodeStory/fluent-http/pull/143
+        Path path = get("/", filePath);
         Options<String> options = optionsWrapper.asOptions();
         return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, options)));
     }
