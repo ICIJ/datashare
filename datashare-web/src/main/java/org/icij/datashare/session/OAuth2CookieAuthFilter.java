@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
+import static java.util.Optional.ofNullable;
 import static org.icij.datashare.session.OAuth2User.fromJson;
 
 public class OAuth2CookieAuthFilter extends CookieAuthFilter {
@@ -35,6 +36,7 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     public static final String REQUEST_CODE_KEY = "code";
     public static final String REQUEST_STATE_KEY = "state";
 
+    private final Integer oauthTtl;
     private final String oauthClientSecret;
     private final String oauthApiUrl;
     private final String oauthLoginPath;
@@ -53,6 +55,7 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
         this.oauthClientSecret = propertiesProvider.get("oauthClientSecret").orElse("");
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthLoginPath = propertiesProvider.get("oauthLoginPath").orElse("/auth/login");
+        this.oauthTtl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
         logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
                 oauthAuthorizeUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthLoginPath);
         if (this.oauthCallbackPath.startsWith(this.oauthLoginPath)) {
@@ -114,12 +117,10 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
         return hexState;
     }
 
-    @Override
-    protected Payload signout(Context context) {
+    @Override protected Payload signout(Context context) {
         return super.signout(context);
     }
-
-    @Override
-    protected String cookieName() { return "_ds_session_id";}
+    @Override protected String cookieName() { return "_ds_session_id";}
+    @Override protected int expiry() { return oauthTtl;}
     private RedisUsers redisUsers() { return (RedisUsers) users;}
 }
