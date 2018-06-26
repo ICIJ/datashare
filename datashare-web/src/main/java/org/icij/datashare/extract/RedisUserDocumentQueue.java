@@ -6,6 +6,7 @@ import org.icij.extract.redis.RedisDocumentQueue;
 import org.icij.task.Option;
 import org.icij.task.Options;
 import org.icij.task.StringOptionParser;
+import org.redisson.RedissonShutdownException;
 
 public class RedisUserDocumentQueue extends RedisDocumentQueue {
     private static final String QUEUE_NAME = "queueName";
@@ -22,5 +23,14 @@ public class RedisUserDocumentQueue extends RedisDocumentQueue {
         return userOptions.createFrom(
                 new Options<String>()
                         .add(new Option<>(QUEUE_NAME, StringOptionParser::new).update(userQueueName)));
+    }
+
+    @Override
+    public int size() {
+        try {
+            return super.size();
+        } catch (RedissonShutdownException e) {
+            return -1;
+        }
     }
 }
