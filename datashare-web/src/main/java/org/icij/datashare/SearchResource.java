@@ -16,7 +16,7 @@ import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.forbidden;
 import static net.codestory.http.payload.Payload.ok;
 
-@Prefix("/search")
+@Prefix("/api/search")
 public class SearchResource {
     private final String es_url;
     private final Indexer indexer;

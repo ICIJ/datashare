@@ -26,7 +26,7 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.nlp.Pipeline.Type.valueOf;
 
-@Prefix("/task")
+@Prefix("/api/task")
 public class TaskResource {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private TaskFactory taskFactory;
