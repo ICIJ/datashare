@@ -96,10 +96,12 @@ public class TaskResourceTest implements FluentRestTest {
 
         response.should().haveType("application/json");
         verify(taskFactory).createIndexTask(null, Options.from(new HashMap<String, String>() {{
+            put("global", "value");
             put("key1", "val1");
             put("key2", "val2");
         }}));
         verify(taskFactory).createScanTask(null, Paths.get(path), Options.from(new HashMap<String, String>() {{
+            put("global", "value");
             put("key1", "val1");
             put("key2", "val2");
         }}));
@@ -131,6 +133,7 @@ public class TaskResourceTest implements FluentRestTest {
         verify(taskFactory).createScanTask(null, Paths.get(path), Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
+            put("global", "value");
         }}));
         verify(taskFactory, never()).createIndexTask(any(User.class), any(Options.class));
     }
@@ -146,7 +149,10 @@ public class TaskResourceTest implements FluentRestTest {
         verify(taskFactory).createResumeNlpTask(null, "OPENNLP");
 
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
-        verify(taskFactory).createNlpTask(eq(null), pipelineArgumentCaptor.capture(), eq(new Properties()));
+
+        Properties properties = new Properties();
+        properties.put("global", "value");
+        verify(taskFactory).createNlpTask(eq(null), pipelineArgumentCaptor.capture(), eq(properties));
         assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
     }
 
@@ -190,7 +196,9 @@ public class TaskResourceTest implements FluentRestTest {
             bind(TaskFactory.class).toInstance(taskFactory);
             bind(Indexer.class).toInstance(mock(Indexer.class));
             bind(TaskManager.class).to(DummyTaskManager.class).asEagerSingleton();
-            bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new Properties()));
+            bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new HashMap<String, String>() {{
+                put("global", "value");
+            }}));
         }
     }
 

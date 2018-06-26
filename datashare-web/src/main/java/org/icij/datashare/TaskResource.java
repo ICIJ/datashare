@@ -25,6 +25,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.nlp.Pipeline.Type.valueOf;
+import static org.icij.task.Options.from;
 
 @Prefix("/api/task")
 public class TaskResource {
@@ -58,14 +59,14 @@ public class TaskResource {
     @Post("/index/file/:filePath")
     public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
-        Options<String> options = optionsWrapper.asOptions();
+        Options<String> options = from(propertiesProvider.createMerged(optionsWrapper.asProperties()));
         return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask((User) context.currentUser(), options))));
     }
 
     @Post("/scan/file/:filePath")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         Path path = get("/", filePath);
-        Options<String> options = optionsWrapper.asOptions();
+        Options<String> options = from(propertiesProvider.createMerged(optionsWrapper.asProperties()));
         return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, options)));
     }
 
@@ -79,9 +80,7 @@ public class TaskResource {
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipeline).getClassName());
 
-        Properties properties = new Properties();
-        optionsWrapper.getOptions().forEach(properties::setProperty);
-        Properties mergedProps = propertiesProvider.createMerged(properties);
+        Properties mergedProps = propertiesProvider.createMerged(optionsWrapper.asProperties());
 
         AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
         TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), abstractPipeline, mergedProps));
