@@ -6,3 +6,4 @@ dependency-reduced-pom.xml
 dist/
 logs/
 app
+pom.xml.versionsBackup
