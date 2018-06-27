@@ -41,6 +41,9 @@ public class OAuth2User extends User implements net.codestory.http.security.User
     @Override public String login() { return userMap.get("uid");}
     @Override public String name() { return userMap.get("name");}
     @Override public String[] roles() { return new String[0];}
+    public static OAuth2User local() {
+        return new OAuth2User(new HashMap<String, String>() {{ put("uid", "local");}});
+    }
     public static Users singleUser(String name) {
         return new Users() {
             OAuth2User user = new OAuth2User(new HashMap<String, String>() {{

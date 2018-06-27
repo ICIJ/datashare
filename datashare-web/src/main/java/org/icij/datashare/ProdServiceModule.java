@@ -2,11 +2,14 @@ package org.icij.datashare;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import net.codestory.http.filters.Filter;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
 import org.elasticsearch.client.Client;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
+import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.OAuth2CookieAuthFilter;
 import org.icij.datashare.session.RedisSessionIdStore;
 import org.icij.datashare.session.RedisUsers;
 import org.icij.datashare.text.indexing.Indexer;
@@ -17,9 +20,9 @@ import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguage
 import java.util.Properties;
 
 import static java.lang.Boolean.parseBoolean;
-import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createIndex;
+import static org.icij.datashare.user.User.local;
 
 public class ProdServiceModule extends AbstractModule{
     private final Properties properties;
@@ -37,6 +40,9 @@ public class ProdServiceModule extends AbstractModule{
         if (parseBoolean(authProp)) {
             bind(Users.class).to(RedisUsers.class);
             bind(SessionIdStore.class).to(RedisSessionIdStore.class);
+            bind(Filter.class).to(OAuth2CookieAuthFilter.class).asEagerSingleton();
+        } else {
+            bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
         }
         Client esClient = createESClient(propertiesProvider);
         createIndex(esClient, local().indexName());

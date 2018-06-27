@@ -5,10 +5,12 @@ import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import net.codestory.http.WebServer;
+import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
+import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -32,6 +34,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.session.OAuth2User.local;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -95,12 +98,12 @@ public class TaskResourceTest implements FluentRestTest {
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(null, Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(local(), Options.from(new HashMap<String, String>() {{
             put("global", "value");
             put("key1", "val1");
             put("key2", "val2");
         }}));
-        verify(taskFactory).createScanTask(null, Paths.get(path), Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createScanTask(local(), Paths.get(path), Options.from(new HashMap<String, String>() {{
             put("global", "value");
             put("key1", "val1");
             put("key2", "val2");
@@ -112,11 +115,11 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/api/task/index/", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(null,  Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(local(),  Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}));
-        verify(taskFactory, never()).createScanTask(eq(null), any(Path.class), any(Options.class));
+        verify(taskFactory, never()).createScanTask(eq(local()), any(Path.class), any(Options.class));
     }
 
     @Test
@@ -130,7 +133,7 @@ public class TaskResourceTest implements FluentRestTest {
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
-        verify(taskFactory).createScanTask(null, Paths.get(path), Options.from(new HashMap<String, String>() {{
+        verify(taskFactory).createScanTask(local(), Paths.get(path), Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
             put("global", "value");
@@ -146,13 +149,13 @@ public class TaskResourceTest implements FluentRestTest {
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(2);
-        verify(taskFactory).createResumeNlpTask(null, "OPENNLP");
+        verify(taskFactory).createResumeNlpTask(local(), "OPENNLP");
 
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
 
         Properties properties = new Properties();
         properties.put("global", "value");
-        verify(taskFactory).createNlpTask(eq(null), pipelineArgumentCaptor.capture(), eq(properties));
+        verify(taskFactory).createNlpTask(eq(local()), pipelineArgumentCaptor.capture(), eq(properties));
         assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
     }
 
@@ -161,11 +164,11 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
         response.should().haveType("application/json");
 
-        verify(taskFactory).createResumeNlpTask(null,"OPENNLP");
+        verify(taskFactory).createResumeNlpTask(local(),"OPENNLP");
 
         ArgumentCaptor<AbstractPipeline> pipelineCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
         ArgumentCaptor<Properties> propertiesCaptor = ArgumentCaptor.forClass(Properties.class);
-        verify(taskFactory).createNlpTask(eq(null), pipelineCaptor.capture(), propertiesCaptor.capture());
+        verify(taskFactory).createNlpTask(eq(local()), pipelineCaptor.capture(), propertiesCaptor.capture());
         assertThat(propertiesCaptor.getValue()).includes(entry("key1", "val1"), entry("key2", "val2"));
 
         assertThat(pipelineCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
@@ -196,6 +199,7 @@ public class TaskResourceTest implements FluentRestTest {
             bind(TaskFactory.class).toInstance(taskFactory);
             bind(Indexer.class).toInstance(mock(Indexer.class));
             bind(TaskManager.class).to(DummyTaskManager.class).asEagerSingleton();
+            bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
             bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new HashMap<String, String>() {{
                 put("global", "value");
             }}));

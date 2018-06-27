@@ -24,7 +24,7 @@ public class ScanTask extends DefaultTask<Path> implements UserTask {
 
     @Inject
     public ScanTask(@Assisted User user, @Assisted Path path, @Assisted final Options<String> userOptions) {
-        this.path = user == null ? path: path.resolve(user.getPath());
+        this.path = path.resolve(user.getPath());
         this.user = user;
         Options<String> allOptions = options().createFrom(userOptions);
         queue = new RedisUserDocumentQueue(user, userOptions);

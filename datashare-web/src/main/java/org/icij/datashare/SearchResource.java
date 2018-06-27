@@ -13,7 +13,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 
 import static net.codestory.http.payload.Payload.created;
-import static net.codestory.http.payload.Payload.forbidden;
 import static net.codestory.http.payload.Payload.ok;
 
 @Prefix("/api/search")
@@ -49,9 +48,6 @@ public class SearchResource {
 
     @Put("/createIndex")
     public Payload createIndex(Context context) {
-        if (context.currentUser() == null) {
-            return forbidden();
-        }
         return indexer.createIndex(((User)context.currentUser()).indexName()) ? created() : ok();
     }
 
@@ -67,7 +63,7 @@ public class SearchResource {
 
     @NotNull
     private String getUrl(String path, Context context) {
-        return context.currentUser() == null ? es_url + "/" + path : es_url + "/" + context.currentUser().login() + "-" + path;
+        return es_url + "/" + context.currentUser().login() + "-" + path;
     }
 
     @NotNull

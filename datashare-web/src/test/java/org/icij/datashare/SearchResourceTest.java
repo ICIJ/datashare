@@ -5,6 +5,7 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.security.Users;
 import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.OAuth2User;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
@@ -36,14 +37,14 @@ public class SearchResourceTest implements FluentRestTest {
     public void test_no_auth_get_forward_request_to_elastic() {
         get("/api/search/foo/bar").should().respond(200)
                 .contain("I am elastic GET")
-                .contain("uri=foo/bar");
+                .contain("uri=local-foo/bar");
     }
     @Test
     public void test_no_auth_post_forward_request_to_elastic_with_body() {
         String body = "{\"body\": \"es\"}";
         post("/api/search/foo/bar", body).should().respond(200)
                         .contain("I am elastic POST")
-                        .contain("uri=foo/bar")
+                        .contain("uri=local-foo/bar")
                         .contain(body);
     }
     @Test
@@ -63,8 +64,9 @@ public class SearchResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_put_doesnt_create_index_if_no_user_in_context() throws Exception {
-        put("/api/search/createIndex").should().respond(403);
+    public void test_put_create_local_index_in_local_mode() throws Exception {
+        put("/api/search/createIndex").should().respond(200);
+        verify(mockIndexer).createIndex("local-datashare");
     }
 
     @Test
@@ -87,14 +89,14 @@ public class SearchResourceTest implements FluentRestTest {
 
     @Before
     public void setUp() {
+        initMocks(this);
         server.configure(routes -> routes.add(new SearchResource(new PropertiesProvider(new HashMap<String, String>() {{
             put("elasticsearchUrl", "http://localhost:" + mockElastic.port());
-        }}), mockIndexer)));
+        }}), mockIndexer)).filter(new LocalUserFilter(new PropertiesProvider())));
         mockElastic.configure(routes -> routes
             .get("/:uri", (context, uri) -> "I am elastic GET uri=" + uri)
             .post("/:uri", (context, uri) -> "I am elastic POST uri=" + uri + " " + new String(context.request().contentAsBytes()))
         );
-        initMocks(this);
     }
 }
 
