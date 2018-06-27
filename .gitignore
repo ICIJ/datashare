@@ -5,4 +5,4 @@ dependency-reduced-pom.xml
 *.iml
 dist/
 logs/
-app/
+app
