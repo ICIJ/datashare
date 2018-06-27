@@ -13,7 +13,7 @@
           "type": "integer"
         },
         "path": {
-          "type": "text"
+          "type": "keyword"
         },
         "contentLength": {
           "type": "integer"
