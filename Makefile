@@ -17,6 +17,9 @@ dist:
 install:
 		mvn install
 
+version:
+		mvn versions:set -Dnew
+
 docker: $(DIST_TARGET)
 		cp -a $(PATH_TO_APP_DIST) $(DIST_TARGET)/app || exit 1
 		docker build -t icij/datashare:$(VERSION) $(DIST_TARGET)
