@@ -1,6 +1,6 @@
 #!/bin/bash
 
-datashare_version=0.7
+datashare_version=0.8
 redis_container_name=redis:4.0.1-alpine
 elasticsearch_container_name=docker.elastic.co/elasticsearch/elasticsearch:6.1.0
 
