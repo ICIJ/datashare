@@ -32,6 +32,7 @@ services:
       - /tmp/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
     ports:
       - "9200:9200"
+      - "9300:9300"
 EOF
 }
 

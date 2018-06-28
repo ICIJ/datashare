@@ -4,9 +4,6 @@ PATH_TO_APP_DIST=../datashare-client/dist/
 
 $(DIST_TARGET): dist
 
-run: | $(DIST_TARGET)
-		java -cp "$(DIST_TARGET)/lib/*" org.icij.datashare.cli.DatashareCli
-
 clean:
 		mvn clean
 
