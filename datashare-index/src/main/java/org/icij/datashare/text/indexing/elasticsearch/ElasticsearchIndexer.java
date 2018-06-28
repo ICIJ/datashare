@@ -76,7 +76,7 @@ public class ElasticsearchIndexer implements Indexer {
                         .endObject()).routing(routing));
         bulkRequest.add(new UpdateRequest(indexName, esCfg.indexType, parent.getId())
                 .script(new Script(ScriptType.INLINE, "painless",
-                        "if (!ctx._source.nerTags.contains(params.nerTag)) ctx._source.nerTags.add(params.nerTag)",
+                        "if (!ctx._source.nerTags.contains(params.nerTag)) ctx._source.nerTags.add(params.nerTag);",
                         new HashMap<String, Object>() {{put("nerTag", nerType.toString());}})).routing(routing));
 
         for (Entity child : namedEntities) {

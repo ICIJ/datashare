@@ -1,8 +1,8 @@
 #!/bin/bash
 
 datashare_version=0.8
-redis_container_name=redis:4.0.1-alpine
-elasticsearch_container_name=docker.elastic.co/elasticsearch/elasticsearch:6.1.0
+redis_image=redis:4.0.1-alpine
+elasticsearch_image=docker.elastic.co/elasticsearch/elasticsearch:6.3.0
 
 function create_elasticsearch_config_file {
 cat > /tmp/elasticsearch.yml << EOF
@@ -24,10 +24,10 @@ cat > /tmp/datashare.yml << EOF
 version: '2'
 services:
   redis:
-    image: ${redis_container_name}
+    image: ${redis_image}
 
   elasticsearch:
-    image: ${elasticsearch_container_name}
+    image: ${elasticsearch_image}
     volumes:
       - /tmp/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
     ports:
