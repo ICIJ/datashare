@@ -125,6 +125,14 @@ final class DatashareCliOptions {
                 .defaultsTo("elasticsearch:9300");
     }
 
+    static OptionSpec<String> esHost(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("elasticsearchAddress"), "Elasticsearch host address")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo("http://elasticsearch:9200");
+    }
+
     static OptionSpec<String> indexName(OptionParser parser) {
         return parser.acceptsAll(
                 asList("indexName", "n"), "Index name")

@@ -50,7 +50,7 @@ public class SearchResourceTest implements FluentRestTest {
     @Test
     public void test_auth_forward_request_with_user_login_as_index_prefix() {
         server.configure(routes -> routes.add(new SearchResource(new PropertiesProvider(new HashMap<String, String>() {{
-                    put("elasticsearchUrl", "http://localhost:" + mockElastic.port());
+                    put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
                 }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", Users.singleUser("cecile","pass"))));
 
         get("/api/search/index_name/foo/bar").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
@@ -72,7 +72,7 @@ public class SearchResourceTest implements FluentRestTest {
     @Test
     public void test_get_returns_backend_status_405() {
         server.configure(routes -> routes.add(new SearchResource(new PropertiesProvider(new HashMap<String, String>() {{
-                                    put("elasticsearchUrl", "http://localhost:" + mockElastic.port());
+                                    put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
                                 }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", OAuth2User.singleUser("cecile"))));
 
         put("/api/search/unknown").withPreemptiveAuthentication("cecile", "pass").should().respond(405);
@@ -81,7 +81,7 @@ public class SearchResourceTest implements FluentRestTest {
     @Test
     public void test_put_createIndex_calls_indexer() throws Exception {
         server.configure(routes -> routes.add(new SearchResource(new PropertiesProvider(new HashMap<String, String>() {{
-                            put("elasticsearchUrl", "http://localhost:" + mockElastic.port());
+                            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
                         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", OAuth2User.singleUser("cecile"))));
         put("/api/search/createIndex").withPreemptiveAuthentication("cecile", "pass").should().respond(200);
         verify(mockIndexer).createIndex("cecile-datashare");
@@ -91,7 +91,7 @@ public class SearchResourceTest implements FluentRestTest {
     public void setUp() {
         initMocks(this);
         server.configure(routes -> routes.add(new SearchResource(new PropertiesProvider(new HashMap<String, String>() {{
-            put("elasticsearchUrl", "http://localhost:" + mockElastic.port());
+            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new LocalUserFilter(new PropertiesProvider())));
         mockElastic.configure(routes -> routes
             .get("/:uri", (context, uri) -> "I am elastic GET uri=" + uri)

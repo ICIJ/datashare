@@ -23,7 +23,7 @@ public class SearchResource {
 
     @Inject
     public SearchResource(PropertiesProvider propertiesProvider, Indexer indexer) {
-        this.es_url = propertiesProvider.get("elasticsearchUrl").orElse("http://elasticsearch:9200");
+        this.es_url = propertiesProvider.get("elasticsearchAddress").orElse("http://elasticsearch:9200");
         this.indexer = indexer;
     }
 
