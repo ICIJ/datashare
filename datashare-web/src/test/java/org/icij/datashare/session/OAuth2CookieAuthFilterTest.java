@@ -25,7 +25,7 @@ public class OAuth2CookieAuthFilterTest implements FluentRestTest {
         put("oauthTokenUrl", "http://localhost:" + xemx.port() + "/oauth/token");
         put("oauthAuthorizeUrl", "http://localhost:" + xemx.port() + "/oauth/authorize");
         put("oauthApiUrl", "http://localhost:" + xemx.port() + "/api/v1/me.json");
-        put("oauthLoginPath", "/auth/login");
+        put("oauthSigninPath", "/auth/signin");
         put("oauthClientId", "12345");
         put("oauthClientSecret", "abcdef");
         put("oauthCallbackPath", "/auth/callback");
@@ -36,14 +36,14 @@ public class OAuth2CookieAuthFilterTest implements FluentRestTest {
     @Test(expected = IllegalStateException.class)
     public void test_callback_url_should_not_start_with_login_url() {
         oAuth2Filter = new OAuth2CookieAuthFilter(new PropertiesProvider(new HashMap<String, String>() {{
-            put("oauthLoginPath", "/auth/login/");
+            put("oauthSigninPath", "/auth/login/");
             put("oauthCallbackPath", "/auth/login/callback");
         }}), new RedisUsers(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
     }
 
     @Test
     public void test_redirect_to_authorization_server() {
-        this.get("/auth/login")
+        this.get("/auth/signin")
                 .should().contain("OAuth Authorize")
                 .should().contain("client=12345")
                 .should().contain("redirect_uri=http://localhost:" + datashare.port() + "/auth/callback")
@@ -52,21 +52,27 @@ public class OAuth2CookieAuthFilterTest implements FluentRestTest {
     }
 
     @Test
-    public void test_callback_should_return_bad_request_with_bad_args() throws Exception {
+    public void test_callback_should_return_bad_request_with_bad_args() {
         this.get("/auth/callback").should().respond(400);
         this.get("/auth/callback?code=1234").should().respond(400);
         this.post("/auth/callback?code=1234&state=123").should().respond(400);
     }
 
     @Test
-    public void test_callback_should_return_bad_request_when_state_is_wrong() throws Exception {
-        this.get("/auth/login").should().respond(200);
+    public void test_callback_should_return_bad_request_when_state_is_wrong() {
+        this.get("/auth/signin").should().respond(200);
         this.get("/auth/callback?code=1234&state=unknown").should().respond(400);
     }
 
     @Test
-    public void test_callback_should_call_api_with_code_and_state() throws Exception {
-        Response response = this.get("/auth/login").response();
+    public void test_get_post_should_return_unauthorized() {
+        this.get("/protected").should().respond(401);
+        this.post("/protected").should().respond(401);
+    }
+
+    @Test
+    public void test_callback_should_call_api_with_code_and_state() {
+        Response response = this.get("/auth/signin").response();
         this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + getState(response.content())).should().respond(200)
                 .contain("hello Nobody")
                 .contain("uid=123");

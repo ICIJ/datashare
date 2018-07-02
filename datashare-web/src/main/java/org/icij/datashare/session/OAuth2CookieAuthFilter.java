@@ -39,7 +39,7 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     private final Integer oauthTtl;
     private final String oauthClientSecret;
     private final String oauthApiUrl;
-    private final String oauthLoginPath;
+    private final String oauthSigninPath;
     private final String oauthCallbackPath;
     private final String oauthAuthorizeUrl;
     private final String oauthTokenUrl;
@@ -54,12 +54,12 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
         this.oauthClientId = propertiesProvider.get("oauthClientId").orElse("");
         this.oauthClientSecret = propertiesProvider.get("oauthClientSecret").orElse("");
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
-        this.oauthLoginPath = propertiesProvider.get("oauthLoginPath").orElse("/auth/login");
+        this.oauthSigninPath = propertiesProvider.get("oauthSigninPath").orElse("/auth/signin");
         this.oauthTtl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
         logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
-                oauthAuthorizeUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthLoginPath);
-        if (this.oauthCallbackPath.startsWith(this.oauthLoginPath)) {
-            throw new IllegalStateException(format("oauthCallbackPath (%s) cannot start with oauthLoginPath (%s)", oauthCallbackPath, oauthLoginPath));
+                oauthAuthorizeUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthSigninPath);
+        if (this.oauthCallbackPath.startsWith(this.oauthSigninPath)) {
+            throw new IllegalStateException(format("oauthCallbackPath (%s) cannot start with oauthSigninPath (%s)", oauthCallbackPath, oauthSigninPath));
         }
         this.defaultOauthApi = new DefaultApi20() {
             @Override public String getAccessTokenEndpoint() { return oauthTokenUrl;}
@@ -69,7 +69,7 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
 
     @Override
     protected Payload authenticationUri(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
-        if (uri.startsWith(oauthLoginPath) && "GET".equals(context.method())) {
+        if (uri.startsWith(oauthSigninPath) && "GET".equals(context.method())) {
             return this.signin(context);
         } else if (uri.startsWith(oauthCallbackPath)) {
             return this.callback(context);
@@ -122,5 +122,7 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     }
     @Override protected String cookieName() { return "_ds_session_id";}
     @Override protected int expiry() { return oauthTtl;}
+    @Override protected boolean redirectToLogin(String uri) { return false;}
+
     private RedisUsers redisUsers() { return (RedisUsers) users;}
 }
