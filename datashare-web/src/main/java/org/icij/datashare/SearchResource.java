@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
+import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
 import okhttp3.*;
@@ -12,6 +13,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 
+import static java.lang.String.join;
+import static java.util.stream.Collectors.toList;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
 
@@ -63,7 +66,15 @@ public class SearchResource {
 
     @NotNull
     private String getUrl(String path, Context context) {
-        return es_url + "/" + context.currentUser().login() + "-" + path;
+        String s = es_url + "/" + context.currentUser().login() + "-" + path;
+        if (context.query().keyValues().size() > 0) {
+            s += "?" + getQueryAsString(context.query());
+        }
+        return s;
+    }
+
+    static String getQueryAsString(final Query query) {
+        return join("&", query.keyValues().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(toList()));
     }
 
     @NotNull

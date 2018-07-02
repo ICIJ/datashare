@@ -14,6 +14,7 @@ import org.mockito.Mock;
 
 import java.util.HashMap;
 
+import static org.icij.datashare.SearchResource.getQueryAsString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -53,8 +54,8 @@ public class SearchResourceTest implements FluentRestTest {
                     put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
                 }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", Users.singleUser("cecile","pass"))));
 
-        get("/api/search/index_name/foo/bar").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
-                .contain("uri=cecile-index_name/foo/bar");
+        get("/api/search/index_name/foo/bar?routing=baz").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
+                .contain("uri=cecile-index_name/foo/bar?routing=baz");
         post("/api/search/index_name/foo/bar").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
                 .contain("uri=cecile-index_name/foo/bar");
     }
@@ -94,7 +95,7 @@ public class SearchResourceTest implements FluentRestTest {
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new LocalUserFilter(new PropertiesProvider())));
         mockElastic.configure(routes -> routes
-            .get("/:uri", (context, uri) -> "I am elastic GET uri=" + uri)
+            .get("/:uri", (context, uri) -> "I am elastic GET uri=" + uri + "?" + getQueryAsString(context.query()))
             .post("/:uri", (context, uri) -> "I am elastic POST uri=" + uri + " " + new String(context.request().contentAsBytes()))
         );
     }
