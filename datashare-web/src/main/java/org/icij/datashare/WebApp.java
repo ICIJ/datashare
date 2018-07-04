@@ -20,6 +20,9 @@ public class WebApp {
 
     static Configuration getConfiguration(final Injector injector) {
         return routes -> routes
+                .get("/config",
+                        injector.getInstance(PropertiesProvider.class).
+                                getFilteredProperties(".*Address.*", ".*Secret.*"))
                 .add(injector.getInstance(TaskResource.class))
                 .add(injector.getInstance(SearchResource.class))
                 .setExtensions(new Extensions() {

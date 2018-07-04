@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.Properties;
 
 import static java.util.Optional.empty;
@@ -47,5 +48,21 @@ public class PropertiesProviderTest {
 
         assertThat(merged).includes(entry("foo", "baz"), entry("messageBusAddress", "redis"), entry("bar", "qux"));
         assertThat(propertiesProvider.getProperties()).excludes(entry("foo", "baz"), entry("bar", "qux"));
+    }
+
+    @Test
+    public void test_filtered_properties() throws Exception {
+        PropertiesProvider provider = new PropertiesProvider(new HashMap<String, String>() {{
+            put("foo", "fop");
+            put("bar", "bap");
+            put("baz", "bap");
+        }});
+        assertThat(provider.getFilteredProperties("ba.*")).
+                excludes(entry("bar", "bap"), entry("baz", "bap")).
+                includes(entry("foo", "fop"));
+        assertThat(provider.getFilteredProperties(".o.")).
+                includes(entry("bar", "bap"), entry("baz", "bap")).
+                excludes(entry("foo", "fop"));
+        assertThat(provider.getFilteredProperties("b.*", ".*o")).isEmpty();
     }
 }

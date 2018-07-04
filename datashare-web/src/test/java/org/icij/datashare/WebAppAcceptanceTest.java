@@ -29,4 +29,9 @@ public class WebAppAcceptanceTest implements FluentRestTest {
     public void test_root_serve_app() {
         get("/").should().contain("<title>datashare-client</title>");
     }
+
+    @Test
+    public void test_get_config() throws Exception {
+        get("/config").should().contain("\"clusterName\":\"datashare\"");
+    }
 }

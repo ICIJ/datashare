@@ -6,8 +6,13 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.regex.Pattern;
+
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toMap;
 
 public class PropertiesProvider {
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -58,5 +63,11 @@ public class PropertiesProvider {
         Properties mergedProperties = (Properties) getProperties().clone();
         mergedProperties.putAll(properties);
         return mergedProperties;
+    }
+
+    public Map<String, Object> getFilteredProperties(String... excludedKeyPatterns) {
+        return getProperties().entrySet().
+                stream().filter(e -> stream(excludedKeyPatterns).noneMatch(s -> Pattern.matches(s, (String)e.getKey()))).
+                collect(toMap(e -> (String)e.getKey(), Map.Entry::getValue));
     }
 }
