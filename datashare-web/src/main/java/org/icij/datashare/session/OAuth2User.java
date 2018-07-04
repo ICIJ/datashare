@@ -18,6 +18,11 @@ public class OAuth2User extends User implements net.codestory.http.security.User
         this.userMap = userMap;
     }
 
+    OAuth2User(final String login) {
+        super(login);
+        this.userMap = new HashMap<>();
+    }
+
     public static OAuth2User fromJson(String json) {
         HashMap hashMap = TypeConvert.fromJson(json, HashMap.class);
         return new OAuth2User(convert(hashMap));
@@ -44,13 +49,23 @@ public class OAuth2User extends User implements net.codestory.http.security.User
     public static OAuth2User local() {
         return new OAuth2User(new HashMap<String, String>() {{ put("uid", "local");}});
     }
+
     public static Users singleUser(String name) {
         return new Users() {
-            OAuth2User user = new OAuth2User(new HashMap<String, String>() {{
-                put("uid", name);
-            }});
+            OAuth2User user = new OAuth2User(name);
             @Override public net.codestory.http.security.User find(String s, String s1) { return user;}
             @Override public net.codestory.http.security.User find(String s) { return user;}
+        };
+    }
+    public static Users users(String... logins) {
+        return new Users() {
+            Map<String, OAuth2User> users = new HashMap<String, OAuth2User>() {{
+                for (String login: logins) {
+                    put(login, new OAuth2User(login));
+                }
+            }};
+            @Override public net.codestory.http.security.User find(String s, String s1) { return users.get(s);}
+            @Override public net.codestory.http.security.User find(String s) { return users.get(s);}
         };
     }
 }

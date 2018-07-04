@@ -42,8 +42,8 @@ public class TaskResource {
     }
 
     @Get("/")
-    public List<TaskResponse> tasks() {
-        return taskManager.getTasks().stream().map(TaskResponse::new).collect(toList());
+    public List<TaskResponse> tasks(Context context) {
+        return taskManager.getTasks().stream().filter(t -> context.currentUser().equals(t.getUser())).map(TaskResponse::new).collect(toList());
     }
 
     @Get("/id/:id")
