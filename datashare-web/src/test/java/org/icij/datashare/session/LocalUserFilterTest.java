@@ -44,4 +44,14 @@ public class LocalUserFilterTest {
         verify(context).setCurrentUser(user.capture());
         assertThat(user.getValue().login()).isEqualTo("local");
     }
+
+    @Test
+    public void test_adds_cookie() throws Exception {
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider());
+        Payload payload = localUserFilter.apply("url", context, nextFilter);
+
+        assertThat(payload.cookies().size()).isEqualTo(1);
+        assertThat(payload.cookies().get(0).name()).isEqualTo("_ds_session_id");
+        assertThat(payload.cookies().get(0).value()).contains("\"login\":\"local\"");
+    }
 }

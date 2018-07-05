@@ -2,29 +2,30 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
-import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
+import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
+import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 
-import static org.icij.datashare.session.OAuth2User.local;
-
-public class LocalUserFilter implements Filter {
-    private final String protectedUriPrefix;
-
+public class LocalUserFilter extends CookieAuthFilter {
     @Inject
     public LocalUserFilter(final PropertiesProvider propertiesProvider) {
-        protectedUriPrefix = propertiesProvider.get("protectedUrPrefix").orElse("/");
+        super(propertiesProvider.get("protectedUrPrefix").orElse("/"), OAuth2User.singleUser("local"), SessionIdStore.inMemory());
     }
 
     @Override
-    public Payload apply(String s, Context context, PayloadSupplier payloadSupplier) throws Exception {
-        context.setCurrentUser(local());
-        return payloadSupplier.get();
+    public Payload otherUri(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
+        String sessionId = readSessionIdInCookie(context);
+        context.setCurrentUser(users.find("local"));
+        if (sessionId == null) {
+            return nextFilter.get().withCookie(this.authCookie(this.buildCookie(users.find("local"), "/")));
+        } else {
+            return nextFilter.get();
+        }
     }
 
-    @Override
-    public boolean matches(String uri, Context context) {
-        return uri.startsWith(protectedUriPrefix);
-    }
+    @Override protected String cookieName() { return "_ds_session_id";}
+    @Override protected int expiry() { return Integer.MAX_VALUE;}
+    @Override protected boolean redirectToLogin(String uri) { return false;}
 }

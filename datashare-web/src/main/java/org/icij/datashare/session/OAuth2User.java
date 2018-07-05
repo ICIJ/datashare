@@ -19,8 +19,7 @@ public class OAuth2User extends User implements net.codestory.http.security.User
     }
 
     OAuth2User(final String login) {
-        super(login);
-        this.userMap = new HashMap<>();
+        this(new HashMap<String, String>() {{ put("uid", login); }});
     }
 
     public static OAuth2User fromJson(String json) {
@@ -43,11 +42,11 @@ public class OAuth2User extends User implements net.codestory.http.security.User
         return result;
     }
 
-    @Override public String login() { return userMap.get("uid");}
+    @Override public String login() { return id;}
     @Override public String name() { return userMap.get("name");}
     @Override public String[] roles() { return new String[0];}
     public static OAuth2User local() {
-        return new OAuth2User(new HashMap<String, String>() {{ put("uid", "local");}});
+        return new OAuth2User("local");
     }
 
     public static Users singleUser(String name) {
