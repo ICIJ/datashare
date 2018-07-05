@@ -32,7 +32,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
 public class CliApp {
-    static Logger logger = LoggerFactory.getLogger(CliApp.class);
+    static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
     public static void start(Properties properties) throws Exception {
         Injector injector = createInjector(new ProdServiceModule(properties));
@@ -62,8 +62,6 @@ public class CliApp {
             taskManager.startTask(taskFactory.createIndexTask(local(), Options.from(properties)), () -> {
                 closeAndLogException(injector.getInstance(DocumentQueue.class)).run();
             });
-        } else {
-            injector.getInstance(DocumentQueue.class).close();
         }
 
         if (stages.contains(DatashareCli.Stage.NLP)) {
