@@ -8,6 +8,7 @@ import net.codestory.http.WebServer;
 import net.codestory.http.extensions.Extensions;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
+import net.codestory.http.routes.Routes;
 
 import java.util.Properties;
 
@@ -19,19 +20,26 @@ public class WebApp {
     }
 
     static Configuration getConfiguration(final Injector injector) {
-        return routes -> routes
-                .get("/config",
-                        injector.getInstance(PropertiesProvider.class).
-                                getFilteredProperties(".*Address.*", ".*Secret.*"))
-                .add(injector.getInstance(TaskResource.class))
-                .add(injector.getInstance(SearchResource.class))
-                .setExtensions(new Extensions() {
-                    @Override
-                    public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
-                        defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-                        return defaultObjectMapper;
-                    }
-                }).filter(injector.getInstance(Filter.class));
+        Configuration configuration = routes -> {
+            Routes rts = routes.get("/config",
+                    injector.getInstance(PropertiesProvider.class).
+                            getFilteredProperties(".*Address.*", ".*Secret.*"))
+                    .add(injector.getInstance(TaskResource.class))
+                    .add(injector.getInstance(SearchResource.class))
+                    .setExtensions(new Extensions() {
+                        @Override
+                        public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
+                            defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+                            return defaultObjectMapper;
+                        }
+                    }).filter(injector.getInstance(Filter.class));
+
+            String cors = injector.getInstance(PropertiesProvider.class).get("cors").orElse("no-cors");
+            if (!cors.equals("no-cors")) {
+                rts.filter(new CorsFilter(cors));
+            }
+        };
+        return configuration;
 
     }
 

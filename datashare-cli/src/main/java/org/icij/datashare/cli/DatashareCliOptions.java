@@ -44,6 +44,14 @@ final class DatashareCliOptions {
         return parser.acceptsAll(singletonList("auth"), "Run as a web server with authentication (needs the web option)").availableIf("w");
     }
 
+    public static OptionSpec<String> cors(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList("cors"), "CORS headers (needs the web option)")
+                        .withRequiredArg()
+                        .ofType(String.class)
+                        .defaultsTo("no-cors");
+    }
+
     static OptionSpecBuilder resume(OptionParser parser) {
         return parser.acceptsAll(asList(RESUME_OPT, "r"), "Resume pending operations");
     }
