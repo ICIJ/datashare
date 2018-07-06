@@ -25,6 +25,8 @@ version: '2'
 services:
   redis:
     image: ${redis_image}
+    ports:
+      - 6379:6379
 
   elasticsearch:
     image: ${elasticsearch_image}
