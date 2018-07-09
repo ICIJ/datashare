@@ -91,6 +91,16 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_index_and_scan_default_directory() {
+        RestAssert response = post("/api/task/index/file", "{}");
+
+        response.should().respond(200).haveType("application/json");
+        verify(taskFactory).createScanTask(local(), Paths.get("/default/data/dir"), Options.from(new HashMap<String, String>() {{
+            put("dataDir", "/default/data/dir");
+        }}));
+    }
+
+    @Test
     public void test_index_and_scan_directory_with_options() {
         String path = getClass().getResource("/docs/").getPath();
 
@@ -99,12 +109,12 @@ public class TaskResourceTest implements FluentRestTest {
 
         response.should().haveType("application/json");
         verify(taskFactory).createIndexTask(local(), Options.from(new HashMap<String, String>() {{
-            put("global", "value");
+            put("dataDir", "/default/data/dir");
             put("key1", "val1");
             put("key2", "val2");
         }}));
         verify(taskFactory).createScanTask(local(), Paths.get(path), Options.from(new HashMap<String, String>() {{
-            put("global", "value");
+            put("dataDir", "/default/data/dir");
             put("key1", "val1");
             put("key2", "val2");
         }}));
@@ -136,7 +146,7 @@ public class TaskResourceTest implements FluentRestTest {
         verify(taskFactory).createScanTask(local(), Paths.get(path), Options.from(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
-            put("global", "value");
+            put("dataDir", "/default/data/dir");
         }}));
         verify(taskFactory, never()).createIndexTask(any(User.class), any(Options.class));
     }
@@ -154,7 +164,7 @@ public class TaskResourceTest implements FluentRestTest {
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
 
         Properties properties = new Properties();
-        properties.put("global", "value");
+        properties.put("dataDir", "/default/data/dir");
         verify(taskFactory).createNlpTask(eq(local()), pipelineArgumentCaptor.capture(), eq(properties));
         assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
     }
@@ -201,7 +211,7 @@ public class TaskResourceTest implements FluentRestTest {
             bind(TaskManager.class).to(DummyTaskManager.class).asEagerSingleton();
             bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
             bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new HashMap<String, String>() {{
-                put("global", "value");
+                put("dataDir", "/default/data/dir");
             }}));
         }
     }

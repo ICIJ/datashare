@@ -56,6 +56,11 @@ public class TaskResource {
         return new TaskResponse(taskManager.startTask(taskFactory.createIndexTask((User) context.currentUser(), optionsWrapper.asOptions())));
     }
 
+    @Post("/index/file")
+    public List<TaskResponse> indexDefault(final OptionsWrapper optionsWrapper, Context context) {
+        return indexFile(propertiesProvider.getProperties().getProperty("dataDir"), optionsWrapper, context);
+    }
+
     @Post("/index/file/:filePath")
     public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
