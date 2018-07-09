@@ -59,7 +59,7 @@ final class DatashareCliOptions {
     static OptionSpec<File> dataDir(OptionParser parser) {
         return parser.acceptsAll(
                 asList(DATA_DIR_OPT, "d"),
-                "Source files directory." )
+                "Source files directory. WARN this directory must end with \"data\"" )
                 .withRequiredArg()
                 .ofType( File.class )
                 .defaultsTo(new File("/home/datashare/data"));

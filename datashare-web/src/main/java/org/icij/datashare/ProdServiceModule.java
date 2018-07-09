@@ -17,6 +17,7 @@ import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 
+import java.util.Map;
 import java.util.Properties;
 
 import static java.lang.Boolean.parseBoolean;
@@ -29,6 +30,11 @@ public class ProdServiceModule extends AbstractModule{
 
     public ProdServiceModule(Properties properties) {
         this.properties = properties;
+    }
+
+    public ProdServiceModule(final Map<String, String> properties) {
+        this.properties = new Properties();
+        this.properties.putAll(properties);
     }
 
     @Override

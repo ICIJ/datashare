@@ -7,6 +7,8 @@ import net.codestory.rest.FluentRestTest;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.HashMap;
+
 public class WebAppAcceptanceTest implements FluentRestTest {
     private static WebServer server = new WebServer() {
         @Override
@@ -22,7 +24,9 @@ public class WebAppAcceptanceTest implements FluentRestTest {
 
     @BeforeClass
     public static void setUpClass() {
-        server.configure(WebApp.getConfiguration(Guice.createInjector(new ProdServiceModule(null))));
+        server.configure(WebApp.getConfiguration(Guice.createInjector(new ProdServiceModule(new HashMap<String, String>() {{
+            put("dataDir", WebAppAcceptanceTest.class.getResource("/data").getPath());
+        }}))));
     }
 
     @Test
@@ -31,7 +35,13 @@ public class WebAppAcceptanceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_get_config() throws Exception {
+    public void test_get_config() {
         get("/config").should().contain("\"clusterName\":\"datashare\"");
+    }
+
+    @Test
+    public void test_get_file() {
+        get("/data/downloadDoc.txt").should().respond(200).
+                haveHeader("Content-Type", "text/plain;charset=UTF-8").contain("content of downloadDoc");
     }
 }
