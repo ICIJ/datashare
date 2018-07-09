@@ -19,7 +19,7 @@ final class DatashareCliOptions {
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
     private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors();
     static final String STAGES_OPT = "stages";
-    static final String SCANNING_INPUT_DIR_OPT = "inputDir";
+    static final String DATA_DIR_OPT = "dataDir";
     static final String NLP_PIPELINES_OPT = "nlpPipelines";
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String WEB_SERVER_OPT = "web";
@@ -56,9 +56,9 @@ final class DatashareCliOptions {
         return parser.acceptsAll(asList(RESUME_OPT, "r"), "Resume pending operations");
     }
 
-    static OptionSpec<File> inputDir(OptionParser parser) {
+    static OptionSpec<File> dataDir(OptionParser parser) {
         return parser.acceptsAll(
-                asList(SCANNING_INPUT_DIR_OPT, "i"),
+                asList(DATA_DIR_OPT, "d"),
                 "Source files directory." )
                 .withRequiredArg()
                 .ofType( File.class )

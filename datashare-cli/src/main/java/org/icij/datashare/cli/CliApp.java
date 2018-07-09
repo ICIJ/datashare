@@ -55,7 +55,7 @@ public class CliApp {
         }
 
         if (stages.contains(SCAN) && !resume(properties)) {
-            taskManager.startTask(taskFactory.createScanTask(local(), Paths.get(properties.getProperty(SCANNING_INPUT_DIR_OPT)), Options.from(properties)));
+            taskManager.startTask(taskFactory.createScanTask(local(), Paths.get(properties.getProperty(DATA_DIR_OPT)), Options.from(properties)));
         }
 
         if (stages.contains(INDEX)) {

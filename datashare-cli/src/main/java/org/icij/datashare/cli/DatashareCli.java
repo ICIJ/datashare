@@ -40,7 +40,7 @@ public final class DatashareCli {
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
         OptionSpec<DatashareCli.Stage> stagesOpt = DatashareCliOptions.stages(parser);
-        DatashareCliOptions.inputDir(parser);
+        DatashareCliOptions.dataDir(parser);
         DatashareCliOptions.enableOcr(parser);
         DatashareCliOptions.nlpPipelines(parser);
         DatashareCliOptions.resume(parser);
