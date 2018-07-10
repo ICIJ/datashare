@@ -1,6 +1,6 @@
 #!/bin/bash
 
-datashare_version=0.8
+datashare_version=0.9
 redis_image=redis:4.0.1-alpine
 elasticsearch_image=docker.elastic.co/elasticsearch/elasticsearch:6.3.0
 
@@ -64,4 +64,4 @@ dist_path=${dist_path:-/tmp/dist}
 wait_idx_is_up
 
 docker run -ti -p 8080:8080 --network datashare_default -e DS_JAVA_OPTS="${DS_JAVA_OPTS}" \
- -v ${data_path}:/home/datashare/data:ro -v ${dist_path}:/home/datashare/dist icij/datashare:${datashare_version} $@
+ -v ${data_path}:/home/datashare/data:ro -v ${dist_path}:/home/datashare/dist icij/datashare:${datashare_version} "$@"
