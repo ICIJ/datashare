@@ -23,27 +23,30 @@ public class WebApp {
     }
 
     static Configuration getConfiguration(final Injector injector) {
-        Configuration configuration = routes -> {
-            Routes rts = routes.get("/config",
-                    injector.getInstance(PropertiesProvider.class).
+        return routes -> {
+            Routes rts = routes
+                    .get("/config", injector.getInstance(PropertiesProvider.class).
                             getFilteredProperties(".*Address.*", ".*Secret.*"))
                     .add(injector.getInstance(TaskResource.class))
                     .add(injector.getInstance(SearchResource.class))
-                    .bind(UserDataFilter.DATA_URI_PREFIX, Paths.get(injector.getInstance(PropertiesProvider.class).get("dataDir").orElse("/home/datashare/data")).toFile())
+                    .bind(UserDataFilter.DATA_URI_PREFIX,
+                            Paths.get(injector.getInstance(PropertiesProvider.class).get("dataDir")
+                                    .orElse("/home/datashare/data")).toFile())
                     .setExtensions(new Extensions() {
                         @Override
                         public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
                             defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
                             return defaultObjectMapper;
                         }
-                    }).filter(injector.getInstance(Filter.class));
+                    })
+                    .filter(injector.getInstance(Filter.class))
+                    .filter(new UserDataFilter());
 
             String cors = injector.getInstance(PropertiesProvider.class).get("cors").orElse("no-cors");
             if (!cors.equals("no-cors")) {
                 rts.filter(new CorsFilter(cors));
             }
         };
-        return configuration;
 
     }
 

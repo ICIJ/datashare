@@ -41,7 +41,7 @@ public class WebAppAcceptanceTest implements FluentRestTest {
 
     @Test
     public void test_get_file() {
-        get("/data/downloadDoc.txt").should().respond(200).
+        get("/api/data/downloadDoc.txt").should().respond(200).
                 haveHeader("Content-Type", "text/plain;charset=UTF-8").contain("content of downloadDoc");
     }
 }
