@@ -9,6 +9,7 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.session.UserDataFilter;
 
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -16,6 +17,7 @@ import java.util.Properties;
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 
 public class WebApp {
+
     public static void main(String[] args) {
         start(null);
     }
@@ -27,7 +29,7 @@ public class WebApp {
                             getFilteredProperties(".*Address.*", ".*Secret.*"))
                     .add(injector.getInstance(TaskResource.class))
                     .add(injector.getInstance(SearchResource.class))
-                    .bind("/data", Paths.get(injector.getInstance(PropertiesProvider.class).get("dataDir").orElse("/home/datashare/data")).toFile())
+                    .bind(UserDataFilter.DATA_URI_PREFIX, Paths.get(injector.getInstance(PropertiesProvider.class).get("dataDir").orElse("/home/datashare/data")).toFile())
                     .setExtensions(new Extensions() {
                         @Override
                         public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
