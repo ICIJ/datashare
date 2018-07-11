@@ -46,12 +46,14 @@ public class OAuth2User extends User implements net.codestory.http.security.User
     @Override public String name() { return userMap.get("name");}
     @Override public String[] roles() { return new String[0];}
     public static OAuth2User local() {
-        return new OAuth2User("local");
+        return new OAuth2User("local") {
+            @Override public String[] roles() { return new String[] {"local"};}
+        };
     }
 
-    public static Users singleUser(String name) {
+    public static Users singleUser(String name) { return singleUser(new OAuth2User(name));}
+    public static Users singleUser(final OAuth2User user) {
         return new Users() {
-            OAuth2User user = new OAuth2User(name);
             @Override public net.codestory.http.security.User find(String s, String s1) { return user;}
             @Override public net.codestory.http.security.User find(String s) { return user;}
         };

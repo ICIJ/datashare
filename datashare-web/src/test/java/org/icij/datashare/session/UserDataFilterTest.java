@@ -6,6 +6,7 @@ import net.codestory.http.payload.Payload;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.session.OAuth2User.local;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -35,5 +36,12 @@ public class UserDataFilterTest {
         doReturn(new OAuth2User("user_id")).when(context).currentUser();
         Payload payload = userDataFilter.apply("/data/user2_id/foo/bar", context, nextFilter);
         assertThat(payload.code()).isEqualTo(401);
+    }
+
+    @Test
+    public void test_returns_next_when_in_local_mode() throws Exception {
+        doReturn(local()).when(context).currentUser();
+        Payload payload = userDataFilter.apply("/data/baz/foo/bar", context, nextFilter);
+        assertThat(payload).isSameAs(next);
     }
 }

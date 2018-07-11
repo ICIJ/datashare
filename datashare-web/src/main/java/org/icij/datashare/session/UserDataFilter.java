@@ -10,7 +10,7 @@ public class UserDataFilter implements Filter {
 
     @Override
     public Payload apply(String uri, Context context, PayloadSupplier payloadSupplier) throws Exception {
-        if (uri.startsWith(DATA_URI_PREFIX + context.currentUser().login())) {
+        if (uri.startsWith(DATA_URI_PREFIX + context.currentUser().login()) || context.currentUser().isInRole("local")) {
             return payloadSupplier.get();
         }
         return new Payload(401);

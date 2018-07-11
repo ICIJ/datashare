@@ -43,6 +43,7 @@ public class LocalUserFilterTest {
         assertThat(payload).isSameAs(next);
         verify(context).setCurrentUser(user.capture());
         assertThat(user.getValue().login()).isEqualTo("local");
+        assertThat(user.getValue().isInRole("local")).isTrue();
     }
 
     @Test
