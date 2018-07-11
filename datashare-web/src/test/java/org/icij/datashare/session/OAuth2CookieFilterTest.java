@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 
-public class OAuth2CookieAuthFilterTest implements FluentRestTest {
+public class OAuth2CookieFilterTest implements FluentRestTest {
     private static WebServer xemx = new WebServer() {
         @Override
         protected Env createEnv() { return Env.prod();}
@@ -30,12 +30,12 @@ public class OAuth2CookieAuthFilterTest implements FluentRestTest {
         put("oauthClientSecret", "abcdef");
         put("oauthCallbackPath", "/auth/callback");
     }});
-    static OAuth2CookieAuthFilter oAuth2Filter = new OAuth2CookieAuthFilter(propertiesProvider,
+    static OAuth2CookieFilter oAuth2Filter = new OAuth2CookieFilter(propertiesProvider,
             new RedisUsers(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
 
     @Test(expected = IllegalStateException.class)
     public void test_callback_url_should_not_start_with_login_url() {
-        oAuth2Filter = new OAuth2CookieAuthFilter(new PropertiesProvider(new HashMap<String, String>() {{
+        oAuth2Filter = new OAuth2CookieFilter(new PropertiesProvider(new HashMap<String, String>() {{
             put("oauthSigninPath", "/auth/login/");
             put("oauthCallbackPath", "/auth/login/callback");
         }}), new RedisUsers(propertiesProvider), new RedisSessionIdStore(propertiesProvider));

@@ -29,7 +29,7 @@ import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.session.OAuth2User.fromJson;
 
-public class OAuth2CookieAuthFilter extends CookieAuthFilter {
+public class OAuth2CookieFilter extends CookieAuthFilter {
     private final DefaultApi20 defaultOauthApi;
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -46,7 +46,7 @@ public class OAuth2CookieAuthFilter extends CookieAuthFilter {
     private final String oauthClientId;
 
     @Inject
-    public OAuth2CookieAuthFilter(PropertiesProvider propertiesProvider, RedisUsers users, SessionIdStore sessionIdStore) {
+    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, RedisUsers users, SessionIdStore sessionIdStore) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
         this.oauthAuthorizeUrl = propertiesProvider.get("oauthAuthorizeUrl").orElse("http://localhost");
         this.oauthTokenUrl = propertiesProvider.get("oauthTokenUrl").orElse("http://localhost");

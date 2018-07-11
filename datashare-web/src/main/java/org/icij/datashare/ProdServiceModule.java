@@ -9,7 +9,7 @@ import org.elasticsearch.client.Client;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.session.OAuth2CookieAuthFilter;
+import org.icij.datashare.session.OAuth2CookieFilter;
 import org.icij.datashare.session.RedisSessionIdStore;
 import org.icij.datashare.session.RedisUsers;
 import org.icij.datashare.text.indexing.Indexer;
@@ -46,7 +46,7 @@ public class ProdServiceModule extends AbstractModule{
         if (parseBoolean(authProp)) {
             bind(Users.class).to(RedisUsers.class);
             bind(SessionIdStore.class).to(RedisSessionIdStore.class);
-            bind(Filter.class).to(OAuth2CookieAuthFilter.class).asEagerSingleton();
+            bind(Filter.class).to(OAuth2CookieFilter.class).asEagerSingleton();
         } else {
             bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
         }
