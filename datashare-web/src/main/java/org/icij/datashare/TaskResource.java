@@ -24,7 +24,6 @@ import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.text.nlp.Pipeline.Type.valueOf;
 import static org.icij.task.Options.from;
 
 @Prefix("/api/task")
@@ -83,11 +82,10 @@ public class TaskResource {
     @Post("/findNames/:pipeline")
     public List<TaskResponse> extractNlp(final String pipeline, final OptionsWrapper optionsWrapper, Context context)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
-        Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipeline).getClassName());
 
         Properties mergedProps = propertiesProvider.createMerged(optionsWrapper.asProperties());
 
-        AbstractPipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
+        AbstractPipeline abstractPipeline = AbstractPipeline.create(pipeline, new PropertiesProvider(mergedProps));
         TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), abstractPipeline, mergedProps));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
             TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), pipeline));

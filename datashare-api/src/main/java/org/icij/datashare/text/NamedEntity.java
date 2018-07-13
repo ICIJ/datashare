@@ -20,7 +20,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.min;
-import static java.util.Collections.emptyList;
 import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 import static org.icij.datashare.text.NamedEntity.Category.UNKNOWN;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
@@ -90,18 +89,6 @@ public final class NamedEntity implements Entity {
                         .collect(Collectors.toList());
     }
 
-
-    /**
-     * Instantiate new {@code NamedEntity}, with context documentId, without part-of-speech
-     *
-     * @param cat      the named entity category
-     * @param mention  the string denoting the named entity
-     * @param offset   the offset in context documentId
-     * @param doc      the context documentId id
-     * @param extr     the pipeline that extracted mention
-     * @param extrLang the pipeline language
-     * @return a new immutable {@link NamedEntity} if instantiation succeeded; empty Optional otherwise
-     */
     public static NamedEntity create(Category cat,
                                      String mention,
                                      int offset,
@@ -111,46 +98,9 @@ public final class NamedEntity implements Entity {
         return new NamedEntity(mention, cat, doc, offset, extr, extrLang, null);
     }
 
-    /**
-     * Instantiate new {@code NamedEntity}, with context documentId, with part-of-speech
-     *
-     * @param cat      the named entity category
-     * @param mention  the string denoting the named entity
-     * @param offset   the offset in context documentId
-     * @param doc      the context documentId id
-     * @param extr     the pipeline that extracted mention
-     * @param extrLang the pipeline language
-     * @param pos      the part(s)-of-speech associated to mention
-     * @return an Optional of immutable {@link NamedEntity} if instantiation succeeded; empty Optional otherwise
-     */
-    public static Optional<NamedEntity> create(Category cat,
-                                               String mention,
-                                               int offset,
-                                               String doc,
-                                               Pipeline.Type extr,
-                                               Language extrLang,
-                                               String pos) {
-        try {
-            return Optional.of( new NamedEntity(mention, cat, doc, offset, extr, extrLang, pos) );
-        } catch (IllegalArgumentException e) {
-            LOGGER.error("Failed to createList named entity", e);
-            return Optional.empty();
-        }
-    }
-
-
-    /**
-     * Named entities from {@link Document}, {@link Annotations}
-     *
-     * @param document   the documentId holding textual content
-     * @param annotations the annotations holding named entities coordinates within documentId
-     * @return the list of corresponding named entities if annotations does refer to documentId; an empty list otherwise
-     */
-    public static List<NamedEntity> allFrom(Document document, Annotations annotations) {
-        if ( ! annotations.getDocumentId().equals(document.getId()))
-            return emptyList();
+    public static List<NamedEntity> allFrom(String text, Annotations annotations) {
         return annotations.get(NER).stream()
-                .map     ( tag -> from(document.getContent(), tag, annotations) )
+                .map     ( tag -> from(text, tag, annotations) )
                 .filter  ( ne -> ne.category != UNKNOWN)
                 .collect ( Collectors.toList() );
     }
@@ -204,11 +154,11 @@ public final class NamedEntity implements Entity {
     public String getId() { return id; }
     public String getMention() { return mention; }
     public Category getCategory() { return category; }
-    public Optional<String> getDocumentId() { return Optional.ofNullable(documentId); }
-    public OptionalInt getOffset() { return OptionalInt.of(offset); }
+    public String getDocumentId() { return documentId; }
+    public int getOffset() { return offset; }
     public Pipeline.Type getExtractor() { return extractor; }
-    public Optional<Language> getExtractorLanguage() { return Optional.ofNullable(extractorLanguage); }
-    public Optional<String> getPartsOfSpeech() { return Optional.ofNullable(partsOfSpeech); }
+    public Language getExtractorLanguage() { return extractorLanguage; }
+    public String getPartsOfSpeech() { return partsOfSpeech; }
 
     @Override
     public String toString() {
@@ -216,6 +166,7 @@ public final class NamedEntity implements Entity {
                 "mention='" + mention + '\'' +
                 ", id='" + id + '\'' +
                 ", category=" + category +
+                ", offset=" + offset +
                 '}';
     }
 

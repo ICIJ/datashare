@@ -6,11 +6,10 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.Client;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.user.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
-import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.LanguageGuesser;
+import org.icij.datashare.user.User;
 import org.icij.extract.document.EmbeddedTikaDocument;
 import org.icij.extract.document.TikaDocument;
 import org.icij.spewer.FieldNames;
@@ -109,7 +108,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("contentEncoding", getField(document.getMetadata(), CONTENT_ENCODING, DEFAULT_VALUE_UNKNOWN));
 
         String content = toString(reader).trim();
-        jsonDocument.put("language", Language.parse(languageGuesser.guess(content)));
+        jsonDocument.put("language", languageGuesser.guess(content));
         jsonDocument.put(ES_CONTENT_FIELD, content);
         return jsonDocument;
     }

@@ -30,7 +30,7 @@ public class NlpConsumerTest {
 
     @Test
     public void test_on_message_does_nothing__when_doc_not_found_in_index() throws Exception {
-        nlpListener.extractNamedEntities("indexName","unknownId", "routing");
+        nlpListener.findNamedEntities("indexName","unknownId", "routing");
 
         verify(pipeline, never()).initialize(any(Language.class));
         verify(pipeline, never()).process(anyString(), anyString(), any(Language.class));
@@ -43,7 +43,7 @@ public class NlpConsumerTest {
                 Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
         when(indexer.get(anyString(), anyString(), anyString())).thenReturn(doc);
 
-        nlpListener.extractNamedEntities("indexName","id", "routing");
+        nlpListener.findNamedEntities("indexName","id", "routing");
         verify(pipeline, never()).process(anyString(), anyString(), any());
     }
 
@@ -55,7 +55,7 @@ public class NlpConsumerTest {
         when(pipeline.process(anyString(), anyString(), any())).thenReturn(new Annotations(doc.getId(), Pipeline.Type.MITIE, FRENCH));
         when(indexer.get("indexName", doc.getId(), "routing")).thenReturn(doc);
 
-        nlpListener.extractNamedEntities("indexName", doc.getId(), "routing");
+        nlpListener.findNamedEntities("indexName", doc.getId(), "routing");
 
         verify(pipeline).initialize(FRENCH);
         verify(pipeline).process("content", doc.getId(), FRENCH);

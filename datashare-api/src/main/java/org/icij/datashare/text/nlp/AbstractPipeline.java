@@ -1,14 +1,17 @@
 package org.icij.datashare.text.nlp;
 
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.*;
 
 import static org.icij.datashare.function.ThrowingFunctions.*;
+import static org.icij.datashare.text.nlp.Pipeline.Type.valueOf;
 
 
 public abstract class AbstractPipeline implements Pipeline {
@@ -64,6 +67,11 @@ public abstract class AbstractPipeline implements Pipeline {
 
     @Override
     public Charset getEncoding() { return encoding; }
+
+    public static AbstractPipeline create(final String pipelineName, final PropertiesProvider propertiesProvider) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ClassNotFoundException {
+        Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(valueOf(pipelineName).getClassName());
+        return pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
+    }
 
     /**
      * Prepare pipeline run
