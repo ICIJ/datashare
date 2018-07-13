@@ -1,20 +1,12 @@
 package org.icij.datashare;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import net.codestory.http.Configuration;
 import net.codestory.http.WebServer;
-import net.codestory.http.extensions.Extensions;
-import net.codestory.http.filters.Filter;
-import net.codestory.http.misc.Env;
-import net.codestory.http.routes.Routes;
-import org.icij.datashare.session.UserDataFilter;
+import org.icij.datashare.mode.AbstractMode;
+import org.icij.datashare.mode.ModeLocal;
+import org.icij.datashare.mode.ModeNer;
+import org.icij.datashare.mode.ModeProduction;
 
-import java.nio.file.Paths;
 import java.util.Properties;
-
-import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 
 public class WebApp {
 
@@ -22,39 +14,25 @@ public class WebApp {
         start(null);
     }
 
-    static Configuration getConfiguration(final Injector injector) {
-        return routes -> {
-            Routes rts = routes
-                    .get("/config", injector.getInstance(PropertiesProvider.class).
-                            getFilteredProperties(".*Address.*", ".*Secret.*"))
-                    .add(injector.getInstance(TaskResource.class))
-                    .add(injector.getInstance(SearchResource.class))
-                    .bind(UserDataFilter.DATA_URI_PREFIX,
-                            Paths.get(injector.getInstance(PropertiesProvider.class).get("dataDir")
-                                    .orElse("/home/datashare/data")).toFile())
-                    .setExtensions(new Extensions() {
-                        @Override
-                        public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
-                            defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-                            return defaultObjectMapper;
-                        }
-                    })
-                    .filter(injector.getInstance(Filter.class))
-                    .filter(new UserDataFilter());
-
-            String cors = injector.getInstance(PropertiesProvider.class).get("cors").orElse("no-cors");
-            if (!cors.equals("no-cors")) {
-                rts.filter(new CorsFilter(cors));
-            }
-        };
-
-    }
-
     public static void start(Properties properties) {
+        AbstractMode mode;
+        switch (Mode.valueOf(properties.getProperty("mode"))) {
+            case NER:
+                mode = new ModeNer(properties);
+                break;
+            case LOCAL:
+                mode = new ModeLocal(properties);
+                break;
+            case PRODUCTION:
+                mode = new ModeProduction(properties);
+                break;
+            default:
+                throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
+        }
         new WebServer()
                 .withThreadCount(10)
                 .withSelectThreads(2)
                 .withWebSocketThreads(1)
-                .configure(getConfiguration(Guice.createInjector(new ProdServiceModule(properties)))).start();
+                .configure(mode.createWebConfiguration()).start();
     }
 }

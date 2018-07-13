@@ -1,13 +1,15 @@
 package org.icij.datashare;
 
-import com.google.inject.Guice;
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.mode.ModeLocal;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashMap;
+
+import static java.lang.String.format;
 
 public class WebAppAcceptanceTest implements FluentRestTest {
     private static WebServer server = new WebServer() {
@@ -24,9 +26,9 @@ public class WebAppAcceptanceTest implements FluentRestTest {
 
     @BeforeClass
     public static void setUpClass() {
-        server.configure(WebApp.getConfiguration(Guice.createInjector(new ProdServiceModule(new HashMap<String, String>() {{
+        server.configure(new ModeLocal(new HashMap<String, String>() {{
             put("dataDir", WebAppAcceptanceTest.class.getResource("/data").getPath());
-        }}))));
+        }}).createWebConfiguration());
     }
 
     @Test
@@ -36,7 +38,7 @@ public class WebAppAcceptanceTest implements FluentRestTest {
 
     @Test
     public void test_get_config() {
-        get("/config").should().contain("\"clusterName\":\"datashare\"");
+        get("/config").should().contain(format("\"dataDir\":\"%s\"", getClass().getResource("/data").getPath()));
     }
 
     @Test

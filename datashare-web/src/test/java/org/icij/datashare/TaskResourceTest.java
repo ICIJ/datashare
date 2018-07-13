@@ -1,15 +1,14 @@
 package org.icij.datashare;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.Guice;
 import com.google.inject.Inject;
-import com.google.inject.Injector;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
+import net.codestory.http.routes.Routes;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
+import org.icij.datashare.mode.AbstractMode;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -54,9 +53,21 @@ public class TaskResourceTest implements FluentRestTest {
 
     @BeforeClass
     public static void setUpClass() {
-        Injector injector = Guice.createInjector(new TestModule());
-        taskManager = injector.getInstance(TaskManager.class);
-        server.configure(WebApp.getConfiguration(injector));
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new Properties());
+        taskManager = new DummyTaskManager(propertiesProvider);
+        server.configure(new AbstractMode(new Properties()) {
+            @Override
+            protected void configure() {
+                bind(TaskFactory.class).toInstance(taskFactory);
+                bind(Indexer.class).toInstance(mock(Indexer.class));
+                bind(TaskManager.class).toInstance(taskManager);
+                bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
+                bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new HashMap<String, String>() {{
+                    put("dataDir", "/default/data/dir");
+                }}));
+            }
+            @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class);}
+        }.createWebConfiguration());
     }
 
     @Before
@@ -202,18 +213,6 @@ public class TaskResourceTest implements FluentRestTest {
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));
         assertThat(taskManager.getTasks()).isEmpty();
-    }
-
-    static class TestModule extends AbstractModule {
-        @Override protected void configure() {
-            bind(TaskFactory.class).toInstance(taskFactory);
-            bind(Indexer.class).toInstance(mock(Indexer.class));
-            bind(TaskManager.class).to(DummyTaskManager.class).asEagerSingleton();
-            bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
-            bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new HashMap<String, String>() {{
-                put("dataDir", "/default/data/dir");
-            }}));
-        }
     }
 
     static class DummyTaskManager extends TaskManager {

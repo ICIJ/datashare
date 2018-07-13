@@ -1,20 +1,21 @@
 package org.icij.datashare;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
+import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.mode.AbstractMode;
 import org.icij.datashare.session.OAuth2User;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.junit.After;
 import org.junit.Test;
+
+import java.util.Properties;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -28,7 +29,6 @@ public class UserTaskResourceTest implements FluentRestTest {
         }
     }.startOnRandomPort();
     private TaskManager taskManager;
-    private Injector injector;
 
     @Override
     public int port() {
@@ -57,23 +57,21 @@ public class UserTaskResourceTest implements FluentRestTest {
         @Override public void run() {}
         @Override public User getUser() { return new User(user);}
     }
-    static class TestModule extends AbstractModule {
-        private final String[] users;
-        public TestModule(String[] users) { this.users = users;}
-        @Override protected void configure() {
-            PropertiesProvider t = new PropertiesProvider();
-            bind(PropertiesProvider.class).toInstance(t);
-            bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
-            bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", OAuth2User.users(users)));
-            bind(TaskManager.class).toInstance(new TaskManager(t));
-            bind(TaskFactory.class).toInstance(mock(TaskFactory.class));
-            bind(Indexer.class).toInstance(mock(Indexer.class));
-        }
 
-    }
     private void setupAppWith(String... userLogins) {
-        injector = Guice.createInjector(new TestModule(userLogins));
-        taskManager = injector.getInstance(TaskManager.class);
-        server.configure(WebApp.getConfiguration(injector));
+        final PropertiesProvider propertiesProvider = new PropertiesProvider();
+        taskManager = new TaskManager(propertiesProvider);
+        server.configure(new AbstractMode(new Properties()) {
+            @Override
+            protected void configure() {
+                bind(PropertiesProvider.class).toInstance(propertiesProvider);
+                bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
+                bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", OAuth2User.users(userLogins)));
+                bind(TaskManager.class).toInstance(taskManager);
+                bind(TaskFactory.class).toInstance(mock(TaskFactory.class));
+                bind(Indexer.class).toInstance(mock(Indexer.class));
+            }
+            @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class);}
+        }.createWebConfiguration());
     }
 }

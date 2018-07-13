@@ -39,6 +39,7 @@ public final class DatashareCli {
         OptionParser parser = new OptionParser();
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
+        DatashareCliOptions.mode(parser);
         OptionSpec<DatashareCli.Stage> stagesOpt = DatashareCliOptions.stages(parser);
         DatashareCliOptions.dataDir(parser);
         DatashareCliOptions.enableOcr(parser);
@@ -47,13 +48,14 @@ public final class DatashareCli {
         DatashareCliOptions.parallelism(parser);
         DatashareCliOptions.fileParserParallelism(parser);
         DatashareCliOptions.nlpParallelism(parser);
+
         DatashareCliOptions.indexerHost(parser);
-        DatashareCliOptions.cors(parser);
-        DatashareCliOptions.esHost(parser);
-        DatashareCliOptions.indexName(parser);
         DatashareCliOptions.clusterName(parser);
+        DatashareCliOptions.indexName(parser);
+        DatashareCliOptions.esHost(parser);
+
+        DatashareCliOptions.cors(parser);
         DatashareCliOptions.web(parser);
-        DatashareCliOptions.auth(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
 

@@ -19,13 +19,11 @@ public class DatashareCliTest {
     }
 
     @Test
-    public void test_auth_opt() {
+    public void test_mode_opt() {
         DatashareCli.parseArguments(new String[] {""});
-        assertThat(DatashareCli.properties).includes(entry("auth", "false"));
+        assertThat(DatashareCli.properties).includes(entry("mode", "LOCAL"));
 
-        assertThat(DatashareCli.parseArguments(new String[]{"--auth"})).isFalse();
-
-        DatashareCli.parseArguments(new String[] {"--auth", "--web"});
-        assertThat(DatashareCli.properties).includes(entry("auth", "true"));
+        DatashareCli.parseArguments(new String[] {"--mode=PRODUCTION"});
+        assertThat(DatashareCli.properties).includes(entry("mode", "PRODUCTION"));
     }
 }

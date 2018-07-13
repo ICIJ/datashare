@@ -4,9 +4,11 @@ import joptsimple.AbstractOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
+import org.icij.datashare.Mode;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.File;
+import java.util.Arrays;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -36,12 +38,17 @@ final class DatashareCliOptions {
                 .defaultsTo(DatashareCli.Stage.values());
     }
 
-    static OptionSpecBuilder web(OptionParser parser) {
-        return parser.acceptsAll(asList(WEB_SERVER_OPT, "w"), "Run as a web server");
+    static OptionSpec<Mode> mode(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("mode", "m"),
+                "Datashare run mode " + Arrays.toString(Mode.values()))
+                .withRequiredArg()
+                .ofType( Mode.class )
+                .defaultsTo(Mode.LOCAL);
     }
 
-    static OptionSpecBuilder auth(OptionParser parser) {
-        return parser.acceptsAll(singletonList("auth"), "Run as a web server with authentication (needs the web option)").availableIf("w");
+    static OptionSpecBuilder web(OptionParser parser) {
+        return parser.acceptsAll(asList(WEB_SERVER_OPT, "w"), "Run as a web server");
     }
 
     public static OptionSpec<String> cors(OptionParser parser) {
@@ -67,7 +74,7 @@ final class DatashareCliOptions {
 
     static OptionSpec<String> messageBusAddress(OptionParser parser) {
         return parser.acceptsAll(
-                asList(MESSAGE_BUS_OPT, "m"),
+                singletonList(MESSAGE_BUS_OPT),
                 "Message bus address")
                 .withRequiredArg()
                 .defaultsTo("redis");
@@ -75,7 +82,7 @@ final class DatashareCliOptions {
 
     static OptionSpec<String> redisAddress(OptionParser parser) {
             return parser.acceptsAll(
-                    asList("redisAddress"),
+                    singletonList("redisAddress"),
                     "Redis queue address")
                     .withRequiredArg()
                     .defaultsTo("redis://redis:6379");
