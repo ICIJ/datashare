@@ -26,6 +26,7 @@ Local or Remote Indexing
 
 ## Installing and using
 
+### Using with elasticsearch
 You can download the script [datashare.sh](datashare-dist/src/main/datashare.sh) and execute it. It will :
 
 - download [redis](https://redis.io), [elasticsearch](https://www.elastic.co/) and datashare [docker](https://www.docker.com/docker-community) containers
@@ -36,6 +37,25 @@ You can download the script [datashare.sh](datashare-dist/src/main/datashare.sh)
 To access web GUI, go in your documents folder and launch `path/to/datashare.sh -w` then connect datashare on http://localhost:8080
 
 If you want to avoid synchronization of NLP models (offline use) then do `export DS_JAVA_OPTS="-DDS_SYNC_NLP_MODELS=false"` before launching the `datashare.sh` script.
+
+### Using only Named Entity Recognition
+
+You can use the datashare docker container only for HTTP exposed name finding API.
+
+Just run : 
+
+    docker run -ti -p 8080:8080 -v /path/to/dist/:/home/datashare/dist icij/datashare:0.10 -m NER -w
+
+A bit of explanation : 
+- `-w` tells datashare to run the webserver. It is launched on 8080 that's why the port is mapped for docker
+- `-m NER` runs datashare without index at all on a stateless mode
+- `-v /path/to/dist:/home/datashare/dist` maps the directory where the NLP models will be read (and downloaded if they don't exist)
+
+Then query with curl the server with : 
+
+    curl -i localhost:8080/ner/findNames/CORENLP --data-binary @path/to/a/file.txt
+
+The last path part (CORENLP) is the framework. You can choose it among CORENLP, GATENLP, IXAPIPE, MITIE or OPENNLP.    
 
 ### **Extract Text from Files** 
   
