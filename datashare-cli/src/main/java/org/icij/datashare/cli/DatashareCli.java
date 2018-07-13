@@ -15,7 +15,6 @@ import static org.icij.datashare.cli.DatashareCliOptions.WEB_SERVER_OPT;
 
 public final class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
-    private static List<DatashareCli.Stage> stages = new ArrayList<>();
 
     static Properties properties;
     static boolean webServer = false;
@@ -66,9 +65,6 @@ public final class DatashareCli {
                 printHelp(parser);
                 return false;
             }
-
-            stages.addAll(options.valuesOf(stagesOpt));
-            stages.sort(DatashareCli.Stage.comparator);
             properties = asProperties(options, null);
             webServer = parseBoolean(properties.getProperty(WEB_SERVER_OPT));
             return true;
