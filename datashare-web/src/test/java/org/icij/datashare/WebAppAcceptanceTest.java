@@ -3,7 +3,7 @@ package org.icij.datashare;
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
-import org.icij.datashare.mode.ModeLocal;
+import org.icij.datashare.mode.LocalMode;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -26,7 +26,7 @@ public class WebAppAcceptanceTest implements FluentRestTest {
 
     @BeforeClass
     public static void setUpClass() {
-        server.configure(new ModeLocal(new HashMap<String, String>() {{
+        server.configure(new LocalMode(new HashMap<String, String>() {{
             put("dataDir", WebAppAcceptanceTest.class.getResource("/data").getPath());
         }}).createWebConfiguration());
     }

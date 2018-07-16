@@ -7,7 +7,7 @@ import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.rest.FluentRestTest;
-import org.icij.datashare.mode.AbstractMode;
+import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.OAuth2User;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -61,7 +61,7 @@ public class UserTaskResourceTest implements FluentRestTest {
     private void setupAppWith(String... userLogins) {
         final PropertiesProvider propertiesProvider = new PropertiesProvider();
         taskManager = new TaskManager(propertiesProvider);
-        server.configure(new AbstractMode(new Properties()) {
+        server.configure(new CommonMode(new Properties()) {
             @Override
             protected void configure() {
                 bind(PropertiesProvider.class).toInstance(propertiesProvider);

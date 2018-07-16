@@ -51,7 +51,7 @@ public class PropertiesProviderTest {
     }
 
     @Test
-    public void test_filtered_properties() throws Exception {
+    public void test_filtered_properties() {
         PropertiesProvider provider = new PropertiesProvider(new HashMap<String, String>() {{
             put("foo", "fop");
             put("bar", "bap");

@@ -8,7 +8,7 @@ import net.codestory.http.routes.Routes;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
-import org.icij.datashare.mode.AbstractMode;
+import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -55,7 +55,7 @@ public class TaskResourceTest implements FluentRestTest {
     public static void setUpClass() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new Properties());
         taskManager = new DummyTaskManager(propertiesProvider);
-        server.configure(new AbstractMode(new Properties()) {
+        server.configure(new CommonMode(new Properties()) {
             @Override
             protected void configure() {
                 bind(TaskFactory.class).toInstance(taskFactory);

@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -28,7 +27,7 @@ public class PropertiesProvider {
         this.cachedProperties = properties;
         fileName = null;
     }
-    public PropertiesProvider(final HashMap<String, String> hashMap) {
+    public PropertiesProvider(final Map<String, String> hashMap) {
         cachedProperties = new Properties();
         cachedProperties.putAll(hashMap);
         fileName = null;

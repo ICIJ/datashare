@@ -10,6 +10,8 @@ import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.UserDataFilter;
+import org.icij.datashare.text.indexing.LanguageGuesser;
+import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 
 import java.nio.file.Paths;
 import java.util.Map;
@@ -17,20 +19,31 @@ import java.util.Properties;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 
-public abstract class AbstractMode extends AbstractModule {
-    protected final Properties properties;
+public class CommonMode extends AbstractModule {
+    protected final PropertiesProvider propertiesProvider;
 
-    public AbstractMode(Properties properties) {
-        this.properties = properties;
+    public CommonMode(Properties properties) {
+        propertiesProvider = properties == null ? new PropertiesProvider() : new PropertiesProvider().mergeWith(properties);
     }
 
-    public AbstractMode(final Map<String, String> properties) {
-        this.properties = new Properties();
-        this.properties.putAll(properties);
+    public CommonMode(final Map<String, String> map) {
+        if (map == null) {
+            propertiesProvider = new PropertiesProvider();
+        } else {
+            Properties properties = new Properties();
+            properties.putAll(map);
+            propertiesProvider = new PropertiesProvider().mergeWith(properties);
+        }
+    }
+
+    @Override
+    protected void configure() {
+        bind(PropertiesProvider.class).toInstance(propertiesProvider);
+        bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
     }
 
     public Configuration createWebConfiguration() {
-        return routes -> addModeConfiguration(defaultRoutes(routes, new PropertiesProvider(this.properties)));
+        return routes -> addModeConfiguration(defaultRoutes(routes, propertiesProvider));
     }
 
     protected Routes addModeConfiguration(final Routes routes) {return routes;}
