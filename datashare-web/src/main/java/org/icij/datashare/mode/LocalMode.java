@@ -32,7 +32,7 @@ public class LocalMode extends CommonMode {
         Client esClient = createESClient(propertiesProvider);
         createIndex(esClient, local().indexName());
         bind(Client.class).toInstance(esClient);
-        bind(Indexer.class).to(ElasticsearchIndexer.class);
+        bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
 
         install(new FactoryModuleBuilder().build(TaskFactory.class));
         bind(Publisher.class).to(RedisPublisher.class);
