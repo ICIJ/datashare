@@ -8,6 +8,7 @@ import net.codestory.http.security.Users;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.SearchResource;
 import org.icij.datashare.TaskFactory;
+import org.icij.datashare.TaskManager;
 import org.icij.datashare.TaskResource;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
@@ -41,6 +42,7 @@ public class ProductionMode extends CommonMode {
         bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
 
+        bind(TaskManager.class).toInstance(new TaskManager(propertiesProvider));
         install(new FactoryModuleBuilder().build(TaskFactory.class));
         bind(Publisher.class).to(RedisPublisher.class);
     }
