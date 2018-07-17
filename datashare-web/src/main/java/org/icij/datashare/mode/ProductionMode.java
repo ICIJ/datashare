@@ -31,6 +31,7 @@ public class ProductionMode extends CommonMode {
 
     @Override
     protected void configure() {
+        super.configure();
         bind(Users.class).to(RedisUsers.class);
         bind(SessionIdStore.class).to(RedisSessionIdStore.class);
         bind(Filter.class).to(OAuth2CookieFilter.class).asEagerSingleton();
