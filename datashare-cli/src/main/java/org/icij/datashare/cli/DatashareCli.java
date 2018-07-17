@@ -48,7 +48,6 @@ public final class DatashareCli {
         DatashareCliOptions.fileParserParallelism(parser);
         DatashareCliOptions.nlpParallelism(parser);
 
-        DatashareCliOptions.indexerHost(parser);
         DatashareCliOptions.clusterName(parser);
         DatashareCliOptions.indexName(parser);
         DatashareCliOptions.esHost(parser);

@@ -1,7 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.client.Response;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.junit.ClassRule;
@@ -18,8 +18,8 @@ public class ElasticsearchConfigurationTest {
     public void test_create_client_creates_mapping() throws Exception {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
-        GetMappingsResponse mappings = es.client.admin().indices().getMappings(new GetMappingsRequest()).actionGet();
+        Response response = es.client.getLowLevelClient().performRequest("GET", TEST_INDEX);
 
-        assertThat(mappings.getMappings().get(TEST_INDEX)).isNotEmpty();
+        assertThat(EntityUtils.toString(response.getEntity())).contains("mapping");
     }
 }

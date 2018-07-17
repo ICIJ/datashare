@@ -1,13 +1,12 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.user.User;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
+import org.icij.datashare.user.User;
 import org.icij.extract.document.DocumentFactory;
-import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
 import org.icij.spewer.FieldNames;
@@ -38,7 +37,7 @@ public class DatashareExtractIntegrationTest {
     @Test
     public void test_spew_and_read_index() throws Exception {
         String path = getClass().getResource("/docs/doc.txt").getPath();
-        final TikaDocument tikaDocument = new DocumentFactory().withIdentifier(new PathIdentifier()).create(path);
+        final TikaDocument tikaDocument = new DocumentFactory().configure(new Options<>()).create(path);
 
         spewer.write(tikaDocument, new Extractor().extract(tikaDocument));
         Document doc = indexer.get(TEST_INDEX, tikaDocument.getId());

@@ -4,7 +4,7 @@ import org.apache.tika.metadata.Metadata;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
@@ -27,7 +27,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 import static java.lang.Integer.valueOf;
 import static java.lang.System.currentTimeMillis;
@@ -41,14 +40,14 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
     public static final String DEFAULT_VALUE_UNKNOWN = "unknown";
 
-    private final Client client;
+    private final RestHighLevelClient client;
     private final ElasticsearchConfiguration esCfg;
     private final Publisher publisher;
     private final LanguageGuesser languageGuesser;
     private User user;
 
     @Inject
-    public ElasticsearchSpewer(final Client client, LanguageGuesser languageGuesser, final FieldNames fields,
+    public ElasticsearchSpewer(final RestHighLevelClient client, LanguageGuesser languageGuesser, final FieldNames fields,
                                Publisher publisher, final PropertiesProvider propertiesProvider) {
         super(fields);
         this.client = client;
@@ -127,19 +126,15 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private void indexDocument(TikaDocument document, Reader reader,
                                final TikaDocument parent, TikaDocument root, final int level) throws IOException {
         final IndexRequest req = prepareRequest(document, reader, parent, root, level);
-        try {
-            long before = currentTimeMillis();
-            IndexResponse indexResponse = client.index(req).get();
-            logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
-                    shorten(indexResponse.getId(), 4), currentTimeMillis() - before, document);
-            synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads
-                publisher.publish(NLP, new Message(EXTRACT_NLP)
-                        .add(Message.Field.USER_ID, user.id)
-                        .add(Message.Field.DOC_ID, indexResponse.getId())
-                        .add(Message.Field.R_ID, parent == null ? document.getId() : root.getId()));
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            logger.warn("interrupted execution of request", e);
+        long before = currentTimeMillis();
+        IndexResponse indexResponse = client.index(req);
+        logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
+                shorten(indexResponse.getId(), 4), currentTimeMillis() - before, document);
+        synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads
+            publisher.publish(NLP, new Message(EXTRACT_NLP)
+                    .add(Message.Field.USER_ID, user.id)
+                    .add(Message.Field.DOC_ID, indexResponse.getId())
+                    .add(Message.Field.R_ID, parent == null ? document.getId() : root.getId()));
         }
     }
 

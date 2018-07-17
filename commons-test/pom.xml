@@ -13,7 +13,7 @@
     <dependencies>
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
-            <artifactId>transport</artifactId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

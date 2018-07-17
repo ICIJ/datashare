@@ -15,6 +15,7 @@ import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -39,7 +40,7 @@ public class ResumeNlpTask implements Callable<Integer>, UserTask {
     }
 
     @Override
-    public Integer call() {
+    public Integer call() throws IOException {
         List<? extends Entity> docsToProcess =
                 indexer.search(user.indexName(), Document.class).withSource("rootDocument").limit(SEARCH_SIZE).without(nlpPipelines).execute().collect(toList());
 

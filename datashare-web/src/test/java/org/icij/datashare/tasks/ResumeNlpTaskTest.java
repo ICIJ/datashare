@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -27,7 +28,7 @@ public class ResumeNlpTaskTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
     private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
 
-    @After public void tearDown() { es.removeAll();}
+    @After public void tearDown() throws IOException { es.removeAll();}
 
     @Test
     public void test_bug_size_of_search() throws Exception {

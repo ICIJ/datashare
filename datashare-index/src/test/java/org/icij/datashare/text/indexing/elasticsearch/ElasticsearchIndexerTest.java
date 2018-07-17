@@ -79,7 +79,7 @@ public class ElasticsearchIndexerTest {
 
         assertThat(indexer.bulkAdd(TEST_INDEX, OPENNLP, emptyList(), doc)).isTrue();
 
-        GetResponse resp = es.client.get(new GetRequest(TEST_INDEX, "doc", doc.getId())).actionGet();
+        GetResponse resp = es.client.get(new GetRequest(TEST_INDEX, "doc", doc.getId()));
         assertThat(resp.getSourceAsMap().get("status")).isEqualTo("DONE");
         assertThat((ArrayList<String>) resp.getSourceAsMap().get("nerTags")).containsExactly("OPENNLP");
     }
@@ -103,13 +103,13 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_search_no_results() {
+    public void test_search_no_results() throws IOException {
         List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).execute().collect(toList());
         assertThat(lst).isEmpty();
     }
 
     @Test
-    public void test_search_with_status() {
+    public void test_search_with_status() throws IOException {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED);
         indexer.add(TEST_INDEX,doc);
@@ -120,7 +120,7 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_search_with_and_without_NLP_tags() {
+    public void test_search_with_and_without_NLP_tags() throws IOException {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), DONE, new HashSet<Pipeline.Type>() {{ add(CORENLP); add(OPENNLP);}});
         indexer.add(TEST_INDEX,doc);
@@ -135,7 +135,7 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_search_with_and_without_NLP_tags_no_tags() {
+    public void test_search_with_and_without_NLP_tags_no_tags() throws IOException {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());
         indexer.add(TEST_INDEX,doc);
@@ -144,7 +144,7 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_search_source_filtering() {
+    public void test_search_source_filtering() throws IOException {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc_with_parent.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());
         indexer.add(TEST_INDEX,doc);
@@ -156,7 +156,7 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_search_source_false() {
+    public void test_search_source_false() throws IOException {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc_with_parent.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>());
         indexer.add(TEST_INDEX,doc);
@@ -166,7 +166,7 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_search_size_limit() {
+    public void test_search_size_limit() throws IOException {
         for (int i = 0 ; i < 20; i++) {
             Document doc = new org.icij.datashare.text.Document(Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
                 Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE);

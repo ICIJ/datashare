@@ -5,7 +5,7 @@ import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.SearchResource;
 import org.icij.datashare.TaskFactory;
 import org.icij.datashare.TaskResource;
@@ -36,9 +36,9 @@ public class ProductionMode extends CommonMode {
         bind(SessionIdStore.class).to(RedisSessionIdStore.class);
         bind(Filter.class).to(OAuth2CookieFilter.class).asEagerSingleton();
 
-        Client esClient = createESClient(propertiesProvider);
-        createIndex(esClient, local().indexName());
-        bind(Client.class).toInstance(esClient);
+        RestHighLevelClient esClient = createESClient(propertiesProvider);
+        createIndex(esClient, local().indexName(), propertiesProvider);
+        bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
 
         install(new FactoryModuleBuilder().build(TaskFactory.class));

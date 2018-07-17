@@ -18,9 +18,9 @@ public interface Indexer extends Closeable {
 
     Searcher search(String indexName, Class<? extends Entity> entityClass);
 
-    boolean createIndex(String indexName);
+    boolean createIndex(String indexName) throws IOException;
 
-    void close();
+    void close() throws IOException;
 
     boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
     <T extends Entity> boolean add(String indexName, T obj);
@@ -30,7 +30,7 @@ public interface Indexer extends Closeable {
 
     interface Searcher {
         Searcher ofStatus(Document.Status indexed);
-        Stream<? extends Entity> execute();
+        Stream<? extends Entity> execute() throws IOException;
         Searcher withSource(String... fields);
         Searcher withSource(boolean source);
         Searcher without(Pipeline.Type... nlpPipelines);

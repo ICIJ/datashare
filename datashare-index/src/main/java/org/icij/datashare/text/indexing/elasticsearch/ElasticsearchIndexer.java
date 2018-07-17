@@ -2,17 +2,17 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import com.google.inject.Inject;
 import org.elasticsearch.action.bulk.BulkItemResponse;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.ConstantScoreQueryBuilder;
 import org.elasticsearch.index.query.TermsQueryBuilder;
@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -48,18 +47,18 @@ import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfig
 
 
 public class ElasticsearchIndexer implements Indexer {
-    private final Client client;
+    private final RestHighLevelClient client;
     private final ElasticsearchConfiguration esCfg;
 
     @Inject
-    public ElasticsearchIndexer(final Client esClient, final PropertiesProvider propertiesProvider) {
+    public ElasticsearchIndexer(final RestHighLevelClient esClient, final PropertiesProvider propertiesProvider) {
         this.client = esClient;
         esCfg = new ElasticsearchConfiguration(propertiesProvider);
         LOGGER.info("indexer defined with {}", esCfg);
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         LOGGER.info("Closing Elasticsearch connections");
         client.close();
         LOGGER.info("Elasticsearch connections closed");
@@ -67,7 +66,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public boolean bulkAdd(final String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException {
-        BulkRequestBuilder bulkRequest = client.prepareBulk();
+        BulkRequest bulkRequest = new BulkRequest();
 
         String routing = ofNullable(parent.getRootDocument()).orElse(parent.getId());
         bulkRequest.add(new UpdateRequest(indexName, esCfg.indexType, parent.getId()).doc(
@@ -83,9 +82,9 @@ public class ElasticsearchIndexer implements Indexer {
             bulkRequest.add(createIndexRequest(indexName, JsonObjectMapper.getType(child), child.getId(),
                             JsonObjectMapper.getJson(child), parent.getId(), routing));
         }
-
         bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
-        BulkResponse bulkResponse = bulkRequest.get();
+
+        BulkResponse bulkResponse = client.bulk(bulkRequest);
         if (bulkResponse.hasFailures()) {
             for (BulkItemResponse resp : bulkResponse.getItems()) {
                 if (resp.isFailed()) {
@@ -105,10 +104,10 @@ public class ElasticsearchIndexer implements Indexer {
             final IndexResponse resp = client.index( createIndexRequest(indexName, type, id,
                     JsonObjectMapper.getJson(obj),
                     JsonObjectMapper.getParent(obj),
-                    JsonObjectMapper.getRoot(obj)).setRefreshPolicy(esCfg.refreshPolicy) ).get();
+                    JsonObjectMapper.getRoot(obj)).setRefreshPolicy(esCfg.refreshPolicy) );
             return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
-        } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + indexName, e);
+        } catch (IOException ioex) {
+            LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + indexName, ioex);
             return false;
         }
     }
@@ -140,14 +139,14 @@ public class ElasticsearchIndexer implements Indexer {
         String type = null;
         try {
             final GetRequest req = new GetRequest(indexName, esCfg.indexType, id).routing(root);
-            final GetResponse resp = client.get(req).get();
+            final GetResponse resp = client.get(req);
             if (resp.isExists()) {
                 Map<String, Object> sourceAsMap = resp.getSourceAsMap();
                 type = (String) sourceAsMap.get(esCfg.docTypeField);
                 Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
                 return JsonObjectMapper.getObject(id, sourceAsMap, tClass);
             }
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (IOException e) {
             LOGGER.error("Failed to get entity " + id + " in index " + indexName, e);
         } catch (ClassNotFoundException e) {
             LOGGER.error("no entity for type " + type);
@@ -162,7 +161,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public boolean createIndex(final String indexName) {
-        return ElasticsearchConfiguration.createIndex(client, indexName);
+        return ElasticsearchConfiguration.createIndex(client, indexName, esCfg.indexType);
     }
 
     private static Stream<SearchHit> searchHitStream(Iterable<SearchHit> searchHitIterable) {
@@ -183,13 +182,18 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     static class ElasticsearchSearcher implements Searcher {
-        private final SearchRequestBuilder searchBuilder;
+        private final SearchRequest searchRequest;
         private final BoolQueryBuilder boolQuery;
+        private final RestHighLevelClient client;
         private final Class<? extends Entity> cls;
+        private final SearchSourceBuilder sourceBuilder;
 
-        ElasticsearchSearcher(Client client, ElasticsearchConfiguration config, final String indexName, final Class<? extends Entity> cls) {
+        ElasticsearchSearcher(RestHighLevelClient client, ElasticsearchConfiguration config, final String indexName, final Class<? extends Entity> cls) {
+            this.client = client;
             this.cls = cls;
-            this.searchBuilder = client.prepareSearch(indexName).setTypes(config.indexType).setSize(DEFAULT_SEARCH_SIZE);
+            sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE);
+            searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
+            searchRequest.types(config.indexType);
             this.boolQuery = boolQuery().must(matchQuery("type", JsonObjectMapper.getType(cls)));
         }
 
@@ -200,20 +204,21 @@ public class ElasticsearchIndexer implements Indexer {
         }
 
         @Override
-        public Stream<? extends Entity> execute() {
-            SearchResponse response = searchBuilder.setQuery(boolQuery).execute().actionGet();
-            return resultStream(this.cls, () -> response.getHits().iterator());
+        public Stream<? extends Entity> execute() throws IOException {
+            sourceBuilder.query(boolQuery);
+            SearchResponse search = client.search(searchRequest);
+            return resultStream(this.cls, () -> search.getHits().iterator());
         }
 
         @Override
         public Searcher withSource(String... fields) {
-            searchBuilder.setSource(new SearchSourceBuilder().query(boolQuery).fetchSource(fields, new String[] {}));
+            sourceBuilder.fetchSource(fields, new String[] {});
             return this;
         }
 
         @Override
         public Searcher withSource(boolean source) {
-            searchBuilder.setSource(new SearchSourceBuilder().fetchSource(false));
+            sourceBuilder.fetchSource(false);
             return this;
         }
 
@@ -233,13 +238,13 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Searcher limit(int maxCount) {
-            searchBuilder.setSize(maxCount);
+            sourceBuilder.size(maxCount);
             return this;
         }
 
         @Override
         public String toString() {
-            return "boolQuery : " + boolQuery + " searchBuilder : " + searchBuilder;
+            return "boolQuery : " + boolQuery + " searchRequest : " + searchRequest;
         }
     }
 }

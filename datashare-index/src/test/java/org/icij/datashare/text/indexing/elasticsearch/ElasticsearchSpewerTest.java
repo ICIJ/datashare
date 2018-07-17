@@ -2,16 +2,19 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.fest.assertions.Assertions;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.user.User;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
+import org.icij.datashare.user.User;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
@@ -31,7 +34,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.elasticsearch.index.query.QueryBuilders.multiMatchQuery;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.junit.Assert.assertEquals;
@@ -59,7 +61,7 @@ public class ElasticsearchSpewerTest {
 
 		spewer.write(document, reader);
 
-    	GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
+    	GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
 		assertTrue(documentFields.isExists());
 		assertEquals(document.getId(), documentFields.getId());
 		assertEquals(new HashMap<String, String>() {{
@@ -78,7 +80,7 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document, new Extractor().extract(document));
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
         Assertions.assertThat(documentFields.getSourceAsMap()).includes(
                 entry("contentEncoding", "ISO-8859-1"),
                 entry("contentType", "text/plain"),
@@ -97,10 +99,14 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document, reader);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
         assertTrue(documentFields.isExists());
-        SearchResponse response = es.client.prepareSearch(TEST_INDEX).setQuery(
-                multiMatchQuery("simple.tiff", "content")) .get();
+
+        SearchRequest searchRequest = new SearchRequest();
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.multiMatchQuery("simple.tiff", "content"));
+        searchRequest.source(searchSourceBuilder);
+        SearchResponse response = es.client.search(searchRequest);
         Assertions.assertThat(response.getHits().totalHits).isGreaterThan(0);
         //assertThat(response.getHits().getAt(0).getId()).endsWith("embedded.pdf");
 
@@ -115,8 +121,8 @@ public class ElasticsearchSpewerTest {
         spewer.write(document, new Extractor().extract(document));
         spewer.write(document_fr, new Extractor().extract(document_fr));
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId())).get();
-        GetResponse documentFields_fr = es.client.get(new GetRequest(TEST_INDEX, "doc", document_fr.getId())).get();
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
+        GetResponse documentFields_fr = es.client.get(new GetRequest(TEST_INDEX, "doc", document_fr.getId()));
         Assertions.assertThat(documentFields.getSourceAsMap()).includes(entry("language", "ENGLISH"));
         Assertions.assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "FRENCH"));
     }

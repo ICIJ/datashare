@@ -132,14 +132,6 @@ final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_PARALLELISM);
     }
 
-    static OptionSpec<String> indexerHost(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("indexAddress"), "Indexing address")
-                .withRequiredArg()
-                .ofType(String.class)
-                .defaultsTo("elasticsearch:9300");
-    }
-
     static OptionSpec<String> esHost(OptionParser parser) {
         return parser.acceptsAll(
                 asList("elasticsearchAddress"), "Elasticsearch host address")

@@ -50,7 +50,7 @@ public class SearchResource {
     }
 
     @Put("/createIndex")
-    public Payload createIndex(Context context) {
+    public Payload createIndex(Context context) throws IOException {
         return indexer.createIndex(((User)context.currentUser()).indexName()) ? created() : ok();
     }
 

@@ -3,7 +3,7 @@ package org.icij.datashare.mode;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.SearchResource;
 import org.icij.datashare.TaskFactory;
 import org.icij.datashare.TaskResource;
@@ -29,9 +29,9 @@ public class LocalMode extends CommonMode {
         super.configure();
         bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
 
-        Client esClient = createESClient(propertiesProvider);
-        createIndex(esClient, local().indexName());
-        bind(Client.class).toInstance(esClient);
+        RestHighLevelClient esClient = createESClient(propertiesProvider);
+        createIndex(esClient, local().indexName(), propertiesProvider);
+        bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
 
         install(new FactoryModuleBuilder().build(TaskFactory.class));

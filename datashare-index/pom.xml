@@ -32,7 +32,7 @@
 
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
-            <artifactId>transport</artifactId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
         </dependency>
 
         <!-- :o( pulled by extract.Document-->
@@ -132,6 +132,11 @@
             <version>1.1.7</version>
              <scope>test</scope>
        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <version>6.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
