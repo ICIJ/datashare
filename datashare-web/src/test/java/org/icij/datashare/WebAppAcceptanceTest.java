@@ -42,6 +42,11 @@ public class WebAppAcceptanceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_get_version() {
+        get("/version").should().respond(200).haveType("application/json").contain("git.commit.id");
+    }
+
+    @Test
     public void test_get_file() {
         get("/api/data/downloadDoc.txt").should().respond(200).
                 haveHeader("Content-Type", "text/plain;charset=UTF-8").contain("content of downloadDoc");

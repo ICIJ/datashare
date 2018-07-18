@@ -13,6 +13,7 @@ import org.icij.datashare.session.UserDataFilter;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
@@ -51,6 +52,7 @@ public class CommonMode extends AbstractModule {
     private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
         routes.setIocAdapter(new GuiceAdapter(this))
                 .get("/config", provider.getFilteredProperties(".*Address.*", ".*Secret.*"))
+                .get("/version", getVersion())
                 .bind(UserDataFilter.DATA_URI_PREFIX, Paths.get(provider.get("dataDir").orElse("/home/datashare/data")).toFile())
                 .setExtensions(new Extensions() {
                     @Override
@@ -69,5 +71,15 @@ public class CommonMode extends AbstractModule {
             routes.filter(new CorsFilter(cors));
         }
         return routes;
+    }
+
+    private Properties getVersion() {
+        try {
+            Properties properties = new Properties();
+            properties.load(getClass().getResourceAsStream("/git.properties"));
+            return properties;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
