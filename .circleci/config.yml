@@ -40,3 +40,41 @@ jobs:
       - run: mvn test
 
       - run: mvn -Dmaven.test.skip=true package
+
+  build_front:
+    docker:
+      - image: circleci/node:8.9.4
+      - image: docker.elastic.co/elasticsearch/elasticsearch:6.1.0
+        environment:
+          - "discovery.type=single-node"
+          - "cluster.name=datashare"
+          - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+        name: elasticsearch
+    working_directory: ~/repo
+    steps:
+      - run:
+          name: checkout
+          command: 'git clone git@github.com:ICIJ/datashare-client.git'
+      - run:
+          name: update npm
+          command: 'sudo npm install -g npm@latest yarn@latest'
+
+workflows:
+  version: 2
+#    un-tagged-build:
+#      jobs:
+#        - build:
+#          filters:
+#            tags:
+#              ignore: /^[0-9.]*/
+    tagged-build:
+      jobs:
+        - build:
+          filters:
+            branches:
+              ignore: /.*/
+#            tags:
+ #             only: /^[0-9.]*/
+        - build_front:
+          requires:
+            - build
