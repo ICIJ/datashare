@@ -1,15 +1,20 @@
 package org.icij.datashare;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
+import net.codestory.rest.Response;
 import org.icij.datashare.mode.LocalMode;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import static java.lang.String.format;
+import static org.fest.assertions.Assertions.assertThat;
 
 public class WebAppAcceptanceTest implements FluentRestTest {
     private static WebServer server = new WebServer() {
@@ -42,8 +47,14 @@ public class WebAppAcceptanceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_get_version() {
-        get("/version").should().respond(200).haveType("application/json").contain("git.commit.id");
+    public void test_get_version() throws Exception {
+        Response response = get("/version").response();
+
+        assertThat(response.code()).isEqualTo(200);
+        assertThat(response.contentType()).contains("application/json");
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> map = mapper.readValue(response.content(), new TypeReference<Map<String, Object>>() {});
+        assertThat(map.keySet()).contains("git.commit.id", "git.commit.id.abbrev");
     }
 
     @Test
