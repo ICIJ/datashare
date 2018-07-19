@@ -54,17 +54,19 @@ jobs:
     steps:
       - run:
           name: checkout
-          command: 'git clone git@github.com:ICIJ/datashare-client.git'
+          command: 'GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" git clone git@github.com:ICIJ/datashare-client.git'
       - run:
           name: update npm
           command: 'sudo npm install -g npm@latest yarn@latest'
 
 workflows:
   version: 2
-  build_back_and_front:
+  tagged_build:
     jobs:
       - build
-      - build_front
+      - build_front:
+        requires:
+          - build
 
 #workflows:
 #  version: 2
