@@ -61,20 +61,27 @@ jobs:
 
 workflows:
   version: 2
+  build_back_and_front:
+    jobs:
+      - build
+      - build_front
+
+#workflows:
+#  version: 2
 #    un-tagged-build:
 #      jobs:
 #        - build:
 #          filters:
 #            tags:
 #              ignore: /^[0-9.]*/
-    tagged-build:
-      jobs:
-        - build:
-          filters:
-            branches:
-              ignore: /.*/
+#    tagged_build:
+#      jobs:
+#        - build:
+#          filters:
+#            branches:
+#              ignore: /.*/
 #            tags:
- #             only: /^[0-9.]*/
-        - build_front:
-          requires:
-            - build
+#             only: /^[0-9.]*/
+#       - build_front:
+#         requires:
+#           - build
