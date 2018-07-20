@@ -44,7 +44,7 @@ jobs:
   build_front:
     docker:
       - image: circleci/node:8.9.4
-      - image: docker.elastic.co/elasticsearch/elasticsearch:6.1.0
+      - image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
         environment:
           - "discovery.type=single-node"
           - "cluster.name=datashare"
@@ -59,7 +59,7 @@ jobs:
              chmod 700 ~/.ssh
       - add_ssh_keys:
           fingerprints:
-            - "40:0b:cf:14:68:05:6d:a8:fd:76:4d:b7:75:ea:1c:b4"
+            - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
           name: checkout
           command: |
