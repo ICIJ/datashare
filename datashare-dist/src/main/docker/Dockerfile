@@ -2,7 +2,7 @@ FROM frolvlad/alpine-glibc
 
 # install java Runtime for alpine cf https://wiki.alpinelinux.org/wiki/Installing_Oracle_Java
 # without glibc stuffs because we're using alpine-glibc
-RUN cd /tmp && JAVA_MINOR_VERSION=171 && \
+RUN cd /tmp && JAVA_MINOR_VERSION=181 && \
   wget  --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
   "http://download.oracle.com/otn-pub/java/jdk/8u171-b11/512cd62ec5174c3487ac17c61aaa89e8/jre-8u${JAVA_MINOR_VERSION}-linux-x64.tar.gz" && \
   mkdir -p /opt/java && cd /opt/java && \
