@@ -12,7 +12,7 @@ jobs:
       - image: redis:4.0.1-alpine
         name: redis
 
-    working_directory: ~/backend
+    working_directory: ~/app
 
     environment:
       MAVEN_OPTS: "-Xms256m -Xmx256m"
@@ -50,11 +50,16 @@ jobs:
           - "cluster.name=datashare"
           - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
         name: elasticsearch
-    working_directory: ~/frontend
+    working_directory: ~/app
     steps:
+      - add_ssh_keys:
+        fingerprints:
+          - "40:0b:cf:14:68:05:6d:a8:fd:76:4d:b7:75:ea:1c:b4"
       - run:
-          name: checkout
-          command: 'GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" git clone git@github.com:ICIJ/datashare-client.git'
+        name: checkout
+        command: |
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" git clone git@github.com:ICIJ/datashare-client.git
       - run:
           name: update npm
           command: 'sudo npm install -g npm@latest yarn@latest'
