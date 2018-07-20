@@ -74,15 +74,14 @@ jobs:
             cd ~/app/datashare-client
             make install
       - save_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
+          key: dependency-cache-{{ checksum "~/app/datashare-client/package.json" }}
           paths:
-            - ./node_modules
+            - ~/app/datashare-client/node_modules
       - run:
-          name: run tests
-          command: make unit
-      - run:
-          name: build dist
-          command: make dist
+          name: run tests and build dist
+          command: |
+            cd ~/app/datashare-client
+            make unit dist
 
 workflows:
   version: 2
