@@ -48,9 +48,9 @@ jobs:
              cp -a datashare-dist/target/datashare-dist-*.*-all/* datashare-dist/target/datashare-dist-latest
 
       - persist_to_workspace:
-          root: datashare-dist
+          root: /tmp/datashare
           paths:
-            - datashare-dist-latest
+            - datashare-dist
 
   build_front:
     docker:
@@ -96,7 +96,7 @@ jobs:
             cd /tmp/datashare-client
             make unit dist
       - persist_to_workspace:
-          root: /tmp/datashare-dist
+          root: /tmp/datashare-client
           paths:
             - dist
 
