@@ -37,7 +37,7 @@ jobs:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
 
-#      - run: mvn test
+      - run: mvn test
 
       - run: mvn -Dmaven.test.skip=true package
 
@@ -94,7 +94,7 @@ jobs:
           name: run tests and build dist
           command: |
             cd /tmp/datashare-client
-            make dist
+            make unit dist
       - persist_to_workspace:
           root: /tmp/datashare-client
           paths:
@@ -124,32 +124,21 @@ jobs:
 
 workflows:
   version: 2
+  untagged_build:
+    jobs:
+      - build_back:
+          filters:
+              tags:
+                  ignore: /^[0-9.]*/
   tagged_build:
     jobs:
-      - build_back
+      - build_back:
+          filters:
+              tags:
+                  only: /^[0-9.]*/
       - build_front:
           requires:
             - build_back
       - build_docker:
           requires:
             - build_front
-
-#workflows:
-#  version: 2
-#    un-tagged-build:
-#      jobs:
-#        - build:
-#          filters:
-#            tags:
-#              ignore: /^[0-9.]*/
-#    tagged_build:
-#      jobs:
-#        - build:
-#          filters:
-#            branches:
-#              ignore: /.*/
-#            tags:
-#             only: /^[0-9.]*/
-#       - build_front:
-#         requires:
-#           - build
