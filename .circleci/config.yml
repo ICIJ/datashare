@@ -41,6 +41,9 @@ jobs:
 
       - run: mvn -Dmaven.test.skip=true package
 
+      - store_artifacts:
+          path: ./datashare-dist/target/datashare-dist-*.*-all
+
   build_front:
     docker:
       - image: circleci/node:8.9.4
@@ -82,6 +85,8 @@ jobs:
           command: |
             cd ~/app/datashare-client
             make unit dist
+      - store_artifacts:
+          path: ~/app/datashare-client/dist
 
 workflows:
   version: 2
