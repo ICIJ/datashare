@@ -42,16 +42,12 @@ jobs:
       - run: mvn -Dmaven.test.skip=true package
 
       - run:
-           name: set version variable
-           command: export DS_VERSION=$(cat pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
-      - run:
-           name: echo version variable
+           name: make link to dist
            command: |
-             echo ${DS_VERSION}
-             ls ~/app/datashare/datashare-dist/target/datashare-dist-${DS_VERSION}-all
+             ln -s ~/app/datashare/datashare-dist/target/datashare-dist-*.*-all ~/app/datashare/datashare-dist/target/datashare-dist-latest
 
       - store_artifacts:
-          path: ~/app/datashare/datashare-dist/target/datashare-dist-${DS_VERSION}-all
+          path: ~/app/datashare/datashare-dist/target/datashare-dist-latest
 
   build_front:
     docker:
