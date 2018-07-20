@@ -68,13 +68,28 @@ jobs:
       - run:
           name: update npm
           command: 'sudo npm install -g npm@latest yarn@latest'
+      - run:
+          name: make install
+          command: make install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - ./node_modules
+      - run:
+          name: run tests
+          command: make unit
+      - run:
+          name: build dist
+          command: make dist
 
 workflows:
   version: 2
   tagged_build:
     jobs:
       - build
-      - build_front
+      - build_front:
+          requires:
+            - build
 
 #workflows:
 #  version: 2
