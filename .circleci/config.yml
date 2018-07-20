@@ -45,7 +45,7 @@ jobs:
            name: make dist dir
            command: |
              mkdir -p datashare-dist/target/datashare-dist-latest
-             cp -a datashare-dist/target/datashare-dist-*.*-all/* ~/app/datashare-dist/target/datashare-dist-latest
+             cp -a datashare-dist/target/datashare-dist-*.*-all/* datashare-dist/target/datashare-dist-latest
 
       - persist_to_workspace:
           root: datashare-dist
@@ -64,7 +64,7 @@ jobs:
     working_directory: /tmp
     steps:
       - attach_workspace:
-           at: /tmp/datashare/datashare-dist
+           at: /tmp/datashare
       - run:
            name: adds_ssh_dir
            command: |
