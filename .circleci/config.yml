@@ -44,10 +44,10 @@ jobs:
       - run:
            name: make link to dist
            command: |
-             ln -s ~/app/datashare/datashare-dist/target/datashare-dist-0.12-all ~/app/datashare/datashare-dist/target/datashare-dist-latest
+             ln -s ~/app/datashare-dist/target/datashare-dist-*.*-all ~/app/datashare-dist/target/datashare-dist-latest
 
       - store_artifacts:
-          path: ~/app/datashare/datashare-dist/target/datashare-dist-latest
+          path: ~/app/datashare-dist/target/datashare-dist-latest
 
   build_front:
     docker:
