@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  build_back:
     docker:
       - image: circleci/openjdk:8-jdk
       - image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
@@ -94,20 +94,39 @@ jobs:
           name: run tests and build dist
           command: |
             cd /tmp/datashare-client
-            make unit dist
+            make dist
       - persist_to_workspace:
           root: /tmp/datashare-client
           paths:
             - dist
 
+  build_docker:
+    docker:
+      - image: docker:17.05.0-ce-git
+    working_directory: /tmp
+    steps:
+      - attach_workspace:
+           at: /tmp/datashare
+      - attach_workspace:
+           at: /tmp/datashare-client
+      - setup_remote_docker
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --no-cache py-pip=9.0.0-r1
+            pip install docker-compose==1.12.0
+
 workflows:
   version: 2
   tagged_build:
     jobs:
-      - build
+      - build_back
       - build_front:
           requires:
-            - build
+            - build_back
+      - build_docker:
+          requires:
+            - build_front
 
 #workflows:
 #  version: 2
