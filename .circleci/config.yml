@@ -65,6 +65,7 @@ jobs:
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-client.git
+            cd ~/app/datashare-client
       - run:
           name: update npm
           command: 'sudo npm install -g npm@latest yarn@latest'
