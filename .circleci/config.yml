@@ -43,7 +43,7 @@ jobs:
 
       - run:
            name: set version variable
-           command: "export DS_VERSION=$(cat pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')"
+           command: export DS_VERSION=$(cat pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
 
       - store_artifacts:
           path: datashare-dist/target/datashare-dist-${DS_VERSION}-all
