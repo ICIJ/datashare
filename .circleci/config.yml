@@ -52,14 +52,17 @@ jobs:
         name: elasticsearch
     working_directory: ~/app
     steps:
+      - run:
+           name: adds_ssh_dir
+           command: |
+             mkdir -p ~/.ssh
+             chmod 700 ~/.ssh
       - add_ssh_keys:
           fingerprints:
             - "40:0b:cf:14:68:05:6d:a8:fd:76:4d:b7:75:ea:1c:b4"
       - run:
           name: checkout
           command: |
-            mkdir -p ~/.ssh
-            chmod 700 ~/.ssh
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-client.git
       - run:
