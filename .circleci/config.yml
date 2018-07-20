@@ -65,13 +65,14 @@ jobs:
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-client.git
-            cd ~/app/datashare-client
       - run:
           name: update npm
           command: 'sudo npm install -g npm@latest yarn@latest'
       - run:
           name: make install
-          command: make install
+          command: |
+            cd ~/app/datashare-client
+            make install
       - save_cache:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
