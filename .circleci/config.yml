@@ -42,9 +42,10 @@ jobs:
       - run: mvn -Dmaven.test.skip=true package
 
       - run:
-           name: make link to dist
+           name: make dist dir
            command: |
-             ln -s ~/app/datashare-dist/target/datashare-dist-*.*-all ~/app/datashare-dist/target/datashare-dist-latest
+             mkdir ~/app/datashare-dist/target/datashare-dist-latest
+             cp -a ~/app/datashare-dist/target/datashare-dist-*.*-all/* ~/app/datashare-dist/target/datashare-dist-latest
 
       - store_artifacts:
           path: ~/app/datashare-dist/target/datashare-dist-latest
