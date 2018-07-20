@@ -12,7 +12,7 @@ jobs:
       - image: redis:4.0.1-alpine
         name: redis
 
-    working_directory: ~/app
+    working_directory: /tmp/datashare
 
     environment:
       MAVEN_OPTS: "-Xms256m -Xmx256m"
@@ -44,11 +44,13 @@ jobs:
       - run:
            name: make dist dir
            command: |
-             mkdir ~/app/datashare-dist/target/datashare-dist-latest
-             cp -a ~/app/datashare-dist/target/datashare-dist-*.*-all/* ~/app/datashare-dist/target/datashare-dist-latest
+             mkdir -p datashare-dist/target/datashare-dist-latest
+             cp -a datashare-dist/target/datashare-dist-*.*-all/* ~/app/datashare-dist/target/datashare-dist-latest
 
-      - store_artifacts:
-          path: ~/app/datashare-dist/target/datashare-dist-latest
+      - persist_to_workspace:
+          root: datashare-dist
+          paths:
+            - datashare-dist-latest
 
   build_front:
     docker:
@@ -59,8 +61,10 @@ jobs:
           - "cluster.name=datashare"
           - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
         name: elasticsearch
-    working_directory: ~/app
+    working_directory: /tmp
     steps:
+      - attach_workspace:
+           at: /tmp/datashare/datashare-dist
       - run:
            name: adds_ssh_dir
            command: |
