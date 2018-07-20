@@ -37,7 +37,7 @@ jobs:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
 
-      - run: mvn test
+#      - run: mvn test
 
       - run: mvn -Dmaven.test.skip=true package
 
@@ -84,19 +84,21 @@ jobs:
       - run:
           name: make install
           command: |
-            cd ~/app/datashare-client
+            cd /tmp/datashare-client
             make install
       - save_cache:
-          key: dependency-cache-{{ checksum "~/app/datashare-client/package.json" }}
+          key: dependency-cache-{{ checksum "/tmp/datashare-client/package.json" }}
           paths:
-            - ~/app/datashare-client/node_modules
+            - /tmp/datashare-client/node_modules
       - run:
           name: run tests and build dist
           command: |
-            cd ~/app/datashare-client
+            cd /tmp/datashare-client
             make unit dist
-      - store_artifacts:
-          path: ~/app/datashare-client/dist
+      - persist_to_workspace:
+          root: /tmp/datashare-dist
+          paths:
+            - dist
 
 workflows:
   version: 2
