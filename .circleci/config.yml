@@ -64,9 +64,8 @@ workflows:
   tagged_build:
     jobs:
       - build
-      - build_front:
-        requires:
-          - build
+      - build_front
+
 #workflows:
 #  version: 2
 #    un-tagged-build:
