@@ -16,6 +16,7 @@ install:
 
 version:
 		mvn versions:set -DnewVersion=${NEW_VERSION}
+		sed -i 's/datashare_version=.*/datashare_version='"${NEW_VERSION}"'/g' datashare-dist/src/main/datashare.sh
 		git commit -am "[release] ${NEW_VERSION}"
 		git tag ${NEW_VERSION}
 		echo "If everything is OK, you can push with tags i.e. git push origin master --tags"
