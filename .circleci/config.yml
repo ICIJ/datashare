@@ -124,21 +124,18 @@ jobs:
 
 workflows:
   version: 2
-  untagged_build:
+  build_workflow:
     jobs:
-      - build_back:
-          filters:
-              tags:
-                  ignore: /^[0-9.]*/
-  tagged_build:
-    jobs:
-      - build_back:
-          filters:
-              tags:
-                  only: /^[0-9.]*/
+      - build_back
       - build_front:
           requires:
             - build_back
+          filters:
+              tags:
+                  only: /^[0-9.]*/
       - build_docker:
           requires:
             - build_front
+          filters:
+              tags:
+                  only: /^[0-9.]*/
