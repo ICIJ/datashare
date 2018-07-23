@@ -14,7 +14,7 @@ dist:
 install:
 		mvn install
 
-version:
+release:
 		mvn versions:set -DnewVersion=${NEW_VERSION}
 		sed -i 's/datashare_version=.*/datashare_version='"${NEW_VERSION}"'/g' datashare-dist/src/main/datashare.sh
 		git commit -am "[release] ${NEW_VERSION}"
