@@ -41,6 +41,7 @@ jobs:
 
       - run: mvn -Dmaven.test.skip=true package
 
+      # making a datashare-dist-latest as we cannot access dist directory with a wildcard
       - run:
            name: make dist dir
            command: |
@@ -126,16 +127,23 @@ workflows:
   version: 2
   build_workflow:
     jobs:
-      - build_back
+      - build_back:
+          filters:
+              tags:
+                  only: /.*/
       - build_front:
           requires:
             - build_back
           filters:
               tags:
                   only: /^[0-9.]*/
+              branches:
+                  ignore: /.*/
       - build_docker:
           requires:
             - build_front
           filters:
               tags:
                   only: /^[0-9.]*/
+              branches:
+                  ignore: /.*/
