@@ -118,10 +118,9 @@ jobs:
           name: build and push docker image
           command: |
             cp -a /tmp/datashare/dist/ /tmp/datashare/datashare-dist/target/datashare-dist-latest/app
-            export DS_VERSION=$(ls /tmp/datashare/datashare-dist/target/ | grep all | sed 's/datashare-dist-\([0-9.]*\).*/\1/g')
-            docker build -t icij/datashare:$DS_VERSION /tmp/datashare/datashare-dist/target/datashare-dist-latest/
+            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-latest/
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-            docker push icij/datashare:$DS_VERSION
+            docker push icij/datashare:${CIRCLE_TAG}
 
 workflows:
   version: 2
