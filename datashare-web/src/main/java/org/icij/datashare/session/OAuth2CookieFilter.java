@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
+import static java.lang.System.getenv;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.session.OAuth2User.fromJson;
 
@@ -35,9 +36,9 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
 
     public static final String REQUEST_CODE_KEY = "code";
     public static final String REQUEST_STATE_KEY = "state";
+    public static final String ENV_SECRET_VARIABLE = "OAUTH_SECRET";
 
     private final Integer oauthTtl;
-    private final String oauthClientSecret;
     private final String oauthApiUrl;
     private final String oauthSigninPath;
     private final String oauthCallbackPath;
@@ -52,7 +53,6 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         this.oauthTokenUrl = propertiesProvider.get("oauthTokenUrl").orElse("http://localhost");
         this.oauthApiUrl = propertiesProvider.get("oauthApiUrl").orElse("http://localhost");
         this.oauthClientId = propertiesProvider.get("oauthClientId").orElse("");
-        this.oauthClientSecret = propertiesProvider.get("oauthClientSecret").orElse("");
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthSigninPath = propertiesProvider.get("oauthSigninPath").orElse("/auth/signin");
         this.oauthTtl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
@@ -83,7 +83,10 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
                 sessionIdStore.getLogin(context.get(REQUEST_STATE_KEY)) == null) {
             return Payload.badRequest();
         }
-        OAuth20Service service = new ServiceBuilder(oauthClientId).apiSecret(oauthClientSecret).callback(getCallbackUrl(context)).build(defaultOauthApi);
+        OAuth20Service service = new ServiceBuilder(oauthClientId).
+                apiSecret(getenv(ENV_SECRET_VARIABLE)).
+                callback(getCallbackUrl(context)).
+                build(defaultOauthApi);
         OAuth2AccessToken accessToken = service.getAccessToken(context.get(REQUEST_CODE_KEY));
 
         final OAuthRequest request = new OAuthRequest(Verb.GET, oauthApiUrl);
