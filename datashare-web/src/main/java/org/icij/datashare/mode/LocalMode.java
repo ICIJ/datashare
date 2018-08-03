@@ -4,10 +4,7 @@ import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.icij.datashare.SearchResource;
-import org.icij.datashare.TaskFactory;
-import org.icij.datashare.TaskManager;
-import org.icij.datashare.TaskResource;
+import org.icij.datashare.*;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
 import org.icij.datashare.session.LocalUserFilter;
@@ -42,6 +39,6 @@ public class LocalMode extends CommonMode {
 
     @Override
     protected Routes addModeConfiguration(Routes routes) {
-        return routes.add(TaskResource.class).add(SearchResource.class);
+        return routes.add(TaskResource.class).add(SearchResource.class).add(NamedEntityResource.class);
     }
 }

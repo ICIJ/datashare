@@ -6,10 +6,7 @@ import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.icij.datashare.SearchResource;
-import org.icij.datashare.TaskFactory;
-import org.icij.datashare.TaskManager;
-import org.icij.datashare.TaskResource;
+import org.icij.datashare.*;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
 import org.icij.datashare.session.OAuth2CookieFilter;
@@ -49,6 +46,6 @@ public class ProductionMode extends CommonMode {
 
     @Override
     protected Routes addModeConfiguration(Routes routes) {
-        return routes.add(TaskResource.class).add(SearchResource.class);
+        return routes.add(TaskResource.class).add(SearchResource.class).add(NamedEntityResource.class);
     }
 }

@@ -35,7 +35,6 @@ public final class NamedEntity implements Entity {
     private final String mentionNorm;
 
     @IndexId
-    @JsonIgnore
     private final String id;
     private final Category category;
     @IndexParent
@@ -95,7 +94,7 @@ public final class NamedEntity implements Entity {
                                      String doc,
                                      Pipeline.Type extr,
                                      Language extrLang) {
-        return new NamedEntity(mention, cat, doc, offset, extr, extrLang, null);
+        return new NamedEntity(cat, mention, offset, doc, extr, extrLang, null);
     }
 
     public static List<NamedEntity> allFrom(String text, Annotations annotations) {
@@ -124,10 +123,11 @@ public final class NamedEntity implements Entity {
     }
 
     @JsonCreator
-    private NamedEntity(@JsonProperty("mention") String mention,
+    private NamedEntity(
                         @JsonProperty("category") Category category,
-                        @JsonProperty("documentId") String documentId,
+                        @JsonProperty("mention") String mention,
                         @JsonProperty("offset") int offset,
+                        @JsonProperty("documentId") String documentId,
                         @JsonProperty("extractor") Pipeline.Type extractor,
                         @JsonProperty("extractorLanguage") Language extractorLanguage,
                         @JsonProperty("partOfSpeech") String partsOfSpeech) {
