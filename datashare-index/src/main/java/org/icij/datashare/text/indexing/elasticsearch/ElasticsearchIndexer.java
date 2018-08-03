@@ -7,7 +7,6 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
@@ -16,7 +15,6 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.ConstantScoreQueryBuilder;
 import org.elasticsearch.index.query.TermsQueryBuilder;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.SearchHit;
@@ -37,7 +35,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -97,37 +94,54 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public <T extends Entity> boolean add(final String indexName, T obj) {
+    public <T extends Entity> void add(final String indexName, T obj) throws IOException {
         String type = JsonObjectMapper.getType(obj);
         String id = obj.getId();
-        try {
-            final IndexResponse resp = client.index( createIndexRequest(indexName, type, id,
-                    JsonObjectMapper.getJson(obj),
-                    JsonObjectMapper.getParent(obj),
-                    JsonObjectMapper.getRoot(obj)).setRefreshPolicy(esCfg.refreshPolicy) );
-            return asList(RestStatus.CREATED, RestStatus.OK).contains(resp.status());
-        } catch (IOException ioex) {
-            LOGGER.error("Failed to add doc " + id + " of type " + type + " in index " + indexName, ioex);
-            return false;
-        }
+        client.index( createIndexRequest(indexName, type, id,
+                JsonObjectMapper.getJson(obj),
+                JsonObjectMapper.getParent(obj),
+                JsonObjectMapper.getRoot(obj)).setRefreshPolicy(esCfg.refreshPolicy) );
+    }
+
+    @Override
+    public <T extends Entity> void update(String indexName, T obj) throws IOException {
+        String type = JsonObjectMapper.getType(obj);
+        String id = obj.getId();
+        client.update( createUpdateRequest(indexName, type, id,
+                        JsonObjectMapper.getJson(obj),
+                        JsonObjectMapper.getParent(obj),
+                        JsonObjectMapper.getRoot(obj)).setRefreshPolicy(esCfg.refreshPolicy) );
     }
 
     private IndexRequest createIndexRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
         IndexRequest req = new IndexRequest(index, esCfg.indexType, id);
 
+        setJoinFields(json, type, parent, root);
+        req = req.source(json);
+        return (parent != null) ? req.routing(root) : req;
+    }
+
+    private UpdateRequest createUpdateRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
+        UpdateRequest req = new UpdateRequest(index, esCfg.indexType, id);
+
+        setJoinFields(json, type, parent, root);
+        req = req.doc(json);
+        return (parent != null) ? req.routing(root) : req;
+    }
+
+    private void setJoinFields(Map<String, Object> json, String type, String parent, String root) {
         json.put(esCfg.docTypeField, type);
-        if (parent != null && type.equals("NamedEntity"))
+        if (parent != null && type.equals("NamedEntity")) {
+            json.put("rootDocument", root);
             json.put(esCfg.indexJoinField, new HashMap<String, String>() {{
                 put("name", type);
                 put("parent", parent);
             }});
-        else {
+        } else {
             json.put(esCfg.indexJoinField, new HashMap<String, String>() {{
                 put("name", type);
             }});
         }
-        req = req.source(json);
-        return (parent != null) ? req.routing(root) : req;
     }
 
     public <T extends Entity> T get(String indexName, String id) {

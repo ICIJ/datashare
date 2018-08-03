@@ -12,11 +12,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.io.IOException;
+
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.NamedEntity.create;
 import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class NamedEntityResourceTest implements FluentRestTest {
@@ -55,6 +58,26 @@ public class NamedEntityResourceTest implements FluentRestTest {
 
         get("/api/namedEntity/my_id?routing=root_parent").withAuthentication("anne", "notused").
                 should().respond(200).haveType("application/json").contain(toBeReturned.getId());
+    }
+
+    @Test
+    public void test_hide_named_entity_when_success() throws IOException {
+        NamedEntity toBeHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
+        assertThat(toBeHidden.isHidden()).isFalse();
+
+        doReturn(toBeHidden).when(indexer).get("local-datashare", toBeHidden.getId(), toBeHidden.getDocumentId());
+
+        put("/api/namedEntity/hide/" + toBeHidden.getId() + "?routing=" + toBeHidden.getDocumentId()).should().respond(200);
+        verify(indexer).update("local-datashare", toBeHidden);
+    }
+
+    @Test
+    public void test_hide_named_entity_when_failure() throws IOException {
+        NamedEntity toBeHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
+        doReturn(toBeHidden).when(indexer).get("local-datashare", toBeHidden.getId(), toBeHidden.getDocumentId());
+        doThrow(new IOException()).when(indexer).update("local-datashare", toBeHidden);
+
+        put("/api/namedEntity/hide/" + toBeHidden.getId() + "?routing=" + toBeHidden.getDocumentId()).should().respond(500);
     }
 
     @Override

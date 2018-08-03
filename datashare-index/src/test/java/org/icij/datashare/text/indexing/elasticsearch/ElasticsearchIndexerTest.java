@@ -99,7 +99,24 @@ public class ElasticsearchIndexerTest {
         Document doc = indexer.get(TEST_INDEX, child.getId(), parent.getId());
         assertThat(doc.getNerTags()).containsOnly(CORENLP);
         assertThat(doc.getStatus()).isEqualTo(Document.Status.DONE);
-        assertThat((NamedEntity) indexer.get(TEST_INDEX, ne1.getId(), doc.getRootDocument())).isNotNull();
+        NamedEntity actual = indexer.get(TEST_INDEX, ne1.getId(), doc.getRootDocument());
+        assertThat(actual).isNotNull();
+        assertThat(actual.getRootDocument()).isEqualTo(doc.getRootDocument());
+    }
+
+    @Test
+    public void test_update_named_entity() throws IOException {
+        Document parent = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content Madeline",
+                        Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE);
+        NamedEntity ne = NamedEntity.create(PERSON, "Madeline", 8, parent.getId(), CORENLP, Language.ENGLISH);
+        indexer.add(TEST_INDEX, parent);
+        indexer.add(TEST_INDEX, ne);
+
+        ne.hide();
+        indexer.update(TEST_INDEX, ne);
+
+        NamedEntity neFromES = indexer.get(TEST_INDEX, ne.getId(), parent.getId());
+        assertThat(neFromES.isHidden()).isTrue();
     }
 
     @Test

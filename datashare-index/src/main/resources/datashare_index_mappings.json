@@ -24,6 +24,9 @@
         "parentDocument": {
           "type": "keyword"
         },
+        "rootDocument": {
+          "type": "keyword"
+        },
         "contentType": {
           "type": "keyword"
         },
@@ -76,6 +79,10 @@
         "partsOfSpeech": {
           "type": "text",
           "index_options": "docs"
+        },
+        "isHidden": {
+          "type": "boolean",
+          "null_value": false
         }
       }
     }

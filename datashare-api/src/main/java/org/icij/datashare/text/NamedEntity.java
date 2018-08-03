@@ -10,13 +10,17 @@ import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.function.ThrowingFunctions;
 import org.icij.datashare.text.indexing.IndexId;
 import org.icij.datashare.text.indexing.IndexParent;
+import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.Tag;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.min;
@@ -39,10 +43,13 @@ public final class NamedEntity implements Entity {
     private final Category category;
     @IndexParent
     private final String documentId;
+    @IndexRoot
+    private final String rootDocument;
     private final int offset;
     private final Pipeline.Type extractor;
     private final Language extractorLanguage;
     private final String partsOfSpeech;
+    private Boolean hidden;
 
     public enum Category implements Serializable {
         PERSON       ("PERS"),
@@ -94,7 +101,17 @@ public final class NamedEntity implements Entity {
                                      String doc,
                                      Pipeline.Type extr,
                                      Language extrLang) {
-        return new NamedEntity(cat, mention, offset, doc, extr, extrLang, null);
+        return new NamedEntity(cat, mention, offset, doc, doc, extr, extrLang, false, null);
+    }
+
+    public static NamedEntity create(Category cat,
+                                     String mention,
+                                     int offset,
+                                     String doc,
+                                     String rootDoc,
+                                     Pipeline.Type extr,
+                                     Language extrLang) {
+        return new NamedEntity(cat, mention, offset, doc, rootDoc, extr, extrLang, false, null);
     }
 
     public static List<NamedEntity> allFrom(String text, Annotations annotations) {
@@ -128,8 +145,10 @@ public final class NamedEntity implements Entity {
                         @JsonProperty("mention") String mention,
                         @JsonProperty("offset") int offset,
                         @JsonProperty("documentId") String documentId,
+                        @JsonProperty("rootDocument") String rootDocument,
                         @JsonProperty("extractor") Pipeline.Type extractor,
                         @JsonProperty("extractorLanguage") Language extractorLanguage,
+                        @JsonProperty("isHidden") Boolean hidden,
                         @JsonProperty("partOfSpeech") String partsOfSpeech) {
         if (mention == null || mention.isEmpty()) {
             throw new IllegalArgumentException("Mention is undefined");
@@ -138,6 +157,7 @@ public final class NamedEntity implements Entity {
         this.mention = mention;
         this.mentionNorm = normalize(mention);
         this.documentId = documentId;
+        this.rootDocument = rootDocument;
         this.offset = offset;
         this.extractor = extractor;
         this.id = HASHER.hash( String.join("|",
@@ -147,6 +167,7 @@ public final class NamedEntity implements Entity {
                 mentionNorm
         ));
         this.extractorLanguage = extractorLanguage;
+        this.hidden = hidden;
         this.partsOfSpeech = partsOfSpeech;
     }
 
@@ -155,9 +176,12 @@ public final class NamedEntity implements Entity {
     public String getMention() { return mention; }
     public Category getCategory() { return category; }
     public String getDocumentId() { return documentId; }
+    public String getRootDocument() { return rootDocument; }
     public int getOffset() { return offset; }
     public Pipeline.Type getExtractor() { return extractor; }
     public Language getExtractorLanguage() { return extractorLanguage; }
+    public Boolean isHidden() { return hidden; }
+    public void hide() { this.hidden = true; }
     public String getPartsOfSpeech() { return partsOfSpeech; }
 
     @Override
