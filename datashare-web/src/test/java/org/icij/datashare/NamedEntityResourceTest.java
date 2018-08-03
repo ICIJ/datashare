@@ -1,8 +1,11 @@
 package org.icij.datashare;
 
 import net.codestory.http.WebServer;
+import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.OAuth2User;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
@@ -29,7 +32,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
     @Before
     public void setUp() throws Exception {
         initMocks(this);
-        server.configure(routes -> routes.add(new NamedEntityResource(indexer)));
+        server.configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(LocalUserFilter.class));
     }
 
     @Test
@@ -38,10 +41,20 @@ public class NamedEntityResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_get_child_named_entity() {
+    public void test_get_named_entity() {
         NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("local-datashare", "my_id", "root_parent");
         get("/api/namedEntity/my_id?routing=root_parent").should().respond(200).haveType("application/json").contain(toBeReturned.getId());
+    }
+
+    @Test
+    public void test_get_named_entity_in_prod_mode() {
+        server.configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(new BasicAuthFilter("/", "icij", OAuth2User.singleUser("anne"))));
+        NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
+        doReturn(toBeReturned).when(indexer).get("anne-datashare", "my_id", "root_parent");
+
+        get("/api/namedEntity/my_id?routing=root_parent").withAuthentication("anne", "notused").
+                should().respond(200).haveType("application/json").contain(toBeReturned.getId());
     }
 
     @Override
