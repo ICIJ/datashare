@@ -80,6 +80,27 @@ public class NamedEntityResourceTest implements FluentRestTest {
         put("/api/namedEntity/hide/" + toBeHidden.getId() + "?routing=" + toBeHidden.getDocumentId()).should().respond(500);
     }
 
+    @Test
+    public void test_unhide_named_entity_when_success() throws IOException {
+        NamedEntity toBeHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
+        toBeHidden.hide();
+        assertThat(toBeHidden.isHidden()).isTrue();
+
+        doReturn(toBeHidden).when(indexer).get("local-datashare", toBeHidden.getId(), toBeHidden.getDocumentId());
+
+        put("/api/namedEntity/unhide/" + toBeHidden.getId() + "?routing=" + toBeHidden.getDocumentId()).should().respond(200);
+        verify(indexer).update("local-datashare", toBeHidden);
+    }
+
+    @Test
+    public void test_unhide_named_entity_when_failure() throws IOException {
+        NamedEntity toBeHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
+        doReturn(toBeHidden).when(indexer).get("local-datashare", toBeHidden.getId(), toBeHidden.getDocumentId());
+        doThrow(new IOException()).when(indexer).update("local-datashare", toBeHidden);
+
+        put("/api/namedEntity/unhide/" + toBeHidden.getId() + "?routing=" + toBeHidden.getDocumentId()).should().respond(500);
+    }
+
     @Override
     public int port() {
         return server.port();

@@ -182,6 +182,7 @@ public final class NamedEntity implements Entity {
     public Language getExtractorLanguage() { return extractorLanguage; }
     public Boolean isHidden() { return hidden; }
     public void hide() { this.hidden = true; }
+    public void unhide() { this.hidden = false; }
     public String getPartsOfSpeech() { return partsOfSpeech; }
 
     @Override

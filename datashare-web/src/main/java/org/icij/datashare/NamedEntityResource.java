@@ -36,4 +36,12 @@ public class NamedEntityResource {
         indexer.update(((User)context.currentUser()).indexName(), ne);
         return ok();
     }
+
+    @Put("/namedEntity/unhide/:id?routing=:documentId")
+    public Payload unhide(final String id, final String documentId, Context context) throws IOException {
+        NamedEntity ne = getById(id, documentId, context);
+        ne.unhide();
+        indexer.update(((User)context.currentUser()).indexName(), ne);
+        return ok();
+    }
 }
