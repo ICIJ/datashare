@@ -128,11 +128,21 @@ public class ElasticsearchIndexerTest {
     public void test_search_with_status() throws IOException {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED);
-        indexer.add(TEST_INDEX,doc);
+        indexer.add(TEST_INDEX, doc);
 
         List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).ofStatus(INDEXED).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
         assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).execute().collect(toList()).size()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_search_with_field_value() throws Exception {
+        indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", 2, "docId", CORENLP, Language.FRENCH));
+        indexer.add(TEST_INDEX, create(PERSON, "John Doe", 12, "docId", CORENLP, Language.FRENCH));
+        indexer.add(TEST_INDEX, create(PERSON, "John Doe", 24, "doc2Id", CORENLP, Language.FRENCH));
+
+        assertThat(indexer.search(TEST_INDEX, NamedEntity.class).withFieldValue("mentionNorm", "john doe").execute().count()).isEqualTo(2);
+        assertThat(indexer.search(TEST_INDEX, NamedEntity.class).withFieldValue("documentId", "doc2Id").execute().count()).isEqualTo(1);
     }
 
     @Test

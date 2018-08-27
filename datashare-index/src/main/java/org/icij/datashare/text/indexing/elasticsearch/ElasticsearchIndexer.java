@@ -274,6 +274,12 @@ public class ElasticsearchIndexer implements Indexer {
         }
 
         @Override
+        public Searcher withFieldValue(String name, String value) {
+            this.boolQuery.must(matchQuery(name, value));
+            return this;
+        }
+
+        @Override
         public String toString() {
             return "boolQuery : " + boolQuery + " searchRequest : " + searchRequest;
         }
