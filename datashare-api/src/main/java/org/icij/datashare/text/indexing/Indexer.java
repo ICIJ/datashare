@@ -23,6 +23,7 @@ public interface Indexer extends Closeable {
     void close() throws IOException;
 
     boolean bulkAdd(String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException;
+    <T extends Entity> boolean bulkUpdate(String indexName, List<T> entities, T parent) throws IOException;
     <T extends Entity> void add(String indexName, T obj) throws IOException;
     <T extends Entity> void update(String indexName, T obj) throws IOException;
 

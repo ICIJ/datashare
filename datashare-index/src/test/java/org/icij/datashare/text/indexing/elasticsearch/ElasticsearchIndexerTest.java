@@ -34,9 +34,8 @@ import static org.icij.datashare.text.Document.Status.DONE;
 import static org.icij.datashare.text.Document.Status.INDEXED;
 import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
-import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
-import static org.icij.datashare.text.nlp.Pipeline.Type.IXAPIPE;
-import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
+import static org.icij.datashare.text.NamedEntity.create;
+import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 
 public class ElasticsearchIndexerTest {
     @ClassRule
@@ -49,7 +48,7 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_get_unknown_document() throws Exception {
+    public void test_get_unknown_document() {
         Document doc = indexer.get(TEST_INDEX, "unknown");
         assertThat(doc).isNull();
     }
@@ -59,8 +58,8 @@ public class ElasticsearchIndexerTest {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED);
         indexer.add(TEST_INDEX, doc);
-        NamedEntity ne1 = NamedEntity.create(PERSON, "John Doe", 12, "doc.txt", CORENLP, Language.FRENCH);
-        NamedEntity ne2 = NamedEntity.create(ORGANIZATION, "AAA", 123, "doc.txt", CORENLP, Language.FRENCH);
+        NamedEntity ne1 = create(PERSON, "John Doe", 12, "doc.txt", CORENLP, Language.FRENCH);
+        NamedEntity ne2 = create(ORGANIZATION, "AAA", 123, "doc.txt", CORENLP, Language.FRENCH);
 
         assertThat(indexer.bulkAdd(TEST_INDEX, CORENLP, asList(ne1, ne2), doc)).isTrue();
 
@@ -92,7 +91,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, new HashSet<>(), parent);
         indexer.add(TEST_INDEX,parent);
         indexer.add(TEST_INDEX,child);
-        NamedEntity ne1 = NamedEntity.create(PERSON, "Jane Daffodil", 12, parent.getId(), CORENLP, Language.FRENCH);
+        NamedEntity ne1 = create(PERSON, "Jane Daffodil", 12, parent.getId(), CORENLP, Language.FRENCH);
 
         assertThat(indexer.bulkAdd(TEST_INDEX,CORENLP, singletonList(ne1), child)).isTrue();
 
@@ -108,7 +107,7 @@ public class ElasticsearchIndexerTest {
     public void test_update_named_entity() throws IOException {
         Document parent = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content Madeline",
                         Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE);
-        NamedEntity ne = NamedEntity.create(PERSON, "Madeline", 8, parent.getId(), CORENLP, Language.ENGLISH);
+        NamedEntity ne = create(PERSON, "Madeline", 8, parent.getId(), CORENLP, Language.ENGLISH);
         indexer.add(TEST_INDEX, parent);
         indexer.add(TEST_INDEX, ne);
 
@@ -191,6 +190,25 @@ public class ElasticsearchIndexerTest {
         }
         assertThat(indexer.search(TEST_INDEX,Document.class).limit(5).execute().count()).isEqualTo(5);
         assertThat(indexer.search(TEST_INDEX,Document.class).execute().count()).isEqualTo(20);
+    }
+
+    @Test
+    public void test_bulk_update() throws IOException {
+        Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content",
+                        Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED);
+        indexer.add(TEST_INDEX, doc);
+        NamedEntity ne1 = create(PERSON, "John Doe", 12, "doc.txt", CORENLP, Language.FRENCH);
+        NamedEntity ne2 = create(ORGANIZATION, "AAA", 123, "doc.txt", CORENLP, Language.FRENCH);
+        indexer.bulkAdd(TEST_INDEX, CORENLP, asList(ne1, ne2), doc);
+
+        ne1.hide();
+        ne2.hide();
+        assertThat(indexer.bulkUpdate(TEST_INDEX, asList(ne1, ne2), doc)).isTrue();
+
+        Object[] namedEntities = indexer.search(TEST_INDEX, NamedEntity.class).execute().toArray();
+        assertThat(namedEntities.length).isEqualTo(2);
+        assertThat(((NamedEntity)namedEntities[0]).isHidden()).isTrue();
+        assertThat(((NamedEntity)namedEntities[1]).isHidden()).isTrue();
     }
 
     public ElasticsearchIndexerTest() throws UnknownHostException {}

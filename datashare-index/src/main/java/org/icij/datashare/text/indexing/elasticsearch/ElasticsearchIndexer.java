@@ -40,6 +40,7 @@ import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
+import static org.icij.datashare.json.JsonObjectMapper.*;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
 
 
@@ -77,7 +78,7 @@ public class ElasticsearchIndexer implements Indexer {
 
         for (Entity child : namedEntities) {
             bulkRequest.add(createIndexRequest(indexName, JsonObjectMapper.getType(child), child.getId(),
-                            JsonObjectMapper.getJson(child), parent.getId(), routing));
+                            getJson(child), parent.getId(), routing));
         }
         bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
 
@@ -94,23 +95,39 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public <T extends Entity> boolean bulkUpdate(String indexName, List<T> entities, T parent) throws IOException {
+        String routing = ofNullable(getRoot(parent)).orElse(parent.getId());
+        BulkRequest bulkRequest = new BulkRequest();
+        entities.stream().map(e -> createUpdateRequest(indexName, getType(e), e.getId(), getJson(e), getParent(e), routing)).
+                forEach(bulkRequest::add);
+        bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
+
+        BulkResponse bulkResponse = client.bulk(bulkRequest);
+        if (bulkResponse.hasFailures()) {
+            for (BulkItemResponse resp : bulkResponse.getItems()) {
+                if (resp.isFailed()) {
+                    LOGGER.error("bulk update failed : {}", resp.getFailureMessage());
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     public <T extends Entity> void add(final String indexName, T obj) throws IOException {
         String type = JsonObjectMapper.getType(obj);
         String id = obj.getId();
-        client.index( createIndexRequest(indexName, type, id,
-                JsonObjectMapper.getJson(obj),
-                JsonObjectMapper.getParent(obj),
-                JsonObjectMapper.getRoot(obj)).setRefreshPolicy(esCfg.refreshPolicy) );
+        client.index( createIndexRequest(indexName, type, id, getJson(obj), getParent(obj), getRoot(obj)).
+                setRefreshPolicy(esCfg.refreshPolicy) );
     }
 
     @Override
     public <T extends Entity> void update(String indexName, T obj) throws IOException {
         String type = JsonObjectMapper.getType(obj);
         String id = obj.getId();
-        client.update( createUpdateRequest(indexName, type, id,
-                        JsonObjectMapper.getJson(obj),
-                        JsonObjectMapper.getParent(obj),
-                        JsonObjectMapper.getRoot(obj)).setRefreshPolicy(esCfg.refreshPolicy) );
+        client.update( createUpdateRequest(indexName, type, id, getJson(obj), getParent(obj), getRoot(obj)).
+                setRefreshPolicy(esCfg.refreshPolicy) );
     }
 
     private IndexRequest createIndexRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
