@@ -95,10 +95,9 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public <T extends Entity> boolean bulkUpdate(String indexName, List<T> entities, T parent) throws IOException {
-        String routing = ofNullable(getRoot(parent)).orElse(parent.getId());
+    public <T extends Entity> boolean bulkUpdate(String indexName, List<? extends Entity> entities) throws IOException {
         BulkRequest bulkRequest = new BulkRequest();
-        entities.stream().map(e -> createUpdateRequest(indexName, getType(e), e.getId(), getJson(e), getParent(e), routing)).
+        entities.stream().map(e -> createUpdateRequest(indexName, getType(e), e.getId(), getJson(e), getParent(e), getRoot(e))).
                 forEach(bulkRequest::add);
         bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
 

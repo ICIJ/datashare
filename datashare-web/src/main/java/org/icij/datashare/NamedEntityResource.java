@@ -3,6 +3,7 @@ package org.icij.datashare;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
@@ -11,7 +12,9 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 
 import java.io.IOException;
+import java.util.List;
 
+import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
 
@@ -29,19 +32,29 @@ public class NamedEntityResource {
         return notFoundIfNull(indexer.get(((User)context.currentUser()).indexName(), id, documentId));
     }
 
-    @Put("/namedEntity/hide/:id?routing=:documentId")
-    public Payload hide(final String id, final String documentId, Context context) throws IOException {
-        NamedEntity ne = getById(id, documentId, context);
-        ne.hide();
-        indexer.update(((User)context.currentUser()).indexName(), ne);
+    @Options("/namedEntity/hide/:mentionNorm")
+    public Payload hide(final String mentionNorm) {
+        return ok().withAllowMethods("OPTIONS", "PUT");
+    }
+
+    @Put("/namedEntity/hide/:mentionNorm")
+    public Payload hide(final String mentionNorm, Context context) throws IOException {
+        List<? extends Entity> nes = indexer.search(((User) context.currentUser()).indexName(), NamedEntity.class).
+                withFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
+        indexer.bulkUpdate(((User)context.currentUser()).indexName(), nes);
         return ok();
     }
 
-    @Put("/namedEntity/unhide/:id?routing=:documentId")
-    public Payload unhide(final String id, final String documentId, Context context) throws IOException {
-        NamedEntity ne = getById(id, documentId, context);
-        ne.unhide();
-        indexer.update(((User)context.currentUser()).indexName(), ne);
+    @Options("/namedEntity/unhide/:mentionNorm")
+    public Payload unhide(final String mentionNorm) {
+        return ok().withAllowMethods("OPTIONS", "PUT");
+    }
+
+    @Put("/namedEntity/unhide/:mentionNorm")
+    public Payload unhide(final String id, final String mentionNorm, Context context) throws IOException {
+        List<? extends Entity> nes = indexer.search(((User) context.currentUser()).indexName(), NamedEntity.class).
+                        withFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
+        indexer.bulkUpdate(((User)context.currentUser()).indexName(), nes);
         return ok();
     }
 }

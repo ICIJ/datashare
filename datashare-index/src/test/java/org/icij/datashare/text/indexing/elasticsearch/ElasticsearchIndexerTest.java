@@ -207,13 +207,13 @@ public class ElasticsearchIndexerTest {
         Document doc = new org.icij.datashare.text.Document(Paths.get("doc.txt"), "content",
                         Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED);
         indexer.add(TEST_INDEX, doc);
-        NamedEntity ne1 = create(PERSON, "John Doe", 12, "doc.txt", CORENLP, Language.FRENCH);
-        NamedEntity ne2 = create(ORGANIZATION, "AAA", 123, "doc.txt", CORENLP, Language.FRENCH);
+        NamedEntity ne1 = create(PERSON, "John Doe", 12, doc.getId(), CORENLP, Language.FRENCH);
+        NamedEntity ne2 = create(ORGANIZATION, "AAA", 123, doc.getId(), CORENLP, Language.FRENCH);
         indexer.bulkAdd(TEST_INDEX, CORENLP, asList(ne1, ne2), doc);
 
         ne1.hide();
         ne2.hide();
-        assertThat(indexer.bulkUpdate(TEST_INDEX, asList(ne1, ne2), doc)).isTrue();
+        assertThat(indexer.bulkUpdate(TEST_INDEX, asList(ne1, ne2))).isTrue();
 
         Object[] namedEntities = indexer.search(TEST_INDEX, NamedEntity.class).execute().toArray();
         assertThat(namedEntities.length).isEqualTo(2);

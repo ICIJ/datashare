@@ -181,8 +181,8 @@ public final class NamedEntity implements Entity {
     public Pipeline.Type getExtractor() { return extractor; }
     public Language getExtractorLanguage() { return extractorLanguage; }
     public Boolean isHidden() { return hidden; }
-    public void hide() { this.hidden = true; }
-    public void unhide() { this.hidden = false; }
+    public NamedEntity hide() { this.hidden = true; return this;}
+    public NamedEntity unhide() { this.hidden = false; return this;}
     public String getPartsOfSpeech() { return partsOfSpeech; }
 
     @Override

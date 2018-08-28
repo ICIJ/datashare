@@ -13,7 +13,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 
+import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
@@ -64,41 +66,48 @@ public class NamedEntityResourceTest implements FluentRestTest {
     public void test_hide_named_entity_when_success() throws IOException {
         NamedEntity toBeHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
         assertThat(toBeHidden.isHidden()).isFalse();
+        Indexer.Searcher searcher = mock(Indexer.Searcher.class);
+        doReturn(Stream.of(toBeHidden)).when(searcher).execute();
+        doReturn(searcher).when(searcher).withFieldValue(any(), any());
+        doReturn(searcher).when(indexer).search("local-datashare", NamedEntity.class);
 
-        doReturn(toBeHidden).when(indexer).get("local-datashare", toBeHidden.getId(), toBeHidden.getDocumentId());
+        put("/api/namedEntity/hide/to_update").should().respond(200);
 
-        put("/api/namedEntity/hide/" + toBeHidden.getId() + "?routing=" + toBeHidden.getDocumentId()).should().respond(200);
-        verify(indexer).update("local-datashare", toBeHidden);
+        verify(indexer).bulkUpdate("local-datashare", singletonList(toBeHidden));
     }
 
     @Test
     public void test_hide_named_entity_when_failure() throws IOException {
-        NamedEntity toBeHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
-        doReturn(toBeHidden).when(indexer).get("local-datashare", toBeHidden.getId(), toBeHidden.getDocumentId());
-        doThrow(new IOException()).when(indexer).update("local-datashare", toBeHidden);
+        doThrow(new RuntimeException()).when(indexer).search("local-datashare", NamedEntity.class);
 
-        put("/api/namedEntity/hide/" + toBeHidden.getId() + "?routing=" + toBeHidden.getDocumentId()).should().respond(500);
+        put("/api/namedEntity/hide/to_update").should().respond(500);
     }
 
     @Test
     public void test_unhide_named_entity_when_success() throws IOException {
-        NamedEntity toBeHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
-        toBeHidden.hide();
-        assertThat(toBeHidden.isHidden()).isTrue();
+        NamedEntity toBeUnHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
+        Indexer.Searcher searcher = mock(Indexer.Searcher.class);
+        doReturn(Stream.of(toBeUnHidden)).when(searcher).execute();
+        doReturn(searcher).when(searcher).withFieldValue(any(), any());
+        doReturn(searcher).when(indexer).search("local-datashare", NamedEntity.class);
 
-        doReturn(toBeHidden).when(indexer).get("local-datashare", toBeHidden.getId(), toBeHidden.getDocumentId());
+        doReturn(toBeUnHidden).when(indexer).get("local-datashare", toBeUnHidden.getId(), toBeUnHidden.getDocumentId());
 
-        put("/api/namedEntity/unhide/" + toBeHidden.getId() + "?routing=" + toBeHidden.getDocumentId()).should().respond(200);
-        verify(indexer).update("local-datashare", toBeHidden);
+        put("/api/namedEntity/unhide/to_update").should().respond(200);
+        verify(indexer).bulkUpdate("local-datashare", singletonList(toBeUnHidden));
+    }
+
+    @Test
+    public void test_hide_unhide_options() throws Exception {
+        options("/api/namedEntity/hide/whatever").should().respond(200).haveHeader("Access-Control-Allow-Methods", "OPTIONS, PUT");
+        options("/api/namedEntity/unhide/whatever").should().respond(200).haveHeader("Access-Control-Allow-Methods", "OPTIONS, PUT");
     }
 
     @Test
     public void test_unhide_named_entity_when_failure() throws IOException {
-        NamedEntity toBeHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
-        doReturn(toBeHidden).when(indexer).get("local-datashare", toBeHidden.getId(), toBeHidden.getDocumentId());
-        doThrow(new IOException()).when(indexer).update("local-datashare", toBeHidden);
+        doThrow(new RuntimeException()).when(indexer).search("local-datashare", NamedEntity.class);
 
-        put("/api/namedEntity/unhide/" + toBeHidden.getId() + "?routing=" + toBeHidden.getDocumentId()).should().respond(500);
+        put("/api/namedEntity/unhide/to_update").should().respond(500);
     }
 
     @Override
