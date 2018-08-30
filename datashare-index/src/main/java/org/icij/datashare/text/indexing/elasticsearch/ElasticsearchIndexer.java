@@ -138,7 +138,7 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private UpdateRequest createUpdateRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
-        UpdateRequest req = new UpdateRequest(index, esCfg.indexType, id).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        UpdateRequest req = new UpdateRequest(index, esCfg.indexType, id);
 
         setJoinFields(json, type, parent, root);
         req = req.doc(json);
