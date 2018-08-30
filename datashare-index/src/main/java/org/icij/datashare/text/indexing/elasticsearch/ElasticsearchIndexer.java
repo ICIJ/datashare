@@ -99,7 +99,7 @@ public class ElasticsearchIndexer implements Indexer {
         BulkRequest bulkRequest = new BulkRequest();
         entities.stream().map(e -> createUpdateRequest(indexName, getType(e), e.getId(), getJson(e), getParent(e), getRoot(e))).
                 forEach(bulkRequest::add);
-        bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
+        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
         BulkResponse bulkResponse = client.bulk(bulkRequest);
         if (bulkResponse.hasFailures()) {
@@ -138,7 +138,7 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private UpdateRequest createUpdateRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
-        UpdateRequest req = new UpdateRequest(index, esCfg.indexType, id);
+        UpdateRequest req = new UpdateRequest(index, esCfg.indexType, id).setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
         setJoinFields(json, type, parent, root);
         req = req.doc(json);
