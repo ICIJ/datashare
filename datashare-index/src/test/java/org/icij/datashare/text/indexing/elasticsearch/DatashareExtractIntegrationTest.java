@@ -46,6 +46,7 @@ public class DatashareExtractIntegrationTest {
         assertThat(doc.getContent()).isEqualTo("This is a document to be parsed by datashare.");
         assertThat(doc.getLanguage()).isEqualTo(ENGLISH);
         assertThat(doc.getContentLength()).isEqualTo(45);
+        assertThat(doc.getDirname()).contains(get("docs"));
         assertThat(doc.getPath()).contains(get("doc.txt"));
         assertThat(doc.getContentEncoding()).isEqualTo(Charset.forName("iso-8859-1"));
         assertThat(doc.getContentType()).isEqualTo("text/plain");

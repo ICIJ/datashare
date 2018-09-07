@@ -75,7 +75,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_metadata() throws Exception {
-        String path = getClass().getResource("/docs/doc.txt").getPath();
+        String path = getClass().getResource("/docs/a/b/c/doc.txt").getPath();
         final TikaDocument document = factory.create(path);
 
         spewer.write(document, new Extractor().extract(document));
@@ -87,7 +87,8 @@ public class ElasticsearchSpewerTest {
                 entry("nerTags", new ArrayList<>()),
                 entry("contentLength", 45),
                 entry("status", "INDEXED"),
-                entry("path", path)
+                entry("path", path),
+                entry("dirname", Paths.get(path).getParent().toString())
         );
     }
 

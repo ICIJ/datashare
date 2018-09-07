@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static java.nio.file.Paths.get;
 import static java.util.Optional.ofNullable;
 
 
@@ -27,6 +28,7 @@ public final class Document implements Entity {
 
     private final String id;
     private final Path path;
+    private final Path dirname;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private final Date extractionDate;
     private final int extractionLevel;
@@ -46,19 +48,20 @@ public final class Document implements Entity {
     private final String rootDocument;
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
-        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
+        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
     }
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags) {
-        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null);
+        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null);
     }
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument) {
-        this(HASHER.hash(content), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument());
+        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument());
     }
 
     @JsonCreator
-    private Document(@JsonProperty("id") String id, @JsonProperty("path") Path path, @JsonProperty("content") String  content,
+    private Document(@JsonProperty("id") String id, @JsonProperty("path") Path path,
+                     @JsonProperty("dirname") Path dirname, @JsonProperty("content") String  content,
                      @JsonProperty("language") Language language, @JsonProperty("extractionDate") Date extractionDate,
                      @JsonProperty("contentEncoding") Charset contentEncoding, @JsonProperty("contentType") String contentType,
                      @JsonProperty("extractionLevel") int extractionLevel,
@@ -69,6 +72,7 @@ public final class Document implements Entity {
                      @JsonProperty("rootDocument") String rootDocument) {
         this.id = id;
         this.path = path;
+        this.dirname = dirname;
         this.content = ofNullable(content).orElse("");
         this.extractionDate = extractionDate;
         this.extractionLevel = extractionLevel;
@@ -87,6 +91,7 @@ public final class Document implements Entity {
     public String getId() { return id; }
     public String getContent() { return content; }
     public Path getPath() { return path;}
+    public Path getDirname() { return dirname;}
     public Charset getContentEncoding() { return contentEncoding; }
     public Integer getContentLength() { return contentLength; }
     public String getContentType() { return contentType; }
@@ -101,9 +106,10 @@ public final class Document implements Entity {
 
     @JsonIgnore
     public String getName() { return path.getName(path.getNameCount()-1).toString(); }
-
     @Override
     public String toString() {
         return (path != null ? getName(): "") + "(" + this.getId() + ")";
     }
+
+    private static Path getDirnameFrom(Path filePath) { return ofNullable(filePath.getParent()).orElse(get(""));}
 }

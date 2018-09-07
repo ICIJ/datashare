@@ -30,6 +30,8 @@ import java.util.Map;
 
 import static java.lang.Integer.valueOf;
 import static java.lang.System.currentTimeMillis;
+import static java.nio.file.Paths.get;
+import static java.util.Optional.ofNullable;
 import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.com.Channel.NLP;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
@@ -98,6 +100,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             put("name", "Document");
         }});
         jsonDocument.put("path", document.getPath().toString());
+        jsonDocument.put("dirname", ofNullable(document.getPath().getParent()).orElse(get("")).toString());
         jsonDocument.put("status", "INDEXED");
         jsonDocument.put("nerTags", new HashSet<>());
         jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
