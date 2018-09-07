@@ -58,6 +58,10 @@ public final class DatashareCli {
         DatashareCliOptions.redisAddress(parser);
 
         DatashareCliOptions.oauthSecret(parser);
+        DatashareCliOptions.oauthClient(parser);
+        DatashareCliOptions.oauthApiUrl(parser);
+        DatashareCliOptions.oauthAuthorizeUrl(parser);
+        DatashareCliOptions.oauthTokenUrl(parser);
 
         try {
             OptionSet options = parser.parse(args);

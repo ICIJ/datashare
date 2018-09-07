@@ -166,4 +166,28 @@ final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(String.class);
     }
+    static OptionSpec<String> oauthClient(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("oauthClientId"), "OAuth2 client id")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+    static OptionSpec<String> oauthAuthorizeUrl(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("oauthAuthorizeUrl"), "OAuth2 authorize url")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+    static OptionSpec<String> oauthTokenUrl(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("oauthTokenUrl"), "OAuth2 token url")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+    static OptionSpec<String> oauthApiUrl(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("oauthApiUrl"), "OAuth2 api url")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
 }
