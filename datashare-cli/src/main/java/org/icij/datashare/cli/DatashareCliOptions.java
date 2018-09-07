@@ -159,4 +159,11 @@ final class DatashareCliOptions {
     static AbstractOptionSpec<Void> help(OptionParser parser) {
         return parser.acceptsAll(asList("help", "h", "?")).forHelp();
     }
+
+    static OptionSpec<String> oauthSecret(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("oauthClientSecret"), "OAuth2 client secret key")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
 }

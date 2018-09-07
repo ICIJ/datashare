@@ -57,6 +57,8 @@ public final class DatashareCli {
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
 
+        DatashareCliOptions.oauthSecret(parser);
+
         try {
             OptionSet options = parser.parse(args);
 

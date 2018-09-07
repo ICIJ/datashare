@@ -6,7 +6,6 @@ import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.test.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -15,7 +14,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.lang.String.format;
-import static org.icij.datashare.session.OAuth2CookieFilter.ENV_SECRET_VARIABLE;
 
 public class OAuth2CookieFilterTest implements FluentRestTest {
     private static WebServer xemx = new WebServer() {
@@ -74,7 +72,6 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
 
     @Test
     public void test_callback_should_call_api_with_code_and_state() throws Exception {
-        TestUtils.putEnv(ENV_SECRET_VARIABLE, "abcdef");
         Response response = this.get("/auth/signin").response();
         this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + getState(response.content())).should().respond(200)
                 .contain("hello Nobody")
