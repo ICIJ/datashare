@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static java.lang.Boolean.parseBoolean;
+import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.WEB_SERVER_OPT;
 
 
@@ -71,7 +72,7 @@ public final class DatashareCli {
                 return false;
             }
             properties = asProperties(options, null);
-            webServer = parseBoolean(properties.getProperty(WEB_SERVER_OPT));
+            webServer = parseBoolean(ofNullable(properties.getProperty(WEB_SERVER_OPT)).orElse("false"));
             return true;
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);
@@ -85,9 +86,11 @@ public final class DatashareCli {
         Properties properties = new Properties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
             OptionSpec<?> spec = entry.getKey();
-            properties.setProperty(
-                    asPropertyKey(prefix, spec),
-                    asPropertyValue(entry.getValue(), options.has(spec)));
+            if (options.has(spec) || !entry.getValue().isEmpty()) {
+                properties.setProperty(
+                        asPropertyKey(prefix, spec),
+                        asPropertyValue(entry.getValue()));
+            }
         }
         return properties;
     }
@@ -100,9 +103,9 @@ public final class DatashareCli {
         throw new IllegalArgumentException("No usable non-short flag: " + flags);
     }
 
-    private static String asPropertyValue(List<?> values, boolean present) {
-        // Simple flags have no values; treat presence/absence as true/false
-        return values.isEmpty() ? String.valueOf(present) : Joiner.on(",").join(values);
+    private static String asPropertyValue(List<?> values) {
+        String stringValue = Joiner.on(",").join(values);
+        return stringValue.isEmpty() ? "true": stringValue;
     }
 
     private static void printHelp(OptionParser parser) {

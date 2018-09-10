@@ -8,13 +8,13 @@ import static org.fest.assertions.MapAssert.entry;
 public class DatashareCliTest {
     @Test
     public void test_web_opt() {
-        DatashareCli.parseArguments(new String[] {"-o"});
+        assertThat(DatashareCli.parseArguments(new String[] {"-o"})).isTrue();
         assertThat(DatashareCli.webServer).isFalse();
 
-        DatashareCli.parseArguments(new String[] {"--web"});
+        assertThat(DatashareCli.parseArguments(new String[] {"--web"})).isTrue();
         assertThat(DatashareCli.webServer).isTrue();
 
-        DatashareCli.parseArguments(new String[] {"-w"});
+        assertThat(DatashareCli.parseArguments(new String[] {"-w"})).isTrue();
         assertThat(DatashareCli.webServer).isTrue();
     }
 
@@ -25,5 +25,12 @@ public class DatashareCliTest {
 
         DatashareCli.parseArguments(new String[] {"--mode=PRODUCTION"});
         assertThat(DatashareCli.properties).includes(entry("mode", "PRODUCTION"));
+    }
+
+    @Test
+    public void test_option_not_specified() {
+        DatashareCli.parseArguments(new String[] {""});
+
+        assertThat(DatashareCli.properties).excludes(entry("oauthClientId", "false"));
     }
 }
