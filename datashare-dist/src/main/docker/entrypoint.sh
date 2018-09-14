@@ -1,5 +1,5 @@
 #!/bin/sh
-set -x
+set -e
 
 MAIN_CLASS=org.icij.datashare.cli.DatashareCli
 
