@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -x
 
 MAIN_CLASS=org.icij.datashare.cli.DatashareCli
 
@@ -8,6 +8,6 @@ then
     exec "$@"
 else
     source /etc/profile.d/java.sh
-    CLASSPATH=$(find /home/datashare/lib/ -name '*.jar' -exec echo {} \+ | sed 's/ /:/g')
+    CLASSPATH=$(find /home/datashare/lib/ -name '*.jar' | sort | xargs | sed 's/ /:/g')
     exec java ${DS_JAVA_OPTS} -DPROD_MODE=true -cp "/home/datashare/dist/:${CLASSPATH}" ${MAIN_CLASS} "$@"
 fi
