@@ -8,6 +8,7 @@ import net.codestory.http.filters.Filter;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.UserDataFilter;
 import org.icij.datashare.text.indexing.LanguageGuesser;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
+import static java.util.Optional.ofNullable;
 
 public class CommonMode extends AbstractModule {
     protected final PropertiesProvider propertiesProvider;
@@ -34,6 +36,19 @@ public class CommonMode extends AbstractModule {
             Properties properties = new Properties();
             properties.putAll(map);
             propertiesProvider = new PropertiesProvider().mergeWith(properties);
+        }
+    }
+
+    public static CommonMode create(final Properties properties) {
+        switch (Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode"))) {
+            case NER:
+                return new NerMode(properties);
+            case LOCAL:
+                return new LocalMode(properties);
+            case PRODUCTION:
+                return new ProductionMode(properties);
+            default:
+                throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
         }
     }
 
