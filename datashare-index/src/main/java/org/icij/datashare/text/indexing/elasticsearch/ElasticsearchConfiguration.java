@@ -65,6 +65,20 @@ public class ElasticsearchConfiguration {
 
         RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(create(indexAddress)));
         String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
+        for (int i=0; i<30; i++) {
+            try {
+                if (client.ping()) {
+                    break;
+                }
+            } catch (IOException e) {
+                LOGGER.info("Ping failed. Waiting for Elasticsearch to be up.");
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    LOGGER.warn("interrupted while waiting for elasticsearch", ie);
+                }
+            }
+        }
         return client;
     }
 
