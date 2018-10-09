@@ -94,20 +94,8 @@ public class ElasticsearchConfiguration {
             if (!client.indices().exists(request)) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
                 CreateIndexRequest createReq = new CreateIndexRequest(indexName);
-                byte[] settingsAsBytes;
-                try {
-                    settingsAsBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME));
-                } catch (IOException e) {
-                    throw new ConfigurationException(e);
-                }
-                createReq.settings(new String(settingsAsBytes), JSON);
-                byte[] mappingAsBytes;
-                try {
-                    mappingAsBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
-                } catch (IOException e) {
-                    throw new ConfigurationException(e);
-                }
-                createReq.mapping(indexType, new String(mappingAsBytes), JSON);
+                createReq.settings(new String(getBytes(SETTINGS_RESOURCE_NAME)), JSON);
+                createReq.mapping(indexType, new String(getBytes(MAPPING_RESOURCE_NAME)), JSON);
                 client.indices().create(createReq);
                 return true;
             }
@@ -139,6 +127,16 @@ public class ElasticsearchConfiguration {
                 .put("index.number_of_replicas", replicas)
                 .put("index.max_result_window",  INDEX_MAX_RESULT_WINDOW)
                 .build();
+    }
+
+    private static byte[] getBytes(String resourceName) {
+        byte[] resourceBytes;
+        try {
+            resourceBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(resourceName));
+        } catch (IOException e) {
+            throw new ConfigurationException(e);
+        }
+        return resourceBytes;
     }
 
     static class ConfigurationException extends RuntimeException {
