@@ -22,4 +22,13 @@ public class ElasticsearchConfigurationTest {
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("mapping");
     }
+
+    @Test
+    public void test_create_client_creates_settings() throws Exception {
+        ElasticsearchConfiguration.createESClient(new PropertiesProvider());
+
+        Response response = es.client.getLowLevelClient().performRequest("GET", TEST_INDEX);
+
+        assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
+    }
 }

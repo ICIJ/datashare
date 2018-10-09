@@ -18,6 +18,7 @@ import static org.elasticsearch.common.xcontent.XContentType.JSON;
 
 public class ElasticsearchConfiguration {
     static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
+    static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
     static final int INDEX_MAX_RESULT_WINDOW = 100000;
     static Logger LOGGER = LoggerFactory.getLogger(ElasticsearchConfiguration.class);
     public static final String VERSION = "6.1.0";
@@ -93,6 +94,13 @@ public class ElasticsearchConfiguration {
             if (!client.indices().exists(request)) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
                 CreateIndexRequest createReq = new CreateIndexRequest(indexName);
+                byte[] settingsAsBytes;
+                try {
+                    settingsAsBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME));
+                } catch (IOException e) {
+                    throw new ConfigurationException(e);
+                }
+                createReq.settings(new String(settingsAsBytes), JSON);
                 byte[] mappingAsBytes;
                 try {
                     mappingAsBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));

@@ -1,0 +1,15 @@
+{
+  "analysis": {
+    "analyzer": {
+      "path_analyzer": {
+        "tokenizer": "path_tokenizer"
+      }
+    },
+    "tokenizer": {
+      "path_tokenizer": {
+        "type": "path_hierarchy",
+        "skip": 2
+      }
+    }
+  }
+}

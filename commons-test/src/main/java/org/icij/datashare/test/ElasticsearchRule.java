@@ -21,6 +21,7 @@ import static org.elasticsearch.common.xcontent.XContentType.JSON;
 public class ElasticsearchRule extends ExternalResource {
     public static final String TEST_INDEX = "test-datashare";
     private static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
+    private static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
     public final RestHighLevelClient client;
     private final String indexName;
 
@@ -39,6 +40,8 @@ public class ElasticsearchRule extends ExternalResource {
         request.indices(indexName);
         if (! client.indices().exists(request)) {
             CreateIndexRequest createReq = new CreateIndexRequest(indexName);
+            byte[] settings = toByteArray(getClass().getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME));
+            createReq.settings(new String(settings), JSON);
             byte[] mapping = toByteArray(getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
             createReq.mapping("doc", new String(mapping), JSON);
             client.indices().create(createReq);
