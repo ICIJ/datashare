@@ -94,8 +94,8 @@ public class ElasticsearchConfiguration {
             if (!client.indices().exists(request)) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
                 CreateIndexRequest createReq = new CreateIndexRequest(indexName);
-                createReq.settings(new String(getBytes(SETTINGS_RESOURCE_NAME)), JSON);
-                createReq.mapping(indexType, new String(getBytes(MAPPING_RESOURCE_NAME)), JSON);
+                createReq.settings(getResourceContent(SETTINGS_RESOURCE_NAME), JSON);
+                createReq.mapping(indexType, getResourceContent(MAPPING_RESOURCE_NAME), JSON);
                 client.indices().create(createReq);
                 return true;
             }
@@ -129,14 +129,14 @@ public class ElasticsearchConfiguration {
                 .build();
     }
 
-    private static byte[] getBytes(String resourceName) {
+    private static String getResourceContent(String resourceName) {
         byte[] resourceBytes;
         try {
             resourceBytes = toByteArray(ElasticsearchConfiguration.class.getClassLoader().getResourceAsStream(resourceName));
         } catch (IOException e) {
             throw new ConfigurationException(e);
         }
-        return resourceBytes;
+        return new String(resourceBytes);
     }
 
     static class ConfigurationException extends RuntimeException {
