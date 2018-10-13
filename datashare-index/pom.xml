@@ -14,7 +14,7 @@
 
     <properties>
         <jna.version>4.1.0</jna.version>
-        <extract-lib.version>2.0.0</extract-lib.version>
+        <extract-lib.version>2.0.2</extract-lib.version>
     </properties>
 
     <dependencies>
@@ -141,26 +141,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <artifactId>maven-install-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>install-extract-lib</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>install-file</goal>
-                        </goals>
-                        <configuration>
-                            <groupId>org.icij.extract</groupId>
-                            <artifactId>extract-lib</artifactId>
-                            <version>${extract-lib.version}</version>
-                            <packaging>jar</packaging>
-                            <file>${project.basedir}/lib/extract-lib-${extract-lib.version}.jar</file>
-                            <generatePom>true</generatePom>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
                 <configuration>
