@@ -111,7 +111,7 @@ public class ElasticsearchSpewerTest {
         Assertions.assertThat(response.getHits().totalHits).isGreaterThan(0);
         //assertThat(response.getHits().getAt(0).getId()).endsWith("embedded.pdf");
 
-        verify(publisher, times(3)).publish(eq(Channel.NLP), any(Message.class));
+        verify(publisher, times(2)).publish(eq(Channel.NLP), any(Message.class));
     }
 
     @Test
