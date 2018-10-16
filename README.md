@@ -161,8 +161,7 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
 
 Requires 
 [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html),
-[Maven 3](http://maven.apache.org/download.cgi) and
-[Git LFS](https://help.github.com/articles/installing-git-large-file-storage/)
+[Maven 3](http://maven.apache.org/download.cgi)
 
 From `datashare` root directory, type: `mvn package`
 
