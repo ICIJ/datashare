@@ -64,38 +64,20 @@
 
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>6.3.1</elasticsearch.version>
-        <!-- Json -->
         <jackson.version>2.8.11</jackson.version>
-
-        <!-- Unicode -->
         <unidecode.version>0.0.7</unidecode.version>
-
-        <!-- General Data Structures and Functions -->
         <joda-time.version>2.9.5</joda-time.version>
         <guava.version>19.0</guava.version>
         <xalan.version>2.7.2</xalan.version>
         <xerces.version>2.11.0</xerces.version>
         <commons-beanutils.version>1.7.0</commons-beanutils.version>
-
-        <!-- Foreign Languages Interface -->
         <jna.version>4.2.2</jna.version>
-
-        <!-- Cryptography -->
         <bouncycastle.version>1.54</bouncycastle.version>
-
-        <!-- Http -->
         <httpcomponents.version>4.5.2</httpcomponents.version>
-
-        <!-- Command Line Interface -->
         <joptsimple.version>5.0.4</joptsimple.version>
-
-        <!-- Logging -->
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.1.7</logback.version>
         <log4jtoslf4j.version>2.9.1</log4jtoslf4j.version>
-
-
-        <!-- Testing -->
         <junit.version>4.12</junit.version>
 
         <!-- Maven Plugins -->
