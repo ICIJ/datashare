@@ -16,6 +16,11 @@
 
     <developers>
         <developer>
+            <name>Bruno Thomas</name>
+            <email>bthomas@icij.org</email>
+            <organization>ICIJ</organization>
+        </developer>
+        <developer>
             <name>Julien Martin</name>
             <id>julm</id>
             <email>julien.pierre.martin@gmail.com</email>
