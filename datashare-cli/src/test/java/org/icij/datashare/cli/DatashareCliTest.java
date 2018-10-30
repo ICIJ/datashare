@@ -23,8 +23,8 @@ public class DatashareCliTest {
         DatashareCli.parseArguments(new String[] {""});
         assertThat(DatashareCli.properties).includes(entry("mode", "LOCAL"));
 
-        DatashareCli.parseArguments(new String[] {"--mode=PRODUCTION"});
-        assertThat(DatashareCli.properties).includes(entry("mode", "PRODUCTION"));
+        DatashareCli.parseArguments(new String[] {"--mode=SERVER"});
+        assertThat(DatashareCli.properties).includes(entry("mode", "SERVER"));
     }
 
     @Test

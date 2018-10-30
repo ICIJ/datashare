@@ -22,10 +22,10 @@ import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfig
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createIndex;
 import static org.icij.datashare.user.User.local;
 
-public class ProductionMode extends CommonMode {
-    public ProductionMode(Properties properties) { super(properties);}
+public class ServerMode extends CommonMode {
+    public ServerMode(Properties properties) { super(properties);}
 
-    public ProductionMode(Map<String, String> properties) { super(properties);}
+    public ServerMode(Map<String, String> properties) { super(properties);}
 
     @Override
     protected void configure() {

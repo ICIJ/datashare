@@ -45,8 +45,8 @@ public class CommonMode extends AbstractModule {
                 return new NerMode(properties);
             case LOCAL:
                 return new LocalMode(properties);
-            case PRODUCTION:
-                return new ProductionMode(properties);
+            case SERVER:
+                return new ServerMode(properties);
             default:
                 throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
         }

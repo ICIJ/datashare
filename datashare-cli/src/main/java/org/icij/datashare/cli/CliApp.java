@@ -1,7 +1,7 @@
 package org.icij.datashare.cli;
 
 import com.google.inject.Injector;
-import org.icij.datashare.mode.ProductionMode;
+import org.icij.datashare.mode.ServerMode;
 import org.icij.datashare.TaskFactory;
 import org.icij.datashare.TaskManager;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
@@ -35,7 +35,7 @@ public class CliApp {
     static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
     public static void start(Properties properties) throws Exception {
-        Injector injector = createInjector(new ProductionMode(properties));
+        Injector injector = createInjector(new ServerMode(properties));
         TaskManager taskManager = injector.getInstance(TaskManager.class);
         TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
         Set<DatashareCli.Stage> stages = stream(properties.getProperty(STAGES_OPT).
