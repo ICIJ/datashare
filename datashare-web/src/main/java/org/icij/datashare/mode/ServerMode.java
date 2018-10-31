@@ -14,6 +14,8 @@ import org.icij.datashare.session.RedisSessionIdStore;
 import org.icij.datashare.session.RedisUsers;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Properties;
@@ -23,6 +25,7 @@ import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfig
 import static org.icij.datashare.user.User.local;
 
 public class ServerMode extends CommonMode {
+    Logger logger = LoggerFactory.getLogger(this.getClass());
     public ServerMode(Properties properties) { super(properties);}
 
     public ServerMode(Map<String, String> properties) { super(properties);}
@@ -32,7 +35,17 @@ public class ServerMode extends CommonMode {
         super.configure();
         bind(Users.class).to(RedisUsers.class);
         bind(SessionIdStore.class).to(RedisSessionIdStore.class);
-        bind(Filter.class).to(OAuth2CookieFilter.class).asEagerSingleton();
+        String authFilterClassName = propertiesProvider.get("authFilter").orElse("");
+        Class<? extends Filter> authFilterClass = OAuth2CookieFilter.class;
+        if (!authFilterClassName.isEmpty()) {
+            try {
+                authFilterClass = (Class<? extends Filter>) Class.forName(authFilterClassName);
+                logger.info("setting auth filter to {}", authFilterClass);
+            } catch (ClassNotFoundException e) {
+                logger.warn("\"{}\" auth filter class not found. Setting filter to {}", authFilterClassName, authFilterClass);
+            }
+        }
+        bind(Filter.class).to(authFilterClass).asEagerSingleton();
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         createIndex(esClient, local().indexName(), propertiesProvider);

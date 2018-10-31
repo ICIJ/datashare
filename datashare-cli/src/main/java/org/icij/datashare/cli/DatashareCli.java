@@ -63,6 +63,7 @@ public final class DatashareCli {
         DatashareCliOptions.oauthApiUrl(parser);
         DatashareCliOptions.oauthAuthorizeUrl(parser);
         DatashareCliOptions.oauthTokenUrl(parser);
+        DatashareCliOptions.authFilter(parser);
 
         try {
             OptionSet options = parser.parse(args);

@@ -160,6 +160,13 @@ final class DatashareCliOptions {
         return parser.acceptsAll(asList("help", "h", "?")).forHelp();
     }
 
+    static OptionSpec<String> authFilter(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("authFilter"), "Server mode auth filter class")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
     static OptionSpec<String> oauthSecret(OptionParser parser) {
         return parser.acceptsAll(
                 asList("oauthClientSecret"), "OAuth2 client secret key")
