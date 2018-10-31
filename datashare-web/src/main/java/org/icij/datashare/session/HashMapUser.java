@@ -10,21 +10,21 @@ import java.util.Set;
 
 import static net.codestory.http.convert.TypeConvert.toJson;
 
-public class OAuth2User extends User implements net.codestory.http.security.User {
+public class HashMapUser extends User implements net.codestory.http.security.User {
     final Map<String, String> userMap;
 
-    public OAuth2User(final Map<String, String> userMap) {
+    public HashMapUser(final Map<String, String> userMap) {
         super(userMap.get("uid"));
         this.userMap = userMap;
     }
 
-    OAuth2User(final String login) {
+    HashMapUser(final String login) {
         this(new HashMap<String, String>() {{ put("uid", login); }});
     }
 
-    public static OAuth2User fromJson(String json) {
+    public static HashMapUser fromJson(String json) {
         HashMap hashMap = TypeConvert.fromJson(json, HashMap.class);
-        return new OAuth2User(convert(hashMap));
+        return new HashMapUser(convert(hashMap));
     }
 
     private static Map<String, String> convert(final HashMap hashMap) {
@@ -45,14 +45,14 @@ public class OAuth2User extends User implements net.codestory.http.security.User
     @Override public String login() { return id;}
     @Override public String name() { return userMap.get("name");}
     @Override public String[] roles() { return new String[0];}
-    public static OAuth2User local() {
-        return new OAuth2User("local") {
+    public static HashMapUser local() {
+        return new HashMapUser("local") {
             @Override public String[] roles() { return new String[] {"local"};}
         };
     }
 
-    public static Users singleUser(String name) { return singleUser(new OAuth2User(name));}
-    public static Users singleUser(final OAuth2User user) {
+    public static Users singleUser(String name) { return singleUser(new HashMapUser(name));}
+    public static Users singleUser(final HashMapUser user) {
         return new Users() {
             @Override public net.codestory.http.security.User find(String s, String s1) { return user;}
             @Override public net.codestory.http.security.User find(String s) { return user;}
@@ -60,9 +60,9 @@ public class OAuth2User extends User implements net.codestory.http.security.User
     }
     public static Users users(String... logins) {
         return new Users() {
-            Map<String, OAuth2User> users = new HashMap<String, OAuth2User>() {{
+            Map<String, HashMapUser> users = new HashMap<String, HashMapUser>() {{
                 for (String login: logins) {
-                    put(login, new OAuth2User(login));
+                    put(login, new HashMapUser(login));
                 }
             }};
             @Override public net.codestory.http.security.User find(String s, String s1) { return users.get(s);}

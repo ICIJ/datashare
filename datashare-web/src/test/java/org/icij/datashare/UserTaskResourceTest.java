@@ -8,7 +8,7 @@ import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.session.OAuth2User;
+import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
@@ -66,7 +66,7 @@ public class UserTaskResourceTest implements FluentRestTest {
             protected void configure() {
                 bind(PropertiesProvider.class).toInstance(propertiesProvider);
                 bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
-                bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", OAuth2User.users(userLogins)));
+                bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", HashMapUser.users(userLogins)));
                 bind(TaskManager.class).toInstance(taskManager);
                 bind(TaskFactory.class).toInstance(mock(TaskFactory.class));
                 bind(Indexer.class).toInstance(mock(Indexer.class));

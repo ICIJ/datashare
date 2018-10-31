@@ -8,8 +8,8 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 
-import static org.icij.datashare.session.OAuth2User.local;
-import static org.icij.datashare.session.OAuth2User.singleUser;
+import static org.icij.datashare.session.HashMapUser.local;
+import static org.icij.datashare.session.HashMapUser.singleUser;
 
 public class LocalUserFilter extends CookieAuthFilter {
     @Inject

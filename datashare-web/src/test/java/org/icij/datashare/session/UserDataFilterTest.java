@@ -6,7 +6,7 @@ import net.codestory.http.payload.Payload;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.session.OAuth2User.local;
+import static org.icij.datashare.session.HashMapUser.local;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -26,14 +26,14 @@ public class UserDataFilterTest {
 
     @Test
     public void test_returns_next_when_user_in_context_is_in_url() throws Exception {
-        doReturn(new OAuth2User("user_id")).when(context).currentUser();
+        doReturn(new HashMapUser("user_id")).when(context).currentUser();
         Payload payload = userDataFilter.apply("/api/data/user_id/foo/bar", context, nextFilter);
         assertThat(payload).isSameAs(next);
     }
 
     @Test
     public void test_returns_401_when_user_in_context_is_not_in_url() throws Exception {
-        doReturn(new OAuth2User("user_id")).when(context).currentUser();
+        doReturn(new HashMapUser("user_id")).when(context).currentUser();
         Payload payload = userDataFilter.apply("/api/data/user2_id/foo/bar", context, nextFilter);
         assertThat(payload.code()).isEqualTo(401);
     }

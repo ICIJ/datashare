@@ -31,7 +31,7 @@ public class RedisUsers implements Users {
         return getUser(login);
     }
 
-    void createUser(OAuth2User user) {
+    void createUser(HashMapUser user) {
         try (Jedis jedis = redis.getResource()) {
             Transaction transaction = jedis.multi();
             transaction.hmset(user.login(), user.userMap);
@@ -40,9 +40,9 @@ public class RedisUsers implements Users {
         }
     }
 
-    OAuth2User getUser(String login) {
+    HashMapUser getUser(String login) {
         try (Jedis jedis = redis.getResource()) {
-            return new OAuth2User(jedis.hgetAll(login));
+            return new HashMapUser(jedis.hgetAll(login));
         }
     }
 

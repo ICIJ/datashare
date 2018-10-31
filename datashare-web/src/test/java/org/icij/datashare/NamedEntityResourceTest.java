@@ -5,7 +5,7 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.session.OAuth2User;
+import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
@@ -54,7 +54,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_named_entity_in_prod_mode() {
-        server.configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(new BasicAuthFilter("/", "icij", OAuth2User.singleUser("anne"))));
+        server.configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("anne"))));
         NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("anne-datashare", "my_id", "root_parent");
 

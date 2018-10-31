@@ -6,7 +6,7 @@ import net.codestory.http.misc.Env;
 import net.codestory.http.security.Users;
 import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.session.OAuth2User;
+import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,7 +74,7 @@ public class SearchResourceTest implements FluentRestTest {
     public void test_get_returns_backend_status_405() {
         server.configure(routes -> routes.add(new SearchResource(new PropertiesProvider(new HashMap<String, String>() {{
                                     put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-                                }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", OAuth2User.singleUser("cecile"))));
+                                }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
 
         put("/api/search/unknown").withPreemptiveAuthentication("cecile", "pass").should().respond(405);
     }
@@ -83,7 +83,7 @@ public class SearchResourceTest implements FluentRestTest {
     public void test_put_createIndex_calls_indexer() throws Exception {
         server.configure(routes -> routes.add(new SearchResource(new PropertiesProvider(new HashMap<String, String>() {{
                             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-                        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", OAuth2User.singleUser("cecile"))));
+                        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
         put("/api/search/createIndex").withPreemptiveAuthentication("cecile", "pass").should().respond(200);
         verify(mockIndexer).createIndex("cecile-datashare");
     }
