@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createIndex;
-import static org.icij.datashare.user.User.local;
 
 public class ServerMode extends CommonMode {
     Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -48,7 +46,6 @@ public class ServerMode extends CommonMode {
         bind(Filter.class).to(authFilterClass).asEagerSingleton();
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
-        createIndex(esClient, local().indexName(), propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
 
