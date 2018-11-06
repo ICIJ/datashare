@@ -89,7 +89,7 @@ jobs:
           name: make install
           command: |
             cd /tmp/datashare-client
-            make install
+            sudo yarn install
       - save_cache:
           key: dependency-cache-{{ checksum "/tmp/datashare-client/package.json" }}
           paths:
