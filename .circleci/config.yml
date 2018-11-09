@@ -123,8 +123,6 @@ jobs:
             docker push icij/datashare:${CIRCLE_TAG}
 
   build_installers:
-    docker:
-      - image: docker:17.05.0-ce-git
     working_directory: /tmp
     steps:
       - attach_workspace:
@@ -132,7 +130,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            apt-get install nsis cpio bomutils
+            apt-get install -y nsis cpio bomutils jq
             wget http://nsis.sourceforge.net/mediawiki/images/c/c9/Inetc.zip && unzip Inetc.zip && cp Plugins/x86-ansi/INetC.dll /usr/share/nsis/Plugins/
             wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/xar/xar-1.5.2.tar.gz && tar -zxf xar-1.5.2.tar.gz && cd xar-1.5.2 && ./configure && make && make install
       - run:
