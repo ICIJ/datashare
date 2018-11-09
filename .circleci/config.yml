@@ -123,6 +123,8 @@ jobs:
             docker push icij/datashare:${CIRCLE_TAG}
 
   build_installers:
+    docker:
+      - image: circleci/build-image
     working_directory: /tmp
     steps:
       - attach_workspace:
