@@ -122,11 +122,52 @@ jobs:
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
             docker push icij/datashare:${CIRCLE_TAG}
 
+  build_installers:
+    docker:
+      - image: docker:17.05.0-ce-git
+    working_directory: /tmp
+    steps:
+      - attach_workspace:
+           at: /tmp/datashare
+      - run:
+          name: install dependencies
+          command: |
+            sudo apt-get install nsis cpio bomutils
+            wget http://nsis.sourceforge.net/mediawiki/images/c/c9/Inetc.zip && unzip Inetc.zip && cp Plugins/x86-ansi/INetC.dll /usr/share/nsis/Plugins/
+            wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/xar/xar-1.5.2.tar.gz && tar -zxf xar-1.5.2.tar.gz && cd xar-1.5.2 && ./configure && make && make install
+      - run:
+          name: adds_ssh_dir
+          command: |
+            mkdir -p ~/.ssh
+            chmod 700 ~/.ssh
+          - add_ssh_keys:
+              fingerprints:
+              - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
+      - run:
+          name: checkout
+          command: |
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            git clone git@github.com:ICIJ/datashare-installer.git
+      - run:
+          name: build mac installer
+          command: |
+            cd /tmp/datashare-installer/mac
+            make dist/Datashare.pkg
+      - run:
+          name: build windows installer
+          command: |
+            cd /tmp/datashare-installer/windows
+            make dist/installDatashare.exe
+
 workflows:
   version: 2
   build_workflow:
     jobs:
       - build_back:
+          filters:
+              tags:
+                  only: /.*/
+      - build_installers:
           filters:
               tags:
                   only: /.*/
