@@ -153,22 +153,21 @@ jobs:
           name: build mac installer
           command: |
             cd /tmp/datashare-installer/mac
-            make dist/Datashare.pkg
+            make VERSION=${CIRCLE_TAG} dist/Datashare.pkg
       - run:
           name: build windows installer
           command: |
             cd /tmp/datashare-installer/windows
-            make dist/installDatashare.exe
+            make VERSION=${CIRCLE_TAG} dist/installDatashare.exe
+      - run:
+          name: deploy installers on github
+          command: /tmp/datashare-installer/deploy.sh ${CIRCLE_TAG}
 
 workflows:
   version: 2
   build_workflow:
     jobs:
       - build_back:
-          filters:
-              tags:
-                  only: /.*/
-      - build_installers:
           filters:
               tags:
                   only: /.*/
@@ -183,6 +182,14 @@ workflows:
       - build_docker:
           requires:
             - build_front
+          filters:
+              tags:
+                  only: /^[0-9.]*/
+              branches:
+                  ignore: /.*/
+      - build_installers:
+          requires:
+            - build_docker
           filters:
               tags:
                   only: /^[0-9.]*/
