@@ -161,7 +161,9 @@ jobs:
             make VERSION=${CIRCLE_TAG} dist/installDatashare.exe
       - run:
           name: deploy installers on github
-          command: /tmp/datashare-installer/deploy.sh ${CIRCLE_TAG}
+          command: |
+            cd /tmp/datashare-installer
+            ./deploy.sh ${CIRCLE_TAG}
 
 workflows:
   version: 2
