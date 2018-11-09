@@ -140,9 +140,9 @@ jobs:
           command: |
             mkdir -p ~/.ssh
             chmod 700 ~/.ssh
-          - add_ssh_keys:
-              fingerprints:
-              - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
+      - add_ssh_keys:
+          fingerprints:
+          - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
           name: checkout
           command: |
