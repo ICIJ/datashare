@@ -23,14 +23,14 @@ import static java.nio.file.Paths.get;
 import static java.util.stream.Collectors.toMap;
 
 public class RemoteFiles {
-    public static final String S3_DATASHARE_BUCKET_NAME = "s3.datashare.icij.org";
+    private static final String S3_DATASHARE_BUCKET_NAME = "s3.datashare.icij.org";
     private static final String S3_REGION = "us-east-1";
     private static final int READ_TIMEOUT_MS = 120 * 1000;
     private static final int CONNECTION_TIMEOUT_MS = 30 * 1000;
     private final AmazonS3 s3Client;
     private final String bucket;
 
-    public RemoteFiles(final AmazonS3 s3Client, final String bucket) {
+    RemoteFiles(final AmazonS3 s3Client, final String bucket) {
         this.s3Client = s3Client;
         this.bucket = bucket;
     }
@@ -94,7 +94,7 @@ public class RemoteFiles {
         }
     }
 
-    public boolean objectExists(final String key) {
+    boolean objectExists(final String key) {
         return s3Client.doesObjectExist(this.bucket, key);
     }
 
