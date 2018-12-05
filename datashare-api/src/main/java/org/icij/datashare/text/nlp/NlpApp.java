@@ -48,8 +48,9 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
     }
 
     @AssistedInject
-    public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties, @Assisted final User user) {
-        this(indexer, pipeline, properties, () -> {}, 0, user);
+    public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties,
+                  @Assisted final User user, @Assisted final Runnable subscribeCb) {
+        this(indexer, pipeline, properties, subscribeCb, 0, user);
     }
 
     NlpApp(final Indexer indexer, final AbstractPipeline pipeline, final Properties properties,

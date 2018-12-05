@@ -17,12 +17,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.icij.task.Options.from;
 
@@ -86,12 +88,27 @@ public class TaskResource {
         Properties mergedProps = propertiesProvider.createMerged(optionsWrapper.asProperties());
 
         AbstractPipeline abstractPipeline = AbstractPipeline.create(pipeline, new PropertiesProvider(mergedProps));
-        TaskManager.MonitorableFutureTask<Void> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), abstractPipeline, mergedProps));
+
+        TaskManager.MonitorableFutureTask<Void> nlpTask = createNlpApp(pipeline, context, mergedProps, abstractPipeline);
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
             TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), pipeline));
             return asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
         }
         return singletonList(new TaskResponse(nlpTask));
+    }
+
+    private TaskManager.MonitorableFutureTask<Void> createNlpApp(String pipeline, Context context, Properties mergedProps, AbstractPipeline abstractPipeline) {
+        CountDownLatch latch = new CountDownLatch(1);
+        if (parseBoolean(mergedProps.getProperty("waitForNlpApp", "true"))) {
+            try {
+                logger.info("waiting for NlpApp {} to listen...", pipeline);
+                latch.await(10, SECONDS);
+                logger.info("...{} is listening", pipeline);
+            } catch (InterruptedException e) {
+                logger.error("NlpApp has been interrupted", e);
+            }
+        }
+        return taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), abstractPipeline, mergedProps, latch::countDown));
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

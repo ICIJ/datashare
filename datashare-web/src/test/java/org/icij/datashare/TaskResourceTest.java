@@ -163,8 +163,8 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_findNames_without_options() {
-        RestAssert response = post("/api/task/findNames/OPENNLP", "{}");
+    public void test_findNames_should_create_resume() {
+        RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"waitForNlpApp\": false}}");
 
         response.should().haveType("application/json");
 
@@ -176,20 +176,21 @@ public class TaskResourceTest implements FluentRestTest {
 
         Properties properties = new Properties();
         properties.put("dataDir", "/default/data/dir");
-        verify(taskFactory).createNlpTask(eq(local()), pipelineArgumentCaptor.capture(), eq(properties));
+        properties.put("waitForNlpApp", "false");
+        verify(taskFactory).createNlpTask(eq(local()), pipelineArgumentCaptor.capture(), eq(properties), any());
         assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
     }
 
     @Test
     public void test_findNames_with_options_should_merge_with_property_provider() {
-        RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+        RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"waitForNlpApp\": false, \"key1\":\"val1\",\"key2\":\"val2\"}}");
         response.should().haveType("application/json");
 
         verify(taskFactory).createResumeNlpTask(local(),"OPENNLP");
 
         ArgumentCaptor<AbstractPipeline> pipelineCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
         ArgumentCaptor<Properties> propertiesCaptor = ArgumentCaptor.forClass(Properties.class);
-        verify(taskFactory).createNlpTask(eq(local()), pipelineCaptor.capture(), propertiesCaptor.capture());
+        verify(taskFactory).createNlpTask(eq(local()), pipelineCaptor.capture(), propertiesCaptor.capture(), any());
         assertThat(propertiesCaptor.getValue()).includes(entry("key1", "val1"), entry("key2", "val2"));
 
         assertThat(pipelineCaptor.getValue().getType()).isEqualTo(Pipeline.Type.OPENNLP);
@@ -197,7 +198,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_findNames_with_resume_false_should_not_launch_resume_task() {
-        RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"resume\":\"false\"}}");
+        RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"resume\":\"false\", \"waitForNlpApp\": false}}");
         response.should().haveType("application/json");
 
         verify(taskFactory, never()).createResumeNlpTask(eq(null), anyString());
