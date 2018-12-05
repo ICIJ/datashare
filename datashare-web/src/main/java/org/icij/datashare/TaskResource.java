@@ -99,6 +99,7 @@ public class TaskResource {
 
     private TaskManager.MonitorableFutureTask<Void> createNlpApp(String pipeline, Context context, Properties mergedProps, AbstractPipeline abstractPipeline) {
         CountDownLatch latch = new CountDownLatch(1);
+        TaskManager.MonitorableFutureTask<Void> task = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), abstractPipeline, mergedProps, latch::countDown));
         if (parseBoolean(mergedProps.getProperty("waitForNlpApp", "true"))) {
             try {
                 logger.info("waiting for NlpApp {} to listen...", pipeline);
@@ -108,7 +109,7 @@ public class TaskResource {
                 logger.error("NlpApp has been interrupted", e);
             }
         }
-        return taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), abstractPipeline, mergedProps, latch::countDown));
+        return task;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
