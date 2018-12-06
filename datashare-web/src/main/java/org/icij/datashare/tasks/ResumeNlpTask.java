@@ -41,6 +41,7 @@ public class ResumeNlpTask implements Callable<Integer>, UserTask {
 
     @Override
     public Integer call() throws IOException {
+        logger.info("resuming NLP name finding for user {} and {}", user, nlpPipelines);
         List<? extends Entity> docsToProcess =
                 indexer.search(user.indexName(), Document.class).withSource("rootDocument").limit(SEARCH_SIZE).without(nlpPipelines).execute().collect(toList());
 
