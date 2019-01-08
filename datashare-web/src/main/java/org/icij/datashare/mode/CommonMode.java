@@ -90,7 +90,7 @@ public class CommonMode extends AbstractModule {
     }
 
     private List<String> getIndices() {
-        return asList("luxleaks", "offshoreleaks", "panamapapers", "swissleaks");
+        return asList("luxleaks", "offshoreleaks");
     }
 
     private Properties getVersion() {
