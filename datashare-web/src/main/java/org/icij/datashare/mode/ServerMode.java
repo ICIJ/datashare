@@ -17,9 +17,11 @@ import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static java.util.Arrays.asList;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public class ServerMode extends CommonMode {
@@ -58,4 +60,6 @@ public class ServerMode extends CommonMode {
     protected Routes addModeConfiguration(Routes routes) {
         return routes.add(TaskResource.class).add(SearchResource.class).add(NamedEntityResource.class);
     }
+    
+    protected List<String> getIndices() { return asList("luxleaks", "offshoreleaks");}
 }

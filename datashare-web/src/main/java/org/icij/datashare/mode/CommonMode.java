@@ -16,10 +16,12 @@ import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguage
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
-import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 
 public class CommonMode extends AbstractModule {
@@ -89,10 +91,6 @@ public class CommonMode extends AbstractModule {
         return routes;
     }
 
-    private List<String> getIndices() {
-        return asList("luxleaks", "offshoreleaks");
-    }
-
     private Properties getVersion() {
         try {
             Properties properties = new Properties();
@@ -102,4 +100,6 @@ public class CommonMode extends AbstractModule {
             throw new RuntimeException(e);
         }
     }
+
+    protected List<String> getIndices() { return emptyList();}
 }
