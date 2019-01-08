@@ -66,7 +66,7 @@ public class SearchResource {
 
     @NotNull
     private String getUrl(String path, Context context) {
-        String s = es_url + "/" + context.currentUser().login() + "-" + path;
+        String s = es_url + "/" + path.replace("datashare", context.currentUser().login() + "-" + "datashare");
         if (context.query().keyValues().size() > 0) {
             s += "?" + getQueryAsString(context.query());
         }

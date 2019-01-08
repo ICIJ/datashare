@@ -38,14 +38,14 @@ public class SearchResourceTest implements FluentRestTest {
     public void test_no_auth_get_forward_request_to_elastic() {
         get("/api/search/foo/bar").should().respond(200)
                 .contain("I am elastic GET")
-                .contain("uri=local-foo/bar");
+                .contain("uri=foo/bar");
     }
     @Test
     public void test_no_auth_post_forward_request_to_elastic_with_body() {
         String body = "{\"body\": \"es\"}";
         post("/api/search/foo/bar", body).should().respond(200)
                         .contain("I am elastic POST")
-                        .contain("uri=local-foo/bar")
+                        .contain("uri=foo/bar")
                         .contain(body);
     }
     @Test
@@ -55,9 +55,14 @@ public class SearchResourceTest implements FluentRestTest {
                 }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", Users.singleUser("cecile","pass"))));
 
         get("/api/search/index_name/foo/bar?routing=baz").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
-                .contain("uri=cecile-index_name/foo/bar?routing=baz");
+                .contain("uri=index_name/foo/bar?routing=baz");
         post("/api/search/index_name/foo/bar").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
-                .contain("uri=cecile-index_name/foo/bar");
+                .contain("uri=index_name/foo/bar");
+
+        get("/api/search/datashare/foo/bar?routing=baz").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
+                .contain("uri=cecile-datashare/foo/bar?routing=baz");
+        post("/api/search/datashare/foo/bar").withPreemptiveAuthentication("cecile", "pass").should().respond(200)
+                .contain("uri=cecile-datashare/foo/bar");
     }
     @Test
     public void test_delete_should_return_method_not_allowed() {

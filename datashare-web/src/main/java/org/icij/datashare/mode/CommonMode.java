@@ -16,10 +16,10 @@ import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguage
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
+import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
 
 public class CommonMode extends AbstractModule {
@@ -68,6 +68,7 @@ public class CommonMode extends AbstractModule {
         routes.setIocAdapter(new GuiceAdapter(this))
                 .get("/config", provider.getFilteredProperties(".*Address.*", ".*Secret.*"))
                 .get("/version", getVersion())
+                .get("/api/indices", getIndices())
                 .bind(UserDataFilter.DATA_URI_PREFIX, Paths.get(provider.get("dataDir").orElse("/home/datashare/data")).toFile())
                 .setExtensions(new Extensions() {
                     @Override
@@ -86,6 +87,10 @@ public class CommonMode extends AbstractModule {
             routes.filter(new CorsFilter(cors));
         }
         return routes;
+    }
+
+    private List<String> getIndices() {
+        return asList("luxleaks", "offshoreleaks", "panamapapers", "swissleaks");
     }
 
     private Properties getVersion() {
