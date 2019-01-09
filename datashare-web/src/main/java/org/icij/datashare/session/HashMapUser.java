@@ -6,6 +6,7 @@ import org.icij.datashare.user.User;
 
 import java.util.*;
 
+import static java.util.Arrays.asList;
 import static net.codestory.http.convert.TypeConvert.toJson;
 
 public class HashMapUser extends User implements net.codestory.http.security.User {
@@ -26,7 +27,7 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
 
     public List<String> getIndices() {
-        return userMap.get("indices") == null ? new ArrayList<>() : TypeConvert.fromJson(userMap.get("indices"), List.class);
+        return this.equals(local())? new ArrayList<>() : asList("luxleaks", "offshoreleaks");
     }
 
     private static Map<String, String> convert(final HashMap hashMap) {
