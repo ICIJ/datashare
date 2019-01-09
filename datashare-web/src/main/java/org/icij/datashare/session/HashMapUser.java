@@ -4,9 +4,7 @@ import net.codestory.http.convert.TypeConvert;
 import net.codestory.http.security.Users;
 import org.icij.datashare.user.User;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static net.codestory.http.convert.TypeConvert.toJson;
 
@@ -25,6 +23,10 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     public static HashMapUser fromJson(String json) {
         HashMap hashMap = TypeConvert.fromJson(json, HashMap.class);
         return new HashMapUser(convert(hashMap));
+    }
+
+    public List<String> getIndices() {
+        return userMap.get("indices") == null ? new ArrayList<>() : TypeConvert.fromJson(userMap.get("indices"), List.class);
     }
 
     private static Map<String, String> convert(final HashMap hashMap) {
@@ -54,8 +56,8 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     public static Users singleUser(String name) { return singleUser(new HashMapUser(name));}
     public static Users singleUser(final HashMapUser user) {
         return new Users() {
-            @Override public net.codestory.http.security.User find(String s, String s1) { return user;}
-            @Override public net.codestory.http.security.User find(String s) { return user;}
+            @Override public net.codestory.http.security.User find(String s, String s1) { return s.equals(user.id) ? user : null;}
+            @Override public net.codestory.http.security.User find(String s) { return s.equals(user.id) ? user : null;}
         };
     }
     public static Users users(String... logins) {
