@@ -30,6 +30,7 @@ import static org.icij.datashare.cli.DatashareCli.Stage.INDEX;
 import static org.icij.datashare.cli.DatashareCli.Stage.SCAN;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
+import static org.icij.datashare.user.User.nullUser;
 
 public class CliApp {
     static final Logger logger = LoggerFactory.getLogger(CliApp.class);
@@ -59,7 +60,7 @@ public class CliApp {
         }
 
         if (stages.contains(INDEX)) {
-            taskManager.startTask(taskFactory.createIndexTask(local(), Options.from(properties)), () -> {
+            taskManager.startTask(taskFactory.createIndexTask(nullUser(), Options.from(properties)), () -> {
                 closeAndLogException(injector.getInstance(DocumentQueue.class)).run();
             });
         }
