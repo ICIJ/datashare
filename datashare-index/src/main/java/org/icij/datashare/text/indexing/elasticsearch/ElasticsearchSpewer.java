@@ -9,7 +9,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.text.indexing.LanguageGuesser;
-import org.icij.datashare.user.User;
 import org.icij.extract.document.EmbeddedTikaDocument;
 import org.icij.extract.document.TikaDocument;
 import org.icij.spewer.FieldNames;
@@ -46,7 +45,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final ElasticsearchConfiguration esCfg;
     private final Publisher publisher;
     private final LanguageGuesser languageGuesser;
-    private User user;
+    private String indexName;
 
     @Inject
     public ElasticsearchSpewer(final RestHighLevelClient client, LanguageGuesser languageGuesser, final FieldNames fields,
@@ -59,8 +58,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         logger.info("spewer defined with {}", esCfg);
     }
 
-    public ElasticsearchSpewer withUser(User user) {
-        this.user = user ;
+    public ElasticsearchSpewer withIndex(final String indexName) {
+        this.indexName = indexName;
         return this;
     }
 
@@ -74,7 +73,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     private IndexRequest prepareRequest(final TikaDocument document, final Reader reader,
                                         final TikaDocument parent, TikaDocument root, final int level) throws IOException {
-        IndexRequest req = new IndexRequest(user.indexName(), esCfg.indexType, document.getId());
+        IndexRequest req = new IndexRequest(indexName, esCfg.indexType, document.getId());
         Map<String, Object> jsonDocument = getMap(document, reader);
 
         if (parent != null) {
@@ -135,7 +134,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 shorten(indexResponse.getId(), 4), currentTimeMillis() - before, document);
         synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads
             publisher.publish(NLP, new Message(EXTRACT_NLP)
-                    .add(Message.Field.INDEX_NAME, user.indexName())
+                    .add(Message.Field.INDEX_NAME, indexName)
                     .add(Message.Field.DOC_ID, indexResponse.getId())
                     .add(Message.Field.R_ID, parent == null ? document.getId() : root.getId()));
         }

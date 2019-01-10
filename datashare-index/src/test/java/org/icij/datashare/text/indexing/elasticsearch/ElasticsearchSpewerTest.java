@@ -14,7 +14,6 @@ import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
-import org.icij.datashare.user.User;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
@@ -50,7 +49,7 @@ public class ElasticsearchSpewerTest {
     private final DocumentFactory factory = new DocumentFactory().withIdentifier(new PathIdentifier());
 
     private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-            new OptimaizeLanguageGuesser(), new FieldNames(), publisher, new PropertiesProvider()).withRefresh(IMMEDIATE).withUser(new User("test"));
+            new OptimaizeLanguageGuesser(), new FieldNames(), publisher, new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");
 
     public ElasticsearchSpewerTest() throws IOException {}
 

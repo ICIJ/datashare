@@ -47,7 +47,7 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable, UserTas
         this.user = user;
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
         this.publisher = publisher;
-        spewer.withUser(user);
+        spewer.withIndex(user.indexName());
         this.queue = new RedisUserDocumentQueue(user, userOptions);
         Options<String> allTaskOptions = options().createFrom(userOptions);
         consumer = new DocumentConsumer(spewer, new Extractor().configure(allTaskOptions), this.parallelism);
