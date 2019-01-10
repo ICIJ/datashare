@@ -49,7 +49,7 @@ public class NlpAppTest {
     public void test_subscriber_mode_for_standalone_extraction() throws Exception {
         runNlpApp("1", 0);
 
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id").add(R_ID, "routing").add(USER_ID, local().id));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id").add(R_ID, "routing").add(INDEX_NAME, local().id));
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
@@ -60,8 +60,8 @@ public class NlpAppTest {
     public void test_consumer_mode_for_multithreaded_server_extraction() throws Exception {
         runNlpApp("2", 0);
 
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1").add(USER_ID, local().id));
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2").add(USER_ID, local().id));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1").add(INDEX_NAME, local().id));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2").add(INDEX_NAME, local().id));
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
@@ -72,7 +72,7 @@ public class NlpAppTest {
     public void test_nlp_app_should_wait_queue_to_be_empty_to_shutdown() throws Exception {
         runNlpApp("1", 200);
 
-        IntStream.range(1,4).forEach(i -> publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id" + i).add(R_ID, "routing" + i).add(USER_ID, local().id)));
+        IntStream.range(1,4).forEach(i -> publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id" + i).add(R_ID, "routing" + i).add(INDEX_NAME, local().id)));
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
@@ -85,8 +85,8 @@ public class NlpAppTest {
 
         assertThat(nlpApp.getProgressRate()).isEqualTo(-1);
         publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, "4"));
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1").add(USER_ID, local().id));
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2").add(USER_ID, local().id));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id1").add(R_ID, "routing1").add(INDEX_NAME, local().id));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id2").add(R_ID, "routing2").add(INDEX_NAME, local().id));
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
@@ -100,7 +100,7 @@ public class NlpAppTest {
         assertThat(nlpApp.getProgressRate()).isEqualTo(-1);
         publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, "4"));
         publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, "6"));
-        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id").add(R_ID, "routing").add(USER_ID, local().id));
+        publisher.publish(Channel.NLP, new Message(EXTRACT_NLP).add(DOC_ID, "doc_id").add(R_ID, "routing").add(INDEX_NAME, local().id));
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();

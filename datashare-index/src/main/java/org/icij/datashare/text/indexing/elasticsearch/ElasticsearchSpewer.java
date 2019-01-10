@@ -135,7 +135,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 shorten(indexResponse.getId(), 4), currentTimeMillis() - before, document);
         synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads
             publisher.publish(NLP, new Message(EXTRACT_NLP)
-                    .add(Message.Field.USER_ID, user.id)
+                    .add(Message.Field.INDEX_NAME, user.indexName())
                     .add(Message.Field.DOC_ID, indexResponse.getId())
                     .add(Message.Field.R_ID, parent == null ? document.getId() : root.getId()));
         }

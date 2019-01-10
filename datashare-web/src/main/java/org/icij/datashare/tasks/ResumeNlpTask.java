@@ -49,7 +49,7 @@ public class ResumeNlpTask implements Callable<Integer>, UserTask {
 
         docsToProcess.forEach(doc -> this.publisher.publish(Channel.NLP,
                         new Message(Message.Type.EXTRACT_NLP)
-                                .add(Message.Field.USER_ID, user.id)
+                                .add(Message.Field.INDEX_NAME, user.indexName())
                                 .add(Message.Field.DOC_ID, doc.getId())
                                 .add(Message.Field.R_ID, ((Document)doc).getRootDocument())));
 

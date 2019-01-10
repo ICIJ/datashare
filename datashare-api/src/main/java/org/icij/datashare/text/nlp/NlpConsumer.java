@@ -1,7 +1,6 @@
 package org.icij.datashare.text.nlp;
 
 import com.google.inject.Inject;
-import org.icij.datashare.user.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
@@ -38,7 +37,7 @@ public class NlpConsumer implements DatashareListener {
                 if (message != null) {
                     switch (message.type) {
                         case EXTRACT_NLP:
-                            findNamedEntities(new User(message.content.get(USER_ID)).indexName(), message.content.get(DOC_ID), message.content.get(R_ID));
+                            findNamedEntities(message.content.get(INDEX_NAME), message.content.get(DOC_ID), message.content.get(R_ID));
                             break;
                         case SHUTDOWN:
                             exitAsked = true;
