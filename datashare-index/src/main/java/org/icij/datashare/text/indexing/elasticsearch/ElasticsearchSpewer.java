@@ -63,6 +63,10 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return this;
     }
 
+    public void createIndex() {
+        ElasticsearchConfiguration.createIndex(client, indexName, DEFAULT_INDEX_TYPE);
+    }
+
     @Override
     public void write(final TikaDocument document, final Reader reader) throws IOException {
         indexDocument(document, reader, null, null, 0);

@@ -87,7 +87,7 @@ public class ElasticsearchConfiguration {
         return createIndex(client, indexName, propertiesProvider.get(INDEX_TYPE_PROP).orElse(DEFAULT_INDEX_TYPE));
     }
 
-    static boolean createIndex(RestHighLevelClient client, String indexName, String indexType) {
+    public static boolean createIndex(RestHighLevelClient client, String indexName, String indexType) {
         GetIndexRequest request = new GetIndexRequest();
         request.indices(indexName);
         try {

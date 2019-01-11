@@ -47,7 +47,9 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable, UserTas
         this.user = user;
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
         this.publisher = publisher;
-        spewer.withIndex(user.isNull() ? userOptions.valueIfPresent("indexName").orElse("local-datashare"): user.indexName());
+        String indexName = user.isNull() ? userOptions.valueIfPresent("indexName").orElse("local-datashare") : user.indexName();
+        spewer.withIndex(indexName); // TODO: remove this
+        spewer.createIndex();
         Options<String> allTaskOptions = options().createFrom(userOptions);
         this.queue = new RedisUserDocumentQueue(user, userOptions);
         consumer = new DocumentConsumer(spewer, new Extractor().configure(allTaskOptions), this.parallelism);
