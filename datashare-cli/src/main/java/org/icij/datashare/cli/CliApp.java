@@ -1,10 +1,10 @@
 package org.icij.datashare.cli;
 
 import com.google.inject.Injector;
-import org.icij.datashare.mode.ServerMode;
 import org.icij.datashare.TaskFactory;
 import org.icij.datashare.TaskManager;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
+import org.icij.datashare.mode.ServerMode;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -25,7 +25,6 @@ import static java.lang.String.valueOf;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
-import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.cli.DatashareCli.Stage.INDEX;
 import static org.icij.datashare.cli.DatashareCli.Stage.SCAN;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -45,18 +44,18 @@ public class CliApp {
         Indexer indexer = injector.getInstance(Indexer.class);
 
         if (resume(properties)) {
-            RedisUserDocumentQueue queue = new RedisUserDocumentQueue(local(), Options.from(properties));
+            RedisUserDocumentQueue queue = new RedisUserDocumentQueue(nullUser(), Options.from(properties));
             boolean queueIsEmpty = queue.isEmpty();
             queue.close();
 
-            if (indexer.search(local().indexName(), Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 && queueIsEmpty) {
+            if (indexer.search(properties.getProperty("indexName"), Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 && queueIsEmpty) {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
             }
         }
 
         if (stages.contains(SCAN) && !resume(properties)) {
-            taskManager.startTask(taskFactory.createScanTask(local(), Paths.get(properties.getProperty(DATA_DIR_OPT)), Options.from(properties)));
+            taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DATA_DIR_OPT)), Options.from(properties)));
         }
 
         if (stages.contains(INDEX)) {
@@ -68,10 +67,10 @@ public class CliApp {
         if (stages.contains(DatashareCli.Stage.NLP)) {
             for (Pipeline.Type nlp : nlpPipelines) {
                 Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
-                taskManager.startTask(taskFactory.createNlpTask(local(), injector.getInstance(pipelineClass)));
+                taskManager.startTask(taskFactory.createNlpTask(nullUser(), injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.createResumeNlpTask(local(), properties.getProperty(NLP_PIPELINES_OPT)));
+                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), properties.getProperty(NLP_PIPELINES_OPT)));
             }
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);

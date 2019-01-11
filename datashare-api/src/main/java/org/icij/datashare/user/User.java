@@ -8,7 +8,8 @@ public class User {
     public User(final String id) { this.id = id;}
 
     public String indexName() { return id + "-datashare";}
-    public String getPath() { return this.equals(local()) ? "": id;}
+    public String queueName() { return "extract:queue_" + id;}
+    public String getPath() { return this.equals(local()) || isNull()? "": id;}
     public boolean isNull() { return this.id == null;}
 
     public static User local() { return new User("local");}

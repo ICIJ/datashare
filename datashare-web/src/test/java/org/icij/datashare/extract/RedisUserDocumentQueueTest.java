@@ -10,6 +10,7 @@ import redis.clients.jedis.Jedis;
 import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.user.User.nullUser;
 
 public class RedisUserDocumentQueueTest {
     private Jedis redis = new Jedis("redis");
@@ -20,8 +21,8 @@ public class RedisUserDocumentQueueTest {
     }
 
     @Test
-    public void test_redis_queue_name_with_user_null() {
-        RedisUserDocumentQueue queue = new RedisUserDocumentQueue(null, new OptionsWrapper(new HashMap<String, String>() {{ put("redisAddress", "redis://redis:6379");}}).asOptions());
+    public void test_redis_queue_name_with_null_user() {
+        RedisUserDocumentQueue queue = new RedisUserDocumentQueue(nullUser(), new OptionsWrapper(new HashMap<String, String>() {{ put("redisAddress", "redis://redis:6379");}}).asOptions());
         queue.offer(new DocumentFactory().withIdentifier(new PathIdentifier()).create("/path/to/doc"));
 
         assertThat(redis.keys("extract:queue")).hasSize(1);
@@ -37,14 +38,14 @@ public class RedisUserDocumentQueueTest {
     }
 
     @Test
-    public void test_redis_queue_name_with_user_not_null_and_queue_name() {
+    public void test_redis_queue_name_with_user_not_null_and_queue_name__user_queue_is_preferred() {
         RedisUserDocumentQueue queue = new RedisUserDocumentQueue(new User("foo"),
                 new OptionsWrapper(new HashMap<String, String>() {{
                     put("redisAddress", "redis://redis:6379");
                     put("queueName", "myqueue");}}).asOptions());
         queue.offer(new DocumentFactory().withIdentifier(new PathIdentifier()).create("/path/to/doc"));
 
-        assertThat(redis.keys("myqueue_foo")).hasSize(1);
-        assertThat(redis.lpop("myqueue_foo")).isEqualTo("/path/to/doc");
+        assertThat(redis.keys("extract:queue_foo")).hasSize(1);
+        assertThat(redis.lpop("extract:queue_foo")).isEqualTo("/path/to/doc");
     }
 }
