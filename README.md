@@ -177,7 +177,7 @@ We welcome feedback as well as contributions!
 
 For any bug, question, comment or (pull) request, 
 
-please contact us at datashare@icij.org
+please contact us at engineering@icij.org
 
 
 ## What's next
