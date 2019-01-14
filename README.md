@@ -1,195 +1,126 @@
-# DataShare
+# User Guide for Mac
 
-[![Circle CI](https://circleci.com/gh/ICIJ/datashare.png?style=shield&circle-token=b7637e0aec84ab65d39ccd0d331bae27ba697299)](https://circleci.com/gh/ICIJ/datashare)
+## How do I install Datashare?
 
-DataShare aims at allowing for valuable knowledge about people and companies 
-locked within hundreds of pages of documents inside a computer to be sieved 
-into indexes and shared securely within a network of trusted individuals, 
-fostering unforeseen collaboration and prompting new and better investigations 
-that uncover corruption, transnational crime and abuse of power.
+1. Go to Datashare landing page \(URL to come\):
 
-[DataShare: connecting local data with a global collective intelligence](https://www.newschallenge.org/challenge/data/refinement/datashare-connecting-local-data-with-a-global-collective-intelligence)
+> \[screenshot of the landing page to be inserted here\]
 
+1. Click on the button **"DOWNLOAD FOR FREE"**.
+2. On your desktop:
+3. Open "Finder" by clicking on the blue smiling icon in your Mac's "Dock" 
+4. Open **"Downloads"** 
+5. Double-click on **"Datashare.pkg"**:
 
-## Current Features
+> ![Double-click on Datashare.pkg](https://i.imgur.com/F1IGjsz.png)
 
-An Extensible Multilingual Information Extraction and Search Platform
+1. You might see a window saying **"“Datashare.pkg” can’t be opened because it is from an unidentified developer."**. Click on **"OK"**:
 
- - Extract Text from Files; 
- - Extract Organizations, Persons and Locations from Text; 
- - Index and Search all
+   > ![Click on Open Anyway](https://i.imgur.com/RMlO2Kz.png)
 
-Multithreaded and Distributed Processings
+   * If yes, click on the **Apple logo** on the top left of your computer's screen top bar.
+   * Click on **"System Preferences..."**
+   * Click on **"Security & Privacy"** 
+   * You read at the bottom ""Datashare.pkg" was blocked from opening because it is not from an identified developer",  **click on** "Open Anyway"\*\*: 
 
-Local or Remote Indexing
+> ![Click on Open Anyway](https://i.imgur.com/bjBNkqm.png)
 
+1. A window untitled "Install Datashare" opened. Click 2 times on **"Continue"** and then **"Install"**.
 
-## Installing and using
+   > ![Click on Continue](https://i.imgur.com/UMpmxBm.png) ![Click on Continue](https://i.imgur.com/bfuAGFt.png) ![Click on Install](https://i.imgur.com/ayIxDHA.png)
 
-### Using with elasticsearch
-You can download the script [datashare.sh](datashare-dist/src/main/datashare.sh) and execute it. It will :
+2. At step 3, a window saying "Installer is trying to install new software" requires your Mac's Username and Password. **Enter both** and click on **"Install Software"**.
 
-- download [redis](https://redis.io), [elasticsearch](https://www.elastic.co/) and datashare [docker](https://www.docker.com/docker-community) containers
-- initialize an elasticsearch index with datashare mapping
-- provide CLI to run datashare extract, index, name finding tasks
-- provide a WEB GUI to run datashare extract, index, name finding tasks, and search in the documents
+   > ![Install Software](https://i.imgur.com/S59dV0X.png)
 
-To access web GUI, go in your documents folder and launch `path/to/datashare.sh -w` then connect datashare on http://localhost:8080
+3. The windows says "The installation was successful. The software was installed". Click on **Close**.
 
-If you want to avoid synchronization of NLP models (offline use) then do `export DS_JAVA_OPTS="-DDS_SYNC_NLP_MODELS=false"` before launching the `datashare.sh` script.
+   > ![Click on Close](https://i.imgur.com/nCCy5N1.png)
 
-### Using only Named Entity Recognition
+4. A new windows says "Do you want to move the "Datashare Installer to the Trash". You can safely click on **"Move to Trash"**.
 
-You can use the datashare docker container only for HTTP exposed name finding API.
+   > ![Click on Move to Trash](https://i.imgur.com/MBC013j.png)
 
-Just run : 
+5. You might see a small window of "Terminal" automatically opened apart. It describes ongoing technical operations. **It will close automatically.**
 
-    docker run -ti -p 8080:8080 -v /path/to/dist/:/home/datashare/dist icij/datashare:0.10 -m NER -w
+   > ![It closes automatically](https://i.imgur.com/pmYgUZ1.png)
 
-A bit of explanation : 
-- `-w` tells datashare to run the webserver. It is launched on 8080 that's why the port is mapped for docker
-- `-m NER` runs datashare without index at all on a stateless mode
-- `-v /path/to/dist:/home/datashare/dist` maps the directory where the NLP models will be read (and downloaded if they don't exist)
+6. Datashare is now downloaded as well as another tool which makes it work: it's called **Docker**. You can find it on your Mac's menu bar, on the top right of your computer's screen. Its icons is a little whale! Docker Desktop will automatically be running when you use Datashare.
 
-Then query with curl the server with : 
+   > ![Terminal](https://i.imgur.com/fZfNLzi.png)
 
-    curl -i localhost:8080/ner/findNames/CORENLP --data-binary @path/to/a/file.txt
+### How do I open Datashare?
 
-The last path part (CORENLP) is the framework. You can choose it among CORENLP, GATENLP, IXAPIPE, MITIE or OPENNLP.    
+1. Once Datashare is installed, go to **"Finder"**, then **"Applications"** and double-click on **"Datashare"**, which is a burgundy icon with "ICIJ":
 
-### **Extract Text from Files** 
-  
-*Implementations*
-  
-  - [TikaDocument](https://github.com/ICIJ/extract/blob/extractlib/extract-lib/src/main/java/org/icij/extract/document/TikaDocument.java) from ICIJ/extract 
-  
-    [Apache Tika](https://tika.apache.org/) v1.18 (Apache Licence v2.0)
-  
-    with [Tesseract](https://github.com/tesseract-ocr/tesseract/wiki/4.0-with-LSTM) v4.0 alpha 
+   > ![Double-click on ICIJ Datashare icon](https://i.imgur.com/uTyRtCa.png)
 
+2. **Datashare automatically opens in your default internet browser**. It if does **not** open automatically in your default browser, please type **"localhost:8080/\#/"** in your internet browser.
 
-*Support*
+   > ![Datashare automatically opens](https://i.imgur.com/CyW1qhF.png)
 
-  [Tika File Formats](https://tika.apache.org/1.15/formats.html)
+3. It also temporarily opens a small windows in **"Terminal"** which describes the technical operations going on during the opening. **Please do not close it**. It closes automatically when it is finished or you can safely close it.
 
-  
-### **Extract Persons, Organizations or Locations from Text** 
-   
-*Implementations*
-  
-  - `org.icij.datashare.text.nlp.corenlp.CorenlpPipeline` 
-  
-    [Stanford CoreNLP](http://stanfordnlp.github.io/CoreNLP) v3.8.0, 
-    (Conditional Random Fields), 
-    *Composite GPL v3+* 
+   > ![Terminal opens and closes](https://i.imgur.com/QADMxWK.png)
 
-  - `org.icij.datashare.text.nlp.gatenlp.GatenlpPipeline` 
-    
-    [OEG UPM Entity Extractor](https://github.com/ICIJ/entity-extractor/tree/production) v1.1, 
-    (JAPE Rules Grammar), 
-    based on [EPSRC Gate](https://gate.ac.uk/) v8.11, 
-    *LGPL v3*
-  
-  - `org.icij.datashare.text.nlp.ixapipe.IxapipePipeline` 
-  
-    [Ixa Pipes Nerc](https://github.com/ixa-ehu/ixa-pipe-nerc) v1.6.1, 
-    (Perceptron), 
-    *Apache Licence v2.0*
+### How do I add documents to Datashare?
 
-  - `org.icij.datashare.text.nlp.mitie.MitiePipeline` 
-  
-    [MIT Information Extraction](https://github.com/mit-nlp/MITIE) v0.8, 
-    (Structural Support Vector Machines), 
-    *Boost Software License v1.0*
+1. Open your Mac's **"Finder"** by clicking on the blue smiling icon in your Mac's "Dock".
+2. On the menu top bar of your computer, click on **"Go"**.
+3. Click on **"Home"** \(with the house icon\).
 
-  - `org.icij.datashare.text.nlp.opennlp.OpennlpPipeline` 
-  
-    [Apache OpenNLP](https://opennlp.apache.org/) v1.6.0, 
-    (Maximum Entropy), 
-    *Apache Licence v2.0*
+> ![Click on Home](https://i.imgur.com/McX4uQt.png)
 
-  
-*Natural Language Processing Stages Support*
+1. You see **a folder called "Datashare"**.
+2. **Add to this folder the documents** you want to have and to analyze on Datashare. You will be asked your computer's username and password. Enter both and click on **\*"OK"**:
 
-| `NlpStage`       |
-|------------------|
-| `TOKEN`          |
-| `SENTENCE`       |
-| `POS`            |
-| `NER`            |
+> ![Click on OK](https://i.imgur.com/31QUoE9.png)
 
-*Named Entity Recognition Language Support*
+1. Go to **"Applications"** and open **Datashare** \(see above: "How do I open Datashare" \).
+2. Click on **"Analyze documents"** on the top navigation bar in Datashare.
 
-| *`NlpStage.NER`*           | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  |
-|---------------------------:|:----------:|:----------:|:---------:|:---------:|
-| `NlpPipeline.Type.GATE`    |     X      |      X     |      X    |     X     |
-| `NlpPipeline.Type.CORE`    |     X      |      X     |      X    |     -     |
-| `NlpPipeline.Type.OPEN`    |     X      |      X     |      -    |     X     |
-| `NlpPipeline.Type.IXA`     |     X      |      X     |      X    |     -     |
-| `NlpPipeline.Type.MITIE`   |     X      |      X     |      X    |     -     |
+> ![Click on Analyze documents](https://i.imgur.com/OOgtMm8.png)
 
-*Named Entity Categories Support*
+### How do I analyze documents?
 
-| `NamedEntity.Category` |
-|----------------------  |
-| `ORGANIZATION`         |
-| `PERSON`               |
-| `LOCATION`             |
+1. Once you added documents to Datashare and you opened Datashare, click on **"Analyze documents"** on the top bar.
 
-*Parts-of-Speech Language Support*
+> ![Click on Analyze documents](https://i.imgur.com/OOgtMm8.png)
 
-|  *`NlpStage.POS`*          | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  |
-|---------------------------:|:----------:|:----------:|:---------:|:---------:|
-| `NlpPipeline.Type.GATE`    |     -      |      -     |      -    |     -     |
-| `NlpPipeline.Type.CORE`    |     X      |      X     |     X     |     X     |
-| `NlpPipeline.Type.OPEN`    |     X      |      X     |     X     |     X     |
-| `NlpPipeline.Type.IXA`     |     X      |      X     |     X     |     X     |
-| `NlpPipeline.Type.MITIE`   |     -      |      -     |      -    |     -     |
+1. You're now on **"**[http://localhost:8080/\#/indexing](http://localhost:8080/#/indexing)**"**. Click on **Start a new task** if the pop-in did not open automatically.
 
+> \[insert screenshot "How do I analyze documents\_Mac\_START.png"\]
 
-### **Store and Search Documents and Named Entities**
+1. Select **"Extract text"**. If you want Datashare to also detect named entites, that is to say the name of a person, an organization or a location, click on **"Find named entities"**". Then click on "Next".
 
- *Implementations*
-  
- - `org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer`
- 
-   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v6.1.0, *Apache Licence v2.0*
+> \[insert screenshot "How do I analyze documents\_Mac\_POP1.png"\] \[insert screenshot "How do I analyze documents\_Mac\_POP2.png"\]
 
+1. In this window, click on **"Yes"** if you want to extract texts from images too \(scans, pictures, etc.\). OCR means "Optical Character Recognition" and will allow you to search terms in your files which are images.
 
+> \[insert screenshot "How do I analyze documents\_Mac\_POP3.png"\]
 
-## Compilation / Build
+1. In this window, you are asked to choose between different pipelines of Natural Language Processing. Click on "CoreNLP" if you want to use the one with the highest probability of well working in most of your documents.
 
-Requires 
-[JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html),
-[Maven 3](http://maven.apache.org/download.cgi)
+> \[insert screenshot "How do I analyze documents\_Mac\_POP4.png"\]
 
-From `datashare` root directory, type: `mvn package`
+1. You can now see running tasks and their progress. You can click on "Delete done tasks".
 
+> \[insert screenshot "How do I analyze documents\_Mac\_RUN.png"\]
 
-## License
+1. You can search for your indexed documents without having to wait for all tasks to be done. To access your documents, click on **"Search"**.
 
-DataShare is released under the [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.en.html)
+> \[insert screenshot "How do I analyze documents\_Mac\_SEARCH.png"\]
 
+### How do I search documents?
 
-## Feedback
+1. On the homepage, type the terms you search in the search bar.
+2. Type nothing and click on "Search" to have all your documents as results.
 
-We welcome feedback as well as contributions!
+> \[insert screenshot "How do I search documents\_Mac\_SEARCH.png"\]
 
-For any bug, question, comment or (pull) request, 
+### What is a named entity?
 
-please contact us at engineering@icij.org
+A name entity is the name of a **person**, an **organization** or a **location**.
 
+Datashare does **"Named Entity Recognition" \(NER\)**. It means that Datashare uses pipelines of Natural Language Processing \(NLP\) to automatically detect and highlight named entity in texts.
 
-## What's next
- 
- - Data Sharing module
- 
-   - Networking module
-   
-   - Content Management module
-     
-   - User Management module
-        
-   - Request and Exchange Protocol
- 
- 
