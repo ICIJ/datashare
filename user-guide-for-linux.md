@@ -1,2 +1,0 @@
-# User Guide for Linux
-
