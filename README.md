@@ -55,7 +55,7 @@ Then query with curl the server with :
 
     curl -i localhost:8080/ner/findNames/CORENLP --data-binary @path/to/a/file.txt
 
-The last path part (CORENLP) is the framework. You can choose it among CORENLP, GATENLP, IXAPIPE, MITIE or OPENNLP.    
+The last path part (CORENLP) is the framework. You can choose it among CORENLP, IXAPIPE, MITIE or OPENNLP.    
 
 ### **Extract Text from Files** 
   
@@ -83,13 +83,6 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
     (Conditional Random Fields), 
     *Composite GPL v3+* 
 
-  - `org.icij.datashare.text.nlp.gatenlp.GatenlpPipeline` 
-    
-    [OEG UPM Entity Extractor](https://github.com/ICIJ/entity-extractor/tree/production) v1.1, 
-    (JAPE Rules Grammar), 
-    based on [EPSRC Gate](https://gate.ac.uk/) v8.11, 
-    *LGPL v3*
-  
   - `org.icij.datashare.text.nlp.ixapipe.IxapipePipeline` 
   
     [Ixa Pipes Nerc](https://github.com/ixa-ehu/ixa-pipe-nerc) v1.6.1, 
@@ -122,7 +115,6 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
 
 | *`NlpStage.NER`*           | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  |
 |---------------------------:|:----------:|:----------:|:---------:|:---------:|
-| `NlpPipeline.Type.GATE`    |     X      |      X     |      X    |     X     |
 | `NlpPipeline.Type.CORE`    |     X      |      X     |      X    |     -     |
 | `NlpPipeline.Type.OPEN`    |     X      |      X     |      -    |     X     |
 | `NlpPipeline.Type.IXA`     |     X      |      X     |      X    |     -     |
@@ -140,7 +132,6 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
 
 |  *`NlpStage.POS`*          | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  |
 |---------------------------:|:----------:|:----------:|:---------:|:---------:|
-| `NlpPipeline.Type.GATE`    |     -      |      -     |      -    |     -     |
 | `NlpPipeline.Type.CORE`    |     X      |      X     |     X     |     X     |
 | `NlpPipeline.Type.OPEN`    |     X      |      X     |     X     |     X     |
 | `NlpPipeline.Type.IXA`     |     X      |      X     |     X     |     X     |
