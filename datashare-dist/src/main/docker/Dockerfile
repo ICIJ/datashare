@@ -2,9 +2,9 @@ FROM frolvlad/alpine-glibc
 
 # install java Runtime for alpine cf https://wiki.alpinelinux.org/wiki/Installing_Oracle_Java
 # without glibc stuffs because we're using alpine-glibc
-RUN cd /tmp && JAVA_MINOR_VERSION=191 && \
+RUN cd /tmp && JAVA_MINOR_VERSION=202 && \
   wget  --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
-  "http://download.oracle.com/otn-pub/java/jdk/8u191-b12/2787e4a523244c269598db4e85c51e0c/jre-8u191-linux-x64.tar.gz" && \
+  "https://download.oracle.com/otn-pub/java/jdk/8u202-b08/1961070e4c9b4e26a04e7f5a083f551e/jre-8u202-linux-x64.tar.gz" && \
   mkdir -p /opt/java && cd /opt/java && \
   tar -zxf /tmp/jre-8u${JAVA_MINOR_VERSION}-linux-x64.tar.gz && \
   ln -s /opt/java/jre1.8.0_${JAVA_MINOR_VERSION} /opt/java/current && \
