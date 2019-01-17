@@ -15,8 +15,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createIndex;
-import static org.icij.datashare.user.User.local;
 
 public class LocalMode extends CommonMode {
     public LocalMode(Properties properties) { super(properties);}
@@ -28,10 +26,9 @@ public class LocalMode extends CommonMode {
         bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
-        createIndex(esClient, local().indexName(), propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
+        bind(IndexWaiterFilter.class).toInstance(new IndexWaiterFilter(esClient));
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
-
         bind(TaskManager.class).toInstance(new TaskManager(propertiesProvider));
         install(new FactoryModuleBuilder().build(TaskFactory.class));
         bind(Publisher.class).to(RedisPublisher.class);
@@ -39,6 +36,6 @@ public class LocalMode extends CommonMode {
 
     @Override
     protected Routes addModeConfiguration(Routes routes) {
-        return routes.add(TaskResource.class).add(SearchResource.class).add(NamedEntityResource.class);
+        return routes.add(TaskResource.class).add(SearchResource.class).add(NamedEntityResource.class).filter(IndexWaiterFilter.class);
     }
 }

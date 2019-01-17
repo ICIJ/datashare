@@ -4,9 +4,14 @@ import net.codestory.http.Context;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
+import org.slf4j.LoggerFactory;
 
 public class UserDataFilter implements Filter {
     public static final String DATA_URI_PREFIX = "/api/data/";
+
+    public UserDataFilter() {
+        LoggerFactory.getLogger(getClass()).info("adding filter for user files");
+    }
 
     @Override
     public Payload apply(String uri, Context context, PayloadSupplier payloadSupplier) throws Exception {

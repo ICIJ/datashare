@@ -47,6 +47,7 @@ public class ServerMode extends CommonMode {
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
+        bind(IndexWaiterFilter.class).toInstance(new IndexWaiterFilter(esClient));
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
 
         bind(TaskManager.class).toInstance(new TaskManager(propertiesProvider));
