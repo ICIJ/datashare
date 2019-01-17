@@ -129,11 +129,12 @@ public class TaskResource {
                 } catch (ExecutionException|InterruptedException e) {
                     state = State.ERROR;
                 }
+                progress = 1;
                 this.state = task.isCancelled() ? State.CANCELLED : state;
             } else {
                 this.state = State.RUNNING;
+                progress = task.getProgressRate();
             }
-            progress = task.getProgressRate();
         }
     }
 }
