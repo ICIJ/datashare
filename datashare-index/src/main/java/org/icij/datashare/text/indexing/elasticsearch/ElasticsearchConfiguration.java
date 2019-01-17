@@ -66,7 +66,7 @@ public class ElasticsearchConfiguration {
 
         RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(create(indexAddress)));
         String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
-        for (int i=0; i<30; i++) {
+        for (int i=0; i<45; i++) {
             try {
                 if (client.ping()) {
                     break;
