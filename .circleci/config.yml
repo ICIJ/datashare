@@ -160,6 +160,11 @@ jobs:
             cd /tmp/datashare-installer/windows
             make VERSION=${CIRCLE_TAG} dist/installDatashare.exe
       - run:
+          name: build linux installer
+          command: |
+            cd /tmp/datashare-installer/linux
+            make VERSION=${CIRCLE_TAG} dist/datashare.sh
+      - run:
           name: deploy installers on github
           command: |
             cd /tmp/datashare-installer
