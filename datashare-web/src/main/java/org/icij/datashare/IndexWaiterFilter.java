@@ -19,7 +19,7 @@ public class IndexWaiterFilter implements Filter {
     private static int TIMEOUT_SECONDS = 45;
     private static final String WAIT_CONTENT = "<!DOCTYPE html>" +
             "<head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"2\"><title>Datashare</title></head>" +
-            "<body>waiting for index to be up...</body>";
+            "<body>waiting for Datashare to be up...</body>";
     private final RestHighLevelClient client;
     private final AtomicBoolean indexOk = new AtomicBoolean(false);
     final ExecutorService executor = Executors.newSingleThreadExecutor();

@@ -28,7 +28,7 @@ public class IndexWaiterFilterTest {
         Payload payload = indexWaiterFilter.apply("/", context, nextFilter);
 
         assertThat(payload.rawContentType()).isEqualTo("text/html");
-        assertThat((String)payload.rawContent()).contains("waiting for index to be up...");
+        assertThat((String)payload.rawContent()).contains("waiting for Datashare to be up...");
 
         indexWaiterFilter.executor.awaitTermination(2, SECONDS);
         assertThat(indexWaiterFilter.apply("/", context, nextFilter)).isSameAs(next);
