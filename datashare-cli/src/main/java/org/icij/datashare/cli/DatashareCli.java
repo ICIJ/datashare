@@ -11,14 +11,14 @@ import java.util.*;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.WEB_SERVER_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.NO_WEB_SERVER_OPT;
 
 
 public final class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
 
     static Properties properties;
-    static boolean webServer = false;
+    static boolean webServer = true;
 
     public static void main(String[] args) throws Exception {
         if (!parseArguments(args)) {
@@ -54,7 +54,7 @@ public final class DatashareCli {
         DatashareCliOptions.esHost(parser);
 
         DatashareCliOptions.cors(parser);
-        DatashareCliOptions.web(parser);
+        DatashareCliOptions.noweb(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
 
@@ -73,7 +73,7 @@ public final class DatashareCli {
                 return false;
             }
             properties = asProperties(options, null);
-            webServer = parseBoolean(ofNullable(properties.getProperty(WEB_SERVER_OPT)).orElse("false"));
+            webServer = !parseBoolean(ofNullable(properties.getProperty(NO_WEB_SERVER_OPT)).orElse("false"));
             return true;
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);

@@ -24,7 +24,7 @@ final class DatashareCliOptions {
     static final String DATA_DIR_OPT = "dataDir";
     static final String NLP_PIPELINES_OPT = "nlpPipelines";
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
-    static final String WEB_SERVER_OPT = "web";
+    static final String NO_WEB_SERVER_OPT = "noweb";
     static final String RESUME_OPT = "resume";
     public static final String PARALLELISM = "parallelism";
 
@@ -47,8 +47,8 @@ final class DatashareCliOptions {
                 .defaultsTo(Mode.LOCAL);
     }
 
-    static OptionSpecBuilder web(OptionParser parser) {
-        return parser.acceptsAll(asList(WEB_SERVER_OPT, "w"), "Run as a web server");
+    static OptionSpecBuilder noweb(OptionParser parser) {
+        return parser.acceptsAll(singletonList(NO_WEB_SERVER_OPT), "Run as a cli app (default is web server)");
     }
 
     public static OptionSpec<String> cors(OptionParser parser) {

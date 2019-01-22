@@ -9,13 +9,10 @@ public class DatashareCliTest {
     @Test
     public void test_web_opt() {
         assertThat(DatashareCli.parseArguments(new String[] {"-o"})).isTrue();
+        assertThat(DatashareCli.webServer).isTrue();
+
+        assertThat(DatashareCli.parseArguments(new String[] {"--noweb"})).isTrue();
         assertThat(DatashareCli.webServer).isFalse();
-
-        assertThat(DatashareCli.parseArguments(new String[] {"--web"})).isTrue();
-        assertThat(DatashareCli.webServer).isTrue();
-
-        assertThat(DatashareCli.parseArguments(new String[] {"-w"})).isTrue();
-        assertThat(DatashareCli.webServer).isTrue();
     }
 
     @Test
