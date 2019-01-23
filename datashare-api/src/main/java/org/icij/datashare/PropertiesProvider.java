@@ -10,10 +10,12 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
+import static java.lang.System.getenv;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toMap;
 
 public class PropertiesProvider {
+    public static final String PREFIX = "DS_DOCKER_";
     private Logger logger = LoggerFactory.getLogger(getClass());
     static String DEFAULT_NAME="datashare.properties";
     private final String fileName;
@@ -35,16 +37,26 @@ public class PropertiesProvider {
 
     public Properties getProperties() {
         if (cachedProperties == null) {
-            cachedProperties = new Properties();
-            URL propertiesUrl = Thread.currentThread().getContextClassLoader().getResource(fileName);
-            try {
-                logger.info("reading properties from {}", propertiesUrl);
-                cachedProperties.load(propertiesUrl.openStream());
-            } catch (IOException|NullPointerException e) {
-                logger.warn("no datashare.properties found, using empty properties");
+            synchronized(this) {
+                cachedProperties = new Properties();
+                URL propertiesUrl = Thread.currentThread().getContextClassLoader().getResource(fileName);
+                try {
+                    logger.info("reading properties from {}", propertiesUrl);
+                    cachedProperties.load(propertiesUrl.openStream());
+                    loadEnvVariables(cachedProperties);
+                } catch (IOException | NullPointerException e) {
+                    logger.warn("no datashare.properties found, using empty properties");
+                }
             }
         }
         return cachedProperties;
+    }
+
+    private void loadEnvVariables(Properties properties) {
+        Map<String, String> envVars = getenv().entrySet().stream().filter(entry -> entry.getKey().startsWith(PREFIX)).
+                collect(toMap(k -> k.getKey().replace(PREFIX, "").toLowerCase(), Map.Entry::getValue));
+        logger.info("adding properties from env vars {}", envVars);
+        properties.putAll(envVars);
     }
 
     public Optional<String> get(final String propertyName) {

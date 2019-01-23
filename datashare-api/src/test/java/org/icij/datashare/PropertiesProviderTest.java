@@ -9,6 +9,7 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.test.TestUtils.putEnv;
 
 public class PropertiesProviderTest {
     @Test
@@ -64,5 +65,21 @@ public class PropertiesProviderTest {
                 includes(entry("bar", "bap"), entry("baz", "bap")).
                 excludes(entry("foo", "fop"));
         assertThat(provider.getFilteredProperties("b.*", ".*o")).isEmpty();
+    }
+
+    @Test
+    public void test_adds_ext_ds_env_parameters() throws Exception {
+        putEnv("DS_DOCKER_VARIABLE", "value");
+
+        PropertiesProvider propertiesProvider = new PropertiesProvider();
+
+        assertThat(propertiesProvider.getProperties().entrySet().size()).isEqualTo(3);
+        assertThat(propertiesProvider.get("variable")).isEqualTo(of("value"));
+    }
+
+    @Test
+    public void test_adds_no_ds_env_variables() throws Exception {
+        putEnv("MY_VARIABLE", "value");
+        assertThat(new PropertiesProvider().getProperties().entrySet().size()).isEqualTo(2);
     }
 }
