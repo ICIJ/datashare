@@ -68,7 +68,7 @@ public final class DatashareCli {
         try {
             OptionSet options = parser.parse(args);
 
-            if (options.has(helpOpt) || args.length == 0) {
+            if (options.has(helpOpt)) {
                 printHelp(parser);
                 return false;
             }
