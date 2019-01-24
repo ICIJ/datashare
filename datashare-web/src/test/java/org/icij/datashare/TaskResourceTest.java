@@ -11,6 +11,7 @@ import net.codestory.rest.ShouldChain;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -202,6 +203,15 @@ public class TaskResourceTest implements FluentRestTest {
         response.should().haveType("application/json");
 
         verify(taskFactory, never()).createResumeNlpTask(eq(null), anyString());
+    }
+
+    @Test
+    public void test_findNames_with_sync_models_false() {
+        AbstractModels.syncModels(true);
+        RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"syncModels\":\"false\", \"waitForNlpApp\": false}}");
+        response.should().haveType("application/json");
+
+        assertThat(AbstractModels.isSync()).isFalse();
     }
 
     @Test

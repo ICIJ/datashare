@@ -26,6 +26,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
+import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 import static org.icij.task.Options.from;
 
 @Prefix("/api/task")
@@ -86,6 +87,7 @@ public class TaskResource {
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
 
         Properties mergedProps = propertiesProvider.createMerged(optionsWrapper.asProperties());
+        syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
 
         AbstractPipeline abstractPipeline = AbstractPipeline.create(pipeline, new PropertiesProvider(mergedProps));
 

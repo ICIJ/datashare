@@ -21,7 +21,7 @@ import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.getProperty;
 
 public abstract class AbstractModels<T> {
-    public static final String JVM_PROPERTY_NAME = "DS_SYNC_NLP_MODELS";
+    public final static String JVM_PROPERTY_NAME = "DS_SYNC_NLP_MODELS";
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
     private static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
     protected static final Path BASE_CLASSPATH = Paths.get("models");
@@ -128,7 +128,11 @@ public abstract class AbstractModels<T> {
         }
     }
     public static void syncModels(final boolean sync) {
+        LoggerFactory.getLogger(AbstractModels.class).info("synchronize models is set to {}", sync);
         System.setProperty(JVM_PROPERTY_NAME, String.valueOf(sync));
+    }
+    public static boolean isSync() {
+        return parseBoolean(System.getProperty(JVM_PROPERTY_NAME));
     }
 
     public boolean isLoaded(Language language) { return models.containsKey(language);}
