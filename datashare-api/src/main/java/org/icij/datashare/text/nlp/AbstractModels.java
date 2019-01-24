@@ -18,9 +18,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 
 import static java.lang.Boolean.parseBoolean;
+import static java.lang.System.getProperty;
 
 public abstract class AbstractModels<T> {
-    private static final String JVM_PROPERTY_NAME = "DS_SYNC_NLP_MODELS";
+    static final String JVM_PROPERTY_NAME = "DS_SYNC_NLP_MODELS";
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
     private static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
     protected static final Path BASE_CLASSPATH = Paths.get("models");
@@ -33,18 +34,11 @@ public abstract class AbstractModels<T> {
     public final NlpStage stage;
     protected final Map<Language, T> models;
     protected final Pipeline.Type type;
-    private final boolean syncModels;
 
     protected AbstractModels(final Pipeline.Type type, final NlpStage stage) {
-        this(type, stage, parseBoolean(System.getProperty(JVM_PROPERTY_NAME, "true")));
-    }
-
-    protected AbstractModels(final Pipeline.Type type, final NlpStage stage, final boolean syncModels) {
         this.stage = stage;
         this.type = type;
         this.models = new HashMap<>();
-        this.syncModels = syncModels;
-        LOGGER.info("sync models : {}", this.syncModels);
     }
 
     protected abstract T loadModelFile(Language language, ClassLoader loader) throws IOException;
@@ -62,7 +56,7 @@ public abstract class AbstractModels<T> {
         l.acquire();
         try {
             if (isLoaded(language)) return;
-            if (syncModels) {
+            if (parseBoolean(getProperty(JVM_PROPERTY_NAME, "true"))) {
                 downloadIfNecessary(language, getLoader());
             }
             models.put(language, loadModelFile(language, getLoader()));
