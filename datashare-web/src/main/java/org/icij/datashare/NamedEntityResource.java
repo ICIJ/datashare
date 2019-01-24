@@ -44,17 +44,4 @@ public class NamedEntityResource {
         indexer.bulkUpdate(((User)context.currentUser()).indexName(), nes);
         return ok();
     }
-
-    @Options("/namedEntity/unhide/:mentionNorm")
-    public Payload unhide(final String mentionNorm) {
-        return ok().withAllowMethods("OPTIONS", "PUT");
-    }
-
-    @Put("/namedEntity/unhide/:mentionNorm")
-    public Payload unhide(final String id, final String mentionNorm, Context context) throws IOException {
-        List<? extends Entity> nes = indexer.search(((User) context.currentUser()).indexName(), NamedEntity.class).
-                        withFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
-        indexer.bulkUpdate(((User)context.currentUser()).indexName(), nes);
-        return ok();
-    }
 }

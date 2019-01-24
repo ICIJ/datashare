@@ -82,34 +82,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
 
         put("/api/namedEntity/hide/to_update").should().respond(500);
     }
-
-    @Test
-    public void test_unhide_named_entity_when_success() throws IOException {
-        NamedEntity toBeUnHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
-        Indexer.Searcher searcher = mock(Indexer.Searcher.class);
-        doReturn(Stream.of(toBeUnHidden)).when(searcher).execute();
-        doReturn(searcher).when(searcher).withFieldValue(any(), any());
-        doReturn(searcher).when(indexer).search("local-datashare", NamedEntity.class);
-
-        doReturn(toBeUnHidden).when(indexer).get("local-datashare", toBeUnHidden.getId(), toBeUnHidden.getDocumentId());
-
-        put("/api/namedEntity/unhide/to_update").should().respond(200);
-        verify(indexer).bulkUpdate("local-datashare", singletonList(toBeUnHidden));
-    }
-
-    @Test
-    public void test_hide_unhide_options() throws Exception {
-        options("/api/namedEntity/hide/whatever").should().respond(200).haveHeader("Access-Control-Allow-Methods", "OPTIONS, PUT");
-        options("/api/namedEntity/unhide/whatever").should().respond(200).haveHeader("Access-Control-Allow-Methods", "OPTIONS, PUT");
-    }
-
-    @Test
-    public void test_unhide_named_entity_when_failure() throws IOException {
-        doThrow(new RuntimeException()).when(indexer).search("local-datashare", NamedEntity.class);
-
-        put("/api/namedEntity/unhide/to_update").should().respond(500);
-    }
-
+    
     @Override
     public int port() {
         return server.port();
