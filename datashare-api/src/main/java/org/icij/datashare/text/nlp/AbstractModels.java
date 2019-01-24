@@ -21,7 +21,7 @@ import static java.lang.Boolean.parseBoolean;
 import static java.lang.System.getProperty;
 
 public abstract class AbstractModels<T> {
-    static final String JVM_PROPERTY_NAME = "DS_SYNC_NLP_MODELS";
+    public static final String JVM_PROPERTY_NAME = "DS_SYNC_NLP_MODELS";
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
     private static final Path BASE_DIR = Paths.get(".").toAbsolutePath().normalize();
     protected static final Path BASE_CLASSPATH = Paths.get("models");

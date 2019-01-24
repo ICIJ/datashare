@@ -4,7 +4,9 @@ import opennlp.tools.util.model.ArtifactProvider;
 import opennlp.tools.util.model.BaseModel;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
@@ -15,7 +17,7 @@ import static org.mockito.Mockito.*;
 
 public class OpenNlpModelsTest {
     private final RemoteFiles mockRemoteFiles = mock(RemoteFiles.class);
-
+    @Before public void setUp() { System.clearProperty(AbstractModels.JVM_PROPERTY_NAME);}
     @Test
     public void test_download_model() throws Exception {
         final OpenNlpModels model = new OpenNlpModels(NlpStage.TOKEN);
