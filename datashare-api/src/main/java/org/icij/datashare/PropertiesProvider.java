@@ -44,10 +44,10 @@ public class PropertiesProvider {
                         logger.info("reading properties from {}", propertiesUrl);
                         localProperties.load(propertiesUrl.openStream());
                         loadEnvVariables(localProperties);
-                        cachedProperties = localProperties;
                     } catch (IOException | NullPointerException e) {
-                        logger.warn("no datashare.properties found, using empty properties");
+                        logger.warn("no {} found, using empty properties", fileName);
                     }
+                    cachedProperties = localProperties;
                 }
             }
         }
