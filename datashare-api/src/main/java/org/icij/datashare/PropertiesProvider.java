@@ -15,13 +15,12 @@ import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toMap;
 
 public class PropertiesProvider {
-    public static final String PREFIX = "DS_DOCKER_";
+    private static final String PREFIX = "DS_DOCKER_";
     private Logger logger = LoggerFactory.getLogger(getClass());
-    static String DEFAULT_NAME="datashare.properties";
     private final String fileName;
-    private Properties cachedProperties;
+    private volatile Properties cachedProperties;
 
-    public PropertiesProvider() { fileName = DEFAULT_NAME;}
+    public PropertiesProvider() {fileName = "datashare.properties";}
     public PropertiesProvider(String fileName) {
         this.fileName = fileName;
     }
