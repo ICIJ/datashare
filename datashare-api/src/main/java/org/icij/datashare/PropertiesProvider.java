@@ -38,12 +38,13 @@ public class PropertiesProvider {
         if (cachedProperties == null) {
             synchronized(this) {
                 if (cachedProperties == null) {
-                    cachedProperties = new Properties();
+                    Properties localProperties = new Properties();
                     URL propertiesUrl = Thread.currentThread().getContextClassLoader().getResource(fileName);
                     try {
                         logger.info("reading properties from {}", propertiesUrl);
-                        cachedProperties.load(propertiesUrl.openStream());
-                        loadEnvVariables(cachedProperties);
+                        localProperties.load(propertiesUrl.openStream());
+                        loadEnvVariables(localProperties);
+                        cachedProperties = localProperties;
                     } catch (IOException | NullPointerException e) {
                         logger.warn("no datashare.properties found, using empty properties");
                     }
