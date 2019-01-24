@@ -9,6 +9,7 @@ import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.user.User;
 
 import java.io.IOException;
@@ -30,6 +31,12 @@ public class NamedEntityResource {
     @Get("/namedEntity/:id?routing=:documentId")
     public NamedEntity getById(final String id, final String documentId, Context context) {
         return notFoundIfNull(indexer.get(((User)context.currentUser()).indexName(), id, documentId));
+    }
+
+    @Put("/namedEntity/syncModels/:sync")
+    public Payload syncModels(final boolean sync) {
+        AbstractModels.syncModels(sync);
+        return ok();
     }
 
     @Options("/namedEntity/hide/:mentionNorm")
