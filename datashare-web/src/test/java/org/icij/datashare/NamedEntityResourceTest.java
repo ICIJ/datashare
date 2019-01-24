@@ -4,8 +4,8 @@ import net.codestory.http.WebServer;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
-import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
@@ -15,7 +15,6 @@ import org.mockito.Mock;
 import java.io.IOException;
 import java.util.stream.Stream;
 
-import static java.lang.Boolean.parseBoolean;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Language.FRENCH;
@@ -83,16 +82,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
 
         put("/api/namedEntity/hide/to_update").should().respond(500);
     }
-
-    @Test
-    public void test_sync_models() {
-        put("/api/namedEntity/syncModels/true").should().respond(200);
-        assertThat(parseBoolean(System.getProperty("DS_SYNC_NLP_MODELS"))).isTrue();
-
-        put("/api/namedEntity/syncModels/false").should().respond(200);
-        assertThat(parseBoolean(System.getProperty("DS_SYNC_NLP_MODELS"))).isFalse();
-    }
-
+    
     @Override
     public int port() {
         return server.port();
