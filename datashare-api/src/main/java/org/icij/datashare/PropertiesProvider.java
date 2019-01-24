@@ -10,8 +10,10 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
+import static java.lang.Character.toUpperCase;
 import static java.lang.System.getenv;
 import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 public class PropertiesProvider {
@@ -56,9 +58,16 @@ public class PropertiesProvider {
 
     private void loadEnvVariables(Properties properties) {
         Map<String, String> envVars = getenv().entrySet().stream().filter(entry -> entry.getKey().startsWith(PREFIX)).
-                collect(toMap(k -> k.getKey().replace(PREFIX, "").toLowerCase(), Map.Entry::getValue));
+                collect(toMap(k -> camelCasify(k.getKey().replace(PREFIX, "")), Map.Entry::getValue));
         logger.info("adding properties from env vars {}", envVars);
         properties.putAll(envVars);
+    }
+
+    private String camelCasify(String str) {
+        String[] stringParts = str.toLowerCase().split("_");
+        return stringParts[0] + stream(stringParts).skip(1).
+                map(s -> toUpperCase(s.charAt(0)) + s.substring(1)).
+                collect(joining());
     }
 
     public Optional<String> get(final String propertyName) {

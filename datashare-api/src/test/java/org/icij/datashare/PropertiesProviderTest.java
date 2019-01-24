@@ -72,9 +72,17 @@ public class PropertiesProviderTest {
         putEnv("DS_DOCKER_VARIABLE", "value");
 
         PropertiesProvider propertiesProvider = new PropertiesProvider();
-
         assertThat(propertiesProvider.getProperties().entrySet().size()).isEqualTo(3);
         assertThat(propertiesProvider.get("variable")).isEqualTo(of("value"));
+    }
+
+    @Test
+    public void test_adds_ext_ds_env_parameters_camel_case_with_underscores() throws Exception {
+        putEnv("DS_DOCKER_MY_VARIABLE", "value");
+
+        PropertiesProvider propertiesProvider = new PropertiesProvider();
+        assertThat(propertiesProvider.getProperties().entrySet().size()).isEqualTo(3);
+        assertThat(propertiesProvider.get("myVariable")).isEqualTo(of("value"));
     }
 
     @Test
