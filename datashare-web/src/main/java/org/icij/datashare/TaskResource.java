@@ -30,6 +30,7 @@ import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 import static org.icij.task.Options.from;
 
@@ -89,7 +90,7 @@ public class TaskResource {
 
     @Put("/stop/:taskName")
     public boolean stopTask(final String taskName) {
-        return taskManager.stopTask(taskName);
+        return taskManager.stopTask(notFoundIfNull(taskManager.getTask(taskName)).toString());
     }
 
     @Put("/stopAll")

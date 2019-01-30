@@ -238,6 +238,11 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_stop_unknown_task() throws Exception {
+        put("/api/task/stop/foobar").should().respond(404);
+    }
+
+    @Test
     public void test_stop_all() {
         TaskManager.MonitorableFutureTask<String> t1 = taskManager.startTask(() -> {
             Thread.sleep(10000);
