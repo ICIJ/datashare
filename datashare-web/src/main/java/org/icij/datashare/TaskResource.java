@@ -7,6 +7,7 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
+import net.codestory.http.payload.Payload;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -32,6 +33,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
+import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 import static org.icij.task.Options.from;
 
@@ -99,6 +101,11 @@ public class TaskResource {
         return taskManager.getTasks().stream().
                 filter(t -> !t.isDone()).collect(
                         toMap(TaskManager.MonitorableFutureTask::toString, t -> taskManager.stopTask(t.toString())));
+    }
+
+    @net.codestory.http.annotations.Options("/stopAll")
+    public Payload stopAllTasksPreflight() {
+        return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
     @Post("/findNames/:pipeline")
