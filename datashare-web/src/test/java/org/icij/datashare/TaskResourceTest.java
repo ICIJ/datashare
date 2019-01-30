@@ -134,7 +134,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_index_queue_with_options() {
-        RestAssert response = post("/api/task/index/", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+        RestAssert response = post("/api/task/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
         verify(taskFactory).createIndexTask(local(),  Options.from(new HashMap<String, String>() {{
@@ -219,7 +219,7 @@ public class TaskResourceTest implements FluentRestTest {
         post("/api/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
 
-        ShouldChain responseBody = post("/api/task/clean/", "{}").should().haveType("application/json");
+        ShouldChain responseBody = post("/api/task/clean", "{}").should().haveType("application/json");
 
         responseBody.should().contain(taskNames.get(0));
         responseBody.should().contain(taskNames.get(1));

@@ -56,12 +56,12 @@ public class TaskResource {
         return taskManager.getTasks().stream().filter(t -> context.currentUser().equals(t.getUser())).map(TaskResponse::new).collect(toList());
     }
 
-    @Get("/id/:id")
+    @Get("/name/:name")
     public TaskResponse getTask(String id) {
         return new TaskResponse(taskManager.getTask(id));
     }
 
-    @Post("/index/")
+    @Post("/index")
     public TaskResponse indexQueue(final OptionsWrapper optionsWrapper, Context context) {
         IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), optionsWrapper.asOptions());
         return new TaskResponse(taskManager.startTask(indexTask));
@@ -86,7 +86,7 @@ public class TaskResource {
         return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, options)));
     }
 
-    @Post("/clean/")
+    @Post("/clean")
     public List<TaskResponse> cleanDoneTasks() {
         return taskManager.cleanDoneTasks().stream().map(TaskResponse::new).collect(toList());
     }
