@@ -260,6 +260,14 @@ public class TaskResourceTest implements FluentRestTest {
         assertThat(taskManager.getTask(t2.toString()).isCancelled()).isTrue();
     }
 
+    @Test
+    public void test_stop_all_filters_running_tasks() throws Exception {
+        taskManager.startTask(() -> "ok");
+        taskManager.waitTasksToBeDone(1, SECONDS);
+
+        put("/api/task/stopAll").should().respond(200).contain("{}");
+    }
+
     private void init(TaskFactory taskFactory) {
         reset(taskFactory);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));

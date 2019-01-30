@@ -95,7 +95,9 @@ public class TaskResource {
 
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks() {
-        return taskManager.getTasks().stream().collect(toMap(TaskManager.MonitorableFutureTask::toString, t -> taskManager.stopTask(t.toString())));
+        return taskManager.getTasks().stream().
+                filter(t -> !t.isDone()).collect(
+                        toMap(TaskManager.MonitorableFutureTask::toString, t -> taskManager.stopTask(t.toString())));
     }
 
     @Post("/findNames/:pipeline")
