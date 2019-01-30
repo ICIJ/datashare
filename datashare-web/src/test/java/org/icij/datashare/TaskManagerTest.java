@@ -3,6 +3,7 @@ package org.icij.datashare;
 import org.junit.After;
 import org.junit.Test;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 
@@ -17,6 +18,21 @@ public class TaskManagerTest {
         FutureTask<String> t = taskManager.startTask(() -> "run");
         assertThat(taskManager.getTask(t.toString()).get()).isEqualTo("run");
         assertThat(taskManager.getTask(t.toString()).isDone()).isTrue();
+    }
+
+    @Test(expected = CancellationException.class)
+    public void test_stop_task() throws Exception {
+        FutureTask<String> t = taskManager.startTask(() -> {
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                 return "interrupted";
+            }
+            return "run";});
+        taskManager.stopTask(t.toString());
+        assertThat(taskManager.getTask(t.toString()).isCancelled()).isTrue();
+        assertThat(taskManager.getTask(t.toString()).isDone()).isTrue();
+        taskManager.getTask(t.toString()).get(); // throws expected CancellationException
     }
 
     @Test

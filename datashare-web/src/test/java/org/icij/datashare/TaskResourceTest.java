@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import com.google.inject.Inject;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
@@ -10,9 +9,13 @@ import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.ResumeNlpTask;
+import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.AbstractPipeline;
+import org.icij.datashare.text.nlp.NlpApp;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.icij.task.Options;
@@ -27,7 +30,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -46,7 +48,7 @@ public class TaskResourceTest implements FluentRestTest {
         }
     }.startOnRandomPort();
     private static TaskFactory taskFactory = mock(TaskFactory.class);
-    private static TaskManager taskManager;
+    private static TaskManager taskManager= new TaskManager(new PropertiesProvider());
     @Override
     public int port() {
         return server.port();
@@ -54,8 +56,6 @@ public class TaskResourceTest implements FluentRestTest {
 
     @BeforeClass
     public static void setUpClass() {
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new Properties());
-        taskManager = new DummyTaskManager(propertiesProvider);
         server.configure(new CommonMode(new Properties()) {
             @Override
             protected void configure() {
@@ -72,7 +72,7 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Before
-    public void setUp() { reset(taskFactory);}
+    public void setUp() { init(taskFactory);}
 
     @After
     public void tearDown() throws Exception {
@@ -226,21 +226,39 @@ public class TaskResourceTest implements FluentRestTest {
         assertThat(taskManager.getTasks()).isEmpty();
     }
 
-    static class DummyTaskManager extends TaskManager {
-        @Inject
-        public DummyTaskManager(PropertiesProvider provider) {
-            super(provider);
-        }
+    @Test
+    public void test_stop_task() throws Exception {
+        TaskManager.MonitorableFutureTask<String> dummyTask = taskManager.startTask(() -> {
+            Thread.sleep(10000);
+            return "ok";
+        });
+        put("/api/task/stop/" + dummyTask).should().respond(200);
 
-        @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task) {
-            return super.startTask(new Callable<V>() {    // do not replace by lambda
-                @Override public V call() { return null;} // else tasks will have the same lambda name and test will fail
-            });
-        }
-        @Override public MonitorableFutureTask<Void> startTask(Runnable task) {
-            return super.startTask(new Runnable() { // do not replace by lambda neither
-                @Override public void run() {}
-            });
-        }
+        assertThat(taskManager.getTask(dummyTask.toString()).isCancelled()).isTrue();
+    }
+
+    @Test
+    public void test_stop_all() {
+        TaskManager.MonitorableFutureTask<String> t1 = taskManager.startTask(() -> {
+            Thread.sleep(10000);
+            return "ok";
+        });
+        TaskManager.MonitorableFutureTask<String> t2 = taskManager.startTask(() -> {
+            Thread.sleep(10000);
+            return "ok";
+        });
+        put("/api/task/stopAll").should().respond(200);
+
+        assertThat(taskManager.getTask(t1.toString()).isCancelled()).isTrue();
+        assertThat(taskManager.getTask(t2.toString()).isCancelled()).isTrue();
+    }
+
+    private void init(TaskFactory taskFactory) {
+        reset(taskFactory);
+        when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
+        when(taskFactory.createScanTask(any(), any(), any())).thenReturn(mock(ScanTask.class));
+        when(taskFactory.createResumeNlpTask(any(), any())).thenReturn(mock(ResumeNlpTask.class));
+        when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(NlpApp.class));
+        when(taskFactory.createNlpTask(any(), any(), any(), any())).thenReturn(mock(NlpApp.class));
     }
 }

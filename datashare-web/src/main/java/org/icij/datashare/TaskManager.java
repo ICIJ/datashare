@@ -83,7 +83,7 @@ public class TaskManager {
         return getTasks().stream().peek(monitorableFutureTask -> {
             try {
                 monitorableFutureTask.get(timeout, timeUnit);
-            } catch (InterruptedException|ExecutionException|TimeoutException e) {
+            } catch (InterruptedException|ExecutionException|TimeoutException|CancellationException e) {
                 logger.error("task interrupted while running", e);
             }
         }).collect(toList());
@@ -91,6 +91,11 @@ public class TaskManager {
 
     List<MonitorableFutureTask> cleanDoneTasks() {
         return getTasks().stream().filter(FutureTask::isDone).map(t -> tasks.remove(t.toString())).collect(toList());
+    }
+
+    boolean stopTask(String taskName) {
+        logger.info("cancelling task {}", taskName);
+        return getTask(taskName).cancel(true);
     }
 
     static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable, UserTask {
