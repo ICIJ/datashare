@@ -7,7 +7,6 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
-import net.codestory.http.payload.Payload;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -19,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -29,7 +29,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
-import static net.codestory.http.payload.Payload.ok;
+import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 import static org.icij.task.Options.from;
 
@@ -88,15 +88,13 @@ public class TaskResource {
     }
 
     @Put("/stop/:taskName")
-    public Payload stopTask(final String taskName) {
-        taskManager.stopTask(taskName);
-        return ok();
+    public boolean stopTask(final String taskName) {
+        return taskManager.stopTask(taskName);
     }
 
     @Put("/stopAll")
-    public Payload stopAllTasks() {
-        taskManager.getTasks().forEach(t -> taskManager.stopTask(t.toString()));
-        return ok();
+    public Map<String, Boolean> stopAllTasks() {
+        return taskManager.getTasks().stream().collect(toMap(TaskManager.MonitorableFutureTask::toString, t -> taskManager.stopTask(t.toString())));
     }
 
     @Post("/findNames/:pipeline")

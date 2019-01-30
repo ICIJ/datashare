@@ -232,7 +232,7 @@ public class TaskResourceTest implements FluentRestTest {
             Thread.sleep(10000);
             return "ok";
         });
-        put("/api/task/stop/" + dummyTask).should().respond(200);
+        put("/api/task/stop/" + dummyTask).should().respond(200).contain("true");
 
         assertThat(taskManager.getTask(dummyTask.toString()).isCancelled()).isTrue();
     }
@@ -247,7 +247,9 @@ public class TaskResourceTest implements FluentRestTest {
             Thread.sleep(10000);
             return "ok";
         });
-        put("/api/task/stopAll").should().respond(200);
+        put("/api/task/stopAll").should().respond(200).
+                contain(t1.toString() + "\":true").
+                contain(t2.toString() + "\":true");
 
         assertThat(taskManager.getTask(t1.toString()).isCancelled()).isTrue();
         assertThat(taskManager.getTask(t2.toString()).isCancelled()).isTrue();
