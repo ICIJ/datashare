@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
@@ -146,6 +147,8 @@ public class TaskResource {
                 try {
                     task.get();
                     state = State.DONE;
+                } catch (CancellationException cex) {
+                    state = State.CANCELLED;
                 } catch (ExecutionException|InterruptedException e) {
                     state = State.ERROR;
                 }
