@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -51,12 +52,31 @@ public class UserTaskResourceTest implements FluentRestTest {
         get("/api/task/all").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0}]", t2.toString()));
     }
 
+    @Test
+    public void test_stop_all_in_server_mode() {
+        setupAppWith("foo", "bar");
+        TaskManager.MonitorableFutureTask<Void> t1 = taskManager.startTask(new TaskManager.MonitorableFutureTask(new SleepingUserTask("foo")));
+        TaskManager.MonitorableFutureTask<Void> t2 = taskManager.startTask(new TaskManager.MonitorableFutureTask(new SleepingUserTask("bar")));
+
+        put("/api/task/stopAll").withPreemptiveAuthentication("foo", "pass").should().not().contain(t2.toString());
+        put("/api/task/stopAll").withPreemptiveAuthentication("bar", "pass").should().not().contain(t1.toString());
+    }
+
     static class DummyUserTask implements UserTask, Runnable {
         private final String user;
         public DummyUserTask(String user) {this.user = user;}
         @Override public void run() {}
         @Override public User getUser() { return new User(user);}
     }
+
+    static class SleepingUserTask implements UserTask, Callable<String> {
+        private final String user;
+        public SleepingUserTask(String user) {this.user = user;}
+        @Override public String call() throws Exception {Thread.sleep(10000);return "run";}
+        @Override public User getUser() { return new User(user);}
+    }
+
+
 
     private void setupAppWith(String... userLogins) {
         final PropertiesProvider propertiesProvider = new PropertiesProvider();

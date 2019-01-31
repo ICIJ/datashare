@@ -101,8 +101,9 @@ public class TaskResource {
     }
 
     @Put("/stopAll")
-    public Map<String, Boolean> stopAllTasks() {
+    public Map<String, Boolean> stopAllTasks(final Context context) {
         return taskManager.getTasks().stream().
+                filter(t -> context.currentUser().equals(t.getUser())).
                 filter(t -> !t.isDone()).collect(
                         toMap(TaskManager.MonitorableFutureTask::toString, t -> taskManager.stopTask(t.toString())));
     }
