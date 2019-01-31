@@ -57,6 +57,6 @@ public class ServerMode extends CommonMode {
 
     @Override
     protected Routes addModeConfiguration(Routes routes) {
-        return routes.add(TaskResource.class).add(SearchResource.class).add(NamedEntityResource.class);
+        return routes.add(TaskResource.class).add(IndexResource.class).add(NamedEntityResource.class);
     }
 }

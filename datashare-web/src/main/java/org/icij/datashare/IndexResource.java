@@ -18,24 +18,29 @@ import static java.util.stream.Collectors.toList;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
 
-@Prefix("/api/search")
-public class SearchResource {
+@Prefix("/api/index")
+public class IndexResource {
     private final String es_url;
     private final Indexer indexer;
     private OkHttpClient http = new OkHttpClient();
 
     @Inject
-    public SearchResource(PropertiesProvider propertiesProvider, Indexer indexer) {
+    public IndexResource(PropertiesProvider propertiesProvider, Indexer indexer) {
         this.es_url = propertiesProvider.get("elasticsearchAddress").orElse("http://elasticsearch:9200");
         this.indexer = indexer;
     }
 
-    @Get("/:path")
+    @Put("/create")
+    public Payload createIndex(Context context) throws IOException {
+        return indexer.createIndex(((User)context.currentUser()).indexName()) ? created() : ok();
+    }
+
+    @Get("/search/:path")
     public Payload esGet(final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).get().build()).execute());
     }
 
-    @Post("/:path")
+    @Post("/search/:path")
     public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).post(new RequestBody() {
             @Override
@@ -49,17 +54,12 @@ public class SearchResource {
         }).build()).execute());
     }
 
-    @Put("/createIndex")
-    public Payload createIndex(Context context) throws IOException {
-        return indexer.createIndex(((User)context.currentUser()).indexName()) ? created() : ok();
-    }
-
-    @Head("/:path")
+    @Head("/search/:path")
     public Payload esHead(final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).head().build()).execute());
     }
 
-    @Options("/:path")
+    @Options("/search/:path")
     public Payload esOptions(final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).method("OPTIONS", null).build()).execute());
     }

@@ -36,6 +36,6 @@ public class LocalMode extends CommonMode {
 
     @Override
     protected Routes addModeConfiguration(Routes routes) {
-        return routes.add(TaskResource.class).add(SearchResource.class).add(NamedEntityResource.class).filter(IndexWaiterFilter.class);
+        return routes.add(TaskResource.class).add(IndexResource.class).add(NamedEntityResource.class).filter(IndexWaiterFilter.class);
     }
 }
