@@ -95,6 +95,10 @@ public class TaskResource {
     public boolean stopTask(final String taskName) {
         return taskManager.stopTask(notFoundIfNull(taskManager.getTask(taskName)).toString());
     }
+    @net.codestory.http.annotations.Options("/stop/:taskName")
+    public Payload stopTaskPreflight(final String taskName) {
+        return ok().withAllowMethods("OPTIONS", "PUT");
+    }
 
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks() {
