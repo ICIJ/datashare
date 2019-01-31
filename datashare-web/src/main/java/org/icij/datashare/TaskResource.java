@@ -51,7 +51,7 @@ public class TaskResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    @Get("/")
+    @Get("/all")
     public List<TaskResponse> tasks(Context context) {
         return taskManager.getTasks().stream().filter(t -> context.currentUser().equals(t.getUser())).map(TaskResponse::new).collect(toList());
     }

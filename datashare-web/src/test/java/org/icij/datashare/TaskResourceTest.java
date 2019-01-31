@@ -235,7 +235,7 @@ public class TaskResourceTest implements FluentRestTest {
         put("/api/task/stop/" + dummyTask).should().respond(200).contain("true");
 
         assertThat(taskManager.getTask(dummyTask.toString()).isCancelled()).isTrue();
-        get("/api/task/").should().respond(200).contain("\"state\":\"CANCELLED\"");
+        get("/api/task/all").should().respond(200).contain("\"state\":\"CANCELLED\"");
     }
 
     @Test
