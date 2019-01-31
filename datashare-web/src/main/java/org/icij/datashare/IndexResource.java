@@ -4,14 +4,19 @@ import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
+import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
+import net.codestory.http.types.ContentTypes;
 import okhttp3.*;
 import okio.BufferedSink;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import static java.lang.String.join;
 import static java.util.stream.Collectors.toList;
@@ -62,6 +67,14 @@ public class IndexResource {
     @Options("/search/:path")
     public Payload esOptions(final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).method("OPTIONS", null).build()).execute());
+    }
+
+    @Get("/src/:index/:id")
+    public Payload getSourceFile(final String index, final String id) throws IOException {
+        Document doc = indexer.get(index, id);
+        try (InputStream from = new FileInputStream(doc.getPath().toFile())) {
+          return new Payload(ContentTypes.get(doc.getPath().toFile().getName()), InputStreams.readBytes(from));
+        }
     }
 
     @NotNull

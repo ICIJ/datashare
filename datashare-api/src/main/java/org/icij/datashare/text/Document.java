@@ -21,7 +21,7 @@ import static java.util.Optional.ofNullable;
 
 @IndexType("Document")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public final class Document implements Entity {
+public class Document implements Entity {
     private static final long serialVersionUID = 5913568429773112L;
 
     public enum Status {PARSED, INDEXED, DONE}
