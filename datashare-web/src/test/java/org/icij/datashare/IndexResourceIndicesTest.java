@@ -12,7 +12,7 @@ import java.util.HashMap;
 import static org.icij.datashare.session.HashMapUser.local;
 import static org.icij.datashare.session.HashMapUser.singleUser;
 
-public class UserResourceTest  implements FluentRestTest {
+public class IndexResourceIndicesTest implements FluentRestTest {
     private static WebServer server = new WebServer() {
             @Override
             protected Env createEnv() {
@@ -23,29 +23,29 @@ public class UserResourceTest  implements FluentRestTest {
 
     @Test
     public void test_get_indices_from_user_map_with_no_indices() {
-        server.configure(routes -> routes.add(new UserResource()).
+        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(), null)).
                 filter(new BasicAuthFilter("/", "icij", singleUser("soline"))));
 
-        get("/api/user/indices").withPreemptiveAuthentication("soline", "pass").should().respond(200).
+        get("/api/index/all").withPreemptiveAuthentication("soline", "pass").should().respond(200).
                 haveType("application/json").contain("[\"soline-datashare\"]");
     }
     @Test
     public void test_get_indices_from_user_map() {
-        server.configure(routes -> routes.add(new UserResource()).
+        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(), null)).
                 filter(new BasicAuthFilter("/", "icij", singleUser(new HashMapUser(new HashMap<String, String>() {{
                     put("uid", "soline");
                     put("datashare_indices", "[\"foo\",\"bar\"]");
                 }})))));
 
-        get("/api/user/indices").withPreemptiveAuthentication("soline", "pass").should().respond(200).
+        get("/api/index/all").withPreemptiveAuthentication("soline", "pass").should().respond(200).
                 haveType("application/json").contain("[\"foo\",\"bar\",\"soline-datashare\"]");
     }
     @Test
     public void test_get_indices_from_local_user() {
-        server.configure(routes -> routes.add(new UserResource()).
+        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(), null)).
                 filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
 
-        get("/api/user/indices").withPreemptiveAuthentication("local", "pass").should().respond(200).
+        get("/api/index/all").withPreemptiveAuthentication("local", "pass").should().respond(200).
                 haveType("application/json").contain("[\"local-datashare\"]");
     }
 

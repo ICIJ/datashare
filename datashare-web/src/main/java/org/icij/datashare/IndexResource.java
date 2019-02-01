@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 import static java.lang.String.join;
 import static java.util.stream.Collectors.toList;
@@ -35,6 +36,11 @@ public class IndexResource {
     public IndexResource(PropertiesProvider propertiesProvider, Indexer indexer) {
         this.es_url = propertiesProvider.get("elasticsearchAddress").orElse("http://elasticsearch:9200");
         this.indexer = indexer;
+    }
+
+    @Get("/all")
+    public List<String> getIndices(Context context) {
+        return ((HashMapUser)context.currentUser()).getIndices();
     }
 
     @Put("/create")

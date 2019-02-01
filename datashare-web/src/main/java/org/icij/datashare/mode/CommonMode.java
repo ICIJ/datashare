@@ -10,7 +10,6 @@ import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.Mode;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.UserResource;
 import org.icij.datashare.session.UserDataFilter;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
@@ -76,7 +75,7 @@ public class CommonMode extends AbstractModule {
                         defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
                         return defaultObjectMapper;
                     }
-                }).add(UserResource.class)
+                })
                 .filter(Filter.class)
                 .filter(new UserDataFilter());
 
