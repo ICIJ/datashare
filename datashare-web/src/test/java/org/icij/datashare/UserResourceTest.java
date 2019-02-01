@@ -27,7 +27,7 @@ public class UserResourceTest  implements FluentRestTest {
                 filter(new BasicAuthFilter("/", "icij", singleUser("soline"))));
 
         get("/api/user/indices").withPreemptiveAuthentication("soline", "pass").should().respond(200).
-                haveType("application/json").contain("[]");
+                haveType("application/json").contain("[\"soline-datashare\"]");
     }
     @Test
     public void test_get_indices_from_user_map() {
@@ -38,7 +38,7 @@ public class UserResourceTest  implements FluentRestTest {
                 }})))));
 
         get("/api/user/indices").withPreemptiveAuthentication("soline", "pass").should().respond(200).
-                haveType("application/json").contain("[\"foo\",\"bar\"]");
+                haveType("application/json").contain("[\"foo\",\"bar\",\"soline-datashare\"]");
     }
     @Test
     public void test_get_indices_from_local_user() {
@@ -46,7 +46,7 @@ public class UserResourceTest  implements FluentRestTest {
                 filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
 
         get("/api/user/indices").withPreemptiveAuthentication("local", "pass").should().respond(200).
-                haveType("application/json").contain("[]");
+                haveType("application/json").contain("[\"local-datashare\"]");
     }
 
 

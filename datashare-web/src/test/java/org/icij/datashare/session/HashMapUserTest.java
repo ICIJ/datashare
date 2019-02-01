@@ -3,6 +3,8 @@ package org.icij.datashare.session;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 
+import java.util.HashMap;
+
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.session.HashMapUser.fromJson;
@@ -23,5 +25,14 @@ public class HashMapUserTest {
     public void test_equals_with_user_subclass() {
         assertThat(User.local()).isEqualTo(HashMapUser.local());
         assertThat(HashMapUser.local()).isEqualTo(User.local());
+    }
+
+    @Test
+    public void test_get_indices() {
+        assertThat(HashMapUser.local().getIndices()).containsExactly("local-datashare");
+        assertThat(new HashMapUser(new HashMap<String, String>() {{
+            put("uid", "userid");
+            put("datashare_indices", "[\"external_index\"]");
+        }}).getIndices()).containsExactly("external_index", "userid-datashare");
     }
 }

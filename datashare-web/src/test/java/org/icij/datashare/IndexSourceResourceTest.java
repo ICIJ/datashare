@@ -37,18 +37,23 @@ public class IndexSourceResourceTest implements FluentRestTest {
     public void test_get_source_file() throws Exception {
         File txtFile = new File(temp.getRoot(), "file.txt");
         write(txtFile, "text content");
-        indexFile("my_index", "id_txt", txtFile.toPath(), null);
+        indexFile("local-datashare", "id_txt", txtFile.toPath(), null);
 
-        get("/api/index/src/my_index/id_txt").should().contain("text content").haveType("text/plain;charset=UTF-8");
+        get("/api/index/src/local-datashare/id_txt").should().contain("text content").haveType("text/plain;charset=UTF-8");
     }
 
     @Test
     public void test_get_source_file_with_routing() throws Exception {
         File htmlFile = new File(temp.getRoot(), "index.html");
         write(htmlFile, "<html>content</html>");
-        indexFile("foo_index", "id_html", htmlFile.toPath(), "my_routing");
+        indexFile("local-datashare", "id_html", htmlFile.toPath(), "my_routing");
 
-        get("/api/index/src/foo_index/id_html?routing=my_routing").should().contain("<html>content</html>").haveType("text/html;charset=UTF-8");
+        get("/api/index/src/local-datashare/id_html?routing=my_routing").should().contain("<html>content</html>").haveType("text/html;charset=UTF-8");
+    }
+
+    @Test
+    public void test_get_source_file_forbidden_index() {
+        get("/api/index/src/foo_index/id").should().respond(403);
     }
 
     private void indexFile(String index, String _id, Path path, String routing) {
@@ -60,12 +65,6 @@ public class IndexSourceResourceTest implements FluentRestTest {
             when(indexer.get(index, _id, routing)).thenReturn(doc);
         }
     }
-
-    @After
-    public void tearDown() throws Exception {
-        reset(indexer);
-    }
-
     @Before
     public void setUp() {
         initMocks(this);
@@ -74,5 +73,6 @@ public class IndexSourceResourceTest implements FluentRestTest {
     static void write(File file, String content) throws IOException {
         Files.write(file.toPath(), content.getBytes(UTF_8));
     }
+    @After public void tearDown() { reset(indexer);}
 }
 

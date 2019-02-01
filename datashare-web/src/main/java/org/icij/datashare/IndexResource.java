@@ -4,11 +4,13 @@ import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
+import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
 import okhttp3.*;
 import okio.BufferedSink;
+import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -70,8 +72,12 @@ public class IndexResource {
     }
 
     @Get("/src/:index/:id?routing=:routing")
-    public Payload getSourceFile(final String index, final String id, final String routing) throws IOException {
-        return routing == null ? getPayload(indexer.get(index, id)): getPayload(indexer.get(index, id, routing));
+    public Payload getSourceFile(final String index, final String id,
+                                 final String routing, final Context context) throws IOException {
+        if (((HashMapUser)context.currentUser()).getIndices().contains(index)) {
+            return routing == null ? getPayload(indexer.get(index, id)) : getPayload(indexer.get(index, id, routing));
+        }
+        throw new ForbiddenException();
     }
 
     @NotNull

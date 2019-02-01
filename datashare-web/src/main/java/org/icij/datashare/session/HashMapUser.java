@@ -4,31 +4,37 @@ import net.codestory.http.convert.TypeConvert;
 import net.codestory.http.security.Users;
 import org.icij.datashare.user.User;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.convert.TypeConvert.toJson;
+import static org.apache.commons.collections4.map.UnmodifiableMap.unmodifiableMap;
 
 public class HashMapUser extends User implements net.codestory.http.security.User {
+    private static final String DATASHARE_INDICES_KEY = "datashare_indices";
     final Map<String, String> userMap;
 
     public HashMapUser(final Map<String, String> userMap) {
         super(userMap.get("uid"));
-        this.userMap = userMap;
+        this.userMap = unmodifiableMap(userMap);
     }
 
     HashMapUser(final String login) {
         this(new HashMap<String, String>() {{ put("uid", login); }});
     }
 
-    public static HashMapUser fromJson(String json) {
+    static HashMapUser fromJson(String json) {
         HashMap hashMap = TypeConvert.fromJson(json, HashMap.class);
         return new HashMapUser(convert(hashMap));
     }
 
     public List<String> getIndices() {
-        return this.equals(local())? new ArrayList<>() :
-                TypeConvert.fromJson(ofNullable(userMap.get("datashare_indices")).orElse("[]"), List.class);
+        List<String> list = TypeConvert.fromJson(ofNullable(userMap.get(DATASHARE_INDICES_KEY)).orElse("[]"), List.class);
+        list.add(indexName());
+        return list;
     }
 
     private static Map<String, String> convert(final HashMap hashMap) {
