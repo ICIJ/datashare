@@ -23,7 +23,7 @@ public final class DatashareCli {
     public static void main(String[] args) throws Exception {
         if (!parseArguments(args)) {
             LOGGER.info("Exiting...");
-            System.exit(1);
+            System.exit(0);
         }
         LOGGER.info("Running datashare " + (webServer ? "web server" : ""));
         LOGGER.info("with properties: " + properties);
