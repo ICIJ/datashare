@@ -33,6 +33,6 @@ public class HashMapUserTest {
         assertThat(new HashMapUser(new HashMap<String, String>() {{
             put("uid", "userid");
             put("datashare_indices", "[\"external_index\"]");
-        }}).getIndices()).containsExactly("external_index", "userid-datashare");
+        }}).getIndices()).containsExactly("userid-datashare", "external_index");
     }
 }

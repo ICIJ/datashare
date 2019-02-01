@@ -38,7 +38,7 @@ public class IndexResourceIndicesTest implements FluentRestTest {
                 }})))));
 
         get("/api/index/all").withPreemptiveAuthentication("soline", "pass").should().respond(200).
-                haveType("application/json").contain("[\"foo\",\"bar\",\"soline-datashare\"]");
+                haveType("application/json").contain("[\"soline-datashare\",\"foo\",\"bar\"]");
     }
     @Test
     public void test_get_indices_from_local_user() {
