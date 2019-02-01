@@ -69,11 +69,15 @@ public class IndexResource {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).method("OPTIONS", null).build()).execute());
     }
 
-    @Get("/src/:index/:id")
-    public Payload getSourceFile(final String index, final String id) throws IOException {
-        Document doc = indexer.get(index, id);
+    @Get("/src/:index/:id?routing=:routing")
+    public Payload getSourceFile(final String index, final String id, final String routing) throws IOException {
+        return routing == null ? getPayload(indexer.get(index, id)): getPayload(indexer.get(index, id, routing));
+    }
+
+    @NotNull
+    private Payload getPayload(Document doc) throws IOException {
         try (InputStream from = new FileInputStream(doc.getPath().toFile())) {
-          return new Payload(ContentTypes.get(doc.getPath().toFile().getName()), InputStreams.readBytes(from));
+            return new Payload(ContentTypes.get(doc.getPath().toFile().getName()), InputStreams.readBytes(from));
         }
     }
 

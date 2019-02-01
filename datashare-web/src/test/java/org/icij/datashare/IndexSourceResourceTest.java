@@ -6,6 +6,7 @@ import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -18,8 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexSourceResourceTest implements FluentRestTest {
@@ -36,20 +36,34 @@ public class IndexSourceResourceTest implements FluentRestTest {
     @Test
     public void test_get_source_file() throws Exception {
         File txtFile = new File(temp.getRoot(), "file.txt");
-        File htmlFile = new File(temp.getRoot(), "index.html");
         write(txtFile, "text content");
-        write(htmlFile, "<html>content</html>");
-        mapFile("my_index", "id_txt", txtFile.toPath(), null);
-        mapFile("my_index", "id_html", htmlFile.toPath(), "my_routing");
+        indexFile("my_index", "id_txt", txtFile.toPath(), null);
 
         get("/api/index/src/my_index/id_txt").should().contain("text content").haveType("text/plain;charset=UTF-8");
-        get("/api/index/src/my_index/id_html?routing=my_routing").should().contain("<html>content</html>").haveType("text/html;charset=UTF-8");
     }
 
-    private void mapFile(String index, String _id, Path path, String routing) {
+    @Test
+    public void test_get_source_file_with_routing() throws Exception {
+        File htmlFile = new File(temp.getRoot(), "index.html");
+        write(htmlFile, "<html>content</html>");
+        indexFile("foo_index", "id_html", htmlFile.toPath(), "my_routing");
+
+        get("/api/index/src/foo_index/id_html?routing=my_routing").should().contain("<html>content</html>").haveType("text/html;charset=UTF-8");
+    }
+
+    private void indexFile(String index, String _id, Path path, String routing) {
         Document doc = mock(Document.class);
         when(doc.getPath()).thenReturn(path);
-        when(indexer.get(index, _id)).thenReturn(doc);
+        if (routing == null) {
+            when(indexer.get(index, _id)).thenReturn(doc);
+        } else {
+            when(indexer.get(index, _id, routing)).thenReturn(doc);
+        }
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        reset(indexer);
     }
 
     @Before
