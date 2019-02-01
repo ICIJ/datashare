@@ -56,10 +56,4 @@ public class WebAppAcceptanceTest implements FluentRestTest {
         Map<String, Object> map = mapper.readValue(response.content(), new TypeReference<Map<String, Object>>() {});
         assertThat(map.keySet()).contains("git.commit.id", "git.commit.id.abbrev");
     }
-
-    @Test
-    public void test_get_file() {
-        get("/api/data/downloadDoc.txt").should().respond(200).
-                haveHeader("Content-Type", "text/plain;charset=UTF-8").contain("content of downloadDoc");
-    }
 }

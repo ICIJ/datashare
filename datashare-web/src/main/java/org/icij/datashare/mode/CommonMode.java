@@ -10,12 +10,10 @@ import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.Mode;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.session.UserDataFilter;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 
@@ -68,7 +66,6 @@ public class CommonMode extends AbstractModule {
         routes.setIocAdapter(new GuiceAdapter(this))
                 .get("/config", provider.getFilteredProperties(".*Address.*", ".*Secret.*"))
                 .get("/version", getVersion())
-                .bind(UserDataFilter.DATA_URI_PREFIX, Paths.get(provider.get("dataDir").orElse("/home/datashare/data")).toFile())
                 .setExtensions(new Extensions() {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
@@ -76,8 +73,7 @@ public class CommonMode extends AbstractModule {
                         return defaultObjectMapper;
                     }
                 })
-                .filter(Filter.class)
-                .filter(new UserDataFilter());
+                .filter(Filter.class);
 
         addModeConfiguration(routes);
 
