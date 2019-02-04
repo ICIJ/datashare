@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.List;
 
 import static java.lang.String.join;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
@@ -89,7 +90,10 @@ public class IndexResource {
     @NotNull
     private Payload getPayload(Document doc) throws IOException {
         try (InputStream from = new FileInputStream(doc.getPath().toFile())) {
-            return new Payload(ContentTypes.get(doc.getPath().toFile().getName()), InputStreams.readBytes(from));
+            return new Payload(
+                    ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName())),
+                    InputStreams.readBytes(from)
+            );
         }
     }
 

@@ -37,16 +37,25 @@ public class IndexSourceResourceTest implements FluentRestTest {
     public void test_get_source_file() throws Exception {
         File txtFile = new File(temp.getRoot(), "file.txt");
         write(txtFile, "text content");
-        indexFile("local-datashare", "id_txt", txtFile.toPath(), null);
+        indexFile("local-datashare", "id_txt", txtFile.toPath(), null, null);
 
         get("/api/index/src/local-datashare/id_txt").should().contain("text content").haveType("text/plain;charset=UTF-8");
+    }
+
+    @Test
+    public void test_get_source_file_with_content_type() throws Exception {
+        File txtFile = new File(temp.getRoot(), "file.ods");
+        write(txtFile, "content");
+        indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
+
+        get("/api/index/src/local-datashare/id_ods").should().haveType("application/vnd.oasis.opendocument.spreadsheet");
     }
 
     @Test
     public void test_get_source_file_with_routing() throws Exception {
         File htmlFile = new File(temp.getRoot(), "index.html");
         write(htmlFile, "<html>content</html>");
-        indexFile("local-datashare", "id_html", htmlFile.toPath(), "my_routing");
+        indexFile("local-datashare", "id_html", htmlFile.toPath(), null, "my_routing");
 
         get("/api/index/src/local-datashare/id_html?routing=my_routing").should().contain("<html>content</html>").haveType("text/html;charset=UTF-8");
     }
@@ -56,9 +65,10 @@ public class IndexSourceResourceTest implements FluentRestTest {
         get("/api/index/src/foo_index/id").should().respond(403);
     }
 
-    private void indexFile(String index, String _id, Path path, String routing) {
+    private void indexFile(String index, String _id, Path path, String contentType, String routing) {
         Document doc = mock(Document.class);
         when(doc.getPath()).thenReturn(path);
+        when(doc.getContentType()).thenReturn(contentType);
         if (routing == null) {
             when(indexer.get(index, _id)).thenReturn(doc);
         } else {
