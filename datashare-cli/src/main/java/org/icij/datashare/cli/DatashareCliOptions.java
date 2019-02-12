@@ -19,7 +19,8 @@ final class DatashareCliOptions {
     static final char ARG_VALS_SEP = ',';
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
-    private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors();
+    private static final Integer DEFAULT_PARALLELISM =
+            Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
     static final String STAGES_OPT = "stages";
     static final String DATA_DIR_OPT = "dataDir";
     static final String NLP_PIPELINES_OPT = "nlpPipelines";
