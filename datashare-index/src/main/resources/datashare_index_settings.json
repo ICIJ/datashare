@@ -1,4 +1,5 @@
 {
+  "index.mapping.total_fields.limit": 100000,
   "analysis": {
     "analyzer": {
       "path_analyzer": {
