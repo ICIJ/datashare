@@ -8,6 +8,7 @@ import net.codestory.http.filters.Filter;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.ConfigResource;
 import org.icij.datashare.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.indexing.LanguageGuesser;
@@ -64,8 +65,8 @@ public class CommonMode extends AbstractModule {
 
     private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
         routes.setIocAdapter(new GuiceAdapter(this))
-                .get("/config", provider.getFilteredProperties(".*Address.*", ".*Secret.*"))
                 .get("/version", getVersion())
+                .add(ConfigResource.class)
                 .setExtensions(new Extensions() {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
