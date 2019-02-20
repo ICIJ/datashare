@@ -32,9 +32,7 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
 
     public List<String> getIndices() {
-        List<String> list = TypeConvert.fromJson(ofNullable(userMap.get(DATASHARE_INDICES_KEY)).orElse("[]"), List.class);
-        list.add(0, indexName());
-        return list;
+        return TypeConvert.fromJson(ofNullable(userMap.get(DATASHARE_INDICES_KEY)).orElse("[]"), List.class);
     }
 
     private static Map<String, String> convert(final HashMap hashMap) {

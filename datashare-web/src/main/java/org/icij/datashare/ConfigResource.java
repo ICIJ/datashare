@@ -6,6 +6,7 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.session.HashMapUser;
 
+import java.util.List;
 import java.util.Map;
 
 @Prefix("/api")
@@ -20,7 +21,12 @@ public class ConfigResource {
     @Get("/config")
     public Map<String, Object> getConfig(Context context) {
         Map<String, Object> filteredProperties = provider.getFilteredProperties(".*Address.*", ".*Secret.*");
-        filteredProperties.put("userIndices", ((HashMapUser)context.currentUser()).getIndices());
+        HashMapUser user = (HashMapUser) context.currentUser();
+        List<String> indices = user.getIndices();
+        if (!provider.get("mode").orElse(Mode.LOCAL.toString()).equals(Mode.SERVER.toString())) {
+            indices.add(0, user.indexName());
+        }
+        filteredProperties.put("userIndices", indices);
         return filteredProperties;
     }
 }

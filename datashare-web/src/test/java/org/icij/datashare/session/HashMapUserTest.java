@@ -29,10 +29,10 @@ public class HashMapUserTest {
 
     @Test
     public void test_get_indices() {
-        assertThat(HashMapUser.local().getIndices()).containsExactly("local-datashare");
+        assertThat(HashMapUser.local().getIndices()).isEmpty();
         assertThat(new HashMapUser(new HashMap<String, String>() {{
             put("uid", "userid");
             put("datashare_indices", "[\"external_index\"]");
-        }}).getIndices()).containsExactly("userid-datashare", "external_index");
+        }}).getIndices()).containsExactly("external_index");
     }
 }

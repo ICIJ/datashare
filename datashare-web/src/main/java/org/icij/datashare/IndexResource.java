@@ -105,7 +105,7 @@ public class IndexResource {
     }
 
     private boolean isGranted(HashMapUser user, String index) {
-        return user.getIndices().contains(index);
+        return user.getIndices().contains(index) || user.indexName().equals(index);
     }
 
     static String getQueryAsString(final Query query) {
