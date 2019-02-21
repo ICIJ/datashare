@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 
 public class LocalMode extends CommonMode {
-    public LocalMode(Properties properties) { super(properties);}
+    LocalMode(Properties properties) { super(properties);}
     public LocalMode(Map<String, String> properties) { super(properties);}
 
     @Override

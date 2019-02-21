@@ -29,11 +29,11 @@ import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfig
 public class CommonMode extends AbstractModule {
     protected final PropertiesProvider propertiesProvider;
 
-    public CommonMode(Properties properties) {
+    protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() : new PropertiesProvider().mergeWith(properties);
     }
 
-    public CommonMode(final Map<String, String> map) {
+    CommonMode(final Map<String, String> map) {
         if (map == null) {
             propertiesProvider = new PropertiesProvider();
         } else {
