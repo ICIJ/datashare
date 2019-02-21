@@ -1,26 +1,20 @@
 package org.icij.datashare.mode;
 
-import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.icij.datashare.*;
-import org.icij.datashare.com.Publisher;
-import org.icij.datashare.com.redis.RedisPublisher;
+import org.icij.datashare.IndexResource;
+import org.icij.datashare.NamedEntityResource;
+import org.icij.datashare.TaskResource;
 import org.icij.datashare.session.OAuth2CookieFilter;
 import org.icij.datashare.session.RedisSessionIdStore;
 import org.icij.datashare.session.RedisUsers;
-import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Properties;
-
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public class ServerMode extends CommonMode {
     Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -44,15 +38,6 @@ public class ServerMode extends CommonMode {
             }
         }
         bind(Filter.class).to(authFilterClass).asEagerSingleton();
-
-        RestHighLevelClient esClient = createESClient(propertiesProvider);
-        bind(RestHighLevelClient.class).toInstance(esClient);
-        bind(IndexWaiterFilter.class).toInstance(new IndexWaiterFilter(esClient));
-        bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
-
-        bind(TaskManager.class).toInstance(new TaskManager(propertiesProvider));
-        install(new FactoryModuleBuilder().build(TaskFactory.class));
-        bind(Publisher.class).to(RedisPublisher.class);
     }
 
     @Override
