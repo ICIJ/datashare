@@ -77,8 +77,9 @@ public class RemoteFiles {
                 return false;
             }
             ObjectListing remoteS3Objects = s3Client.listObjects(bucket, remoteKey);
-            Map<String, Long> remoteObjectsMap = remoteS3Objects.getObjectSummaries().stream().collect(
-                    toMap(S3ObjectSummary::getKey, S3ObjectSummary::getSize));
+            Map<String, Long> remoteObjectsMap = remoteS3Objects.getObjectSummaries().stream()
+                    .filter(os -> os.getSize() != 0) // because remote dirs are empty keys
+                    .collect(toMap(S3ObjectSummary::getKey, S3ObjectSummary::getSize));
 
             Map<String, Long> localFilesMap = walk(localDir.toPath(), FileVisitOption.FOLLOW_LINKS)
                     .map(Path::toFile)

@@ -29,7 +29,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.generate;
 
 public class NlpApp implements Runnable, Monitorable, UserTask {
-    private static final long DEFAULT_TIMEOUT_MILLIS = 10 * 60 * 1000;
+    private static final long DEFAULT_TIMEOUT_MILLIS = 30 * 60 * 1000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
     private static final int DEFAULT_QUEUE_SIZE = 10000;

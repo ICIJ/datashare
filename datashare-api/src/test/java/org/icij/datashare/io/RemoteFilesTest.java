@@ -41,7 +41,7 @@ public class RemoteFilesTest {
         assertThat(downloadedFile).exists();
         assertThat(downloadedFile).hasSameContentAs(new File("src/test/resources/sampleFile.txt"));
     }
-    
+
     @Test
     public void test_upload_file_with_key_in_sub_directory() throws Exception {
         final String filePath = "path/to/a/file.txt";
@@ -86,6 +86,20 @@ public class RemoteFilesTest {
         assertThat(remoteFiles.isSync("prefix", folder.getRoot())).isFalse();
 
         remoteFiles.download("prefix", folder.getRoot());
+        assertThat(remoteFiles.isSync("prefix", folder.getRoot())).isTrue();
+    }
+
+    @Test
+    public void test_check_directory_doesnt_compare_empty_files() throws Exception {
+        File prefixDir = folder.getRoot().toPath().resolve("prefix").toFile();
+        prefixDir.mkdir();
+        File emptyFile = prefixDir.toPath().resolve("virtualdir").toFile();
+        emptyFile.createNewFile();
+        remoteFiles.upload(emptyFile, "prefix/virtualdir");
+        emptyFile.delete();
+
+        assertThat(remoteFiles.objectExists("prefix/virtualdir")).isTrue();
+
         assertThat(remoteFiles.isSync("prefix", folder.getRoot())).isTrue();
     }
 }
