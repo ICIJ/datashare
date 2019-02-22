@@ -21,6 +21,7 @@ public class CoreNlpPipelineModels extends AbstractModels<StanfordCoreNLP> {
                 put(ENGLISH, new HashSet<>(asList(SENTENCE, TOKEN, POS, LEMMA, NER)));
                 put(SPANISH, new HashSet<>(asList(SENTENCE, TOKEN, POS, LEMMA, NER)));
                 put(FRENCH, new HashSet<>(asList(SENTENCE, TOKEN, POS, LEMMA, NER)));
+                put(CHINESE, new HashSet<>(asList(SENTENCE, TOKEN, POS, LEMMA, NER)));
                 put(GERMAN, new HashSet<>(asList(SENTENCE, TOKEN, POS, LEMMA, NER)));
             }};
     private static volatile CoreNlpPipelineModels instance;

@@ -13,7 +13,7 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 
 public abstract class CoreNlpModels<T> extends AbstractModels<CoreNlpAnnotator<T>> {
-    static final String VERSION = "3.8.0";
+    static final String VERSION = "3.9.2";
     final Map<Language, String> modelNames = new HashMap<>();
     private static final Path IN_JAR_BASE_PATH = Paths.get("edu/stanford/nlp/models");
 
@@ -22,8 +22,8 @@ public abstract class CoreNlpModels<T> extends AbstractModels<CoreNlpAnnotator<T
     }
 
     String getJarFileName(Language language) {
-        return String.join("-", asList("stanford-corenlp",
-                getVersion(), "models", language.name().toLowerCase())) + ".jar";
+        return String.join("-", asList("stanford",
+                language.name().toLowerCase(), "corenlp-2018-10-05-models.jar"));
     }
 
     protected String getInJarModelPath(Language language) {

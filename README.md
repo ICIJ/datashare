@@ -113,12 +113,12 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
 
 *Named Entity Recognition Language Support*
 
-| *`NlpStage.NER`*           | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  |
-|---------------------------:|:----------:|:----------:|:---------:|:---------:|
-| `NlpPipeline.Type.CORE`    |     X      |      X     |      X    |     -     |
-| `NlpPipeline.Type.OPEN`    |     X      |      X     |      -    |     X     |
-| `NlpPipeline.Type.IXA`     |     X      |      X     |      X    |     -     |
-| `NlpPipeline.Type.MITIE`   |     X      |      X     |      X    |     -     |
+| *`NlpStage.NER`*           | `ENGLISH`  | `SPANISH`  | `GERMAN`  | `FRENCH`  | `CHINESE` |
+|---------------------------:|:----------:|:----------:|:---------:|:---------:|:---------:|
+| `NlpPipeline.Type.CORENLP` |     X      |      X     |      X    |  (w/ EN)  |     X     |
+| `NlpPipeline.Type.OPENNLP` |     X      |      X     |      -    |     X     |     -     |
+| `NlpPipeline.Type.IXAPIPE` |     X      |      X     |      X    |     -     |     -     |
+| `NlpPipeline.Type.MITIE`   |     X      |      X     |      X    |     -     |     -     |
 
 *Named Entity Categories Support*
 

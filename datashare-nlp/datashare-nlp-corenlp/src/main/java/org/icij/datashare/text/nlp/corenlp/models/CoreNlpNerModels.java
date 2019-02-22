@@ -83,6 +83,7 @@ public class CoreNlpNerModels extends CoreNlpModels<AbstractSequenceClassifier<C
         modelNames.put(ENGLISH, "ner/english.all.3class.distsim.crf.ser.gz");
         modelNames.put(SPANISH, "ner/spanish.ancora.distsim.s512.crf.ser.gz");
         modelNames.put(FRENCH, "ner/english.all.3class.distsim.crf.ser.gz");
+        modelNames.put(CHINESE, "ner/chinese.misc.distsim.crf.ser.gz");
         modelNames.put(GERMAN, "ner/german.conll.hgc_175m_600.crf.ser.gz");
     }
     @Override
