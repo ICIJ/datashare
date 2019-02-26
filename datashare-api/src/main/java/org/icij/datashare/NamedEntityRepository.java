@@ -6,5 +6,5 @@ interface NamedEntityRepository {
    NamedEntity get(String id);
    void create(NamedEntity ne);
    void update(NamedEntity ne);
-   void delete(NamedEntity ne);
+    NamedEntity delete(String id);
 }
