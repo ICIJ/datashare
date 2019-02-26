@@ -34,11 +34,11 @@ public interface Pipeline {
         @Override
         public String getClassName() { return className; }
 
-        public static Optional<Type> parse(final String valueName) {
+        public static Type parse(final String valueName) {
             return EnumTypeToken.parse(Type.class, valueName);
         }
 
-        public static Optional<Type> fromClassName(final String className) {
+        public static Type fromClassName(final String className) {
             return EnumTypeToken.parseClassName(Pipeline.class, Type.class, className);
         }
 

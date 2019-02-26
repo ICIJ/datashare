@@ -1,7 +1,6 @@
 package org.icij.datashare.reflect;
 
 import java.util.Locale;
-import java.util.Optional;
 
 import static org.icij.datashare.function.Functions.capitalize;
 import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
@@ -37,12 +36,9 @@ public interface EnumTypeToken {
         return String.join(".", packageName, typeName, implClassName);
     }
 
-    static <E extends Enum<E>> Optional<E> parseClassName(final Class<?> interfaceClass,
+    static <E extends Enum<E>> E parseClassName(final Class<?> interfaceClass,
                                                           final Class<E> enumType,
                                                           final String className) {
-        if (className == null || className.isEmpty()) {
-            return Optional.empty();
-        }
         String[] classNameSplit  = className.split("\\.");
         String   simpleClassName = classNameSplit[classNameSplit.length-1];
         String   interfaceName   = interfaceClass.getSimpleName();
@@ -50,15 +46,11 @@ public interface EnumTypeToken {
         return parse(enumType, enumValueName);
     }
 
-    static <E extends Enum<E>> Optional<E> parse(final Class<E> enumType, final String enumValueName) {
-        if (enumValueName == null || enumValueName.isEmpty()) {
-            return Optional.empty();
-        }
+    static <E extends Enum<E>> E parse(final Class<E> enumType, final String enumValueName) {
         try {
-            return Optional.of( Enum.valueOf( enumType, enumValueName.toUpperCase(Locale.ROOT) ) );
-
+            return Enum.valueOf( enumType, enumValueName.toUpperCase(Locale.ROOT) );
         } catch (IllegalArgumentException e) {
-            return Optional.empty();
+            throw new RuntimeException(e);
         }
     }
 
