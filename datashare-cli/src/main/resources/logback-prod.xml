@@ -6,7 +6,6 @@
         <port>5140</port>
         <version>1.0</version>
         <facility>local7</facility>
-        <originHost>datashare.cloud.icij.org</originHost>
         <additionalFields>application=datashare</additionalFields>
         <extractStackTrace>true</extractStackTrace>
         <filterStackTrace>true</filterStackTrace>
