@@ -54,7 +54,7 @@ public abstract class AbstractPipeline implements Pipeline {
     }
 
     @Override
-    public Type getType() { return Type.fromClassName(getClass().getSimpleName()).get(); }
+    public Type getType() { return Type.fromClassName(getClass().getSimpleName()); }
 
     @Override
     public List<NamedEntity.Category> getTargetEntities() { return targetEntities; }
