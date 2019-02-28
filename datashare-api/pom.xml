@@ -118,5 +118,45 @@
             <groupId>com.google.inject.extensions</groupId>
             <artifactId>guice-assistedinject</artifactId>
         </dependency>
+
+        <!-- check neo4j and neo4j-ogm available versions in https://github.com/neo4j/neo4j-ogm -->
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-ogm-core</artifactId>
+            <version>3.1.7</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Only add if you're using the HTTP driver -->
+        <!--<dependency>-->
+        <!--<groupId>org.neo4j</groupId>-->
+        <!--<artifactId>neo4j-ogm-http-driver</artifactId>-->
+        <!--<version>${neo4j-ogm.version}</version>-->
+        <!--</dependency>-->
+
+        <!-- Only add if you're using the Bolt driver -->
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-ogm-bolt-driver</artifactId>
+            <version>3.1.7</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Only add if you're using the Embedded driver -->
+        <!--<dependency>-->
+            <!--<groupId>org.neo4j</groupId>-->
+            <!--<artifactId>neo4j-ogm-embedded-driver</artifactId>-->
+            <!--<version>3.1.7</version>-->
+            <!--<scope>runtime</scope>-->
+        <!--</dependency>-->
+
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j</artifactId>
+            <!--<version>{neo4j-version}</version>-->
+            <version>3.4.10</version>
+            <scope>runtime</scope>
+        </dependency>
+
     </dependencies>
 </project>
