@@ -23,43 +23,49 @@ import static java.nio.file.Paths.get;
 import static java.util.Optional.ofNullable;
 
 
-import org.neo4j.ogm.annotation.NodeEntity;
+import org.neo4j.ogm.annotation.Id;
+import org.neo4j.ogm.annotation.GeneratedValue;
 import org.neo4j.ogm.annotation.Relationship;
+import org.neo4j.ogm.annotation.Property;
+import org.neo4j.ogm.annotation.NodeEntity;
 
 
-@IndexType("Document")
-@JsonIgnoreProperties(ignoreUnknown = true)
-@JsonIdentityInfo(generator = JSOGGenerator.class)
+//@IndexType("Document")
+//@JsonIgnoreProperties(ignoreUnknown = true)
+//@JsonIdentityInfo(generator = JSOGGenerator.class)
 @NodeEntity
 public class Document implements Entity {
-    private static final long serialVersionUID = 5913568429773112L;
+    @Property private static final long serialVersionUID = 5913568429773112L;
 
-    public enum Status {PARSED, INDEXED, DONE}
+    @Property public enum Status {PARSED, INDEXED, DONE}
 
+    @Id @GeneratedValue
     private final String id;
-    private final Path path;
-    private final Path dirname;
+    @Property private final Path path;
+    @Property private final Path dirname;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-    private final Date extractionDate;
-    private final int extractionLevel;
+    @Property private final Date extractionDate;
+    @Property private final int extractionLevel;
 
-    private final String content;
-    private final int contentLength;
-    private final String contentType;
+    @Property private final String content;
+    @Property private final int contentLength;
+    @Property private final String contentType;
     @JsonDeserialize(using = CharsetDeserializer.class)
-    private final Charset contentEncoding;
-    private final Language language;
-    private final Map<String, String> metadata;
-    private final Status status;
-//    private final Set<Pipeline.Type> nerTags;
-//    private final Set<NamedEntity> nerTags;
+    @Property private final Charset contentEncoding;
+    @Property private final Language language;
+    @Property private final Map<String, String> metadata;
+    @Property private final Status status;
+
+    //    private final Set<Pipeline.Type> nerTags;
+    //    private final Set<NamedEntity> nerTags;
     @Relationship(type = "HAS_TAGS")
     private Set<NamedEntity> nerTags;
 
-    @IndexParent
-    private final String parentDocument;
-    @IndexRoot
-    private final String rootDocument;
+//    TODO convert to relationships
+//    @IndexParent
+//    private final String parentDocument;
+//    @IndexRoot
+//    private final String rootDocument;
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
