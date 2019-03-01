@@ -37,8 +37,6 @@ public final class NamedEntity implements Entity {
     private String mention;
     private final String mentionNorm;
 
-    Department department;
-
     @IndexId
     private final String id;
     private final Category category;
