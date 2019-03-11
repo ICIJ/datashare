@@ -3,6 +3,7 @@ package org.icij.datashare;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
+import net.codestory.http.payload.Payload;
 import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.session.LocalUserFilter;
@@ -54,8 +55,8 @@ public class IndexResourceTest implements FluentRestTest {
     @Test
     public void test_auth_forward_request_with_user_logged_on() {
         server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
-                    put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-                }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
+            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
+        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
 
         get("/api/index/search/cecile-datashare/foo/bar?routing=baz").withPreemptiveAuthentication("cecile", "").should().respond(200)
                 .contain("uri=cecile-datashare/foo/bar?routing=baz");
@@ -89,10 +90,35 @@ public class IndexResourceTest implements FluentRestTest {
     @Test
     public void test_put_createIndex_calls_indexer() throws Exception {
         server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
-                            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-                        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
+            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
+        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
         put("/api/index/create").withPreemptiveAuthentication("cecile", "pass").should().respond(200);
         verify(mockIndexer).createIndex("cecile-datashare");
+    }
+
+    @Test
+    public void test_delete_index() throws Exception {
+        mockElastic.configure(routes -> routes
+            .delete("/:uri", (context, uri) -> "I am elastic DELETE uri=" + uri + " " + new String(context.request().contentAsBytes()))
+        );
+        delete("/api/index/delete/local-datashare").should().respond(200).contain("I am elastic DELETE");
+    }
+
+    @Test
+    public void test_delete_unknown_index_returns_404() throws Exception {
+        mockElastic.configure(routes -> routes
+            .delete("/:uri", (context, uri) -> Payload.notFound())
+        );
+        delete("/api/index/delete/local-datashare").should().respond(404);
+    }
+
+    @Test
+    public void test_delete_index_in_server_mode_returns_forbidden() throws Exception {
+        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
+            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
+            put("mode", "SERVER");
+        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("johndoe"))));
+        delete("/api/index/delete/johndoe-datashare").withPreemptiveAuthentication("johndoe", null).should().respond(403);
     }
 
     @Before

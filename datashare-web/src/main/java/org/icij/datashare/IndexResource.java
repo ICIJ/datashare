@@ -31,11 +31,13 @@ import static net.codestory.http.payload.Payload.ok;
 public class IndexResource {
     private final String es_url;
     private final Indexer indexer;
+    private final Mode mode;
     private OkHttpClient http = new OkHttpClient();
 
     @Inject
     public IndexResource(PropertiesProvider propertiesProvider, Indexer indexer) {
         this.es_url = propertiesProvider.get("elasticsearchAddress").orElse("http://elasticsearch:9200");
+        this.mode = Mode.valueOf(propertiesProvider.get("mode").orElse("LOCAL"));
         this.indexer = indexer;
     }
 
@@ -61,6 +63,14 @@ public class IndexResource {
                 bufferedSink.write(request.contentAsBytes());
             }
         }).build()).execute());
+    }
+
+    @Delete("/delete/:index")
+    public Payload deleteIndex(final String index, final Context context) throws IOException {
+        if (mode == Mode.LOCAL) {
+            return createPayload(http.newCall(new Request.Builder().url(getUrl(index, "", context)).delete().build()).execute());
+        }
+        throw new ForbiddenException();
     }
 
     @Head("/search/:index/:path")
