@@ -6,6 +6,7 @@ import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
 import org.icij.datashare.Mode;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.extract.ScannerVisitor;
 
 import java.io.File;
 import java.util.Arrays;
@@ -52,7 +53,11 @@ final class DatashareCliOptions {
         return parser.acceptsAll(singletonList(NO_WEB_SERVER_OPT), "Run as a cli app (default is web server)");
     }
 
-    public static OptionSpec<String> cors(OptionParser parser) {
+    static OptionSpecBuilder followSymlinks(OptionParser parser) {
+        return parser.acceptsAll(singletonList(ScannerVisitor.FOLLOW_SYMLINKS), "Follow symlinks (default false)");
+    }
+
+    static OptionSpec<String> cors(OptionParser parser) {
         return parser.acceptsAll(
                 singletonList("cors"), "CORS headers (needs the web option)")
                         .withRequiredArg()
