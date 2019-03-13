@@ -1,6 +1,8 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import com.google.inject.Inject;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -192,6 +194,12 @@ public class ElasticsearchIndexer implements Indexer {
     @Override
     public boolean createIndex(final String indexName) {
         return ElasticsearchConfiguration.createIndex(client, indexName, esCfg.indexType);
+    }
+
+    @Override
+    public boolean deleteIndex(String indexName) throws IOException {
+        DeleteIndexResponse response = client.indices().delete(new DeleteIndexRequest(indexName));
+        return response.isAcknowledged();
     }
 
     private static Stream<SearchHit> searchHitStream(Iterable<SearchHit> searchHitIterable) {

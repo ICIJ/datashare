@@ -46,6 +46,11 @@ public class IndexResource {
         return indexer.createIndex(((User)context.currentUser()).indexName()) ? created() : ok();
     }
 
+    @Delete("/delete")
+    public Payload deleteIndex(final String index, final Context context) throws IOException {
+        return indexer.deleteIndex(((User)context.currentUser()).indexName()) ? ok() : new Payload(500);
+    }
+
     @Get("/search/:index/:path")
     public Payload esGet(final String index, final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).get().build()).execute());
@@ -63,14 +68,6 @@ public class IndexResource {
                 bufferedSink.write(request.contentAsBytes());
             }
         }).build()).execute());
-    }
-
-    @Delete("/delete/:index")
-    public Payload deleteIndex(final String index, final Context context) throws IOException {
-        if (mode == Mode.LOCAL) {
-            return createPayload(http.newCall(new Request.Builder().url(getUrl(index, "", context)).delete().build()).execute());
-        }
-        throw new ForbiddenException();
     }
 
     @Head("/search/:index/:path")

@@ -98,18 +98,16 @@ public class IndexResourceTest implements FluentRestTest {
 
     @Test
     public void test_delete_index() throws Exception {
-        mockElastic.configure(routes -> routes
-            .delete("/:uri", (context, uri) -> "I am elastic DELETE uri=" + uri + " " + new String(context.request().contentAsBytes()))
-        );
-        delete("/api/index/delete/local-datashare").should().respond(200).contain("I am elastic DELETE");
+        delete("/api/index/delete").should().respond(200);
+        verify(mockIndexer).deleteIndex("local-datashare");
     }
 
     @Test
-    public void test_delete_unknown_index_returns_404() throws Exception {
+    public void test_delete_unknown_index_returns_500() throws Exception {
         mockElastic.configure(routes -> routes
             .delete("/:uri", (context, uri) -> Payload.notFound())
         );
-        delete("/api/index/delete/local-datashare").should().respond(404);
+        delete("/api/index/delete").should().respond(500);
     }
 
     @Test
@@ -118,7 +116,7 @@ public class IndexResourceTest implements FluentRestTest {
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
             put("mode", "SERVER");
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("johndoe"))));
-        delete("/api/index/delete/johndoe-datashare").withPreemptiveAuthentication("johndoe", null).should().respond(403);
+        delete("/api/index/delete").withPreemptiveAuthentication("johndoe", null).should().respond(403);
     }
 
     @Before
