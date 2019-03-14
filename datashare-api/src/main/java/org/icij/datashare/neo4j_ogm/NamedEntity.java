@@ -49,20 +49,20 @@ public final class NamedEntity implements Entity {
 
     @Property private final Category category;
 
-    @IndexParent
-    private final String documentId;
+//    @IndexParent
+//    private final String documentId;
 
     @IndexRoot
     private final String rootDocument;
 
-    @Property private final int offset;
+//    @Property private final int offset;
     @Property private final Pipeline.Type extractor;
     @Property private final Language extractorLanguage;
     @Property private final String partsOfSpeech;
     @Property private Boolean hidden;
 
-    @Relationship(type = "FOUND_IN", direction = Relationship.INCOMING)
-    private Set<Document> documents;
+    @Relationship(type = "HAS_TAGS", direction = Relationship.INCOMING)
+    private Set<HasTag> documents;
 
     public enum Category implements Serializable {
         PERSON       ("PERS"),
@@ -110,21 +110,23 @@ public final class NamedEntity implements Entity {
 
     public static NamedEntity create(Category cat,
                                      String mention,
-                                     int offset,
-                                     String doc,
+//                                     int offset,
+//                                     String doc,
                                      Pipeline.Type extr,
                                      Language extrLang) {
-        return new NamedEntity(cat, mention, offset, doc, doc, extr, extrLang, false, null);
+//        return new NamedEntity(cat, mention, offset, doc, doc, extr, extrLang, false, null);
+        return new NamedEntity(cat, mention, doc, extr, extrLang, false, null);
     }
 
     public static NamedEntity create(Category cat,
                                      String mention,
-                                     int offset,
-                                     String doc,
+//                                     int offset,
+//                                     String doc,
                                      String rootDoc,
                                      Pipeline.Type extr,
                                      Language extrLang) {
-        return new NamedEntity(cat, mention, offset, doc, rootDoc, extr, extrLang, false, null);
+//        return new NamedEntity(cat, mention, offset, doc, rootDoc, extr, extrLang, false, null);
+        return new NamedEntity(cat, mention, rootDoc, extr, extrLang, false, null);
     }
 
     public static List<NamedEntity> allFrom(String text, Annotations annotations) {
@@ -170,12 +172,13 @@ public final class NamedEntity implements Entity {
         this.category = category;
         this.mention = mention;
         this.mentionNorm = normalize(mention);
-        this.documentId = documentId;
+//        this.documentId = documentId;
         this.rootDocument = rootDocument;
-        this.offset = offset;
+//        this.offset = offset;
         this.extractor = extractor;
         this.id = HASHER.hash( String.join("|",
-                getDocumentId().toString(),
+//                getDocumentId().toString(),
+                documentId,
                 String.valueOf(offset),
                 getExtractor().toString(),
                 mentionNorm
@@ -189,9 +192,9 @@ public final class NamedEntity implements Entity {
     public String getId() { return id; }
     public String getMention() { return mention; }
     public Category getCategory() { return category; }
-    public String getDocumentId() { return documentId; }
-    public String getRootDocument() { return rootDocument; }
-    public int getOffset() { return offset; }
+//    public String getDocumentId() { return documentId; }
+//    public String getRootDocument() { return rootDocument; }
+//    public int getOffset() { return offset; }
     public Pipeline.Type getExtractor() { return extractor; }
     public Language getExtractorLanguage() { return extractorLanguage; }
     public Boolean isHidden() { return hidden; }
@@ -199,9 +202,9 @@ public final class NamedEntity implements Entity {
     public NamedEntity unhide() { this.hidden = false; return this;}
     public String getPartsOfSpeech() { return partsOfSpeech; }
 
-    public Set<Document> getDocuments() {
-        return documents;
-    }
+//    public Set<Document> getDocuments() {
+//        return documents;
+//    }
 
     @Override
     public String toString() {

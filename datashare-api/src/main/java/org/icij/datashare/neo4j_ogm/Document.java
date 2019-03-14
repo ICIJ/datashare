@@ -55,7 +55,7 @@ public class Document implements Entity {
     //    private final Set<Pipeline.Type> nerTags;
     //    private final Set<NamedEntity> nerTags;
     @Relationship(type = "HAS_TAGS")
-    private Set<NamedEntity> nerTags;
+    private Set<HasTag> nerTags;
 
     @IndexParent
     @Relationship(type = "PARENT_DOCUMENT", direction = Relationship.INCOMING)
