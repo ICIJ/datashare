@@ -9,9 +9,9 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.function.ThrowingFunctions;
 import org.icij.datashare.text.Language;
-//import org.icij.datashare.text.indexing.IndexId;
-//import org.icij.datashare.text.indexing.IndexParent;
-//import org.icij.datashare.text.indexing.IndexRoot;
+import org.icij.datashare.text.indexing.IndexId;
+import org.icij.datashare.text.indexing.IndexParent;
+import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -34,7 +34,7 @@ import static org.icij.datashare.text.nlp.NlpStage.NER;
 import static org.icij.datashare.text.nlp.NlpStage.POS;
 
 
-//@IndexType("NamedEntity")
+@IndexType("NamedEntity")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @NodeEntity
 public final class NamedEntity implements Entity {
@@ -43,14 +43,18 @@ public final class NamedEntity implements Entity {
     @Property private String mention;
     @Property private final String mentionNorm;
 
-//    @IndexId
+    @IndexId
     @Id @GeneratedValue
     private final String id;
+
     @Property private final Category category;
-//    @IndexParent
-//    private final String documentId;
-//    @IndexRoot
-//    private final String rootDocument;
+
+    @IndexParent
+    private final String documentId;
+
+    @IndexRoot
+    private final String rootDocument;
+
     @Property private final int offset;
     @Property private final Pipeline.Type extractor;
     @Property private final Language extractorLanguage;
@@ -103,32 +107,24 @@ public final class NamedEntity implements Entity {
                         .filter((Category cat) -> cat != UNKNOWN)
                         .collect(Collectors.toList());
     }
-//
-//    public static NamedEntity create(Category cat,
-//                                     String mention,
-//                                     int offset,
-//                                     String doc,
-//                                     Pipeline.Type extr,
-//                                     Language extrLang) {
-//        return new NamedEntity(cat, mention, offset, doc, doc, extr, extrLang, false, null);
-//    }
-//
-//    public static NamedEntity create(Category cat,
-//                                     String mention,
-//                                     int offset,
-//                                     String doc,
-//                                     String rootDoc,
-//                                     Pipeline.Type extr,
-//                                     Language extrLang) {
-//        return new NamedEntity(cat, mention, offset, doc, rootDoc, extr, extrLang, false, null);
-//    }
 
     public static NamedEntity create(Category cat,
                                      String mention,
                                      int offset,
+                                     String doc,
                                      Pipeline.Type extr,
                                      Language extrLang) {
-        return new NamedEntity(cat, mention, offset, extr, extrLang, false, null);
+        return new NamedEntity(cat, mention, offset, doc, doc, extr, extrLang, false, null);
+    }
+
+    public static NamedEntity create(Category cat,
+                                     String mention,
+                                     int offset,
+                                     String doc,
+                                     String rootDoc,
+                                     Pipeline.Type extr,
+                                     Language extrLang) {
+        return new NamedEntity(cat, mention, offset, doc, rootDoc, extr, extrLang, false, null);
     }
 
     public static List<NamedEntity> allFrom(String text, Annotations annotations) {
@@ -150,7 +146,7 @@ public final class NamedEntity implements Entity {
                 category,
                 mention,
                 tag.getBegin(),
-//                annotations.getDocumentId(),
+                annotations.getDocumentId(),
                 annotations.getPipelineType(),
                 annotations.getLanguage()
         );
@@ -161,8 +157,8 @@ public final class NamedEntity implements Entity {
                         @JsonProperty("category") Category category,
                         @JsonProperty("mention") String mention,
                         @JsonProperty("offset") int offset,
-//                        @JsonProperty("documentId") String documentId,
-//                        @JsonProperty("rootDocument") String rootDocument,
+                        @JsonProperty("documentId") String documentId,
+                        @JsonProperty("rootDocument") String rootDocument,
                         @JsonProperty("extractor") Pipeline.Type extractor,
                         @JsonProperty("extractorLanguage") Language extractorLanguage,
                         @JsonProperty("isHidden") Boolean hidden,
@@ -174,17 +170,16 @@ public final class NamedEntity implements Entity {
         this.category = category;
         this.mention = mention;
         this.mentionNorm = normalize(mention);
-//        this.documentId = documentId;
-//        this.rootDocument = rootDocument;
+        this.documentId = documentId;
+        this.rootDocument = rootDocument;
         this.offset = offset;
         this.extractor = extractor;
-//        this.id = HASHER.hash( String.join("|",
-//                getDocumentId().toString(),
-//                String.valueOf(offset),
-//                getExtractor().toString(),
-//                mentionNorm
-//        ));
-        this.id = id;
+        this.id = HASHER.hash( String.join("|",
+                getDocumentId().toString(),
+                String.valueOf(offset),
+                getExtractor().toString(),
+                mentionNorm
+        ));
         this.extractorLanguage = extractorLanguage;
         this.hidden = hidden;
         this.partsOfSpeech = partsOfSpeech;
@@ -194,8 +189,8 @@ public final class NamedEntity implements Entity {
     public String getId() { return id; }
     public String getMention() { return mention; }
     public Category getCategory() { return category; }
-//    public String getDocumentId() { return documentId; }
-//    public String getRootDocument() { return rootDocument; }
+    public String getDocumentId() { return documentId; }
+    public String getRootDocument() { return rootDocument; }
     public int getOffset() { return offset; }
     public Pipeline.Type getExtractor() { return extractor; }
     public Language getExtractorLanguage() { return extractorLanguage; }
