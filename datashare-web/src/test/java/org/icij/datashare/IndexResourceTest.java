@@ -15,7 +15,9 @@ import org.mockito.Mock;
 import java.util.HashMap;
 
 import static org.icij.datashare.IndexResource.getQueryAsString;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexResourceTest implements FluentRestTest {
@@ -98,6 +100,7 @@ public class IndexResourceTest implements FluentRestTest {
 
     @Test
     public void test_delete_index() throws Exception {
+        when(mockIndexer.deleteIndex(anyString())).thenReturn(true);
         delete("/api/index/delete").should().respond(200);
         verify(mockIndexer).deleteIndex("local-datashare");
     }
@@ -108,15 +111,6 @@ public class IndexResourceTest implements FluentRestTest {
             .delete("/:uri", (context, uri) -> Payload.notFound())
         );
         delete("/api/index/delete").should().respond(500);
-    }
-
-    @Test
-    public void test_delete_index_in_server_mode_returns_forbidden() throws Exception {
-        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
-            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-            put("mode", "SERVER");
-        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("johndoe"))));
-        delete("/api/index/delete").withPreemptiveAuthentication("johndoe", null).should().respond(403);
     }
 
     @Before
