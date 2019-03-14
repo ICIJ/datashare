@@ -8,6 +8,7 @@ import org.icij.task.Options;
 import org.icij.task.StringOptionParser;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.RedissonShutdownException;
+import org.slf4j.LoggerFactory;
 
 public class RedisUserDocumentQueue extends RedisDocumentQueue {
     private static final String QUEUE_NAME = "queueName";
@@ -21,6 +22,7 @@ public class RedisUserDocumentQueue extends RedisDocumentQueue {
             userOptions.add(new Option<>(QUEUE_NAME, StringOptionParser::new).update("extract:queue"));
         }
         String queueName = user.isNull() ? userOptions.valueIfPresent(QUEUE_NAME).orElse("extract:queue") : user.queueName();
+        LoggerFactory.getLogger(RedisDocumentQueue.class).info("using redis queue name {}", queueName);
         Options<String> options = userOptions.createFrom(new Options<String>()
                 .add(new Option<>(QUEUE_NAME, StringOptionParser::new).update(queueName)));
         return options;

@@ -53,6 +53,7 @@ public final class DatashareCli {
         DatashareCliOptions.clusterName(parser);
         DatashareCliOptions.indexName(parser);
         DatashareCliOptions.esHost(parser);
+        DatashareCliOptions.queueName(parser);
 
         DatashareCliOptions.cors(parser);
         DatashareCliOptions.noweb(parser);

@@ -162,6 +162,14 @@ final class DatashareCliOptions {
                 .defaultsTo("datashare");
     }
 
+    static OptionSpec<String> queueName(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList("queueName"), "Redis queue name (default extract:queue)")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo("extract:queue");
+    }
+
     static AbstractOptionSpec<Void> help(OptionParser parser) {
         return parser.acceptsAll(asList("help", "h", "?")).forHelp();
     }
