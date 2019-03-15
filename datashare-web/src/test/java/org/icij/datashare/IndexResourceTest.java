@@ -101,7 +101,7 @@ public class IndexResourceTest implements FluentRestTest {
     @Test
     public void test_delete_index() throws Exception {
         when(mockIndexer.deleteAll(anyString())).thenReturn(true);
-        delete("/api/index/delete").should().respond(200);
+        delete("/api/index/delete/all").should().respond(200);
         verify(mockIndexer).deleteAll("local-datashare");
     }
 
@@ -110,7 +110,7 @@ public class IndexResourceTest implements FluentRestTest {
         mockElastic.configure(routes -> routes
             .delete("/:uri", (context, uri) -> Payload.notFound())
         );
-        delete("/api/index/delete").should().respond(500);
+        delete("/api/index/delete/all").should().respond(500);
     }
 
     @Before

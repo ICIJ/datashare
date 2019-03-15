@@ -46,12 +46,12 @@ public class IndexResource {
         return indexer.createIndex(((User)context.currentUser()).indexName()) ? created() : ok();
     }
 
-    @Options("/delete")
+    @Options("/delete/all")
     public Payload deleteIndex() {
         return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
-    @Delete("/delete")
+    @Delete("/delete/all")
     public Payload deleteIndex(final Context context) throws IOException {
         return indexer.deleteAll(((User)context.currentUser()).indexName()) ? ok() : new Payload(500);
     }
