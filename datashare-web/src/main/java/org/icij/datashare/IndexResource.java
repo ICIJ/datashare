@@ -53,7 +53,7 @@ public class IndexResource {
 
     @Delete("/delete")
     public Payload deleteIndex(final Context context) throws IOException {
-        return indexer.deleteIndex(((User)context.currentUser()).indexName()) ? ok() : new Payload(500);
+        return indexer.deleteAll(((User)context.currentUser()).indexName()) ? ok() : new Payload(500);
     }
 
     @Get("/search/:index/:path")

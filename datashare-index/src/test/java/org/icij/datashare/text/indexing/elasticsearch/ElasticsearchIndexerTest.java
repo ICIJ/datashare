@@ -221,5 +221,16 @@ public class ElasticsearchIndexerTest {
         assertThat(((NamedEntity)namedEntities[1]).isHidden()).isTrue();
     }
 
+    @Test
+    public void test_delete_by_query() throws Exception {
+        indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", 2, "docId", CORENLP, Language.FRENCH));
+        indexer.add(TEST_INDEX, create(PERSON, "John Doe", 12, "docId", CORENLP, Language.FRENCH));
+
+        assertThat(indexer.deleteAll(TEST_INDEX)).isTrue();
+
+        Object[] documents = indexer.search(TEST_INDEX, Document.class).execute().toArray();
+        assertThat(documents.length).isEqualTo(0);
+    }
+
     public ElasticsearchIndexerTest() throws UnknownHostException {}
 }

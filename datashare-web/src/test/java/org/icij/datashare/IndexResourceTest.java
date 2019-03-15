@@ -100,9 +100,9 @@ public class IndexResourceTest implements FluentRestTest {
 
     @Test
     public void test_delete_index() throws Exception {
-        when(mockIndexer.deleteIndex(anyString())).thenReturn(true);
+        when(mockIndexer.deleteAll(anyString())).thenReturn(true);
         delete("/api/index/delete").should().respond(200);
-        verify(mockIndexer).deleteIndex("local-datashare");
+        verify(mockIndexer).deleteAll("local-datashare");
     }
 
     @Test

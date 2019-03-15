@@ -1,8 +1,8 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import com.google.inject.Inject;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.apache.http.entity.ContentType;
+import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -13,10 +13,12 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.ConstantScoreQueryBuilder;
 import org.elasticsearch.index.query.TermsQueryBuilder;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.SearchHit;
@@ -197,9 +199,10 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public boolean deleteIndex(String indexName) throws IOException {
-        DeleteIndexResponse response = client.indices().delete(new DeleteIndexRequest(indexName));
-        return response.isAcknowledged();
+    public boolean deleteAll(String indexName) throws IOException {
+        Response response = client.getLowLevelClient().performRequest("POST", indexName + "/doc/_delete_by_query",
+                new HashMap<>(), new NStringEntity("{\"query\":{\"match_all\": {}}}", ContentType.APPLICATION_JSON));
+        return response.getStatusLine().getStatusCode() == RestStatus.OK.getStatus();
     }
 
     private static Stream<SearchHit> searchHitStream(Iterable<SearchHit> searchHitIterable) {

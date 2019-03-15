@@ -19,7 +19,7 @@ public interface Indexer extends Closeable {
     Searcher search(String indexName, Class<? extends Entity> entityClass);
 
     boolean createIndex(String indexName) throws IOException;
-    boolean deleteIndex(String indexName) throws IOException;
+    boolean deleteAll(String indexName) throws IOException;
 
     void close() throws IOException;
 
