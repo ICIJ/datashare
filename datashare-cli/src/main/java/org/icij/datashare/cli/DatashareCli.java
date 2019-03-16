@@ -122,6 +122,7 @@ public final class DatashareCli {
 
     public enum Stage {
         SCAN,
+        FILTER,
         INDEX,
         NLP;
 

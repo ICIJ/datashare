@@ -33,11 +33,11 @@ final class DatashareCliOptions {
     static OptionSpec<DatashareCli.Stage> stages(OptionParser parser) {
         return parser.acceptsAll(
                 asList(STAGES_OPT, "s"),
-                "Stages to be run.")
+                "Stages to be run. WARN that FILTER stage is not streamable like the others. It should be run alone.")
                 .withRequiredArg()
                 .ofType( DatashareCli.Stage.class )
                 .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DatashareCli.Stage.values());
+                .defaultsTo(DatashareCli.Stage.SCAN, DatashareCli.Stage.INDEX, DatashareCli.Stage.NLP);
     }
 
     static OptionSpec<Mode> mode(OptionParser parser) {

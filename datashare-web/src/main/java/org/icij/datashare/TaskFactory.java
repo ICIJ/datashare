@@ -1,5 +1,6 @@
 package org.icij.datashare;
 
+import org.icij.datashare.tasks.FilterTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ResumeNlpTask;
 import org.icij.datashare.tasks.ScanTask;
@@ -17,4 +18,5 @@ public interface TaskFactory {
     ResumeNlpTask createResumeNlpTask(final User user, String nlpPipelines);
     NlpApp createNlpTask(User user, AbstractPipeline pipeline, Properties properties, Runnable subscribedCb);
     NlpApp createNlpTask(User user, AbstractPipeline pipeline);
+    FilterTask createFilterTask(User user);
 }

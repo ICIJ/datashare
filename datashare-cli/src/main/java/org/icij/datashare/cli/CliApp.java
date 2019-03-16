@@ -25,8 +25,7 @@ import static java.lang.String.valueOf;
 import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
-import static org.icij.datashare.cli.DatashareCli.Stage.INDEX;
-import static org.icij.datashare.cli.DatashareCli.Stage.SCAN;
+import static org.icij.datashare.cli.DatashareCli.Stage.*;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 import static org.icij.datashare.user.User.nullUser;
@@ -53,6 +52,11 @@ public class CliApp {
                 System.exit(0);
             }
         }
+
+        if (stages.contains(FILTER)) {
+            taskManager.startTask(taskFactory.createFilterTask(nullUser()));
+        }
+
 
         if (stages.contains(SCAN) && !resume(properties)) {
             taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DATA_DIR_OPT)), Options.from(properties)));
