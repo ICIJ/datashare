@@ -74,7 +74,7 @@ public class CliApp {
                 taskManager.startTask(taskFactory.createNlpTask(nullUser(), injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), properties.getProperty(NLP_PIPELINES_OPT)));
+                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser()));
             }
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);

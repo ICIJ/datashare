@@ -124,7 +124,7 @@ public class TaskResource {
 
         TaskManager.MonitorableFutureTask<Void> nlpTask = createNlpApp(pipeline, context, mergedProps, abstractPipeline);
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), pipeline));
+            TaskManager.MonitorableFutureTask<Integer> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser()));
             return asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
         }
         return singletonList(new TaskResponse(nlpTask));

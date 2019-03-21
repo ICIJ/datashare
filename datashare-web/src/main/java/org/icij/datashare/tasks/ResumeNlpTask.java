@@ -3,7 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
-import org.icij.datashare.user.User;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
@@ -11,6 +11,7 @@ import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,28 +29,30 @@ public class ResumeNlpTask implements Callable<Integer>, UserTask {
     Logger logger = LoggerFactory.getLogger(getClass());
     private final Pipeline.Type[] nlpPipelines;
     private final User user;
+    private String indexName;
     private final Publisher publisher;
     private final Indexer indexer;
 
     @Inject
-    public ResumeNlpTask(final Publisher publisher, final Indexer indexer, @Assisted final String nlpPipelines, @Assisted final User user) {
+    public ResumeNlpTask(final Publisher publisher, final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted final User user) {
         this.publisher = publisher;
         this.indexer = indexer;
-        this.nlpPipelines = parseAll(nlpPipelines);
+        this.nlpPipelines = parseAll(propertiesProvider.get("nlpPipelines").orElse(""));
         this.user = user;
+        this.indexName = propertiesProvider.get("indexName").orElse(user.indexName());
     }
 
     @Override
     public Integer call() throws IOException {
-        logger.info("resuming NLP name finding for user {} and {}", user.id, nlpPipelines);
+        logger.info("resuming NLP name finding for index {} and {}", indexName, nlpPipelines);
         List<? extends Entity> docsToProcess =
-                indexer.search(user.indexName(), Document.class).withSource("rootDocument").limit(SEARCH_SIZE).without(nlpPipelines).execute().collect(toList());
+                indexer.search(indexName, Document.class).withSource("rootDocument").limit(SEARCH_SIZE).without(nlpPipelines).execute().collect(toList());
 
         this.publisher.publish(Channel.NLP, new Message(Message.Type.INIT_MONITORING).add(Message.Field.VALUE, valueOf(docsToProcess.size())));
 
         docsToProcess.forEach(doc -> this.publisher.publish(Channel.NLP,
                         new Message(Message.Type.EXTRACT_NLP)
-                                .add(Message.Field.INDEX_NAME, user.indexName())
+                                .add(Message.Field.INDEX_NAME, indexName)
                                 .add(Message.Field.DOC_ID, doc.getId())
                                 .add(Message.Field.R_ID, ((Document)doc).getRootDocument())));
 

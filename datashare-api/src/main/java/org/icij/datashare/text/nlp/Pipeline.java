@@ -43,7 +43,8 @@ public interface Pipeline {
         }
 
         public static Pipeline.Type[] parseAll(final String comaSeparatedTypes) {
-            return stream(comaSeparatedTypes.split(",")).map(Type::valueOf).toArray(Type[]::new);
+            return comaSeparatedTypes.isEmpty() ? new Pipeline.Type[]{}:
+                    stream(comaSeparatedTypes.split(",")).map(Type::valueOf).toArray(Type[]::new);
         }
     }
 

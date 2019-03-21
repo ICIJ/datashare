@@ -171,7 +171,7 @@ public class TaskResourceTest implements FluentRestTest {
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(2);
-        verify(taskFactory).createResumeNlpTask(local(), "OPENNLP");
+        verify(taskFactory).createResumeNlpTask(local());
 
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
 
@@ -187,7 +187,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"waitForNlpApp\": false, \"key1\":\"val1\",\"key2\":\"val2\"}}");
         response.should().haveType("application/json");
 
-        verify(taskFactory).createResumeNlpTask(local(),"OPENNLP");
+        verify(taskFactory).createResumeNlpTask(local());
 
         ArgumentCaptor<AbstractPipeline> pipelineCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
         ArgumentCaptor<Properties> propertiesCaptor = ArgumentCaptor.forClass(Properties.class);
@@ -202,7 +202,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"resume\":\"false\", \"waitForNlpApp\": false}}");
         response.should().haveType("application/json");
 
-        verify(taskFactory, never()).createResumeNlpTask(eq(null), anyString());
+        verify(taskFactory, never()).createResumeNlpTask(eq(null));
     }
 
     @Test
@@ -273,7 +273,7 @@ public class TaskResourceTest implements FluentRestTest {
         reset(taskFactory);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
         when(taskFactory.createScanTask(any(), any(), any())).thenReturn(mock(ScanTask.class));
-        when(taskFactory.createResumeNlpTask(any(), any())).thenReturn(mock(ResumeNlpTask.class));
+        when(taskFactory.createResumeNlpTask(any())).thenReturn(mock(ResumeNlpTask.class));
         when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(NlpApp.class));
         when(taskFactory.createNlpTask(any(), any(), any(), any())).thenReturn(mock(NlpApp.class));
     }

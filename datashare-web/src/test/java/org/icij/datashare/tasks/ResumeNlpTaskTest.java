@@ -39,7 +39,8 @@ public class ResumeNlpTaskTest {
         }
 
         Publisher publisher = mock(Publisher.class);
-        ResumeNlpTask resumeNlpTask = new ResumeNlpTask(publisher, indexer, "CORENLP", new User("test"));
+        ResumeNlpTask resumeNlpTask = new ResumeNlpTask(publisher, indexer,
+                new PropertiesProvider(new HashMap<String, String>() {{ put("nlpPipelines", "OPENNLP");}}), new User("test"));
         resumeNlpTask.call();
         verify(publisher, times(22)).publish(any(), any());
     }
