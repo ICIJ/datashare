@@ -32,7 +32,6 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
     private static final long DEFAULT_TIMEOUT_MILLIS = 30 * 60 * 1000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
-    private static final int DEFAULT_QUEUE_SIZE = 10000;
     private final AbstractPipeline pipeline;
     private final Indexer indexer;
     private final long shutdownTimeoutMillis;
@@ -58,7 +57,7 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
         this.pipeline = pipeline;
         this.indexer = indexer;
         this.shutdownTimeoutMillis = shutdownTimeoutMillis == 0 ? DEFAULT_TIMEOUT_MILLIS : shutdownTimeoutMillis;
-        this.queue = new LinkedBlockingQueue<>(DEFAULT_QUEUE_SIZE);
+        this.queue = new LinkedBlockingQueue<>();
         this.user = user;
 
         parallelism = parseInt(ofNullable(properties.getProperty(NLP_PARALLELISM_OPT)).orElse("1"));
