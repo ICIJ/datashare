@@ -24,8 +24,7 @@ import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
-public class ResumeNlpTask implements Callable<Integer>, UserTask {
-    private final static int SEARCH_SIZE = 10000;
+public class ResumeNlpTask implements Callable<Long>, UserTask {
     Logger logger = LoggerFactory.getLogger(getClass());
     private final Pipeline.Type[] nlpPipelines;
     private final User user;
@@ -43,27 +42,29 @@ public class ResumeNlpTask implements Callable<Integer>, UserTask {
     }
 
     @Override
-    public Integer call() throws IOException {
+    public Long call() throws IOException {
         logger.info("resuming NLP name finding for index {} and {}", indexName, nlpPipelines);
-        List<? extends Entity> docsToProcess =
-                indexer.search(indexName, Document.class).withSource("rootDocument").limit(SEARCH_SIZE).without(nlpPipelines).execute().collect(toList());
+        Indexer.Searcher searcher = indexer.search(indexName, Document.class).withSource("rootDocument").without(nlpPipelines);
+        List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
+        long totalHits = searcher.totalHits();
+        this.publisher.publish(Channel.NLP, new Message(Message.Type.INIT_MONITORING).add(Message.Field.VALUE, valueOf(totalHits)));
 
-        this.publisher.publish(Channel.NLP, new Message(Message.Type.INIT_MONITORING).add(Message.Field.VALUE, valueOf(docsToProcess.size())));
+        do {
+            docsToProcess.forEach(doc -> this.publisher.publish(Channel.NLP,
+                    new Message(Message.Type.EXTRACT_NLP)
+                            .add(Message.Field.INDEX_NAME, indexName)
+                            .add(Message.Field.DOC_ID, doc.getId())
+                            .add(Message.Field.R_ID, ((Document) doc).getRootDocument())));
+            docsToProcess = searcher.scroll().collect(toList());
+        } while (docsToProcess.size() != 0);
+        logger.info("sent {} message for {} files without {} pipeline tags", Message.Type.EXTRACT_NLP, totalHits, nlpPipelines);
 
-        docsToProcess.forEach(doc -> this.publisher.publish(Channel.NLP,
-                        new Message(Message.Type.EXTRACT_NLP)
-                                .add(Message.Field.INDEX_NAME, indexName)
-                                .add(Message.Field.DOC_ID, doc.getId())
-                                .add(Message.Field.R_ID, ((Document)doc).getRootDocument())));
-
+        searcher.clearScroll();
         this.publisher.publish(Channel.NLP, new ShutdownMessage());
 
-        logger.info("sent {} message for {} files without {} pipeline tags", Message.Type.EXTRACT_NLP, docsToProcess.size(), nlpPipelines);
-        return docsToProcess.size();
+        return totalHits;
     }
 
     @Override
-    public User getUser() {
-        return user;
-    }
+    public User getUser() { return user;}
 }
