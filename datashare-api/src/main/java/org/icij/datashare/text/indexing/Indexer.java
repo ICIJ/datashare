@@ -34,11 +34,13 @@ public interface Indexer extends Closeable {
     interface Searcher {
         Searcher ofStatus(Document.Status indexed);
         Stream<? extends Entity> execute() throws IOException;
+        Stream<? extends Entity> scroll() throws IOException;
         Searcher withSource(String... fields);
         Searcher withSource(boolean source);
         Searcher without(Pipeline.Type... nlpPipelines);
         Searcher with(Pipeline.Type... nlpPipelines);
         Searcher limit(int maxCount);
         Searcher withFieldValue(String key, String value);
+        void clearScroll() throws IOException;
     }
 }

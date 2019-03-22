@@ -8,6 +8,7 @@ import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -200,6 +201,25 @@ public class ElasticsearchIndexerTest {
         }
         assertThat(indexer.search(TEST_INDEX,Document.class).limit(5).execute().count()).isEqualTo(5);
         assertThat(indexer.search(TEST_INDEX,Document.class).execute().count()).isEqualTo(20);
+    }
+
+    @Test
+    public void test_search_with_scroll() throws IOException {
+        for (int i = 0 ; i < 12; i++) {
+            Document doc = new org.icij.datashare.text.Document(Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
+                Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE);
+            indexer.add(TEST_INDEX,doc);
+        }
+
+        Indexer.Searcher searcher = indexer.search(TEST_INDEX, Document.class).limit(5);
+        assertThat(searcher.scroll().count()).isEqualTo(5);
+        assertThat(searcher.scroll().count()).isEqualTo(5);
+        assertThat(searcher.scroll().count()).isEqualTo(2);
+        assertThat(searcher.scroll().count()).isEqualTo(0);
+
+        searcher.clearScroll();
+        assertThat(searcher.scroll().count()).isEqualTo(5);
+        searcher.clearScroll();
     }
 
     @Test

@@ -9,12 +9,15 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.ConstantScoreQueryBuilder;
 import org.elasticsearch.index.query.TermsQueryBuilder;
@@ -223,18 +226,21 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     static class ElasticsearchSearcher implements Searcher {
-        private final SearchRequest searchRequest;
+        static final TimeValue KEEP_ALIVE = new TimeValue(60000);
         private final BoolQueryBuilder boolQuery;
         private final RestHighLevelClient client;
+        private final ElasticsearchConfiguration config;
+        private final String indexName;
         private final Class<? extends Entity> cls;
         private final SearchSourceBuilder sourceBuilder;
+        private String scrollId;
 
         ElasticsearchSearcher(RestHighLevelClient client, ElasticsearchConfiguration config, final String indexName, final Class<? extends Entity> cls) {
             this.client = client;
+            this.config = config;
+            this.indexName = indexName;
             this.cls = cls;
             sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE);
-            searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
-            searchRequest.types(config.indexType);
             this.boolQuery = boolQuery().must(matchQuery("type", JsonObjectMapper.getType(cls)));
         }
 
@@ -247,7 +253,25 @@ public class ElasticsearchIndexer implements Indexer {
         @Override
         public Stream<? extends Entity> execute() throws IOException {
             sourceBuilder.query(boolQuery);
+            SearchRequest searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
+            searchRequest.types(config.indexType);
             SearchResponse search = client.search(searchRequest);
+            return resultStream(this.cls, () -> search.getHits().iterator());
+        }
+
+        @Override
+        public Stream<? extends Entity> scroll() throws IOException {
+            sourceBuilder.query(boolQuery);
+            SearchResponse search;
+            if (scrollId == null) {
+                SearchRequest searchRequest = new SearchRequest(new String[]{indexName}, sourceBuilder).scroll(KEEP_ALIVE);
+                searchRequest.types(config.indexType);
+                search = client.search(searchRequest);
+                scrollId = search.getScrollId();
+            } else {
+                search = client.searchScroll(new SearchScrollRequest(scrollId).scroll(KEEP_ALIVE));
+                scrollId = search.getScrollId();
+            }
             return resultStream(this.cls, () -> search.getHits().iterator());
         }
 
@@ -290,8 +314,16 @@ public class ElasticsearchIndexer implements Indexer {
         }
 
         @Override
+        public void clearScroll() throws IOException {
+            ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+            clearScrollRequest.addScrollId(scrollId);
+            this.client.clearScroll(clearScrollRequest);
+            scrollId = null;
+        }
+
+        @Override
         public String toString() {
-            return "boolQuery : " + boolQuery + " searchRequest : " + searchRequest;
+            return "boolQuery : " + boolQuery;
         }
     }
 }
