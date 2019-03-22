@@ -234,6 +234,7 @@ public class ElasticsearchIndexer implements Indexer {
         private final Class<? extends Entity> cls;
         private final SearchSourceBuilder sourceBuilder;
         private String scrollId;
+        private long totalHits;
 
         ElasticsearchSearcher(RestHighLevelClient client, ElasticsearchConfiguration config, final String indexName, final Class<? extends Entity> cls) {
             this.client = client;
@@ -268,6 +269,7 @@ public class ElasticsearchIndexer implements Indexer {
                 searchRequest.types(config.indexType);
                 search = client.search(searchRequest);
                 scrollId = search.getScrollId();
+                totalHits = search.getHits().totalHits;
             } else {
                 search = client.searchScroll(new SearchScrollRequest(scrollId).scroll(KEEP_ALIVE));
                 scrollId = search.getScrollId();
@@ -319,6 +321,12 @@ public class ElasticsearchIndexer implements Indexer {
             clearScrollRequest.addScrollId(scrollId);
             this.client.clearScroll(clearScrollRequest);
             scrollId = null;
+            totalHits = 0;
+        }
+
+        @Override
+        public long totalHits() {
+            return totalHits;
         }
 
         @Override

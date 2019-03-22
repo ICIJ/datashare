@@ -42,5 +42,6 @@ public interface Indexer extends Closeable {
         Searcher limit(int maxCount);
         Searcher withFieldValue(String key, String value);
         void clearScroll() throws IOException;
+        long totalHits();
     }
 }

@@ -213,6 +213,7 @@ public class ElasticsearchIndexerTest {
 
         Indexer.Searcher searcher = indexer.search(TEST_INDEX, Document.class).limit(5);
         assertThat(searcher.scroll().count()).isEqualTo(5);
+        assertThat(searcher.totalHits()).isEqualTo(12);
         assertThat(searcher.scroll().count()).isEqualTo(5);
         assertThat(searcher.scroll().count()).isEqualTo(2);
         assertThat(searcher.scroll().count()).isEqualTo(0);
