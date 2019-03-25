@@ -203,7 +203,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public boolean deleteAll(String indexName) throws IOException {
-        Response response = client.getLowLevelClient().performRequest("POST", indexName + "/doc/_delete_by_query",
+        Response response = client.getLowLevelClient().performRequest("POST", indexName + "/doc/_delete_by_query?refresh",
                 new HashMap<>(), new NStringEntity("{\"query\":{\"match_all\": {}}}", ContentType.APPLICATION_JSON));
         return response.getStatusLine().getStatusCode() == RestStatus.OK.getStatus();
     }
