@@ -18,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 
 import static java.lang.Boolean.parseBoolean;
-import static java.lang.System.getProperty;
 
 public abstract class AbstractModels<T> {
     public final static String JVM_PROPERTY_NAME = "DS_SYNC_NLP_MODELS";
@@ -56,7 +55,7 @@ public abstract class AbstractModels<T> {
         l.acquire();
         try {
             if (isLoaded(language)) return;
-            if (parseBoolean(getProperty(JVM_PROPERTY_NAME, "true"))) {
+            if (isSync()) {
                 downloadIfNecessary(language, getLoader());
             }
             models.put(language, loadModelFile(language, getLoader()));
@@ -132,7 +131,7 @@ public abstract class AbstractModels<T> {
         System.setProperty(JVM_PROPERTY_NAME, String.valueOf(sync));
     }
     public static boolean isSync() {
-        return parseBoolean(System.getProperty(JVM_PROPERTY_NAME));
+        return parseBoolean(System.getProperty(JVM_PROPERTY_NAME, "true"));
     }
 
     public boolean isLoaded(Language language) { return models.containsKey(language);}
