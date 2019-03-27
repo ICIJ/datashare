@@ -47,11 +47,10 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     @Override
     public int create(NamedEntity ne) {
         return jdbcTemplate.update(
-                "MATCH (ne:NamedEntity {id: ?, mention: ?})\n" +
                 "MATCH (doc:Document {id: ?})\n" +
-                "CREATE (ne)-[rel:IS_MENTIONNED {offset: ?}]->(doc)",
+                "CREATE (ne:NamedEntity {id: ?, mention: ?}))-[rel:IS_MENTIONNED {offset: ?}]->(doc)",
                 new Object[] {
-                        ne.getId(), ne.getMention(), ne.getDocumentId(), ne.getOffset()
+                        ne.getDocumentId(), ne.getId(), ne.getMention(), ne.getOffset()
                 });
     }
 
