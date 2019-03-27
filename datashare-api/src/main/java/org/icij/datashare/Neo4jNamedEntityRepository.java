@@ -25,8 +25,7 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     @Override
     public NamedEntity get(String id) {
         return (NamedEntity) jdbcTemplate.queryForObject(
-                "MATCH (ne:NamedEntity)\n" +
-                    "WHERE ne.id =~ {1}\n" +
+                "MATCH (ne:NamedEntity{id: {1})\n" +
                     "RETURN ne",
                 new Object[] {id},
                 (rs, i) -> NamedEntity.create(NamedEntity.Category.parse(rs.getString("category")),
@@ -39,7 +38,10 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
 
     @Override
     public int create(Document document) {
-        return jdbcTemplate.update("CREATE (doc:Document {id: ?, path: ?}) RETURN doc", new Object[] {
+        return jdbcTemplate.update(
+                "MERGE (doc:Document {id: ?}) " +
+                    "SET doc.path = ?" +
+                    "RETURN doc", new Object[] {
                 document.getId(), document.getPath().toString()
         });
     }
@@ -48,7 +50,8 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     public int create(NamedEntity ne) {
         return jdbcTemplate.update(
                 "MATCH (doc:Document {id: ?})\n" +
-                "CREATE (ne:NamedEntity {id: ?, mention: ?}))-[rel:IS_MENTIONNED {offset: ?}]->(doc)",
+                    "MERGE (ne:NamedEntity {id: ?, mention: ?}))\n" +
+                    "MERGE (ne)-[rel:IS_MENTIONNED {offset: ?}]->(doc)",
                 new Object[] {
                         ne.getDocumentId(), ne.getId(), ne.getMention(), ne.getOffset()
                 });
