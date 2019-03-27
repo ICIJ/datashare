@@ -39,7 +39,7 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
 
     @Override
     public int create(Document document) {
-        return jdbcTemplate.update("CREATE (doc:Document {id: ?, name: ?}) RETURN doc", new Object[] {
+        return jdbcTemplate.update("CREATE (doc:Document {id: ?, path: ?}) RETURN doc", new Object[] {
                 document.getId(), document.getPath().toString()
         });
     }
