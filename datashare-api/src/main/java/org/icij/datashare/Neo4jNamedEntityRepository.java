@@ -25,8 +25,7 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     @Override
     public NamedEntity get(String id) {
         return (NamedEntity) jdbcTemplate.queryForObject(
-                "MATCH (ne:NamedEntity{id: {1})\n" +
-                    "RETURN ne",
+                "MATCH (ne:NamedEntity{id: ?}) RETURN ne",
                 new Object[] {id},
                 (rs, i) -> NamedEntity.create(NamedEntity.Category.parse(rs.getString("category")),
                 rs.getString("mention"),
