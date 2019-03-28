@@ -5,9 +5,12 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.icij.datashare.Neo4jNamedEntityRepository;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.EmbeddedTikaDocument;
 import org.icij.extract.document.TikaDocument;
@@ -22,6 +25,8 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,6 +50,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final ElasticsearchConfiguration esCfg;
     private final Publisher publisher;
     private final LanguageGuesser languageGuesser;
+    private final Neo4jNamedEntityRepository repository;
     private String indexName;
 
     @Inject
@@ -54,6 +60,11 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         this.client = client;
         this.languageGuesser = languageGuesser;
         this.publisher = publisher;
+        try {
+            this.repository = new Neo4jNamedEntityRepository();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         this.esCfg = new ElasticsearchConfiguration(propertiesProvider);
         logger.info("spewer defined with {}", esCfg);
     }
@@ -79,6 +90,10 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                                         final TikaDocument parent, TikaDocument root, final int level) throws IOException {
         IndexRequest req = new IndexRequest(indexName, esCfg.indexType, document.getId());
         Map<String, Object> jsonDocument = getMap(document, reader);
+
+        repository.create(new Document(document.getId(), document.getPath(), (String)jsonDocument.get(ES_CONTENT_FIELD), (Language)jsonDocument.get("language"),
+                "unknown".equals(jsonDocument.get("contentEncoding")) ? Charset.defaultCharset(): Charset.forName((String)jsonDocument.get("contentEncoding")),
+                (String)jsonDocument.get("contentType"), new HashMap<>(), Document.Status.INDEXED));
 
         if (parent != null) {
             jsonDocument.put(DEFAULT_PARENT_DOC_FIELD, parent.getId());

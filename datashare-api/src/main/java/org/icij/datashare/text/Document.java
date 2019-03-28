@@ -47,6 +47,10 @@ public class Document implements Entity {
     @IndexRoot
     private final String rootDocument;
 
+    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
+        this(id, filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
+    }
+
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
     }
