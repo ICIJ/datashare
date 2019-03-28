@@ -19,13 +19,17 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     public Neo4jNamedEntityRepository() throws SQLException {
         jdbcTemplate = new JdbcTemplate(new DriverManagerDataSource("jdbc:neo4j:bolt://neo4j/?user=neo4j&password=dev"));
         jdbcTemplate.update("CREATE CONSTRAINT ON (doc:Document) ASSERT doc.id IS UNIQUE");
-        jdbcTemplate.update("CREATE CONSTRAINT ON (ne:NamedEntity) ASSERT ne.id IS UNIQUE");
+        // jdbcTemplate.update("CREATE CONSTRAINT ON (ne:NamedEntity) ASSERT ne.id IS UNIQUE");
+        jdbcTemplate.update("CREATE CONSTRAINT ON ()-[rel:IS_MENTIONED]-() ASSERT rel.id IS UNIQUE");
+        jdbcTemplate.update("CREATE CONSTRAINT ON (ne:NamedEntity) ASSERT ne.mention IS UNIQUE");
     }
 
     @Override
     public NamedEntity get(String id) {
         return (NamedEntity) jdbcTemplate.queryForObject(
-                "MATCH (ne:NamedEntity{id: ?}) RETURN ne",
+                // "MATCH (ne:NamedEntity{id: ?}) RETURN ne",
+                "MERGE (ne)-[rel:IS_MENTIONED {id: ?}]->(doc)\n" +
+                "RETURN rel, ne, doc",
                 new Object[] {id},
                 (rs, i) -> NamedEntity.create(NamedEntity.Category.parse(rs.getString("category")),
                 rs.getString("mention"),
@@ -49,12 +53,21 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     public int create(NamedEntity ne) {
         return jdbcTemplate.update(
                 "MATCH (doc:Document {id: ?})\n" +
-                    "MERGE (ne:NamedEntity {id: ?, category: ?, mention: ?, pipeline: ?, language: ?})\n" +
-                    "MERGE (ne)-[rel:IS_MENTIONNED {offset: ?}]->(doc)",
+                "MERGE (ne:NamedEntity {mention: ?})\n" +
+                "MERGE (ne)-[rel:IS_MENTIONED {id: ?}]->(doc)\n" +
+                "SET rel.category = ?,\n" +
+                "    rel.pipeline = ?,\n" +
+                "    rel.language = ?,\n" +
+                "    rel.offset = ?\n" +
+                "RETURN rel",
                 new Object[] {
-                        ne.getDocumentId(), ne.getId(), ne.getCategory().toString(),
-                        ne.getMention(), ne.getExtractor().toString(),
-                        ne.getExtractorLanguage().toString(), ne.getOffset()
+                        ne.getDocumentId(),
+                        ne.getMention(),
+                        ne.getId(),
+                        ne.getCategory().toString(),
+                        ne.getExtractor().toString(),
+                        ne.getExtractorLanguage().toString(),
+                        ne.getOffset()
                 });
     }
 
