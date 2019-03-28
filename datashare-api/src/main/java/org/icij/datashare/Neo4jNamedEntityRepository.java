@@ -49,10 +49,12 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     public int create(NamedEntity ne) {
         return jdbcTemplate.update(
                 "MATCH (doc:Document {id: ?})\n" +
-                    "MERGE (ne:NamedEntity {id: ?, mention: ?})\n" +
+                    "MERGE (ne:NamedEntity {id: ?, category: ?, mention: ?, pipeline: ?, language: ?})\n" +
                     "MERGE (ne)-[rel:IS_MENTIONNED {offset: ?}]->(doc)",
                 new Object[] {
-                        ne.getDocumentId(), ne.getId(), ne.getMention(), ne.getOffset()
+                        ne.getDocumentId(), ne.getId(), ne.getCategory().toString(),
+                        ne.getMention(), ne.getExtractor().toString(),
+                        ne.getExtractorLanguage().toString(), ne.getOffset()
                 });
     }
 
