@@ -49,7 +49,7 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     public int create(NamedEntity ne) {
         return jdbcTemplate.update(
                 "MATCH (doc:Document {id: ?})\n" +
-                    "MERGE (ne:NamedEntity {id: ?, mention: ?}))\n" +
+                    "MERGE (ne:NamedEntity {id: ?, mention: ?})\n" +
                     "MERGE (ne)-[rel:IS_MENTIONNED {offset: ?}]->(doc)",
                 new Object[] {
                         ne.getDocumentId(), ne.getId(), ne.getMention(), ne.getOffset()
@@ -78,10 +78,10 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
                     put("key2", "value2");
                 }},
                 Document.Status.INDEXED);
-        assert neo4jRepository.create(document) > 0;
+        neo4jRepository.create(document);
 
         NamedEntity ne = NamedEntity.create(NamedEntity.Category.PERSON, "Gael Giraud", 23, document.getId(), Pipeline.Type.CORENLP, Language.FRENCH);
-        assert neo4jRepository.create(ne) > 0;
+        neo4jRepository.create(ne);
 
         neo4jRepository.get(ne.getId());
     }
