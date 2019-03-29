@@ -86,7 +86,6 @@ public class JooqNamedEntityRepository implements NamedEntityRepository {
     public void create(Document doc) throws SQLException {
         try (Connection conn = source.getConnection()) {
             DSLContext ctx = DSL.using(conn, SQLDialect.POSTGRES_10);
-            System.out.println(doc.getId());
             ctx.insertInto(table(DOCUMENT),
                     field("id"), field("path")).
                     values(doc.getId(), doc.getPath().toString()).execute();
