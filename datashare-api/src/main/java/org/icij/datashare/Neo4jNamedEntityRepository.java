@@ -19,7 +19,7 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     public Neo4jNamedEntityRepository() throws SQLException {
         jdbcTemplate = new JdbcTemplate(new DriverManagerDataSource("jdbc:neo4j:bolt://neo4j/?user=neo4j&password=dev&flatten=-1"));
         jdbcTemplate.update("CREATE CONSTRAINT ON (doc:Document) ASSERT doc.id IS UNIQUE");
-        jdbcTemplate.update("CREATE CONSTRAINT ON (ne:NamedEntity) ASSERT ne.name IS UNIQUE");
+        jdbcTemplate.update("CREATE CONSTRAINT ON (ne:NamedEntity) ASSERT ne.mention IS UNIQUE");
     }
 
     @Override
