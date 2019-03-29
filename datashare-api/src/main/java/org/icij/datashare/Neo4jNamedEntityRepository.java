@@ -8,10 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.nio.charset.Charset;
-import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.HashMap;
 
 public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     private final JdbcTemplate jdbcTemplate;
@@ -77,26 +74,5 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     @Override
     public NamedEntity delete(String id) {
         return null;
-    }
-
-    public static void main(String[] args) throws SQLException {
-        Neo4jNamedEntityRepository neo4jRepository = new Neo4jNamedEntityRepository();
-        Document document = new Document(Paths.get("/foo/bar.txt"),
-                "This is a content with Gael Giraud",
-                Language.FRENCH,
-                Charset.defaultCharset(),
-                "text/plain",
-                new HashMap<String, String>() {{
-                    put("key1", "value1");
-                    put("key2", "value2");
-                }},
-                Document.Status.INDEXED);
-        neo4jRepository.create(document);
-
-        NamedEntity ne = NamedEntity.create(NamedEntity.Category.PERSON, "Gael Giraud", 23, document.getId(), Pipeline.Type.CORENLP, Language.FRENCH);
-        neo4jRepository.create(ne);
-
-        NamedEntity namedEntity = neo4jRepository.get(ne.getId());
-        System.out.println(namedEntity);
     }
 }
