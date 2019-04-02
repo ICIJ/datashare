@@ -8,12 +8,10 @@ import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Pipeline;
 
+import javax.persistence.Id;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.nio.file.Paths.get;
 import static java.util.Optional.ofNullable;
@@ -26,6 +24,7 @@ public class Document implements Entity {
 
     public enum Status {PARSED, INDEXED, DONE}
 
+    @Id
     private final String id;
     private final Path path;
     private final Path dirname;
@@ -46,21 +45,22 @@ public class Document implements Entity {
     private final String parentDocument;
     @IndexRoot
     private final String rootDocument;
+    public final List<NamedEntity> neList;
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
-        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
+        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, new ArrayList<>());
     }
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags) {
-        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null);
+        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, new ArrayList<>());
     }
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument) {
-        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument());
+        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), new ArrayList<>());
     }
 
     @JsonCreator
-    private Document(@JsonProperty("id") String id, @JsonProperty("path") Path path,
+    private Document(@JsonProperty("_id") String id, @JsonProperty("path") Path path,
                      @JsonProperty("dirname") Path dirname, @JsonProperty("content") String  content,
                      @JsonProperty("language") Language language, @JsonProperty("extractionDate") Date extractionDate,
                      @JsonProperty("contentEncoding") Charset contentEncoding, @JsonProperty("contentType") String contentType,
@@ -69,7 +69,7 @@ public class Document implements Entity {
                      @JsonProperty("status") Status status,
                      @JsonProperty("nerTags") Set<Pipeline.Type> nerTags,
                      @JsonProperty("parentDocument") String parentDocument,
-                     @JsonProperty("rootDocument") String rootDocument) {
+                     @JsonProperty("rootDocument") String rootDocument, @JsonProperty("neList") List<NamedEntity> neList) {
         this.id = id;
         this.path = path;
         this.dirname = dirname;
@@ -85,6 +85,7 @@ public class Document implements Entity {
         this.nerTags = nerTags;
         this.parentDocument = parentDocument;
         this.rootDocument = rootDocument;
+        this.neList = neList;
     }
 
     @Override
