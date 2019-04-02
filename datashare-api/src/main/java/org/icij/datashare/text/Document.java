@@ -10,10 +10,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.nio.file.Paths.get;
 import static java.util.Optional.ofNullable;
@@ -23,6 +20,10 @@ import static java.util.Optional.ofNullable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Document implements Entity {
     private static final long serialVersionUID = 5913568429773112L;
+
+    public void addAll(List neList) {
+        this.neList.addAll(neList);
+    }
 
     public enum Status {PARSED, INDEXED, DONE}
 
@@ -46,6 +47,7 @@ public class Document implements Entity {
     private final String parentDocument;
     @IndexRoot
     private final String rootDocument;
+    public List<NamedEntity> neList = new ArrayList<>();
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);

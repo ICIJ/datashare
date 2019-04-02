@@ -53,7 +53,7 @@ public class JsonObjectMapper {
      * Get JSON representation (as a Map) of an Object instance
      *
      * @param obj the object to convert to JSON
-     * @param <T> the concrete type of entity
+     * @param <T> the concrete type of entitygetJson
      * @return JSON representation of {@code obj}
      */
     public static <T extends Entity> Map<String, Object> getJson(T obj) {
@@ -74,6 +74,14 @@ public class JsonObjectMapper {
         }
     }
 
+    public static <T extends Entity> String getJsonAsString(T obj) {
+        try {
+            return MAPPER.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static <T extends Entity> T getObject(String id, Map<String, Object> source, Class<T> type) {
         HashMap<String, Object> map;
         if (source == null) {
@@ -82,6 +90,14 @@ public class JsonObjectMapper {
             map = new HashMap<String, Object>() {{putAll(source); put("id", id);}};
         }
         return getObject(map, type);
+    }
+
+    public static <T extends Entity> T getObject(String source, Class<T> type) {
+        try {
+            return MAPPER.readValue(source, type);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static <T extends Entity> T getObject(Map<String, Object> source, Class<T> type) {
