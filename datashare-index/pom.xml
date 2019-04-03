@@ -47,10 +47,10 @@
         </dependency>
 
         <!-- Slf4j / log4j bridge for elasticsearch -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.slf4j</groupId>-->
+<!--            <artifactId>slf4j-api</artifactId>-->
+<!--        </dependency>-->
 
         <!-- test deps -->
         <dependency>
@@ -78,7 +78,7 @@
         </dependency>
         <dependency>
              <groupId>ch.qos.logback</groupId>
-             <artifactId>logback-core</artifactId>
+             <artifactId>logback-classic</artifactId>
             <version>1.1.7</version>
              <scope>test</scope>
        </dependency>

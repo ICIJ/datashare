@@ -70,6 +70,41 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public boolean bulkAdd(final String indexName, List<NamedEntity> namedEntities) throws IOException {
+        String documentId = namedEntities.get(0).getDocumentId();
+        String rootDocument = namedEntities.get(0).getRootDocument();
+        Pipeline.Type type = namedEntities.get(0).getExtractor();
+        BulkRequest bulkRequest = new BulkRequest();
+
+        String routing = ofNullable(rootDocument).orElse(documentId);
+        bulkRequest.add(new UpdateRequest(indexName, esCfg.indexType, documentId).doc(
+                jsonBuilder().startObject()
+                        .field("status", Document.Status.DONE)
+                        .endObject()).routing(routing));
+        bulkRequest.add(new UpdateRequest(indexName, esCfg.indexType, documentId)
+                .script(new Script(ScriptType.INLINE, "painless",
+                        "if (!ctx._source.nerTags.contains(params.nerTag)) ctx._source.nerTags.add(params.nerTag);",
+                        new HashMap<String, Object>() {{put("nerTag", type.toString());}})).routing(routing));
+
+        for (Entity child : namedEntities) {
+            bulkRequest.add(createIndexRequest(indexName, JsonObjectMapper.getType(child), child.getId(),
+                            getJson(child), documentId, routing));
+        }
+        bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
+
+        BulkResponse bulkResponse = client.bulk(bulkRequest);
+        if (bulkResponse.hasFailures()) {
+            for (BulkItemResponse resp : bulkResponse.getItems()) {
+                if (resp.isFailed()) {
+                    LOGGER.error("bulk add failed : {}", resp.getFailureMessage());
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     public boolean bulkAdd(final String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException {
         BulkRequest bulkRequest = new BulkRequest();
 
