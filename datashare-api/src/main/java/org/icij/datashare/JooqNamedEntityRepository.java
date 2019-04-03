@@ -9,8 +9,9 @@ import org.jooq.Record;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
-import org.postgresql.ds.PGPoolingDataSource;
+import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -19,16 +20,12 @@ import static org.jooq.impl.DSL.*;
 public class JooqNamedEntityRepository implements NamedEntityRepository {
     private static final String NAMED_ENTITY = "named_entity";
     private static final String DOCUMENT = "document";
-    private final PGPoolingDataSource source;
+    private final DataSource source;
 
     public JooqNamedEntityRepository() throws SQLException {
-        source = new PGPoolingDataSource();
-        source.setDataSourceName("datashare");
-        source.setServerName("postgresql");
-        source.setDatabaseName("datashare");
-        source.setUser("datashare");
-        source.setPassword("dev");
-        source.setMaxConnections(10);
+        SQLiteConnectionPoolDataSource sqLiteConnectionPoolDataSource = new SQLiteConnectionPoolDataSource();
+        sqLiteConnectionPoolDataSource.setUrl("jdbc:sqlite:/home/dev/datashare.sqlite");
+        source = sqLiteConnectionPoolDataSource;
         try (Connection conn = source.getConnection()) {
             DSLContext create = DSL.using(conn, SQLDialect.POSTGRES_10);
             create.createTable(NAMED_ENTITY).
