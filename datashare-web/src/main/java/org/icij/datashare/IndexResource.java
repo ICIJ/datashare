@@ -106,7 +106,7 @@ public class IndexResource {
 
     @NotNull
     private String getUrl(String index, String path, Context context) {
-        if (isGranted((HashMapUser)context.currentUser(), index)) {
+        if (isGranted((HashMapUser)context.currentUser(), index) || ("scroll".equals(path) && "_search".equals(index))) {
             String s = es_url + "/" + index + "/" + path;
             if (context.query().keyValues().size() > 0) {
                 s += "?" + getQueryAsString(context.query());

@@ -70,6 +70,15 @@ public class IndexResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_auth_forward_request_for_scroll_requests() {
+        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
+            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
+        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
+
+        post("/api/index/search/_search/scroll").withPreemptiveAuthentication("cecile", "").should().respond(200);
+    }
+
+    @Test
     public void test_delete_should_return_method_not_allowed() {
         delete("/api/index/search/foo/bar").should().respond(405);
     }
