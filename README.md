@@ -8,8 +8,6 @@ into indexes and shared securely within a network of trusted individuals,
 fostering unforeseen collaboration and prompting new and better investigations 
 that uncover corruption, transnational crime and abuse of power.
 
-[DataShare: connecting local data with a global collective intelligence](https://www.newschallenge.org/challenge/data/refinement/datashare-connecting-local-data-with-a-global-collective-intelligence)
-
 
 ## Current Features
 
