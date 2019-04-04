@@ -16,22 +16,22 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     public Neo4jNamedEntityRepository() throws SQLException {
         jdbcTemplate = new JdbcTemplate(new DriverManagerDataSource("jdbc:neo4j:bolt://neo4j/?user=neo4j&password=dev&flatten=-1"));
         jdbcTemplate.update("CREATE CONSTRAINT ON (doc:Document) ASSERT doc.id IS UNIQUE");
-        jdbcTemplate.update("CREATE CONSTRAINT ON (ne:NamedEntity) ASSERT ne.mention IS UNIQUE");
+        jdbcTemplate.update("CREATE CONSTRAINT ON (ne:NamedEntity) ASSERT ne.id IS UNIQUE");
     }
 
     @Override
     public NamedEntity get(String id) {
         return (NamedEntity) jdbcTemplate.queryForObject(
-                "MERGE (ne)-[rel:IS_MENTIONED {id: ?}]->(doc)\n" +
-                        "RETURN rel, ne, doc",
+                "MATCH (ne:NamedEntity {id: ?})-[r:IS_MENTIONED]->(doc)\n" +
+                        "RETURN ne, doc",
                 new Object[]{id},
                 (rs, i) ->
-                        NamedEntity.create(NamedEntity.Category.parse(rs.getString("rel.category")),
+                        NamedEntity.create(NamedEntity.Category.parse(rs.getString("ne.category")),
                                 rs.getString("ne.mention"),
-                                rs.getInt("rel.offset"),
+                                rs.getInt("ne.offset"),
                                 rs.getString("doc.id"),
-                                Pipeline.Type.valueOf(rs.getString("rel.pipeline")),
-                                Language.parse(rs.getString("rel.language"))));
+                                Pipeline.Type.valueOf(rs.getString("ne.pipeline")),
+                                Language.parse(rs.getString("ne.language"))));
     }
 
     @Override
@@ -48,18 +48,19 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     public int create(NamedEntity ne) {
         return jdbcTemplate.update(
                 "MATCH (doc:Document {id: ?})\n" +
-                        "MERGE (ne:NamedEntity {mention: ?})\n" +
-                        "MERGE (ne)-[rel:IS_MENTIONED {id: ?}]->(doc)\n" +
-                        "SET rel.category = ?,\n" +
-                        "    rel.pipeline = ?,\n" +
-                        "    rel.language = ?,\n" +
-                        "    rel.offset = ?\n" +
-                        "RETURN rel",
+                        "MERGE (ne:NamedEntity {id: ?})\n" +
+                        "SET ne.category = ?,\n" +
+                        "    ne.mention = ?,\n" +
+                        "    ne.pipeline = ?,\n" +
+                        "    ne.language = ?,\n" +
+                        "    ne.offset = ?\n" +
+                        "CREATE (ne)-[rel:IS_MENTIONED]->(doc)" +
+                        "RETURN ne",
                 new Object[]{
                         ne.getDocumentId(),
-                        ne.getMention(),
                         ne.getId(),
                         ne.getCategory().toString(),
+                        ne.getMention(),
                         ne.getExtractor().toString(),
                         ne.getExtractorLanguage().toString(),
                         ne.getOffset()
