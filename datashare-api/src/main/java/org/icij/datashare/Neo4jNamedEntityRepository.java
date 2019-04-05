@@ -17,7 +17,7 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
         try ( Session session = driver.session() ) {
             session.writeTransaction(transaction -> {
                 transaction.run("CREATE CONSTRAINT ON (doc:Document) ASSERT doc.id IS UNIQUE");
-                StatementResult result = transaction.run("CREATE CONSTRAINT ON (ne:NamedEntity) ASSERT ne.id IS UNIQUE");
+                transaction.run("CREATE CONSTRAINT ON (ne:NamedEntity) ASSERT ne.mention IS UNIQUE");
                 return "";
             });
         }
@@ -27,14 +27,16 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
     public NamedEntity get(String id) {
         try ( Session session = driver.session() ) {
             return session.readTransaction(transaction -> {
-                StatementResult result = transaction.run("MATCH (ne:NamedEntity {id: $id})-[r:IS_MENTIONED]->(doc) RETURN ne, doc", parameters("id", id));
+                StatementResult result = transaction.run(
+                        "MATCH (ne:NamedEntity)-[rel:IS_MENTIONED {id: $id}]->(doc) " +
+                        "RETURN ne, rel, doc", parameters("id", id));
                 Record ne = result.next();
-                return NamedEntity.create(NamedEntity.Category.parse(ne.get("ne").get("category").asString()),
+                return NamedEntity.create(NamedEntity.Category.parse(ne.get("rel").get("category").asString()),
                         ne.get("ne").get("mention").asString(),
-                        ne.get("ne").get("offset").asInt(),
+                        ne.get("rel").get("offset").asInt(),
                         ne.get("doc").get("id").asString(),
-                        Pipeline.Type.valueOf(ne.get("ne").get("pipeline").asString()),
-                        Language.parse(ne.get("ne").get("language").asString()));
+                        Pipeline.Type.valueOf(ne.get("rel").get("pipeline").asString()),
+                        Language.parse(ne.get("rel").get("language").asString()));
             });
         }
     }
@@ -56,14 +58,13 @@ public class Neo4jNamedEntityRepository implements NamedEntityRepository {
         try ( Session session = driver.session() ) {
             return session.writeTransaction(transaction -> {
                 StatementResult result = transaction.run("MATCH (doc:Document {id: $id})\n" +
-                                "MERGE (ne:NamedEntity {id: $neId})\n" +
-                                "SET ne.category = $category,\n" +
-                                "    ne.mention = $mention,\n" +
-                                "    ne.pipeline = $pipeline,\n" +
-                                "    ne.language = $language,\n" +
-                                "    ne.offset = $offset\n" +
-                                "CREATE (ne)-[rel:IS_MENTIONED]->(doc)" +
-                                "RETURN ne",
+                                "MERGE (ne:NamedEntity {mention: $mention})\n" +
+                                "MERGE (ne)-[rel:IS_MENTIONED {id: $neId}]->(doc)\n" +
+                                "SET rel.category = $category,\n" +
+                                "    rel.mention = $mention,\n" +
+                                "    rel.pipeline = $pipeline,\n" +
+                                "    rel.language = $language,\n" +
+                                "    rel.offset = $offset",
                         parameters("id", ne.getDocumentId(),
                                 "neId", ne.getId(),
                                 "category", ne.getCategory().toString(),
