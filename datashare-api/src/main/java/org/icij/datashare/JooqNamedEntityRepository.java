@@ -43,6 +43,7 @@ public class JooqNamedEntityRepository implements NamedEntityRepository {
             create.createTable(DOCUMENT).
                     column("id", SQLDataType.VARCHAR.length(96).nullable(false)).
                     column("path", SQLDataType.VARCHAR(4096)).
+                    column("content", SQLDataType.VARCHAR).
                     constraints(
                             constraint("PK_ID_DOC").primaryKey("id")
                     ).execute();
@@ -84,8 +85,8 @@ public class JooqNamedEntityRepository implements NamedEntityRepository {
         try (Connection conn = source.getConnection()) {
             DSLContext ctx = DSL.using(conn, SQLDialect.POSTGRES_10);
             ctx.insertInto(table(DOCUMENT),
-                    field("id"), field("path")).
-                    values(doc.getId(), doc.getPath().toString()).execute();
+                    field("id"), field("path"), field("content")).
+                    values(doc.getId(), doc.getPath().toString(), doc.getContent()).execute();
         }
     }
 

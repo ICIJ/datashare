@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -27,7 +28,7 @@ public class Bench {
         long beginTime = System.currentTimeMillis();
         for (int docIdx = 0 ; docIdx < nbDocs ; docIdx++) {
             Document document = new Document(Paths.get("/foo/bar_" + docIdx + ".txt"),
-                    "This is a content with Gael Giraud " + docIdx,
+                    generate("This is a content with Gael Giraud " + docIdx, 15 * 1000* 1000),
                     Language.FRENCH,
                     Charset.defaultCharset(),
                     "text/plain",
@@ -60,4 +61,8 @@ public class Bench {
         endTime = System.currentTimeMillis();
         logger.info("done in {}ms", endTime -beginTime);
     }
+
+    private String generate(String seed, int nbBytes) {
+       return String.join("", Collections.nCopies(nbBytes/seed.length(), seed));
+   }
 }
