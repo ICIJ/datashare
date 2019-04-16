@@ -5,6 +5,7 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.jooq.DSLContext;
+import org.jooq.InsertValuesStep8;
 import org.jooq.Record;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
@@ -13,6 +14,7 @@ import org.postgresql.ds.PGPoolingDataSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 import static org.jooq.impl.DSL.*;
 
@@ -72,14 +74,18 @@ public class JooqNamedEntityRepository implements NamedEntityRepository {
     }
 
     @Override
-    public void create(NamedEntity ne) throws SQLException {
+    public void create(List<NamedEntity> neList) throws SQLException {
         try (Connection conn = source.getConnection()) {
             DSLContext ctx = DSL.using(conn, SQLDialect.POSTGRES_10);
-            ctx.insertInto(table(NAMED_ENTITY),
+            InsertValuesStep8<Record, Object, Object, Object, Object, Object, Object, Object, Object> sqlRequest = ctx.insertInto(table(NAMED_ENTITY),
                     field("id"), field("category"), field("mention"), field("neoffset"), field("document_id"),
-                    field("document_root"), field("extractor"), field("language")).
-                    values(ne.getId(), ne.getCategory().toString(), ne.getMention(), ne.getOffset(), ne.getDocumentId(),
-                            ne.getRootDocument(), ne.getExtractor().toString(), ne.getExtractorLanguage().toString()).execute();
+                    field("document_root"), field("extractor"), field("language"));
+
+            for (NamedEntity ne: neList) {
+                sqlRequest.values(ne.getId(), ne.getCategory().toString(), ne.getMention(), ne.getOffset(), ne.getDocumentId(),
+                        ne.getRootDocument(), ne.getExtractor().toString(), ne.getExtractorLanguage().toString());
+            }
+            sqlRequest.execute();
         }
     }
 

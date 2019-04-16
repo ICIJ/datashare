@@ -11,9 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.*;
 
 public class Bench {
     static Logger logger = LoggerFactory.getLogger(Bench.class);
@@ -28,7 +26,7 @@ public class Bench {
         long beginTime = System.currentTimeMillis();
         for (int docIdx = 0 ; docIdx < nbDocs ; docIdx++) {
             Document document = new Document(Paths.get("/foo/bar_" + docIdx + ".txt"),
-                    generate("This is a content with Gael Giraud " + docIdx, 15*1000*1000),
+                    "This is a content with Gael Giraud " + docIdx,
                     Language.FRENCH,
                     Charset.defaultCharset(),
                     "text/plain",
@@ -39,13 +37,15 @@ public class Bench {
                     Document.Status.INDEXED);
             neo4jRepository.create(document);
 
+            List<NamedEntity> neList = new ArrayList<>();
             for (int neIdx = 0; neIdx < nbNes; neIdx++) {
                 NamedEntity ne = NamedEntity.create(
                         NamedEntity.Category.PERSON, "Gael Giraud" + neIdx, 23, document.getId(),
                         Pipeline.Type.CORENLP, Language.FRENCH);
-                neo4jRepository.create(ne);
                 neIds.add(ne.getId());
+                neList.add(ne);
             }
+            neo4jRepository.create(neList);
             if (docIdx % 10 == 0) {
                 logger.info("wrote {} docs", docIdx);
             }
