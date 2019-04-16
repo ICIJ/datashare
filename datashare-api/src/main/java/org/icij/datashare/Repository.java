@@ -4,7 +4,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import java.util.List;
 
-interface Repository {
+public interface Repository {
    NamedEntity get(String id);
    void create(List<NamedEntity> neList);
    void create(Document document);

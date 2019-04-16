@@ -36,6 +36,7 @@
     <modules>
         <module>commons-test</module>
         <module>datashare-api</module>
+        <module>datashare-db</module>
         <module>datashare-cli</module>
         <module>datashare-index</module>
         <module>datashare-nlp</module>
