@@ -14,6 +14,9 @@ dist:
 install:
 		mvn install
 
+help-db:
+		mvn help:describe -DgroupId=org.liquibase -DartifactId=liquibase-maven-plugin -Dversion=2.0.1 -Dfull=true
+
 release:
 		mvn versions:set -DnewVersion=${NEW_VERSION}
 		git commit -am "[release] ${NEW_VERSION}"
