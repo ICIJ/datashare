@@ -4,7 +4,7 @@ FROM frolvlad/alpine-glibc
 # without glibc stuffs because we're using alpine-glibc
 RUN cd /tmp && JAVA_MINOR_VERSION=202 && \
   wget  --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
-  "https://download.oracle.com/otn-pub/java/jdk/8u202-b08/1961070e4c9b4e26a04e7f5a083f551e/jre-8u202-linux-x64.tar.gz" && \
+  "https://download.oracle.com/otn/java/jdk/8u212-b10/59066701cf1a433da9770636fbc4c9aa/jre-8u212-linux-x64.tar.gz" && \
   mkdir -p /opt/java && cd /opt/java && \
   tar -zxf /tmp/jre-8u${JAVA_MINOR_VERSION}-linux-x64.tar.gz && \
   ln -s /opt/java/jre1.8.0_${JAVA_MINOR_VERSION} /opt/java/current && \
