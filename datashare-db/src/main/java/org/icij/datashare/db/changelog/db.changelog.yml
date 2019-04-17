@@ -1,3 +1,0 @@
-databaseChangeLog:
-  - includeAll:
-      path: src/main/java/org/icij/datashare/db/changelog/changes
