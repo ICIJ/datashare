@@ -24,14 +24,9 @@
             <name>Julien Martin</name>
             <id>julm</id>
             <email>julien.pierre.martin@gmail.com</email>
-            <roles>
-                <role>Project Lead</role>
-                <role>Developer</role>
-            </roles>
             <organization>ICIJ</organization>
         </developer>
     </developers>
-
 
     <modules>
         <module>commons-test</module>
