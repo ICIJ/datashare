@@ -11,13 +11,208 @@ databaseChangeLog:
                     type: varchar(96)
                     constraints:
                         primaryKey: true
-                        nullable: false
                 - column:
                     name: path
                     type: varchar(4096)
+                    constraints:
+                        nullable: false
                 - column:
                     name: content
                     type: text
                 - column:
                     name: status
                     type: tinyint
+                - column:
+                    name: extraction_level
+                    type: tinyint
+                - column:
+                    name: language
+                    type: char(2)
+                - column:
+                    name: extraction_date
+                    type: datetime
+                - column:
+                    name: parent_id
+                    type: varchar(96)
+                - column:
+                    name: root_id
+                    type: varchar(96)
+                - column:
+                    name: content_type
+                    type: varchar(256)
+                - column:
+                    name: content_length
+                    type: bigint
+                - column:
+                    name: charset
+                    type: varchar(32)
+
+
+        - createIndex:
+            indexName: document_parent_id
+            tableName: document
+            columns:
+              - column:
+                  name: parent_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: document_status
+            tableName: document
+            columns:
+              - column:
+                  name: status
+                  type: tinyint
+
+        - createTable:
+            tableName: document_meta
+            columns:
+                - column:
+                    name: doc_id
+                    type: varchar(96)
+                    constraints:
+                        nullable: false
+                - column:
+                    name: key
+                    type: varchar(256)
+                    constraints:
+                        nullable: false
+                - column:
+                    name: value
+                    type: varchar(4096)
+
+        - createIndex:
+            indexName: document_meta_doc_id
+            tableName: document_meta
+            columns:
+               - column:
+                  name: doc_id
+                  type: varchar(96)
+
+        - createTable:
+            tableName: ner_pipeline_type
+            columns:
+              - column:
+                  name: id
+                  type: tinyint
+                  constraints:
+                      primaryKey: true
+              - column:
+                  name: label
+                  type: varchar(16)
+
+        - createTable:
+            tableName: document_ner_pipeline_type
+            columns:
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type_id
+                  type: tinyint
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            indexName: document_pipeline_type_unique
+            tableName: document_ner_pipeline_type
+            columnNames: type_id, doc_id
+
+        - createTable:
+            tableName: named_entity
+            columns:
+              - column:
+                  name: id
+                  type: varchar(96)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: mention
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: offset
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: extractor
+                  type: tinyint
+              - column:
+                  name: category
+                  type: varchar(8)
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: root_id
+                  type: varchar(96)
+              - column:
+                  name: extractor_language
+                  type: char(2)
+              - column:
+                  name: hidden
+                  type: boolean
+
+        - createIndex:
+            indexName: named_entity_doc_id
+            tableName: named_entity
+            columns:
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+
+  - changeSet:
+      id: 2
+      author: bthomas
+      changes:
+        - insert:
+            tableName: ner_pipeline_type
+            columns:
+              - column:
+                  name: id
+                  value: 0
+              - column:
+                  name: label
+                  value: CORENLP
+        - insert:
+            tableName: ner_pipeline_type
+            columns:
+              - column:
+                  name: id
+                  value: 1
+              - column:
+                  name: label
+                  value: GATENLP
+        - insert:
+            tableName: ner_pipeline_type
+            columns:
+              - column:
+                  name: id
+                  value: 2
+              - column:
+                  name: label
+                  value: IXAPIPE
+        - insert:
+            tableName: ner_pipeline_type
+            columns:
+              - column:
+                  name: id
+                  value: 3
+              - column:
+                  name: label
+                  value: MITIE
+        - insert:
+            tableName: ner_pipeline_type
+            columns:
+              - column:
+                  name: id
+                  value: 4
+              - column:
+                  name: label
+                  value: OPENNLP

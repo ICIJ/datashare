@@ -21,15 +21,19 @@ import static org.icij.datashare.text.nlp.NlpStage.NER;
 
 public interface Pipeline {
     enum Type implements EnumTypeToken {
-        CORENLP,
-        GATENLP,
-        IXAPIPE,
-        MITIE,
-        OPENNLP;
+        CORENLP(0),
+        GATENLP(1),
+        IXAPIPE(2),
+        MITIE(3),
+        OPENNLP(4);
 
         private final String className;
+        public final int code;
 
-        Type() { className = buildClassName(Pipeline.class, this); }
+        Type(final int code) {
+            className = buildClassName(Pipeline.class, this);
+            this.code = code;
+        }
 
         @Override
         public String getClassName() { return className; }
