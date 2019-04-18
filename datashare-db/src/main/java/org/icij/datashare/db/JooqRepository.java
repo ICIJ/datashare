@@ -41,27 +41,27 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public void create(List<NamedEntity> neList) {
+
+    }
+
+    @Override
     public Document getDocument(final String id) throws SQLException {
         try(Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             Record docResult = create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0);
             Result<Record> metaResults = create.select().from(table(DOCUMENT_META)).where(field("doc_id").eq(id)).fetch();
             Result<Record> nerResults = create.select().from(table(DOCUMENT_NER)).where(field("doc_id").eq(id)).fetch();
-            return createDocumentFrom(docResult, metaResults, nerResults);
+            return createFrom(docResult, metaResults, nerResults);
         }
-    }
-
-    @Override
-    public void create(List<NamedEntity> neList) {
-
     }
 
     @Override
     public void create(Document doc) throws SQLException {
         try(Connection conn = connectionProvider.acquire()) {
             DSLContext ctx = DSL.using(conn, dialect);
-            ctx.transaction(configuration -> {
-                DSL.using(configuration).insertInto(table(DOCUMENT),
+            ctx.transaction(cfg -> {
+                DSL.using(cfg).insertInto(table(DOCUMENT),
                                     field("id"), field("path"), field("content"), field("status"),
                                     field("charset"), field("language"), field("content_type"),
                                     field("extraction_date"), field("parent_id"), field("root_id")).
@@ -69,12 +69,12 @@ public class JooqRepository implements Repository {
                                             doc.getContentEncoding(), doc.getLanguage().iso6391Code(), doc.getContentType(),
                                             doc.getExtractionDate(), doc.getParentDocument(), doc.getRootDocument()).execute();
 
-                InsertValuesStep3<Record, Object, Object, Object> insertMeta = DSL.using(configuration).insertInto(table(DOCUMENT_META), field("doc_id"), field("key"), field("value"));
+                InsertValuesStep3<Record, Object, Object, Object> insertMeta = DSL.using(cfg).insertInto(table(DOCUMENT_META), field("doc_id"), field("key"), field("value"));
                 doc.getMetadata().forEach((key, value) -> insertMeta.values(doc.getId(), key, value));
                 insertMeta.execute();
 
                 if (!doc.getNerTags().isEmpty()) {
-                    InsertValuesStep2<Record, Object, Object> insertNerPipelines = DSL.using(configuration).insertInto(table(DOCUMENT_NER), field("doc_id"), field("type_id"));
+                    InsertValuesStep2<Record, Object, Object> insertNerPipelines = DSL.using(cfg).insertInto(table(DOCUMENT_NER), field("doc_id"), field("type_id"));
                     doc.getNerTags().forEach(type -> insertNerPipelines.values(doc.getId(), type.code));
                     insertNerPipelines.execute();
                 }
@@ -83,16 +83,12 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public void update(NamedEntity ne) {
-
-    }
+    public NamedEntity deleteNamedEntity(String id) { return null;}
 
     @Override
-    public NamedEntity delete(String id) {
-        return null;
-    }
+    public Document deleteDocument(String id) { return null;}
 
-    private Document createDocumentFrom(Record result, Result<Record> metaResults, Result<Record> nerResults) {
+    private Document createFrom(Record result, Result<Record> metaResults, Result<Record> nerResults) {
         Map<String, String> map = (Map<String, String>) metaResults.intoMap("key", "value");
         Set<Pipeline.Type> nerTags = nerResults.intoSet("type_id").stream().map(i -> Pipeline.Type.fromCode((Byte)i)).collect(toSet());
         return new Document(result.get("id", String.class), Paths.get(result.get("path", String.class)),

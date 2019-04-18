@@ -11,6 +11,6 @@ public interface Repository {
    Document getDocument(String id) throws SQLException;
    void create(List<NamedEntity> neList);
    void create(Document document) throws SQLException;
-   void update(NamedEntity ne);
-   NamedEntity delete(String id);
+   NamedEntity deleteNamedEntity(String id);
+   Document deleteDocument(String id);
 }
