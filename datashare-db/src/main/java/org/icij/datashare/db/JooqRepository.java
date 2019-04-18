@@ -41,7 +41,7 @@ public class JooqRepository implements Repository {
         try(Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             Record result = create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0);
-            return createFrom(result);
+            return createDocumentFrom(result);
         }
     }
 
@@ -72,7 +72,7 @@ public class JooqRepository implements Repository {
         return null;
     }
 
-    private Document createFrom(Record result) {
+    private Document createDocumentFrom(Record result) {
         return new Document(result.get("id", String.class), Paths.get(result.get("path", String.class)),
                 result.get("content", String.class), parse(result.get("language", String.class)), forName(result.get("charset", String.class)),
                 result.get("content_type", String.class), new HashMap<>(), fromCode(result.get("status", Integer.class)));
