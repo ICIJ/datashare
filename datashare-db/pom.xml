@@ -12,6 +12,10 @@
     <artifactId>datashare-db</artifactId>
     <packaging>jar</packaging>
 
+    <properties>
+        <liquibase.version>3.6.3</liquibase.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.icij.datashare</groupId>
@@ -42,6 +46,37 @@
             <artifactId>jooq-meta</artifactId>
             <version>3.11.9</version>
         </dependency>
+
+        <!-- test deps -->
+        <dependency>
+            <groupId>org.liquibase</groupId>
+            <artifactId>liquibase-core</artifactId>
+            <version>${liquibase.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.ninja-squad</groupId>
+            <artifactId>DbSetup</artifactId>
+            <version>2.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.easytesting</groupId>
+            <artifactId>fest-assert</artifactId>
+            <version>1.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+             <groupId>ch.qos.logback</groupId>
+             <artifactId>logback-core</artifactId>
+            <version>1.1.7</version>
+             <scope>test</scope>
+       </dependency>
     </dependencies>
 
     <profiles>
@@ -79,7 +114,7 @@
             <plugin>
                 <groupId>org.liquibase</groupId>
                 <artifactId>liquibase-maven-plugin</artifactId>
-                <version>3.6.3</version>
+                <version>${liquibase.version}</version>
                 <configuration>
                     <propertyFile>target/classes/liquibase/liquibase.properties</propertyFile>
                     <propertyFileWillOverride>true</propertyFileWillOverride>

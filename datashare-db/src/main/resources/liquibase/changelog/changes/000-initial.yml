@@ -115,11 +115,6 @@ databaseChangeLog:
                   constraints:
                     nullable: false
 
-        - addUniqueConstraint:
-            indexName: document_pipeline_type_unique
-            tableName: document_ner_pipeline_type
-            columnNames: type_id, doc_id
-
         - createTable:
             tableName: named_entity
             columns:

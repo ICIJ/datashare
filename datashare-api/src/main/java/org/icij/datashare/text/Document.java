@@ -10,10 +10,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.nio.file.Paths.get;
 import static java.util.Optional.ofNullable;
@@ -24,7 +21,23 @@ import static java.util.Optional.ofNullable;
 public class Document implements Entity {
     private static final long serialVersionUID = 5913568429773112L;
 
-    public enum Status {PARSED, INDEXED, DONE}
+    public enum Status {
+        PARSED(0), INDEXED(1), DONE(2);
+        public final int code;
+
+        Status(int code) {
+            this.code = code;
+        }
+
+        public static Status fromCode(final int code) {
+            for (Status status : Status.values()) {
+                if (status.code == code) {
+                    return status;
+                }
+            }
+            throw new IllegalArgumentException("invalid status code " + code);
+        }
+    }
 
     private final String id;
     private final Path path;
@@ -51,6 +64,10 @@ public class Document implements Entity {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
     }
 
+    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
+        this(id, filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
+    }
+
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags) {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null);
     }
@@ -61,7 +78,7 @@ public class Document implements Entity {
 
     @JsonCreator
     private Document(@JsonProperty("id") String id, @JsonProperty("path") Path path,
-                     @JsonProperty("dirname") Path dirname, @JsonProperty("content") String  content,
+                     @JsonProperty("dirname") Path dirname, @JsonProperty("content") String content,
                      @JsonProperty("language") Language language, @JsonProperty("extractionDate") Date extractionDate,
                      @JsonProperty("contentEncoding") Charset contentEncoding, @JsonProperty("contentType") String contentType,
                      @JsonProperty("extractionLevel") int extractionLevel,
@@ -89,26 +106,52 @@ public class Document implements Entity {
 
     @Override
     public String getId() { return id; }
+
     public String getContent() { return content; }
+
     public Path getPath() { return path;}
+
     public Path getDirname() { return dirname;}
+
     public Charset getContentEncoding() { return contentEncoding; }
+
     public Integer getContentLength() { return contentLength; }
+
     public String getContentType() { return contentType; }
+
     public Language getLanguage() { return language; }
+
     public int getExtractionLevel() { return extractionLevel;}
+
     public String getRootDocument() {return ofNullable(rootDocument).orElse(getId());}
+
     public String getParentDocument() { return parentDocument;}
+
     public Status getStatus() { return status;}
 
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
+
     public Map<String, String> getMetadata() { return metadata; }
 
     @JsonIgnore
-    public String getName() { return path.getName(path.getNameCount()-1).toString(); }
+    public String getName() { return path.getName(path.getNameCount() - 1).toString(); }
+
     @Override
     public String toString() {
-        return (path != null ? getName(): "") + "(" + this.getId() + ")";
+        return (path != null ? getName() : "") + "(" + this.getId() + ")";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Document document = (Document) o;
+        return Objects.equals(id, document.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 
     private static Path getDirnameFrom(Path filePath) { return ofNullable(filePath.getParent()).orElse(get(""));}
