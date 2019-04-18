@@ -51,12 +51,12 @@ public class JooqRepository implements Repository {
             DSLContext create = DSL.using(conn, dialect);
             InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object>
                     insertQuery = create.insertInto(table(NAMED_ENTITY),
-                    field("id"), field("mention"), field("offset"), field("extractor"),
+                    field("id"), field("mention"), field("ne_offset"), field("extractor"),
                     field("category"), field("doc_id"), field("root_id"),
                     field("extractor_language"), field("hidden"));
             neList.forEach(ne -> insertQuery.values(
                     ne.getId(), ne.getMention(), ne.getOffset(), ne.getExtractor().code,
-                    ne.getCategory(), ne.getDocumentId(), ne.getRootDocument(),
+                    ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
                     ne.getExtractorLanguage().iso6391Code(), ne.isHidden()));
             insertQuery.execute();
         }
@@ -84,7 +84,7 @@ public class JooqRepository implements Repository {
                                     field("extraction_date"), field("parent_id"), field("root_id"),
                                     field("extraction_level"), field("content_length")).
                                     values(doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
-                                            doc.getContentEncoding(), doc.getLanguage().iso6391Code(), doc.getContentType(),
+                                            doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
                                             doc.getExtractionDate(), doc.getParentDocument(), doc.getRootDocument(),
                                             doc.getExtractionLevel(), doc.getContentLength()).execute();
 
@@ -109,7 +109,7 @@ public class JooqRepository implements Repository {
 
     private NamedEntity createFrom(Record record) {
         return NamedEntity.create(NamedEntity.Category.parse(record.get("category", String.class)),
-                record.get("mention", String.class), record.get("offset", Integer.class),
+                record.get("mention", String.class), record.get("ne_offset", Integer.class),
                 record.get("doc_id", String.class), Pipeline.Type.fromCode(record.get("extractor", Integer.class)),
                 Language.parse(record.get("extractor_language", String.class)));
     }

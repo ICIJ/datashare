@@ -129,13 +129,15 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: offset
+                  name: ne_offset
                   type: bigint
                   constraints:
                     nullable: false
               - column:
                   name: extractor
                   type: tinyint
+                  constraints:
+                    nullable: false
               - column:
                   name: category
                   type: varchar(8)

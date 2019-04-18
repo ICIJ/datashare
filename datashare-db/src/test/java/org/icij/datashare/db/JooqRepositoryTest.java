@@ -52,7 +52,12 @@ public class JooqRepositoryTest {
 
         repository.create(namedEntities);
 
-        assertThat(repository.getNamedEntity(namedEntities.get(0).getId())).isEqualTo(namedEntities.get(0));
+        NamedEntity actualNe1 = repository.getNamedEntity(namedEntities.get(0).getId());
+        assertThat(actualNe1).isEqualTo(namedEntities.get(0));
+        assertThat(actualNe1.getCategory()).isEqualTo(PERSON);
+        assertThat(actualNe1.getExtractor()).isEqualTo(CORENLP);
+        assertThat(actualNe1.getExtractorLanguage()).isEqualTo(GERMAN);
+
         assertThat(repository.getNamedEntity(namedEntities.get(1).getId())).isEqualTo(namedEntities.get(1));
     }
 }
