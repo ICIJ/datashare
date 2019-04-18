@@ -28,7 +28,7 @@ public class JooqRepositoryTest {
                 Charset.defaultCharset(), "test/plain", new HashMap<String, String>() {{
                     put("key 1", "value 1");
                     put("key 2", "value 2");
-        }}, Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP));
+        }}, Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
 
         repository.create(document);
 

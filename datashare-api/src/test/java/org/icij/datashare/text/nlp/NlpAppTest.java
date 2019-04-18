@@ -133,7 +133,7 @@ public class NlpAppTest {
         initMocks(this);
         when(indexer.get(anyString(), anyString(), anyString())).thenReturn(
                 new Document(get("doc/path"), "content", FRENCH, Charset.defaultCharset(),
-                        "application/pdf", new HashMap<>(), INDEXED));
+                        "application/pdf", new HashMap<>(), INDEXED, 432L));
         when(pipeline.getType()).thenReturn(OPENNLP);
         when(pipeline.initialize(any(Language.class))).thenReturn(true);
         when(pipeline.process(anyString(), anyString(), any(Language.class))).thenReturn(

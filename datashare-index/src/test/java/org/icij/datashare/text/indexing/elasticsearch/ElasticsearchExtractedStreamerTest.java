@@ -33,9 +33,9 @@ public class ElasticsearchExtractedStreamerTest {
     @Test
     public void test_stream_path() throws Exception {
         streamer.indexer.add(TEST_INDEX, new org.icij.datashare.text.Document(get("/dir/doc1.txt"),
-                "content1", Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED));
+                "content1", Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, 432L));
         streamer.indexer.add(TEST_INDEX, new org.icij.datashare.text.Document(get("/dir/doc2.txt"),
-                "content2", Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED));
+                "content2", Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, 352L));
 
         Set<Path> paths = streamer.extractedDocuments().collect(Collectors.toSet());
 

@@ -34,7 +34,7 @@ public class ResumeNlpTaskTest {
     public void test_bug_size_of_search() throws Exception {
         for (int i = 0; i < 20; i++) {
             Document doc = new org.icij.datashare.text.Document(Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
-                    Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE);
+                    Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE, 543L);
             indexer.add(TEST_INDEX, doc);
         }
 

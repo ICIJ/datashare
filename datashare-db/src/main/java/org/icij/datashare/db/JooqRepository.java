@@ -64,10 +64,12 @@ public class JooqRepository implements Repository {
                 DSL.using(cfg).insertInto(table(DOCUMENT),
                                     field("id"), field("path"), field("content"), field("status"),
                                     field("charset"), field("language"), field("content_type"),
-                                    field("extraction_date"), field("parent_id"), field("root_id")).
+                                    field("extraction_date"), field("parent_id"), field("root_id"),
+                                    field("extraction_level"), field("content_length")).
                                     values(doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
                                             doc.getContentEncoding(), doc.getLanguage().iso6391Code(), doc.getContentType(),
-                                            doc.getExtractionDate(), doc.getParentDocument(), doc.getRootDocument()).execute();
+                                            doc.getExtractionDate(), doc.getParentDocument(), doc.getRootDocument(),
+                                            doc.getExtractionLevel(), doc.getContentLength()).execute();
 
                 InsertValuesStep3<Record, Object, Object, Object> insertMeta = DSL.using(cfg).insertInto(table(DOCUMENT_META), field("doc_id"), field("key"), field("value"));
                 doc.getMetadata().forEach((key, value) -> insertMeta.values(doc.getId(), key, value));
@@ -94,6 +96,8 @@ public class JooqRepository implements Repository {
         return new Document(result.get("id", String.class), Paths.get(result.get("path", String.class)),
                 result.get("content", String.class), parse(result.get("language", String.class)), forName(result.get("charset", String.class)),
                 result.get("content_type", String.class), map, fromCode(result.get("status", Integer.class)), nerTags,
-                new Date(result.get("extraction_date", Long.class)), result.get("parent_id", String.class), result.get("root_id", String.class));
+                new Date(result.get("extraction_date", Long.class)), result.get("parent_id", String.class), result.get("root_id", String.class),
+                result.get("extraction_level", Integer.class), result.get("content_length", Long.class)
+        );
     }
 }

@@ -40,7 +40,7 @@ public class NlpConsumerTest {
     public void test_on_message_do_not_processNLP__when_init_fails() throws Exception {
         when(pipeline.initialize(any())).thenReturn(false);
         Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
-                Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
+                Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED, 432L);
         when(indexer.get(anyString(), anyString(), anyString())).thenReturn(doc);
 
         nlpListener.findNamedEntities("indexName","id", "routing");
@@ -51,7 +51,7 @@ public class NlpConsumerTest {
     public void test_on_message_processNLP__when_doc_found_in_index() throws Exception {
         when(pipeline.initialize(any())).thenReturn(true);
         Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
-                Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
+                Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED, 432L);
         when(pipeline.process(anyString(), anyString(), any())).thenReturn(new Annotations(doc.getId(), Pipeline.Type.MITIE, FRENCH));
         when(indexer.get("indexName", doc.getId(), "routing")).thenReturn(doc);
 

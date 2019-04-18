@@ -47,7 +47,7 @@ public class Document implements Entity {
     private final int extractionLevel;
 
     private final String content;
-    private final int contentLength;
+    private final long contentLength;
     private final String contentType;
     @JsonDeserialize(using = CharsetDeserializer.class)
     private final Charset contentEncoding;
@@ -60,20 +60,20 @@ public class Document implements Entity {
     @IndexRoot
     private final String rootDocument;
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
-        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Long contentLength) {
+        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength);
     }
 
-    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument) {
-        this(id, filePath, getDirnameFrom(filePath), content, language, extractionDate, charset, mimetype, 0, metadata, status, nerTags, parentDocument, rootDocument);
+    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Integer extractionLevel, Long contentLength) {
+        this(id, filePath, getDirnameFrom(filePath), content, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength);
     }
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags) {
-        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null);
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
+        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
     }
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument) {
-        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument());
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
+        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength);
     }
 
     @JsonCreator
@@ -86,14 +86,15 @@ public class Document implements Entity {
                      @JsonProperty("status") Status status,
                      @JsonProperty("nerTags") Set<Pipeline.Type> nerTags,
                      @JsonProperty("parentDocument") String parentDocument,
-                     @JsonProperty("rootDocument") String rootDocument) {
+                     @JsonProperty("rootDocument") String rootDocument,
+                     @JsonProperty("contentLength") Long contentLength) {
         this.id = id;
         this.path = path;
         this.dirname = dirname;
         this.content = ofNullable(content).orElse("");
         this.extractionDate = extractionDate;
         this.extractionLevel = extractionLevel;
-        this.contentLength = this.content.length();
+        this.contentLength = ofNullable(contentLength).orElse(0L);
         this.language = language;
         this.contentType = contentType;
         this.contentEncoding = contentEncoding;
@@ -111,7 +112,7 @@ public class Document implements Entity {
     public Path getDirname() { return dirname;}
     public Date getExtractionDate() { return extractionDate;}
     public Charset getContentEncoding() { return contentEncoding; }
-    public Integer getContentLength() { return contentLength; }
+    public Long getContentLength() { return contentLength; }
     public String getContentType() { return contentType; }
     public Language getLanguage() { return language; }
     public int getExtractionLevel() { return extractionLevel;}
