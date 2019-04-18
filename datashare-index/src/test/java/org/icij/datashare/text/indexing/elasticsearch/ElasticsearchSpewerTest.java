@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.apache.tika.metadata.Metadata;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -13,6 +14,8 @@ import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
@@ -28,13 +31,18 @@ import org.mockito.Mockito;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
+import static java.nio.file.Paths.get;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
+import static org.icij.task.Options.from;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -54,23 +62,23 @@ public class ElasticsearchSpewerTest {
     public ElasticsearchSpewerTest() throws IOException {}
 
     @Test
-	public void test_simple_write() throws Exception {
-		final TikaDocument document = factory.create(Paths.get("test-file.txt"));
-		final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+    public void test_simple_write() throws Exception {
+        final TikaDocument document = factory.create(Paths.get("test-file.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
 
-		spewer.write(document, reader);
+        spewer.write(document, reader);
 
-    	GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
-		assertTrue(documentFields.isExists());
-		assertEquals(document.getId(), documentFields.getId());
-		assertEquals(new HashMap<String, String>() {{
-		    put("name", "Document");
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
+        assertTrue(documentFields.isExists());
+        assertEquals(document.getId(), documentFields.getId());
+        assertEquals(new HashMap<String, String>() {{
+            put("name", "Document");
         }}, documentFields.getSourceAsMap().get("join"));
 
         ArgumentCaptor<Message> argument = ArgumentCaptor.forClass(Message.class);
-		verify(publisher).publish(eq(Channel.NLP), argument.capture());
-		Assertions.assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
-	}
+        verify(publisher).publish(eq(Channel.NLP), argument.capture());
+        Assertions.assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
+    }
 
     @Test
     public void test_metadata() throws Exception {
@@ -89,6 +97,19 @@ public class ElasticsearchSpewerTest {
                 entry("path", path),
                 entry("dirname", Paths.get(path).getParent().toString())
         );
+    }
+
+    @Test
+    public void test_extract_id_should_be_equal_to_datashare_id() throws IOException {
+        DocumentFactory tikaFactory = new DocumentFactory().configure(from(new HashMap<String, String>() {{put("idMethod", "tika-digest");}}));
+        final TikaDocument extractDocument = tikaFactory.create(getClass().getResource("/docs/a/b/c/doc.txt").getPath());
+        new Extractor().extract(extractDocument);
+
+        Document document = new Document(get("/docs/a/b/c/doc.txt"), "This is a document to be parsed by datashare.",
+                Language.FRENCH, Charset.defaultCharset(), "text/plain", convert(extractDocument.getMetadata()),
+                Document.Status.INDEXED, 45L);
+
+        assertThat(document.getId()).isEqualTo(extractDocument.getId());
     }
 
     @Test
@@ -125,5 +146,13 @@ public class ElasticsearchSpewerTest {
         GetResponse documentFields_fr = es.client.get(new GetRequest(TEST_INDEX, "doc", document_fr.getId()));
         Assertions.assertThat(documentFields.getSourceAsMap()).includes(entry("language", "ENGLISH"));
         Assertions.assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "FRENCH"));
+    }
+
+    private Map<String, String> convert(Metadata metadata) {
+        Map<String, String> map = new HashMap<>();
+        for (String name: metadata.names()) {
+            map.put(name, metadata.get(name));
+        }
+        return map;
     }
 }
