@@ -64,8 +64,8 @@ public class Document implements Entity {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
     }
 
-    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags) {
-        this(id, filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null);
+    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument) {
+        this(id, filePath, getDirnameFrom(filePath), content, language, extractionDate, charset, mimetype, 0, metadata, status, nerTags, parentDocument, rootDocument);
     }
 
     public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags) {
@@ -106,31 +106,19 @@ public class Document implements Entity {
 
     @Override
     public String getId() { return id; }
-
     public String getContent() { return content; }
-
     public Path getPath() { return path;}
-
     public Path getDirname() { return dirname;}
-
+    public Date getExtractionDate() { return extractionDate;}
     public Charset getContentEncoding() { return contentEncoding; }
-
     public Integer getContentLength() { return contentLength; }
-
     public String getContentType() { return contentType; }
-
     public Language getLanguage() { return language; }
-
     public int getExtractionLevel() { return extractionLevel;}
-
     public String getRootDocument() {return ofNullable(rootDocument).orElse(getId());}
-
     public String getParentDocument() { return parentDocument;}
-
     public Status getStatus() { return status;}
-
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
-
     public Map<String, String> getMetadata() { return metadata; }
 
     @JsonIgnore

@@ -10,6 +10,7 @@ import org.jooq.impl.DSL;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,9 +63,11 @@ public class JooqRepository implements Repository {
             ctx.transaction(configuration -> {
                 DSL.using(configuration).insertInto(table(DOCUMENT),
                                     field("id"), field("path"), field("content"), field("status"),
-                                    field("charset"), field("language"), field("content_type")).
+                                    field("charset"), field("language"), field("content_type"),
+                                    field("extraction_date"), field("parent_id"), field("root_id")).
                                     values(doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
-                                            doc.getContentEncoding(), doc.getLanguage().iso6391Code(), doc.getContentType()).execute();
+                                            doc.getContentEncoding(), doc.getLanguage().iso6391Code(), doc.getContentType(),
+                                            doc.getExtractionDate(), doc.getParentDocument(), doc.getRootDocument()).execute();
 
                 InsertValuesStep3<Record, Object, Object, Object> insertMeta = DSL.using(configuration).insertInto(table(DOCUMENT_META), field("doc_id"), field("key"), field("value"));
                 doc.getMetadata().forEach((key, value) -> insertMeta.values(doc.getId(), key, value));
@@ -94,6 +97,7 @@ public class JooqRepository implements Repository {
         Set<Pipeline.Type> nerTags = nerResults.intoSet("type_id").stream().map(i -> Pipeline.Type.fromCode((Byte)i)).collect(toSet());
         return new Document(result.get("id", String.class), Paths.get(result.get("path", String.class)),
                 result.get("content", String.class), parse(result.get("language", String.class)), forName(result.get("charset", String.class)),
-                result.get("content_type", String.class), map, fromCode(result.get("status", Integer.class)), nerTags);
+                result.get("content_type", String.class), map, fromCode(result.get("status", Integer.class)), nerTags,
+                new Date(result.get("extraction_date", Long.class)), result.get("parent_id", String.class), result.get("root_id", String.class));
     }
 }

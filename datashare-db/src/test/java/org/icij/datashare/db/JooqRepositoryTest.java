@@ -36,5 +36,6 @@ public class JooqRepositoryTest {
         assertThat(actual).isEqualTo(document);
         assertThat(actual.getMetadata()).isEqualTo(document.getMetadata());
         assertThat(actual.getNerTags()).isEqualTo(document.getNerTags());
+        assertThat(actual.getExtractionDate()).isEqualTo(document.getExtractionDate());
     }
 }
