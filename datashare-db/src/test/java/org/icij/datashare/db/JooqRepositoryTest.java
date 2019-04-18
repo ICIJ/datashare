@@ -22,8 +22,15 @@ public class JooqRepositoryTest {
     @Test
     public void test_create_document() throws Exception {
         Document document = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
-                Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED);
+                Charset.defaultCharset(), "test/plain", new HashMap<String, String>() {{
+                    put("key 1", "value 1");
+                    put("key 2", "value 2");
+        }}, Document.Status.INDEXED);
+
         repository.create(document);
-        assertThat(repository.getDocument(document.getId())).isEqualTo(document);
+
+        Document actual = repository.getDocument(document.getId());
+        assertThat(actual).isEqualTo(document);
+        assertThat(actual.getMetadata()).isEqualTo(document.getMetadata());
     }
 }
