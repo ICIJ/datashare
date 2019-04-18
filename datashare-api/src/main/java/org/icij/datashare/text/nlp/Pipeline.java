@@ -5,9 +5,7 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 
 import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -20,6 +18,10 @@ import static org.icij.datashare.text.nlp.NlpStage.NER;
 
 
 public interface Pipeline {
+    static Set<Type> set(Type ...types) {
+        return new HashSet<>(Arrays.asList(types));
+    }
+
     enum Type implements EnumTypeToken {
         CORENLP(0),
         GATENLP(1),
@@ -33,6 +35,15 @@ public interface Pipeline {
         Type(final int code) {
             className = buildClassName(Pipeline.class, this);
             this.code = code;
+        }
+
+        public static Type fromCode(final int code) {
+            for (Type t: Type.values()) {
+                if (t.code == code) {
+                    return t;
+                }
+            }
+            throw new IllegalArgumentException("cannot find code " + code);
         }
 
         @Override

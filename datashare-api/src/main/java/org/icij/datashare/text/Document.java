@@ -64,11 +64,11 @@ public class Document implements Entity {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
     }
 
-    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status) {
-        this(id, filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null);
+    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags) {
+        this(id, filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null);
     }
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags) {
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags) {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null);
     }
 
