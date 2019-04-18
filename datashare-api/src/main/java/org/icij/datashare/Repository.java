@@ -7,9 +7,9 @@ import java.sql.SQLException;
 import java.util.List;
 
 public interface Repository {
-   NamedEntity getNamedEntity(String id);
+   NamedEntity getNamedEntity(String id) throws SQLException;
    Document getDocument(String id) throws SQLException;
-   void create(List<NamedEntity> neList);
+   void create(List<NamedEntity> neList) throws SQLException;
    void create(Document document) throws SQLException;
    NamedEntity deleteNamedEntity(String id);
    Document deleteDocument(String id);

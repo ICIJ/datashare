@@ -2,6 +2,7 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.jooq.*;
@@ -26,6 +27,7 @@ public class JooqRepository implements Repository {
     private static final String DOCUMENT = "document";
     private static final String DOCUMENT_META = "document_meta";
     private static final String DOCUMENT_NER = "document_ner_pipeline_type";
+    private static final String NAMED_ENTITY = "named_entity";
 
     private final ConnectionProvider connectionProvider;
     private SQLDialect dialect;
@@ -36,13 +38,28 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public NamedEntity getNamedEntity(String id) {
-        return null;
+    public NamedEntity getNamedEntity(String id) throws SQLException {
+        try(Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            return createFrom(create.select().from(table(NAMED_ENTITY)).where(field("id").eq(id)).fetch().get(0));
+        }
     }
 
     @Override
-    public void create(List<NamedEntity> neList) {
-
+    public void create(List<NamedEntity> neList) throws SQLException {
+        try(Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object>
+                    insertQuery = create.insertInto(table(NAMED_ENTITY),
+                    field("id"), field("mention"), field("offset"), field("extractor"),
+                    field("category"), field("doc_id"), field("root_id"),
+                    field("extractor_language"), field("hidden"));
+            neList.forEach(ne -> insertQuery.values(
+                    ne.getId(), ne.getMention(), ne.getOffset(), ne.getExtractor().code,
+                    ne.getCategory(), ne.getDocumentId(), ne.getRootDocument(),
+                    ne.getExtractorLanguage().iso6391Code(), ne.isHidden()));
+            insertQuery.execute();
+        }
     }
 
     @Override
@@ -89,6 +106,13 @@ public class JooqRepository implements Repository {
 
     @Override
     public Document deleteDocument(String id) { return null;}
+
+    private NamedEntity createFrom(Record record) {
+        return NamedEntity.create(NamedEntity.Category.parse(record.get("category", String.class)),
+                record.get("mention", String.class), record.get("offset", Integer.class),
+                record.get("doc_id", String.class), Pipeline.Type.fromCode(record.get("extractor", Integer.class)),
+                Language.parse(record.get("extractor_language", String.class)));
+    }
 
     private Document createFrom(Record result, Result<Record> metaResults, Result<Record> nerResults) {
         Map<String, String> map = (Map<String, String>) metaResults.intoMap("key", "value");

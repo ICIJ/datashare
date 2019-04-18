@@ -17,10 +17,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.text.nlp.Tag;
 
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.min;
@@ -153,19 +150,19 @@ public final class NamedEntity implements Entity {
         if (mention == null || mention.isEmpty()) {
             throw new IllegalArgumentException("Mention is undefined");
         }
+        this.mentionNorm = normalize(mention);
+        this.id = HASHER.hash( String.join("|",
+                getDocumentId(),
+                String.valueOf(offset),
+                extractor.toString(),
+                mentionNorm
+        ));
         this.category = Optional.ofNullable(category).orElse(UNKNOWN);
         this.mention = mention;
-        this.mentionNorm = normalize(mention);
         this.documentId = documentId;
         this.rootDocument = rootDocument;
         this.offset = offset;
         this.extractor = extractor;
-        this.id = HASHER.hash( String.join("|",
-                getDocumentId().toString(),
-                String.valueOf(offset),
-                getExtractor().toString(),
-                mentionNorm
-        ));
         this.extractorLanguage = extractorLanguage;
         this.hidden = hidden;
         this.partsOfSpeech = partsOfSpeech;
@@ -193,6 +190,19 @@ public final class NamedEntity implements Entity {
                 ", category=" + category +
                 ", offset=" + offset +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        NamedEntity that = (NamedEntity) o;
+        return id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 
     @JsonIgnore
