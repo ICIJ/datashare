@@ -152,7 +152,7 @@ public final class NamedEntity implements Entity {
         }
         this.mentionNorm = normalize(mention);
         this.id = HASHER.hash( String.join("|",
-                getDocumentId(),
+                documentId,
                 String.valueOf(offset),
                 extractor.toString(),
                 mentionNorm
