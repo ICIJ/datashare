@@ -63,6 +63,7 @@
         <guice.version>4.1.0</guice.version>
         <amazon.version>1.11.238</amazon.version>
 
+        <extract.version>2.1.2</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>6.3.1</elasticsearch.version>
         <jackson.version>2.8.11</jackson.version>
@@ -156,6 +157,12 @@
                 <artifactId>datashare-nlp-ixapipe</artifactId>
                 <version>${datashare-ixapipe.version}</version>
                 <scope>runtime</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.icij.extract</groupId>
+                <artifactId>extract-lib</artifactId>
+                <version>${extract.version}</version>
             </dependency>
 
             <dependency>

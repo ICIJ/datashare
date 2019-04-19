@@ -111,7 +111,7 @@ public class JooqRepository implements Repository {
     }
 
     private Document createFrom(Record result, Result<Record> nerResults) throws IOException {
-        Map<String, String> metadata = MAPPER.readValue(result.get("metadata", String.class), HashMap.class);
+        Map<String, Object> metadata = MAPPER.readValue(result.get("metadata", String.class), HashMap.class);
         Set<Pipeline.Type> nerTags = nerResults.intoSet("type_id", Integer.class).stream().map(Pipeline.Type::fromCode).collect(toSet());
         return new Document(result.get("id", String.class), Paths.get(result.get("path", String.class)),
                 result.get("content", String.class), parse(result.get("language", String.class)), forName(result.get("charset", String.class)),

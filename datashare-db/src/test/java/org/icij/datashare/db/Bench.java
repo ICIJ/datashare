@@ -35,7 +35,7 @@ public class Bench {
                     Language.FRENCH,
                     Charset.defaultCharset(),
                     "text/plain",
-                    new HashMap<String, String>() {{
+                    new HashMap<String, Object>() {{
                         put("key1", "value1");
                         put("key2", "value2");
                         put("key3", "value3");

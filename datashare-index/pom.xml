@@ -14,7 +14,6 @@
 
     <properties>
         <jna.version>4.1.0</jna.version>
-        <extract-lib.version>2.0.9</extract-lib.version>
     </properties>
 
     <dependencies>
@@ -22,11 +21,9 @@
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-api</artifactId>
         </dependency>
-
         <dependency>
-            <artifactId>extract-lib</artifactId>
             <groupId>org.icij.extract</groupId>
-            <version>${extract-lib.version}</version>
+            <artifactId>extract-lib</artifactId>
         </dependency>
 
         <dependency>
@@ -38,12 +35,6 @@
             <groupId>org.redisson</groupId>
             <artifactId>redisson</artifactId>
             <version>3.7.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.optimaize.languagedetector</groupId>
-            <artifactId>language-detector</artifactId>
-            <version>0.6</version>
         </dependency>
 
         <!-- Slf4j / log4j bridge for elasticsearch -->

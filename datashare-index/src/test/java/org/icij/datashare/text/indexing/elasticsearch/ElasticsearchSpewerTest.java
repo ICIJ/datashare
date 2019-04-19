@@ -148,8 +148,8 @@ public class ElasticsearchSpewerTest {
         Assertions.assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "FRENCH"));
     }
 
-    private Map<String, String> convert(Metadata metadata) {
-        Map<String, String> map = new HashMap<>();
+    private Map<String, Object> convert(Metadata metadata) {
+        Map<String, Object> map = new HashMap<>();
         for (String name: metadata.names()) {
             map.put(name, metadata.get(name));
         }

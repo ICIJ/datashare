@@ -52,7 +52,7 @@ public class Document implements Entity {
     @JsonDeserialize(using = CharsetDeserializer.class)
     private final Charset contentEncoding;
     private final Language language;
-    private final Map<String, String> metadata;
+    private final Map<String, Object> metadata;
     private final Status status;
     private final Set<Pipeline.Type> nerTags;
     @IndexParent
@@ -60,19 +60,19 @@ public class Document implements Entity {
     @IndexRoot
     private final String rootDocument;
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Long contentLength) {
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Long contentLength) {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength);
     }
 
-    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Integer extractionLevel, Long contentLength) {
+    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Integer extractionLevel, Long contentLength) {
         this(id, filePath, getDirnameFrom(filePath), content, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength);
     }
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
     }
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, String> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
+    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
         this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength);
     }
 
@@ -82,7 +82,7 @@ public class Document implements Entity {
                      @JsonProperty("language") Language language, @JsonProperty("extractionDate") Date extractionDate,
                      @JsonProperty("contentEncoding") Charset contentEncoding, @JsonProperty("contentType") String contentType,
                      @JsonProperty("extractionLevel") int extractionLevel,
-                     @JsonProperty("metadata") Map<String, String> metadata,
+                     @JsonProperty("metadata") Map<String, Object> metadata,
                      @JsonProperty("status") Status status,
                      @JsonProperty("nerTags") Set<Pipeline.Type> nerTags,
                      @JsonProperty("parentDocument") String parentDocument,
@@ -120,7 +120,7 @@ public class Document implements Entity {
     public String getParentDocument() { return parentDocument;}
     public Status getStatus() { return status;}
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
-    public Map<String, String> getMetadata() { return metadata; }
+    public Map<String, Object> getMetadata() { return metadata; }
 
     @JsonIgnore
     public String getName() { return path.getName(path.getNameCount() - 1).toString(); }
