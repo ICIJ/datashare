@@ -8,32 +8,54 @@ import org.jooq.SQLDialect;
 import org.jooq.impl.DataSourceConnectionProvider;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+import javax.sql.DataSource;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.db.DbSetupRule.createPostgresql;
 import static org.icij.datashare.db.DbSetupRule.createSqlite;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
 import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
+import static org.jooq.SQLDialect.POSTGRES_10;
+import static org.jooq.SQLDialect.SQLITE;
 
+@RunWith(Parameterized.class)
 public class JooqRepositoryTest {
-    @Rule public DbSetupRule dbRule = new DbSetupRule(createSqlite());
-    private JooqRepository repository = new JooqRepository(new DataSourceConnectionProvider(dbRule.dataSource), SQLDialect.SQLITE);
+    @Rule
+    public DbSetupRule dbRule;
+    private JooqRepository repository;
+
+    @Parameters
+    public static Collection<Object[]> dataSources() {
+        return Arrays.asList(new Object[][]{{createSqlite(), SQLITE}, {createPostgresql(), POSTGRES_10}});
+    }
+
+    public JooqRepositoryTest(DataSource dataSource, SQLDialect dialect) {
+        dbRule = new DbSetupRule(dataSource);
+        repository = new JooqRepository(new DataSourceConnectionProvider(dbRule.dataSource), dialect);
+    }
 
     @Test
     public void test_create_document() throws Exception {
         Document document = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
-                Charset.defaultCharset(), "test/plain", new HashMap<String, String>() {{
+                Charset.defaultCharset(), "test/plain",
+                new HashMap<String, String>() {{
                     put("key 1", "value 1");
                     put("key 2", "value 2");
-        }}, Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
+                }}, Document.Status.INDEXED,
+                Pipeline.set(CORENLP, OPENNLP), 432L);
 
         repository.create(document);
 

@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 import static java.nio.charset.Charset.forName;
@@ -75,19 +76,20 @@ public class JooqRepository implements Repository {
         try(Connection conn = connectionProvider.acquire()) {
             DSLContext ctx = DSL.using(conn, dialect);
             ctx.transaction(cfg -> {
-                DSL.using(cfg).insertInto(table(DOCUMENT),
+                DSLContext context = DSL.using(cfg);
+                context.insertInto(table(DOCUMENT),
                                     field("id"), field("path"), field("content"), field("status"),
                                     field("charset"), field("language"), field("content_type"),
                                     field("extraction_date"), field("parent_id"), field("root_id"),
                                     field("extraction_level"), field("content_length"), field("metadata")).
                                     values(doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
                                             doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
-                                            doc.getExtractionDate(), doc.getParentDocument(), doc.getRootDocument(),
+                                            new Timestamp(doc.getExtractionDate().getTime()), doc.getParentDocument(), doc.getRootDocument(),
                                             doc.getExtractionLevel(), doc.getContentLength(),
                                             MAPPER.writeValueAsString(doc.getMetadata())).execute();
 
                 if (!doc.getNerTags().isEmpty()) {
-                    InsertValuesStep2<Record, Object, Object> insertNerPipelines = DSL.using(cfg).insertInto(table(DOCUMENT_NER), field("doc_id"), field("type_id"));
+                    InsertValuesStep2<Record, Object, Object> insertNerPipelines = context.insertInto(table(DOCUMENT_NER), field("doc_id"), field("type_id"));
                     doc.getNerTags().forEach(type -> insertNerPipelines.values(doc.getId(), type.code));
                     insertNerPipelines.execute();
                 }
@@ -110,11 +112,11 @@ public class JooqRepository implements Repository {
 
     private Document createFrom(Record result, Result<Record> nerResults) throws IOException {
         Map<String, String> map = MAPPER.readValue(result.get("metadata", String.class), HashMap.class);
-        Set<Pipeline.Type> nerTags = nerResults.intoSet("type_id").stream().map(i -> Pipeline.Type.fromCode((Byte)i)).collect(toSet());
+        Set<Pipeline.Type> nerTags = nerResults.intoSet("type_id", Integer.class).stream().map(Pipeline.Type::fromCode).collect(toSet());
         return new Document(result.get("id", String.class), Paths.get(result.get("path", String.class)),
                 result.get("content", String.class), parse(result.get("language", String.class)), forName(result.get("charset", String.class)),
                 result.get("content_type", String.class), map, fromCode(result.get("status", Integer.class)), nerTags,
-                new Date(result.get("extraction_date", Long.class)), result.get("parent_id", String.class), result.get("root_id", String.class),
+                new Date(result.get("extraction_date", Timestamp.class).getTime()), result.get("parent_id", String.class), result.get("root_id", String.class),
                 result.get("extraction_level", Integer.class), result.get("content_length", Long.class)
         );
     }
