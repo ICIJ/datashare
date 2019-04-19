@@ -20,6 +20,9 @@ databaseChangeLog:
                     name: content
                     type: text
                 - column:
+                    name: metadata
+                    type: text
+                - column:
                     name: status
                     type: tinyint
                 - column:
@@ -63,31 +66,6 @@ databaseChangeLog:
               - column:
                   name: status
                   type: tinyint
-
-        - createTable:
-            tableName: document_meta
-            columns:
-                - column:
-                    name: doc_id
-                    type: varchar(96)
-                    constraints:
-                        nullable: false
-                - column:
-                    name: key
-                    type: varchar(256)
-                    constraints:
-                        nullable: false
-                - column:
-                    name: value
-                    type: varchar(4096)
-
-        - createIndex:
-            indexName: document_meta_doc_id
-            tableName: document_meta
-            columns:
-               - column:
-                  name: doc_id
-                  type: varchar(96)
 
         - createTable:
             tableName: ner_pipeline_type
