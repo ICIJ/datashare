@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.join;
 import static java.util.Optional.ofNullable;
@@ -32,7 +33,9 @@ public class IndexResource {
     private final String es_url;
     private final Indexer indexer;
     private final Mode mode;
-    private OkHttpClient http = new OkHttpClient();
+    private OkHttpClient http = new OkHttpClient.Builder().
+            readTimeout(20, TimeUnit.SECONDS).
+            writeTimeout(20, TimeUnit.SECONDS).build();
 
     @Inject
     public IndexResource(PropertiesProvider propertiesProvider, Indexer indexer) {
