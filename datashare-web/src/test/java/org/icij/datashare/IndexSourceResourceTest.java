@@ -44,11 +44,13 @@ public class IndexSourceResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_source_file_with_content_type() throws Exception {
-        File txtFile = new File(temp.getRoot(), "file.ods");
+        File txtFile = new File(temp.getRoot(), "/my/path/to/file.ods");
         write(txtFile, "content");
         indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
 
-        get("/api/index/src/local-datashare/id_ods").should().haveType("application/vnd.oasis.opendocument.spreadsheet");
+        get("/api/index/src/local-datashare/id_ods").should().
+                haveType("application/vnd.oasis.opendocument.spreadsheet").
+                haveHeader("Content-Disposition", "attachment;filename=\"file.ods\"");
     }
 
     @Test
@@ -68,6 +70,7 @@ public class IndexSourceResourceTest implements FluentRestTest {
     private void indexFile(String index, String _id, Path path, String contentType, String routing) {
         Document doc = mock(Document.class);
         when(doc.getPath()).thenReturn(path);
+        when(doc.getName()).thenReturn(path.getFileName().toString());
         when(doc.getContentType()).thenReturn(contentType);
         if (routing == null) {
             when(indexer.get(index, _id)).thenReturn(doc);
@@ -81,6 +84,7 @@ public class IndexSourceResourceTest implements FluentRestTest {
         server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(), indexer)).filter(new LocalUserFilter(new PropertiesProvider())));
     }
     static void write(File file, String content) throws IOException {
+        file.toPath().getParent().toFile().mkdirs();
         Files.write(file.toPath(), content.getBytes(UTF_8));
     }
     @After public void tearDown() { reset(indexer);}

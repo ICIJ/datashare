@@ -103,7 +103,7 @@ public class IndexResource {
             return new Payload(
                     ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName())),
                     InputStreams.readBytes(from)
-            );
+            ).withHeader("Content-Disposition", "attachment;filename=\"" + doc.getName() + "\"");
         }
     }
 
