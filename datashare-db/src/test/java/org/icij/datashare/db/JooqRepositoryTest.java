@@ -4,6 +4,7 @@ package org.icij.datashare.db;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.User;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DataSourceConnectionProvider;
 import org.junit.Rule;
@@ -13,6 +14,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -81,5 +83,24 @@ public class JooqRepositoryTest {
         assertThat(actualNe1.getExtractorLanguage()).isEqualTo(GERMAN);
 
         assertThat(repository.getNamedEntity(namedEntities.get(1).getId())).isEqualTo(namedEntities.get(1));
+    }
+
+    @Test
+    public void test_star_unstar_a_document() throws SQLException, IOException {
+        Document document = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
+                        Charset.defaultCharset(), "text/plain",
+                        new HashMap<String, Object>() {{
+                            put("key 1", "value 1");
+                            put("key 2", "value 2");
+                        }}, Document.Status.INDEXED,
+                        Pipeline.set(CORENLP, OPENNLP), 432L);
+        repository.create(document);
+        User user = new User("userid");
+
+        repository.star(user, document);
+        assertThat(repository.getStarredDocuments(user)).contains(document.getId());
+
+        repository.unstar(user, document);
+        assertThat(repository.getStarredDocuments(user)).isEmpty();
     }
 }

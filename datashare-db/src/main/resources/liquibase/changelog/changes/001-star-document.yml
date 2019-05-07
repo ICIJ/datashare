@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 3
+      author: bthomas
+      changes:
+        - createTable:
+            tableName: document_user_star
+            columns:
+              - column:
+                 name: doc_id
+                 type: varchar(96)
+                 constraints:
+                   nullable: false
+              - column:
+                 name: user_id
+                 type: varchar(96)
+                 constraints:
+                   nullable: false
+
+        - createIndex:
+            indexName: document_user_star_doc_id
+            tableName: document_user_star
+            columns:
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: document_user_star_user_id
+            tableName: document_user_star
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(96)

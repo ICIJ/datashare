@@ -2,3 +2,6 @@ databaseChangeLog:
   - include:
       file: changes/000-initial.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/001-star-document.yml
+      relativeToChangelogFile: true

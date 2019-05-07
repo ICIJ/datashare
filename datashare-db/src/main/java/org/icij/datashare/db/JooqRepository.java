@@ -5,6 +5,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.User;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 
@@ -27,6 +28,7 @@ public class JooqRepository implements Repository {
     private static final String DOCUMENT = "document";
     private static final String DOCUMENT_NER = "document_ner_pipeline_type";
     private static final String NAMED_ENTITY = "named_entity";
+    private static final String DOCUMENT_USER_STAR = "document_user_star";
 
     private final ConnectionProvider connectionProvider;
     private SQLDialect dialect;
@@ -38,7 +40,7 @@ public class JooqRepository implements Repository {
 
     @Override
     public NamedEntity getNamedEntity(String id) throws SQLException {
-        try(Connection conn = connectionProvider.acquire()) {
+        try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             return createFrom(create.select().from(table(NAMED_ENTITY)).where(field("id").eq(id)).fetch().get(0));
         }
@@ -46,7 +48,7 @@ public class JooqRepository implements Repository {
 
     @Override
     public void create(List<NamedEntity> neList) throws SQLException {
-        try(Connection conn = connectionProvider.acquire()) {
+        try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object>
                     insertQuery = create.insertInto(table(NAMED_ENTITY),
@@ -63,7 +65,7 @@ public class JooqRepository implements Repository {
 
     @Override
     public Document getDocument(final String id) throws SQLException, IOException {
-        try(Connection conn = connectionProvider.acquire()) {
+        try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             Record docResult = create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0);
             Result<Record> nerResults = create.select().from(table(DOCUMENT_NER)).where(field("doc_id").eq(id)).fetch();
@@ -73,20 +75,20 @@ public class JooqRepository implements Repository {
 
     @Override
     public void create(Document doc) throws SQLException {
-        try(Connection conn = connectionProvider.acquire()) {
+        try (Connection conn = connectionProvider.acquire()) {
             DSLContext ctx = DSL.using(conn, dialect);
             ctx.transaction(cfg -> {
                 DSLContext context = DSL.using(cfg);
                 context.insertInto(table(DOCUMENT),
-                                    field("id"), field("path"), field("content"), field("status"),
-                                    field("charset"), field("language"), field("content_type"),
-                                    field("extraction_date"), field("parent_id"), field("root_id"),
-                                    field("extraction_level"), field("content_length"), field("metadata")).
-                                    values(doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
-                                            doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
-                                            new Timestamp(doc.getExtractionDate().getTime()), doc.getParentDocument(), doc.getRootDocument(),
-                                            doc.getExtractionLevel(), doc.getContentLength(),
-                                            MAPPER.writeValueAsString(doc.getMetadata())).execute();
+                        field("id"), field("path"), field("content"), field("status"),
+                        field("charset"), field("language"), field("content_type"),
+                        field("extraction_date"), field("parent_id"), field("root_id"),
+                        field("extraction_level"), field("content_length"), field("metadata")).
+                        values(doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
+                                doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
+                                new Timestamp(doc.getExtractionDate().getTime()), doc.getParentDocument(), doc.getRootDocument(),
+                                doc.getExtractionLevel(), doc.getContentLength(),
+                                MAPPER.writeValueAsString(doc.getMetadata())).execute();
 
                 if (!doc.getNerTags().isEmpty()) {
                     InsertValuesStep2<Record, Object, Object> insertNerPipelines = context.insertInto(table(DOCUMENT_NER), field("doc_id"), field("type_id"));
@@ -102,6 +104,31 @@ public class JooqRepository implements Repository {
 
     @Override
     public Document deleteDocument(String id) { return null;}
+
+    @Override
+    public void star(User user, Document document) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSL.using(conn, dialect).insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id")).
+                    values(document.getId(), user.id).execute();
+        }
+    }
+
+    @Override
+    public void unstar(User user, Document document) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSL.using(conn, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
+                    where(field("doc_id").equal(document.getId()), field("user_id").equal(user.id)).execute();
+        }
+    }
+
+    @Override
+    public List<String> getStarredDocuments(User user) throws SQLException, IOException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            return create.select(field("doc_id")).from(table(DOCUMENT_USER_STAR)).where(field("user_id").eq(user.id)).
+                    fetch().getValues(field("doc_id"), String.class);
+        }
+    }
 
     private NamedEntity createFrom(Record record) {
         return NamedEntity.create(NamedEntity.Category.parse(record.get("category", String.class)),

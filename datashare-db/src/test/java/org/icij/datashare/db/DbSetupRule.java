@@ -20,7 +20,7 @@ import static com.ninja_squad.dbsetup.operation.CompositeOperation.sequenceOf;
 public class DbSetupRule extends ExternalResource {
     final DataSource dataSource;
     public static final Operation DELETE_ALL = deleteAllFrom(
-            "document", "document_ner_pipeline_type", "named_entity", "ner_pipeline_type");
+            "document", "document_ner_pipeline_type", "named_entity", "ner_pipeline_type", "document_user_star");
 
     DbSetupRule(DataSource dataSource) { this.dataSource = dataSource;}
 
