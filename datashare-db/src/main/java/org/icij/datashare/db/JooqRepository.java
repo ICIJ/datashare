@@ -117,7 +117,7 @@ public class JooqRepository implements Repository {
             } else {
                 return false;
             }
-        }
+         }
     }
 
     @Override
