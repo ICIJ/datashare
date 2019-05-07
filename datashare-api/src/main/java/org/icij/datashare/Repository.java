@@ -17,7 +17,7 @@ public interface Repository {
     Document deleteDocument(String id);
 
     // user related
-    void star(User user, Document document) throws SQLException;
-    void unstar(User user, Document document) throws SQLException;
+    boolean star(User user, String documentId) throws SQLException;
+    boolean unstar(User user, String documentId) throws SQLException;
     List<String> getStarredDocuments(User user) throws SQLException, IOException;
 }

@@ -106,18 +106,25 @@ public class JooqRepository implements Repository {
     public Document deleteDocument(String id) { return null;}
 
     @Override
-    public void star(User user, Document document) throws SQLException {
+    public boolean star(User user, String documentId) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
-            DSL.using(conn, dialect).insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id")).
-                    values(document.getId(), user.id).execute();
+            DSLContext create = DSL.using(conn, dialect);
+            Result<Record1<Integer>> existResult = create.selectCount().from(table(DOCUMENT_USER_STAR)).
+                    where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
+            if (existResult.get(0).value1() == 0) {
+                return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id")).
+                                    values(documentId, user.id).execute() > 0;
+            } else {
+                return false;
+            }
         }
     }
 
     @Override
-    public void unstar(User user, Document document) throws SQLException {
+    public boolean unstar(User user, String documentId) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
-            DSL.using(conn, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
-                    where(field("doc_id").equal(document.getId()), field("user_id").equal(user.id)).execute();
+            return DSL.using(conn, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
+                    where(field("doc_id").equal(documentId), field("user_id").equal(user.id)).execute() > 0;
         }
     }
 

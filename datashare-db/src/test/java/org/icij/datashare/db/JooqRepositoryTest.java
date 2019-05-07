@@ -87,20 +87,14 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_star_unstar_a_document() throws SQLException, IOException {
-        Document document = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
-                        Charset.defaultCharset(), "text/plain",
-                        new HashMap<String, Object>() {{
-                            put("key 1", "value 1");
-                            put("key 2", "value 2");
-                        }}, Document.Status.INDEXED,
-                        Pipeline.set(CORENLP, OPENNLP), 432L);
-        repository.create(document);
         User user = new User("userid");
 
-        repository.star(user, document);
-        assertThat(repository.getStarredDocuments(user)).contains(document.getId());
+        assertThat(repository.star(user, "docId")).isTrue();
+        assertThat(repository.getStarredDocuments(user)).contains("docId");
+        assertThat(repository.star(user, "docId")).isFalse();
 
-        repository.unstar(user, document);
+        assertThat(repository.unstar(user, "docId")).isTrue();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
+        assertThat(repository.unstar(user, "docId")).isFalse();
     }
 }
