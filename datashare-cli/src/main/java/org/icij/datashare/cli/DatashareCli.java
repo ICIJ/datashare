@@ -51,7 +51,7 @@ public final class DatashareCli {
         DatashareCliOptions.followSymlinks(parser);
 
         DatashareCliOptions.clusterName(parser);
-        DatashareCliOptions.indexName(parser);
+        DatashareCliOptions.projectName(parser);
         DatashareCliOptions.esHost(parser);
         DatashareCliOptions.queueName(parser);
 

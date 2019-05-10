@@ -146,9 +146,9 @@ final class DatashareCliOptions {
                 .defaultsTo("http://elasticsearch:9200");
     }
 
-    static OptionSpec<String> indexName(OptionParser parser) {
+    static OptionSpec<String> projectName(OptionParser parser) {
         return parser.acceptsAll(
-                asList("indexName", "n"), "Index name")
+                asList("projectName", "n"), "Project name")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("local-datashare");

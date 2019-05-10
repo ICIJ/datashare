@@ -47,7 +47,7 @@ public class CliApp {
             boolean queueIsEmpty = queue.isEmpty();
             queue.close();
 
-            if (indexer.search(properties.getProperty("indexName"), Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 && queueIsEmpty) {
+            if (indexer.search(properties.getProperty("projectName"), Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 && queueIsEmpty) {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
             }

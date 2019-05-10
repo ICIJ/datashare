@@ -20,14 +20,14 @@ import org.slf4j.LoggerFactory;
  */
 public class FilterTask extends DefaultTask<Integer> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final String indexName;
+    private final String projectName;
     private Indexer indexer;
     private User user;
     private final RedisUserDocumentQueue queue;
 
     @Inject
     public FilterTask(final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted User user) {
-        this.indexName = propertiesProvider.get("indexName").orElse("local-datashare");
+        this.projectName = propertiesProvider.get("projectName").orElse("local-datashare");
         this.queue = new RedisUserDocumentQueue(user, Options.from(propertiesProvider.getProperties()));
         this.indexer = indexer;
         this.user = user;
@@ -44,7 +44,7 @@ public class FilterTask extends DefaultTask<Integer> implements UserTask {
         int initialSize = queue.size();
         RedisUserDocumentQueue filteredQueue = (RedisUserDocumentQueue)new QueueFilterBuilder()
                 .filter(queue)
-                .with(new ElasticsearchExtractedStreamer(indexer, indexName))
+                .with(new ElasticsearchExtractedStreamer(indexer, projectName))
                 .execute();
         queue.delete();
         logger.info("delete queue {}", queue.getName());

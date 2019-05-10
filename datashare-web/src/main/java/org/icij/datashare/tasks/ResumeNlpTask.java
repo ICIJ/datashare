@@ -28,7 +28,7 @@ public class ResumeNlpTask implements Callable<Long>, UserTask {
     Logger logger = LoggerFactory.getLogger(getClass());
     private final Pipeline.Type[] nlpPipelines;
     private final User user;
-    private String indexName;
+    private String projectName;
     private final Publisher publisher;
     private final Indexer indexer;
 
@@ -38,13 +38,13 @@ public class ResumeNlpTask implements Callable<Long>, UserTask {
         this.indexer = indexer;
         this.nlpPipelines = parseAll(propertiesProvider.get("nlpPipelines").orElse(""));
         this.user = user;
-        this.indexName = propertiesProvider.get("indexName").orElse(user.indexName());
+        this.projectName = propertiesProvider.get("projectName").orElse(user.projectName());
     }
 
     @Override
     public Long call() throws IOException {
-        logger.info("resuming NLP name finding for index {} and {}", indexName, nlpPipelines);
-        Indexer.Searcher searcher = indexer.search(indexName, Document.class).withSource("rootDocument").without(nlpPipelines);
+        logger.info("resuming NLP name finding for index {} and {}", projectName, nlpPipelines);
+        Indexer.Searcher searcher = indexer.search(projectName, Document.class).withSource("rootDocument").without(nlpPipelines);
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         long totalHits = searcher.totalHits();
         this.publisher.publish(Channel.NLP, new Message(Message.Type.INIT_MONITORING).add(Message.Field.VALUE, valueOf(totalHits)));
@@ -52,7 +52,7 @@ public class ResumeNlpTask implements Callable<Long>, UserTask {
         do {
             docsToProcess.forEach(doc -> this.publisher.publish(Channel.NLP,
                     new Message(Message.Type.EXTRACT_NLP)
-                            .add(Message.Field.INDEX_NAME, indexName)
+                            .add(Message.Field.INDEX_NAME, projectName)
                             .add(Message.Field.DOC_ID, doc.getId())
                             .add(Message.Field.R_ID, ((Document) doc).getRootDocument())));
             docsToProcess = searcher.scroll().collect(toList());

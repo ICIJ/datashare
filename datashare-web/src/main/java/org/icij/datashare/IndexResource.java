@@ -46,7 +46,7 @@ public class IndexResource {
 
     @Put("/create")
     public Payload createIndex(Context context) throws IOException {
-        return indexer.createIndex(((User)context.currentUser()).indexName()) ? created() : ok();
+        return indexer.createIndex(((User)context.currentUser()).projectName()) ? created() : ok();
     }
 
     @Options("/delete/all")
@@ -56,7 +56,7 @@ public class IndexResource {
 
     @Delete("/delete/all")
     public Payload deleteIndex(final Context context) throws IOException {
-        return indexer.deleteAll(((User)context.currentUser()).indexName()) ? ok() : new Payload(500);
+        return indexer.deleteAll(((User)context.currentUser()).projectName()) ? ok() : new Payload(500);
     }
 
     @Get("/search/:index/:path")
@@ -120,7 +120,7 @@ public class IndexResource {
     }
 
     private boolean isGranted(HashMapUser user, String index) {
-        return user.getIndices().contains(index) || user.indexName().equals(index);
+        return user.getIndices().contains(index) || user.projectName().equals(index);
     }
 
     static String getQueryAsString(final Query query) {

@@ -29,7 +29,7 @@ public class NamedEntityResource {
 
     @Get("/namedEntity/:id?routing=:documentId")
     public NamedEntity getById(final String id, final String documentId, Context context) {
-        return notFoundIfNull(indexer.get(((User)context.currentUser()).indexName(), id, documentId));
+        return notFoundIfNull(indexer.get(((User)context.currentUser()).projectName(), id, documentId));
     }
 
     @Options("/namedEntity/hide/:mentionNorm")
@@ -39,9 +39,9 @@ public class NamedEntityResource {
 
     @Put("/namedEntity/hide/:mentionNorm")
     public Payload hide(final String mentionNorm, Context context) throws IOException {
-        List<? extends Entity> nes = indexer.search(((User) context.currentUser()).indexName(), NamedEntity.class).
+        List<? extends Entity> nes = indexer.search(((User) context.currentUser()).projectName(), NamedEntity.class).
                 withFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
-        indexer.bulkUpdate(((User)context.currentUser()).indexName(), nes);
+        indexer.bulkUpdate(((User)context.currentUser()).projectName(), nes);
         return ok();
     }
 }

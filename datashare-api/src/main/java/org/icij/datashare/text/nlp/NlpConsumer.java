@@ -58,15 +58,15 @@ public class NlpConsumer implements DatashareListener {
         logger.info("exiting main loop");
     }
 
-    void findNamedEntities(final String indexName, final String id, final String routing) throws InterruptedException {
+    void findNamedEntities(final String projectName, final String id, final String routing) throws InterruptedException {
         try {
-            Document doc = indexer.get(indexName, id, routing);
+            Document doc = indexer.get(projectName, id, routing);
             if (doc != null) {
                 logger.info("extracting {} entities for document {}", nlpPipeline.getType(), doc.getId());
                 if (nlpPipeline.initialize(doc.getLanguage())) {
                     Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
                     List<NamedEntity> namedEntities = NamedEntity.allFrom(doc.getContent(), annotations);
-                    indexer.bulkAdd(indexName, nlpPipeline.getType(), namedEntities, doc);
+                    indexer.bulkAdd(projectName, nlpPipeline.getType(), namedEntities, doc);
                     logger.info("added {} named entities to document {}", namedEntities.size(), doc.getId());
                     nlpPipeline.terminate(doc.getLanguage());
                 }
