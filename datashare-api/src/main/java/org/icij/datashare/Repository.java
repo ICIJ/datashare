@@ -13,8 +13,6 @@ public interface Repository {
     Document getDocument(String id) throws SQLException, IOException;
     void create(List<NamedEntity> neList) throws SQLException;
     void create(Document document) throws SQLException;
-    NamedEntity deleteNamedEntity(String id);
-    Document deleteDocument(String id);
 
     // user related
     boolean star(User user, String documentId) throws SQLException;

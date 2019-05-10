@@ -27,6 +27,7 @@ import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.db.DbSetupRule.createPostgresql;
 import static org.icij.datashare.db.DbSetupRule.createSqlite;
+import static org.icij.datashare.text.Project.project;
 import static org.jooq.SQLDialect.POSTGRES_10;
 import static org.jooq.SQLDialect.SQLITE;
 
@@ -43,7 +44,7 @@ public class DatabaseSpewerTest {
 
     public DatabaseSpewerTest(DataSource dataSource, SQLDialect dialect) throws IOException {
         dbRule = new DbSetupRule(dataSource);
-        dbSpewer = new DatabaseSpewer(new JooqRepository(new DataSourceConnectionProvider(dbRule.dataSource), dialect), new OptimaizeLanguageGuesser());
+        dbSpewer = new DatabaseSpewer(project("prj"), new JooqRepository(new DataSourceConnectionProvider(dbRule.dataSource), dialect), new OptimaizeLanguageGuesser());
     }
 
     @Test

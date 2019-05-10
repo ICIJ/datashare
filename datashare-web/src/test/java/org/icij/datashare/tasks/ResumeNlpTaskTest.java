@@ -20,6 +20,7 @@ import static java.lang.String.format;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Document.Status.DONE;
+import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -33,7 +34,7 @@ public class ResumeNlpTaskTest {
     @Test
     public void test_bug_size_of_search() throws Exception {
         for (int i = 0; i < 20; i++) {
-            Document doc = new org.icij.datashare.text.Document(Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
+            Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
                     Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE, 543L);
             indexer.add(TEST_INDEX, doc);
         }

@@ -14,8 +14,6 @@ import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
@@ -31,18 +29,14 @@ import org.mockito.Mockito;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Reader;
-import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.nio.file.Paths.get;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
-import static org.icij.task.Options.from;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -97,19 +91,6 @@ public class ElasticsearchSpewerTest {
                 entry("path", path),
                 entry("dirname", Paths.get(path).getParent().toString())
         );
-    }
-
-    @Test
-    public void test_extract_id_should_be_equal_to_datashare_id() throws IOException {
-        DocumentFactory tikaFactory = new DocumentFactory().configure(from(new HashMap<String, String>() {{put("idMethod", "tika-digest");}}));
-        final TikaDocument extractDocument = tikaFactory.create(getClass().getResource("/docs/a/b/c/doc.txt").getPath());
-        new Extractor().extract(extractDocument);
-
-        Document document = new Document(get("/docs/a/b/c/doc.txt"), "This is a document to be parsed by datashare.",
-                Language.FRENCH, Charset.defaultCharset(), "text/plain", convert(extractDocument.getMetadata()),
-                Document.Status.INDEXED, 45L);
-
-        assertThat(document.getId()).isEqualTo(extractDocument.getId());
     }
 
     @Test

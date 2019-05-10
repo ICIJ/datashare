@@ -17,6 +17,11 @@ databaseChangeLog:
                     constraints:
                         nullable: false
                 - column:
+                    name: project_id
+                    type: varchar(96)
+                    constraints:
+                      nullable: false
+                - column:
                     name: content
                     type: text
                 - column:

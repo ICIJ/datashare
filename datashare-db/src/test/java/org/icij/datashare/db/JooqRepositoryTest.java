@@ -28,6 +28,7 @@ import static org.icij.datashare.db.DbSetupRule.createPostgresql;
 import static org.icij.datashare.db.DbSetupRule.createSqlite;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
+import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
 import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
 import static org.jooq.SQLDialect.POSTGRES_10;
@@ -51,13 +52,13 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_create_document() throws Exception {
-        Document document = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
-                Charset.defaultCharset(), "text/plain",
-                new HashMap<String, Object>() {{
+        Document document = new Document(project("prj"), Paths.get("/path/to/doc"), "content",
+                FRENCH, Charset.defaultCharset(),
+                "text/plain", new HashMap<String, Object>() {{
                     put("key 1", "value 1");
                     put("key 2", "value 2");
-                }}, Document.Status.INDEXED,
-                Pipeline.set(CORENLP, OPENNLP), 432L);
+                }},
+                Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
 
         repository.create(document);
 
@@ -66,6 +67,7 @@ public class JooqRepositoryTest {
         assertThat(actual.getMetadata()).isEqualTo(document.getMetadata());
         assertThat(actual.getNerTags()).isEqualTo(document.getNerTags());
         assertThat(actual.getExtractionDate()).isEqualTo(document.getExtractionDate());
+        assertThat(actual.getProject()).isEqualTo(project("prj"));
     }
 
     @Test

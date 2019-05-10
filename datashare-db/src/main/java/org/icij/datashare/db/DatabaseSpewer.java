@@ -2,6 +2,7 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.TikaDocument;
 import org.icij.spewer.FieldNames;
@@ -21,12 +22,14 @@ import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
 
 public class DatabaseSpewer extends Spewer {
+    private final Project project;
     final Repository repository;
     private final LanguageGuesser languageGuesser;
     public static final String DEFAULT_VALUE_UNKNOWN = "unknown";
 
-    public DatabaseSpewer(Repository repository, LanguageGuesser languageGuesser) {
+    public DatabaseSpewer(Project project, Repository repository, LanguageGuesser languageGuesser) {
         super(new FieldNames());
+        this.project = project;
         this.repository = repository;
         this.languageGuesser = languageGuesser;
     }
@@ -40,9 +43,9 @@ public class DatabaseSpewer extends Spewer {
         String parentId = parent == null ? null: parent.getId();
         String rootId = root == null ? null: root.getId();
 
-        Document document = new Document(tikaDocument.getId(), tikaDocument.getPath(), content, languageGuesser.guess(content),
-                charset, contentType, getMetadata(tikaDocument), Document.Status.INDEXED, new HashSet<>(), new Date(), parentId,
-                rootId, level, contentLength);
+        Document document = new Document(project, tikaDocument.getId(), tikaDocument.getPath(), content,
+                languageGuesser.guess(content), charset, contentType, getMetadata(tikaDocument), Document.Status.INDEXED, new HashSet<>(), new Date(),
+                parentId, rootId, level, contentLength);
         try {
             repository.create(document);
         } catch (SQLException e) {

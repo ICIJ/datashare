@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
+import static org.icij.datashare.text.Project.project;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.table;
 
@@ -79,12 +80,12 @@ public class JooqRepository implements Repository {
             DSLContext ctx = DSL.using(conn, dialect);
             ctx.transaction(cfg -> {
                 DSLContext context = DSL.using(cfg);
-                context.insertInto(table(DOCUMENT),
+                context.insertInto(table(DOCUMENT), field("project_id"),
                         field("id"), field("path"), field("content"), field("status"),
                         field("charset"), field("language"), field("content_type"),
                         field("extraction_date"), field("parent_id"), field("root_id"),
                         field("extraction_level"), field("content_length"), field("metadata")).
-                        values(doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
+                        values(doc.getProject().getId(), doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
                                 doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
                                 new Timestamp(doc.getExtractionDate().getTime()), doc.getParentDocument(), doc.getRootDocument(),
                                 doc.getExtractionLevel(), doc.getContentLength(),
@@ -98,12 +99,6 @@ public class JooqRepository implements Repository {
             });
         }
     }
-
-    @Override
-    public NamedEntity deleteNamedEntity(String id) { return null;}
-
-    @Override
-    public Document deleteDocument(String id) { return null;}
 
     @Override
     public boolean star(User user, String documentId) throws SQLException {
@@ -147,11 +142,11 @@ public class JooqRepository implements Repository {
     private Document createFrom(Record result, Result<Record> nerResults) throws IOException {
         Map<String, Object> metadata = MAPPER.readValue(result.get("metadata", String.class), HashMap.class);
         Set<Pipeline.Type> nerTags = nerResults.intoSet("type_id", Integer.class).stream().map(Pipeline.Type::fromCode).collect(toSet());
-        return new Document(result.get("id", String.class), Paths.get(result.get("path", String.class)),
-                result.get("content", String.class), parse(result.get("language", String.class)), forName(result.get("charset", String.class)),
-                result.get("content_type", String.class), metadata, fromCode(result.get("status", Integer.class)), nerTags,
-                new Date(result.get("extraction_date", Timestamp.class).getTime()), result.get("parent_id", String.class), result.get("root_id", String.class),
-                result.get("extraction_level", Integer.class), result.get("content_length", Long.class)
-        );
+        return new Document(project(result.get("project_id", String.class)), result.get("id", String.class),
+                Paths.get(result.get("path", String.class)), result.get("content", String.class), parse(result.get("language", String.class)),
+                forName(result.get("charset", String.class)), result.get("content_type", String.class), metadata, fromCode(result.get("status", Integer.class)),
+                nerTags, new Date(result.get("extraction_date", Timestamp.class).getTime()), result.get("parent_id", String.class),
+                result.get("root_id", String.class), result.get("extraction_level", Integer.class),
+                result.get("content_length", Long.class));
     }
 }

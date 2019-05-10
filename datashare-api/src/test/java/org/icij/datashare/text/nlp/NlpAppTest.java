@@ -25,6 +25,7 @@ import java.util.stream.IntStream;
 import static java.nio.file.Paths.get;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.com.Message.Field.*;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
@@ -132,7 +133,7 @@ public class NlpAppTest {
     public void setUp() throws Exception {
         initMocks(this);
         when(indexer.get(anyString(), anyString(), anyString())).thenReturn(
-                new Document(get("doc/path"), "content", FRENCH, Charset.defaultCharset(),
+                new Document(project("prj"), get("doc/path"), "content", FRENCH, Charset.defaultCharset(),
                         "application/pdf", new HashMap<>(), INDEXED, 432L));
         when(pipeline.getType()).thenReturn(OPENNLP);
         when(pipeline.initialize(any(Language.class))).thenReturn(true);

@@ -16,6 +16,8 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.*;
 
+import static org.icij.datashare.text.Project.project;
+
 public class Bench {
     static Logger logger = LoggerFactory.getLogger(Bench.class);
     @Rule
@@ -30,7 +32,7 @@ public class Bench {
         logger.info("writing {} documents with {} named entities", nbDocs, nbNes);
         long beginTime = System.currentTimeMillis();
         for (int docIdx = 0; docIdx < nbDocs; docIdx++) {
-            Document document = new Document(Paths.get("/foo/bar_" + docIdx + ".txt"),
+            Document document = new Document(project("prj"), Paths.get("/foo/bar_" + docIdx + ".txt"),
                     "This is a content with Gael Giraud " + docIdx,
                     Language.FRENCH,
                     Charset.defaultCharset(),

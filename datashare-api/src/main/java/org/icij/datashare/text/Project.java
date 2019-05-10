@@ -4,6 +4,7 @@ import org.icij.datashare.Entity;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 
 public class Project implements Entity {
@@ -30,5 +31,21 @@ public class Project implements Entity {
     }
     public Path getSourcePath() {
         return sourcePath;
+    }
+    public static Project project(final String projectName) {
+        return new Project(projectName);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Project project = (Project) o;
+        return name.equals(project.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
     }
 }

@@ -20,11 +20,10 @@ import static java.util.Optional.ofNullable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Document implements Entity {
     private static final long serialVersionUID = 5913568429773112L;
-
     public enum Status {
         PARSED(0), INDEXED(1), DONE(2);
-        public final int code;
 
+        public final int code;
         Status(int code) {
             this.code = code;
         }
@@ -38,7 +37,8 @@ public class Document implements Entity {
             throw new IllegalArgumentException("invalid status code " + code);
         }
     }
-
+    @JsonIgnore
+    private final Project project;
     private final String id;
     private final Path path;
     private final Path dirname;
@@ -60,24 +60,24 @@ public class Document implements Entity {
     @IndexRoot
     private final String rootDocument;
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Long contentLength) {
-        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength);
+    public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Long contentLength) {
+        this(project, HASHER.hash(project.getId() + content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength);
     }
 
-    public Document(String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Integer extractionLevel, Long contentLength) {
-        this(id, filePath, getDirnameFrom(filePath), content, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength);
+    public Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Integer extractionLevel, Long contentLength) {
+        this(project, id, filePath, getDirnameFrom(filePath), content, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength);
     }
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
-        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
+    public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
+        this(project, HASHER.hash(project.getId() + content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
     }
 
-    public Document(Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
-        this(HASHER.hash(content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength);
+    public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
+        this(project, HASHER.hash(project.getId() + content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength);
     }
 
     @JsonCreator
-    private Document(@JsonProperty("id") String id, @JsonProperty("path") Path path,
+    private Document(@JsonProperty("projectId") Project project, @JsonProperty("id") String id, @JsonProperty("path") Path path,
                      @JsonProperty("dirname") Path dirname, @JsonProperty("content") String content,
                      @JsonProperty("language") Language language, @JsonProperty("extractionDate") Date extractionDate,
                      @JsonProperty("contentEncoding") Charset contentEncoding, @JsonProperty("contentType") String contentType,
@@ -89,6 +89,7 @@ public class Document implements Entity {
                      @JsonProperty("rootDocument") String rootDocument,
                      @JsonProperty("contentLength") Long contentLength) {
         this.id = id;
+        this.project = project;
         this.path = path;
         this.dirname = dirname;
         this.content = ofNullable(content).orElse("");
@@ -107,6 +108,9 @@ public class Document implements Entity {
 
     @Override
     public String getId() { return id; }
+    @JsonIgnore
+    public Project getProject() { return project;}
+    public String getProjectId() { return project.getId();}
     public String getContent() { return content; }
     public Path getPath() { return path;}
     public Path getDirname() { return dirname;}

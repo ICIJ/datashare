@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 
 import static org.icij.datashare.text.Language.FRENCH;
+import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
@@ -39,7 +40,7 @@ public class NlpConsumerTest {
     @Test
     public void test_on_message_do_not_processNLP__when_init_fails() throws Exception {
         when(pipeline.initialize(any())).thenReturn(false);
-        Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
+        Document doc = new Document(project("prj"), Paths.get("/path/to/doc"), "content", FRENCH,
                 Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED, 432L);
         when(indexer.get(anyString(), anyString(), anyString())).thenReturn(doc);
 
@@ -50,7 +51,7 @@ public class NlpConsumerTest {
     @Test
     public void test_on_message_processNLP__when_doc_found_in_index() throws Exception {
         when(pipeline.initialize(any())).thenReturn(true);
-        Document doc = new Document(Paths.get("/path/to/doc"), "content", FRENCH,
+        Document doc = new Document(project("prj"), Paths.get("/path/to/doc"), "content", FRENCH,
                 Charset.defaultCharset(), "test/plain", new HashMap<>(), Document.Status.INDEXED, 432L);
         when(pipeline.process(anyString(), anyString(), any())).thenReturn(new Annotations(doc.getId(), Pipeline.Type.MITIE, FRENCH));
         when(indexer.get("indexName", doc.getId(), "routing")).thenReturn(doc);
