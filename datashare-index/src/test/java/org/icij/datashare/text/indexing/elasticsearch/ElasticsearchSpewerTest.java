@@ -7,20 +7,25 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.fest.assertions.Assertions;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Hasher;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
+import org.icij.extract.extractor.UpdatableDigester;
 import org.icij.extract.parser.ParsingReader;
 import org.icij.spewer.FieldNames;
+import org.icij.task.Options;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -29,12 +34,14 @@ import org.mockito.Mockito;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.Reader;
-import java.nio.file.Paths;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.nio.file.Paths.get;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.junit.Assert.assertEquals;
@@ -57,7 +64,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_simple_write() throws Exception {
-        final TikaDocument document = factory.create(Paths.get("test-file.txt"));
+        final TikaDocument document = factory.create(get("test-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
 
         spewer.write(document, reader);
@@ -71,7 +78,7 @@ public class ElasticsearchSpewerTest {
 
         ArgumentCaptor<Message> argument = ArgumentCaptor.forClass(Message.class);
         verify(publisher).publish(eq(Channel.NLP), argument.capture());
-        Assertions.assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
+        assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
     }
 
     @Test
@@ -82,14 +89,14 @@ public class ElasticsearchSpewerTest {
         spewer.write(document, new Extractor().extract(document));
 
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
-        Assertions.assertThat(documentFields.getSourceAsMap()).includes(
+        assertThat(documentFields.getSourceAsMap()).includes(
                 entry("contentEncoding", "ISO-8859-1"),
                 entry("contentType", "text/plain"),
                 entry("nerTags", new ArrayList<>()),
                 entry("contentLength", 45),
                 entry("status", "INDEXED"),
                 entry("path", path),
-                entry("dirname", Paths.get(path).getParent().toString())
+                entry("dirname", get(path).getParent().toString())
         );
     }
 
@@ -109,10 +116,28 @@ public class ElasticsearchSpewerTest {
         searchSourceBuilder.query(QueryBuilders.multiMatchQuery("simple.tiff", "content"));
         searchRequest.source(searchSourceBuilder);
         SearchResponse response = es.client.search(searchRequest);
-        Assertions.assertThat(response.getHits().totalHits).isGreaterThan(0);
+        assertThat(response.getHits().totalHits).isGreaterThan(0);
         //assertThat(response.getHits().getAt(0).getId()).endsWith("embedded.pdf");
 
         verify(publisher, times(2)).publish(eq(Channel.NLP), any(Message.class));
+    }
+
+    @Test
+    public void test_extract_id_should_be_equal_to_datashare_id() throws IOException {
+        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+            put("idDigestMethod", Hasher.SHA_384.toString());
+        }}));
+        final TikaDocument extractDocument = tikaFactory.create(getClass().getResource("/docs/a/b/c/doc.txt").getPath());
+        Extractor extractor = new Extractor();
+        extractor.setDigester(new UpdatableDigester("project", Hasher.SHA_384.toString()));
+
+        extractor.extract(extractDocument);
+
+        Document document = new Document(Project.project("project"), get("/docs/a/b/c/doc.txt"), "This is a document to be parsed by datashare.",
+                Language.FRENCH, Charset.defaultCharset(), "text/plain", convert(extractDocument.getMetadata()),
+                Document.Status.INDEXED, 45L);
+
+        assertThat(document.getId()).isEqualTo(extractDocument.getId());
     }
 
     @Test
@@ -125,8 +150,8 @@ public class ElasticsearchSpewerTest {
 
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
         GetResponse documentFields_fr = es.client.get(new GetRequest(TEST_INDEX, "doc", document_fr.getId()));
-        Assertions.assertThat(documentFields.getSourceAsMap()).includes(entry("language", "ENGLISH"));
-        Assertions.assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "FRENCH"));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("language", "ENGLISH"));
+        assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "FRENCH"));
     }
 
     private Map<String, Object> convert(Metadata metadata) {
