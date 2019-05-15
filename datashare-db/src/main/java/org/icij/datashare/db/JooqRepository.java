@@ -4,6 +4,7 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.jooq.*;
@@ -17,13 +18,13 @@ import java.sql.Timestamp;
 import java.util.*;
 
 import static java.nio.charset.Charset.forName;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
 import static org.icij.datashare.text.Project.project;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.DSL.*;
 
 public class JooqRepository implements Repository {
     private static final String DOCUMENT = "document";
@@ -65,7 +66,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public Document getDocument(final String id) throws SQLException, IOException {
+    public Document getDocument(final String id) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             Record docResult = create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0);
@@ -101,6 +102,18 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            Result<Record> fetch = create.select().from(table(DOCUMENT)).where(
+                    notExists(select(field("doc_id")).
+                            from(table(DOCUMENT_NER)).where(field("doc_id").equal(field("id")).and(field("type_id").equal(value(type.code)))))).
+                    fetch();
+            return fetch.stream().map(r -> createFrom(r, null)).collect(toList());
+        }
+    }
+
+    @Override
     public boolean star(User user, String documentId) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
@@ -124,7 +137,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<String> getStarredDocuments(User user) throws SQLException, IOException {
+    public List<String> getStarredDocuments(User user) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             return create.select(field("doc_id")).from(table(DOCUMENT_USER_STAR)).where(field("user_id").eq(user.id)).
@@ -139,9 +152,14 @@ public class JooqRepository implements Repository {
                 Language.parse(record.get("extractor_language", String.class)));
     }
 
-    private Document createFrom(Record result, Result<Record> nerResults) throws IOException {
-        Map<String, Object> metadata = MAPPER.readValue(result.get("metadata", String.class), HashMap.class);
-        Set<Pipeline.Type> nerTags = nerResults.intoSet("type_id", Integer.class).stream().map(Pipeline.Type::fromCode).collect(toSet());
+    private Document createFrom(Record result, Result<Record> nerResults) {
+        Map<String, Object> metadata;
+        try {
+            metadata = MAPPER.readValue(result.get("metadata", String.class), HashMap.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        Set<Pipeline.Type> nerTags = nerResults == null ? new HashSet<>() : nerResults.intoSet("type_id", Integer.class).stream().map(Pipeline.Type::fromCode).collect(toSet());
         return new Document(project(result.get("project_id", String.class)), result.get("id", String.class),
                 Paths.get(result.get("path", String.class)), result.get("content", String.class), parse(result.get("language", String.class)),
                 forName(result.get("charset", String.class)), result.get("content_type", String.class), metadata, fromCode(result.get("status", Integer.class)),

@@ -29,8 +29,7 @@ import static org.icij.datashare.db.DbSetupRule.createSqlite;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
-import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
-import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
+import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.jooq.SQLDialect.POSTGRES_10;
 import static org.jooq.SQLDialect.SQLITE;
 
@@ -68,6 +67,24 @@ public class JooqRepositoryTest {
         assertThat(actual.getNerTags()).isEqualTo(document.getNerTags());
         assertThat(actual.getExtractionDate()).isEqualTo(document.getExtractionDate());
         assertThat(actual.getProject()).isEqualTo(project("prj"));
+    }
+
+    @Test
+    public void test_get_untagged_documents() throws Exception {
+        Document coreAndOpenNlp = new Document(project("prj"), Paths.get("/path/to/coreAndOpenNlp"), "coreAndOpenNlp",
+                FRENCH, Charset.defaultCharset(),
+                "text/plain", new HashMap<>(),
+                Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
+        Document ixaPipe = new Document(project("prj"), Paths.get("/path/to/ixaPipe"), "ixaPipe",
+                FRENCH, Charset.defaultCharset(),
+                "text/plain", new HashMap<>(),
+                Document.Status.INDEXED, Pipeline.set(IXAPIPE), 234L);
+        repository.create(coreAndOpenNlp);
+        repository.create(ixaPipe);
+
+        assertThat(repository.getDocumentsNotTaggedWithPipeline(project("prj"), IXAPIPE)).containsExactly(coreAndOpenNlp);
+        assertThat(repository.getDocumentsNotTaggedWithPipeline(project("prj"), CORENLP)).containsExactly(ixaPipe);
+        assertThat(repository.getDocumentsNotTaggedWithPipeline(project("prj"), MITIE)).containsExactly(coreAndOpenNlp, ixaPipe);
     }
 
     @Test
