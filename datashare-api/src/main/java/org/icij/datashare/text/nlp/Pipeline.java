@@ -31,10 +31,12 @@ public interface Pipeline {
 
         private final String className;
         public final int code;
+        public final int mask;
 
         Type(final int code) {
-            className = buildClassName(Pipeline.class, this);
             this.code = code;
+            mask = 1 << code;
+            className = buildClassName(Pipeline.class, this);
         }
 
         public static Type fromCode(final int code) {

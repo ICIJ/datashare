@@ -99,7 +99,7 @@ public class JooqRepository implements Repository {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             Result<Record> fetch = create.select().from(table(DOCUMENT)).where(
-                    condition("(ner_mask & (1 << ?)) = 0", type.code)).fetch();
+                    condition("(ner_mask & ?) = 0", type.mask)).fetch();
             return fetch.stream().map(this::createDocumentFrom).collect(toList());
         }
     }

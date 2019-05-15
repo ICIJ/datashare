@@ -153,10 +153,10 @@ public class Document implements Entity {
 
     private static Path getDirnameFrom(Path filePath) { return ofNullable(filePath.getParent()).orElse(get(""));}
     static int nerMask(Set<Pipeline.Type> typeSet) {
-         return typeSet.stream().map(t -> 1 << t.code).reduce(Integer::sum).orElse(0);
+         return typeSet.stream().map(t -> t.mask).reduce(Integer::sum).orElse(0);
     }
     public static Set<Pipeline.Type> fromNerMask(int mask) {
         return mask == 0 ? new HashSet<>():
-                stream(Pipeline.Type.values()).filter(t -> (mask & (1 << t.code)) == 1 << t.code ).collect(toSet());
+                stream(Pipeline.Type.values()).filter(t -> (mask & t.mask) == t.mask ).collect(toSet());
     }
 }
