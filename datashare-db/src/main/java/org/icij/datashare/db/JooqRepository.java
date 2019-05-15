@@ -128,11 +128,11 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<String> getStarredDocuments(User user) throws SQLException {
+    public List<Document> getStarredDocuments(User user) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
-            return create.select(field("doc_id")).from(table(DOCUMENT_USER_STAR)).where(field("user_id").eq(user.id)).
-                    fetch().getValues(field("doc_id"), String.class);
+            return create.select().from(table(DOCUMENT_USER_STAR).join(DOCUMENT).on(field(DOCUMENT + ".id").equal(field(DOCUMENT_USER_STAR + ".doc_id")))).
+                    where(field("user_id").eq(user.id)).fetch().stream().map(this::createDocumentFrom).collect(toList());
         }
     }
 

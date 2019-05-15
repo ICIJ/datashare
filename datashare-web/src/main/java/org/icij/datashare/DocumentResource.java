@@ -7,6 +7,7 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.text.Document;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -19,7 +20,7 @@ public class DocumentResource {
     public DocumentResource(Repository repository) {this.repository = repository;}
 
     @Get("/starred")
-    public List<String> getStarredDocuments(Context context) throws IOException, SQLException {
+    public List<Document> getStarredDocuments(Context context) throws IOException, SQLException {
         return repository.getStarredDocuments((HashMapUser)context.currentUser());
     }
 

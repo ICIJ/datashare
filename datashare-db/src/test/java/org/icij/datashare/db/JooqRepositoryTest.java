@@ -109,10 +109,11 @@ public class JooqRepositoryTest {
                         FRENCH, Charset.defaultCharset(),
                         "text/plain", new HashMap<>(),
                         Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
+        repository.create(doc);
         User user = new User("userid");
 
         assertThat(repository.star(user, doc.getId())).isTrue();
-        assertThat(repository.getStarredDocuments(user)).contains(doc.getId());
+        assertThat(repository.getStarredDocuments(user)).contains(doc);
         assertThat(repository.star(user, doc.getId())).isFalse();
 
         assertThat(repository.unstar(user, doc.getId())).isTrue();
