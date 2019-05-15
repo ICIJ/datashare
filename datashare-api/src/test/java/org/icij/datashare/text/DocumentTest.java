@@ -6,9 +6,13 @@ import org.junit.Test;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.Document.nerMask;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.nlp.Pipeline.Type.*;
+import static org.icij.datashare.text.nlp.Pipeline.set;
 
 public class DocumentTest {
     @Test
@@ -26,5 +30,21 @@ public class DocumentTest {
                         "\"parentDocument\":null,\"rootDocument\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
                         "\"contentLength\":123,\"projectId\":\"prj\"}").getBytes(),
                 Document.class).getProject()).isEqualTo(project("prj"));
+    }
+
+    @Test
+    public void test_ner_mask() {
+        assertThat(nerMask(new HashSet<>())).isEqualTo(0);
+        assertThat(nerMask(set(CORENLP))).isEqualTo(1);
+        assertThat(nerMask(set(CORENLP,GATENLP))).isEqualTo(3);
+        assertThat(nerMask(set(OPENNLP,CORENLP))).isEqualTo(17);
+    }
+
+    @Test
+    public void test_from_mask() {
+        assertThat(Document.fromNerMask(0)).isEmpty();
+        assertThat(Document.fromNerMask(1)).contains(CORENLP);
+        assertThat(Document.fromNerMask(5)).contains(CORENLP, IXAPIPE);
+        assertThat(Document.fromNerMask(31)).contains(CORENLP, GATENLP, IXAPIPE, MITIE, OPENNLP);
     }
 }

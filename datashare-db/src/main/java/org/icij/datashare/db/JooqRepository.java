@@ -1,5 +1,6 @@
 package org.icij.datashare.db;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -19,7 +20,6 @@ import java.util.*;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
@@ -28,7 +28,6 @@ import static org.jooq.impl.DSL.*;
 
 public class JooqRepository implements Repository {
     private static final String DOCUMENT = "document";
-    private static final String DOCUMENT_NER = "document_ner_pipeline_type";
     private static final String NAMED_ENTITY = "named_entity";
     private static final String DOCUMENT_USER_STAR = "document_user_star";
 
@@ -70,8 +69,7 @@ public class JooqRepository implements Repository {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             Record docResult = create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0);
-            Result<Record> nerResults = create.select().from(table(DOCUMENT_NER)).where(field("doc_id").eq(id)).fetch();
-            return createFrom(docResult, nerResults);
+            return createDocumentFrom(docResult);
         }
     }
 
@@ -79,25 +77,20 @@ public class JooqRepository implements Repository {
     public void create(Document doc) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext ctx = DSL.using(conn, dialect);
-            ctx.transaction(cfg -> {
-                DSLContext context = DSL.using(cfg);
-                context.insertInto(table(DOCUMENT), field("project_id"),
+            try {
+                ctx.insertInto(table(DOCUMENT), field("project_id"),
                         field("id"), field("path"), field("content"), field("status"),
                         field("charset"), field("language"), field("content_type"),
                         field("extraction_date"), field("parent_id"), field("root_id"),
-                        field("extraction_level"), field("content_length"), field("metadata")).
+                        field("extraction_level"), field("content_length"), field("metadata"), field("ner_mask")).
                         values(doc.getProject().getId(), doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
                                 doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
                                 new Timestamp(doc.getExtractionDate().getTime()), doc.getParentDocument(), doc.getRootDocument(),
                                 doc.getExtractionLevel(), doc.getContentLength(),
-                                MAPPER.writeValueAsString(doc.getMetadata())).execute();
-
-                if (!doc.getNerTags().isEmpty()) {
-                    InsertValuesStep2<Record, Object, Object> insertNerPipelines = context.insertInto(table(DOCUMENT_NER), field("doc_id"), field("type_id"));
-                    doc.getNerTags().forEach(type -> insertNerPipelines.values(doc.getId(), type.code));
-                    insertNerPipelines.execute();
-                }
-            });
+                                MAPPER.writeValueAsString(doc.getMetadata()), doc.getNerMask()).execute();
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -106,10 +99,8 @@ public class JooqRepository implements Repository {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
             Result<Record> fetch = create.select().from(table(DOCUMENT)).where(
-                    notExists(select(field("doc_id")).
-                            from(table(DOCUMENT_NER)).where(field("doc_id").equal(field("id")).and(field("type_id").equal(value(type.code)))))).
-                    fetch();
-            return fetch.stream().map(r -> createFrom(r, null)).collect(toList());
+                    condition("(ner_mask & (1 << ?)) = 0", type.code)).fetch();
+            return fetch.stream().map(this::createDocumentFrom).collect(toList());
         }
     }
 
@@ -152,14 +143,14 @@ public class JooqRepository implements Repository {
                 Language.parse(record.get("extractor_language", String.class)));
     }
 
-    private Document createFrom(Record result, Result<Record> nerResults) {
+    private Document createDocumentFrom(Record result) {
         Map<String, Object> metadata;
         try {
             metadata = MAPPER.readValue(result.get("metadata", String.class), HashMap.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        Set<Pipeline.Type> nerTags = nerResults == null ? new HashSet<>() : nerResults.intoSet("type_id", Integer.class).stream().map(Pipeline.Type::fromCode).collect(toSet());
+        Set<Pipeline.Type> nerTags = Document.fromNerMask(result.get("ner_mask", Integer.class));
         return new Document(project(result.get("project_id", String.class)), result.get("id", String.class),
                 Paths.get(result.get("path", String.class)), result.get("content", String.class), parse(result.get("language", String.class)),
                 forName(result.get("charset", String.class)), result.get("content_type", String.class), metadata, fromCode(result.get("status", Integer.class)),

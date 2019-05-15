@@ -54,7 +54,9 @@ databaseChangeLog:
                 - column:
                     name: charset
                     type: varchar(32)
-
+                - column:
+                    name: ner_mask
+                    type: smallint
 
         - createIndex:
             indexName: document_parent_id
@@ -71,32 +73,6 @@ databaseChangeLog:
               - column:
                   name: status
                   type: tinyint
-
-        - createTable:
-            tableName: ner_pipeline_type
-            columns:
-              - column:
-                  name: id
-                  type: tinyint
-                  constraints:
-                      primaryKey: true
-              - column:
-                  name: label
-                  type: varchar(16)
-
-        - createTable:
-            tableName: document_ner_pipeline_type
-            columns:
-              - column:
-                  name: doc_id
-                  type: varchar(96)
-                  constraints:
-                    nullable: false
-              - column:
-                  name: type_id
-                  type: tinyint
-                  constraints:
-                    nullable: false
 
         - createTable:
             tableName: named_entity
@@ -146,53 +122,3 @@ databaseChangeLog:
               - column:
                   name: doc_id
                   type: varchar(96)
-
-  - changeSet:
-      id: 2
-      author: bthomas
-      changes:
-        - insert:
-            tableName: ner_pipeline_type
-            columns:
-              - column:
-                  name: id
-                  value: 0
-              - column:
-                  name: label
-                  value: CORENLP
-        - insert:
-            tableName: ner_pipeline_type
-            columns:
-              - column:
-                  name: id
-                  value: 1
-              - column:
-                  name: label
-                  value: GATENLP
-        - insert:
-            tableName: ner_pipeline_type
-            columns:
-              - column:
-                  name: id
-                  value: 2
-              - column:
-                  name: label
-                  value: IXAPIPE
-        - insert:
-            tableName: ner_pipeline_type
-            columns:
-              - column:
-                  name: id
-                  value: 3
-              - column:
-                  name: label
-                  value: MITIE
-        - insert:
-            tableName: ner_pipeline_type
-            columns:
-              - column:
-                  name: id
-                  value: 4
-              - column:
-                  name: label
-                  value: OPENNLP

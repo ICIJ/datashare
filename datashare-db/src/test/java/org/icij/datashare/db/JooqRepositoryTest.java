@@ -14,7 +14,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -105,15 +104,19 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_star_unstar_a_document() throws SQLException, IOException {
+    public void test_star_unstar_a_document() throws SQLException {
+        Document doc = new Document(project("prj"), Paths.get("/path/to/docId"), "my doc",
+                        FRENCH, Charset.defaultCharset(),
+                        "text/plain", new HashMap<>(),
+                        Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
         User user = new User("userid");
 
-        assertThat(repository.star(user, "docId")).isTrue();
-        assertThat(repository.getStarredDocuments(user)).contains("docId");
-        assertThat(repository.star(user, "docId")).isFalse();
+        assertThat(repository.star(user, doc.getId())).isTrue();
+        assertThat(repository.getStarredDocuments(user)).contains(doc.getId());
+        assertThat(repository.star(user, doc.getId())).isFalse();
 
-        assertThat(repository.unstar(user, "docId")).isTrue();
+        assertThat(repository.unstar(user, doc.getId())).isTrue();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
-        assertThat(repository.unstar(user, "docId")).isFalse();
+        assertThat(repository.unstar(user, doc.getId())).isFalse();
     }
 }

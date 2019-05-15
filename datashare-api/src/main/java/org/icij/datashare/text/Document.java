@@ -13,7 +13,9 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static java.nio.file.Paths.get;
+import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toSet;
 
 
 @IndexType("Document")
@@ -124,6 +126,8 @@ public class Document implements Entity {
     public String getParentDocument() { return parentDocument;}
     public Status getStatus() { return status;}
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
+    @JsonIgnore
+    public int getNerMask() { return nerMask(getNerTags());}
     public Map<String, Object> getMetadata() { return metadata; }
 
     @JsonIgnore
@@ -148,4 +152,11 @@ public class Document implements Entity {
     }
 
     private static Path getDirnameFrom(Path filePath) { return ofNullable(filePath.getParent()).orElse(get(""));}
+    static int nerMask(Set<Pipeline.Type> typeSet) {
+         return typeSet.stream().map(t -> 1 << t.code).reduce(Integer::sum).orElse(0);
+    }
+    public static Set<Pipeline.Type> fromNerMask(int mask) {
+        return mask == 0 ? new HashSet<>():
+                stream(Pipeline.Type.values()).filter(t -> (mask & (1 << t.code)) == 1 << t.code ).collect(toSet());
+    }
 }
