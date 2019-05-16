@@ -136,6 +136,46 @@ public class JooqRepository implements Repository {
         }
     }
 
+    // ------------- functions that don't need document migration/indexing
+    // they can use just the DOCUMENT_USER_STAR table thus denormalizing project information
+    // this could be removed later
+    @Override
+    public boolean star(Project project, User user, String documentId) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            Result<Record1<Integer>> existResult = create.selectCount().from(table(DOCUMENT_USER_STAR)).
+                    where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
+            if (existResult.get(0).value1() == 0) {
+                return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id"), field("prj_id")).
+                                    values(documentId, user.id, project.getId()).execute() > 0;
+            } else {
+                return false;
+            }
+         }
+    }
+
+    @Override
+    public boolean unstar(Project project, User user, String documentId) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            return DSL.using(conn, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
+                    where(field("doc_id").equal(documentId),
+                            field("user_id").equal(user.id),
+                            field("prj_id").equal(project.getId())).execute() > 0;
+        }
+    }
+
+    @Override
+    public List<String> getStarredDocuments(Project project, User user) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            return create.select(field("doc_id")).from(table(DOCUMENT_USER_STAR)).
+                    where(field("user_id").eq(user.id)).
+                    and(field("prj_id").eq(project.getId())).
+                    fetch().getValues("doc_id", String.class);
+        }
+    }
+    // ---------------------------
+
     private NamedEntity createFrom(Record record) {
         return NamedEntity.create(NamedEntity.Category.parse(record.get("category", String.class)),
                 record.get("mention", String.class), record.get("ne_offset", Integer.class),

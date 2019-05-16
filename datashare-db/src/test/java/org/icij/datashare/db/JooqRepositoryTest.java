@@ -104,7 +104,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_star_unstar_a_document() throws SQLException {
+    public void test_star_unstar_a_document_with_join() throws SQLException {
         Document doc = new Document(project("prj"), Paths.get("/path/to/docId"), "my doc",
                         FRENCH, Charset.defaultCharset(),
                         "text/plain", new HashMap<>(),
@@ -119,5 +119,19 @@ public class JooqRepositoryTest {
         assertThat(repository.unstar(user, doc.getId())).isTrue();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
         assertThat(repository.unstar(user, doc.getId())).isFalse();
+    }
+
+    @Test
+    public void test_star_unstar_a_document_without_documents() throws SQLException {
+        User user = new User("userid");
+
+        assertThat(repository.star(project("prj"), user, "doc_id")).isTrue();
+        assertThat(repository.getStarredDocuments(project("prj"), user)).contains("doc_id");
+        assertThat(repository.getStarredDocuments(project("prj2"), user)).isEmpty();
+        assertThat(repository.star(project("prj"), user, "doc_id")).isFalse();
+
+        assertThat(repository.unstar(project("prj"), user,"doc_id")).isTrue();
+        assertThat(repository.getStarredDocuments(project("prj"), user)).isEmpty();
+        assertThat(repository.unstar(project("prj"), user, "doc_id")).isFalse();
     }
 }

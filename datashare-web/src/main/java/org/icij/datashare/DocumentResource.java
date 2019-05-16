@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import static org.icij.datashare.text.Project.project;
+
 @Prefix("/api/document")
 public class DocumentResource {
     private final Repository repository;
@@ -32,5 +34,20 @@ public class DocumentResource {
     @Put("/unstar/:docId")
     public Payload unstarDocument(final String docId, Context context) throws IOException, SQLException {
         return repository.unstar((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
+    }
+
+    @Get("/starred/:project")
+    public List<String> getProjectStarredDocuments(final String projectId, Context context) throws IOException, SQLException {
+        return repository.getStarredDocuments(project(projectId), (HashMapUser)context.currentUser());
+    }
+
+    @Put("/star/:project/:docId")
+    public Payload starProjectDocument(final String docId, final String projectId, Context context) throws IOException, SQLException {
+        return repository.star(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
+    }
+
+    @Put("/unstar/:project/:docId")
+    public Payload unstarProjectDocument(final String docId, final String projectId, Context context) throws IOException, SQLException {
+        return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
 }

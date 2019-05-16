@@ -22,4 +22,9 @@ public interface Repository {
     boolean star(User user, String documentId) throws SQLException;
     boolean unstar(User user, String documentId) throws SQLException;
     List<Document> getStarredDocuments(User user) throws SQLException;
+
+    // standalone (to remove later ?)
+    boolean star(Project project, User user, String documentId) throws SQLException;
+    boolean unstar(Project project, User user, String documentId) throws SQLException;
+    List<String> getStarredDocuments(Project project, User user) throws SQLException;
 }

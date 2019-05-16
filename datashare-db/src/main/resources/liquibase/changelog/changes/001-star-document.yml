@@ -16,6 +16,9 @@ databaseChangeLog:
                  type: varchar(96)
                  constraints:
                    nullable: false
+              - column:
+                  name: prj_id
+                  type: varchar(96)
 
         - createIndex:
             indexName: document_user_star_doc_id
@@ -23,6 +26,14 @@ databaseChangeLog:
             columns:
               - column:
                   name: doc_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: document_user_star_project_id
+            tableName: document_user_star
+            columns:
+              - column:
+                  name: prj_id
                   type: varchar(96)
 
         - createIndex:
