@@ -1,40 +1,35 @@
-# DataShare
+# Datashare
 
 [![Circle CI](https://circleci.com/gh/ICIJ/datashare.png?style=shield&circle-token=b7637e0aec84ab65d39ccd0d331bae27ba697299)](https://circleci.com/gh/ICIJ/datashare)
 
-DataShare aims at allowing for valuable knowledge about people and companies 
-locked within hundreds of pages of documents inside a computer to be sieved 
-into indexes and shared securely within a network of trusted individuals, 
-fostering unforeseen collaboration and prompting new and better investigations 
-that uncover corruption, transnational crime and abuse of power.
+
+## Download
+
+https://datashare.icij.org/
 
 
-## Current Features
+## Documentation
 
-An Extensible Multilingual Information Extraction and Search Platform
+Datashare's user guide can be found here: https://icij.gitbook.io/datashare/
 
- - Extract Text from Files; 
- - Extract Organizations, Persons and Locations from Text; 
- - Index and Search all
 
-Multithreaded and Distributed Processings
+## Description
 
-Local or Remote Indexing
+Datashare is a free open-source desktop application developed by non-profit International Consortium of Investigative Journalists (ICIJ). 
+
+Datashare allows investigative journalists to:
+- access all their documents in one place locally on their computer while securing them from potential third-party interferences
+- search pdfs, images, texts, spreadsheets, slides and any files, simultaneously
+- automatically detect and filter by people, organizations and locations
 
 
 ## Installing and using
 
 ### Using with elasticsearch
-You can download the script [datashare.sh](datashare-dist/src/main/datashare.sh) and execute it. It will :
 
-- download [redis](https://redis.io), [elasticsearch](https://www.elastic.co/) and datashare [docker](https://www.docker.com/docker-community) containers
-- initialize an elasticsearch index with datashare mapping
-- provide CLI to run datashare extract, index, name finding tasks
-- provide a WEB GUI to run datashare extract, index, name finding tasks, and search in the documents
+You can download the script at datashare.icij.org.
 
 To access web GUI, go in your documents folder and launch `path/to/datashare.sh -w` then connect datashare on http://localhost:8080
-
-If you want to avoid synchronization of NLP models (offline use) then do `export DS_JAVA_OPTS="-DDS_SYNC_NLP_MODELS=false"` before launching the `datashare.sh` script.
 
 ### Using only Named Entity Recognition
 
@@ -68,7 +63,7 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
 
 *Support*
 
-  [Tika File Formats](https://tika.apache.org/1.15/formats.html)
+  [Tika File Formats](https://tika.apache.org/1.18/formats.html)
 
   
 ### **Extract Persons, Organizations or Locations from Text** 
@@ -157,7 +152,7 @@ From `datashare` root directory, type: `mvn package`
 
 ## License
 
-DataShare is released under the [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.en.html)
+Datashare is released under the [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.en.html)
 
 
 ## Feedback
@@ -166,19 +161,6 @@ We welcome feedback as well as contributions!
 
 For any bug, question, comment or (pull) request, 
 
-please contact us at engineering@icij.org
-
-
-## What's next
- 
- - Data Sharing module
- 
-   - Networking module
-   
-   - Content Management module
-     
-   - User Management module
-        
-   - Request and Exchange Protocol
+please contact us at datashare@icij.org
  
  
