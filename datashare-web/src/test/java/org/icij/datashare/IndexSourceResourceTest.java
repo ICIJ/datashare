@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.Mockito.*;
@@ -60,6 +61,12 @@ public class IndexSourceResourceTest implements FluentRestTest {
         indexFile("local-datashare", "id_html", htmlFile.toPath(), null, "my_routing");
 
         get("/api/index/src/local-datashare/id_html?routing=my_routing").should().contain("<html>content</html>").haveType("text/html;charset=UTF-8");
+    }
+
+    @Test
+    public void test_source_file_not_found_should_return_404() {
+        indexFile("local-datashare", "missing_file", Paths.get("missing/file"), null, null);
+        get("/api/index/src/local-datashare/missing_file").should().respond(404);
     }
 
     @Test

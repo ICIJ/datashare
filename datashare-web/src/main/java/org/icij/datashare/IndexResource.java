@@ -18,6 +18,7 @@ import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
@@ -104,6 +105,8 @@ public class IndexResource {
                     ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName())),
                     InputStreams.readBytes(from)
             ).withHeader("Content-Disposition", "attachment;filename=\"" + doc.getName() + "\"");
+        } catch (FileNotFoundException fnf) {
+            return Payload.notFound();
         }
     }
 
