@@ -92,19 +92,21 @@ public class IndexResource {
     @Get("/src/:index/:id?routing=:routing")
     public Payload getSourceFile(final String index, final String id,
                                  final String routing, final Context context) throws IOException {
+        boolean inline = context.request().query().getBoolean("inline");
         if (isGranted((HashMapUser)context.currentUser(), index)) {
-            return routing == null ? getPayload(indexer.get(index, id)) : getPayload(indexer.get(index, id, routing));
+            return routing == null ? getPayload(indexer.get(index, id), inline) : getPayload(indexer.get(index, id, routing), inline);
         }
         throw new ForbiddenException();
     }
 
     @NotNull
-    private Payload getPayload(Document doc) throws IOException {
+    private Payload getPayload(Document doc, boolean inline) throws IOException {
         try (InputStream from = new FileInputStream(doc.getPath().toFile())) {
-            return new Payload(
+            Payload payload = new Payload(
                     ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName())),
                     InputStreams.readBytes(from)
-            ).withHeader("Content-Disposition", "attachment;filename=\"" + doc.getName() + "\"");
+            );
+            return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + doc.getName() + "\"");
         } catch (FileNotFoundException fnf) {
             return Payload.notFound();
         }

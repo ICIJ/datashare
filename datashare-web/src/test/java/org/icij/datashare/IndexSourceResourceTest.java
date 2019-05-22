@@ -55,6 +55,17 @@ public class IndexSourceResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_get_source_file_with_content_type_inline() throws Exception {
+        File img = new File(temp.getRoot(), "/my/path/to/image.jpg?inline");
+        write(img, "content");
+        indexFile("local-datashare", "id_jpg", img.toPath(), "image/jpg", null);
+
+        get("/api/index/src/local-datashare/id_jpg").should().
+                haveType("image/jpg").contain("content").
+                should().not().haveHeader("Content-Disposition", "attachment;filename=\"image.jpg\"");
+    }
+
+    @Test
     public void test_get_source_file_with_routing() throws Exception {
         File htmlFile = new File(temp.getRoot(), "index.html");
         write(htmlFile, "<html>content</html>");
