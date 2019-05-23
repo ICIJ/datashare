@@ -29,7 +29,7 @@ Datashare allows investigative journalists to:
 
 You can download the script at datashare.icij.org.
 
-To access web GUI, go in your documents folder and launch `path/to/datashare.sh -w` then connect datashare on http://localhost:8080
+To access web GUI, go in your documents folder and launch `path/to/datashare.sh` then connect datashare on http://localhost:8080
 
 ### Using only Named Entity Recognition
 
@@ -37,7 +37,7 @@ You can use the datashare docker container only for HTTP exposed name finding AP
 
 Just run : 
 
-    docker run -ti -p 8080:8080 -v /path/to/dist/:/home/datashare/dist icij/datashare:0.10 -m NER -w
+    docker run -ti -p 8080:8080 -v /path/to/dist/:/home/datashare/dist icij/datashare:0.10 -m NER
 
 A bit of explanation : 
 - `-w` tells datashare to run the webserver. It is launched on 8080 that's why the port is mapped for docker
