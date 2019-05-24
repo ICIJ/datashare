@@ -17,7 +17,7 @@
         <dependency>
        	    <groupId>com.github.bamthomas</groupId>
        	    <artifactId>fluent-http</artifactId>
-       	    <version>47150ae</version>
+       	    <version>f6b3123</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -86,11 +86,6 @@
             <artifactId>commons-test</artifactId>
             <version>1.64.2</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.code-story</groupId>
-            <artifactId>http</artifactId>
-            <version>RELEASE</version>
         </dependency>
     </dependencies>
 
