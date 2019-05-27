@@ -4,6 +4,7 @@ import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
+import org.icij.datashare.DocumentResource;
 import org.icij.datashare.IndexResource;
 import org.icij.datashare.NamedEntityResource;
 import org.icij.datashare.TaskResource;
@@ -38,10 +39,11 @@ public class ServerMode extends CommonMode {
             }
         }
         bind(Filter.class).to(authFilterClass).asEagerSingleton();
+        configurePersistence();
     }
 
     @Override
     protected Routes addModeConfiguration(Routes routes) {
-        return routes.add(TaskResource.class).add(IndexResource.class).add(NamedEntityResource.class);
+        return routes.add(TaskResource.class).add(IndexResource.class).add(NamedEntityResource.class).add(DocumentResource.class);
     }
 }

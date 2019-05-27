@@ -13,6 +13,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.*;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
+import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -75,6 +76,10 @@ public class CommonMode extends AbstractModule {
     }
 
     protected Routes addModeConfiguration(final Routes routes) {return routes;}
+
+    void configurePersistence() {
+        bind(Repository.class).toInstance(new RepositoryFactoryImpl(propertiesProvider).createRepository());
+    }
 
     private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
         routes.setIocAdapter(new GuiceAdapter(this))

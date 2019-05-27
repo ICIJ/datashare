@@ -27,7 +27,8 @@ public class DocumentResourceTest implements FluentRestTest {
             return Env.prod();
         }
     }.startOnRandomPort();
-    @Mock Repository repository;
+    @Mock
+    Repository repository;
 
     @Before
     public void setUp() throws Exception {
