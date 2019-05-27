@@ -112,6 +112,7 @@
                 <filtering>true</filtering>
                 <includes>
                     <include>liquibase/*.properties</include>
+                    <include>liquibase/**/*.yml</include>
                 </includes>
             </resource>
         </resources>
