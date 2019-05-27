@@ -59,6 +59,7 @@ public final class DatashareCli {
         DatashareCliOptions.noweb(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
+        DatashareCliOptions.dataSourceUrl(parser);
 
         DatashareCliOptions.oauthSecret(parser);
         DatashareCliOptions.oauthClient(parser);

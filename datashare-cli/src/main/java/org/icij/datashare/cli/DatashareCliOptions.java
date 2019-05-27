@@ -146,6 +146,14 @@ final class DatashareCliOptions {
                 .defaultsTo("http://elasticsearch:9200");
     }
 
+    static OptionSpec<String> dataSourceUrl(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("dataSourceUrl"), "Datasource URL")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared");
+    }
+
     static OptionSpec<String> projectName(OptionParser parser) {
         return parser.acceptsAll(
                 asList("projectName", "n"), "Project name")
