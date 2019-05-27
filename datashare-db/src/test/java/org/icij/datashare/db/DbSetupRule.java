@@ -7,7 +7,7 @@ import liquibase.Contexts;
 import liquibase.Liquibase;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
-import liquibase.resource.FileSystemResourceAccessor;
+import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.rules.ExternalResource;
 import org.postgresql.ds.PGPoolingDataSource;
 import org.sqlite.SQLiteDataSource;
@@ -26,7 +26,7 @@ public class DbSetupRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        Liquibase liquibase = new liquibase.Liquibase("src/main/resources/liquibase/changelog/db.changelog.yml", new FileSystemResourceAccessor(),
+        Liquibase liquibase = new liquibase.Liquibase("liquibase/changelog/db.changelog.yml", new ClassLoaderResourceAccessor(),
                 DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(dataSource.getConnection())));
         liquibase.update(new Contexts());
 
@@ -36,6 +36,7 @@ public class DbSetupRule extends ExternalResource {
     }
 
     static DataSource createSqlite() {
+
         SQLiteDataSource sqLiteDataSource = new SQLiteDataSource();
         sqLiteDataSource.setUrl("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared");
         return sqLiteDataSource;

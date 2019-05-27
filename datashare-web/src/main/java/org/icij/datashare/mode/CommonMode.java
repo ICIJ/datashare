@@ -78,7 +78,9 @@ public class CommonMode extends AbstractModule {
     protected Routes addModeConfiguration(final Routes routes) {return routes;}
 
     void configurePersistence() {
-        bind(Repository.class).toInstance(new RepositoryFactoryImpl(propertiesProvider).createRepository());
+        RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
+        bind(Repository.class).toInstance(repositoryFactory.createRepository());
+        repositoryFactory.initDatabase();
     }
 
     private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
