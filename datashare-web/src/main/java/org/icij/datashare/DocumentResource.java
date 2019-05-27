@@ -21,6 +21,21 @@ public class DocumentResource {
     @Inject
     public DocumentResource(Repository repository) {this.repository = repository;}
 
+    @Put("/project/star/:project/:docId")
+    public Payload starProjectDocument(final String projectId, final String docId, Context context) throws IOException, SQLException {
+        return repository.star(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
+    }
+
+    @Put("/project/unstar/:project/:docId")
+    public Payload unstarProjectDocument(final String projectId, final String docId, Context context) throws IOException, SQLException {
+        return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
+    }
+
+    @Get("/project/starred/:project")
+    public List<String> getProjectStarredDocuments(final String projectId, Context context) throws IOException, SQLException {
+        return repository.getStarredDocuments(project(projectId), (HashMapUser)context.currentUser());
+    }
+
     @Get("/starred")
     public List<Document> getStarredDocuments(Context context) throws IOException, SQLException {
         return repository.getStarredDocuments((HashMapUser)context.currentUser());
@@ -34,20 +49,5 @@ public class DocumentResource {
     @Put("/unstar/:docId")
     public Payload unstarDocument(final String docId, Context context) throws IOException, SQLException {
         return repository.unstar((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
-    }
-
-    @Get("/starred/:project")
-    public List<String> getProjectStarredDocuments(final String projectId, Context context) throws IOException, SQLException {
-        return repository.getStarredDocuments(project(projectId), (HashMapUser)context.currentUser());
-    }
-
-    @Put("/star/:project/:docId")
-    public Payload starProjectDocument(final String docId, final String projectId, Context context) throws IOException, SQLException {
-        return repository.star(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
-    }
-
-    @Put("/unstar/:project/:docId")
-    public Payload unstarProjectDocument(final String docId, final String projectId, Context context) throws IOException, SQLException {
-        return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
 }

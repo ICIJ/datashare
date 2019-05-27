@@ -17,6 +17,7 @@ import java.util.HashSet;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -48,6 +49,20 @@ public class DocumentResourceTest implements FluentRestTest {
         when(repository.unstar(any(), any())).thenReturn(true).thenReturn(false);
         put("/api/document/unstar/doc_id").should().respond(201);
         put("/api/document/unstar/doc_id").should().respond(200);
+    }
+
+    @Test
+    public void testStarDocumentWithProject() throws Exception {
+        when(repository.star(any(), any(), eq("doc_id"))).thenReturn(true).thenReturn(false);
+        put("/api/document/project/star/prj1/doc_id").should().respond(201);
+        put("/api/document/project/star/prj1/doc_id").should().respond(200);
+    }
+
+    @Test
+    public void testUnstarDocumentWithProject() throws Exception {
+        when(repository.unstar(any(), any(), eq("doc_id"))).thenReturn(true).thenReturn(false);
+        put("/api/document/project/unstar/prj2/doc_id").should().respond(201);
+        put("/api/document/project/unstar/prj2/doc_id").should().respond(200);
     }
 
     @Test
