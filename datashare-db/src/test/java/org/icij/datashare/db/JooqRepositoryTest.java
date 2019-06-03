@@ -14,6 +14,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -23,8 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.db.DbSetupRule.createPostgresql;
-import static org.icij.datashare.db.DbSetupRule.createSqlite;
+import static org.icij.datashare.db.DbSetupRule.*;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
@@ -39,8 +39,11 @@ public class JooqRepositoryTest {
     private JooqRepository repository;
 
     @Parameters
-    public static Collection<Object[]> dataSources() {
-        return Arrays.asList(new Object[][]{{createSqlite(), SQLITE}, {createPostgresql(), POSTGRES_10}});
+    public static Collection<Object[]> dataSources() throws IOException, SQLException {
+        return Arrays.asList(new Object[][]{
+                {createDatasource(null), SQLITE},
+                {createDatasource("jdbc:postgresql://postgresql/datashare?user=test&password=test"), POSTGRES_10}
+        });
     }
 
     public JooqRepositoryTest(DataSource dataSource, SQLDialect dialect) {

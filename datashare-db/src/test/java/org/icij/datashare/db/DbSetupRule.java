@@ -3,19 +3,17 @@ package org.icij.datashare.db;
 import com.ninja_squad.dbsetup.DbSetup;
 import com.ninja_squad.dbsetup.destination.DataSourceDestination;
 import com.ninja_squad.dbsetup.operation.Operation;
-import liquibase.Contexts;
-import liquibase.Liquibase;
-import liquibase.database.DatabaseFactory;
-import liquibase.database.jvm.JdbcConnection;
-import liquibase.resource.ClassLoaderResourceAccessor;
+import org.icij.datashare.PropertiesProvider;
 import org.junit.rules.ExternalResource;
-import org.postgresql.ds.PGPoolingDataSource;
-import org.sqlite.SQLiteDataSource;
 
 import javax.sql.DataSource;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.HashMap;
 
 import static com.ninja_squad.dbsetup.Operations.deleteAllFrom;
 import static com.ninja_squad.dbsetup.operation.CompositeOperation.sequenceOf;
+import static java.util.Optional.ofNullable;
 
 public class DbSetupRule extends ExternalResource {
     final DataSource dataSource;
@@ -25,30 +23,16 @@ public class DbSetupRule extends ExternalResource {
     DbSetupRule(DataSource dataSource) { this.dataSource = dataSource;}
 
     @Override
-    protected void before() throws Throwable {
-        Liquibase liquibase = new liquibase.Liquibase("liquibase/changelog/db.changelog.yml", new ClassLoaderResourceAccessor(),
-                DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(dataSource.getConnection())));
-        liquibase.update(new Contexts());
-
+    protected void before() {
+        new RepositoryFactoryImpl().initDatabase(dataSource);
         Operation operation = sequenceOf(DELETE_ALL);
         DbSetup dbSetup = new DbSetup(new DataSourceDestination(dataSource), operation);
         dbSetup.launch();
     }
 
-    static DataSource createSqlite() {
-
-        SQLiteDataSource sqLiteDataSource = new SQLiteDataSource();
-        sqLiteDataSource.setUrl("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared");
-        return sqLiteDataSource;
-    }
-
-    static DataSource createPostgresql() {
-        PGPoolingDataSource source = new PGPoolingDataSource();
-        source.setServerName("postgresql");
-        source.setDatabaseName("test");
-        source.setUser("test");
-        source.setPassword("test");
-        source.setMaxConnections(10);
-        return source;
+    static DataSource createDatasource(final String jdbcUrl) throws IOException, SQLException {
+        return new RepositoryFactoryImpl(new PropertiesProvider(new HashMap<String, String>() {{
+            put("dataSourceUrl", ofNullable(jdbcUrl).orElse("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared"));
+        }})).createDatasource();
     }
 }

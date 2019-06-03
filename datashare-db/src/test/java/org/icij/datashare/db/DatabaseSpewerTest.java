@@ -19,14 +19,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.db.DbSetupRule.createPostgresql;
-import static org.icij.datashare.db.DbSetupRule.createSqlite;
+import static org.icij.datashare.db.DbSetupRule.createDatasource;
 import static org.icij.datashare.text.Project.project;
 import static org.jooq.SQLDialect.POSTGRES_10;
 import static org.jooq.SQLDialect.SQLITE;
@@ -38,8 +38,11 @@ public class DatabaseSpewerTest {
     private DatabaseSpewer dbSpewer;
 
     @Parameterized.Parameters
-    public static Collection<Object[]> dataSources() {
-        return Arrays.asList(new Object[][]{{createSqlite(), SQLITE}, {createPostgresql(), POSTGRES_10}});
+    public static Collection<Object[]> dataSources() throws IOException, SQLException {
+        return Arrays.asList(new Object[][]{
+                {createDatasource(null), SQLITE},
+                {createDatasource("jdbc:postgresql://postgresql/datashare?user=test&password=test"), POSTGRES_10}
+        });
     }
 
     public DatabaseSpewerTest(DataSource dataSource, SQLDialect dialect) throws IOException {

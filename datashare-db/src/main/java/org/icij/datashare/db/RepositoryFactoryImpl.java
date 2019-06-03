@@ -33,14 +33,12 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         this.propertiesProvider = propertiesProvider;
     }
 
-    public void initDatabase() {
-        DataSource dataSource = null;
+    void initDatabase(final DataSource dataSource) {
         try {
-            dataSource = createDatasource();
             Liquibase liquibase = new liquibase.Liquibase("liquibase/changelog/db.changelog.yml", new ClassLoaderResourceAccessor(),
                             DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(dataSource.getConnection())));
             liquibase.update(new Contexts());
-        } catch (LiquibaseException | SQLException | IOException e) {
+        } catch (LiquibaseException | SQLException e) {
             throw new RuntimeException(e);
         } finally {
             try {
@@ -48,6 +46,14 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
             } catch (SQLException e) {
                 LoggerFactory.getLogger(getClass()).error("cannot destroy connection pool", e);
             }
+        }
+    }
+
+    public void initDatabase() {
+        try {
+            initDatabase(createDatasource());
+        } catch (SQLException|IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -72,7 +78,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         throw new IllegalArgumentException("unknown SQL dialect for datasource : " + dataSourceUrl);
     }
 
-    private DataSource createDatasource() throws SQLException, IOException {
+    DataSource createDatasource() throws SQLException, IOException {
         Properties props = new Properties();
         props.load(getClass().getResourceAsStream("/c3p0.properties"));
         return DataSources.unpooledDataSource(getDataSourceUrl(), props);
