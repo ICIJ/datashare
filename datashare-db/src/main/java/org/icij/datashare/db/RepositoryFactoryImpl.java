@@ -1,7 +1,8 @@
 package org.icij.datashare.db;
 
 import com.google.inject.Inject;
-import com.mchange.v2.c3p0.DataSources;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import liquibase.Contexts;
 import liquibase.Liquibase;
 import liquibase.database.DatabaseFactory;
@@ -14,12 +15,9 @@ import org.icij.datashare.RepositoryFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DataSourceConnectionProvider;
-import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Properties;
 
 public class RepositoryFactoryImpl implements RepositoryFactory {
     private final PropertiesProvider propertiesProvider;
@@ -40,32 +38,20 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
             liquibase.update(new Contexts());
         } catch (LiquibaseException | SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            try {
-                DataSources.destroy(dataSource);
-            } catch (SQLException e) {
-                LoggerFactory.getLogger(getClass()).error("cannot destroy connection pool", e);
-            }
         }
     }
 
     public void initDatabase() {
-        try {
-            initDatabase(createDatasource());
-        } catch (SQLException|IOException e) {
-            throw new RuntimeException(e);
+        try (HikariDataSource datasource = (HikariDataSource) createDatasource()) {
+            initDatabase(datasource);
         }
     }
 
     public Repository createRepository() {
         String dataSourceUrl = getDataSourceUrl();
         DataSourceConnectionProvider connectionProvider;
-        try {
-            DataSource dataSource = createDatasource();
-            connectionProvider = new DataSourceConnectionProvider(dataSource);
-        } catch (SQLException | IOException e) {
-            throw new RuntimeException(e);
-        }
+        DataSource dataSource = createDatasource();
+        connectionProvider = new DataSourceConnectionProvider(dataSource);
         return new JooqRepository(connectionProvider, guessSqlDialectFrom(dataSourceUrl));
     }
 
@@ -78,10 +64,10 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         throw new IllegalArgumentException("unknown SQL dialect for datasource : " + dataSourceUrl);
     }
 
-    DataSource createDatasource() throws SQLException, IOException {
-        Properties props = new Properties();
-        props.load(getClass().getResourceAsStream("/c3p0.properties"));
-        return DataSources.unpooledDataSource(getDataSourceUrl(), props);
+    DataSource createDatasource() {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(getDataSourceUrl());
+        return new HikariDataSource(config);
     }
 
     @NotNull

@@ -31,9 +31,9 @@
             <version>1.24</version>
         </dependency>
         <dependency>
-            <groupId>postgresql</groupId>
+            <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>9.1-901-1.jdbc4</version>
+            <version>42.2.5.jre7</version>
         </dependency>
         <dependency>
             <groupId>org.xerial</groupId>
@@ -55,6 +55,11 @@
             <artifactId>liquibase-core</artifactId>
             <version>${liquibase.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>3.3.1</version>
+        </dependency>
 
         <!-- test deps -->
         <dependency>
@@ -75,11 +80,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-             <groupId>ch.qos.logback</groupId>
-             <artifactId>logback-core</artifactId>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
             <version>1.1.7</version>
-             <scope>test</scope>
-       </dependency>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <profiles>
