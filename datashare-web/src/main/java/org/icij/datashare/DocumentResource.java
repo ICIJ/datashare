@@ -56,7 +56,7 @@ public class DocumentResource {
     public Payload starDocument(final String docId, Context context) throws IOException, SQLException {
         return repository.star((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
-    
+
     @Options("/unstar/:docId")
     public Payload unstarDocument(final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 

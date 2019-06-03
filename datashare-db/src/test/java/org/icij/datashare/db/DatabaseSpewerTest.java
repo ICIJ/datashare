@@ -41,7 +41,7 @@ public class DatabaseSpewerTest {
     public static Collection<Object[]> dataSources() throws IOException, SQLException {
         return Arrays.asList(new Object[][]{
                 {createDatasource(null), SQLITE},
-                {createDatasource("jdbc:postgresql://postgresql/datashare?user=test&password=test"), POSTGRES_10}
+                {createDatasource("jdbc:postgresql://postgresql/test?user=test&password=test"), POSTGRES_10}
         });
     }
 
