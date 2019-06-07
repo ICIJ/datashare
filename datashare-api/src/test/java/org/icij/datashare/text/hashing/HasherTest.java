@@ -3,6 +3,8 @@ package org.icij.datashare.text.hashing;
 import org.icij.datashare.text.Hasher;
 import org.junit.Test;
 
+import java.nio.file.Paths;
+
 import static org.fest.assertions.Assertions.assertThat;
 
 public class HasherTest {
@@ -31,6 +33,18 @@ public class HasherTest {
         assertThat(Hasher.SHA_512.hash(text)).
                 isEqualTo("8c37b5a8bf4a3ede1e0d4567b2ef0c933bf246923d89226c01b264336ac333333b7f2" +
                         "43e06ee3299b770aa7ff72aa9ccc470725ca3d12c1f0aa1fd85c2eb83fc");
+    }
+
+    @Test
+    public void test_hash_file() throws Exception {
+        assertThat(Hasher.SHA_1.hash(Paths.get(getClass().getResource("/sampleFile.txt").getPath()))).
+                isEqualTo(Hasher.SHA_1.hash("test"));
+    }
+
+    @Test
+    public void test_hash_file_with_prefix() throws Exception {
+        assertThat(Hasher.SHA_1.hash(Paths.get(getClass().getResource("/sampleFile.txt").getPath()), "prefix")).
+                isEqualTo(Hasher.SHA_1.hash("prefixtest"));
     }
 
     @Test

@@ -127,13 +127,14 @@ public class ElasticsearchSpewerTest {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
             put("idDigestMethod", Hasher.SHA_384.toString());
         }}));
-        final TikaDocument extractDocument = tikaFactory.create(getClass().getResource("/docs/a/b/c/doc.txt").getPath());
+        final TikaDocument extractDocument = tikaFactory.create(getClass().getResource("/docs/embedded_doc.eml").getPath());
         Extractor extractor = new Extractor();
         extractor.setDigester(new UpdatableDigester("project", Hasher.SHA_384.toString()));
 
         extractor.extract(extractDocument);
 
-        Document document = new Document(Project.project("project"), get("/docs/a/b/c/doc.txt"), "This is a document to be parsed by datashare.",
+        Document document = new Document(Project.project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()),
+                "This is a document to be parsed by datashare.",
                 Language.FRENCH, Charset.defaultCharset(), "text/plain", convert(extractDocument.getMetadata()),
                 Document.Status.INDEXED, 45L);
 

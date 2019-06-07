@@ -22,9 +22,9 @@ public enum Hasher {
     private final String algorithm;
     private final int digestLength;
 
-    Hasher(int dgstLen) {
+    Hasher(int digestLen) {
         algorithm    = name().replace('_', '-');
-        digestLength = dgstLen;
+        digestLength = digestLen;
     }
 
     @Override
@@ -87,6 +87,21 @@ public enum Hasher {
     }
 
     /**
+     * Hash message from Path and string prefix
+     *
+     * @param filePath representing the message to hash
+     * @return the corresponding hash code String;
+     * empty if algorithm is UNKNOWN or NONE or nothing to take from stream.
+     */
+    public String hash(final Path filePath, final String prefix) {
+        try (InputStream stream = Files.newInputStream(filePath)) {
+            return hash(stream, prefix);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("cannot hash document", e);
+        }
+    }
+
+    /**
      * Hash message from InputStream
      *
      * @param stream the message to hash
@@ -94,11 +109,16 @@ public enum Hasher {
      * empty if algorithm is UNKNOWN or NONE or nothing to take from stream.
      */
     public String hash(InputStream stream) {
+        return hash(stream, "");
+    }
+
+    private String hash(InputStream stream, String prefix) {
         try {
             if (stream == null || stream.available() == 0) {
                 return "";
             }
             MessageDigest digest = MessageDigest.getInstance(algorithm);
+            digest.update(prefix.getBytes());
             byte[] buffer = new byte[4096];
             while (true) {
                 int readCount = stream.read(buffer);
@@ -108,7 +128,7 @@ public enum Hasher {
                 digest.update(buffer, 0, readCount);
             }
             byte[] hashedBytes = digest.digest();
-            return new String(hashedBytes);
+            return getHex(hashedBytes);
 
         } catch (NoSuchAlgorithmException | IOException e) {
             throw new IllegalArgumentException(e);

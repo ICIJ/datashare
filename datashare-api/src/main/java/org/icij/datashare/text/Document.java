@@ -63,7 +63,7 @@ public class Document implements Entity {
     private final String rootDocument;
 
     public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Long contentLength) {
-        this(project, HASHER.hash(project.getId() + content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength);
+        this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength);
     }
 
     public Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Integer extractionLevel, Long contentLength) {
@@ -71,11 +71,11 @@ public class Document implements Entity {
     }
 
     public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
-        this(project, HASHER.hash(project.getId() + content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
+        this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
     }
 
     public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
-        this(project, HASHER.hash(project.getId() + content), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength);
+        this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength);
     }
 
     @JsonCreator
@@ -106,6 +106,10 @@ public class Document implements Entity {
         this.nerTags = nerTags;
         this.parentDocument = parentDocument;
         this.rootDocument = rootDocument;
+    }
+
+    private static String getHash(Project project, Path path) {
+        return HASHER.hash(path, project.getId());
     }
 
     @Override
