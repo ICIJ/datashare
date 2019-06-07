@@ -103,11 +103,10 @@ public class IndexResource {
     @NotNull
     private Payload getPayload(Document doc, String index, boolean inline) throws IOException {
         try (InputStream from = new SourceExtractor().getSource(project(index), doc)) {
-            Payload payload = new Payload(
-                    ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName())),
-                    InputStreams.readBytes(from)
-            );
-            return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + doc.getName() + "\"");
+            String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
+            Payload payload = new Payload(contentType, InputStreams.readBytes(from));
+            String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
+            return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
         } catch (FileNotFoundException fnf) {
             return Payload.notFound();
         }
