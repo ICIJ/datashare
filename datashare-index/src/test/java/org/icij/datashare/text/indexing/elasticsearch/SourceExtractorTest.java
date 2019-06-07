@@ -4,12 +4,12 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
-import org.icij.extract.extractor.UpdatableDigester;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.junit.ClassRule;
@@ -47,20 +47,18 @@ public class SourceExtractorTest {
     @Test
     public void test_get_source_for_embedded_doc() throws Exception {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
-            put("idDigestMethod", Document.HASHER.toString());
+            put("idDigestMethod", Hasher.SHA_256.toString());
         }}));
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         final TikaDocument document = tikaFactory.create(path);
         Extractor extractor = new Extractor();
-        extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.HASHER.toString()));
         Reader reader = extractor.extract(document);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
                 new OptimaizeLanguageGuesser(), new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
         spewer.write(document, reader);
 
         Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).
-                get(TEST_INDEX, "1bf2b6aa27dd8b45c7db58875004b8cb27a78ced5200b4976b63e351ebbae5ececb86076d90e156a7cdea06cde9573ca",
-                        "f4078910c3e73a192e3a82d205f3c0bdb749c4e7b23c1d05a622db0f07d7f0ededb335abdb62aef41ace5d3cdb9298bc");
+                get(TEST_INDEX, "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e", "0f95ef97e4619f7bae2a585c6cf24587cd7a3a81a26599c8774d669e5c175e5e");
 
         assertThat(attachedPdf).isNotNull();
         assertThat(attachedPdf.getContentType()).isEqualTo("application/pdf");

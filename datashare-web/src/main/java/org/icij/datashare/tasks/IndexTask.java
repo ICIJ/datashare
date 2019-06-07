@@ -14,7 +14,6 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
-import org.icij.extract.extractor.UpdatableDigester;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.queue.DocumentQueueDrainer;
 import org.icij.task.DefaultTask;
@@ -62,7 +61,6 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable, UserTas
 
         Options<String> allTaskOptions = options().createFrom(userOptions);
         Extractor extractor = new Extractor().configure(allTaskOptions);
-        extractor.setDigester(new UpdatableDigester(indexName, Entity.HASHER.toString()));
 
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
         drainer = new DocumentQueueDrainer(queue, consumer).configure(allTaskOptions);

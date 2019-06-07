@@ -1,11 +1,11 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.parser.utils.CommonsDigester;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.extract.document.*;
 import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
-import org.icij.extract.extractor.UpdatableDigester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -26,10 +26,10 @@ public class SourceExtractor {
         } else {
             try {
                 LOGGER.info("extracting embedded document " + Identifier.shorten(document.getId(), 4) + " from root document " + document.getPath());
-                UpdatableDigester digester = new UpdatableDigester(project.getId(), document.HASHER.toString());
-                EmbeddedDocumentMemoryExtractor embeddedExtractor = new EmbeddedDocumentMemoryExtractor(digester);
+                CommonsDigester digester = new CommonsDigester(20 * 1024 * 1024, "SHA256");
+                EmbeddedDocumentMemoryExtractor embeddedExtractor = new EmbeddedDocumentMemoryExtractor(digester, Document.HASHER.toString());
                 TikaDocument rootDocument = new DocumentFactory().withIdentifier(
-                        new DigestIdentifier(document.HASHER.toString(), Charset.defaultCharset())).
+                        new DigestIdentifier(Document.HASHER.toString(), Charset.defaultCharset())).
                         create(document.getPath());
                 TikaDocumentSource source = embeddedExtractor.extract(rootDocument, document.getId());
                 return new ByteArrayInputStream(source.content);
