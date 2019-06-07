@@ -123,6 +123,7 @@ public class Document implements Entity {
     public Language getLanguage() { return language; }
     public int getExtractionLevel() { return extractionLevel;}
     public String getRootDocument() {return ofNullable(rootDocument).orElse(getId());}
+    public boolean isRootDocument() {return getRootDocument().equals(getId());}
     public String getParentDocument() { return parentDocument;}
     public Status getStatus() { return status;}
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
