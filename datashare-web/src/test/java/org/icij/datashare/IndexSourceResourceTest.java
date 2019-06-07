@@ -66,12 +66,11 @@ public class IndexSourceResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_get_source_file_with_routing() throws Exception {
-        File htmlFile = new File(temp.getRoot(), "index.html");
-        write(htmlFile, "<html>content</html>");
-        indexFile("local-datashare", "id_html", htmlFile.toPath(), null, "my_routing");
+    public void test_get_embedded_source_file_with_routing() {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        indexFile("local-datashare", "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623", Paths.get(path), "application/pdf", "id_eml");
 
-        get("/api/index/src/local-datashare/id_html?routing=my_routing").should().contain("<html>content</html>").haveType("text/html;charset=UTF-8");
+        get("/api/index/src/local-datashare/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml").should().haveType("application/pdf").contain("PDF-1.3");
     }
 
     @Test
@@ -88,7 +87,9 @@ public class IndexSourceResourceTest implements FluentRestTest {
     private void indexFile(String index, String _id, Path path, String contentType, String routing) {
         Document doc = mock(Document.class);
         when(doc.getPath()).thenReturn(path);
+        when(doc.getId()).thenReturn(_id);
         when(doc.getName()).thenReturn(path.getFileName().toString());
+        when(doc.isRootDocument()).thenReturn(routing == null);
         when(doc.getContentType()).thenReturn(contentType);
         if (routing == null) {
             when(indexer.get(index, _id)).thenReturn(doc);

@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -75,9 +76,10 @@ public class DocumentResourceTest implements FluentRestTest {
     public int port() { return server.port();}
 
     private Document createDoc(String name) {
-        return new Document(project("prj"), Paths.get("/path/to/").resolve(name), name,
-                        FRENCH, Charset.defaultCharset(),
-                        "text/plain", new HashMap<>(),
-                        Document.Status.INDEXED, new HashSet<>(), 432L);
+        return new Document(project("prj"), "docid", Paths.get("/path/to/").resolve(name), name,
+                FRENCH, Charset.defaultCharset(),
+                "text/plain", new HashMap<>(), Document.Status.INDEXED,
+                new HashSet<>(), new Date(), null, null,
+                0, 123L);
     }
 }

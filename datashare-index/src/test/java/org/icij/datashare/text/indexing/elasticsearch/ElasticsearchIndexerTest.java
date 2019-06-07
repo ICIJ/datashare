@@ -18,10 +18,7 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -33,6 +30,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Document.Status.DONE;
 import static org.icij.datashare.text.Document.Status.INDEXED;
+import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.NamedEntity.create;
@@ -57,8 +55,8 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_bulk_add() throws IOException {
-        Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get("doc.txt"), "content",
-                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, 4324L);
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 4324L);
         indexer.add(TEST_INDEX, doc);
         NamedEntity ne1 = create(PERSON, "John Doe", 12, "doc.txt", CORENLP, Language.FRENCH);
         NamedEntity ne2 = create(ORGANIZATION, "AAA", 123, "doc.txt", CORENLP, Language.FRENCH);
@@ -73,7 +71,7 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_bulk_add_should_add_ner_pipeline_once_and_for_empty_list() throws IOException {
-        Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get("doc.txt"), "content",
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(),
                 INDEXED, new HashSet<Pipeline.Type>() {{ add(OPENNLP);}}, 432L);
         indexer.add(TEST_INDEX, doc);
@@ -84,13 +82,22 @@ public class ElasticsearchIndexerTest {
         assertThat(resp.getSourceAsMap().get("status")).isEqualTo("DONE");
         assertThat((ArrayList<String>) resp.getSourceAsMap().get("nerTags")).containsExactly("OPENNLP");
     }
-
+    private Document createDoc(String name) {
+            return new Document(project("prj"), "docid", Paths.get("/path/to/").resolve(name), name,
+                    FRENCH, Charset.defaultCharset(),
+                    "text/plain", new HashMap<>(), Document.Status.INDEXED,
+                    new HashSet<>(), new Date(), null, null,
+                    0, 123L);
+        }
     @Test
     public void test_bulk_add_for_embedded_doc() throws IOException {
-        Document parent = new org.icij.datashare.text.Document(project("prj"), Paths.get("mail.eml"), "content",
-                Language.FRENCH, Charset.defaultCharset(), "message/rfc822", new HashMap<>(), INDEXED, 321L);
-        Document child = new org.icij.datashare.text.Document(project("prj"), Paths.get("mail.eml"),
-                "mail body", Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, new HashSet<>(), parent, 123L);
+        Document parent = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("mail.eml"), "content",
+                Language.FRENCH, Charset.defaultCharset(), "message/rfc822", new HashMap<>(), INDEXED, new HashSet<>(), 321L);
+        Document child = new Document(project("prj"), "childId", Paths.get("mail.eml"), "mail body",
+                            FRENCH, Charset.defaultCharset(),
+                            "text/plain", new HashMap<>(), Document.Status.INDEXED,
+                            new HashSet<>(), new Date(), "id", "id",
+                            1, 123L);
         indexer.add(TEST_INDEX,parent);
         indexer.add(TEST_INDEX,child);
         NamedEntity ne1 = create(PERSON, "Jane Daffodil", 12, parent.getId(), CORENLP, Language.FRENCH);
@@ -107,8 +114,8 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_update_named_entity() throws IOException {
-        Document parent = new org.icij.datashare.text.Document(project("prj"), Paths.get("doc.txt"), "content Madeline",
-                        Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE, 123L);
+        Document parent = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content Madeline",
+                        Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE, new HashSet<>(), 123L);
         NamedEntity ne = create(PERSON, "Madeline", 8, parent.getId(), CORENLP, Language.ENGLISH);
         indexer.add(TEST_INDEX, parent);
         indexer.add(TEST_INDEX, ne);
@@ -128,8 +135,8 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_search_with_status() throws IOException {
-        Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get("doc.txt"), "content", Language.FRENCH,
-                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, 123L);
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
         indexer.add(TEST_INDEX, doc);
 
         List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).ofStatus(INDEXED).execute().collect(toList());
@@ -149,7 +156,7 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_search_with_and_without_NLP_tags() throws IOException {
-        Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get("doc.txt"), "content",
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), DONE, new HashSet<Pipeline.Type>() {{ add(CORENLP); add(OPENNLP);}}, 123L);
         indexer.add(TEST_INDEX,doc);
 
@@ -164,7 +171,7 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_search_with_and_without_NLP_tags_no_tags() throws IOException {
-        Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get("doc.txt"), "content",
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 345L);
         indexer.add(TEST_INDEX,doc);
 
@@ -173,7 +180,7 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_search_source_filtering() throws IOException {
-        Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get("doc_with_parent.txt"), "content",
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc_with_parent.txt"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 444L);
         indexer.add(TEST_INDEX,doc);
 
@@ -185,7 +192,7 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_search_source_false() throws IOException {
-        Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get("doc_with_parent.txt"), "content",
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc_with_parent.txt"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 222L);
         indexer.add(TEST_INDEX,doc);
 
@@ -196,8 +203,8 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_search_size_limit() throws IOException {
         for (int i = 0 ; i < 20; i++) {
-            Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
-                Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE, 666L);
+            Document doc = new org.icij.datashare.text.Document("id" + i, project("prj"), Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
+                Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE, new HashSet<>(), 666L);
             indexer.add(TEST_INDEX,doc);
         }
         assertThat(indexer.search(TEST_INDEX,Document.class).limit(5).execute().count()).isEqualTo(5);
@@ -207,8 +214,8 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_search_with_scroll() throws IOException {
         for (int i = 0 ; i < 12; i++) {
-            Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
-                Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE, 345L);
+            Document doc = new org.icij.datashare.text.Document("id" + i, project("prj"), Paths.get(format("doc%d.txt", i)), format("content %d", i), Language.ENGLISH,
+                Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE, new HashSet<>(), 345L);
             indexer.add(TEST_INDEX,doc);
         }
 
@@ -226,8 +233,8 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_bulk_update() throws IOException {
-        Document doc = new org.icij.datashare.text.Document(project("prj"), Paths.get("doc.txt"), "content",
-                        Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, 34L);
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content",
+                        Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
         NamedEntity ne1 = create(PERSON, "John Doe", 12, doc.getId(), CORENLP, Language.FRENCH);
         NamedEntity ne2 = create(ORGANIZATION, "AAA", 123, doc.getId(), CORENLP, Language.FRENCH);

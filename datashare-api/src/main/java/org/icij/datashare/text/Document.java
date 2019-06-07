@@ -74,6 +74,10 @@ public class Document implements Entity {
         this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
     }
 
+    public Document(String id, Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
+        this(project, id, filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
+    }
+
     public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
         this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength);
     }

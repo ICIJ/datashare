@@ -2,6 +2,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -10,6 +11,7 @@ import org.junit.Test;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,10 +35,10 @@ public class ElasticsearchExtractedStreamerTest {
 
     @Test
     public void test_stream_path() throws Exception {
-        streamer.indexer.add(TEST_INDEX, new org.icij.datashare.text.Document(project("prj"), get("/dir/doc1.txt"),
-                "content1", Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, 432L));
-        streamer.indexer.add(TEST_INDEX, new org.icij.datashare.text.Document(project("prj"), get("/dir/doc2.txt"),
-                "content2", Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, 352L));
+        streamer.indexer.add(TEST_INDEX, new Document("id1", project("prj"), get("/dir/doc1.txt"),
+                "content1", Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, new HashSet<>(), 432L));
+        streamer.indexer.add(TEST_INDEX, new Document("id2", project("prj"), get("/dir/doc2.txt"),
+                "content2", Language.FRENCH, Charset.defaultCharset(), "text/plain", new HashMap<>(), INDEXED, new HashSet<>(),352L));
 
         Set<Path> paths = streamer.extractedDocuments().collect(Collectors.toSet());
 

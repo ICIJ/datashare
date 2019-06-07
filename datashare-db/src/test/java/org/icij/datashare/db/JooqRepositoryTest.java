@@ -18,10 +18,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.db.DbSetupRule.*;
@@ -53,7 +50,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_create_document() throws Exception {
-        Document document = new Document(project("prj"), Paths.get("/path/to/doc"), "content",
+        Document document = new Document("id", project("prj"), Paths.get("/path/to/doc"), "content",
                 FRENCH, Charset.defaultCharset(),
                 "text/plain", new HashMap<String, Object>() {{
                     put("key 1", "value 1");
@@ -73,11 +70,11 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_get_untagged_documents() throws Exception {
-        Document coreAndOpenNlp = new Document(project("prj"), Paths.get("/path/to/coreAndOpenNlp"), "coreAndOpenNlp",
+        Document coreAndOpenNlp = new Document("idCore", project("prj"), Paths.get("/path/to/coreAndOpenNlp"), "coreAndOpenNlp",
                 FRENCH, Charset.defaultCharset(),
                 "text/plain", new HashMap<>(),
                 Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
-        Document ixaPipe = new Document(project("prj"), Paths.get("/path/to/ixaPipe"), "ixaPipe",
+        Document ixaPipe = new Document("idIxa", project("prj"), Paths.get("/path/to/ixaPipe"), "ixaPipe",
                 FRENCH, Charset.defaultCharset(),
                 "text/plain", new HashMap<>(),
                 Document.Status.INDEXED, Pipeline.set(IXAPIPE), 234L);
@@ -108,7 +105,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_star_unstar_a_document_with_join() throws SQLException {
-        Document doc = new Document(project("prj"), Paths.get("/path/to/docId"), "my doc",
+        Document doc = new Document("id", project("prj"), Paths.get("/path/to/docId"), "my doc",
                         FRENCH, Charset.defaultCharset(),
                         "text/plain", new HashMap<>(),
                         Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);

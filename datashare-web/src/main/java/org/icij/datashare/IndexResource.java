@@ -14,10 +14,10 @@ import okio.BufferedSink;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +28,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
+import static org.icij.datashare.text.Project.project;
 
 @Prefix("/api/index")
 public class IndexResource {
@@ -94,14 +95,14 @@ public class IndexResource {
                                  final String routing, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
         if (isGranted((HashMapUser)context.currentUser(), index)) {
-            return routing == null ? getPayload(indexer.get(index, id), inline) : getPayload(indexer.get(index, id, routing), inline);
+            return routing == null ? getPayload(indexer.get(index, id), index, inline) : getPayload(indexer.get(index, id, routing),index, inline);
         }
         throw new ForbiddenException();
     }
 
     @NotNull
-    private Payload getPayload(Document doc, boolean inline) throws IOException {
-        try (InputStream from = new FileInputStream(doc.getPath().toFile())) {
+    private Payload getPayload(Document doc, String index, boolean inline) throws IOException {
+        try (InputStream from = new SourceExtractor().getSource(project(index), doc)) {
             Payload payload = new Payload(
                     ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName())),
                     InputStreams.readBytes(from)
