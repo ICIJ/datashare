@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 
-import static org.icij.datashare.text.Hasher.SHA_256;
+import static org.icij.datashare.text.Hasher.SHA_384;
 
 
 /**
@@ -16,7 +16,7 @@ import static org.icij.datashare.text.Hasher.SHA_256;
  */
 public interface Entity extends Serializable {
     Logger LOGGER = LoggerFactory.getLogger(Entity.class);
-    Hasher HASHER = SHA_256;
+    Hasher HASHER = SHA_384;
 
     String getId();
 }

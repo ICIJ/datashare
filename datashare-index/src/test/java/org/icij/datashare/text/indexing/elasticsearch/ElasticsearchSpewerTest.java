@@ -14,6 +14,7 @@ import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
@@ -124,11 +125,11 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_extract_id_should_be_equal_to_datashare_id() throws IOException {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
-            put("idDigestMethod", Document.HASHER.toString());
+            put("idDigestMethod", Hasher.SHA_384.toString());
         }}));
         final TikaDocument extractDocument = tikaFactory.create(getClass().getResource("/docs/embedded_doc.eml").getPath());
         Extractor extractor = new Extractor();
-        extractor.setDigester(new UpdatableDigester("project", Document.HASHER.toString()));
+        extractor.setDigester(new UpdatableDigester("project", Hasher.SHA_384.toString()));
 
         extractor.extract(extractDocument);
 
