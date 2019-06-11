@@ -75,6 +75,15 @@ public class IndexSourceResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_get_embedded_source_file_with_routing_sha256_for_backward_compatibility() {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        indexFile("local-datashare", "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e", Paths.get(path), "application/pdf", "id_eml");
+
+        get("/api/index/src/local-datashare/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e?routing=id_eml").
+                should().haveType("application/pdf").contain("PDF-1.3").haveHeader("Content-Disposition", "attachment;filename=\"6abb969509.pdf\"");;
+    }
+
+    @Test
     public void test_source_file_not_found_should_return_404() {
         indexFile("local-datashare", "missing_file", Paths.get("missing/file"), null, null);
         get("/api/index/src/local-datashare/missing_file").should().respond(404);

@@ -1,7 +1,9 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.parser.utils.CommonsDigester;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Project;
 import org.icij.extract.document.*;
 import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
@@ -12,6 +14,8 @@ import org.xml.sax.SAXException;
 
 import java.io.*;
 import java.nio.charset.Charset;
+
+import static org.icij.datashare.text.Hasher.SHA_384;
 
 public class SourceExtractor {
     Logger LOGGER = LoggerFactory.getLogger(SourceExtractor.class);
@@ -24,14 +28,23 @@ public class SourceExtractor {
         if (document.isRootDocument()) {
             return new FileInputStream(document.getPath().toFile());
         } else {
+            LOGGER.info("extracting embedded document " + Identifier.shorten(document.getId(), 4) + " from root document " + document.getPath());
+            TikaDocumentSource source;
+            EmbeddedDocumentMemoryExtractor embeddedExtractor;
+            DigestIdentifier identifier;
+            if (document.getId().length() == SHA_384.digestLength) {
+                embeddedExtractor = new EmbeddedDocumentMemoryExtractor(new UpdatableDigester(project.getId(), SHA_384.toString()));
+                identifier = new DigestIdentifier(SHA_384.toString(), Charset.defaultCharset());
+            } else {
+                // backward compatibility
+                Hasher hasher = Hasher.valueOf(document.getId().length());
+                embeddedExtractor = new EmbeddedDocumentMemoryExtractor(
+                        new CommonsDigester(20 * 1024 * 1024, hasher.toString().replace("-", "")), hasher.toString());
+                identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
+            }
+            TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
             try {
-                LOGGER.info("extracting embedded document " + Identifier.shorten(document.getId(), 4) + " from root document " + document.getPath());
-                UpdatableDigester digester = new UpdatableDigester(project.getId(), document.HASHER.toString());
-                EmbeddedDocumentMemoryExtractor embeddedExtractor = new EmbeddedDocumentMemoryExtractor(digester);
-                TikaDocument rootDocument = new DocumentFactory().withIdentifier(
-                        new DigestIdentifier(document.HASHER.toString(), Charset.defaultCharset())).
-                        create(document.getPath());
-                TikaDocumentSource source = embeddedExtractor.extract(rootDocument, document.getId());
+                source = embeddedExtractor.extract(rootDocument, document.getId());
                 return new ByteArrayInputStream(source.content);
             } catch (SAXException | TikaException | IOException e) {
                 throw new ExtractException("extract error for embedded document " + document.getId(), e);
