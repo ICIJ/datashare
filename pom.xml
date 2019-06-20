@@ -4,7 +4,7 @@
 
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare</artifactId>
-    <version>1.69.4</version>
+    <version>1.69.5</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2016</inceptionYear>
