@@ -13,8 +13,8 @@ import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
 import org.icij.datashare.text.nlp.Annotations;
+import org.icij.datashare.text.nlp.NlpTag;
 import org.icij.datashare.text.nlp.Pipeline;
-import org.icij.datashare.text.nlp.Tag;
 
 import java.io.Serializable;
 import java.util.*;
@@ -118,11 +118,11 @@ public final class NamedEntity implements Entity {
                 .collect ( Collectors.toList() );
     }
 
-    public static NamedEntity from(String text, Tag tag, Annotations annotations) {
+    public static NamedEntity from(String text, NlpTag tag, Annotations annotations) {
         Category category = Category.parse(tag.getValue());
         String mention = ThrowingFunctions.removeNewLines.apply(text.substring(tag.getBegin(), tag.getEnd()));
-        List<Tag> posTags = annotations.get(POS);
-        int posTagIndex = Collections.binarySearch(posTags, tag, Tag.comparator);
+        List<NlpTag> posTags = annotations.get(POS);
+        int posTagIndex = Collections.binarySearch(posTags, tag, NlpTag.comparator);
         if (posTagIndex > 0) {
             LOGGER.info(posTagIndex + ", " + posTags.get(posTagIndex));
         }

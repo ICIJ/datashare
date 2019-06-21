@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: 3
+      author: bthomas
+      changes:
+        - createTable:
+            tableName: document_tag
+            columns:
+              - column:
+                 name: doc_id
+                 type: varchar(96)
+                 constraints:
+                   nullable: false
+              - column:
+                 name: label
+                 type: varchar(64)
+                 constraints:
+                   nullable: false
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: document_tag_doc_id
+            tableName: document_tag
+            columns:
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: document_tag_project_id
+            tableName: document_tag
+            columns:
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: document_tag_label
+            tableName: document_tag
+            columns:
+              - column:
+                  name: label
+                  type: varchar(64)

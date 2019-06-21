@@ -5,3 +5,6 @@ databaseChangeLog:
   - include:
       file: changes/001-star-document.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/002-tag-document.yml
+      relativeToChangelogFile: true

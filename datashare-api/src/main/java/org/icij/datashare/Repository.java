@@ -3,6 +3,7 @@ package org.icij.datashare;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 
@@ -27,4 +28,8 @@ public interface Repository {
     boolean star(Project project, User user, String documentId) throws SQLException;
     boolean unstar(Project project, User user, String documentId) throws SQLException;
     List<String> getStarredDocuments(Project project, User user) throws SQLException;
+
+    boolean tag(Project prj, String documentId, Tag... tags) throws SQLException;
+    boolean untag(Project prj, String documentId, Tag... tags) throws SQLException;
+    List<String> getDocuments(Project project, Tag... tags) throws SQLException;
 }

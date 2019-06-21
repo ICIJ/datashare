@@ -25,6 +25,7 @@ import static org.icij.datashare.db.DbSetupRule.*;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.jooq.SQLDialect.POSTGRES_10;
 import static org.jooq.SQLDialect.SQLITE;
@@ -133,5 +134,20 @@ public class JooqRepositoryTest {
         assertThat(repository.unstar(project("prj"), user,"doc_id")).isTrue();
         assertThat(repository.getStarredDocuments(project("prj"), user)).isEmpty();
         assertThat(repository.unstar(project("prj"), user, "doc_id")).isFalse();
+    }
+
+    @Test
+    public void test_tag_untag_a_document_without_documents() throws SQLException {
+        assertThat(repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"))).isTrue();
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).contains("doc_id");
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).contains("doc_id");
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).contains("doc_id");
+
+        assertThat(repository.getDocuments(project("prj2"), tag("tag1"))).isEmpty();
+        assertThat(repository.tag(project("prj"), "doc_id", tag("tag1"))).isFalse();
+
+        assertThat(repository.untag(project("prj"), "doc_id", tag("tag1"), tag("tag2"))).isTrue();
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).isEmpty();
+        assertThat(repository.untag(project("prj"), "doc_id", tag("tag1"))).isFalse();
     }
 }

@@ -57,29 +57,31 @@ public class Document implements Entity {
     private final Map<String, Object> metadata;
     private final Status status;
     private final Set<Pipeline.Type> nerTags;
+    private final Set<Tag> tags;
+
     @IndexParent
     private final String parentDocument;
     @IndexRoot
     private final String rootDocument;
 
     public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Long contentLength) {
-        this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength);
+        this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength, new HashSet<>());
     }
 
     public Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Integer extractionLevel, Long contentLength) {
-        this(project, id, filePath, getDirnameFrom(filePath), content, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength);
+        this(project, id, filePath, getDirnameFrom(filePath), content, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>());
     }
 
     public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
-        this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
+        this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength, new HashSet<>());
     }
 
     public Document(String id, Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
-        this(project, id, filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength);
+        this(project, id, filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength, new HashSet<>());
     }
 
     public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
-        this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength);
+        this(project, getHash(project, filePath), filePath, getDirnameFrom(filePath), content, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength, new HashSet<>());
     }
 
     @JsonCreator
@@ -93,7 +95,8 @@ public class Document implements Entity {
                      @JsonProperty("nerTags") Set<Pipeline.Type> nerTags,
                      @JsonProperty("parentDocument") String parentDocument,
                      @JsonProperty("rootDocument") String rootDocument,
-                     @JsonProperty("contentLength") Long contentLength) {
+                     @JsonProperty("contentLength") Long contentLength,
+                     @JsonProperty("tags") Set<Tag> tags) {
         this.id = id;
         this.project = project;
         this.path = path;
@@ -110,6 +113,7 @@ public class Document implements Entity {
         this.nerTags = nerTags;
         this.parentDocument = parentDocument;
         this.rootDocument = rootDocument;
+        this.tags = tags;
     }
 
     private static String getHash(Project project, Path path) {
@@ -135,6 +139,8 @@ public class Document implements Entity {
     public String getParentDocument() { return parentDocument;}
     public Status getStatus() { return status;}
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
+    public Set<Tag> getTags() { return tags;}
+
     @JsonIgnore
     public int getNerMask() { return nerMask(getNerTags());}
     public Map<String, Object> getMetadata() { return metadata; }

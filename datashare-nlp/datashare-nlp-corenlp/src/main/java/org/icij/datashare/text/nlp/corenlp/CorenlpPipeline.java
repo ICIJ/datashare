@@ -234,7 +234,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
         nlpAnnotator = CoreNlpPosModels.getInstance().get(language);
         List<List<HasWord>> sentences = MaxentTagger.tokenizeText(new StringReader(input));
         for (List<HasWord> sentence : sentences) {
-            // Tag with parts-of-speech
+            // NlpTag with parts-of-speech
             List<TaggedWord> taggedSentence = nlpAnnotator.annotator.tagSentence(sentence);
             // Feed annotatopn
             for (TaggedWord word : taggedSentence) {

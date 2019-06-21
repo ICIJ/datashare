@@ -9,13 +9,13 @@ public class Annotations {
     private final String documentId;
     private final Pipeline.Type pipelineType;
     private final Language language;
-    private final Map<NlpStage, List<Tag>> tags;
+    private final Map<NlpStage, List<NlpTag>> tags;
 
     public Annotations(String documentId, Pipeline.Type pipelineType, Language language) {
         this.documentId = documentId;
         this.pipelineType = pipelineType;
         this.language = language;
-        tags = new HashMap<NlpStage, List<Tag>>() {{
+        tags = new HashMap<NlpStage, List<NlpTag>>() {{
             Arrays.stream( NlpStage.values() )
                     .forEach( stage ->
                             put(stage, new ArrayList<>())
@@ -30,15 +30,15 @@ public class Annotations {
     public Pipeline.Type getPipelineType() {
         return pipelineType;
     }
-    public List<Tag> get(NlpStage stage) {
+    public List<NlpTag> get(NlpStage stage) {
         return tags.get(stage);
     }
 
     public void add(NlpStage stage, int begin, int end) {
-        tags.get(stage).add(new Tag(stage, begin, end));
+        tags.get(stage).add(new NlpTag(stage, begin, end));
     }
 
     public void add(NlpStage stage, int begin, int end, String value) {
-        tags.get(stage).add(new Tag(stage, begin, end, value));
+        tags.get(stage).add(new NlpTag(stage, begin, end, value));
     }
 }

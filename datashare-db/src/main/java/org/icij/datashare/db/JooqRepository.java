@@ -2,10 +2,7 @@ package org.icij.datashare.db;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.Repository;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.Project;
+import org.icij.datashare.text.*;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.jooq.*;
@@ -19,7 +16,10 @@ import java.sql.Timestamp;
 import java.util.*;
 
 import static java.nio.charset.Charset.forName;
+import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
@@ -30,6 +30,7 @@ public class JooqRepository implements Repository {
     private static final String DOCUMENT = "document";
     private static final String NAMED_ENTITY = "named_entity";
     private static final String DOCUMENT_USER_STAR = "document_user_star";
+    private static final String DOCUMENT_TAG = "document_tag";
 
     private final ConnectionProvider connectionProvider;
     private SQLDialect dialect;
@@ -112,11 +113,11 @@ public class JooqRepository implements Repository {
                     where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
             if (existResult.get(0).value1() == 0) {
                 return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id")).
-                                    values(documentId, user.id).execute() > 0;
+                        values(documentId, user.id).execute() > 0;
             } else {
                 return false;
             }
-         }
+        }
     }
 
     @Override
@@ -147,11 +148,11 @@ public class JooqRepository implements Repository {
                     where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
             if (existResult.get(0).value1() == 0) {
                 return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id"), field("prj_id")).
-                                    values(documentId, user.id, project.getId()).execute() > 0;
+                        values(documentId, user.id, project.getId()).execute() > 0;
             } else {
                 return false;
             }
-         }
+        }
     }
 
     @Override
@@ -170,6 +171,46 @@ public class JooqRepository implements Repository {
             DSLContext create = DSL.using(conn, dialect);
             return create.select(field("doc_id")).from(table(DOCUMENT_USER_STAR)).
                     where(field("user_id").eq(user.id)).
+                    and(field("prj_id").eq(project.getId())).
+                    fetch().getValues("doc_id", String.class);
+        }
+    }
+
+    @Override
+    public boolean tag(Project prj, String documentId, Tag... tags) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            Set<Tag> existResult = create.select(field("label")).from(table(DOCUMENT_TAG)).
+                    where(field("label").in(stream(tags).map(t -> t.label).collect(toSet())), field("doc_id").equal(documentId)).
+                    fetch().getValues("label", String.class).stream().map(Tag::tag).collect(toSet());
+            if (existResult.size() != tags.length) {
+                List<Tag> tagList = asList(tags);
+                tagList.removeAll(existResult);
+                InsertValuesStep3<Record, Object, Object, Object> insertQuery = create.insertInto(table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
+                tagList.forEach(t -> insertQuery.values(documentId, t.label, prj.getId()));
+                return insertQuery.execute() > 0;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    @Override
+    public boolean untag(Project prj, String documentId, Tag... tags) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            return DSL.using(conn, dialect).deleteFrom(table(DOCUMENT_TAG)).
+                    where(field("doc_id").equal(documentId),
+                            field("label").in(stream(tags).map(t -> t.label).collect(toSet())),
+                            field("prj_id").equal(prj.getId())).execute() > 0;
+        }
+    }
+
+    @Override
+    public List<String> getDocuments(Project project, Tag... tags) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            return create.select(field("doc_id")).from(table(DOCUMENT_TAG)).
+                    where(field("label").in(stream(tags).map(t -> t.label).collect(toSet()))).
                     and(field("prj_id").eq(project.getId())).
                     fetch().getValues("doc_id", String.class);
         }
