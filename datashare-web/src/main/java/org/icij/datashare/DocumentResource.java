@@ -9,11 +9,13 @@ import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Tag;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import static java.util.Arrays.stream;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.project;
 
@@ -42,6 +44,28 @@ public class DocumentResource {
     @Get("/project/starred/:project")
     public List<String> getProjectStarredDocuments(final String projectId, Context context) throws IOException, SQLException {
         return repository.getStarredDocuments(project(projectId), (HashMapUser)context.currentUser());
+    }
+
+    @Get("/project/tagged/:project/:coma_separated_tags")
+    public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags) throws SQLException {
+        return repository.getDocuments(project(projectId),
+                stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
+    }
+
+    @Options("/project/tag/:project/:docId")
+    public Payload tagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
+
+    @Put("/project/tag/:project/:docId")
+    public Payload tagDocument(final String projectId, final String docId, Tag[] tags) throws SQLException {
+        return repository.tag(project(projectId), docId, tags) ? Payload.created(): Payload.ok();
+    }
+
+    @Options("/project/untag/:project/:docId")
+    public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
+
+    @Put("/project/untag/:project/:docId")
+    public Payload untagDocument(final String projectId, final String docId, Tag[] tags) throws SQLException {
+        return repository.untag(project(projectId), docId, tags) ? Payload.created(): Payload.ok();
     }
 
     @Get("/starred")

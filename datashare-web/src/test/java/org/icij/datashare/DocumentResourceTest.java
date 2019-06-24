@@ -10,13 +10,14 @@ import org.mockito.Mock;
 
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import static java.util.Arrays.asList;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
@@ -67,8 +68,28 @@ public class DocumentResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void testTagDocumentWithProject() throws Exception {
+        when(repository.tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        put("/api/document/project/tag/prj1/doc_id", "[{\"label\": \"tag1\"}, {\"label\": \"tag2\"}]").should().respond(201);
+        put("/api/document/project/tag/prj1/doc_id", "[{\"label\": \"tag1\"}, {\"label\": \"tag2\"}]").should().respond(200);
+    }
+
+    @Test
+    public void testUntagDocumentWithProject() throws Exception {
+        when(repository.untag(eq(project("prj2")), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
+        put("/api/document/project/untag/prj2/doc_id", "[{\"label\": \"tag3\"}, {\"label\": \"tag4\"}]").should().respond(201);
+        put("/api/document/project/untag/prj2/doc_id", "[{\"label\": \"tag3\"}, {\"label\": \"tag4\"}]").should().respond(200);
+    }
+
+    @Test
+    public void testGetTaggedDocumentsWithProject() throws Exception {
+        when(repository.getDocuments(eq(project("prj3")), eq(tag("foo")), eq(tag("bar")), eq(tag("baz")))).thenReturn(asList("id1", "id2"));
+        get("/api/document/project/tagged/prj3/foo,bar,baz").should().respond(200).contain("id1").contain("id2");
+    }
+
+    @Test
     public void testGetStarredDocuments() throws Exception {
-        when(repository.getStarredDocuments(any())).thenReturn(Arrays.asList(createDoc("doc1"), createDoc("doc2")));
+        when(repository.getStarredDocuments(any())).thenReturn(asList(createDoc("doc1"), createDoc("doc2")));
         get("/api/document/starred").should().respond(200).haveType("application/json").contain("\"doc1\"").contain("\"doc2\"");
     }
 
