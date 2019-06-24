@@ -209,7 +209,7 @@ public class JooqRepository implements Repository {
     public List<String> getDocuments(Project project, Tag... tags) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
-            return create.select(field("doc_id")).from(table(DOCUMENT_TAG)).
+            return create.selectDistinct(field("doc_id")).from(table(DOCUMENT_TAG)).
                     where(field("label").in(stream(tags).map(t -> t.label).collect(toSet()))).
                     and(field("prj_id").eq(project.getId())).
                     fetch().getValues("doc_id", String.class);

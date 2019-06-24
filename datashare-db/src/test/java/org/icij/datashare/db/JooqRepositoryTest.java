@@ -139,9 +139,9 @@ public class JooqRepositoryTest {
     @Test
     public void test_tag_untag_a_document_without_documents() throws SQLException {
         assertThat(repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"))).isTrue();
-        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).contains("doc_id");
-        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).contains("doc_id");
-        assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).contains("doc_id");
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).containsExactly("doc_id");
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).containsExactly("doc_id");
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).containsExactly("doc_id");
 
         assertThat(repository.getDocuments(project("prj2"), tag("tag1"))).isEmpty();
         assertThat(repository.tag(project("prj"), "doc_id", tag("tag1"))).isFalse();
