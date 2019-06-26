@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.project;
 
@@ -61,20 +62,20 @@ public class DocumentResource {
     @Options("/project/tag/:project/:docId")
     public Payload tagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
-    @Put("/project/tag/:project/:docId")
-    public Payload tagDocument(final String projectId, final String docId, Tag[] tags) throws SQLException, IOException {
+    @Put("/project/tag/:project/:docId?routing=:routing")
+    public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws SQLException, IOException {
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
-        indexer.tag(project(projectId), docId, tags);
+        indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
         return tagSaved ? Payload.created(): Payload.ok();
     }
 
     @Options("/project/untag/:project/:docId")
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
-    @Put("/project/untag/:project/:docId")
-    public Payload untagDocument(final String projectId, final String docId, Tag[] tags) throws SQLException, IOException {
+    @Put("/project/untag/:project/:docId?routing=:routing")
+    public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws SQLException, IOException {
         boolean untagSaved = repository.untag(project(projectId), docId, tags);
-        indexer.untag(project(projectId), docId, tags);
+        indexer.untag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
         return untagSaved ? Payload.created(): Payload.ok();
     }
 

@@ -34,8 +34,8 @@ public interface Indexer extends Closeable {
     <T extends Entity> T get(String indexName, String id, String root);
 
     // from Repository
-    boolean tag(Project prj, String documentId, Tag... tags) throws IOException;
-    boolean untag(Project prj, String documentId, Tag... tags) throws IOException;
+    boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
+    boolean untag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
 
     interface Searcher {
         Searcher ofStatus(Document.Status indexed);

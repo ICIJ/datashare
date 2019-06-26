@@ -71,23 +71,23 @@ public class DocumentResourceTest implements FluentRestTest {
     @Test
     public void testTagDocumentWithProject() throws Exception {
         when(repository.tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
-        when(indexer.tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(indexer.tag(eq(project("prj1")), any(), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
         put("/api/document/project/tag/prj1/doc_id", "[\"tag1\", \"tag2\"]").should().respond(201);
         put("/api/document/project/tag/prj1/doc_id", "[\"tag1\", \"tag2\"]").should().respond(200);
 
-        verify(indexer, times(2)).tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")));
+        verify(indexer, times(2)).tag(eq(project("prj1")), any(), any(), eq(tag("tag1")), eq(tag("tag2")));
     }
 
     @Test
     public void testUntagDocumentWithProject() throws Exception {
         when(repository.untag(eq(project("prj2")), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
-        when(indexer.untag(eq(project("prj2")), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
+        when(indexer.untag(eq(project("prj2")), any(), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
 
         put("/api/document/project/untag/prj2/doc_id", "[\"tag3\", \"tag4\"]").should().respond(201);
         put("/api/document/project/untag/prj2/doc_id", "[\"tag3\", \"tag4\"]").should().respond(200);
 
-        verify(indexer, times(2)).untag(eq(project("prj2")), any(), any(), any());
+        verify(indexer, times(2)).untag(eq(project("prj2")), any(), any(), any(), any());
     }
 
     @Test
@@ -95,6 +95,18 @@ public class DocumentResourceTest implements FluentRestTest {
         when(repository.getDocuments(eq(project("prj3")), eq(tag("foo")), eq(tag("bar")), eq(tag("baz")))).thenReturn(asList("id1", "id2"));
         get("/api/document/project/tagged/prj3/foo,bar,baz").should().respond(200).contain("id1").contain("id2");
     }
+
+    @Test
+    public void testTagDocumentWithProjectWithRouting() throws Exception {
+        when(repository.tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(indexer.tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+
+        put("/api/document/project/tag/prj1/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(201);
+        put("/api/document/project/tag/prj1/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(200);
+
+        verify(indexer, times(2)).tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")));
+    }
+
 
     @Test
     public void testGetStarredDocuments() throws Exception {

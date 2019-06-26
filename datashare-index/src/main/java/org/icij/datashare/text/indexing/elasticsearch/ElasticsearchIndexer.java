@@ -196,8 +196,8 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public boolean tag(Project prj, String documentId, Tag... tags) throws IOException {
-        UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId);
+    public boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException {
+        UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId).routing(rootDocument);
         update.script(new Script(ScriptType.INLINE, "painless",
                 "int updates = 0;" +
                         "if (ctx._source.tags == null) ctx._source.tags = [];" +
@@ -215,8 +215,8 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public boolean untag(Project prj, String documentId, Tag... tags) throws IOException {
-        UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId);
+    public boolean untag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException {
+        UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId).routing(rootDocument);
         update.script(new Script(ScriptType.INLINE, "painless",
                 "int updates = 0;" +
                         "for (int i = 0; i < params.tags.length; ++i) {" +

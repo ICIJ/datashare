@@ -155,8 +155,8 @@ public class ElasticsearchIndexerTest {
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
         indexer.add(TEST_INDEX, doc);
 
-        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), tag("foo"), tag("bar"))).isTrue();
-        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), tag("foo"))).isFalse();
+        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"), tag("bar"))).isTrue();
+        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"))).isFalse();
 
         List<? extends Entity> lst = indexer.search(TEST_INDEX, Document.class).with(tag("foo"), tag("bar")).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
@@ -172,12 +172,12 @@ public class ElasticsearchIndexerTest {
         removeTagsRequest.setRefreshPolicy(IMMEDIATE);
         es.client.update(removeTagsRequest);
 
-        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), tag("tag"))).isTrue();
+        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("tag"))).isTrue();
     }
 
     @Test(expected = ElasticsearchStatusException.class)
     public void test_tag_unknown_document() throws IOException {
-        indexer.tag(project(TEST_INDEX), "unknown", tag("foo"), tag("bar"));
+        indexer.tag(project(TEST_INDEX), "unknown", "routing", tag("foo"), tag("bar"));
     }
 
     @Test
@@ -185,13 +185,13 @@ public class ElasticsearchIndexerTest {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
         indexer.add(TEST_INDEX, doc);
-        indexer.tag(project(TEST_INDEX), doc.getId(), tag("foo"), tag("bar"));
+        indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"), tag("bar"));
 
-        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(), tag("foo"))).isTrue();
+        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(),doc.getId(), tag("foo"))).isTrue();
         assertThat(((Document)indexer.get(TEST_INDEX, doc.getId())).getTags()).containsOnly(tag("bar"));
-        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(), tag("foo"))).isFalse();
+        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(),doc.getId(), tag("foo"))).isFalse();
 
-        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(), tag("bar"))).isTrue();
+        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(),doc.getId(), tag("bar"))).isTrue();
         assertThat(((Document)indexer.get(TEST_INDEX, doc.getId())).getTags()).isEmpty();
     }
 
