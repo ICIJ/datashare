@@ -49,6 +49,9 @@
       "nerTags": {
         "type": "keyword"
       },
+      "tags": {
+        "type": "keyword"
+      },
       "metadata": {
         "type": "object"
       },

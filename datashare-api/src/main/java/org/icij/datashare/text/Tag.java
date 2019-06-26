@@ -1,7 +1,6 @@
 package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
 
@@ -9,7 +8,7 @@ public class Tag {
     public final String label;
 
     @JsonCreator
-    public Tag(@JsonProperty("label") String label) {
+    public Tag(final String label) {
         this.label = label;
     }
 

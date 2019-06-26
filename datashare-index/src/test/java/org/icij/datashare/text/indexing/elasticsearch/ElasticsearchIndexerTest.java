@@ -1,7 +1,11 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.script.Script;
+import org.elasticsearch.script.ScriptType;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -35,6 +39,7 @@ import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.NamedEntity.create;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 
 public class ElasticsearchIndexerTest {
@@ -142,6 +147,52 @@ public class ElasticsearchIndexerTest {
         List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).ofStatus(INDEXED).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
         assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).execute().collect(toList()).size()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_tag_document() throws IOException {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
+        indexer.add(TEST_INDEX, doc);
+
+        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), tag("foo"), tag("bar"))).isTrue();
+        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), tag("foo"))).isFalse();
+
+        List<? extends Entity> lst = indexer.search(TEST_INDEX, Document.class).with(tag("foo"), tag("bar")).execute().collect(toList());
+        assertThat(lst.size()).isEqualTo(1);
+        assertThat(((Document)lst.get(0)).getTags()).containsOnly(tag("foo"), tag("bar"));
+    }
+
+    @Test
+    public void test_tag_document_without_tags_field_for_backward_compatibility() throws IOException {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
+        indexer.add(TEST_INDEX, doc);
+        UpdateRequest removeTagsRequest = new UpdateRequest(TEST_INDEX, "doc", doc.getId()).script(new Script(ScriptType.INLINE, "painless", "ctx._source.remove(\"tags\")", new HashMap<>()));
+        removeTagsRequest.setRefreshPolicy(IMMEDIATE);
+        es.client.update(removeTagsRequest);
+
+        assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), tag("tag"))).isTrue();
+    }
+
+    @Test(expected = ElasticsearchStatusException.class)
+    public void test_tag_unknown_document() throws IOException {
+        indexer.tag(project(TEST_INDEX), "unknown", tag("foo"), tag("bar"));
+    }
+
+    @Test
+    public void test_untag_document() throws IOException {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
+        indexer.add(TEST_INDEX, doc);
+        indexer.tag(project(TEST_INDEX), doc.getId(), tag("foo"), tag("bar"));
+
+        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(), tag("foo"))).isTrue();
+        assertThat(((Document)indexer.get(TEST_INDEX, doc.getId())).getTags()).containsOnly(tag("bar"));
+        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(), tag("foo"))).isFalse();
+
+        assertThat(indexer.untag(project(TEST_INDEX), doc.getId(), tag("bar"))).isTrue();
+        assertThat(((Document)indexer.get(TEST_INDEX, doc.getId())).getTags()).isEmpty();
     }
 
     @Test

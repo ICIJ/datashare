@@ -10,6 +10,7 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Tag;
+import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -22,8 +23,13 @@ import static org.icij.datashare.text.Project.project;
 @Prefix("/api/document")
 public class DocumentResource {
     private final Repository repository;
+    private final Indexer indexer;
+
     @Inject
-    public DocumentResource(Repository repository) {this.repository = repository;}
+    public DocumentResource(Repository repository, Indexer indexer) {
+        this.repository = repository;
+        this.indexer = indexer;
+    }
 
     @Options("/project/star/:project/:docId")
     public Payload starProjectDocumentOpts(final String projectId, final String docId) { return ok().withAllowMethods("OPTIONS", "PUT");}
@@ -56,16 +62,20 @@ public class DocumentResource {
     public Payload tagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     @Put("/project/tag/:project/:docId")
-    public Payload tagDocument(final String projectId, final String docId, Tag[] tags) throws SQLException {
-        return repository.tag(project(projectId), docId, tags) ? Payload.created(): Payload.ok();
+    public Payload tagDocument(final String projectId, final String docId, Tag[] tags) throws SQLException, IOException {
+        boolean tagSaved = repository.tag(project(projectId), docId, tags);
+        indexer.tag(project(projectId), docId, tags);
+        return tagSaved ? Payload.created(): Payload.ok();
     }
 
     @Options("/project/untag/:project/:docId")
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     @Put("/project/untag/:project/:docId")
-    public Payload untagDocument(final String projectId, final String docId, Tag[] tags) throws SQLException {
-        return repository.untag(project(projectId), docId, tags) ? Payload.created(): Payload.ok();
+    public Payload untagDocument(final String projectId, final String docId, Tag[] tags) throws SQLException, IOException {
+        boolean untagSaved = repository.untag(project(projectId), docId, tags);
+        indexer.untag(project(projectId), docId, tags);
+        return untagSaved ? Payload.created(): Payload.ok();
     }
 
     @Get("/starred")

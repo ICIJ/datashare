@@ -18,7 +18,7 @@ import static org.icij.datashare.text.nlp.Pipeline.set;
 
 public class DocumentTest {
     @Test
-    public void test_json_project() throws Exception {
+    public void test_json_deserialize() throws Exception {
         assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content"))).contains("\"projectId\":\"prj\"");
         assertThat(JsonObjectMapper.MAPPER.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
                         "\"path\":\"file:///home/dev/src/datashare/datashare-api/path\"," +
@@ -28,7 +28,7 @@ public class DocumentTest {
                         "\"contentType\":\"text/plain\",\"extractionLevel\":0," +
                         "\"metadata\":{},\"status\":\"INDEXED\",\"nerTags\":[]," +
                         "\"parentDocument\":null,\"rootDocument\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
-                        "\"contentLength\":123,\"projectId\":\"prj\"}").getBytes(),
+                        "\"contentLength\":123,\"projectId\":\"prj\", \"tags\": [\"foo\", \"bar\"]}").getBytes(),
                 Document.class).getProject()).isEqualTo(project("prj"));
     }
 

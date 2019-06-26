@@ -3,6 +3,8 @@ package org.icij.datashare.text.indexing;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +33,10 @@ public interface Indexer extends Closeable {
     <T extends Entity> T get(String indexName, String id);
     <T extends Entity> T get(String indexName, String id, String root);
 
+    // from Repository
+    boolean tag(Project prj, String documentId, Tag... tags) throws IOException;
+    boolean untag(Project prj, String documentId, Tag... tags) throws IOException;
+
     interface Searcher {
         Searcher ofStatus(Document.Status indexed);
         Stream<? extends Entity> execute() throws IOException;
@@ -43,5 +49,6 @@ public interface Indexer extends Closeable {
         Searcher withFieldValue(String key, String value);
         void clearScroll() throws IOException;
         long totalHits();
+        Searcher with(Tag... tags);
     }
 }

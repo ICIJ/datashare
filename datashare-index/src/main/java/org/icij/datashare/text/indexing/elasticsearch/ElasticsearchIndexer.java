@@ -3,6 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import com.google.inject.Inject;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -15,6 +16,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.TimeValue;
@@ -31,17 +33,19 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -85,7 +89,7 @@ public class ElasticsearchIndexer implements Indexer {
 
         for (Entity child : namedEntities) {
             bulkRequest.add(createIndexRequest(indexName, JsonObjectMapper.getType(child), child.getId(),
-                            getJson(child), parent.getId(), routing));
+                    getJson(child), parent.getId(), routing));
         }
         bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
 
@@ -106,7 +110,7 @@ public class ElasticsearchIndexer implements Indexer {
         BulkRequest bulkRequest = new BulkRequest();
         entities.stream().map(e -> createUpdateRequest(indexName, getType(e), e.getId(), getJson(e), getParent(e), getRoot(e))).
                 forEach(bulkRequest::add);
-        bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
 
         BulkResponse bulkResponse = client.bulk(bulkRequest);
         if (bulkResponse.hasFailures()) {
@@ -124,16 +128,16 @@ public class ElasticsearchIndexer implements Indexer {
     public <T extends Entity> void add(final String indexName, T obj) throws IOException {
         String type = JsonObjectMapper.getType(obj);
         String id = obj.getId();
-        client.index( createIndexRequest(indexName, type, id, getJson(obj), getParent(obj), getRoot(obj)).
-                setRefreshPolicy(esCfg.refreshPolicy) );
+        client.index(createIndexRequest(indexName, type, id, getJson(obj), getParent(obj), getRoot(obj)).
+                setRefreshPolicy(esCfg.refreshPolicy));
     }
 
     @Override
     public <T extends Entity> void update(String indexName, T obj) throws IOException {
         String type = JsonObjectMapper.getType(obj);
         String id = obj.getId();
-        client.update( createUpdateRequest(indexName, type, id, getJson(obj), getParent(obj), getRoot(obj)).
-                setRefreshPolicy(esCfg.refreshPolicy) );
+        client.update(createUpdateRequest(indexName, type, id, getJson(obj), getParent(obj), getRoot(obj)).
+                setRefreshPolicy(esCfg.refreshPolicy));
     }
 
     private IndexRequest createIndexRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
@@ -192,6 +196,43 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public boolean tag(Project prj, String documentId, Tag... tags) throws IOException {
+        UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId);
+        update.script(new Script(ScriptType.INLINE, "painless",
+                "int updates = 0;" +
+                        "if (ctx._source.tags == null) ctx._source.tags = [];" +
+                        "for (int i = 0; i < params.tags.length; ++i) {" +
+                        "  if (!ctx._source.tags.contains(params.tags[i])) {" +
+                        "   ctx._source.tags.add(params.tags[i]);" +
+                        "   updates++;" +
+                        "  }" +
+                        "}" +
+                        "if (updates == 0) ctx.op = 'none';",
+                new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}}));
+        update.setRefreshPolicy(esCfg.refreshPolicy);
+        UpdateResponse updateResponse = client.update(update);
+        return updateResponse.status() == RestStatus.OK && updateResponse.getResult() == DocWriteResponse.Result.UPDATED ;
+    }
+
+    @Override
+    public boolean untag(Project prj, String documentId, Tag... tags) throws IOException {
+        UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId);
+        update.script(new Script(ScriptType.INLINE, "painless",
+                "int updates = 0;" +
+                        "for (int i = 0; i < params.tags.length; ++i) {" +
+                        "  if (ctx._source.tags.contains(params.tags[i])) {" +
+                        "    ctx._source.tags.remove(i);" +
+                        "    updates++;" +
+                        "  }" +
+                        "}" +
+                        "if (updates == 0) ctx.op = 'none';",
+                new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}}));
+        update.setRefreshPolicy(esCfg.refreshPolicy);
+        UpdateResponse updateResponse = client.update(update);
+        return updateResponse.status() == RestStatus.OK && updateResponse.getResult() == DocWriteResponse.Result.UPDATED;
+    }
+
+    @Override
     public Searcher search(final String indexName, Class<? extends Entity> entityClass) {
         return new ElasticsearchSearcher(client, esCfg, indexName, entityClass);
     }
@@ -213,7 +254,7 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private static <T extends Entity> Stream<T> resultStream(Class<T> cls, Iterable<SearchHit> iterable) {
-        return searchHitStream(iterable).map( hit -> hitToObject(hit, cls) );
+        return searchHitStream(iterable).map(hit -> hitToObject(hit, cls));
     }
 
     private static <T extends Entity> T hitToObject(SearchHit searchHit, Class<T> cls) {
@@ -254,7 +295,7 @@ public class ElasticsearchIndexer implements Indexer {
         @Override
         public Stream<? extends Entity> execute() throws IOException {
             sourceBuilder.query(boolQuery);
-            SearchRequest searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
+            SearchRequest searchRequest = new SearchRequest(new String[]{indexName}, sourceBuilder);
             searchRequest.types(config.indexType);
             SearchResponse search = client.search(searchRequest);
             return resultStream(this.cls, () -> search.getHits().iterator());
@@ -279,7 +320,7 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Searcher withSource(String... fields) {
-            sourceBuilder.fetchSource(fields, new String[] {});
+            sourceBuilder.fetchSource(fields, new String[]{});
             return this;
         }
 
@@ -292,14 +333,21 @@ public class ElasticsearchIndexer implements Indexer {
         @Override
         public Searcher without(Pipeline.Type... nlpPipelines) {
             boolQuery.mustNot(new ConstantScoreQueryBuilder(new TermsQueryBuilder("nerTags",
-                              Arrays.stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList()))));
+                    stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList()))));
             return this;
         }
 
         @Override
         public Searcher with(Pipeline.Type... nlpPipelines) {
             boolQuery.must(new ConstantScoreQueryBuilder(new TermsQueryBuilder("nerTags",
-                           Arrays.stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList()))));
+                    stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList()))));
+            return this;
+        }
+
+        @Override
+        public Searcher with(Tag... tags) {
+            this.boolQuery.must(new ConstantScoreQueryBuilder(new TermsQueryBuilder("tags",
+                    stream(tags).map(t -> t.label).collect(toList()))));
             return this;
         }
 

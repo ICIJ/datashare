@@ -4,6 +4,7 @@ import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -20,7 +21,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class DocumentResourceTest implements FluentRestTest {
@@ -30,13 +31,13 @@ public class DocumentResourceTest implements FluentRestTest {
             return Env.prod();
         }
     }.startOnRandomPort();
-    @Mock
-    Repository repository;
+    @Mock Repository repository;
+    @Mock Indexer indexer;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         initMocks(this);
-        server.configure(routes -> routes.add(new DocumentResource(repository)));
+        server.configure(routes -> routes.add(new DocumentResource(repository, indexer)));
     }
 
     @Test
@@ -70,15 +71,23 @@ public class DocumentResourceTest implements FluentRestTest {
     @Test
     public void testTagDocumentWithProject() throws Exception {
         when(repository.tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
-        put("/api/document/project/tag/prj1/doc_id", "[{\"label\": \"tag1\"}, {\"label\": \"tag2\"}]").should().respond(201);
-        put("/api/document/project/tag/prj1/doc_id", "[{\"label\": \"tag1\"}, {\"label\": \"tag2\"}]").should().respond(200);
+        when(indexer.tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+
+        put("/api/document/project/tag/prj1/doc_id", "[\"tag1\", \"tag2\"]").should().respond(201);
+        put("/api/document/project/tag/prj1/doc_id", "[\"tag1\", \"tag2\"]").should().respond(200);
+
+        verify(indexer, times(2)).tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")));
     }
 
     @Test
     public void testUntagDocumentWithProject() throws Exception {
         when(repository.untag(eq(project("prj2")), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
-        put("/api/document/project/untag/prj2/doc_id", "[{\"label\": \"tag3\"}, {\"label\": \"tag4\"}]").should().respond(201);
-        put("/api/document/project/untag/prj2/doc_id", "[{\"label\": \"tag3\"}, {\"label\": \"tag4\"}]").should().respond(200);
+        when(indexer.untag(eq(project("prj2")), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
+
+        put("/api/document/project/untag/prj2/doc_id", "[\"tag3\", \"tag4\"]").should().respond(201);
+        put("/api/document/project/untag/prj2/doc_id", "[\"tag3\", \"tag4\"]").should().respond(200);
+
+        verify(indexer, times(2)).untag(eq(project("prj2")), any(), any(), any());
     }
 
     @Test
