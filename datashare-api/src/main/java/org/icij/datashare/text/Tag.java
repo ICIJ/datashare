@@ -7,11 +7,12 @@ import java.util.Objects;
 public class Tag {
     public final String label;
 
-    @JsonCreator
+
     public Tag(final String label) {
         this.label = label;
     }
 
+    @JsonCreator
     public static Tag tag(String label) {
         return new Tag(label);
     }
