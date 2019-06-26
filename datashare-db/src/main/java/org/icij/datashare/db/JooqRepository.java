@@ -179,19 +179,21 @@ public class JooqRepository implements Repository {
     @Override
     public boolean tag(Project prj, String documentId, Tag... tags) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            Set<Tag> existResult = create.select(field("label")).from(table(DOCUMENT_TAG)).
-                    where(field("label").in(stream(tags).map(t -> t.label).collect(toSet())), field("doc_id").equal(documentId)).
-                    fetch().getValues("label", String.class).stream().map(Tag::tag).collect(toSet());
-            if (existResult.size() != tags.length) {
-                List<Tag> tagList = asList(tags);
-                tagList.removeAll(existResult);
-                InsertValuesStep3<Record, Object, Object, Object> insertQuery = create.insertInto(table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
-                tagList.forEach(t -> insertQuery.values(documentId, t.label, prj.getId()));
-                return insertQuery.execute() > 0;
-            } else {
-                return false;
-            }
+            return DSL.using(conn, dialect).transactionResult(configuration -> {
+                DSLContext inner = using(configuration);
+                Set<Tag> existResult = inner.select(field("label")).from(table(DOCUMENT_TAG)).
+                        where(field("label").in(stream(tags).map(t -> t.label).collect(toSet())), field("doc_id").equal(documentId)).
+                        fetch().getValues("label", String.class).stream().map(Tag::tag).collect(toSet());
+                if (existResult.size() != tags.length) {
+                    List<Tag> tagList = asList(tags);
+                    tagList.removeAll(existResult);
+                    InsertValuesStep3<Record, Object, Object, Object> insertQuery = inner.insertInto(table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
+                    tagList.forEach(t -> insertQuery.values(documentId, t.label, prj.getId()));
+                    return insertQuery.execute() > 0;
+                } else {
+                    return false;
+                }
+            });
         }
     }
 
