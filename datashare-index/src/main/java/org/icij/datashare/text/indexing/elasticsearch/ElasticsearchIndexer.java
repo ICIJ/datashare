@@ -201,7 +201,7 @@ public class ElasticsearchIndexer implements Indexer {
         update.script(new Script(ScriptType.INLINE, "painless",
                 "int updates = 0;" +
                         "if (ctx._source.tags == null) ctx._source.tags = [];" +
-                        "for (int i = 0; i < params.tags.length; ++i) {" +
+                        "for (int i = 0; i < params.tags.length; i++) {" +
                         "  if (!ctx._source.tags.contains(params.tags[i])) {" +
                         "   ctx._source.tags.add(params.tags[i]);" +
                         "   updates++;" +
@@ -219,9 +219,9 @@ public class ElasticsearchIndexer implements Indexer {
         UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId).routing(rootDocument);
         update.script(new Script(ScriptType.INLINE, "painless",
                 "int updates = 0;" +
-                        "for (int i = 0; i < params.tags.length; ++i) {" +
+                        "for (int i = 0; i < params.tags.length; i++) {" +
                         "  if (ctx._source.tags.contains(params.tags[i])) {" +
-                        "    ctx._source.tags.remove(i);" +
+                        "    ctx._source.tags.remove(ctx._source.tags.indexOf(params.tags[i]));" +
                         "    updates++;" +
                         "  }" +
                         "}" +
