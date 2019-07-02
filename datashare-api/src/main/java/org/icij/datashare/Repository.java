@@ -16,14 +16,13 @@ public interface Repository {
     void create(List<NamedEntity> neList) throws SQLException;
     void create(Document document) throws SQLException;
 
-    // project related
-    List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type) throws SQLException;
-
     // user related
     boolean star(User user, String documentId) throws SQLException;
     boolean unstar(User user, String documentId) throws SQLException;
     List<Document> getStarredDocuments(User user) throws SQLException;
 
+    // project related
+    List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type) throws SQLException;
     // standalone (to remove later ?)
     boolean star(Project project, User user, String documentId) throws SQLException;
     boolean unstar(Project project, User user, String documentId) throws SQLException;
