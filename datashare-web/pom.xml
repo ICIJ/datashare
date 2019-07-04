@@ -59,9 +59,9 @@
 
         <!--test dependencies-->
         <dependency>
-            <groupId>net.code-story</groupId>
+            <groupId>com.github.bamthomas</groupId>
             <artifactId>fluent-rest-test</artifactId>
-            <version>1.6</version>
+            <version>961ef20</version>
             <scope>test</scope>
         </dependency>
         <dependency>

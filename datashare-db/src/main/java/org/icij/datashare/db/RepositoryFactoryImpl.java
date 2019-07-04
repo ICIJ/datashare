@@ -55,6 +55,14 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         return new JooqRepository(connectionProvider, guessSqlDialectFrom(dataSourceUrl));
     }
 
+    public JooqBatchSearchRepository createBatchSearchRepository() {
+        String dataSourceUrl = getDataSourceUrl();
+        DataSourceConnectionProvider connectionProvider;
+        DataSource dataSource = createDatasource();
+        connectionProvider = new DataSourceConnectionProvider(dataSource);
+        return new JooqBatchSearchRepository(connectionProvider, guessSqlDialectFrom(dataSourceUrl));
+    }
+
     static SQLDialect guessSqlDialectFrom(String dataSourceUrl) {
         for (SQLDialect dialect: SQLDialect.values()) {
             if (dataSourceUrl.contains(dialect.getName().toLowerCase())) {

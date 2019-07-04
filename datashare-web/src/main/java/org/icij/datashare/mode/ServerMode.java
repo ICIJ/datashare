@@ -4,10 +4,7 @@ import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
-import org.icij.datashare.DocumentResource;
-import org.icij.datashare.IndexResource;
-import org.icij.datashare.NamedEntityResource;
-import org.icij.datashare.TaskResource;
+import org.icij.datashare.*;
 import org.icij.datashare.session.OAuth2CookieFilter;
 import org.icij.datashare.session.RedisSessionIdStore;
 import org.icij.datashare.session.RedisUsers;
@@ -44,6 +41,11 @@ public class ServerMode extends CommonMode {
 
     @Override
     protected Routes addModeConfiguration(Routes routes) {
-        return routes.add(TaskResource.class).add(IndexResource.class).add(NamedEntityResource.class).add(DocumentResource.class);
+        return routes.
+                add(TaskResource.class).
+                add(IndexResource.class).
+                add(NamedEntityResource.class).
+                add(BatchSearchResource.class).
+                add(DocumentResource.class);
     }
 }

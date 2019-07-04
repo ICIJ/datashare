@@ -11,6 +11,7 @@ import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.*;
+import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
 import org.icij.datashare.db.RepositoryFactoryImpl;
@@ -80,6 +81,7 @@ public class CommonMode extends AbstractModule {
     void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
+        bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         repositoryFactory.initDatabase();
     }
 
