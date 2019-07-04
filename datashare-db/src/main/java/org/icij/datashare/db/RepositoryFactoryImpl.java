@@ -13,11 +13,13 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
 import org.jetbrains.annotations.NotNull;
+import org.jooq.ConnectionProvider;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DataSourceConnectionProvider;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.function.BiFunction;
 
 public class RepositoryFactoryImpl implements RepositoryFactory {
     private final PropertiesProvider propertiesProvider;
@@ -29,6 +31,14 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     @Inject
     public RepositoryFactoryImpl(final PropertiesProvider propertiesProvider) {
         this.propertiesProvider = propertiesProvider;
+    }
+
+    public Repository createRepository() {
+        return createRepository(JooqRepository::new);
+    }
+
+    public JooqBatchSearchRepository createBatchSearchRepository() {
+        return createRepository(JooqBatchSearchRepository::new);
     }
 
     void initDatabase(final DataSource dataSource) {
@@ -47,20 +57,12 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         }
     }
 
-    public Repository createRepository() {
+    private <T> T createRepository(BiFunction<ConnectionProvider, SQLDialect, T> constructor) {
         String dataSourceUrl = getDataSourceUrl();
         DataSourceConnectionProvider connectionProvider;
         DataSource dataSource = createDatasource();
         connectionProvider = new DataSourceConnectionProvider(dataSource);
-        return new JooqRepository(connectionProvider, guessSqlDialectFrom(dataSourceUrl));
-    }
-
-    public JooqBatchSearchRepository createBatchSearchRepository() {
-        String dataSourceUrl = getDataSourceUrl();
-        DataSourceConnectionProvider connectionProvider;
-        DataSource dataSource = createDatasource();
-        connectionProvider = new DataSourceConnectionProvider(dataSource);
-        return new JooqBatchSearchRepository(connectionProvider, guessSqlDialectFrom(dataSourceUrl));
+        return constructor.apply(connectionProvider, guessSqlDialectFrom(dataSourceUrl));
     }
 
     static SQLDialect guessSqlDialectFrom(String dataSourceUrl) {
