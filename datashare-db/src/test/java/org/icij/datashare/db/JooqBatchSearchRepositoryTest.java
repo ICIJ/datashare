@@ -6,6 +6,7 @@ import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DataSourceConnectionProvider;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,6 +24,7 @@ import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.db.DbSetupRule.createDatasource;
 import static org.jooq.SQLDialect.POSTGRES_10;
+import static org.jooq.SQLDialect.SQLITE;
 
 @RunWith(Parameterized.class)
 public class JooqBatchSearchRepositoryTest {
@@ -33,7 +35,7 @@ public class JooqBatchSearchRepositoryTest {
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() throws IOException, SQLException {
         return asList(new Object[][]{
-             //   {createDatasource(null), SQLITE},
+                {createDatasource(null), SQLITE},
                 {createDatasource("jdbc:postgresql://postgresql/test?user=test&password=test"), POSTGRES_10}
         });
     }
@@ -43,6 +45,7 @@ public class JooqBatchSearchRepositoryTest {
         repository = new JooqBatchSearchRepository(new DataSourceConnectionProvider(dbRule.dataSource), dialect);
     }
 
+    @Ignore
     @Test
     public void test_save_batch_search() throws SQLException {
         BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"), "name1", "description1", asList("q1", "q2"));
