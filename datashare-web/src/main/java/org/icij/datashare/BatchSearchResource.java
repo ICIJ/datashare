@@ -10,9 +10,10 @@ import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.user.User;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.icij.datashare.text.Project.project;
 
 @Prefix("/api/batch")
 public class BatchSearchResource {
@@ -23,8 +24,8 @@ public class BatchSearchResource {
         this.batchSearchRepository = batchSearchRepository;
     }
 
-    @Post("search")
-    public Payload search(Context context) throws IOException {
+    @Post("search/:project")
+    public Payload search(String projectId, Context context) throws Exception {
         List<Part> parts = context.parts();
         if (parts.size() != 3 || !"name".equals(parts.get(0).name()) ||
                 !"description".equals(parts.get(1).name()) || !"search".equals(parts.get(2).name())) {
@@ -34,7 +35,7 @@ public class BatchSearchResource {
         Part descPart = parts.get(1);
         Part csv = parts.get(2);
         return batchSearchRepository.save((User)context.currentUser(),
-                new BatchSearch(namePart.content(), descPart.content(), Arrays.asList(csv.content().split("\r\n")))) ?
+                new BatchSearch(project(projectId), namePart.content(), descPart.content(), Arrays.asList(csv.content().split("\r\n")))) ?
                 Payload.ok() : Payload.badRequest();
     }
 }

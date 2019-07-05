@@ -8,3 +8,6 @@ databaseChangeLog:
   - include:
       file: changes/002-tag-document.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/003-batch-query.yml
+      relativeToChangelogFile: true

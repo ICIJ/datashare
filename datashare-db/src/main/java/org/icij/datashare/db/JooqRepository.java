@@ -35,7 +35,7 @@ public class JooqRepository implements Repository {
     private final ConnectionProvider connectionProvider;
     private SQLDialect dialect;
 
-    public JooqRepository(final ConnectionProvider connectionProvider, final SQLDialect dialect) {
+    JooqRepository(final ConnectionProvider connectionProvider, final SQLDialect dialect) {
         this.connectionProvider = connectionProvider;
         this.dialect = dialect;
     }

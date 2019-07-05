@@ -9,7 +9,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.sql.SQLException;
+
 import static java.util.Arrays.asList;
+import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
@@ -26,10 +29,10 @@ public class BatchSearchResourceTest implements FluentRestTest {
         }.startOnRandomPort();
 
     @Test
-    public void test_upload_batch_search_csv_with_bad_parts_number() {
+    public void test_upload_batch_search_csv_with_bad_parts_number() throws SQLException {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
-        postRaw("/api/batch/search", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
+        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
                 "Content-Disposition: form-data; name=\"name\"\r\n" +
                 "\r\n" +
                 "value\r\n" +
@@ -38,10 +41,10 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
-        public void test_upload_batch_search_csv_with_bad_names() {
+        public void test_upload_batch_search_csv_with_bad_names() throws SQLException {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
-        postRaw("/api/batch/search", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
+        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
                 "Content-Disposition: form-data; name=\"name\"\r\n" +
                 "\r\n" +
                 "my batch search\r\n" +
@@ -58,10 +61,10 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_upload_batch_search_csv() {
+    public void test_upload_batch_search_csv() throws SQLException {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
-        postRaw("/api/batch/search", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
+        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
                 "Content-Disposition: form-data; name=\"name\"\r\n" +
                 "\r\n" +
                 "my batch search\r\n" +
@@ -80,7 +83,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
                 should().respond(200);
 
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(
-                "my batch search", "search description",
+                project("prj"), "my batch search", "search description",
                 asList("query one", "query two", "query three"))));
     }
 
