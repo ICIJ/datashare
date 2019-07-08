@@ -18,7 +18,7 @@ import static java.util.Optional.ofNullable;
 public class DbSetupRule extends ExternalResource {
     final DataSource dataSource;
     private static final Operation DELETE_ALL = deleteAllFrom(
-            "document", "named_entity", "document_user_star", "document_tag");
+            "document", "named_entity", "document_user_star", "document_tag", "batch_search", "batch_search_query");
 
     DbSetupRule(DataSource dataSource) { this.dataSource = dataSource;}
 
