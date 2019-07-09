@@ -7,12 +7,11 @@ databaseChangeLog:
             tableName: batch_search
             columns:
               - column:
-                 name: id
-                 type: integer
-                 autoIncrement: true
-                 constraints:
-                   nullable: false
-                   primaryKey: true
+                  name: uuid
+                  type: char(36)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
               - column:
                   name: name
                   type: varchar(255)
@@ -29,6 +28,11 @@ databaseChangeLog:
                   type: varchar(96)
                   constraints:
                     nullable: false
+              - column:
+                  name: batch_date
+                  type: datetime
+                  constraints:
+                    nullable: false
 
         - createIndex:
             indexName: batch_search_user_id
@@ -37,6 +41,13 @@ databaseChangeLog:
               - column:
                   name: user_id
                   type: varchar(96)
+        - createIndex:
+            indexName: batch_search_date
+            tableName: batch_search
+            columns:
+              - column:
+                  name: batch_date
+                  type: datetime
 
         - createIndex:
             indexName: batch_search_prj_id
@@ -50,14 +61,13 @@ databaseChangeLog:
             tableName: batch_search_query
             columns:
               - column:
-                  name: id
-                  type: bigint
-                  autoIncrement: true
+                  name: search_uuid
+                  type: char(36)
                   constraints:
                     nullable: false
               - column:
-                  name: search_id
-                  type: bigint
+                  name: query_number
+                  type: int
                   constraints:
                     nullable: false
               - column:
@@ -71,5 +81,5 @@ databaseChangeLog:
             tableName: batch_search_query
             columns:
               - column:
-                  name: search_id
-                  type: bigint
+                  name: search_uuid
+                  type: char(36)

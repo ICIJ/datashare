@@ -34,8 +34,7 @@ public class BatchSearchResource {
         Part namePart = parts.get(0);
         Part descPart = parts.get(1);
         Part csv = parts.get(2);
-        return batchSearchRepository.save((User)context.currentUser(),
-                new BatchSearch(project(projectId), namePart.content(), descPart.content(), Arrays.asList(csv.content().split("\r\n")))) ?
-                Payload.ok() : Payload.badRequest();
+        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), Arrays.asList(csv.content().split("\r\n")));
+        return batchSearchRepository.save((User)context.currentUser(), batchSearch) ? new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
     }
 }

@@ -3,6 +3,7 @@ package org.icij.datashare;
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
+import net.codestory.rest.Response;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.junit.Before;
@@ -10,8 +11,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.sql.SQLException;
+import java.util.Date;
 
 import static java.util.Arrays.asList;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -64,7 +67,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
     public void test_upload_batch_search_csv() throws SQLException {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
-        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
                 "Content-Disposition: form-data; name=\"name\"\r\n" +
                 "\r\n" +
                 "my batch search\r\n" +
@@ -79,12 +82,12 @@ public class BatchSearchResourceTest implements FluentRestTest {
                 "query one\r\n" +
                 "query two\r\n" +
                 "query three\r\n" +
-                "--AaB03x--").
-                should().respond(200);
+                "--AaB03x--").response();
 
-        verify(batchSearchRepository).save(any(), eq(new BatchSearch(
+        assertThat(response.code()).isEqualTo(200);
+        verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
-                asList("query one", "query two", "query three"))));
+                asList("query one", "query two", "query three"), new Date())));
     }
 
     @Before

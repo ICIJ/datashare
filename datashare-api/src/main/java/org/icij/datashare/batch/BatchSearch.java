@@ -2,31 +2,42 @@ package org.icij.datashare.batch;
 
 import org.icij.datashare.text.Project;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public class BatchSearch {
-    public final Long id;
+    public final String uuid;
     public final Project project;
     public final String name;
     public final String description;
     public final List<String> queries;
+    private final Date date;
 
     public BatchSearch(final Project project, final String name, final String description, final List<String> queries) {
-        this(0L, project, name, description, queries);
+        this(UUID.randomUUID().toString(), project, name, description, queries, new Date());
     }
 
-    public BatchSearch(long id, Project project, String name, String description, List<String> queries) {
-        this.id = id;
+    // for tests
+    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, Date date) {
+        this(UUID.randomUUID().toString(), project, name, description, queries, date);
+    }
+
+    public BatchSearch(String uuid, Project project, String name, String description, List<String> queries, Date date) {
+        this.uuid = uuid;
         this.project = project;
         this.name = name;
         this.description = description;
         this.queries = queries;
+        this.date = date;
     }
+
+    public Date getDate() { return date;}
 
     @Override
     public String toString() {
-        return "BatchSearch{" + id + " name='" + name + '\'' + ", queries=" + queries + '}';
+        return "BatchSearch{" + uuid + " name='" + name + '\'' + '}';
     }
 
     @Override
@@ -34,7 +45,7 @@ public class BatchSearch {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         BatchSearch that = (BatchSearch) o;
-        return id.equals(that.id) && name.equals(that.name) &&
+        return uuid.equals(that.uuid) && name.equals(that.name) &&
                 queries.equals(that.queries);
     }
 
