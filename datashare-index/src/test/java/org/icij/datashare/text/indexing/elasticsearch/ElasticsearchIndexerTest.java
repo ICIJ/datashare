@@ -87,13 +87,7 @@ public class ElasticsearchIndexerTest {
         assertThat(resp.getSourceAsMap().get("status")).isEqualTo("DONE");
         assertThat((ArrayList<String>) resp.getSourceAsMap().get("nerTags")).containsExactly("OPENNLP");
     }
-    private Document createDoc(String name) {
-            return new Document(project("prj"), "docid", Paths.get("/path/to/").resolve(name), name,
-                    FRENCH, Charset.defaultCharset(),
-                    "text/plain", new HashMap<>(), Document.Status.INDEXED,
-                    new HashSet<>(), new Date(), null, null,
-                    0, 123L);
-        }
+
     @Test
     public void test_bulk_add_for_embedded_doc() throws IOException {
         Document parent = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("mail.eml"), "content",
