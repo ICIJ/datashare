@@ -352,6 +352,11 @@ public class ElasticsearchIndexer implements Indexer {
         }
 
         @Override
+        public Searcher with(String query) {
+            return null;
+        }
+
+        @Override
         public Searcher limit(int maxCount) {
             sourceBuilder.size(maxCount);
             return this;

@@ -2,6 +2,7 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.user.User;
 import org.jooq.*;
 import org.jooq.impl.DSL;
@@ -48,6 +49,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
+    public boolean saveResults(String batchSearchId, List<Document> documents) throws SQLException {
+        return false;
+    }
+
+    @Override
     public List<BatchSearch> get(final User user) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
@@ -60,6 +66,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                             orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
                     fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
         }
+    }
+
+    @Override
+    public List<BatchSearch> get() throws SQLException {
+        return null;
     }
 
     private List<BatchSearch> mergeBatchSearches(final List<BatchSearch> flatBatchSearches) {

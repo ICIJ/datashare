@@ -50,5 +50,6 @@ public interface Indexer extends Closeable {
         void clearScroll() throws IOException;
         long totalHits();
         Searcher with(Tag... tags);
+        Searcher with(String query);
     }
 }

@@ -37,6 +37,7 @@
         <module>datashare-nlp</module>
         <module>datashare-dist</module>
         <module>datashare-web</module>
+        <module>datashare-batch</module>
     </modules>
 
     <repositories>
