@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.Project.project;
@@ -39,7 +40,24 @@ public class AppTest {
         assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(2);
 
         verify(repository).saveResults("uuid1", asList(documents));
+        verify(repository).setState("uuid1", BatchSearch.State.RUNNING);
+        verify(repository).setState("uuid1", BatchSearch.State.SUCCESS);
         verify(repository, never()).saveResults(eq("uuid2"), anyList());
+    }
+
+        @Test
+    public void test_run_batch_search_failure() throws Exception {
+        Document[] documents = {createDoc("doc")};
+        firstSearchWillReturn(documents);
+        when(repository.getQueued()).thenReturn(singletonList(
+                new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING)
+        ));
+        when(repository.saveResults(anyString(), anyList())).thenThrow(new RuntimeException());
+
+        assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(1);
+
+        verify(repository).setState("uuid1", BatchSearch.State.RUNNING);
+        verify(repository).setState("uuid1", BatchSearch.State.FAILURE);
     }
 
     private void firstSearchWillReturn(Document... documents) throws IOException {

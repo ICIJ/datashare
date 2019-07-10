@@ -2,8 +2,11 @@ package org.icij.datashare.batch;
 
 import com.google.inject.Inject;
 import org.icij.datashare.Entity;
+import org.icij.datashare.batch.BatchSearch.State;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -11,6 +14,7 @@ import java.util.concurrent.Callable;
 import static java.util.stream.Collectors.toList;
 
 public class BatchSearchRunner implements Callable<Integer> {
+    Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final BatchSearchRepository repository;
 
@@ -25,16 +29,23 @@ public class BatchSearchRunner implements Callable<Integer> {
         List<BatchSearch> batchSearches = repository.getQueued();
         int totalResults = 0;
         for (BatchSearch batchSearch : batchSearches) {
-            for (String query: batchSearch.queries) {
-                Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).with(query);
-                List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
-                totalResults += searcher.totalHits();
+            repository.setState(batchSearch.uuid, State.RUNNING);
+            try {
+                for (String query : batchSearch.queries) {
+                    Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).with(query);
+                    List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
+                    totalResults += searcher.totalHits();
 
-                while (docsToProcess.size() != 0) {
-                    repository.saveResults(batchSearch.uuid, (List<Document>) docsToProcess);
-                    docsToProcess = searcher.scroll().collect(toList());
+                    while (docsToProcess.size() != 0) {
+                        repository.saveResults(batchSearch.uuid, (List<Document>) docsToProcess);
+                        docsToProcess = searcher.scroll().collect(toList());
+                    }
                 }
+            } catch (Exception ex) {
+                logger.error("error when running batch " + batchSearch.uuid, ex);
+                repository.setState(batchSearch.uuid, State.FAILURE);
             }
+            repository.setState(batchSearch.uuid, State.SUCCESS);
         }
         return totalResults;
     }
