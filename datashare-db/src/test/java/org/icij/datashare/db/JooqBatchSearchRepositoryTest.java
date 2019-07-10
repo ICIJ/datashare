@@ -96,6 +96,23 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.getQueued()).hasSize(0);
     }
 
+    @Test
+    public void test_set_state_unknown_batch_search() throws Exception {
+        assertThat(repository.setState("false_uuid", State.RUNNING)).isFalse();
+    }
+
+    @Test
+    public void test_set_state() throws Exception {
+        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description",
+                asList("q1", "q2"), new Date());
+        repository.save(User.local(), batchSearch);
+        assertThat(repository.get(User.local()).get(0).state).isEqualTo(State.QUEUED);
+
+        assertThat(repository.setState(batchSearch.uuid, State.RUNNING)).isTrue();
+
+        assertThat(repository.get(User.local()).get(0).state).isEqualTo(State.RUNNING);
+    }
+
     @NotNull
     private <T> List<T> project(List<BatchSearch> batchSearches, Function<BatchSearch, T> batchSearchListFunction) {
         return batchSearches.stream().map(batchSearchListFunction).collect(toList());

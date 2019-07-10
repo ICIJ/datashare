@@ -55,6 +55,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
+    public boolean setState(String batchSearchId, State state) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            return create.update(table(BATCH_SEARCH)).set(field("state"), state.name()).where(field("uuid").eq(batchSearchId)).execute() > 0;
+        }
+    }
+
+    @Override
     public List<BatchSearch> get(final User user) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
@@ -88,7 +96,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         Map<String, List<BatchSearch>> collect = flatBatchSearches.stream().collect(groupingBy(bs -> bs.uuid));
         return collect.values().stream().map(batchSearches ->
                 new BatchSearch(batchSearches.get(0).uuid, batchSearches.get(0).project, batchSearches.get(0).name, batchSearches.get(0).description,
-                        batchSearches.stream().map(bs -> bs.queries).flatMap(List::stream).collect(toList()), batchSearches.get(0).getDate(), State.RUNNING)).
+                        batchSearches.stream().map(bs -> bs.queries).flatMap(List::stream).collect(toList()), batchSearches.get(0).getDate(), batchSearches.get(0).state)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 

@@ -42,7 +42,7 @@ public class BatchSearch {
 
     @Override
     public String toString() {
-        return "BatchSearch{" + uuid + " name='" + name + '\'' + '}';
+        return "BatchSearch{" + uuid + " name='" + name + '\'' + " (" + state + ")}";
     }
 
     @Override
