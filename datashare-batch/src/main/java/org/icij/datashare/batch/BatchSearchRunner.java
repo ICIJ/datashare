@@ -22,7 +22,7 @@ public class BatchSearchRunner implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        List<BatchSearch> batchSearches = repository.get();
+        List<BatchSearch> batchSearches = repository.getQueued();
         int totalResults = 0;
         for (BatchSearch batchSearch : batchSearches) {
             for (String query: batchSearch.queries) {

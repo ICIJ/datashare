@@ -33,6 +33,11 @@ databaseChangeLog:
                   type: datetime
                   constraints:
                     nullable: false
+              - column:
+                  name: state
+                  type: varchar(8)
+                  constraints:
+                    nullable: false
 
         - createIndex:
             indexName: batch_search_user_id

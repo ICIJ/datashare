@@ -8,29 +8,34 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class BatchSearch {
+    public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
     public final String uuid;
     public final Project project;
     public final String name;
     public final String description;
     public final List<String> queries;
+    public final State state;
     private final Date date;
 
+    // batch search creation
     public BatchSearch(final Project project, final String name, final String description, final List<String> queries) {
-        this(UUID.randomUUID().toString(), project, name, description, queries, new Date());
+        this(UUID.randomUUID().toString(), project, name, description, queries, new Date(), State.QUEUED);
     }
 
     // for tests
     public BatchSearch(final Project project, final String name, final String description, final List<String> queries, Date date) {
-        this(UUID.randomUUID().toString(), project, name, description, queries, date);
+        this(UUID.randomUUID().toString(), project, name, description, queries, date, State.QUEUED);
     }
 
-    public BatchSearch(String uuid, Project project, String name, String description, List<String> queries, Date date) {
+    // retrieved from persistence
+    public BatchSearch(String uuid, Project project, String name, String description, List<String> queries, Date date, State state) {
         this.uuid = uuid;
         this.project = project;
         this.name = name;
         this.description = description;
         this.queries = queries;
         this.date = date;
+        this.state = state;
     }
 
     public Date getDate() { return date;}

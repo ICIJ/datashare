@@ -11,5 +11,5 @@ public interface BatchSearchRepository {
     boolean saveResults(String batchSearchId, List<Document> documents) throws SQLException;
 
     List<BatchSearch> get(User user) throws SQLException;
-    List<BatchSearch> get() throws SQLException;
+    List<BatchSearch> getQueued() throws SQLException;
 }

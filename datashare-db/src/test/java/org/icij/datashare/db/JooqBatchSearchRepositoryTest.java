@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearch.State;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
@@ -59,6 +60,40 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(project(batchSearches, b -> b.name)).containsExactly("name2", "name1");
         assertThat(project(batchSearches, b -> b.description)).containsExactly("description2", "description1");
         assertThat(project(batchSearches, b -> b.queries)).containsExactly(asList("q3", "q4"), asList("q1", "q2"));
+    }
+
+    @Test
+    public void test_get_queued_searches() throws Exception {
+        repository.save(User.local(), new BatchSearch(Project.project("prj"), "name1", "description1",
+                        asList("q1", "q2"), new Date()));
+        repository.save(User.local(), new BatchSearch(Project.project("prj"), "name2", "description2",
+                        asList("q3", "q4"), new Date()));
+
+        assertThat(repository.getQueued()).hasSize(2);
+    }
+
+    @Test
+    public void test_get_queued_searches_without_running_state() throws Exception {
+        repository.save(User.local(), new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+                        asList("q1", "q2"), new Date(), State.RUNNING));
+
+        assertThat(repository.getQueued()).hasSize(0);
+    }
+
+    @Test
+    public void test_get_queued_searches_without_success_state() throws Exception {
+        repository.save(User.local(), new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+                        asList("q1", "q2"), new Date(), State.SUCCESS));
+
+        assertThat(repository.getQueued()).hasSize(0);
+    }
+
+    @Test
+    public void test_get_queued_searches_without_failure_state() throws Exception {
+        repository.save(User.local(), new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+                        asList("q1", "q2"), new Date(), State.FAILURE));
+
+        assertThat(repository.getQueued()).hasSize(0);
     }
 
     @NotNull

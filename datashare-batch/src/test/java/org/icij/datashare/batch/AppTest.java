@@ -31,9 +31,9 @@ public class AppTest {
     public void test_run_batch_searches() throws Exception {
         Document[] documents = {createDoc("doc1"), createDoc("doc2")};
         firstSearchWillReturn(documents);
-        when(repository.get()).thenReturn(asList(
-                new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date()),
-                new BatchSearch("uuid2", project("test-datashare"), "name2", "desc1", asList("query3", "query4"), new Date())
+        when(repository.getQueued()).thenReturn(asList(
+                new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING),
+                new BatchSearch("uuid2", project("test-datashare"), "name2", "desc1", asList("query3", "query4"), new Date(), BatchSearch.State.RUNNING)
         ));
 
         assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(2);
