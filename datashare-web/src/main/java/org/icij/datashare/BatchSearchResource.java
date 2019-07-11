@@ -3,13 +3,16 @@ package org.icij.datashare;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.Part;
+import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.user.User;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -36,5 +39,10 @@ public class BatchSearchResource {
         Part csv = parts.get(2);
         BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), Arrays.asList(csv.content().split("\r\n")));
         return batchSearchRepository.save((User)context.currentUser(), batchSearch) ? new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
+    }
+
+    @Get("search/result/:batchid")
+    public List<SearchResult> getResult(String batchId) throws SQLException {
+        return batchSearchRepository.getResults(batchId);
     }
 }

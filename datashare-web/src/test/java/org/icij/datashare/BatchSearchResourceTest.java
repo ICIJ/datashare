@@ -6,10 +6,12 @@ import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.Response;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchResult;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Date;
 
@@ -88,6 +90,18 @@ public class BatchSearchResourceTest implements FluentRestTest {
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
                 asList("query one", "query two", "query three"), new Date(), BatchSearch.State.RUNNING)));
+    }
+
+    @Test
+    public void test_get_search_results_json() throws Exception {
+        when(batchSearchRepository.getResults("batchSearchId")).thenReturn(asList(
+                new SearchResult("docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
+                new SearchResult("docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
+        ));
+
+        get("/api/batch/search/result/batchSearchId").should().respond(200).
+                contain("\"documentId\":\"docId1\"").
+                contain("\"documentId\":\"docId2\"");
     }
 
     @Before
