@@ -2,6 +2,8 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearch.State;
+import org.icij.datashare.batch.SearchResult;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
@@ -14,16 +16,17 @@ import org.junit.runners.Parameterized;
 
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.db.DbSetupRule.createDatasource;
+import static org.icij.datashare.text.Language.FRENCH;
 import static org.jooq.SQLDialect.POSTGRES_10;
 import static org.jooq.SQLDialect.SQLITE;
 
@@ -112,6 +115,27 @@ public class JooqBatchSearchRepositoryTest {
 
         assertThat(repository.get(User.local()).get(0).state).isEqualTo(State.RUNNING);
     }
+
+    @Test
+    public void test_save_results() throws Exception {
+        assertThat(repository.saveResults("uuid",
+                asList(createDoc("doc1"), createDoc("doc2")))).isTrue();
+
+        List<SearchResult> results = repository.getResults("uuid");
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0).documentId).isEqualTo("id_doc1");
+        assertThat(results.get(0).documentPath.toString()).isEqualTo("/path/to/doc1");
+        assertThat(results.get(1).documentId).isEqualTo("id_doc2");
+        assertThat(results.get(1).documentPath.toString()).isEqualTo("/path/to/doc2");
+    }
+
+    private Document createDoc(String name) {
+         return new Document(Project.project("prj"), "id_" + name, Paths.get("/path/to/").resolve(name), name,
+                 FRENCH, Charset.defaultCharset(),
+                 "text/plain", new HashMap<>(), Document.Status.INDEXED,
+                 new HashSet<>(), new Date(), null, null,
+                 0, 123L);
+     }
 
     @NotNull
     private <T> List<T> project(List<BatchSearch> batchSearches, Function<BatchSearch, T> batchSearchListFunction) {

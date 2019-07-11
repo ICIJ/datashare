@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: 5
+      author: bthomas
+      changes:
+        - createTable:
+            tableName: batch_search_result
+            columns:
+              - column:
+                  name: search_uuid
+                  type: char(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: doc_nb
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: root_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                 name: doc_path
+                 type: varchar(4096)
+                 constraints:
+                   nullable: false
+              - column:
+                  name: creation_date
+                  type: datetime
+
+        - createIndex:
+            indexName: batch_search_result_uuid
+            tableName: batch_search_result
+            columns:
+              - column:
+                  name: search_uuid
+                  type: varchar(36)

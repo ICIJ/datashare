@@ -3,11 +3,13 @@ package org.icij.datashare.db;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearch.State;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.user.User;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -26,6 +28,7 @@ import static org.jooq.impl.DSL.*;
 public class JooqBatchSearchRepository implements BatchSearchRepository {
     private static final String BATCH_SEARCH = "batch_search";
     private static final String BATCH_SEARCH_QUERY = "batch_search_query";
+    private static final String BATCH_SEARCH_RESULT = "batch_search_result";
     private final ConnectionProvider connectionProvider;
     private final SQLDialect dialect;
 
@@ -51,7 +54,17 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public boolean saveResults(String batchSearchId, List<Document> documents) throws SQLException {
-        return false;
+        try (Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            InsertValuesStep6<Record, Object, Object, Object, Object, Object, Object> insertQuery =
+                    create.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("doc_nb"),
+                            field("doc_id"), field("root_id"), field("doc_path"), field("creation_date"));
+            IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, i,
+                    documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
+                    documents.get(i).getCreationDate() == null ? val((Timestamp)null):
+                            new Timestamp(documents.get(i).getCreationDate().getTime())));
+            return insertQuery.execute() > 0;
+        }
     }
 
     @Override
@@ -92,6 +105,15 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         }
     }
 
+    @Override
+    public List<SearchResult> getResults(String batchSearchId) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+            DSLContext create = DSL.using(conn, dialect);
+            return create.select().from(table(BATCH_SEARCH_RESULT)).where(field("search_uuid").eq(batchSearchId)).orderBy(field("doc_nb")).
+                    fetch().stream().map(this::createSearchResult).collect(toList());
+        }
+    }
+
     private List<BatchSearch> mergeBatchSearches(final List<BatchSearch> flatBatchSearches) {
         Map<String, List<BatchSearch>> collect = flatBatchSearches.stream().collect(groupingBy(bs -> bs.uuid));
         return collect.values().stream().map(batchSearches ->
@@ -108,5 +130,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 singletonList(record.getValue("query", String.class)),
                 new Date(record.get("batch_date", Timestamp.class).getTime()),
                 State.valueOf(record.get("state", String.class)));
+    }
+
+    private SearchResult createSearchResult(Record record) {
+        Timestamp creationDate = record.get("creation_date", Timestamp.class);
+        return new SearchResult(record.get(field("doc_id"), String.class),
+                record.getValue("root_id", String.class),
+                Paths.get(record.getValue("doc_path", String.class)),
+                creationDate == null ? null: new Date(creationDate.getTime()),
+                record.get("doc_nb", Integer.class));
     }
 }

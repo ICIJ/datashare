@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
 
 import static java.nio.file.Paths.get;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -53,6 +54,7 @@ public class DatashareExtractIntegrationTest {
         assertThat(doc.getMetadata()).hasSize(6);
         assertThat(doc.getParentDocument()).isNull();
         assertThat(doc.getRootDocument()).isEqualTo(doc.getId());
+        assertThat(doc.getCreationDate()).isNull();
     }
 
     @Test
@@ -66,5 +68,7 @@ public class DatashareExtractIntegrationTest {
         assertThat(doc).isNotNull();
         assertThat(doc.getId()).isNotEqualTo(doc.getRootDocument());
         assertThat(doc.getRootDocument()).isEqualTo(tikaDocument.getId());
+        assertThat(doc.getCreationDate()).isNotNull();
+        assertThat(new SimpleDateFormat("HH:mm:ss").format(doc.getCreationDate())).isEqualTo("23:22:36");
     }
 }

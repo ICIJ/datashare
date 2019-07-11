@@ -11,3 +11,6 @@ databaseChangeLog:
   - include:
       file: changes/003-batch-query.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/004-batch-result.yml
+      relativeToChangelogFile: true

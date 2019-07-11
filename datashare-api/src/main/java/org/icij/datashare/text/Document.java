@@ -10,9 +10,11 @@ import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 import static java.nio.file.Paths.get;
+import static java.time.ZonedDateTime.parse;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
@@ -140,6 +142,11 @@ public class Document implements Entity {
     public Status getStatus() { return status;}
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
     public Set<Tag> getTags() { return tags;}
+    public Date getCreationDate() {
+        if (metadata.get("tika_metadata_creation_date") == null) return null;
+        ZonedDateTime zonedDateTime = parse((String) metadata.get("tika_metadata_creation_date"));
+        return Date.from(zonedDateTime.toInstant());
+    }
 
     @JsonIgnore
     public int getNerMask() { return nerMask(getNerTags());}
