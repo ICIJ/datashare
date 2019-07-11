@@ -106,11 +106,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
-    public List<SearchResult> getResults(String batchSearchId) throws SQLException {
+    public List<SearchResult> getResults(final User user, String batchSearchId) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
-            return create.select().from(table(BATCH_SEARCH_RESULT)).where(field("search_uuid").eq(batchSearchId)).orderBy(field("doc_nb")).
-                    fetch().stream().map(this::createSearchResult).collect(toList());
+            return create.select().from(table(BATCH_SEARCH_RESULT)).
+                    join(BATCH_SEARCH).on(field(BATCH_SEARCH + ".uuid").equal(field(BATCH_SEARCH_RESULT + ".search_uuid"))).
+                    where(field("search_uuid").eq(batchSearchId)).orderBy(field("doc_nb")).
+                    fetch().stream().map(r -> createSearchResult(user, r)).collect(toList());
         }
     }
 
@@ -132,12 +134,21 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 State.valueOf(record.get("state", String.class)));
     }
 
-    private SearchResult createSearchResult(Record record) {
+    private SearchResult createSearchResult(final User actualUser, final Record record) {
+        String owner = record.get("user_id", String.class);
+        if (!actualUser.id.equals(owner))
+            throw new UnauthorizedUserException(record.get("uuid", String.class), owner, actualUser.id);
         Timestamp creationDate = record.get("creation_date", Timestamp.class);
         return new SearchResult(record.get(field("doc_id"), String.class),
                 record.getValue("root_id", String.class),
                 Paths.get(record.getValue("doc_path", String.class)),
                 creationDate == null ? null: new Date(creationDate.getTime()),
                 record.get("doc_nb", Integer.class));
+    }
+
+    public static class UnauthorizedUserException extends RuntimeException {
+        public UnauthorizedUserException(String searchId, String owner, String actualUser) {
+            super("user " + actualUser + " requested results for search " + searchId + " that belongs to user " + owner);
+        }
     }
 }

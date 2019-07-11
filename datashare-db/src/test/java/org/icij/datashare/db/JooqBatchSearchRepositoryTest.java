@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.db.DbSetupRule.createDatasource;
@@ -118,15 +119,26 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_save_results() throws Exception {
-        assertThat(repository.saveResults("uuid",
-                asList(createDoc("doc1"), createDoc("doc2")))).isTrue();
+        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"));
+        repository.save(User.local(), batchSearch);
 
-        List<SearchResult> results = repository.getResults("uuid");
+        assertThat(repository.saveResults(batchSearch.uuid, asList(createDoc("doc1"), createDoc("doc2")))).isTrue();
+
+        List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid);
         assertThat(results).hasSize(2);
         assertThat(results.get(0).documentId).isEqualTo("id_doc1");
         assertThat(results.get(0).documentPath.toString()).isEqualTo("/path/to/doc1");
         assertThat(results.get(1).documentId).isEqualTo("id_doc2");
         assertThat(results.get(1).documentPath.toString()).isEqualTo("/path/to/doc2");
+    }
+
+    @Test(expected = JooqBatchSearchRepository.UnauthorizedUserException.class)
+    public void test_get_results_with_bad_user() throws Exception {
+        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"));
+        repository.save(User.local(), batchSearch);
+        repository.saveResults(batchSearch.uuid, singletonList(createDoc("doc")));
+
+        repository.getResults(new User("hacker"), batchSearch.uuid);
     }
 
     private Document createDoc(String name) {

@@ -7,6 +7,9 @@ import net.codestory.rest.Response;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
+import org.icij.datashare.db.JooqBatchSearchRepository;
+import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -94,7 +97,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_search_results_json() throws Exception {
-        when(batchSearchRepository.getResults("batchSearchId")).thenReturn(asList(
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId")).thenReturn(asList(
                 new SearchResult("docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
                 new SearchResult("docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
         ));
@@ -107,7 +110,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_search_results_csv() throws Exception {
-        when(batchSearchRepository.getResults("batchSearchId")).thenReturn(asList(
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId")).thenReturn(asList(
                 new SearchResult("docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
                 new SearchResult("docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
         ));
@@ -119,10 +122,20 @@ public class BatchSearchResourceTest implements FluentRestTest {
                 contain("\"docId2\",\"rootId2\"");
     }
 
+    @Test
+    public void test_get_search_results_unauthorized_user() throws Exception {
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId")).
+                thenThrow(new JooqBatchSearchRepository.UnauthorizedUserException("batchSearchId", "owner", "actual"));
+
+        get("/api/batch/search/result/csv/batchSearchId").should().respond(401);
+        get("/api/batch/search/result/batchSearchId").should().respond(401);
+    }
+
     @Before
     public void setUp() throws Exception {
         initMocks(this);
-        server.configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository)));
+        server.configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository)).
+                filter(new LocalUserFilter(new PropertiesProvider())));
     }
 
     @Override public int port() { return server.port();}

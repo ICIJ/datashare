@@ -13,5 +13,5 @@ public interface BatchSearchRepository {
 
     List<BatchSearch> get(User user) throws SQLException;
     List<BatchSearch> getQueued() throws SQLException;
-    List<SearchResult> getResults(String batchSearchId) throws SQLException;
+    List<SearchResult> getResults(User user, String batchSearchId) throws SQLException;
 }
