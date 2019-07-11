@@ -306,5 +306,19 @@ public class ElasticsearchIndexerTest {
         assertThat(documents.length).isEqualTo(0);
     }
 
+    @Test
+    public void test_query_like_js_front_finds_document_from_its_child_named_entity() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content",
+                                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+                indexer.add(TEST_INDEX, doc);
+        NamedEntity ne1 = create(PERSON, "John Doe", 12, doc.getId(), CORENLP, Language.FRENCH);
+        indexer.bulkAdd(TEST_INDEX, CORENLP, singletonList(ne1), doc);
+
+        Object[] documents = indexer.search(TEST_INDEX, Document.class).withoutSource("content").with("john").execute().toArray();
+
+        assertThat(documents.length).isEqualTo(1);
+        assertThat(((Document)documents[0]).getContent()).isEmpty();
+    }
+
     public ElasticsearchIndexerTest() throws UnknownHostException {}
 }

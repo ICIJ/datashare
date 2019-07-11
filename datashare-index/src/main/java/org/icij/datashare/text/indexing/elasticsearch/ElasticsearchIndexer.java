@@ -3,6 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import com.google.inject.Inject;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
+import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -20,9 +21,8 @@ import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.ConstantScoreQueryBuilder;
-import org.elasticsearch.index.query.TermsQueryBuilder;
+import org.elasticsearch.index.query.*;
+import org.elasticsearch.join.query.HasChildQueryBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
@@ -324,6 +324,11 @@ public class ElasticsearchIndexer implements Indexer {
             return this;
         }
 
+        public Searcher withoutSource(String... fields) {
+            this.sourceBuilder.fetchSource(new String[] {"*"}, fields);
+            return this;
+        }
+
         @Override
         public Searcher withSource(boolean source) {
             sourceBuilder.fetchSource(false);
@@ -353,7 +358,12 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Searcher with(String query) {
-            return null;
+            this.boolQuery.must(new MatchAllQueryBuilder());
+            BoolQueryBuilder innerQuery = new BoolQueryBuilder();
+            innerQuery.should(new QueryStringQueryBuilder(query).defaultField("*"));
+            innerQuery.should(new HasChildQueryBuilder("NamedEntity", new MatchQueryBuilder("mention", query), ScoreMode.None));
+            this.boolQuery.must(innerQuery);
+            return this;
         }
 
         @Override

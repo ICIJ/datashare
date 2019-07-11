@@ -42,6 +42,7 @@ public interface Indexer extends Closeable {
         Stream<? extends Entity> execute() throws IOException;
         Stream<? extends Entity> scroll() throws IOException;
         Searcher withSource(String... fields);
+        Searcher withoutSource(String... fields);
         Searcher withSource(boolean source);
         Searcher without(Pipeline.Type... nlpPipelines);
         Searcher with(Pipeline.Type... nlpPipelines);
