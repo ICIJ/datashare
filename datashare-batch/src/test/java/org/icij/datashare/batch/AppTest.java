@@ -64,6 +64,7 @@ public class AppTest {
         Indexer.Searcher searcher = mock(Indexer.Searcher.class);
         when(searcher.scroll()).thenAnswer(a -> Stream.of(documents)).thenAnswer(a -> Stream.empty());
         when(searcher.with((String) any())).thenReturn(searcher);
+        when(searcher.withoutSource(any())).thenReturn(searcher);
         when(searcher.totalHits()).thenReturn((long) documents.length).thenReturn(0L);
         when(indexer.search("test-datashare", Document.class)).thenReturn(searcher);
     }
