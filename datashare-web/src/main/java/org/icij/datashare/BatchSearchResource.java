@@ -38,11 +38,27 @@ public class BatchSearchResource {
         Part descPart = parts.get(1);
         Part csv = parts.get(2);
         BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), Arrays.asList(csv.content().split("\r\n")));
-        return batchSearchRepository.save((User)context.currentUser(), batchSearch) ? new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
+        return batchSearchRepository.save((User) context.currentUser(), batchSearch) ?
+                new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
     }
 
     @Get("search/result/:batchid")
     public List<SearchResult> getResult(String batchId) throws SQLException {
         return batchSearchRepository.getResults(batchId);
+    }
+
+    @Get("search/result/csv/:batchid")
+    public Payload getResultAsCsv(String batchId, String format) throws SQLException {
+        StringBuilder builder = new StringBuilder("\"documentId\",\"rootId\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
+        batchSearchRepository.getResults(batchId).forEach(result -> builder.
+                append("\"").append(result.documentId).append("\"").append(",").
+                append("\"").append(result.rootId).append("\"").append(",").
+                append("\"").append(result.documentPath).append("\"").append(",").
+                append("\"").append(result.creationDate).append("\"").append(",").
+                append("\"").append(result.documentNumber).append("\"").append("\n")
+        );
+
+        return new Payload("text/csv", builder.toString()).
+                withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
     }
 }

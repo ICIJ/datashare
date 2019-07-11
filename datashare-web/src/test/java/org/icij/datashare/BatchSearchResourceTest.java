@@ -99,9 +99,24 @@ public class BatchSearchResourceTest implements FluentRestTest {
                 new SearchResult("docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
         ));
 
-        get("/api/batch/search/result/batchSearchId").should().respond(200).
+        get("/api/batch/search/result/batchSearchId").
+                should().respond(200).haveType("application/json").
                 contain("\"documentId\":\"docId1\"").
                 contain("\"documentId\":\"docId2\"");
+    }
+
+    @Test
+    public void test_get_search_results_csv() throws Exception {
+        when(batchSearchRepository.getResults("batchSearchId")).thenReturn(asList(
+                new SearchResult("docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
+                new SearchResult("docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
+        ));
+
+        get("/api/batch/search/result/csv/batchSearchId").
+                should().respond(200).haveType("text/csv").
+                haveHeader("Content-Disposition", "attachment;filename=\"batchSearchId.csv\"").
+                contain("\"docId1\",\"rootId1\"").
+                contain("\"docId2\",\"rootId2\"");
     }
 
     @Before
