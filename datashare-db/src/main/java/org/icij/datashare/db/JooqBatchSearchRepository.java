@@ -111,7 +111,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             DSLContext create = DSL.using(conn, dialect);
             return create.select().from(table(BATCH_SEARCH_RESULT)).
                     join(BATCH_SEARCH).on(field(BATCH_SEARCH + ".uuid").equal(field(BATCH_SEARCH_RESULT + ".search_uuid"))).
-                    where(field("search_uuid").eq(batchSearchId)).orderBy(field("doc_nb")).
+                    where(field("search_uuid").eq(batchSearchId)).orderBy(field("query"), field("doc_nb")).
                     fetch().stream().map(r -> createSearchResult(user, r)).collect(toList());
         }
     }

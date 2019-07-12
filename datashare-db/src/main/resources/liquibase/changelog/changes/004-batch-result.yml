@@ -47,3 +47,11 @@ databaseChangeLog:
               - column:
                   name: search_uuid
                   type: varchar(36)
+
+        - createIndex:
+            indexName: batch_search_result_query
+            tableName: batch_search_result
+            columns:
+              - column:
+                  name: query
+                  type: text
