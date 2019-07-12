@@ -10,11 +10,14 @@ import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 import static java.nio.file.Paths.get;
-import static java.time.ZonedDateTime.parse;
+import static java.time.OffsetDateTime.now;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
@@ -143,9 +146,18 @@ public class Document implements Entity {
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
     public Set<Tag> getTags() { return tags;}
     public Date getCreationDate() {
-        if (metadata.get("tika_metadata_creation_date") == null) return null;
-        ZonedDateTime zonedDateTime = parse((String) metadata.get("tika_metadata_creation_date"));
-        return Date.from(zonedDateTime.toInstant());
+        String creationDate = (String) metadata.get("tika_metadata_creation_date");
+        if (creationDate == null) return null;
+        Instant instant = null;
+        try {
+            instant = ZonedDateTime.parse(creationDate).toInstant();
+        } catch (DateTimeParseException e) {
+            LOGGER.debug("exception when parsing creation date (" + e + ") trying with local date time");
+        }
+        try {
+            instant = LocalDateTime.parse(creationDate).toInstant(now().getOffset());
+        } catch (DateTimeParseException ignored) {}
+        return instant == null ? null:Date.from(instant);
     }
 
     @JsonIgnore

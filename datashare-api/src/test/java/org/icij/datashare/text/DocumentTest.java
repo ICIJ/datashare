@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Document.nerMask;
@@ -48,10 +49,31 @@ public class DocumentTest {
         assertThat(Document.fromNerMask(31)).contains(CORENLP, GATENLP, IXAPIPE, MITIE, OPENNLP);
     }
 
+    @Test
+    public void test_creation_date_without_zone() {
+        assertThat(createDoc("name", new HashMap<String, Object>() {{
+            put("tika_metadata_creation_date", "2019-02-04T11:37:30.368441317");}}).getCreationDate()).isNotNull();
+    }
+
+    @Test
+    public void test_creation_date_zoned() {
+        assertThat(createDoc("name", new HashMap<String, Object>() {{
+            put("tika_metadata_creation_date", "2019-02-04T11:37:30Z");}}).getCreationDate()).isNotNull();
+    }
+
+    @Test
+    public void test_creation_date_unparseable() {
+        assertThat(createDoc("name", new HashMap<String, Object>() {{
+            put("tika_metadata_creation_date", "not a date");}}).getCreationDate()).isNull();
+    }
+
     private Document createDoc(String name) {
+        return createDoc(name, new HashMap<>());
+    }
+    private Document createDoc(String name, Map<String, Object> metadata) {
         return new Document(project("prj"), "docid", Paths.get("/path/to/").resolve(name), name,
                 FRENCH, Charset.defaultCharset(),
-                "text/plain", new HashMap<>(), Document.Status.INDEXED,
+                "text/plain", metadata, Document.Status.INDEXED,
                 new HashSet<>(), new Date(), null, null,
                 0, 123L);
     }
