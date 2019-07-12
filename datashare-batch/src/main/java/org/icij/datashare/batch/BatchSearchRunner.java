@@ -28,15 +28,18 @@ public class BatchSearchRunner implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         List<BatchSearch> batchSearches = repository.getQueued();
+        logger.info("found {} queued batch searches", batchSearches.size());
         int totalResults = 0;
         for (BatchSearch batchSearch : batchSearches) {
             totalResults += run(batchSearch);
         }
+        logger.info("done {} batch searches", batchSearches.size());
         return totalResults;
     }
 
     private int run(BatchSearch batchSearch) throws SQLException {
         int results = 0;
+        logger.info("running {} queries for batch search {} on project {}", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project);
         repository.setState(batchSearch.uuid, State.RUNNING);
         try {
             for (String query : batchSearch.queries) {
@@ -55,6 +58,7 @@ public class BatchSearchRunner implements Callable<Integer> {
             return results;
         }
         repository.setState(batchSearch.uuid, State.SUCCESS);
+        logger.info("done batch search {} with success", batchSearch.uuid);
         return results;
     }
 }
