@@ -26,6 +26,11 @@
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-index</artifactId>
         </dependency>
+        <dependency>
+            <groupId>net.sf.jopt-simple</groupId>
+            <artifactId>jopt-simple</artifactId>
+            <version>${joptsimple.version}</version>
+        </dependency>
 
         <!-- test deps -->
         <dependency>
