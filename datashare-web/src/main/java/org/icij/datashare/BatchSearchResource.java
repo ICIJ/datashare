@@ -33,7 +33,7 @@ public class BatchSearchResource {
     public Payload search(String projectId, Context context) throws Exception {
         List<Part> parts = context.parts();
         if (parts.size() != 3 || !"name".equals(parts.get(0).name()) ||
-                !"description".equals(parts.get(1).name()) || !"search".equals(parts.get(2).name())) {
+                !"description".equals(parts.get(1).name()) || !"csvFile".equals(parts.get(2).name())) {
             return Payload.badRequest();
         }
         Part namePart = parts.get(0);
