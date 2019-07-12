@@ -53,13 +53,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
-    public boolean saveResults(String batchSearchId, List<Document> documents) throws SQLException {
+    public boolean saveResults(String batchSearchId, String query, List<Document> documents) throws SQLException {
         try (Connection conn = connectionProvider.acquire()) {
             DSLContext create = DSL.using(conn, dialect);
-            InsertValuesStep6<Record, Object, Object, Object, Object, Object, Object> insertQuery =
-                    create.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("doc_nb"),
+            InsertValuesStep7<Record, Object, Object, Object, Object, Object, Object, Object> insertQuery =
+                    create.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("query"), field("doc_nb"),
                             field("doc_id"), field("root_id"), field("doc_path"), field("creation_date"));
-            IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, i,
+            IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
                     documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
                     documents.get(i).getCreationDate() == null ? val((Timestamp)null):
                             new Timestamp(documents.get(i).getCreationDate().getTime())));
@@ -140,7 +140,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (!actualUser.id.equals(owner))
             throw new UnauthorizedUserException(record.get("uuid", String.class), owner, actualUser.id);
         Timestamp creationDate = record.get("creation_date", Timestamp.class);
-        return new SearchResult(record.get(field("doc_id"), String.class),
+        return new SearchResult(record.get(field("query"), String.class),
+                record.get(field("doc_id"), String.class),
                 record.getValue("root_id", String.class),
                 Paths.get(record.getValue("doc_path", String.class)),
                 creationDate == null ? null: new Date(creationDate.getTime()),

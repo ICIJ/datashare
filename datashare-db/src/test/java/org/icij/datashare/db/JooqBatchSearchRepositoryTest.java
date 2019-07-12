@@ -122,7 +122,7 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"));
         repository.save(User.local(), batchSearch);
 
-        assertThat(repository.saveResults(batchSearch.uuid, asList(createDoc("doc1"), createDoc("doc2")))).isTrue();
+        assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1"), createDoc("doc2")))).isTrue();
 
         List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid);
         assertThat(results).hasSize(2);
@@ -136,7 +136,7 @@ public class JooqBatchSearchRepositoryTest {
     public void test_get_results_with_bad_user() throws Exception {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"));
         repository.save(User.local(), batchSearch);
-        repository.saveResults(batchSearch.uuid, singletonList(createDoc("doc")));
+        repository.saveResults(batchSearch.uuid, "query", singletonList(createDoc("doc")));
 
         repository.getResults(new User("hacker"), batchSearch.uuid);
     }

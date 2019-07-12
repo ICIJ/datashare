@@ -39,10 +39,10 @@ public class AppTest {
 
         assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(2);
 
-        verify(repository).saveResults("uuid1", asList(documents));
+        verify(repository).saveResults("uuid1", "query1", asList(documents));
         verify(repository).setState("uuid1", BatchSearch.State.RUNNING);
         verify(repository).setState("uuid1", BatchSearch.State.SUCCESS);
-        verify(repository, never()).saveResults(eq("uuid2"), anyList());
+        verify(repository, never()).saveResults(eq("uuid2"), anyString(), anyList());
     }
 
         @Test
@@ -52,7 +52,7 @@ public class AppTest {
         when(repository.getQueued()).thenReturn(singletonList(
                 new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING)
         ));
-        when(repository.saveResults(anyString(), anyList())).thenThrow(new RuntimeException());
+        when(repository.saveResults(anyString(), any(), anyList())).thenThrow(new RuntimeException());
 
         assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(1);
 

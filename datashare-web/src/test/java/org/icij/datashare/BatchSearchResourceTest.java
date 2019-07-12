@@ -110,8 +110,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
     @Test
     public void test_get_search_results_json() throws Exception {
         when(batchSearchRepository.getResults(User.local(), "batchSearchId")).thenReturn(asList(
-                new SearchResult("docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
-                new SearchResult("docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
+                new SearchResult("q1", "docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
+                new SearchResult("q2", "docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
         ));
 
         get("/api/batch/search/result/batchSearchId").
@@ -123,8 +123,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
     @Test
     public void test_get_search_results_csv() throws Exception {
         when(batchSearchRepository.getResults(User.local(), "batchSearchId")).thenReturn(asList(
-                new SearchResult("docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
-                new SearchResult("docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
+                new SearchResult("q1","docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
+                new SearchResult("q2","docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
         ));
 
         get("/api/batch/search/result/csv/batchSearchId").

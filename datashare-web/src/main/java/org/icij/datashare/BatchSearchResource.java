@@ -56,9 +56,10 @@ public class BatchSearchResource {
 
     @Get("search/result/csv/:batchid")
     public Payload getResultAsCsv(String batchId, Context context) throws SQLException {
-        StringBuilder builder = new StringBuilder("\"documentId\",\"rootId\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
+        StringBuilder builder = new StringBuilder("\"query\", \"documentId\",\"rootId\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
 
         getResultsOrThrowUnauthorized(batchId, (User) context.currentUser()).forEach(result -> builder.
+                append("\"").append(result.query).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").
                 append("\"").append(result.rootId).append("\"").append(",").
                 append("\"").append(result.documentPath).append("\"").append(",").

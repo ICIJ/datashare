@@ -48,7 +48,7 @@ public class BatchSearchRunner implements Callable<Integer> {
                 results += searcher.totalHits();
 
                 while (docsToProcess.size() != 0) {
-                    repository.saveResults(batchSearch.uuid, (List<Document>) docsToProcess);
+                    repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
                     docsToProcess = searcher.scroll().collect(toList());
                 }
             }

@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface BatchSearchRepository {
     boolean save(User user, BatchSearch batchSearch) throws SQLException;
-    boolean saveResults(String batchSearchId, List<Document> documents) throws SQLException;
+    boolean saveResults(String batchSearchId, String query, List<Document> documents) throws SQLException;
     boolean setState(String batchSearchId, BatchSearch.State state) throws SQLException;
 
     List<BatchSearch> get(User user) throws SQLException;

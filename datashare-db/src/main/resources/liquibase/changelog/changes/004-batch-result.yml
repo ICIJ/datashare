@@ -12,6 +12,11 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
+                  name: query
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
                   name: doc_nb
                   type: int
                   constraints:
