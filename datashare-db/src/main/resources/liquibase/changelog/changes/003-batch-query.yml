@@ -77,7 +77,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: query
-                  type: varchar(4096)
+                  type: text
                   constraints:
                     nullable: false
 

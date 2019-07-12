@@ -84,7 +84,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
                 "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
                 "Content-Type: text/csv\r\n" +
                 "\r\n" +
-                "query one\r\n" +
+                "query one\n" +
                 "query two\r\n" +
                 "query three\r\n" +
                 "--AaB03x--").response();
