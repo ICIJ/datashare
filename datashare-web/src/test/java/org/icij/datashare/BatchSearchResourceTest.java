@@ -96,6 +96,18 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_get_batch_searches_json() throws Exception {
+        when(batchSearchRepository.get(User.local())).thenReturn(asList(
+                new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2")),
+                new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"))
+        ));
+
+        get("/api/batch/search").should().respond(200).haveType("application/json").
+                contain("\"name\":\"name1\"").
+                contain("\"name\":\"name2\"");
+    }
+
+    @Test
     public void test_get_search_results_json() throws Exception {
         when(batchSearchRepository.getResults(User.local(), "batchSearchId")).thenReturn(asList(
                 new SearchResult("docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),

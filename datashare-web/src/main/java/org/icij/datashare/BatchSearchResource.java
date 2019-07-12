@@ -29,6 +29,11 @@ public class BatchSearchResource {
         this.batchSearchRepository = batchSearchRepository;
     }
 
+    @Get("search")
+    public List<BatchSearch> getSearches(Context context) throws Exception {
+        return batchSearchRepository.get((User) context.currentUser());
+    }
+
     @Post("search/:project")
     public Payload search(String projectId, Context context) throws Exception {
         List<Part> parts = context.parts();
