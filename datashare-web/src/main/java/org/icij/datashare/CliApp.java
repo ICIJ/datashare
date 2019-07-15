@@ -4,7 +4,9 @@ import com.google.inject.Injector;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
+import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.mode.ServerMode;
+import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -15,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Set;
@@ -27,10 +30,24 @@ import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 import static org.icij.datashare.user.User.nullUser;
 
-public class CliApp {
-    static final Logger logger = LoggerFactory.getLogger(CliApp.class);
+class CliApp {
+    private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
-    public static void start(Properties properties) throws Exception {
+    static void start(Properties properties) throws Exception {
+        if (CommonMode.isBatch(properties)) {
+            runBatch(properties);
+        } else {
+            runTaskRunner(properties);
+        }
+    }
+
+    private static void runBatch(Properties properties) throws Exception {
+        Injector injector = createInjector(CommonMode.create(properties));
+        injector.getInstance(BatchSearchRunner.class).call();
+        injector.getInstance(Indexer.class).close();
+    }
+
+    private static void runTaskRunner(Properties properties) throws IOException, InterruptedException, ClassNotFoundException {
         Injector injector = createInjector(new ServerMode(properties));
         TaskManager taskManager = injector.getInstance(TaskManager.class);
         TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
@@ -79,7 +96,7 @@ public class CliApp {
     }
 
     @NotNull
-    protected static Runnable closeAndLogException(AutoCloseable closeable) {
+    private static Runnable closeAndLogException(AutoCloseable closeable) {
         return () -> {
             try {
                 closeable.close();
@@ -89,7 +106,7 @@ public class CliApp {
         };
     }
 
-    protected static boolean resume(Properties properties) {
+    private static boolean resume(Properties properties) {
         return parseBoolean(properties.getProperty(DatashareCliOptions.RESUME_OPT, "false"));
     }
 }

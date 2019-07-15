@@ -1,8 +1,10 @@
-package org.icij.datashare.batch;
+package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import org.icij.datashare.Entity;
+import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearch.State;
+import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;

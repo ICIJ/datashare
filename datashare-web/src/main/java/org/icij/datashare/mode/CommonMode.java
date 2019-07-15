@@ -53,9 +53,15 @@ public class CommonMode extends AbstractModule {
                 return new LocalMode(properties);
             case SERVER:
                 return new ServerMode(properties);
+            case BATCH:
+                return new BatchMode(properties);
             default:
                 throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
         }
+    }
+
+    public static boolean isBatch(Properties properties) {
+        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")) == Mode.BATCH;
     }
 
     @Override

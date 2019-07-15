@@ -11,7 +11,7 @@ public class WebApp {
         start(null);
     }
 
-    public static void start(Properties properties) {
+    static void start(Properties properties) {
         CommonMode mode = CommonMode.create(properties);
         new WebServer()
                 .withThreadCount(10)

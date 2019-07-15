@@ -1,5 +1,7 @@
-package org.icij.datashare.batch;
+package org.icij.datashare.tasks;
 
+import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
@@ -24,7 +26,7 @@ import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 
-public class AppTest {
+public class BatchSearchRunnerTest {
     @Mock Indexer indexer;
     @Mock BatchSearchRepository repository;
 
