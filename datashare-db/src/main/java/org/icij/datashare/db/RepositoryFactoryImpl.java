@@ -25,12 +25,13 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     private final PropertiesProvider propertiesProvider;
 
     public RepositoryFactoryImpl() {
-        propertiesProvider = new PropertiesProvider();
+        this(new PropertiesProvider());
     }
 
     @Inject
     public RepositoryFactoryImpl(final PropertiesProvider propertiesProvider) {
         this.propertiesProvider = propertiesProvider;
+        System.getProperties().setProperty("org.jooq.no-logo", "true");
     }
 
     public Repository createRepository() {
