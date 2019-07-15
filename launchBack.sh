@@ -10,6 +10,6 @@ export DS_DOCKER_FRONT_HOST="http://localhost:$(docker ps|grep 9090|sed 's/.*0.0
 mkdir -p dist
 
 java -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n -Djavax.net.ssl.trustStorePassword=changeit \
- -Xmx4g -DPROD_MODE=true -cp "dist/:${CLASSPATH}" org.icij.datashare.cli.DatashareCli --cors '*' \
+ -Xmx4g -DPROD_MODE=true -cp "dist/:${CLASSPATH}" org.icij.datashare.Main --cors '*' \
  --oauthAuthorizeUrl http://xemx:3001/oauth/authorize --oauthTokenUrl http://xemx:3001/oauth/token \
  --oauthApiUrl http://xemx:3001/api/v1/me.json "$@"

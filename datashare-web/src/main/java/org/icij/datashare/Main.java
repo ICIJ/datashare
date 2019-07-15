@@ -1,0 +1,24 @@
+package org.icij.datashare;
+
+import org.icij.datashare.cli.DatashareCli;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class Main {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    public static void main(String[] args) throws Exception {
+        DatashareCli cli = new DatashareCli();
+        if (!cli.parseArguments(args)) {
+            LOGGER.info("Exiting...");
+            System.exit(0);
+        }
+        LOGGER.info("Running datashare " + (cli.webServer ? "web server" : ""));
+        LOGGER.info("with properties: " + cli.properties);
+
+        if (cli.webServer) {
+            WebApp.start(cli.properties);
+        } else {
+            CliApp.start(cli.properties);
+        }
+    }
+}

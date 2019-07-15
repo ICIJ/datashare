@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 public class CharsetDeserializer extends JsonDeserializer<Charset> {
     @Override
-    public Charset deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+    public Charset deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
         JsonToken currentToken = jsonParser.getCurrentToken();
 
         if (currentToken.equals(JsonToken.VALUE_STRING)) {

@@ -48,7 +48,7 @@ public class SourcePath implements Entity {
     private String hash;
 
 
-    private SourcePath() {};
+    private SourcePath() {}
 
     private SourcePath(Path path) throws IllegalArgumentException {
         if ( ! Files.exists(path))

@@ -2,7 +2,6 @@ package org.icij.datashare.cli;
 
 import com.google.common.base.Joiner;
 import joptsimple.*;
-import org.icij.datashare.WebApp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,28 +13,13 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.NO_WEB_SERVER_OPT;
 
 
-public final class DatashareCli {
+public class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
 
-    static Properties properties;
-    static boolean webServer = true;
+    public Properties properties;
+    public boolean webServer = true;
 
-    public static void main(String[] args) throws Exception {
-        if (!parseArguments(args)) {
-            LOGGER.info("Exiting...");
-            System.exit(0);
-        }
-        LOGGER.info("Running datashare " + (webServer ? "web server" : ""));
-        LOGGER.info("with properties: " + properties);
-
-        if (webServer) {
-            WebApp.start(properties);
-        } else {
-            CliApp.start(properties);
-        }
-    }
-
-    static boolean parseArguments(String[] args) {
+    public boolean parseArguments(String[] args) {
         OptionParser parser = new OptionParser();
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
@@ -86,7 +70,7 @@ public final class DatashareCli {
     }
 
     // from https://pholser.github.io/jopt-simple/examples.html
-    private static Properties asProperties(OptionSet options, String prefix) {
+    private Properties asProperties(OptionSet options, String prefix) {
         Properties properties = new Properties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
             OptionSpec<?> spec = entry.getKey();
@@ -99,7 +83,7 @@ public final class DatashareCli {
         return properties;
     }
 
-    private static String asPropertyKey(String prefix, OptionSpec<?> spec) {
+    private String asPropertyKey(String prefix, OptionSpec<?> spec) {
         List<String> flags = spec.options();
         for (String flag : flags)
             if (1 < flag.length())
@@ -107,12 +91,12 @@ public final class DatashareCli {
         throw new IllegalArgumentException("No usable non-short flag: " + flags);
     }
 
-    private static String asPropertyValue(List<?> values) {
+    private String asPropertyValue(List<?> values) {
         String stringValue = Joiner.on(",").join(values);
         return stringValue.isEmpty() ? "true": stringValue;
     }
 
-    private static void printHelp(OptionParser parser) {
+    private void printHelp(OptionParser parser) {
         try {
             System.out.println("Usage: ");
             parser.printHelpOn(System.out);

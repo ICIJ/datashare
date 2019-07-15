@@ -6,7 +6,6 @@ import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
 import org.icij.datashare.Mode;
 import org.icij.datashare.text.nlp.Pipeline;
-import org.icij.extract.ScannerVisitor;
 
 import java.io.File;
 import java.util.Arrays;
@@ -16,18 +15,18 @@ import static java.util.Collections.singletonList;
 import static org.icij.datashare.text.nlp.NlpApp.NLP_PARALLELISM_OPT;
 
 
-final class DatashareCliOptions {
-    static final char ARG_VALS_SEP = ',';
+public final class DatashareCliOptions {
+    public static final char ARG_VALS_SEP = ',';
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
     private static final Integer DEFAULT_PARALLELISM =
             Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
-    static final String STAGES_OPT = "stages";
-    static final String DATA_DIR_OPT = "dataDir";
-    static final String NLP_PIPELINES_OPT = "nlpPipelines";
+    public static final String STAGES_OPT = "stages";
+    public static final String DATA_DIR_OPT = "dataDir";
+    public static final String NLP_PIPELINES_OPT = "nlpPipelines";
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String NO_WEB_SERVER_OPT = "noweb";
-    static final String RESUME_OPT = "resume";
+    public static final String RESUME_OPT = "resume";
     public static final String PARALLELISM = "parallelism";
 
     static OptionSpec<DatashareCli.Stage> stages(OptionParser parser) {
@@ -54,7 +53,7 @@ final class DatashareCliOptions {
     }
 
     static OptionSpecBuilder followSymlinks(OptionParser parser) {
-        return parser.acceptsAll(singletonList(ScannerVisitor.FOLLOW_SYMLINKS), "Follow symlinks (default false)");
+        return parser.acceptsAll(singletonList("followSymlinks"), "Follow symlinks (default false)");
     }
 
     static OptionSpec<String> cors(OptionParser parser) {

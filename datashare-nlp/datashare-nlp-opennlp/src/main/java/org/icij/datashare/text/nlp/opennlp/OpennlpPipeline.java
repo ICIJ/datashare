@@ -199,7 +199,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
     private boolean loadSentenceDetector(Language language) throws InterruptedException {
         if (sentencer.containsKey(language))
             return true;
-        ArtifactProvider model = OpenNlpSentenceModels.getInstance().get(language);;
+        ArtifactProvider model = OpenNlpSentenceModels.getInstance().get(language);
         sentencer.put(language, new SentenceDetectorME((SentenceModel) model));
         return true;
     }

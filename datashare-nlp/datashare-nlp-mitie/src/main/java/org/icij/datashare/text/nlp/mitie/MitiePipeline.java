@@ -109,7 +109,7 @@ public class MitiePipeline extends AbstractPipeline {
         for (int i = entity.getStart(); i < entity.getEnd(); ++i) {
             System.out.print(tokens.get(i).getToken() + " ");
         }
-        System.out.println("");
+        System.out.println();
     }
 
     @Override
