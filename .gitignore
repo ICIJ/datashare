@@ -5,7 +5,7 @@ dependency-reduced-pom.xml
 *.iml
 dist/
 logs/
-app
+/app
 pom.xml.versionsBackup
 .gitsecret/keys/random_seed
 datashare-web/src/main/resources/secret.properties
