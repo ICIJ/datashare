@@ -16,7 +16,7 @@
     <dependencies>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-web</artifactId>
+            <artifactId>datashare-app</artifactId>
             <version>${project.version}</version>
             <type>jar</type>
             <classifier>jar-with-dependencies</classifier>

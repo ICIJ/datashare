@@ -10,8 +10,8 @@
         <version>1.72.5</version>
     </parent>
 
-    <artifactId>datashare-web</artifactId>
-    <name>datashare-web</name>
+    <artifactId>datashare-app</artifactId>
+    <name>datashare-app</name>
 
     <dependencies>
         <dependency>

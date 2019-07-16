@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-MAIN_CLASS=org.icij.datashare.cli.DatashareCli
+MAIN_CLASS=org.icij.datashare.Mainf
 
 if [ "$1" = 'sh' ];
 then
