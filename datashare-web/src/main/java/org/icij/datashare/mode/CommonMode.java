@@ -52,6 +52,7 @@ public class CommonMode extends AbstractModule {
             case LOCAL:
                 return new LocalMode(properties);
             case SERVER:
+            case CLI_SERVER:
                 return new ServerMode(properties);
             case BATCH:
                 return new BatchMode(properties);

@@ -5,7 +5,6 @@ import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.mode.ServerMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -34,21 +33,20 @@ class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
     static void start(Properties properties) throws Exception {
+        Injector injector = createInjector(CommonMode.create(properties));
         if (CommonMode.isBatch(properties)) {
-            runBatch(properties);
+            runBatch(injector);
         } else {
-            runTaskRunner(properties);
+            runTaskRunner(injector, properties);
         }
     }
 
-    private static void runBatch(Properties properties) throws Exception {
-        Injector injector = createInjector(CommonMode.create(properties));
+    private static void runBatch(Injector injector) throws Exception {
         injector.getInstance(BatchSearchRunner.class).call();
         injector.getInstance(Indexer.class).close();
     }
 
-    private static void runTaskRunner(Properties properties) throws IOException, InterruptedException, ClassNotFoundException {
-        Injector injector = createInjector(new ServerMode(properties));
+    private static void runTaskRunner(Injector injector, Properties properties) throws IOException, InterruptedException, ClassNotFoundException {
         TaskManager taskManager = injector.getInstance(TaskManager.class);
         TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
         Set<DatashareCli.Stage> stages = stream(properties.getProperty(DatashareCliOptions.STAGES_OPT).

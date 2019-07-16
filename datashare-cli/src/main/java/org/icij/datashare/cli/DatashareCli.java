@@ -1,30 +1,30 @@
 package org.icij.datashare.cli;
 
 import com.google.common.base.Joiner;
-import joptsimple.*;
+import joptsimple.AbstractOptionSpec;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
+import org.icij.datashare.Mode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
 
-import static java.lang.Boolean.parseBoolean;
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.NO_WEB_SERVER_OPT;
 
 
 public class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
-
     public Properties properties;
-    public boolean webServer = true;
 
     public boolean parseArguments(String[] args) {
         OptionParser parser = new OptionParser();
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
         DatashareCliOptions.mode(parser);
-        OptionSpec<DatashareCli.Stage> stagesOpt = DatashareCliOptions.stages(parser);
+        DatashareCliOptions.stages(parser);
         DatashareCliOptions.dataDir(parser);
         DatashareCliOptions.enableOcr(parser);
         DatashareCliOptions.nlpPipelines(parser);
@@ -40,7 +40,6 @@ public class DatashareCli {
         DatashareCliOptions.queueName(parser);
 
         DatashareCliOptions.cors(parser);
-        DatashareCliOptions.noweb(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
         DatashareCliOptions.dataSourceUrl(parser);
@@ -60,7 +59,6 @@ public class DatashareCli {
                 return false;
             }
             properties = asProperties(options, null);
-            webServer = !parseBoolean(ofNullable(properties.getProperty(NO_WEB_SERVER_OPT)).orElse("false"));
             return true;
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);
@@ -103,6 +101,10 @@ public class DatashareCli {
         } catch (IOException e) {
             LOGGER.debug("Failed to print help message", e);
         }
+    }
+
+    public boolean isWebServer() {
+        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")).isWebServer();
     }
 
     public enum Stage {

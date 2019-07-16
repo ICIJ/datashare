@@ -10,10 +10,12 @@ public class DatashareCliTest {
     @Test
     public void test_web_opt() {
         assertThat(cli.parseArguments(new String[] {"-o"})).isTrue();
-        assertThat(cli.webServer).isTrue();
+        assertThat(cli.isWebServer()).isTrue();
 
-        assertThat(cli.parseArguments(new String[] {"--noweb"})).isTrue();
-        assertThat(cli.webServer).isFalse();
+        assertThat(cli.parseArguments(new String[] {"--mode=BATCH"})).isTrue();
+        assertThat(cli.isWebServer()).isFalse();
+        assertThat(cli.parseArguments(new String[] {"--mode=CLI_SERVER"})).isTrue();
+        assertThat(cli.isWebServer()).isFalse();
     }
 
     @Test

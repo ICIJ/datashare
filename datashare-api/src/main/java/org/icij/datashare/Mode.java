@@ -1,5 +1,13 @@
 package org.icij.datashare;
 
 public enum Mode {
-    LOCAL, SERVER, NER, BATCH
+    LOCAL(true), SERVER(true), CLI_SERVER(false), NER(true), BATCH(false);
+
+    private final boolean webServer;
+
+    Mode(boolean webServer) {
+        this.webServer = webServer;
+    }
+
+    public boolean isWebServer() { return webServer;}
 }

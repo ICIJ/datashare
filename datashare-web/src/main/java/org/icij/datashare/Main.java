@@ -12,10 +12,10 @@ public class Main {
             LOGGER.info("Exiting...");
             System.exit(0);
         }
-        LOGGER.info("Running datashare " + (cli.webServer ? "web server" : ""));
+        LOGGER.info("Running datashare " + (cli.isWebServer() ? "web server" : ""));
         LOGGER.info("with properties: " + cli.properties);
 
-        if (cli.webServer) {
+        if (cli.isWebServer()) {
             WebApp.start(cli.properties);
         } else {
             CliApp.start(cli.properties);
