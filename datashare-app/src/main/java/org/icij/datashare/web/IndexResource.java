@@ -11,11 +11,10 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
 import okhttp3.*;
 import okio.BufferedSink;
-import org.icij.datashare.text.FileExtension;
-import org.icij.datashare.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.FileExtension;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
@@ -37,7 +36,6 @@ import static org.icij.datashare.text.Project.project;
 public class IndexResource {
     private final String es_url;
     private final Indexer indexer;
-    private final Mode mode;
     private OkHttpClient http = new OkHttpClient.Builder().
             readTimeout(20, TimeUnit.SECONDS).
             writeTimeout(20, TimeUnit.SECONDS).build();
@@ -45,7 +43,6 @@ public class IndexResource {
     @Inject
     public IndexResource(PropertiesProvider propertiesProvider, Indexer indexer) {
         this.es_url = propertiesProvider.get("elasticsearchAddress").orElse("http://elasticsearch:9200");
-        this.mode = Mode.valueOf(propertiesProvider.get("mode").orElse("LOCAL"));
         this.indexer = indexer;
     }
 
