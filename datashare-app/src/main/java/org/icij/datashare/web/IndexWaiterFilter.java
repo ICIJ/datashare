@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import net.codestory.http.Context;
 import net.codestory.http.filters.Filter;

@@ -1,15 +1,17 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.Response;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.user.User;
+import org.icij.datashare.web.BatchSearchResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;

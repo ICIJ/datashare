@@ -6,6 +6,8 @@ import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;

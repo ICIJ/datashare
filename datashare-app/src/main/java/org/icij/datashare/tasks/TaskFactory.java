@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.tasks;
 
 import org.icij.datashare.tasks.FilterTask;
 import org.icij.datashare.tasks.IndexTask;

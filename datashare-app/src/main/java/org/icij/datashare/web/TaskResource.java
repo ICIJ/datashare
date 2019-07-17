@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.inject.Inject;
@@ -8,6 +8,9 @@ import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.text.nlp.AbstractPipeline;

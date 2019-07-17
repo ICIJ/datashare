@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
@@ -7,6 +7,9 @@ import net.codestory.http.routes.Routes;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.IndexTask;

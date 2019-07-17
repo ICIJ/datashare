@@ -1,9 +1,11 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
+import org.icij.datashare.Mode;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
@@ -7,6 +7,7 @@ import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.Repository;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Tag;

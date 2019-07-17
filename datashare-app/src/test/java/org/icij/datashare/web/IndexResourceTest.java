@@ -1,20 +1,22 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.payload.Payload;
 import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.web.IndexResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.HashMap;
 
-import static org.icij.datashare.IndexResource.getQueryAsString;
+import static org.icij.datashare.web.IndexResource.getQueryAsString;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;

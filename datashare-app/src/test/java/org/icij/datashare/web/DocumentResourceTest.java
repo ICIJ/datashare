@@ -1,10 +1,12 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.Repository;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.web.DocumentResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -31,7 +33,8 @@ public class DocumentResourceTest implements FluentRestTest {
             return Env.prod();
         }
     }.startOnRandomPort();
-    @Mock Repository repository;
+    @Mock
+    Repository repository;
     @Mock Indexer indexer;
 
     @Before

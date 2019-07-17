@@ -4,10 +4,10 @@ import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
-import org.icij.datashare.*;
 import org.icij.datashare.session.OAuth2CookieFilter;
 import org.icij.datashare.session.RedisSessionIdStore;
 import org.icij.datashare.session.RedisUsers;
+import org.icij.datashare.web.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

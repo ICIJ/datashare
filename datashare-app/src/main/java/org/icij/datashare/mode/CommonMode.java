@@ -15,10 +15,14 @@ import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
 import org.icij.datashare.db.RepositoryFactoryImpl;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
+import org.icij.datashare.web.ConfigResource;
+import org.icij.datashare.web.IndexWaiterFilter;
 
 import java.io.IOException;
 import java.util.Map;

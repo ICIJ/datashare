@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.text;
 
 import java.util.HashMap;
 import java.util.Map;

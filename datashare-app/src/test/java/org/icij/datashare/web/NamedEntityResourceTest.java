@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.basic.BasicAuthFilter;
@@ -8,6 +8,7 @@ import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.web.NamedEntityResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -82,7 +83,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
 
         put("/api/namedEntity/hide/to_update").should().respond(500);
     }
-    
+
     @Override
     public int port() {
         return server.port();

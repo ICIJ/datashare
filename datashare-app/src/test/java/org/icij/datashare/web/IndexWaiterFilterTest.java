@@ -1,10 +1,12 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import net.codestory.http.Context;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration;
+import org.icij.datashare.web.IndexWaiterFilter;
 import org.junit.After;
 import org.junit.Test;
 

@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;

@@ -1,6 +1,7 @@
-package org.icij.datashare;
+package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
@@ -79,7 +80,7 @@ public class TaskManager {
         return tasks.values();
     }
 
-    List<MonitorableFutureTask> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
+    public List<MonitorableFutureTask> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
         return getTasks().stream().peek(monitorableFutureTask -> {
             try {
                 monitorableFutureTask.get(timeout, timeUnit);
@@ -89,23 +90,23 @@ public class TaskManager {
         }).collect(toList());
     }
 
-    List<MonitorableFutureTask> cleanDoneTasks() {
+    public List<MonitorableFutureTask> cleanDoneTasks() {
         return getTasks().stream().filter(FutureTask::isDone).map(t -> tasks.remove(t.toString())).collect(toList());
     }
 
-    boolean stopTask(String taskName) {
+    public boolean stopTask(String taskName) {
         logger.info("cancelling task {}", taskName);
         return getTask(taskName).cancel(true);
     }
 
-    static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable, UserTask {
+    public static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable, UserTask {
         private final Object runnableOrCallable;
-        MonitorableFutureTask(@NotNull Callable<V> callable) {
+        public MonitorableFutureTask(@NotNull Callable<V> callable) {
             super(callable);
             runnableOrCallable = callable;
         }
 
-        MonitorableFutureTask(@NotNull Runnable runnable, V result) {
+        public MonitorableFutureTask(@NotNull Runnable runnable, V result) {
             super(runnable, result);
             runnableOrCallable = runnable;
         }

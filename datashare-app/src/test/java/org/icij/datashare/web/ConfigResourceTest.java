@@ -1,10 +1,12 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.web.ConfigResource;
 import org.junit.Test;
 
 import java.util.HashMap;

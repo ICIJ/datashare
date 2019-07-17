@@ -1,5 +1,7 @@
-package org.icij.datashare;
+package org.icij.datashare.tasks;
 
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.tasks.TaskManager;
 import org.junit.After;
 import org.junit.Test;
 

@@ -1,7 +1,8 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import net.codestory.http.annotations.Post;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.LanguageGuesser;

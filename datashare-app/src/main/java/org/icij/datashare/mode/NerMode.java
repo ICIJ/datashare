@@ -2,7 +2,7 @@ package org.icij.datashare.mode;
 
 import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
-import org.icij.datashare.NlpResource;
+import org.icij.datashare.web.NlpResource;
 import org.icij.datashare.session.LocalUserFilter;
 
 import java.util.Properties;

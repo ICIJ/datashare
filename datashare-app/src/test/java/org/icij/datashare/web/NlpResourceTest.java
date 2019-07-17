@@ -1,14 +1,16 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import net.codestory.http.WebServer;
 import net.codestory.http.convert.TypeConvert;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.Response;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.web.NlpResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;

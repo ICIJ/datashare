@@ -1,4 +1,4 @@
-package org.icij.datashare;
+package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
@@ -11,6 +11,9 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
 import okhttp3.*;
 import okio.BufferedSink;
+import org.icij.datashare.text.FileExtension;
+import org.icij.datashare.Mode;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
