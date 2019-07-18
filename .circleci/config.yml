@@ -62,7 +62,7 @@ jobs:
 
   build_front:
     docker:
-      - image: circleci/node:8.9.4
+      - image: circleci/node:10.15.2
       - image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
         environment:
           - "discovery.type=single-node"
