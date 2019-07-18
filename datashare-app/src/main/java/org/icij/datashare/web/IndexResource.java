@@ -37,8 +37,8 @@ public class IndexResource {
     private final String es_url;
     private final Indexer indexer;
     private OkHttpClient http = new OkHttpClient.Builder().
-            readTimeout(20, TimeUnit.SECONDS).
-            writeTimeout(20, TimeUnit.SECONDS).build();
+            readTimeout(60, TimeUnit.SECONDS).
+            writeTimeout(60, TimeUnit.SECONDS).build();
 
     @Inject
     public IndexResource(PropertiesProvider propertiesProvider, Indexer indexer) {
