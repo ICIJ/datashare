@@ -27,6 +27,7 @@ public class LocalMode extends CommonMode {
                 add(NamedEntityResource.class).
                 add(DocumentResource.class).
                 add(BatchSearchResource.class).
+                add(ProjectResource.class).
                 filter(IndexWaiterFilter.class);
     }
 }

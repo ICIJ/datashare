@@ -150,4 +150,17 @@ public class JooqRepositoryTest {
         assertThat(repository.getDocuments(project("prj"), tag("tag1"))).isEmpty();
         assertThat(repository.untag(project("prj"), "doc_id", tag("tag1"))).isFalse();
     }
+
+    @Test
+    public void test_delete_all_project() throws SQLException {
+        User user = new User("userid");
+        repository.star(project("prj"), user, "doc_id");
+        repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"));
+
+        assertThat(repository.deleteAll("prj")).isTrue();
+        assertThat(repository.deleteAll("prj")).isFalse();
+
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).isEmpty();
+        assertThat(repository.getStarredDocuments(user)).isEmpty();
+    }
 }

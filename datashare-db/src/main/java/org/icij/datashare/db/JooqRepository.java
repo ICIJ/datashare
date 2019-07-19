@@ -217,6 +217,18 @@ public class JooqRepository implements Repository {
                     fetch().getValues("doc_id", String.class);
         }
     }
+
+    @Override
+    public boolean deleteAll(String projectId) throws SQLException {
+        try (Connection conn = connectionProvider.acquire()) {
+           return DSL.using(conn, dialect).transactionResult(configuration -> {
+               DSLContext inner = using(configuration);
+               int deleteTagResult = inner.deleteFrom(table(DOCUMENT_TAG)).where(field("prj_id").equal(projectId)).execute();
+               int deleteStarResult = inner.deleteFrom(table(DOCUMENT_USER_STAR)).where(field("prj_id").equal(projectId)).execute();
+               return deleteStarResult + deleteTagResult > 0;
+           });
+        }
+    }
     // ---------------------------
 
     private NamedEntity createFrom(Record record) {

@@ -31,4 +31,6 @@ public interface Repository {
     boolean tag(Project prj, String documentId, Tag... tags) throws SQLException;
     boolean untag(Project prj, String documentId, Tag... tags) throws SQLException;
     List<String> getDocuments(Project project, Tag... tags) throws SQLException;
+
+    boolean deleteAll(String projectId) throws SQLException;
 }
