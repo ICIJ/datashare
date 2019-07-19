@@ -27,7 +27,8 @@ public interface Pipeline {
         GATENLP(1),
         IXAPIPE(2),
         MITIE(3),
-        OPENNLP(4);
+        OPENNLP(4),
+        EMAIL(5);
 
         private final String className;
         public final int code;

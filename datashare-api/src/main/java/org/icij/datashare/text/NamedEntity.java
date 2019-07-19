@@ -52,6 +52,7 @@ public final class NamedEntity implements Entity {
         PERSON       ("PERS"),
         ORGANIZATION ("ORG"),
         LOCATION     ("LOC"),
+        EMAIL        ("MAIL"),
         DATE         ("DATE"),
         MONEY        ("MON"),
         NUMBER       ("NUM"),
