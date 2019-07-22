@@ -11,7 +11,6 @@ import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.user.User;
-import org.icij.datashare.web.BatchSearchResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -21,6 +20,7 @@ import java.sql.SQLException;
 import java.util.Date;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
@@ -95,6 +95,33 @@ public class BatchSearchResourceTest implements FluentRestTest {
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
                 asList("query one", "query two", "query three"), new Date(), BatchSearch.State.RUNNING)));
+    }
+
+    @Test
+    public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() throws SQLException {
+        when(batchSearchRepository.save(any(), any())).thenReturn(true);
+
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
+                "Content-Disposition: form-data; name=\"name\"\r\n" +
+                "\r\n" +
+                "my batch search\r\n" +
+                "--AaB03x\r\n" +
+                "Content-Disposition: form-data; name=\"description\"\r\n" +
+                "\r\n" +
+                "search description\r\n" +
+                "--AaB03x\r\n" +
+                "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                "Content-Type: text/csv\r\n" +
+                "\r\n" +
+                "1\n" +
+                "\n" +
+                "query\r\n" +
+                "--AaB03x--").response();
+
+        assertThat(response.code()).isEqualTo(200);
+        verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
+                project("prj"), "my batch search", "search description",
+                singletonList("query"), new Date(), BatchSearch.State.RUNNING)));
     }
 
     @Test

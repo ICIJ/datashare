@@ -13,11 +13,14 @@ import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.user.User;
+import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.Project.project;
 
 @Prefix("/api/batch")
@@ -44,9 +47,14 @@ public class BatchSearchResource {
         Part namePart = parts.get(0);
         Part descPart = parts.get(1);
         Part csv = parts.get(2);
-        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), Arrays.asList(csv.content().split("\r?\n")));
+        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv));
         return batchSearchRepository.save((User) context.currentUser(), batchSearch) ?
                 new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
+    }
+
+    @NotNull
+    private List<String> getQueries(Part csv) throws IOException {
+        return stream(csv.content().split("\r?\n")).filter(q -> q.length() >= 2).collect(toList());
     }
 
     @Get("search/result/:batchid")
