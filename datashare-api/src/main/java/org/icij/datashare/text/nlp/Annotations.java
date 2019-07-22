@@ -1,6 +1,7 @@
 package org.icij.datashare.text.nlp;
 
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
 
 import java.util.*;
 
@@ -38,7 +39,7 @@ public class Annotations {
         tags.get(stage).add(new NlpTag(stage, begin, end));
     }
 
-    public void add(NlpStage stage, int begin, int end, String value) {
+    public void add(NlpStage stage, int begin, int end, NamedEntity.Category value) {
         tags.get(stage).add(new NlpTag(stage, begin, end, value));
     }
 }

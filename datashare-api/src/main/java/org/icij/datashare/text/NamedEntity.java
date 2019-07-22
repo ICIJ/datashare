@@ -120,7 +120,6 @@ public final class NamedEntity implements Entity {
     }
 
     public static NamedEntity from(String text, NlpTag tag, Annotations annotations) {
-        Category category = Category.parse(tag.getValue());
         String mention = ThrowingFunctions.removeNewLines.apply(text.substring(tag.getBegin(), tag.getEnd()));
         List<NlpTag> posTags = annotations.get(POS);
         int posTagIndex = Collections.binarySearch(posTags, tag, NlpTag.comparator);
@@ -128,7 +127,7 @@ public final class NamedEntity implements Entity {
             LOGGER.info(posTagIndex + ", " + posTags.get(posTagIndex));
         }
         return NamedEntity.create(
-                category,
+                tag.getCategory(),
                 mention,
                 tag.getBegin(),
                 annotations.getDocumentId(),

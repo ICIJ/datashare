@@ -154,9 +154,9 @@ public final class CorenlpPipeline extends AbstractPipeline {
             for (CoreLabel token : tokens) {
                 int tokenBegin = token.get(CharacterOffsetBeginAnnotation.class);
                 int tokenEnd = token.get(CharacterOffsetEndAnnotation.class);
-                String pos = token.get(PartOfSpeechAnnotation.class);
+                String pos = token.get(PartOfSpeechAnnotation.class); // for now we don't use POS tagging
                 annotations.add(TOKEN, tokenBegin, tokenEnd);
-                annotations.add(POS, tokenBegin, tokenEnd, pos);
+                annotations.add(POS, tokenBegin, tokenEnd);
 
                 String cat = token.get(NamedEntityTagAnnotation.class);
                 NamedEntity.Category currCat = NamedEntity.Category.parse(cat);
@@ -166,7 +166,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
                     }
                 } else {
                     if (prevCat != currCat) {
-                        annotations.add(NER, nerBegin, tokenBegin, prevCat.toString());
+                        annotations.add(NER, nerBegin, tokenBegin, prevCat);
                     }
                 }
                 prevCat = currCat;
@@ -202,7 +202,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
             NamedEntity.Category category = NamedEntity.Category.parse(item.first());
             int begin = item.second();
             int end = item.third();
-            annotations.add(NER, begin, end, category.toString());
+            annotations.add(NER, begin, end, category);
         }
 
         return annotations;
@@ -240,8 +240,8 @@ public final class CorenlpPipeline extends AbstractPipeline {
             for (TaggedWord word : taggedSentence) {
                 int begin = word.beginPosition();
                 int end = word.endPosition();
-                String pos = word.tag();
-                annotations.add(POS, begin, end, pos);
+                String pos = word.tag(); // like line 157 we don't use POS tagging
+                annotations.add(POS, begin, end);
             }
         }
         return annotations;

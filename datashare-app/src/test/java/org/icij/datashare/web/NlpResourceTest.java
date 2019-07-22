@@ -6,11 +6,11 @@ import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
-import org.icij.datashare.web.NlpResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -64,7 +64,7 @@ public class NlpResourceTest implements FluentRestTest {
     @Test
     public void test_post_text_returns_NamedEntity_list() throws Exception {
         final Annotations annotations = new Annotations("inline", CORENLP, ENGLISH);
-        annotations.add(NlpStage.NER, 10, 13, "PERS");
+        annotations.add(NlpStage.NER, 10, 13, NamedEntity.Category.PERSON);
         doReturn(annotations).when(pipeline).process(anyString(), eq("inline"), any());
 
         Response response = post("/ner/findNames/CORENLP", "This the 'foù' file content.").response();

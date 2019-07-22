@@ -1,48 +1,36 @@
 package org.icij.datashare.text.nlp;
 
+import org.icij.datashare.text.NamedEntity;
+
 import java.util.Comparator;
 
+import static java.util.Comparator.comparingInt;
+import static org.icij.datashare.text.NamedEntity.Category.NONE;
 
 /**
- * {@code NlpTag} associates a text span {@code [begin, end[} (in characters) to
- *  an {@link NlpStage} and, optionally, a String {@code value}
- *
- * Created by julien on 9/14/16.
+ * {@code NlpTag} associates a text span {@code [begin, end]} (in characters) to
+ *  an {@link NlpStage} and, optionally, for NER tags a Named Entity category
  */
 public class NlpTag {
 
-    public static final Comparator<NlpTag> comparator =
-            (t1, t2) ->
-                    Integer.valueOf(
-                            t1.getBegin()
-                    ).compareTo(
-                            t2.getBegin()
-                    );
+    public static final Comparator<NlpTag> comparator = comparingInt(NlpTag::getBegin);
 
-    // Begin offset (chars)
     private final int begin;
-
-    // End offset (chars)
     private final int end;
-
-    // NlpTag's stage
     private final NlpStage stage;
-
-    // NlpTag's value
-    private final String   value;
+    private final NamedEntity.Category category;
 
 
-    public NlpTag(NlpStage stage, int begin, int end, String value) {
+    NlpTag(NlpStage stage, int begin, int end, NamedEntity.Category category) {
         this.begin = begin;
-        this.end   = end;
-        this.value = value;
+        this.end = end;
+        this.category = category;
         this.stage = stage;
     }
 
-    public NlpTag(NlpStage stage, int begin, int end) {
-        this(stage, begin, end, "");
+    NlpTag(NlpStage stage, int begin, int end) {
+        this(stage, begin, end, NONE);
     }
-
 
     public int getBegin() {
         return begin;
@@ -52,8 +40,8 @@ public class NlpTag {
         return end;
     }
 
-    public String getValue() {
-        return value;
+    public NamedEntity.Category getCategory() {
+        return category;
     }
 
     public NlpStage getStage() {

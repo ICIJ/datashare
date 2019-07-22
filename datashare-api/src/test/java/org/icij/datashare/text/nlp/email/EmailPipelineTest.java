@@ -37,7 +37,7 @@ public class EmailPipelineTest {
         NlpTag nlpTag = annotations.get(NlpStage.NER).get(0);
         assertThat(nlpTag.getBegin()).isEqualTo(23);
         assertThat(nlpTag.getEnd()).isEqualTo(39);
-        assertThat(nlpTag.getValue()).isEqualTo("EMAIL");
+        assertThat(nlpTag.getCategory()).isEqualTo(NamedEntity.Category.EMAIL);
         assertThat(content.substring(nlpTag.getBegin(), nlpTag.getEnd())).isEqualTo("email@domain.com");
     }
 

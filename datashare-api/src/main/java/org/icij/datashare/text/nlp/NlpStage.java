@@ -1,12 +1,11 @@
 package org.icij.datashare.text.nlp;
 
-import java.util.Comparator;
+import org.icij.datashare.function.ThrowingFunction;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import org.icij.datashare.function.ThrowingFunction;
 
 
 /**
@@ -26,8 +25,6 @@ public enum NlpStage {
     LEMMA,
     POS,
     NER;
-
-    public static final Comparator<NlpStage> comparator = Comparator.comparing(NlpStage::ordinal);
 
     public static Optional<NlpStage> parse(final String stage) {
         if (stage== null || stage.isEmpty()) {

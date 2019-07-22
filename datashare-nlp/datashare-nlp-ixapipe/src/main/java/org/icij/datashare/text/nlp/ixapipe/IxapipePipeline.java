@@ -10,6 +10,7 @@ import ixa.kaflib.Term;
 import ixa.kaflib.WF;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
@@ -118,7 +119,7 @@ public class IxapipePipeline extends AbstractPipeline {
                 annotations.add(TOKEN, tokenBegin, tokenEnd);
                 if (targetStages.contains(POS)) {
                     String posTag = term.getPos();
-                    annotations.add(POS, tokenBegin, tokenEnd, posTag);
+                    annotations.add(POS, tokenBegin, tokenEnd);
                 }
             }
             if (sentenceTerms.size() > 0) {
@@ -148,7 +149,7 @@ public class IxapipePipeline extends AbstractPipeline {
                 String cat = entity.getType();
                 int nerBegin = wfBegin.getOffset();
                 int nerEnd = wfEnd.getOffset() + wfEnd.getLength();
-                annotations.add(NER, nerBegin, nerEnd, cat);
+                annotations.add(NER, nerBegin, nerEnd, NamedEntity.Category.parse(cat));
             }
         }
 

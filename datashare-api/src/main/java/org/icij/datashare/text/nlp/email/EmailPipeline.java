@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 
 import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
 
+
 /**
  * this is a fake NLP pipeline. It just uses syntactic methods to find
  * emails in document contents.
@@ -46,7 +47,7 @@ public class EmailPipeline extends AbstractPipeline {
         while (matcher.find()) {
             String email = matcher.group(0);
             int start = matcher.start();
-            annotations.add(NlpStage.NER, start, start + email.length(), EMAIL.name());
+            annotations.add(NlpStage.NER, start, start + email.length(), NamedEntity.Category.EMAIL);
         }
         return annotations;
     }
@@ -55,7 +56,6 @@ public class EmailPipeline extends AbstractPipeline {
     public Type getType() { return EMAIL;}
     @Override
     public void terminate(Language language) {}
-
     @Override
     public Map<Language, Set<NlpStage>> supportedStages() { throw new NotImplementedException();}
     @Override

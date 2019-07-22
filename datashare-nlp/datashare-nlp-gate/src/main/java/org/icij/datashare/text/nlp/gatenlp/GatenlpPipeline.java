@@ -116,7 +116,7 @@ public final class GatenlpPipeline extends AbstractPipeline {
                                 String nerMention     = gateAnnotation.getFeatures().get("string").toString();
                                 int    nerOffsetBegin = gateAnnotation.getStartNode().getOffset().intValue();
                                 int    nerOffsetEnd   = gateAnnotation.getEndNode().getOffset().intValue();
-                                annotations.add(NER, nerOffsetBegin, nerOffsetEnd, category.toString());
+                                annotations.add(NER, nerOffsetBegin, nerOffsetEnd, category);
                             }
                         });
             }

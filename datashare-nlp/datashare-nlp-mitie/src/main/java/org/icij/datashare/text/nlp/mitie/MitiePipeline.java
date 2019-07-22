@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import edu.mit.ll.mitie.*;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
@@ -93,7 +94,7 @@ public class MitiePipeline extends AbstractPipeline {
                     int nerBegin = nerPrefix.length();
                     int nerEnd = nerBegin + nerContent.length();
                     String category = MitieNlpModels.getInstance().getTagSet(language).get(entity.getTag());
-                    annotations.add(NER, nerBegin, nerEnd, category);
+                    annotations.add(NER, nerBegin, nerEnd, NamedEntity.Category.parse(category));
                 }
             } catch (InterruptedException e) {
                 LOGGER.error("entities extraction interrupted", e);

@@ -16,6 +16,7 @@ import opennlp.tools.util.Span;
 import opennlp.tools.util.model.ArtifactProvider;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
@@ -132,7 +133,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
                 annotations.add(TOKEN, tokenOffsetBegin, tokenOffsetEnd);
                 if (targetStages.contains(POS)) {
                     String pos = spanToString(sentenceTokenSpan, sentencePosTags);
-                    annotations.add(POS, tokenOffsetBegin, tokenOffsetEnd, pos);
+                    annotations.add(POS, tokenOffsetBegin, tokenOffsetEnd);
                 }
             }
 
@@ -143,7 +144,7 @@ public final class OpennlpPipeline extends AbstractPipeline {
                     for (Span nerSpan : nerSpans) {
                         int nerStart = sentenceOffsetBegin + sentenceTokenSpans[nerSpan.getStart()].getStart();
                         int nerEnd   = sentenceOffsetBegin + sentenceTokenSpans[nerSpan.getEnd()-1].getEnd();
-                        annotations.add(NER, nerStart, nerEnd, nerSpan.getType());
+                        annotations.add(NER, nerStart, nerEnd, NamedEntity.Category.parse(nerSpan.getType()));
                     }
                 }
             }
