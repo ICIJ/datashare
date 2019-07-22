@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
@@ -47,12 +48,12 @@ public class BatchSearchRunnerTest {
         verify(repository, never()).saveResults(eq("uuid2"), anyString(), anyList());
     }
 
-        @Test
+    @Test
     public void test_run_batch_search_failure() throws Exception {
         Document[] documents = {createDoc("doc")};
         firstSearchWillReturn(documents);
         when(repository.getQueued()).thenReturn(singletonList(
-                new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING)
+            new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING)
         ));
         when(repository.saveResults(anyString(), any(), anyList())).thenThrow(new RuntimeException());
 
@@ -62,11 +63,23 @@ public class BatchSearchRunnerTest {
         verify(repository).setState("uuid1", BatchSearch.State.FAILURE);
     }
 
+    @Test
+    public void test_run_batch_search_truncate_to_60k_max_results() throws Exception {
+        Document[] documents = IntStream.range(0, 61000).mapToObj(i -> createDoc("doc" + i)).toArray(Document[]::new);
+        firstSearchWillReturn(documents);
+        when(repository.getQueued()).thenReturn(singletonList(
+            new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asList("query"), new Date(), BatchSearch.State.RUNNING)
+        ));
+
+        assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(60000);
+    }
+
     private void firstSearchWillReturn(Document... documents) throws IOException {
         Indexer.Searcher searcher = mock(Indexer.Searcher.class);
         when(searcher.scroll()).thenAnswer(a -> Stream.of(documents)).thenAnswer(a -> Stream.empty());
         when(searcher.with((String) any())).thenReturn(searcher);
         when(searcher.withoutSource(any())).thenReturn(searcher);
+        when(searcher.limit(anyInt())).thenReturn(searcher);
         when(searcher.totalHits()).thenReturn((long) documents.length).thenReturn(0L);
         when(indexer.search("test-datashare", Document.class)).thenReturn(searcher);
     }

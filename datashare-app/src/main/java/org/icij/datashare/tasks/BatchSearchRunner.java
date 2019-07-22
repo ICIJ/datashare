@@ -14,10 +14,15 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import static java.lang.Math.min;
 import static java.util.stream.Collectors.toList;
 
 public class BatchSearchRunner implements Callable<Integer> {
     private Logger logger = LoggerFactory.getLogger(getClass());
+
+    private static final int MAX_SCROLL_SIZE = 5000;
+    private static final int MAX_QUERY_SIZE = 60000;
+
     private final Indexer indexer;
     private final BatchSearchRepository repository;
 
@@ -45,13 +50,15 @@ public class BatchSearchRunner implements Callable<Integer> {
         repository.setState(batchSearch.uuid, State.RUNNING);
         try {
             for (String query : batchSearch.queries) {
-                Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).with(query).withoutSource("content");
+                Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).with(query).withoutSource("content").limit(MAX_SCROLL_SIZE);
                 List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
-                results += searcher.totalHits();
+                results += min(MAX_QUERY_SIZE, searcher.totalHits());
+                int queryResults = docsToProcess.size();
 
-                while (docsToProcess.size() != 0) {
+                while (docsToProcess.size() != 0 && queryResults < MAX_QUERY_SIZE) {
                     repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
                     docsToProcess = searcher.scroll().collect(toList());
+                    queryResults += docsToProcess.size();
                 }
             }
         } catch (Exception ex) {
