@@ -14,14 +14,16 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
+
 /**
  * this is a fake NLP pipeline. It just uses syntactic methods to find
  * emails in document contents.
  *
- * first it uses the regexp mentioned here :
+ * it uses the regexp mentioned here :
  * https://stackoverflow.com/questions/201323/how-to-validate-an-email-address-using-a-regular-expression
  *
- * It uses the same API as the NLP pipelines to integrate seamlessly to datashare.
+ * It implements the same API as the NLP pipelines to integrate seamlessly to datashare.
  */
 public class EmailPipeline extends AbstractPipeline {
     Pattern pattern = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b" +
@@ -44,13 +46,13 @@ public class EmailPipeline extends AbstractPipeline {
         while (matcher.find()) {
             String email = matcher.group(0);
             int start = matcher.start();
-            annotations.add(NlpStage.NER, start, start + email.length(), email);
+            annotations.add(NlpStage.NER, start, start + email.length(), EMAIL.name());
         }
         return annotations;
     }
 
     @Override
-    public Type getType() { return Type.EMAIL;}
+    public Type getType() { return EMAIL;}
     @Override
     public void terminate(Language language) {}
 

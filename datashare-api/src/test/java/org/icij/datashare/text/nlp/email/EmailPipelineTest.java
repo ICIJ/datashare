@@ -2,9 +2,16 @@ package org.icij.datashare.text.nlp.email;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.NlpTag;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -23,25 +30,30 @@ public class EmailPipelineTest {
 
     @Test
     public void test_one_email() {
-        Annotations annotations = emailPipeline.process("this is a content with email@domain.com", "docId", Language.ENGLISH);
+        String content = "this is a content with email@domain.com";
+        Annotations annotations = emailPipeline.process(content, "docId", Language.ENGLISH);
 
         assertThat(annotations.get(NlpStage.NER)).hasSize(1);
-        assertThat(annotations.get(NlpStage.NER).get(0).getBegin()).isEqualTo(23);
-        assertThat(annotations.get(NlpStage.NER).get(0).getEnd()).isEqualTo(39);
-        assertThat(annotations.get(NlpStage.NER).get(0).getValue()).isEqualTo("email@domain.com");
+        NlpTag nlpTag = annotations.get(NlpStage.NER).get(0);
+        assertThat(nlpTag.getBegin()).isEqualTo(23);
+        assertThat(nlpTag.getEnd()).isEqualTo(39);
+        assertThat(nlpTag.getValue()).isEqualTo("EMAIL");
+        assertThat(content.substring(nlpTag.getBegin(), nlpTag.getEnd())).isEqualTo("email@domain.com");
     }
 
     @Test
     public void test_one_email_twice() {
-        Annotations annotations = emailPipeline.process("this is a content with email@domain.com\n" +
+        String content = "this is a content with email@domain.com\n" +
                 "that is twice in the document\n" +
-                "email@domain.com", "docId", Language.ENGLISH);
+                "email@domain.com";
+        Annotations annotations = emailPipeline.process(content, "docId", Language.ENGLISH);
 
         assertThat(annotations.get(NlpStage.NER)).hasSize(2);
 
-        assertThat(annotations.get(NlpStage.NER).get(1).getBegin()).isEqualTo(70);
-        assertThat(annotations.get(NlpStage.NER).get(1).getEnd()).isEqualTo(86);
-        assertThat(annotations.get(NlpStage.NER).get(1).getValue()).isEqualTo("email@domain.com");
+        NlpTag nlpTag = annotations.get(NlpStage.NER).get(1);
+        assertThat(nlpTag.getBegin()).isEqualTo(70);
+        assertThat(nlpTag.getEnd()).isEqualTo(86);
+        assertThat(content.substring(nlpTag.getBegin(), nlpTag.getEnd())).isEqualTo("email@domain.com");
     }
 
     @Test
@@ -51,8 +63,16 @@ public class EmailPipelineTest {
                 "and baz@qux.fr", "docId", Language.ENGLISH);
 
         assertThat(annotations.get(NlpStage.NER)).hasSize(3);
-        assertThat(annotations.get(NlpStage.NER).get(0).getValue()).isEqualTo("email@domain.com");
-        assertThat(annotations.get(NlpStage.NER).get(1).getValue()).isEqualTo("foo@bar.com");
-        assertThat(annotations.get(NlpStage.NER).get(2).getValue()).isEqualTo("baz@qux.fr");
+    }
+
+    @Test
+    public void test_acceptance() throws IOException {
+        Path emailFile = Paths.get(getClass().getResource("/email.eml").getPath());
+        String content = new String(Files.readAllBytes(emailFile));
+
+        Annotations annotations = emailPipeline.process(content, "docId", Language.ENGLISH);
+
+        assertThat(annotations.get(NlpStage.NER)).hasSize(10);
+        assertThat(NamedEntity.allFrom(content, annotations)).hasSize(10);
     }
 }
