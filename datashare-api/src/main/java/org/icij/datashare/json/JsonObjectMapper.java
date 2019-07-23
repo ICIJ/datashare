@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
 import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
@@ -40,8 +39,6 @@ public class JsonObjectMapper {
     static {
         // Handle Optional and other JDK 8 only features
         MAPPER.registerModule(new Jdk8Module());
-        // Access Optional values
-        MAPPER.addMixIn(Optional.class, OptionalMixin.class);
         // Avoid annotations on domain entities by
         // using compiled methods' metadata
         MAPPER.registerModule(new ParameterNamesModule());
