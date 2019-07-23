@@ -64,7 +64,10 @@ public class ElasticsearchConfiguration {
 
         String indexAddress = propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
 
-        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(create(indexAddress)));
+        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(create(indexAddress)).setRequestConfigCallback(
+                requestConfigBuilder -> requestConfigBuilder
+                    .setConnectTimeout(5000)
+                    .setSocketTimeout(60000)));
         String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
         return client;
     }

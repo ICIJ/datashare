@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -56,7 +57,7 @@ import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfig
 
 
 public class ElasticsearchIndexer implements Indexer {
-    private final RestHighLevelClient client;
+    public final RestHighLevelClient client;
     private final ElasticsearchConfiguration esCfg;
 
     @Inject
@@ -282,7 +283,7 @@ public class ElasticsearchIndexer implements Indexer {
             this.config = config;
             this.indexName = indexName;
             this.cls = cls;
-            sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE);
+            sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE).timeout(new TimeValue(30, TimeUnit.MINUTES));
             this.boolQuery = boolQuery().must(matchQuery("type", JsonObjectMapper.getType(cls)));
         }
 

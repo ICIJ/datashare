@@ -20,7 +20,13 @@ import static java.util.stream.Collectors.toList;
 public class BatchSearchRunner implements Callable<Integer> {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    private static final int MAX_SCROLL_SIZE = 5000;
+    /**
+     * max scroll size will get n results at each scroll
+     * each result is binding 7 fields on an insert query
+     * and max sql binding is an int(2) = 32768
+     * so max scroll size should be < 32768 / 7 (4681)
+     */
+    private static final int MAX_SCROLL_SIZE = 4000;
     private static final int MAX_QUERY_SIZE = 60000;
 
     private final Indexer indexer;
