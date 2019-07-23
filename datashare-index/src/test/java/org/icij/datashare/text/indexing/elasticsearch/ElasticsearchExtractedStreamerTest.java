@@ -42,6 +42,6 @@ public class ElasticsearchExtractedStreamerTest {
 
         Set<Path> paths = streamer.extractedDocuments().collect(Collectors.toSet());
 
-        assertThat(paths).containsOnly(get("/dir/doc1.txt"), get("/dir/doc2.txt"));
+        assertThat(paths).containsOnly(get("file:/dir/doc1.txt"), get("file:/dir/doc2.txt"));
     }
 }
