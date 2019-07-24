@@ -3,15 +3,14 @@ package org.icij.datashare.text;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Test;
 
-import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Document.nerMask;
 import static org.icij.datashare.text.Language.FRENCH;
@@ -38,7 +37,8 @@ public class DocumentTest {
     @Test
     public void test_json_deserialize_path_with_special_chars_without_dirname() throws Exception {
         String path = "/dir/to/docs/shared/foo/Data/2018-05/My Administrations/TGA_BAR/htmls/responses3/3#19221-Arrow CVC SET: 3-CORP 4FR X 8CM - Qux, blah, infusion, central portal|Pouet International Inc.html";
-        assertThat(URLDecoder.decode(JsonObjectMapper.MAPPER.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
+
+        Document document = JsonObjectMapper.MAPPER.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
                         "\"path\":\"" + path + "\"," +
                         "\"content\":\"content\",\"language\":\"FRENCH\"," +
                         "\"extractionDate\":\"2019-05-09T16:12:17.589Z\",\"contentEncoding\":\"UTF-8\"," +
@@ -46,7 +46,10 @@ public class DocumentTest {
                         "\"metadata\":{},\"status\":\"INDEXED\",\"nerTags\":[]," +
                         "\"parentDocument\":null,\"rootDocument\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
                         "\"contentLength\":123,\"projectId\":\"prj\", \"tags\": [\"foo\", \"bar\"]}").getBytes(),
-                Document.class).getPath().toString(), "utf-8")).isEqualTo(path);
+                Document.class);
+
+        assertThat(document.getPath().toString()).isEqualTo(path);
+        assertThat(document.getDirname().toString()).isEqualTo(get(path).getParent().toString());
     }
 
     @Test
@@ -94,7 +97,7 @@ public class DocumentTest {
 
         public DocumentBuilder(String name) {
             this.name = name;
-            this.path = Paths.get("/path/to/").resolve(name);
+            this.path = get("/path/to/").resolve(name);
         }
 
         public DocumentBuilder with(Path path) {
