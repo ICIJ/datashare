@@ -8,10 +8,9 @@ import org.icij.datashare.user.User;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -32,202 +31,172 @@ public class JooqRepository implements Repository {
     private static final String DOCUMENT_USER_STAR = "document_user_star";
     private static final String DOCUMENT_TAG = "document_tag";
 
-    private final ConnectionProvider connectionProvider;
+    private final DataSource connectionProvider;
     private SQLDialect dialect;
 
-    JooqRepository(final ConnectionProvider connectionProvider, final SQLDialect dialect) {
+    JooqRepository(final DataSource connectionProvider, final SQLDialect dialect) {
         this.connectionProvider = connectionProvider;
         this.dialect = dialect;
     }
 
     @Override
-    public NamedEntity getNamedEntity(String id) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            return createFrom(create.select().from(table(NAMED_ENTITY)).where(field("id").eq(id)).fetch().get(0));
+    public NamedEntity getNamedEntity(String id) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        return createFrom(create.select().from(table(NAMED_ENTITY)).where(field("id").eq(id)).fetch().get(0));
+    }
+
+    @Override
+    public void create(List<NamedEntity> neList) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object>
+                insertQuery = create.insertInto(table(NAMED_ENTITY),
+                field("id"), field("mention"), field("ne_offset"), field("extractor"),
+                field("category"), field("doc_id"), field("root_id"),
+                field("extractor_language"), field("hidden"));
+        neList.forEach(ne -> insertQuery.values(
+                ne.getId(), ne.getMention(), ne.getOffset(), ne.getExtractor().code,
+                ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
+                ne.getExtractorLanguage().iso6391Code(), ne.isHidden()));
+        insertQuery.execute();
+    }
+
+    @Override
+    public Document getDocument(final String id) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        Record docResult = create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0);
+        return createDocumentFrom(docResult);
+    }
+
+    @Override
+    public void create(Document doc) {
+        DSLContext ctx = DSL.using(connectionProvider, dialect);
+        try {
+            ctx.insertInto(table(DOCUMENT), field("project_id"),
+                    field("id"), field("path"), field("content"), field("status"),
+                    field("charset"), field("language"), field("content_type"),
+                    field("extraction_date"), field("parent_id"), field("root_id"),
+                    field("extraction_level"), field("content_length"), field("metadata"), field("ner_mask")).
+                    values(doc.getProject().getId(), doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
+                            doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
+                            new Timestamp(doc.getExtractionDate().getTime()), doc.getParentDocument(), doc.getRootDocument(),
+                            doc.getExtractionLevel(), doc.getContentLength(),
+                            MAPPER.writeValueAsString(doc.getMetadata()), doc.getNerMask()).execute();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void create(List<NamedEntity> neList) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object>
-                    insertQuery = create.insertInto(table(NAMED_ENTITY),
-                    field("id"), field("mention"), field("ne_offset"), field("extractor"),
-                    field("category"), field("doc_id"), field("root_id"),
-                    field("extractor_language"), field("hidden"));
-            neList.forEach(ne -> insertQuery.values(
-                    ne.getId(), ne.getMention(), ne.getOffset(), ne.getExtractor().code,
-                    ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
-                    ne.getExtractorLanguage().iso6391Code(), ne.isHidden()));
-            insertQuery.execute();
+    public List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        Result<Record> fetch = create.select().from(table(DOCUMENT)).where(
+                condition("(ner_mask & ?) = 0", type.mask)).fetch();
+        return fetch.stream().map(this::createDocumentFrom).collect(toList());
+    }
+
+    @Override
+    public boolean star(User user, String documentId) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        Result<Record1<Integer>> existResult = create.selectCount().from(table(DOCUMENT_USER_STAR)).
+                where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
+        if (existResult.get(0).value1() == 0) {
+            return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id")).
+                    values(documentId, user.id).execute() > 0;
+        } else {
+            return false;
         }
     }
 
     @Override
-    public Document getDocument(final String id) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            Record docResult = create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0);
-            return createDocumentFrom(docResult);
-        }
+    public boolean unstar(User user, String documentId) {
+        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
+                where(field("doc_id").equal(documentId), field("user_id").equal(user.id)).execute() > 0;
     }
 
     @Override
-    public void create(Document doc) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext ctx = DSL.using(conn, dialect);
-            try {
-                ctx.insertInto(table(DOCUMENT), field("project_id"),
-                        field("id"), field("path"), field("content"), field("status"),
-                        field("charset"), field("language"), field("content_type"),
-                        field("extraction_date"), field("parent_id"), field("root_id"),
-                        field("extraction_level"), field("content_length"), field("metadata"), field("ner_mask")).
-                        values(doc.getProject().getId(), doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
-                                doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
-                                new Timestamp(doc.getExtractionDate().getTime()), doc.getParentDocument(), doc.getRootDocument(),
-                                doc.getExtractionLevel(), doc.getContentLength(),
-                                MAPPER.writeValueAsString(doc.getMetadata()), doc.getNerMask()).execute();
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    @Override
-    public List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            Result<Record> fetch = create.select().from(table(DOCUMENT)).where(
-                    condition("(ner_mask & ?) = 0", type.mask)).fetch();
-            return fetch.stream().map(this::createDocumentFrom).collect(toList());
-        }
-    }
-
-    @Override
-    public boolean star(User user, String documentId) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            Result<Record1<Integer>> existResult = create.selectCount().from(table(DOCUMENT_USER_STAR)).
-                    where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
-            if (existResult.get(0).value1() == 0) {
-                return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id")).
-                        values(documentId, user.id).execute() > 0;
-            } else {
-                return false;
-            }
-        }
-    }
-
-    @Override
-    public boolean unstar(User user, String documentId) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            return DSL.using(conn, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
-                    where(field("doc_id").equal(documentId), field("user_id").equal(user.id)).execute() > 0;
-        }
-    }
-
-    @Override
-    public List<Document> getStarredDocuments(User user) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            return create.select().from(table(DOCUMENT_USER_STAR).join(DOCUMENT).on(field(DOCUMENT + ".id").equal(field(DOCUMENT_USER_STAR + ".doc_id")))).
-                    where(field("user_id").eq(user.id)).fetch().stream().map(this::createDocumentFrom).collect(toList());
-        }
+    public List<Document> getStarredDocuments(User user) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        return create.select().from(table(DOCUMENT_USER_STAR).join(DOCUMENT).on(field(DOCUMENT + ".id").equal(field(DOCUMENT_USER_STAR + ".doc_id")))).
+                where(field("user_id").eq(user.id)).fetch().stream().map(this::createDocumentFrom).collect(toList());
     }
 
     // ------------- functions that don't need document migration/indexing
     // they can use just the DOCUMENT_USER_STAR table thus denormalizing project information
     // this could be removed later
     @Override
-    public boolean star(Project project, User user, String documentId) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            Result<Record1<Integer>> existResult = create.selectCount().from(table(DOCUMENT_USER_STAR)).
-                    where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
-            if (existResult.get(0).value1() == 0) {
-                return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id"), field("prj_id")).
-                        values(documentId, user.id, project.getId()).execute() > 0;
+    public boolean star(Project project, User user, String documentId) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        Result<Record1<Integer>> existResult = create.selectCount().from(table(DOCUMENT_USER_STAR)).
+                where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
+        if (existResult.get(0).value1() == 0) {
+            return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id"), field("prj_id")).
+                    values(documentId, user.id, project.getId()).execute() > 0;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean unstar(Project project, User user, String documentId) {
+        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
+                where(field("doc_id").equal(documentId),
+                        field("user_id").equal(user.id),
+                        field("prj_id").equal(project.getId())).execute() > 0;
+    }
+
+    @Override
+    public List<String> getStarredDocuments(Project project, User user) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        return create.select(field("doc_id")).from(table(DOCUMENT_USER_STAR)).
+                where(field("user_id").eq(user.id)).
+                and(field("prj_id").eq(project.getId())).
+                fetch().getValues("doc_id", String.class);
+    }
+
+    @Override
+    public boolean tag(Project prj, String documentId, Tag... tags) {
+        return DSL.using(connectionProvider, dialect).transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+            Set<Tag> existResult = inner.select(field("label")).from(table(DOCUMENT_TAG)).
+                    where(field("label").in(stream(tags).map(t -> t.label).collect(toSet())), field("doc_id").equal(documentId)).
+                    fetch().getValues("label", String.class).stream().map(Tag::tag).collect(toSet());
+            if (existResult.size() != tags.length) {
+                List<Tag> tagList = asList(tags);
+                tagList.removeAll(existResult);
+                InsertValuesStep3<Record, Object, Object, Object> insertQuery = inner.insertInto(table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
+                tagList.forEach(t -> insertQuery.values(documentId, t.label, prj.getId()));
+                return insertQuery.execute() > 0;
             } else {
                 return false;
             }
-        }
+        });
     }
 
     @Override
-    public boolean unstar(Project project, User user, String documentId) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            return DSL.using(conn, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
-                    where(field("doc_id").equal(documentId),
-                            field("user_id").equal(user.id),
-                            field("prj_id").equal(project.getId())).execute() > 0;
-        }
+    public boolean untag(Project prj, String documentId, Tag... tags) {
+        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_TAG)).
+                where(field("doc_id").equal(documentId),
+                        field("label").in(stream(tags).map(t -> t.label).collect(toSet())),
+                        field("prj_id").equal(prj.getId())).execute() > 0;
     }
 
     @Override
-    public List<String> getStarredDocuments(Project project, User user) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            return create.select(field("doc_id")).from(table(DOCUMENT_USER_STAR)).
-                    where(field("user_id").eq(user.id)).
-                    and(field("prj_id").eq(project.getId())).
-                    fetch().getValues("doc_id", String.class);
-        }
+    public List<String> getDocuments(Project project, Tag... tags) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        return create.selectDistinct(field("doc_id")).from(table(DOCUMENT_TAG)).
+                where(field("label").in(stream(tags).map(t -> t.label).collect(toSet()))).
+                and(field("prj_id").eq(project.getId())).
+                fetch().getValues("doc_id", String.class);
     }
 
     @Override
-    public boolean tag(Project prj, String documentId, Tag... tags) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            return DSL.using(conn, dialect).transactionResult(configuration -> {
-                DSLContext inner = using(configuration);
-                Set<Tag> existResult = inner.select(field("label")).from(table(DOCUMENT_TAG)).
-                        where(field("label").in(stream(tags).map(t -> t.label).collect(toSet())), field("doc_id").equal(documentId)).
-                        fetch().getValues("label", String.class).stream().map(Tag::tag).collect(toSet());
-                if (existResult.size() != tags.length) {
-                    List<Tag> tagList = asList(tags);
-                    tagList.removeAll(existResult);
-                    InsertValuesStep3<Record, Object, Object, Object> insertQuery = inner.insertInto(table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
-                    tagList.forEach(t -> insertQuery.values(documentId, t.label, prj.getId()));
-                    return insertQuery.execute() > 0;
-                } else {
-                    return false;
-                }
-            });
-        }
-    }
-
-    @Override
-    public boolean untag(Project prj, String documentId, Tag... tags) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            return DSL.using(conn, dialect).deleteFrom(table(DOCUMENT_TAG)).
-                    where(field("doc_id").equal(documentId),
-                            field("label").in(stream(tags).map(t -> t.label).collect(toSet())),
-                            field("prj_id").equal(prj.getId())).execute() > 0;
-        }
-    }
-
-    @Override
-    public List<String> getDocuments(Project project, Tag... tags) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            return create.selectDistinct(field("doc_id")).from(table(DOCUMENT_TAG)).
-                    where(field("label").in(stream(tags).map(t -> t.label).collect(toSet()))).
-                    and(field("prj_id").eq(project.getId())).
-                    fetch().getValues("doc_id", String.class);
-        }
-    }
-
-    @Override
-    public boolean deleteAll(String projectId) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-           return DSL.using(conn, dialect).transactionResult(configuration -> {
-               DSLContext inner = using(configuration);
-               int deleteTagResult = inner.deleteFrom(table(DOCUMENT_TAG)).where(field("prj_id").equal(projectId)).execute();
-               int deleteStarResult = inner.deleteFrom(table(DOCUMENT_USER_STAR)).where(field("prj_id").equal(projectId)).execute();
-               return deleteStarResult + deleteTagResult > 0;
-           });
-        }
+    public boolean deleteAll(String projectId) {
+       return DSL.using(connectionProvider, dialect).transactionResult(configuration -> {
+           DSLContext inner = using(configuration);
+           int deleteTagResult = inner.deleteFrom(table(DOCUMENT_TAG)).where(field("prj_id").equal(projectId)).execute();
+           int deleteStarResult = inner.deleteFrom(table(DOCUMENT_USER_STAR)).where(field("prj_id").equal(projectId)).execute();
+           return deleteStarResult + deleteTagResult > 0;
+       });
     }
     // ---------------------------
 

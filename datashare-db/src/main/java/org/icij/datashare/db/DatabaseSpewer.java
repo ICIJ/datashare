@@ -11,7 +11,6 @@ import org.icij.spewer.Spewer;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.Charset;
-import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashSet;
 
@@ -25,9 +24,9 @@ public class DatabaseSpewer extends Spewer {
     private final Project project;
     final Repository repository;
     private final LanguageGuesser languageGuesser;
-    public static final String DEFAULT_VALUE_UNKNOWN = "unknown";
+    private static final String DEFAULT_VALUE_UNKNOWN = "unknown";
 
-    public DatabaseSpewer(Project project, Repository repository, LanguageGuesser languageGuesser) {
+    DatabaseSpewer(Project project, Repository repository, LanguageGuesser languageGuesser) {
         super(new FieldNames());
         this.project = project;
         this.repository = repository;
@@ -46,10 +45,6 @@ public class DatabaseSpewer extends Spewer {
         Document document = new Document(project, tikaDocument.getId(), tikaDocument.getPath(), content,
                 languageGuesser.guess(content), charset, contentType, getMetadata(tikaDocument), Document.Status.INDEXED, new HashSet<>(), new Date(),
                 parentId, rootId, level, contentLength);
-        try {
-            repository.create(document);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        repository.create(document);
     }
 }

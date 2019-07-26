@@ -8,7 +8,6 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.SQLDialect;
-import org.jooq.impl.DataSourceConnectionProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,11 +46,11 @@ public class JooqBatchSearchRepositoryTest {
 
     public JooqBatchSearchRepositoryTest(DataSource dataSource, SQLDialect dialect) {
         dbRule = new DbSetupRule(dataSource);
-        repository = new JooqBatchSearchRepository(new DataSourceConnectionProvider(dbRule.dataSource), dialect);
+        repository = new JooqBatchSearchRepository(dbRule.dataSource, dialect);
     }
 
     @Test
-    public void test_save_batch_search() throws SQLException {
+    public void test_save_batch_search() {
         BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"), "name1", "description1",
                 asList("q1", "q2"), new Date());
         BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name2", "description2",
@@ -67,7 +66,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_queued_searches() throws Exception {
+    public void test_get_queued_searches() {
         repository.save(User.local(), new BatchSearch(Project.project("prj"), "name1", "description1",
                         asList("q1", "q2"), new Date()));
         repository.save(User.local(), new BatchSearch(Project.project("prj"), "name2", "description2",
@@ -77,7 +76,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_queued_searches_without_running_state() throws Exception {
+    public void test_get_queued_searches_without_running_state() {
         repository.save(User.local(), new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
                         asList("q1", "q2"), new Date(), State.RUNNING));
 
@@ -85,7 +84,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_queued_searches_without_success_state() throws Exception {
+    public void test_get_queued_searches_without_success_state() {
         repository.save(User.local(), new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
                         asList("q1", "q2"), new Date(), State.SUCCESS));
 
@@ -93,7 +92,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_queued_searches_without_failure_state() throws Exception {
+    public void test_get_queued_searches_without_failure_state() {
         repository.save(User.local(), new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
                         asList("q1", "q2"), new Date(), State.FAILURE));
 
@@ -101,12 +100,12 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_set_state_unknown_batch_search() throws Exception {
+    public void test_set_state_unknown_batch_search() {
         assertThat(repository.setState("false_uuid", State.RUNNING)).isFalse();
     }
 
     @Test
-    public void test_set_state() throws Exception {
+    public void test_set_state() {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description",
                 asList("q1", "q2"), new Date());
         repository.save(User.local(), batchSearch);
@@ -118,7 +117,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_save_results() throws Exception {
+    public void test_save_results() {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"));
         repository.save(User.local(), batchSearch);
 
@@ -133,7 +132,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test(expected = JooqBatchSearchRepository.UnauthorizedUserException.class)
-    public void test_get_results_with_bad_user() throws Exception {
+    public void test_get_results_with_bad_user() {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"));
         repository.save(User.local(), batchSearch);
         repository.saveResults(batchSearch.uuid, "query", singletonList(createDoc("doc")));

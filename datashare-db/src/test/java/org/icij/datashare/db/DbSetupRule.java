@@ -7,8 +7,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.junit.rules.ExternalResource;
 
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.HashMap;
 
 import static com.ninja_squad.dbsetup.Operations.deleteAllFrom;
@@ -30,7 +28,7 @@ public class DbSetupRule extends ExternalResource {
         dbSetup.launch();
     }
 
-    static DataSource createDatasource(final String jdbcUrl) throws IOException, SQLException {
+    static DataSource createDatasource(final String jdbcUrl) {
         return new RepositoryFactoryImpl(new PropertiesProvider(new HashMap<String, String>() {{
             put("dataSourceUrl", ofNullable(jdbcUrl).orElse("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared"));
         }})).createDatasource();

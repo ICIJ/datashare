@@ -6,7 +6,6 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.jooq.SQLDialect;
-import org.jooq.impl.DataSourceConnectionProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,10 +17,13 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.db.DbSetupRule.*;
+import static org.icij.datashare.db.DbSetupRule.createDatasource;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
@@ -46,7 +48,7 @@ public class JooqRepositoryTest {
 
     public JooqRepositoryTest(DataSource dataSource, SQLDialect dialect) {
         dbRule = new DbSetupRule(dataSource);
-        repository = new JooqRepository(new DataSourceConnectionProvider(dbRule.dataSource), dialect);
+        repository = new JooqRepository(dbRule.dataSource, dialect);
     }
 
     @Test

@@ -9,9 +9,8 @@ import org.icij.datashare.user.User;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 
+import javax.sql.DataSource;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
@@ -29,91 +28,91 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     private static final String BATCH_SEARCH = "batch_search";
     private static final String BATCH_SEARCH_QUERY = "batch_search_query";
     private static final String BATCH_SEARCH_RESULT = "batch_search_result";
-    private final ConnectionProvider connectionProvider;
+    private final DataSource dataSource;
     private final SQLDialect dialect;
 
-    JooqBatchSearchRepository(final ConnectionProvider connectionProvider, final SQLDialect dialect) {
-        this.connectionProvider = connectionProvider;
+    JooqBatchSearchRepository(final DataSource dataSource, final SQLDialect dialect) {
+        this.dataSource = dataSource;
         this.dialect = dialect;
     }
 
     @Override
-    public boolean save(final User user, final BatchSearch batchSearch) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            return using(conn, dialect).transactionResult(configuration -> {
-                DSLContext inner = using(configuration);
-                inner.insertInto(table(BATCH_SEARCH), field("uuid"), field("name"), field("description"), field("user_id"), field("prj_id"), field("batch_date"), field("state")).
-                        values(batchSearch.uuid, batchSearch.name, batchSearch.description, user.id, batchSearch.project.getId(), new Timestamp(batchSearch.getDate().getTime()), batchSearch.state.name()).execute();
-                InsertValuesStep3<Record, Object, Object, Object> insertQuery =
-                        inner.insertInto(table(BATCH_SEARCH_QUERY), field("search_uuid"), field("query"), field("query_number"));
-                IntStream.range(0, batchSearch.queries.size()).forEach(i -> insertQuery.values(batchSearch.uuid, batchSearch.queries.get(i), i));
-                return insertQuery.execute() > 0;
-            });
-        }
-    }
-
-    @Override
-    public boolean saveResults(String batchSearchId, String query, List<Document> documents) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            InsertValuesStep7<Record, Object, Object, Object, Object, Object, Object, Object> insertQuery =
-                    create.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("query"), field("doc_nb"),
-                            field("doc_id"), field("root_id"), field("doc_path"), field("creation_date"));
-            IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
-                    documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
-                    documents.get(i).getCreationDate() == null ? val((Timestamp)null):
-                            new Timestamp(documents.get(i).getCreationDate().getTime())));
+    public boolean save(final User user, final BatchSearch batchSearch) {
+        return DSL.using(dataSource, dialect).transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+            inner.insertInto(table(BATCH_SEARCH), field("uuid"), field("name"), field("description"), field("user_id"), field("prj_id"), field("batch_date"), field("state")).
+                    values(batchSearch.uuid, batchSearch.name, batchSearch.description, user.id, batchSearch.project.getId(), new Timestamp(batchSearch.getDate().getTime()), batchSearch.state.name()).execute();
+            InsertValuesStep3<Record, Object, Object, Object> insertQuery =
+                    inner.insertInto(table(BATCH_SEARCH_QUERY), field("search_uuid"), field("query"), field("query_number"));
+            IntStream.range(0, batchSearch.queries.size()).forEach(i -> insertQuery.values(batchSearch.uuid, batchSearch.queries.get(i), i));
             return insertQuery.execute() > 0;
-        }
+        });
     }
 
     @Override
-    public boolean setState(String batchSearchId, State state) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            return create.update(table(BATCH_SEARCH)).set(field("state"), state.name()).where(field("uuid").eq(batchSearchId)).execute() > 0;
-        }
+    public boolean saveResults(String batchSearchId, String query, List<Document> documents) {
+        DSLContext create = DSL.using(dataSource, dialect);
+        InsertValuesStep7<Record, Object, Object, Object, Object, Object, Object, Object> insertQuery =
+                create.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("query"), field("doc_nb"),
+                        field("doc_id"), field("root_id"), field("doc_path"), field("creation_date"));
+        IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
+                documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
+                documents.get(i).getCreationDate() == null ? val((Timestamp)null):
+                        new Timestamp(documents.get(i).getCreationDate().getTime())));
+        return insertQuery.execute() > 0;
     }
 
     @Override
-    public List<BatchSearch> get(final User user) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            return mergeBatchSearches(
-                    create.select().from(table(BATCH_SEARCH).
-                            join(BATCH_SEARCH_QUERY).
-                            on(field(BATCH_SEARCH + ".uuid").
-                                    equal(field(BATCH_SEARCH_QUERY + ".search_uuid")))).
-                    where(field(BATCH_SEARCH + ".user_id").eq(user.id)).
-                            orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
-                    fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
-        }
+    public boolean setState(String batchSearchId, State state) {
+        DSLContext create = DSL.using(dataSource, dialect);
+        return create.update(table(BATCH_SEARCH)).set(field("state"), state.name()).where(field("uuid").eq(batchSearchId)).execute() > 0;
     }
 
     @Override
-    public List<BatchSearch> getQueued() throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            return mergeBatchSearches(
-                    create.select().from(table(BATCH_SEARCH).
-                            join(BATCH_SEARCH_QUERY).
-                            on(field(BATCH_SEARCH + ".uuid").
-                                    equal(field(BATCH_SEARCH_QUERY + ".search_uuid")))).
-                    where(field(BATCH_SEARCH + ".state").eq(State.QUEUED.name())).
-                            orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
-                    fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
-        }
+    public List<BatchSearch> get(final User user) {
+        DSLContext create = DSL.using(dataSource, dialect);
+        return mergeBatchSearches(
+                create.select().from(table(BATCH_SEARCH).
+                        join(BATCH_SEARCH_QUERY).
+                        on(field(BATCH_SEARCH + ".uuid").
+                                equal(field(BATCH_SEARCH_QUERY + ".search_uuid")))).
+                where(field(BATCH_SEARCH + ".user_id").eq(user.id)).
+                        orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
+                fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
     }
 
     @Override
-    public List<SearchResult> getResults(final User user, String batchSearchId) throws SQLException {
-        try (Connection conn = connectionProvider.acquire()) {
-            DSLContext create = DSL.using(conn, dialect);
-            return create.select().from(table(BATCH_SEARCH_RESULT)).
-                    join(BATCH_SEARCH).on(field(BATCH_SEARCH + ".uuid").equal(field(BATCH_SEARCH_RESULT + ".search_uuid"))).
-                    where(field("search_uuid").eq(batchSearchId)).orderBy(field("query"), field("doc_nb")).
-                    fetch().stream().map(r -> createSearchResult(user, r)).collect(toList());
-        }
+    public List<BatchSearch> getQueued() {
+        DSLContext create = DSL.using(dataSource, dialect);
+        return mergeBatchSearches(
+                create.select().from(table(BATCH_SEARCH).
+                        join(BATCH_SEARCH_QUERY).
+                        on(field(BATCH_SEARCH + ".uuid").
+                                equal(field(BATCH_SEARCH_QUERY + ".search_uuid")))).
+                where(field(BATCH_SEARCH + ".state").eq(State.QUEUED.name())).
+                        orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
+                fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
+    }
+
+    @Override
+    public List<SearchResult> getResults(final User user, String batchSearchId) {
+        DSLContext create = DSL.using(dataSource, dialect);
+        return create.select().from(table(BATCH_SEARCH_RESULT)).
+                join(BATCH_SEARCH).on(field(BATCH_SEARCH + ".uuid").equal(field(BATCH_SEARCH_RESULT + ".search_uuid"))).
+                where(field("search_uuid").eq(batchSearchId)).orderBy(field("query"), field("doc_nb")).
+                fetch().stream().map(r -> createSearchResult(user, r)).collect(toList());
+    }
+
+    @Override
+    public BatchSearch get(User user, String batchId) {
+        DSLContext create = DSL.using(dataSource, dialect);
+        return mergeBatchSearches(
+            create.select().from(table(BATCH_SEARCH).
+                    join(BATCH_SEARCH_QUERY).
+                    on(field(BATCH_SEARCH + ".uuid").
+                            equal(field(BATCH_SEARCH_QUERY + ".search_uuid")))).
+            where(field(BATCH_SEARCH + ".uuid").eq(batchId)).
+            fetch().stream().map(this::createBatchSearchFrom).collect(toList())).get(0);
     }
 
     private List<BatchSearch> mergeBatchSearches(final List<BatchSearch> flatBatchSearches) {
@@ -126,7 +125,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     private BatchSearch createBatchSearchFrom(final Record record) {
         Timestamp batchDate = record.get("batch_date", Timestamp.class);
-        return new BatchSearch(record.get(field(name(BATCH_SEARCH, "uuid")), String.class),
+        return new BatchSearch(record.get(field(name(BATCH_SEARCH, "uuid")), String.class).trim(),
                 project(record.getValue("prj_id", String.class)),
                 record.getValue("name", String.class),
                 record.getValue("description", String.class),

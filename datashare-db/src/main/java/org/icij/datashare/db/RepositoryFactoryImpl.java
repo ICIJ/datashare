@@ -13,9 +13,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
 import org.jetbrains.annotations.NotNull;
-import org.jooq.ConnectionProvider;
 import org.jooq.SQLDialect;
-import org.jooq.impl.DataSourceConnectionProvider;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -24,7 +22,7 @@ import java.util.function.BiFunction;
 public class RepositoryFactoryImpl implements RepositoryFactory {
     private final PropertiesProvider propertiesProvider;
 
-    public RepositoryFactoryImpl() {
+    RepositoryFactoryImpl() {
         this(new PropertiesProvider());
     }
 
@@ -58,12 +56,8 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         }
     }
 
-    private <T> T createRepository(BiFunction<ConnectionProvider, SQLDialect, T> constructor) {
-        String dataSourceUrl = getDataSourceUrl();
-        DataSourceConnectionProvider connectionProvider;
-        DataSource dataSource = createDatasource();
-        connectionProvider = new DataSourceConnectionProvider(dataSource);
-        return constructor.apply(connectionProvider, guessSqlDialectFrom(dataSourceUrl));
+    private <T> T createRepository(BiFunction<DataSource, SQLDialect, T> constructor) {
+        return constructor.apply(createDatasource(), guessSqlDialectFrom(getDataSourceUrl()));
     }
 
     static SQLDialect guessSqlDialectFrom(String dataSourceUrl) {

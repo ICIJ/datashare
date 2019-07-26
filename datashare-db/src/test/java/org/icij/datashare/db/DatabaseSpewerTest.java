@@ -7,7 +7,6 @@ import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
 import org.jooq.SQLDialect;
-import org.jooq.impl.DataSourceConnectionProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -47,7 +46,7 @@ public class DatabaseSpewerTest {
 
     public DatabaseSpewerTest(DataSource dataSource, SQLDialect dialect) throws IOException {
         dbRule = new DbSetupRule(dataSource);
-        dbSpewer = new DatabaseSpewer(project("prj"), new JooqRepository(new DataSourceConnectionProvider(dbRule.dataSource), dialect), new OptimaizeLanguageGuesser());
+        dbSpewer = new DatabaseSpewer(project("prj"), new JooqRepository(dbRule.dataSource, dialect), new OptimaizeLanguageGuesser());
     }
 
     @Test

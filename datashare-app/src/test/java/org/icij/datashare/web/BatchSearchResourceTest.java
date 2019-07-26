@@ -125,7 +125,18 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_get_batch_searches_json() throws Exception {
+    public void test_get_batch_search() {
+        BatchSearch search1 = new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2"));
+        BatchSearch search2 = new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"));
+        when(batchSearchRepository.get(User.local(), search1.uuid)).thenReturn(search1);
+        when(batchSearchRepository.get(User.local(), search2.uuid)).thenReturn(search2);
+
+        get("/api/batch/search/" + search1.uuid).should().respond(200).haveType("application/json").contain("\"name\":\"name1\"");
+        get("/api/batch/search/" + search2.uuid).should().respond(200).haveType("application/json").contain("\"name\":\"name2\"");
+    }
+
+    @Test
+    public void test_get_batch_searches_json() {
         when(batchSearchRepository.get(User.local())).thenReturn(asList(
                 new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2")),
                 new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"))
@@ -137,7 +148,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_get_search_results_json() throws Exception {
+    public void test_get_search_results_json() {
         when(batchSearchRepository.getResults(User.local(), "batchSearchId")).thenReturn(asList(
                 new SearchResult("q1", "docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
                 new SearchResult("q2", "docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
@@ -150,7 +161,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_get_search_results_csv() throws Exception {
+    public void test_get_search_results_csv() {
         when(batchSearchRepository.getResults(User.local(), "batchSearchId")).thenReturn(asList(
                 new SearchResult("q1","docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
                 new SearchResult("q2","docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
@@ -164,7 +175,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_get_search_results_unauthorized_user() throws Exception {
+    public void test_get_search_results_unauthorized_user() {
         when(batchSearchRepository.getResults(User.local(), "batchSearchId")).
                 thenThrow(new JooqBatchSearchRepository.UnauthorizedUserException("batchSearchId", "owner", "actual"));
 
@@ -173,7 +184,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         initMocks(this);
         server.configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository)).
                 filter(new LocalUserFilter(new PropertiesProvider())));

@@ -5,7 +5,6 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.jooq.SQLDialect;
-import org.jooq.impl.DataSourceConnectionProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -23,10 +22,10 @@ public class Bench {
     static Logger logger = LoggerFactory.getLogger(Bench.class);
     @Rule
     public DbSetupRule dbRule = new DbSetupRule(DbSetupRule.createDatasource("jdbc:postgresql://postgresql/test?user=test&password=test"));
-    private JooqRepository repository = new JooqRepository(new DataSourceConnectionProvider(dbRule.dataSource), SQLDialect.POSTGRES_10);
+    private JooqRepository repository = new JooqRepository(dbRule.dataSource, SQLDialect.POSTGRES_10);
 
     @Test
-    public void testReadsAndWrites() throws SQLException {
+    public void testReadsAndWrites() {
         int nbDocs = 100;
         int nbNes = 100;
         LinkedList<String> neIds = new LinkedList<>();

@@ -37,6 +37,11 @@ public class BatchSearchResource {
         return batchSearchRepository.get((User) context.currentUser());
     }
 
+    @Get("search/:batchid")
+    public BatchSearch getBatch(String batchId, Context context) throws Exception {
+        return batchSearchRepository.get((User) context.currentUser(), batchId);
+    }
+
     @Post("search/:project")
     public Payload search(String projectId, Context context) throws Exception {
         List<Part> parts = context.parts();
