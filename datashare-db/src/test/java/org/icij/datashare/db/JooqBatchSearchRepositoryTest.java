@@ -14,10 +14,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
 
@@ -37,7 +35,7 @@ public class JooqBatchSearchRepositoryTest {
     private JooqBatchSearchRepository repository;
 
     @Parameterized.Parameters
-    public static Collection<Object[]> dataSources() throws IOException, SQLException {
+    public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
                 {createDatasource(null), SQLITE},
                 {createDatasource("jdbc:postgresql://postgresql/test?user=test&password=test"), POSTGRES_10}
@@ -129,6 +127,18 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(results.get(0).documentPath.toString()).isEqualTo("/path/to/doc1");
         assertThat(results.get(1).documentId).isEqualTo("id_doc2");
         assertThat(results.get(1).documentPath.toString()).isEqualTo("/path/to/doc2");
+    }
+
+    @Test
+    public void test_get_batch_search_by_uuid() {
+        repository.save(User.local(), new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+                        asList("q1", "q2"), new Date(), State.RUNNING));
+
+        BatchSearch batchSearch = repository.get(User.local(), "uuid");
+
+        assertThat(batchSearch).isNotNull();
+        assertThat(batchSearch.uuid).isEqualTo("uuid");
+        assertThat(batchSearch.queries).hasSize(2);
     }
 
     @Test(expected = JooqBatchSearchRepository.UnauthorizedUserException.class)
