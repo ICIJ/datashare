@@ -2,6 +2,7 @@ package org.icij.datashare.batch;
 
 import java.nio.file.Path;
 import java.util.Date;
+import java.util.Objects;
 
 public class SearchResult {
     public final String query;
@@ -18,5 +19,27 @@ public class SearchResult {
         this.documentPath = documentPath;
         this.creationDate = creationDate;
         this.documentNumber = documentNumber;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SearchResult that = (SearchResult) o;
+        return query.equals(that.query) &&
+                documentId.equals(that.documentId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(query, documentId);
+    }
+
+    @Override
+    public String toString() {
+        return "SearchResult{" +
+                "query='" + query + '\'' +
+                ", documentId='" + documentId + '\'' +
+                '}';
     }
 }

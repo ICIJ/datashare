@@ -16,7 +16,6 @@ import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
 
 import static java.util.Arrays.stream;
@@ -33,12 +32,12 @@ public class BatchSearchResource {
     }
 
     @Get("search")
-    public List<BatchSearch> getSearches(Context context) throws Exception {
+    public List<BatchSearch> getSearches(Context context) {
         return batchSearchRepository.get((User) context.currentUser());
     }
 
     @Get("search/:batchid")
-    public BatchSearch getBatch(String batchId, Context context) throws Exception {
+    public BatchSearch getBatch(String batchId, Context context) {
         return batchSearchRepository.get((User) context.currentUser(), batchId);
     }
 
@@ -63,15 +62,17 @@ public class BatchSearchResource {
     }
 
     @Get("search/result/:batchid")
-    public List<SearchResult> getResult(String batchId, Context context) throws SQLException {
-        return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser());
+    public List<SearchResult> getResult(String batchId, Context context) {
+        int size = context.request().query().getInteger("size");
+        int from = context.request().query().getInteger("from");
+        return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), size, from);
     }
 
     @Get("search/result/csv/:batchid")
-    public Payload getResultAsCsv(String batchId, Context context) throws SQLException {
+    public Payload getResultAsCsv(String batchId, Context context) {
         StringBuilder builder = new StringBuilder("\"query\", \"documentId\",\"rootId\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
 
-        getResultsOrThrowUnauthorized(batchId, (User) context.currentUser()).forEach(result -> builder.
+        getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), 0, 0).forEach(result -> builder.
                 append("\"").append(result.query).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").
                 append("\"").append(result.rootId).append("\"").append(",").
@@ -84,9 +85,9 @@ public class BatchSearchResource {
                 withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
     }
 
-    private List<SearchResult> getResultsOrThrowUnauthorized(String batchId, User user) throws SQLException {
+    private List<SearchResult> getResultsOrThrowUnauthorized(String batchId, User user, int size, int from) {
         try {
-            return batchSearchRepository.getResults(user, batchId);
+            return batchSearchRepository.getResults(user, batchId, size, from);
         } catch (JooqBatchSearchRepository.UnauthorizedUserException unauthorized) {
             throw new UnauthorizedException();
         }

@@ -18,9 +18,12 @@ import org.mockito.Mock;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
@@ -149,7 +152,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_search_results_json() {
-        when(batchSearchRepository.getResults(User.local(), "batchSearchId")).thenReturn(asList(
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", 0, 0)).thenReturn(asList(
                 new SearchResult("q1", "docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
                 new SearchResult("q2", "docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
         ));
@@ -161,8 +164,26 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_get_search_results_json_paginated() {
+        List<SearchResult> results = IntStream.range(0, 10).
+                mapToObj(i -> new SearchResult("q" + i, "docId" + i, "rootId" + i,
+                        Paths.get("/path/to/doc" + i), new Date(), i)).collect(toList());
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", 5, 0)).thenReturn(results.subList(0, 5));
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", 2, 9)).thenReturn(results.subList(8, 10));
+
+        get("/api/batch/search/result/batchSearchId?size=5").should().
+                contain("\"documentId\":\"docId0\"").
+                contain("\"documentId\":\"docId4\"").
+                should().not().contain("\"documentId\":\"docId5\"");
+        get("/api/batch/search/result/batchSearchId?size=2&from=9").should().
+                contain("\"documentId\":\"docId8\"").
+                contain("\"documentId\":\"docId9\"").
+                not().contain("\"documentId\":\"docId7\"");
+    }
+
+    @Test
     public void test_get_search_results_csv() {
-        when(batchSearchRepository.getResults(User.local(), "batchSearchId")).thenReturn(asList(
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", 0, 0)).thenReturn(asList(
                 new SearchResult("q1","docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
                 new SearchResult("q2","docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
         ));
@@ -176,7 +197,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_search_results_unauthorized_user() {
-        when(batchSearchRepository.getResults(User.local(), "batchSearchId")).
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", 0, 0)).
                 thenThrow(new JooqBatchSearchRepository.UnauthorizedUserException("batchSearchId", "owner", "actual"));
 
         get("/api/batch/search/result/csv/batchSearchId").should().respond(401);

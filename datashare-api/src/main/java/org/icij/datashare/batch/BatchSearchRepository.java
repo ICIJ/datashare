@@ -13,5 +13,6 @@ public interface BatchSearchRepository {
     List<BatchSearch> get(User user);
     List<BatchSearch> getQueued();
     List<SearchResult> getResults(User user, String batchSearchId);
+    List<SearchResult> getResults(User user, String batchId, int size, int from);
     BatchSearch get(User user, String batchId);
 }
