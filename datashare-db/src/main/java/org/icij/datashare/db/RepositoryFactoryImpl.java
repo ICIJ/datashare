@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.function.BiFunction;
 
@@ -41,9 +42,9 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     }
 
     void initDatabase(final DataSource dataSource) {
-        try {
+        try (Connection connection = dataSource.getConnection()){
             Liquibase liquibase = new liquibase.Liquibase("liquibase/changelog/db.changelog.yml", new ClassLoaderResourceAccessor(),
-                            DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(dataSource.getConnection())));
+                            DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection)));
             liquibase.update(new Contexts());
         } catch (LiquibaseException | SQLException e) {
             throw new RuntimeException(e);
