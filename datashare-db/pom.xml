@@ -14,6 +14,7 @@
 
     <properties>
         <liquibase.version>3.6.3</liquibase.version>
+        <jooq.version>3.11.9</jooq.version>
     </properties>
 
     <dependencies>
@@ -43,12 +44,12 @@
         <dependency>
             <groupId>org.jooq</groupId>
             <artifactId>jooq</artifactId>
-            <version>3.11.9</version>
+            <version>${jooq.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jooq</groupId>
             <artifactId>jooq-meta</artifactId>
-            <version>3.11.9</version>
+            <version>${jooq.version}</version>
         </dependency>
         <dependency>
             <groupId>org.liquibase</groupId>

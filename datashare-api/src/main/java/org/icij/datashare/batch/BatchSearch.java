@@ -29,6 +29,7 @@ public class BatchSearch {
 
     // retrieved from persistence
     public BatchSearch(String uuid, Project project, String name, String description, List<String> queries, Date date, State state) {
+        assert date != null && uuid != null;
         this.uuid = uuid;
         this.project = project;
         this.name = name;

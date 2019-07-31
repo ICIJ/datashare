@@ -131,13 +131,12 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     private BatchSearch createBatchSearchFrom(final Record record) {
-        Timestamp batchDate = record.get("batch_date", Timestamp.class);
         return new BatchSearch(record.get(field(name(BATCH_SEARCH, "uuid")), String.class).trim(),
                 project(record.getValue("prj_id", String.class)),
                 record.getValue("name", String.class),
                 record.getValue("description", String.class),
                 singletonList(record.getValue("query", String.class)),
-                batchDate == null ? null: new Date(batchDate.getTime()),
+                new Date(record.get("batch_date", Timestamp.class).getTime()),
                 State.valueOf(record.get("state", String.class)));
     }
 
