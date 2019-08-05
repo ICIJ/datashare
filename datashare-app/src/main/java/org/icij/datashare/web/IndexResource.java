@@ -51,16 +51,6 @@ public class IndexResource {
         return indexer.createIndex(((User)context.currentUser()).projectName()) ? created() : ok();
     }
 
-    @Options("/delete/all")
-    public Payload deleteIndex() {
-        return ok().withAllowMethods("OPTIONS", "DELETE");
-    }
-
-    @Delete("/delete/all")
-    public Payload deleteIndex(final Context context) throws IOException {
-        return indexer.deleteAll(((User)context.currentUser()).projectName()) ? ok() : new Payload(500);
-    }
-
     @Get("/search/:index/:path")
     public Payload esGet(final String index, final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).get().build()).execute());

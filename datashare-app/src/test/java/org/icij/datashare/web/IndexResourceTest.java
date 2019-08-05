@@ -3,13 +3,11 @@ package org.icij.datashare.web;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
-import net.codestory.http.payload.Payload;
 import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.web.IndexResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -17,9 +15,7 @@ import org.mockito.Mock;
 import java.util.HashMap;
 
 import static org.icij.datashare.web.IndexResource.getQueryAsString;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexResourceTest implements FluentRestTest {
@@ -107,21 +103,6 @@ public class IndexResourceTest implements FluentRestTest {
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
         put("/api/index/create").withPreemptiveAuthentication("cecile", "pass").should().respond(200);
         verify(mockIndexer).createIndex("cecile-datashare");
-    }
-
-    @Test
-    public void test_delete_index() throws Exception {
-        when(mockIndexer.deleteAll(anyString())).thenReturn(true);
-        delete("/api/index/delete/all").should().respond(200);
-        verify(mockIndexer).deleteAll("local-datashare");
-    }
-
-    @Test
-    public void test_delete_unknown_index_returns_500() throws Exception {
-        mockElastic.configure(routes -> routes
-            .delete("/:uri", (context, uri) -> Payload.notFound())
-        );
-        delete("/api/index/delete/all").should().respond(500);
     }
 
     @Before
