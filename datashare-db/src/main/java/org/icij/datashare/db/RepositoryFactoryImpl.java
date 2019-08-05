@@ -72,7 +72,11 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
 
     DataSource createDatasource() {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(getDataSourceUrl());
+        String dataSourceUrl = getDataSourceUrl();
+        config.setJdbcUrl(dataSourceUrl);
+        if (dataSourceUrl.contains("sqlite")) {
+            config.setDriverClassName("org.sqlite.JDBC");
+        }
         return new HikariDataSource(config);
     }
 
