@@ -204,6 +204,14 @@ public class BatchSearchResourceTest implements FluentRestTest {
         get("/api/batch/search/result/batchSearchId").should().respond(401);
     }
 
+    @Test
+    public void test_delete_batch_search() {
+        when(batchSearchRepository.deleteBatchSearches(User.local())).thenReturn(true).thenReturn(false);
+
+        delete("/api/batch/search").should().respond(204);
+        delete("/api/batch/search").should().respond(404);
+    }
+
     @Before
     public void setUp() {
         initMocks(this);

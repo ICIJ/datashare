@@ -9,6 +9,7 @@ public interface BatchSearchRepository {
     boolean save(User user, BatchSearch batchSearch);
     boolean saveResults(String batchSearchId, String query, List<Document> documents);
     boolean setState(String batchSearchId, BatchSearch.State state);
+    boolean deleteBatchSearches(User user);
 
     List<BatchSearch> get(User user);
     List<BatchSearch> getQueued();

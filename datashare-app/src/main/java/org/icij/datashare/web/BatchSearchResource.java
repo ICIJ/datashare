@@ -3,9 +3,7 @@ package org.icij.datashare.web;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.Part;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Post;
-import net.codestory.http.annotations.Prefix;
+import net.codestory.http.annotations.*;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.batch.BatchSearch;
@@ -20,6 +18,8 @@ import java.util.List;
 
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
+import static net.codestory.http.payload.Payload.notFound;
+import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.project;
 
 @Prefix("/api/batch")
@@ -34,6 +34,16 @@ public class BatchSearchResource {
     @Get("search")
     public List<BatchSearch> getSearches(Context context) {
         return batchSearchRepository.get((User) context.currentUser());
+    }
+
+    @Options("search")
+    public Payload optionsSearches(Context context) {
+        return ok().withAllowMethods("OPTIONS", "DELETE");
+    }
+
+    @Delete("search")
+    public Payload deleteSearches(Context context) {
+        return batchSearchRepository.deleteBatchSearches((User) context.currentUser()) ? new Payload(204): notFound();
     }
 
     @Get("search/:batchid")
@@ -54,11 +64,6 @@ public class BatchSearchResource {
         BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv));
         return batchSearchRepository.save((User) context.currentUser(), batchSearch) ?
                 new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
-    }
-
-    @NotNull
-    private List<String> getQueries(Part csv) throws IOException {
-        return stream(csv.content().split("\r?\n")).filter(q -> q.length() >= 2).collect(toList());
     }
 
     @Get("search/result/:batchid")
@@ -83,6 +88,11 @@ public class BatchSearchResource {
 
         return new Payload("text/csv", builder.toString()).
                 withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
+    }
+
+    @NotNull
+    private List<String> getQueries(Part csv) throws IOException {
+        return stream(csv.content().split("\r?\n")).filter(q -> q.length() >= 2).collect(toList());
     }
 
     private List<SearchResult> getResultsOrThrowUnauthorized(String batchId, User user, int size, int from) {
