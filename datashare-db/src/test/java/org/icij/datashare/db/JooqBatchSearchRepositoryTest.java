@@ -2,18 +2,17 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearch.State;
+import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
-import org.jooq.SQLDialect;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import javax.sql.DataSource;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.*;
@@ -23,28 +22,25 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.db.DbSetupRule.createDatasource;
 import static org.icij.datashare.text.Language.FRENCH;
-import static org.jooq.SQLDialect.POSTGRES_10;
-import static org.jooq.SQLDialect.SQLITE;
 
 @RunWith(Parameterized.class)
 public class JooqBatchSearchRepositoryTest {
     @Rule
     public DbSetupRule dbRule;
-    private JooqBatchSearchRepository repository;
+    private BatchSearchRepository repository;
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
-                {createDatasource(null), SQLITE},
-                {createDatasource("jdbc:postgresql://postgresql/test?user=test&password=test"), POSTGRES_10}
+                {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
+                {new DbSetupRule("jdbc:postgresql://postgresql/test?user=test&password=test")}
         });
     }
 
-    public JooqBatchSearchRepositoryTest(DataSource dataSource, SQLDialect dialect) {
-        dbRule = new DbSetupRule(dataSource);
-        repository = new JooqBatchSearchRepository(dbRule.dataSource, dialect);
+    public JooqBatchSearchRepositoryTest(DbSetupRule rule) {
+        dbRule = rule;
+        repository = rule.createBatchSearchRepository();
     }
 
     @Test

@@ -5,15 +5,12 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.jooq.SQLDialect;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import javax.sql.DataSource;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -22,15 +19,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.db.DbSetupRule.createDatasource;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
-import static org.jooq.SQLDialect.POSTGRES_10;
-import static org.jooq.SQLDialect.SQLITE;
 
 @RunWith(Parameterized.class)
 public class JooqRepositoryTest {
@@ -39,16 +34,16 @@ public class JooqRepositoryTest {
     private JooqRepository repository;
 
     @Parameters
-    public static Collection<Object[]> dataSources() throws IOException, SQLException {
-        return Arrays.asList(new Object[][]{
-                {createDatasource(null), SQLITE},
-                {createDatasource("jdbc:postgresql://postgresql/test?user=test&password=test"), POSTGRES_10}
+    public static Collection<Object[]> dataSources() {
+        return asList(new Object[][]{
+                {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
+                {new DbSetupRule("jdbc:postgresql://postgresql/test?user=test&password=test")}
         });
     }
 
-    public JooqRepositoryTest(DataSource dataSource, SQLDialect dialect) {
-        dbRule = new DbSetupRule(dataSource);
-        repository = new JooqRepository(dbRule.dataSource, dialect);
+    public JooqRepositoryTest(DbSetupRule rule) {
+        dbRule = rule;
+        repository = rule.createRepository();
     }
 
     @Test
