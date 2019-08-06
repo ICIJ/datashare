@@ -63,7 +63,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
 
     static SQLDialect guessSqlDialectFrom(String dataSourceUrl) {
         for (SQLDialect dialect: SQLDialect.values()) {
-            if (dataSourceUrl.contains(dialect.getName().toLowerCase())) {
+            if (dataSourceUrl.contains(dialect.name().toLowerCase())) {
                 return dialect;
             }
         }
