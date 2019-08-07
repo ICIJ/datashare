@@ -92,6 +92,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
+    public BatchSearch get(User user, String batchId) {
+        return mergeBatchSearches(
+                createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
+                        where(field("uuid").eq(batchId)).
+                        fetch().stream().map(this::createBatchSearchFrom).collect(toList())).get(0);
+    }
+
+    @Override
     public List<BatchSearch> getQueued() {
         return mergeBatchSearches(
                 createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
@@ -114,14 +122,6 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (size > 0) query.limit(size);
         if (from > 0) query.offset(from);
         return query.fetch().stream().map(r -> createSearchResult(user, r)).collect(toList());
-    }
-
-    @Override
-    public BatchSearch get(User user, String batchId) {
-        return mergeBatchSearches(
-            createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
-            where(field("uuid").eq(batchId)).
-            fetch().stream().map(this::createBatchSearchFrom).collect(toList())).get(0);
     }
 
     private List<BatchSearch> mergeBatchSearches(final List<BatchSearch> flatBatchSearches) {
