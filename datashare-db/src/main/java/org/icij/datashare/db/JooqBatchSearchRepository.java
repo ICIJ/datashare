@@ -84,12 +84,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<BatchSearch> get(final User user) {
-        DSLContext create = DSL.using(dataSource, dialect);
         return mergeBatchSearches(
-                create.select().from(table(BATCH_SEARCH).
-                        join(BATCH_SEARCH_QUERY).
-                        on(field(BATCH_SEARCH + ".uuid").
-                                equal(field(BATCH_SEARCH_QUERY + ".search_uuid")))).
+                createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
                 where(field(BATCH_SEARCH + ".user_id").eq(user.id)).
                         orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
                 fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
@@ -97,12 +93,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<BatchSearch> getQueued() {
-        DSLContext create = DSL.using(dataSource, dialect);
         return mergeBatchSearches(
-                create.select().from(table(BATCH_SEARCH).
-                        join(BATCH_SEARCH_QUERY).
-                        on(field(BATCH_SEARCH + ".uuid").
-                                equal(field(BATCH_SEARCH_QUERY + ".search_uuid")))).
+                createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
                 where(field(BATCH_SEARCH + ".state").eq(State.QUEUED.name())).
                         orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
                 fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
@@ -126,13 +118,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public BatchSearch get(User user, String batchId) {
-        DSLContext create = DSL.using(dataSource, dialect);
         return mergeBatchSearches(
-            create.select().from(table(BATCH_SEARCH).
-                    join(BATCH_SEARCH_QUERY).
-                    on(field(BATCH_SEARCH + ".uuid").
-                            equal(field(BATCH_SEARCH_QUERY + ".search_uuid")))).
-            where(field(BATCH_SEARCH + ".uuid").eq(batchId)).
+            createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
+            where(field("uuid").eq(batchId)).
             fetch().stream().map(this::createBatchSearchFrom).collect(toList())).get(0);
     }
 
@@ -140,18 +128,33 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         Map<String, List<BatchSearch>> collect = flatBatchSearches.stream().collect(groupingBy(bs -> bs.uuid));
         return collect.values().stream().map(batchSearches ->
                 new BatchSearch(batchSearches.get(0).uuid, batchSearches.get(0).project, batchSearches.get(0).name, batchSearches.get(0).description,
-                        batchSearches.stream().map(bs -> bs.queries).flatMap(List::stream).collect(toList()), batchSearches.get(0).getDate(), batchSearches.get(0).state)).
+                        batchSearches.stream().map(bs -> bs.queries).flatMap(List::stream).collect(toList()), batchSearches.get(0).getDate(),
+                        batchSearches.get(0).state, batchSearches.get(0).nbResults)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
+    private SelectJoinStep<Record11<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>> createBatchSearchWithQueriesSelectStatement(DSLContext create) {
+        Field<Object> resultCount = create.selectCount().from(table(BATCH_SEARCH_RESULT)).
+                where(field(name(BATCH_SEARCH_RESULT, "search_uuid")).
+                        equal(field(name(BATCH_SEARCH, "uuid")))).asField("count");
+        return create.select(field("uuid"), field("name"), field("description"), field("user_id"),
+                field("prj_id"), field("batch_date"), field("state"),
+                field("search_uuid"), field("query_number"), field("query"), resultCount).
+                from(table(BATCH_SEARCH).
+                        join(BATCH_SEARCH_QUERY).
+                        on(field(BATCH_SEARCH + ".uuid").
+                                equal(field(BATCH_SEARCH_QUERY + ".search_uuid"))));
+    }
+
     private BatchSearch createBatchSearchFrom(final Record record) {
-        return new BatchSearch(record.get(field(name(BATCH_SEARCH, "uuid")), String.class).trim(),
+        return new BatchSearch(record.get("uuid", String.class).trim(),
                 project(record.getValue("prj_id", String.class)),
                 record.getValue("name", String.class),
                 record.getValue("description", String.class),
                 singletonList(record.getValue("query", String.class)),
                 new Date(record.get("batch_date", Timestamp.class).getTime()),
-                State.valueOf(record.get("state", String.class)));
+                State.valueOf(record.get("state", String.class)),
+                record.get("count", Integer.class));
     }
 
     private SearchResult createSearchResult(final User actualUser, final Record record) {
