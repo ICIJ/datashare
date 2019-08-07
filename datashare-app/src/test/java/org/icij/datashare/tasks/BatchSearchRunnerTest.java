@@ -36,8 +36,8 @@ public class BatchSearchRunnerTest {
         Document[] documents = {createDoc("doc1"), createDoc("doc2")};
         firstSearchWillReturn(documents);
         when(repository.getQueued()).thenReturn(asList(
-                new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING),
-                new BatchSearch("uuid2", project("test-datashare"), "name2", "desc1", asList("query3", "query4"), new Date(), BatchSearch.State.RUNNING)
+                new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING, 0),
+                new BatchSearch("uuid2", project("test-datashare"), "name2", "desc1", asList("query3", "query4"), new Date(), BatchSearch.State.RUNNING, 0)
         ));
 
         assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(2);
@@ -53,7 +53,7 @@ public class BatchSearchRunnerTest {
         Document[] documents = {createDoc("doc")};
         firstSearchWillReturn(documents);
         when(repository.getQueued()).thenReturn(singletonList(
-            new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING)
+            new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING, 0)
         ));
         when(repository.saveResults(anyString(), any(), anyList())).thenThrow(new RuntimeException());
 
@@ -68,7 +68,7 @@ public class BatchSearchRunnerTest {
         Document[] documents = IntStream.range(0, 61000).mapToObj(i -> createDoc("doc" + i)).toArray(Document[]::new);
         firstSearchWillReturn(documents);
         when(repository.getQueued()).thenReturn(singletonList(
-            new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asList("query"), new Date(), BatchSearch.State.RUNNING)
+            new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asList("query"), new Date(), BatchSearch.State.RUNNING, 0)
         ));
 
         assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(60000);

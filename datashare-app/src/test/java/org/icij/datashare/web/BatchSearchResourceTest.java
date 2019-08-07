@@ -42,7 +42,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
         }.startOnRandomPort();
 
     @Test
-    public void test_upload_batch_search_csv_with_bad_parts_number() throws SQLException {
+    public void test_upload_batch_search_csv_with_bad_parts_number() {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
         postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
@@ -54,7 +54,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
-        public void test_upload_batch_search_csv_with_bad_names() throws SQLException {
+        public void test_upload_batch_search_csv_with_bad_names() {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
         postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
@@ -97,7 +97,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
-                asList("query one", "query two", "query three"), new Date(), BatchSearch.State.RUNNING)));
+                asList("query one", "query two", "query three"), new Date(), BatchSearch.State.RUNNING, 0)));
     }
 
     @Test
@@ -124,7 +124,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
-                singletonList("query"), new Date(), BatchSearch.State.RUNNING)));
+                singletonList("query"), new Date(), BatchSearch.State.RUNNING, 0)));
     }
 
     @Test
