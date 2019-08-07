@@ -10,11 +10,9 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static java.lang.Math.min;
 import static java.util.stream.Collectors.toList;
 
 public class BatchSearchRunner implements Callable<Integer> {
@@ -26,8 +24,8 @@ public class BatchSearchRunner implements Callable<Integer> {
      * and max sql binding is an int(2) = 32768
      * so max scroll size should be < 32768 / 7 (4681)
      */
-    private static final int MAX_SCROLL_SIZE = 4000;
-    private static final int MAX_QUERY_SIZE = 60000;
+    static final int MAX_SCROLL_SIZE = 4000;
+    static final int MAX_BATCH_RESULT_SIZE = 60000;
 
     private final Indexer indexer;
     private final BatchSearchRepository repository;
@@ -39,7 +37,7 @@ public class BatchSearchRunner implements Callable<Integer> {
     }
 
     @Override
-    public Integer call() throws Exception {
+    public Integer call() {
         List<BatchSearch> batchSearches = repository.getQueued();
         logger.info("found {} queued batch searches", batchSearches.size());
         int totalResults = 0;
@@ -50,30 +48,28 @@ public class BatchSearchRunner implements Callable<Integer> {
         return totalResults;
     }
 
-    private int run(BatchSearch batchSearch) throws SQLException {
-        int results = 0;
+    private int run(BatchSearch batchSearch) {
+        int numberOfResults = 0;
         logger.info("running {} queries for batch search {} on project {}", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project);
         repository.setState(batchSearch.uuid, State.RUNNING);
         try {
             for (String query : batchSearch.queries) {
                 Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).with(query).withoutSource("content").limit(MAX_SCROLL_SIZE);
                 List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
-                results += min(MAX_QUERY_SIZE, searcher.totalHits());
-                int queryResults = docsToProcess.size();
 
-                while (docsToProcess.size() != 0 && queryResults < MAX_QUERY_SIZE) {
+                while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE) {
                     repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
+                    numberOfResults += docsToProcess.size();
                     docsToProcess = searcher.scroll().collect(toList());
-                    queryResults += docsToProcess.size();
                 }
             }
         } catch (Exception ex) {
             logger.error("error when running batch " + batchSearch.uuid, ex);
             repository.setState(batchSearch.uuid, State.FAILURE);
-            return results;
+            return numberOfResults;
         }
         repository.setState(batchSearch.uuid, State.SUCCESS);
         logger.info("done batch search {} with success", batchSearch.uuid);
-        return results;
+        return numberOfResults;
     }
 }

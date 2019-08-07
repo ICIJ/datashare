@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.Entity;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.text.Document;
@@ -7,19 +8,20 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.tasks.BatchSearchRunner.MAX_BATCH_RESULT_SIZE;
+import static org.icij.datashare.tasks.BatchSearchRunner.MAX_SCROLL_SIZE;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
@@ -34,7 +36,7 @@ public class BatchSearchRunnerTest {
     @Test
     public void test_run_batch_searches() throws Exception {
         Document[] documents = {createDoc("doc1"), createDoc("doc2")};
-        firstSearchWillReturn(documents);
+        firstSearchWillReturn(1, documents);
         when(repository.getQueued()).thenReturn(asList(
                 new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING, 0),
                 new BatchSearch("uuid2", project("test-datashare"), "name2", "desc1", asList("query3", "query4"), new Date(), BatchSearch.State.RUNNING, 0)
@@ -51,13 +53,13 @@ public class BatchSearchRunnerTest {
     @Test
     public void test_run_batch_search_failure() throws Exception {
         Document[] documents = {createDoc("doc")};
-        firstSearchWillReturn(documents);
+        firstSearchWillReturn(1, documents);
         when(repository.getQueued()).thenReturn(singletonList(
             new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING, 0)
         ));
         when(repository.saveResults(anyString(), any(), anyList())).thenThrow(new RuntimeException());
 
-        assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(1);
+        assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(0);
 
         verify(repository).setState("uuid1", BatchSearch.State.RUNNING);
         verify(repository).setState("uuid1", BatchSearch.State.FAILURE);
@@ -65,8 +67,8 @@ public class BatchSearchRunnerTest {
 
     @Test
     public void test_run_batch_search_truncate_to_60k_max_results() throws Exception {
-        Document[] documents = IntStream.range(0, 61000).mapToObj(i -> createDoc("doc" + i)).toArray(Document[]::new);
-        firstSearchWillReturn(documents);
+        Document[] documents = IntStream.range(0, MAX_SCROLL_SIZE).mapToObj(i -> createDoc("doc" + i)).toArray(Document[]::new);
+        firstSearchWillReturn(MAX_BATCH_RESULT_SIZE/MAX_SCROLL_SIZE + 1, documents);
         when(repository.getQueued()).thenReturn(singletonList(
             new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asList("query"), new Date(), BatchSearch.State.RUNNING, 0)
         ));
@@ -74,9 +76,13 @@ public class BatchSearchRunnerTest {
         assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(60000);
     }
 
-    private void firstSearchWillReturn(Document... documents) throws IOException {
+    private void firstSearchWillReturn(int nbOfScrolls, Document... documents) throws IOException {
         Indexer.Searcher searcher = mock(Indexer.Searcher.class);
-        when(searcher.scroll()).thenAnswer(a -> Stream.of(documents)).thenAnswer(a -> Stream.empty());
+        OngoingStubbing<? extends Stream<? extends Entity>> ongoingStubbing = when(searcher.scroll());
+        for (int i = 0 ; i<nbOfScrolls; i++) {
+            ongoingStubbing = ongoingStubbing.thenAnswer(a -> Stream.of(documents));
+        }
+        ongoingStubbing.thenAnswer(a -> Stream.empty());
         when(searcher.with((String) any())).thenReturn(searcher);
         when(searcher.withoutSource(any())).thenReturn(searcher);
         when(searcher.limit(anyInt())).thenReturn(searcher);
