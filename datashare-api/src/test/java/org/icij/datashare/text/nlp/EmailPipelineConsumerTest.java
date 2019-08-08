@@ -20,7 +20,7 @@ import static java.util.Arrays.asList;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.NamedEntity.Category.EMAIL;
 import static org.icij.datashare.text.Project.project;
-import static org.icij.datashare.text.nlp.NlpConsumer.*;
+import static org.icij.datashare.text.nlp.email.EmailPipeline.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;

@@ -1,6 +1,7 @@
 package org.icij.datashare.text.nlp;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.slf4j.Logger;
@@ -98,6 +99,8 @@ public abstract class AbstractPipeline implements Pipeline {
      * @param docId  the input hash code*/
     public abstract Annotations process(String content, String docId, Language language) throws InterruptedException;
 
+    protected List<NamedEntity> processHeaders(Document doc) { return new LinkedList<>();}
+
     /**
      * Post-processing operations
      */
@@ -170,5 +173,4 @@ public abstract class AbstractPipeline implements Pipeline {
                 });
         sorted.add(stage);
     }
-
 }
