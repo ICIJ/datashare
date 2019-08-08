@@ -17,4 +17,9 @@ public class RepositoryFactoryImplTest {
     public void test_guess_sql_dialect_postgresql() {
         assertThat(RepositoryFactoryImpl.guessSqlDialectFrom("jdbc:postgresql://host/db")).isEqualTo(SQLDialect.POSTGRES);
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_guess_sql_dialect_unknown() {
+        RepositoryFactoryImpl.guessSqlDialectFrom("jdbc:blah");
+    }
 }
