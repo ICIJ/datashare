@@ -20,15 +20,15 @@ import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
 /**
  * this is a fake NLP pipeline. It just uses syntactic methods to find
  * emails in document contents.
- *
+ * <p>
  * it uses the regexp mentioned here :
  * https://stackoverflow.com/questions/201323/how-to-validate-an-email-address-using-a-regular-expression
- *
+ * <p>
  * It implements the same API as the NLP pipelines to integrate seamlessly to datashare.
  */
 public class EmailPipeline extends AbstractPipeline {
-    Pattern pattern = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b" +
-    "\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@" +
+    final Pattern pattern = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b" +
+            "\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@" +
             "(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|" +
             "\\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\\.){3}" +
             "(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:" +
@@ -54,22 +54,31 @@ public class EmailPipeline extends AbstractPipeline {
 
     @Override
     public Type getType() { return EMAIL;}
+
     @Override
     public void terminate(Language language) {}
+
     @Override
     public Map<Language, Set<NlpStage>> supportedStages() { throw new NotImplementedException();}
+
     @Override
     public boolean supports(NlpStage stage, Language language) { return stage == NlpStage.NER;}
+
     @Override
     public List<NamedEntity.Category> getTargetEntities() { return Collections.singletonList(NamedEntity.Category.EMAIL);}
+
     @Override
     public List<NlpStage> getStages() { return Collections.singletonList(NlpStage.NER);}
+
     @Override
     public boolean isCaching() { return false;}
+
     @Override
     public Charset getEncoding() { return Charset.defaultCharset();}
+
     @Override
     public boolean initialize(Language language) { return true;}
+
     @Override
     public Optional<String> getPosTagSet(Language language) { return Optional.empty();}
 }
