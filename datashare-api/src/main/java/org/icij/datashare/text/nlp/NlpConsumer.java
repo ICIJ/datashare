@@ -23,6 +23,17 @@ import static java.util.stream.Collectors.joining;
 import static org.icij.datashare.com.Message.Field.*;
 import static org.icij.datashare.text.NamedEntity.allFrom;
 
+/**
+ * Consumer for name finding waiting for messages to come
+ *
+ * if the pipeline is Email extractor and the document is an rfc822 email
+ * then we also parse a list of headers coming from https://tools.ietf.org/html/rfc2076
+ * and transformed by tika/extract (for the keys).
+ *
+ * These fields are supposed to contain email addresses that we want to
+ * save as named entities.
+ *
+ */
 public class NlpConsumer implements DatashareListener {
     private static final String DEFAULT_METADATA_FIELD_PREFIX = "tika_metadata_";
     private static final String RAW_HEADER_FIELD_PREFIX = "Message-Raw-Header-";
