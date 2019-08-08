@@ -12,8 +12,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.icij.datashare.com.Message.Field.*;
+import static org.icij.datashare.text.NamedEntity.allFrom;
 
 public class NlpConsumer implements DatashareListener {
     private final Indexer indexer;
@@ -65,7 +67,16 @@ public class NlpConsumer implements DatashareListener {
                 logger.info("extracting {} entities for document {}", nlpPipeline.getType(), doc.getId());
                 if (nlpPipeline.initialize(doc.getLanguage())) {
                     Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
-                    List<NamedEntity> namedEntities = NamedEntity.allFrom(doc.getContent(), annotations);
+                    List<NamedEntity> namedEntities = allFrom(doc.getContent(), annotations);
+                    if (Pipeline.Type.EMAIL.equals(nlpPipeline.getType()) && "message/rfc822".equals(doc.getContentType())) {
+                        String metadataString = doc.getMetadata().toString().replace("=", " = ");
+                        Annotations metaDataAnnotations = nlpPipeline.process(metadataString, doc.getId(), doc.getLanguage());
+                        List<NamedEntity> metadataNamedEntities = allFrom(metadataString, metaDataAnnotations).stream().map(ne ->
+                                NamedEntity.create(ne.getCategory(), ne.getMention(), -1,
+                                        ne.getDocumentId(), ne.getRootDocument(), ne.getExtractor(),
+                                        ne.getExtractorLanguage())).collect(Collectors.toList());
+                        namedEntities.addAll(metadataNamedEntities);
+                    }
                     indexer.bulkAdd(projectName, nlpPipeline.getType(), namedEntities, doc);
                     logger.info("added {} named entities to document {}", namedEntities.size(), doc.getId());
                     nlpPipeline.terminate(doc.getLanguage());
