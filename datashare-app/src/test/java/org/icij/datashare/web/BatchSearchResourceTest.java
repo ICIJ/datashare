@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -183,6 +184,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_search_results_csv() {
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asList("q1", "q2")));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", 0, 0)).thenReturn(asList(
                 new SearchResult("q1","docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), 1),
                 new SearchResult("q2","docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), 2)
@@ -191,8 +193,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
         get("/api/batch/search/result/csv/batchSearchId").
                 should().respond(200).haveType("text/csv").
                 haveHeader("Content-Disposition", "attachment;filename=\"batchSearchId.csv\"").
-                contain("\"docId1\",\"rootId1\"").
-                contain("\"docId2\",\"rootId2\"");
+                contain(format("\"=HYPERLINK(\"\"localhost:%d/#/d/prj/docId1/rootId1\"\")\",\"docId1\",\"rootId1\"", port())).
+                contain(format("\"=HYPERLINK(\"\"localhost:%d/#/d/prj/docId2/rootId2\"\")\",\"docId2\",\"rootId2\"", port()));
     }
 
     @Test

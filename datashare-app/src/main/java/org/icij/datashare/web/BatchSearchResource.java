@@ -10,12 +10,14 @@ import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
 
+import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.payload.Payload.notFound;
@@ -75,10 +77,12 @@ public class BatchSearchResource {
 
     @Get("search/result/csv/:batchid")
     public Payload getResultAsCsv(String batchId, Context context) {
-        StringBuilder builder = new StringBuilder("\"query\", \"documentId\",\"rootId\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
+        StringBuilder builder = new StringBuilder("\"query\", \"documentUrl\", \"documentId\",\"rootId\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
+        BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId);
 
         getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), 0, 0).forEach(result -> builder.
                 append("\"").append(result.query).append("\"").append(",").
+                append("\"").append(docUrl(context.header("Host"), batchSearch.project, result.documentId, result.rootId)).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").
                 append("\"").append(result.rootId).append("\"").append(",").
                 append("\"").append(result.documentPath).append("\"").append(",").
@@ -88,6 +92,10 @@ public class BatchSearchResource {
 
         return new Payload("text/csv", builder.toString()).
                 withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
+    }
+
+    private String docUrl(String uri, Project project, String documentId, String rootId) {
+        return format("=HYPERLINK(\"\"%s/#/d/%s/%s/%s\"\")", uri, project.getId(), documentId, rootId);
     }
 
     @NotNull
