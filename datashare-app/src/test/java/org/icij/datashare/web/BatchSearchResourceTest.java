@@ -193,8 +193,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
         get("/api/batch/search/result/csv/batchSearchId").
                 should().respond(200).haveType("text/csv").
                 haveHeader("Content-Disposition", "attachment;filename=\"batchSearchId.csv\"").
-                contain(format("\"=HYPERLINK(\"\"localhost:%d/#/d/prj/docId1/rootId1\"\")\",\"docId1\",\"rootId1\"", port())).
-                contain(format("\"=HYPERLINK(\"\"localhost:%d/#/d/prj/docId2/rootId2\"\")\",\"docId2\",\"rootId2\"", port()));
+                contain(format("\"localhost:%d/#/d/prj/docId1/rootId1\",\"docId1\",\"rootId1\"", port())).
+                contain(format("\"localhost:%d/#/d/prj/docId2/rootId2\",\"docId2\",\"rootId2\"", port()));
     }
 
     @Test

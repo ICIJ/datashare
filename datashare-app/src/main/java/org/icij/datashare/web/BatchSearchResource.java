@@ -95,7 +95,7 @@ public class BatchSearchResource {
     }
 
     private String docUrl(String uri, Project project, String documentId, String rootId) {
-        return format("=HYPERLINK(\"\"%s/#/d/%s/%s/%s\"\")", uri, project.getId(), documentId, rootId);
+        return format("%s/#/d/%s/%s/%s", uri, project.getId(), documentId, rootId);
     }
 
     @NotNull
