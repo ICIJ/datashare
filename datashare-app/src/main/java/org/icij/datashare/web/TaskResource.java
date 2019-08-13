@@ -9,11 +9,12 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.nlp.AbstractPipeline;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.icij.task.Options;
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -127,7 +129,9 @@ public class TaskResource {
 
         TaskManager.MonitorableFutureTask<Void> nlpTask = createNlpApp(pipeline, context, mergedProps, abstractPipeline);
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            TaskManager.MonitorableFutureTask<Long> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser()));
+            TaskManager.MonitorableFutureTask<Long> resumeNlpTask = taskManager.startTask(
+                    taskFactory.createResumeNlpTask((User) context.currentUser(),
+                            new HashSet<Pipeline.Type>() {{add(Pipeline.Type.parse(pipeline));}}));
             return asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
         }
         return singletonList(new TaskResponse(nlpTask));

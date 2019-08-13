@@ -17,6 +17,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import static java.util.stream.Collectors.toSet;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -41,7 +42,7 @@ public class ResumeNlpTaskTest {
         }
         Publisher publisher = mock(Publisher.class);
         ResumeNlpTask resumeNlpTask = new ResumeNlpTask(publisher, indexer,
-                new PropertiesProvider(new HashMap<String, String>() {{ put("nlpPipelines", "OPENNLP");}}), new User("test"));
+                new PropertiesProvider(new HashMap<>()), new User("test"), new HashSet<>());
         resumeNlpTask.call();
         verify(publisher, times(22)).publish(any(), any());
     }

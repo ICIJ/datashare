@@ -53,7 +53,7 @@ class CliApp {
         TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
         Set<DatashareCli.Stage> stages = stream(properties.getProperty(DatashareCliOptions.STAGES_OPT).
                 split(String.valueOf(DatashareCliOptions.ARG_VALS_SEP))).map(DatashareCli.Stage::valueOf).collect(toSet());
-        Pipeline.Type[] nlpPipelines = parseAll(properties.getProperty(DatashareCliOptions.NLP_PIPELINES_OPT));
+        Set<Pipeline.Type> nlpPipelines = parseAll(properties.getProperty(DatashareCliOptions.NLP_PIPELINES_OPT));
         Indexer indexer = injector.getInstance(Indexer.class);
 
         if (resume(properties)) {
@@ -61,7 +61,7 @@ class CliApp {
             boolean queueIsEmpty = queue.isEmpty();
             queue.close();
 
-            if (indexer.search(properties.getProperty("projectName"), Document.class).withSource(false).without(nlpPipelines).execute().count() == 0 && queueIsEmpty) {
+            if (indexer.search(properties.getProperty("projectName"), Document.class).withSource(false).without(nlpPipelines.toArray(new Pipeline.Type[]{})).execute().count() == 0 && queueIsEmpty) {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
             }
@@ -88,7 +88,7 @@ class CliApp {
                 taskManager.startTask(taskFactory.createNlpTask(nullUser(), injector.getInstance(pipelineClass)));
             }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser()));
+                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), nlpPipelines));
             }
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);

@@ -120,7 +120,7 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType( Pipeline.Type.class )
                 .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(Pipeline.Type.values());
+                .defaultsTo(new Pipeline.Type[]{});
     }
 
     static OptionSpec<Integer> parallelism(OptionParser parser) {

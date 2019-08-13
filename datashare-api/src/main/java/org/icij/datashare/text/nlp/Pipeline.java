@@ -7,6 +7,7 @@ import org.icij.datashare.text.NamedEntity;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
@@ -61,9 +62,9 @@ public interface Pipeline {
             return EnumTypeToken.parseClassName(Pipeline.class, Type.class, className);
         }
 
-        public static Pipeline.Type[] parseAll(final String comaSeparatedTypes) {
-            return comaSeparatedTypes.isEmpty() ? new Pipeline.Type[]{}:
-                    stream(comaSeparatedTypes.split(",")).map(Type::valueOf).toArray(Type[]::new);
+        public static Set<Pipeline.Type> parseAll(final String comaSeparatedTypes) {
+            return comaSeparatedTypes.isEmpty() ? new HashSet<>():
+                    stream(comaSeparatedTypes.split(",")).map(Type::valueOf).collect(Collectors.toSet());
         }
     }
 

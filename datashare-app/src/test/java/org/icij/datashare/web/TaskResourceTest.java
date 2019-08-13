@@ -30,11 +30,10 @@ import org.mockito.ArgumentCaptor;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import static java.lang.String.format;
+import static java.util.Collections.singleton;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -78,7 +77,7 @@ public class TaskResourceTest implements FluentRestTest {
     public void setUp() { init(taskFactory);}
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         taskManager.waitTasksToBeDone(1, SECONDS);
         taskManager.cleanDoneTasks();
     }
@@ -174,7 +173,7 @@ public class TaskResourceTest implements FluentRestTest {
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(2);
-        verify(taskFactory).createResumeNlpTask(local());
+        verify(taskFactory).createResumeNlpTask(local(), singleton(Pipeline.Type.OPENNLP));
 
         ArgumentCaptor<AbstractPipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
 
@@ -190,7 +189,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"waitForNlpApp\": false, \"key1\":\"val1\",\"key2\":\"val2\"}}");
         response.should().haveType("application/json");
 
-        verify(taskFactory).createResumeNlpTask(local());
+        verify(taskFactory).createResumeNlpTask(local(), singleton(Pipeline.Type.OPENNLP));
 
         ArgumentCaptor<AbstractPipeline> pipelineCaptor = ArgumentCaptor.forClass(AbstractPipeline.class);
         ArgumentCaptor<Properties> propertiesCaptor = ArgumentCaptor.forClass(Properties.class);
@@ -205,7 +204,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/api/task/findNames/OPENNLP", "{\"options\":{\"resume\":\"false\", \"waitForNlpApp\": false}}");
         response.should().haveType("application/json");
 
-        verify(taskFactory, never()).createResumeNlpTask(eq(null));
+        verify(taskFactory, never()).createResumeNlpTask(null, singleton(Pipeline.Type.OPENNLP));
     }
 
     @Test
@@ -230,7 +229,7 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_stop_task() throws Exception {
+    public void test_stop_task() {
         TaskManager.MonitorableFutureTask<String> dummyTask = taskManager.startTask(() -> {
             Thread.sleep(10000);
             return "ok";
@@ -242,7 +241,7 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_stop_unknown_task() throws Exception {
+    public void test_stop_unknown_task() {
         put("/api/task/stop/foobar").should().respond(404);
     }
 
@@ -276,7 +275,7 @@ public class TaskResourceTest implements FluentRestTest {
         reset(taskFactory);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
         when(taskFactory.createScanTask(any(), any(), any())).thenReturn(mock(ScanTask.class));
-        when(taskFactory.createResumeNlpTask(any())).thenReturn(mock(ResumeNlpTask.class));
+        when(taskFactory.createResumeNlpTask(any(), eq(singleton(Pipeline.Type.OPENNLP)))).thenReturn(mock(ResumeNlpTask.class));
         when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(NlpApp.class));
         when(taskFactory.createNlpTask(any(), any(), any(), any())).thenReturn(mock(NlpApp.class));
     }

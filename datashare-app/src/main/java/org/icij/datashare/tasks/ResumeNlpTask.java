@@ -18,25 +18,26 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 
 public class ResumeNlpTask implements Callable<Long>, UserTask {
     Logger logger = LoggerFactory.getLogger(getClass());
-    private final Pipeline.Type[] nlpPipelines;
+    private final Set<Pipeline.Type> nlpPipelines;
     private final User user;
     private String projectName;
     private final Publisher publisher;
     private final Indexer indexer;
 
     @Inject
-    public ResumeNlpTask(final Publisher publisher, final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted final User user) {
+    public ResumeNlpTask(final Publisher publisher, final Indexer indexer, final PropertiesProvider propertiesProvider,
+                         @Assisted final User user, @Assisted final Set<Pipeline.Type> nlpPipelines) {
         this.publisher = publisher;
         this.indexer = indexer;
-        this.nlpPipelines = parseAll(propertiesProvider.get("nlpPipelines").orElse(""));
+        this.nlpPipelines = nlpPipelines;
         this.user = user;
         this.projectName = propertiesProvider.get("projectName").orElse(user.projectName());
     }
@@ -44,7 +45,7 @@ public class ResumeNlpTask implements Callable<Long>, UserTask {
     @Override
     public Long call() throws IOException {
         logger.info("resuming NLP name finding for index {} and {}", projectName, nlpPipelines);
-        Indexer.Searcher searcher = indexer.search(projectName, Document.class).withSource("rootDocument").without(nlpPipelines);
+        Indexer.Searcher searcher = indexer.search(projectName, Document.class).withSource("rootDocument").without(nlpPipelines.toArray(new Pipeline.Type[] {}));
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         long totalHits = searcher.totalHits();
         this.publisher.publish(Channel.NLP, new Message(Message.Type.INIT_MONITORING).add(Message.Field.VALUE, valueOf(totalHits)));
