@@ -80,7 +80,7 @@ public class BatchSearchResource {
 
     @Get("search/result/csv/:batchid")
     public Payload getResultAsCsv(String batchId, Context context) {
-        StringBuilder builder = new StringBuilder("\"query\", \"documentUrl\", \"documentId\",\"rootId\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
+        StringBuilder builder = new StringBuilder("\"query\", \"documentUrl\", \"documentId\",\"rootId\",\"contentType\",\"contentLength\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
         BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId);
         String url = propertiesProvider.get("rootHost").orElse(context.header("Host"));
 
@@ -89,6 +89,8 @@ public class BatchSearchResource {
                 append("\"").append(docUrl(url, batchSearch.project, result.documentId, result.rootId)).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").
                 append("\"").append(result.rootId).append("\"").append(",").
+                append("\"").append(result.contentType).append("\"").append(",").
+                append("\"").append(result.contentLength).append("\"").append(",").
                 append("\"").append(result.documentPath).append("\"").append(",").
                 append("\"").append(result.creationDate).append("\"").append(",").
                 append("\"").append(result.documentNumber).append("\"").append("\n")
