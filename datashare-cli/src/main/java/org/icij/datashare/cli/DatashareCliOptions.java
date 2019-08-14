@@ -76,7 +76,7 @@ public final class DatashareCliOptions {
     static OptionSpec<String> rootHost(OptionParser parser) {
             return parser.acceptsAll(
                     singletonList(ROOT_HOST),
-                    "Message bus address")
+                    "Datashare host for urls")
                     .withRequiredArg();
         }
 
