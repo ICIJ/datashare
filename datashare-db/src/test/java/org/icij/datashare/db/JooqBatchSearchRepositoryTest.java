@@ -189,7 +189,7 @@ public class JooqBatchSearchRepositoryTest {
      }
 
     private SearchResult resultFrom(Document doc, int docNb) {
-        return new SearchResult("my query", doc.getId(), doc.getRootDocument(), doc.getPath(), doc.getCreationDate(), docNb);
+        return new SearchResult("my query", doc.getId(), doc.getRootDocument(), doc.getPath(), doc.getCreationDate(), doc.getContentType(), doc.getContentLength(), docNb);
     }
 
     @NotNull

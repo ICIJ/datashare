@@ -52,13 +52,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     @Override
     public boolean saveResults(String batchSearchId, String query, List<Document> documents) {
         DSLContext create = DSL.using(dataSource, dialect);
-        InsertValuesStep7<Record, Object, Object, Object, Object, Object, Object, Object> insertQuery =
+        InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object> insertQuery =
                 create.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("query"), field("doc_nb"),
-                        field("doc_id"), field("root_id"), field("doc_path"), field("creation_date"));
+                        field("doc_id"), field("root_id"), field("doc_path"), field("creation_date"), field("content_type"), field("content_length"));
         IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
                 documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
                 documents.get(i).getCreationDate() == null ? val((Timestamp)null):
-                        new Timestamp(documents.get(i).getCreationDate().getTime())));
+                        new Timestamp(documents.get(i).getCreationDate().getTime()),
+                documents.get(i).getContentType(), documents.get(i).getContentLength()));
         return insertQuery.execute() > 0;
     }
 
@@ -167,6 +168,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.getValue("root_id", String.class),
                 Paths.get(record.getValue("doc_path", String.class)),
                 creationDate == null ? null: new Date(creationDate.getTime()),
+                record.getValue("content_type", String.class),
+                record.getValue("content_length", Long.class),
                 record.get("doc_nb", Integer.class));
     }
 

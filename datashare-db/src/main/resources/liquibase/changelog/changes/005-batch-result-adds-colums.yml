@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 6
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search_result ADD COLUMN content_type VARCHAR(255)
+
+  - changeSet:
+      id: 7
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search_result ADD COLUMN content_length BIGINT
+

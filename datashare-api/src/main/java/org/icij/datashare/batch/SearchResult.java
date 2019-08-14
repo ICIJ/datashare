@@ -9,15 +9,19 @@ public class SearchResult {
     public final String documentId;
     public final String rootId;
     public final Path documentPath;
+    public final String contentType;
+    public final long contentLength;
     public final Date creationDate;
     public final int documentNumber;
 
-    public SearchResult(String query, String documentId, String rootId, Path documentPath, Date creationDate, int documentNumber) {
+    public SearchResult(String query, String documentId, String rootId, Path documentPath, Date creationDate, String contentType, long contentLength, int documentNumber) {
         this.query = query;
         this.documentId = documentId;
         this.rootId = rootId;
         this.documentPath = documentPath;
         this.creationDate = creationDate;
+        this.contentType = contentType;
+        this.contentLength = contentLength;
         this.documentNumber = documentNumber;
     }
 
