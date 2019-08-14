@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -198,6 +199,26 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_get_search_results_csv_with_url_prefix_parameter() {
+        server.configure(routes -> {
+            PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+                put("rootHost", "http://foo.com:12345");
+            }});
+            routes.add(new BatchSearchResource(batchSearchRepository, propertiesProvider)).
+                            filter(new LocalUserFilter(propertiesProvider));
+        });
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", singletonList("q")));
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", 0, 0)).thenReturn(singletonList(
+                new SearchResult("q", "docId", "rootId", Paths.get("/path/to/doc"), new Date(), "content/type", 123L, 1)
+        ));
+
+        get("/api/batch/search/result/csv/batchSearchId").
+                should().respond(200).haveType("text/csv").
+                haveHeader("Content-Disposition", "attachment;filename=\"batchSearchId.csv\"").
+                contain("\"http://foo.com:12345/#/d/prj/docId/rootId\",\"docId\",\"rootId\"");
+    }
+
+    @Test
     public void test_get_search_results_unauthorized_user() {
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", 0, 0)).
                 thenThrow(new JooqBatchSearchRepository.UnauthorizedUserException("batchSearchId", "owner", "actual"));
@@ -217,7 +238,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
     @Before
     public void setUp() {
         initMocks(this);
-        server.configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository)).
+        server.configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository, new PropertiesProvider())).
                 filter(new LocalUserFilter(new PropertiesProvider())));
     }
 

@@ -25,6 +25,7 @@ public final class DatashareCliOptions {
     public static final String DATA_DIR_OPT = "dataDir";
     public static final String NLP_PIPELINES_OPT = "nlpPipelines";
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
+    static final String ROOT_HOST = "rootHost";
     public static final String RESUME_OPT = "resume";
     public static final String PARALLELISM = "parallelism";
 
@@ -71,6 +72,13 @@ public final class DatashareCliOptions {
                 .ofType( File.class )
                 .defaultsTo(new File("/home/datashare/data"));
     }
+
+    static OptionSpec<String> rootHost(OptionParser parser) {
+            return parser.acceptsAll(
+                    singletonList(ROOT_HOST),
+                    "Message bus address")
+                    .withRequiredArg();
+        }
 
     static OptionSpec<String> messageBusAddress(OptionParser parser) {
         return parser.acceptsAll(

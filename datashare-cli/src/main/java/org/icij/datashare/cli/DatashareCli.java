@@ -43,6 +43,7 @@ public class DatashareCli {
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
         DatashareCliOptions.dataSourceUrl(parser);
+        DatashareCliOptions.rootHost(parser);
 
         DatashareCliOptions.oauthSecret(parser);
         DatashareCliOptions.oauthClient(parser);

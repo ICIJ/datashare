@@ -6,6 +6,7 @@ import net.codestory.http.Part;
 import net.codestory.http.annotations.*;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
@@ -27,10 +28,12 @@ import static org.icij.datashare.text.Project.project;
 @Prefix("/api/batch")
 public class BatchSearchResource {
     private final BatchSearchRepository batchSearchRepository;
+    private final PropertiesProvider propertiesProvider;
 
     @Inject
-    public BatchSearchResource(final BatchSearchRepository batchSearchRepository) {
+    public BatchSearchResource(final BatchSearchRepository batchSearchRepository, PropertiesProvider propertiesProvider) {
         this.batchSearchRepository = batchSearchRepository;
+        this.propertiesProvider = propertiesProvider;
     }
 
     @Get("search")
@@ -79,10 +82,11 @@ public class BatchSearchResource {
     public Payload getResultAsCsv(String batchId, Context context) {
         StringBuilder builder = new StringBuilder("\"query\", \"documentUrl\", \"documentId\",\"rootId\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
         BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId);
+        String url = propertiesProvider.get("rootHost").orElse(context.header("Host"));
 
         getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), 0, 0).forEach(result -> builder.
                 append("\"").append(result.query).append("\"").append(",").
-                append("\"").append(docUrl(context.header("Host"), batchSearch.project, result.documentId, result.rootId)).append("\"").append(",").
+                append("\"").append(docUrl(url, batchSearch.project, result.documentId, result.rootId)).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").
                 append("\"").append(result.rootId).append("\"").append(",").
                 append("\"").append(result.documentPath).append("\"").append(",").
