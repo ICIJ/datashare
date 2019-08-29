@@ -14,7 +14,6 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
 
 import static java.util.Arrays.stream;
@@ -37,7 +36,7 @@ public class DocumentResource {
     public Payload starProjectDocumentOpts(final String projectId, final String docId) { return ok().withAllowMethods("OPTIONS", "PUT");}
 
     @Put("/project/star/:project/:docId")
-    public Payload starProjectDocument(final String projectId, final String docId, Context context) throws IOException, SQLException {
+    public Payload starProjectDocument(final String projectId, final String docId, Context context) {
         return repository.star(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
 
@@ -45,17 +44,17 @@ public class DocumentResource {
     public Payload unstarProjectDocumentOpts(final String projectId, final String docId) { return ok().withAllowMethods("OPTIONS", "PUT");}
 
     @Put("/project/unstar/:project/:docId")
-    public Payload unstarProjectDocument(final String projectId, final String docId, Context context) throws IOException, SQLException {
+    public Payload unstarProjectDocument(final String projectId, final String docId, Context context) {
         return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
 
     @Get("/project/starred/:project")
-    public List<String> getProjectStarredDocuments(final String projectId, Context context) throws IOException, SQLException {
+    public List<String> getProjectStarredDocuments(final String projectId, Context context) {
         return repository.getStarredDocuments(project(projectId), (HashMapUser)context.currentUser());
     }
 
     @Get("/project/tagged/:project/:coma_separated_tags")
-    public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags) throws SQLException {
+    public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags) {
         return repository.getDocuments(project(projectId),
                 stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
     }
@@ -64,7 +63,7 @@ public class DocumentResource {
     public Payload tagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     @Put("/project/tag/:project/:docId?routing=:routing")
-    public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws SQLException, IOException {
+    public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
         return tagSaved ? Payload.created(): Payload.ok();
@@ -74,14 +73,14 @@ public class DocumentResource {
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     @Put("/project/untag/:project/:docId?routing=:routing")
-    public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws SQLException, IOException {
+    public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean untagSaved = repository.untag(project(projectId), docId, tags);
         indexer.untag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
         return untagSaved ? Payload.created(): Payload.ok();
     }
 
     @Get("/starred")
-    public List<Document> getStarredDocuments(Context context) throws IOException, SQLException {
+    public List<Document> getStarredDocuments(Context context) {
         return repository.getStarredDocuments((HashMapUser)context.currentUser());
     }
 
@@ -89,7 +88,7 @@ public class DocumentResource {
     public Payload starDocument(final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     @Put("/star/:docId")
-    public Payload starDocument(final String docId, Context context) throws IOException, SQLException {
+    public Payload starDocument(final String docId, Context context) {
         return repository.star((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
 
@@ -97,7 +96,7 @@ public class DocumentResource {
     public Payload unstarDocument(final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     @Put("/unstar/:docId")
-    public Payload unstarDocument(final String docId, Context context) throws IOException, SQLException {
+    public Payload unstarDocument(final String docId, Context context) {
         return repository.unstar((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
 }
