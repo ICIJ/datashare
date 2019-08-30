@@ -158,6 +158,36 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_get_results_order() {
+        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asList("q1", "q2"));
+        repository.save(User.local(), batchSearch);
+        repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("a"), createDoc("c")));
+        repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("b"), createDoc("d")));
+
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0))).
+                containsExactly(
+                        resultFrom(createDoc("a"), 1, "q1"),
+                        resultFrom(createDoc("c"), 2, "q1"),
+                        resultFrom(createDoc("b"), 1, "q2"),
+                        resultFrom(createDoc("d"), 2, "q2")
+                );
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_path", "asc", null))).
+                containsExactly(
+                        resultFrom(createDoc("a"), 1, "q1"),
+                        resultFrom(createDoc("b"), 1, "q2"),
+                        resultFrom(createDoc("c"), 2, "q1"),
+                        resultFrom(createDoc("d"), 2, "q2")
+                );
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_path", "desc", null))).
+                containsExactly(
+                        resultFrom(createDoc("d"), 2, "q2"),
+                        resultFrom(createDoc("c"), 2, "q1"),
+                        resultFrom(createDoc("b"), 1, "q2"),
+                        resultFrom(createDoc("a"), 1, "q1")
+                );
+    }
+
+    @Test
     public void test_get_batch_search_by_uuid() {
         repository.save(User.local(), new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
                         asList("q1", "q2"), new Date(), State.RUNNING, 0));

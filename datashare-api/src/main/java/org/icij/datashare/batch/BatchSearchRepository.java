@@ -25,6 +25,7 @@ public interface BatchSearchRepository {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     class WebQuery {
+        public static final String DEFAULT_SORT_FIELD = "doc_nb";
         public final String sort;
         public final String order;
         public final int from;
@@ -37,8 +38,8 @@ public interface BatchSearchRepository {
                         @JsonProperty("queries") List<String> queries) {
             this.size = size;
             this.from = from;
-            this.sort = sort == null ? "doc_nb": sort;
-            this.order = sort == null ? "asc": sort;
+            this.sort = sort == null ? DEFAULT_SORT_FIELD : sort;
+            this.order = sort == null ? "asc": order;
             this.queries = queries == null ? null: unmodifiableList(queries);
         }
 
@@ -63,5 +64,6 @@ public interface BatchSearchRepository {
             return Objects.hash(sort, order, from, size, queries);
         }
         public boolean hasFilteredQueries() { return queries !=null && !queries.isEmpty();}
+        public boolean isSorted() { return !DEFAULT_SORT_FIELD.equals(this.sort);}
     }
 }

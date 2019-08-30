@@ -21,6 +21,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
+import static org.icij.datashare.batch.BatchSearchRepository.WebQuery.DEFAULT_SORT_FIELD;
 import static org.icij.datashare.text.Project.project;
 import static org.jooq.impl.DSL.*;
 
@@ -121,7 +122,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 join(BATCH_SEARCH).on(field(BATCH_SEARCH + ".uuid").equal(field(BATCH_SEARCH_RESULT + ".search_uuid"))).
                 where(field("search_uuid").eq(batchSearchId));
         if (webQuery.hasFilteredQueries()) query.and(field("query").in(webQuery.queries));
-        query.orderBy(field("query"), field(webQuery.sort + " " + webQuery.order));
+        if (webQuery.isSorted()) {
+            query.orderBy(field(webQuery.sort + " " + webQuery.order));
+        } else {
+            query.orderBy(field("query"), field(DEFAULT_SORT_FIELD));
+        }
         if (webQuery.size > 0) query.limit(webQuery.size);
         if (webQuery.from > 0) query.offset(webQuery.from);
 
