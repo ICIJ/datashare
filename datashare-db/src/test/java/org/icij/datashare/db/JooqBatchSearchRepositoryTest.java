@@ -135,10 +135,10 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(
                 createDoc("doc1"), createDoc("doc2"), createDoc("doc3"), createDoc("doc4")))).isTrue();
 
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, 2, 0)).hasSize(2);
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, 2, 0)).containsExactly(
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(2, 0))).hasSize(2);
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(2, 0))).containsExactly(
                 resultFrom(createDoc("doc1"), 1), resultFrom(createDoc("doc2"), 2));
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, 2, 2)).containsExactly(
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery( 2, 2))).containsExactly(
                 resultFrom(createDoc("doc3"), 3), resultFrom(createDoc("doc4"), 4));
     }
 
