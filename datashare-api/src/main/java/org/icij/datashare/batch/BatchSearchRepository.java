@@ -62,5 +62,6 @@ public interface BatchSearchRepository {
         public int hashCode() {
             return Objects.hash(sort, order, from, size, queries);
         }
+        public boolean hasFilteredQueries() { return queries !=null && !queries.isEmpty();}
     }
 }

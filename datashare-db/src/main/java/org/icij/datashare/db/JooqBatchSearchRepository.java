@@ -117,11 +117,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     @Override
     public List<SearchResult> getResults(User user, String batchSearchId, WebQuery webQuery) {
         DSLContext create = DSL.using(dataSource, dialect);
-        SelectSeekStep2<Record, Object, Object> query = create.select().from(table(BATCH_SEARCH_RESULT)).
+        SelectConditionStep<Record> query = create.select().from(table(BATCH_SEARCH_RESULT)).
                 join(BATCH_SEARCH).on(field(BATCH_SEARCH + ".uuid").equal(field(BATCH_SEARCH_RESULT + ".search_uuid"))).
-                where(field("search_uuid").eq(batchSearchId)).orderBy(field("query"), field(webQuery.sort + " " + webQuery.order));
+                where(field("search_uuid").eq(batchSearchId));
+        if (webQuery.hasFilteredQueries()) query.and(field("query").in(webQuery.queries));
+        query.orderBy(field("query"), field(webQuery.sort + " " + webQuery.order));
         if (webQuery.size > 0) query.limit(webQuery.size);
         if (webQuery.from > 0) query.offset(webQuery.from);
+
         return query.fetch().stream().map(r -> createSearchResult(user, r)).collect(toList());
     }
 
