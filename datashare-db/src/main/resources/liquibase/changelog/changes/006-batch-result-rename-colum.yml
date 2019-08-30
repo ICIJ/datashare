@@ -1,0 +1,6 @@
+databaseChangeLog:
+  - changeSet:
+      id: 8
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search_result RENAME COLUMN doc_path TO doc_name

@@ -120,9 +120,9 @@ public class JooqBatchSearchRepositoryTest {
         List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid);
         assertThat(results).hasSize(2);
         assertThat(results.get(0).documentId).isEqualTo("id_doc1");
-        assertThat(results.get(0).documentPath.toString()).isEqualTo("/path/to/doc1");
+        assertThat(results.get(0).documentName.toString()).isEqualTo("/path/to/doc1");
         assertThat(results.get(1).documentId).isEqualTo("id_doc2");
-        assertThat(results.get(1).documentPath.toString()).isEqualTo("/path/to/doc2");
+        assertThat(results.get(1).documentName.toString()).isEqualTo("/path/to/doc2");
     }
 
     @Test
@@ -171,14 +171,14 @@ public class JooqBatchSearchRepositoryTest {
                         resultFrom(createDoc("b"), 1, "q2"),
                         resultFrom(createDoc("d"), 2, "q2")
                 );
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_path", "asc", null))).
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_name", "asc", null))).
                 containsExactly(
                         resultFrom(createDoc("a"), 1, "q1"),
                         resultFrom(createDoc("b"), 1, "q2"),
                         resultFrom(createDoc("c"), 2, "q1"),
                         resultFrom(createDoc("d"), 2, "q2")
                 );
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_path", "desc", null))).
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_name", "desc", null))).
                 containsExactly(
                         resultFrom(createDoc("d"), 2, "q2"),
                         resultFrom(createDoc("c"), 2, "q1"),
@@ -234,7 +234,7 @@ public class JooqBatchSearchRepositoryTest {
      }
 
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {
-        return new SearchResult(queryName, doc.getId(), doc.getRootDocument(), doc.getPath(), doc.getCreationDate(), doc.getContentType(), doc.getContentLength(), docNb);
+        return new SearchResult(queryName, doc.getId(), doc.getRootDocument(), doc.getPath().getFileName().toString(), doc.getCreationDate(), doc.getContentType(), doc.getContentLength(), docNb);
     }
 
     @NotNull

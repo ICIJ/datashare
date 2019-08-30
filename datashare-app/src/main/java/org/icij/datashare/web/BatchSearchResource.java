@@ -89,7 +89,7 @@ public class BatchSearchResource {
                 append("\"").append(result.rootId).append("\"").append(",").
                 append("\"").append(result.contentType).append("\"").append(",").
                 append("\"").append(result.contentLength).append("\"").append(",").
-                append("\"").append(result.documentPath).append("\"").append(",").
+                append("\"").append(result.documentName).append("\"").append(",").
                 append("\"").append(result.creationDate).append("\"").append(",").
                 append("\"").append(result.documentNumber).append("\"").append("\n")
         );

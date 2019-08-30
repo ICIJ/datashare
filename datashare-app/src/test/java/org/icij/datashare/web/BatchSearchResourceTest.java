@@ -15,7 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,7 +27,8 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -154,8 +154,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
     @Test
     public void test_get_search_results_json() {
         when(batchSearchRepository.getResults(eq(User.local()), eq("batchSearchId"), any())).thenReturn(asList(
-            new SearchResult("q1", "docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), "content/type", 123L, 1),
-            new SearchResult("q2", "docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), "content/type", 123L, 2)
+            new SearchResult("q1", "docId1", "rootId1", "doc1", new Date(), "content/type", 123L, 1),
+            new SearchResult("q2", "docId2", "rootId2", "doc2", new Date(), "content/type", 123L, 2)
         ));
 
         post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0}").
@@ -168,7 +168,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
     public void test_get_search_results_json_paginated() {
         List<SearchResult> results = IntStream.range(0, 10).
                 mapToObj(i -> new SearchResult("q" + i, "docId" + i, "rootId" + i,
-                        Paths.get("/path/to/doc" + i), new Date(), "content/type", 123L, i)).collect(toList());
+                        "/path/to/doc" + i, new Date(), "content/type", 123L, i)).collect(toList());
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery(5, 0))).thenReturn(results.subList(0, 5));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery(2, 9))).thenReturn(results.subList(8, 10));
 
@@ -186,8 +186,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
     public void test_get_search_results_csv() {
         when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asList("q1", "q2")));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery(0, 0))).thenReturn(asList(
-                new SearchResult("q1","docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), "content/type", 123L, 1),
-                new SearchResult("q2","docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), "content/type", 123L, 2)
+                new SearchResult("q1","docId1", "rootId1", "doc1", new Date(), "content/type", 123L, 1),
+                new SearchResult("q2","docId2", "rootId2", "doc2", new Date(), "content/type", 123L, 2)
         ));
 
         post("/api/batch/search/result/csv/batchSearchId", "{\"from\":0, \"size\":0}").
@@ -208,7 +208,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
         });
         when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", singletonList("q")));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery(0, 0))).thenReturn(singletonList(
-                new SearchResult("q", "docId", "rootId", Paths.get("/path/to/doc"), new Date(), "content/type", 123L, 1)
+                new SearchResult("q", "docId", "rootId", "doc", new Date(), "content/type", 123L, 1)
         ));
 
         post("/api/batch/search/result/csv/batchSearchId", "{\"from\":0, \"size\":0}").

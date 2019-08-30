@@ -17,3 +17,6 @@ databaseChangeLog:
   - include:
       file: changes/005-batch-result-adds-colums.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/006-batch-result-rename-colum.yml
+      relativeToChangelogFile: true
