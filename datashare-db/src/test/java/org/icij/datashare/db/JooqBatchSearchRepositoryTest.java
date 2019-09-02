@@ -120,9 +120,9 @@ public class JooqBatchSearchRepositoryTest {
         List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid);
         assertThat(results).hasSize(2);
         assertThat(results.get(0).documentId).isEqualTo("id_doc1");
-        assertThat(results.get(0).documentName.toString()).isEqualTo("/path/to/doc1");
+        assertThat(results.get(0).documentName.toString()).isEqualTo("doc1");
         assertThat(results.get(1).documentId).isEqualTo("id_doc2");
-        assertThat(results.get(1).documentName.toString()).isEqualTo("/path/to/doc2");
+        assertThat(results.get(1).documentName.toString()).isEqualTo("doc2");
     }
 
     @Test

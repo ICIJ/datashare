@@ -56,7 +56,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 create.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("query"), field("doc_nb"),
                         field("doc_id"), field("root_id"), field("doc_name"), field("creation_date"), field("content_type"), field("content_length"));
         IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
-                documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
+                documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().getFileName().toString(),
                 documents.get(i).getCreationDate() == null ? val((Timestamp)null):
                         new Timestamp(documents.get(i).getCreationDate().getTime()),
                 documents.get(i).getContentType(), documents.get(i).getContentLength()));
