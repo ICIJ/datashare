@@ -2,10 +2,7 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.HashMapUser;
@@ -40,12 +37,22 @@ public class DocumentResource {
         return repository.star(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
 
+    @Post("/project/:project/group/star")
+    public int groupStarProject(final String projectId, final List<String> docIds, Context context) {
+        return repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds);
+    }
+
     @Options("/project/unstar/:project/:docId")
     public Payload unstarProjectDocumentOpts(final String projectId, final String docId) { return ok().withAllowMethods("OPTIONS", "PUT");}
 
     @Put("/project/unstar/:project/:docId")
     public Payload unstarProjectDocument(final String projectId, final String docId, Context context) {
         return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
+    }
+
+    @Post("/project/:project/group/unstar")
+    public int groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
+        return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docIds);
     }
 
     @Get("/project/starred/:project")

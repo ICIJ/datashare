@@ -6,7 +6,7 @@ import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.web.DocumentResource;
+import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -44,28 +44,40 @@ public class DocumentResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void testStarDocument() throws Exception {
+    public void testStarDocument() {
         when(repository.star(any(), any())).thenReturn(true).thenReturn(false);
         put("/api/document/star/doc_id").should().respond(201);
         put("/api/document/star/doc_id").should().respond(200);
     }
 
     @Test
-    public void testUnstarDocument() throws Exception {
+    public void testUnstarDocument() {
         when(repository.unstar(any(), any())).thenReturn(true).thenReturn(false);
         put("/api/document/unstar/doc_id").should().respond(201);
         put("/api/document/unstar/doc_id").should().respond(200);
     }
 
     @Test
-    public void testStarDocumentWithProject() throws Exception {
+    public void testStarDocumentWithProject() {
         when(repository.star(any(), any(), eq("doc_id"))).thenReturn(true).thenReturn(false);
         put("/api/document/project/star/prj1/doc_id").should().respond(201);
         put("/api/document/project/star/prj1/doc_id").should().respond(200);
     }
 
     @Test
-    public void testUnstarDocumentWithProject() throws Exception {
+    public void testGroupStarDocumentWithProject() {
+        when(repository.star(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/document/project/prj1/group/star", "[\"id1\", \"id2\"]").should().respond(200);
+    }
+
+    @Test
+    public void testGroupUnstarDocumentWithProject() {
+        when(repository.unstar(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/document/project/prj1/group/unstar", "[\"id1\", \"id2\"]").should().respond(200);
+    }
+
+    @Test
+    public void testUnstarDocumentWithProject() {
         when(repository.unstar(any(), any(), eq("doc_id"))).thenReturn(true).thenReturn(false);
         put("/api/document/project/unstar/prj2/doc_id").should().respond(201);
         put("/api/document/project/unstar/prj2/doc_id").should().respond(200);
@@ -94,7 +106,7 @@ public class DocumentResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void testGetTaggedDocumentsWithProject() throws Exception {
+    public void testGetTaggedDocumentsWithProject() {
         when(repository.getDocuments(eq(project("prj3")), eq(tag("foo")), eq(tag("bar")), eq(tag("baz")))).thenReturn(asList("id1", "id2"));
         get("/api/document/project/tagged/prj3/foo,bar,baz").should().respond(200).contain("id1").contain("id2");
     }
@@ -112,7 +124,7 @@ public class DocumentResourceTest implements FluentRestTest {
 
 
     @Test
-    public void testGetStarredDocuments() throws Exception {
+    public void testGetStarredDocuments() {
         when(repository.getStarredDocuments(any())).thenReturn(asList(createDoc("doc1"), createDoc("doc2")));
         get("/api/document/starred").should().respond(200).haveType("application/json").contain("\"doc1\"").contain("\"doc2\"");
     }

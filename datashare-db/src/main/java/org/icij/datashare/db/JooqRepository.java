@@ -137,11 +137,27 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public int star(Project project, User user, List<String> documentIds) {
+        InsertValuesStep3<Record, Object, Object, Object> query = using(connectionProvider, dialect).
+                insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id"), field("prj_id"));
+        documentIds.forEach(t -> query.values(t, user.id, project.getId()));
+        return query.execute();
+    }
+
+    @Override
     public boolean unstar(Project project, User user, String documentId) {
         return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
                 where(field("doc_id").equal(documentId),
                         field("user_id").equal(user.id),
                         field("prj_id").equal(project.getId())).execute() > 0;
+    }
+
+    @Override
+    public int unstar(Project project, User user, List<String> documentIds) {
+        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
+                where(field("doc_id").in(documentIds),
+                        field("user_id").equal(user.id),
+                        field("prj_id").equal(project.getId())).execute();
     }
 
     @Override

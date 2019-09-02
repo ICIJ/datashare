@@ -13,13 +13,13 @@ import org.junit.runners.Parameterized.Parameters;
 
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
@@ -85,7 +85,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_create_named_entity_list() throws SQLException {
+    public void test_create_named_entity_list() {
         List<NamedEntity> namedEntities = Arrays.asList(
                 NamedEntity.create(PERSON, "mention 1", 123, "doc_id", CORENLP, GERMAN),
                 NamedEntity.create(PERSON, "mention 2", 321, "doc_id", CORENLP, ENGLISH));
@@ -102,7 +102,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_star_unstar_a_document_with_join() throws SQLException {
+    public void test_star_unstar_a_document_with_join() {
         Document doc = new Document("id", project("prj"), Paths.get("/path/to/docId"), "my doc",
                         FRENCH, Charset.defaultCharset(),
                         "text/plain", new HashMap<>(),
@@ -120,7 +120,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_star_unstar_a_document_without_documents() throws SQLException {
+    public void test_star_unstar_a_document_without_documents() {
         User user = new User("userid");
 
         assertThat(repository.star(project("prj"), user, "doc_id")).isTrue();
@@ -134,7 +134,20 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_tag_untag_a_document_without_documents() throws SQLException {
+    public void test_group_star_unstar_a_document_without_documents() {
+        User user = new User("userid");
+
+        assertThat(repository.star(project("prj"), user, asList("id1", "id2", "id3"))).isEqualTo(3);
+        assertThat(repository.getStarredDocuments(project("prj"), user)).contains("id1", "id2", "id3");
+        assertThat(repository.getStarredDocuments(project("prj2"), user)).isEmpty();
+
+        assertThat(repository.unstar(project("prj"), user,asList("id1", "id2"))).isEqualTo(2);
+        assertThat(repository.unstar(project("prj"), user, singletonList("id3"))).isEqualTo(1);
+        assertThat(repository.getStarredDocuments(project("prj"), user)).isEmpty();
+    }
+
+    @Test
+    public void test_tag_untag_a_document_without_documents() {
         assertThat(repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"))).isTrue();
         assertThat(repository.getDocuments(project("prj"), tag("tag1"))).containsExactly("doc_id");
         assertThat(repository.getDocuments(project("prj"), tag("tag1"))).containsExactly("doc_id");
@@ -149,7 +162,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_delete_all_project() throws SQLException {
+    public void test_delete_all_project() {
         User user = new User("userid");
         repository.star(project("prj"), user, "doc_id");
         repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"));
