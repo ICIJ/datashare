@@ -23,9 +23,7 @@ public interface Repository {
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
     // standalone (to remove later ?)
-    boolean star(Project project, User user, String documentId);
     int star(Project project, User user, List<String> documentIds);
-    boolean unstar(Project project, User user, String documentId);
     int unstar(Project project, User user, List<String> documentIds);
     List<String> getStarredDocuments(Project project, User user);
 

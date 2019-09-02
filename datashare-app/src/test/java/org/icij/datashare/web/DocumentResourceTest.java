@@ -58,13 +58,6 @@ public class DocumentResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void testStarDocumentWithProject() {
-        when(repository.star(any(), any(), eq("doc_id"))).thenReturn(true).thenReturn(false);
-        put("/api/document/project/star/prj1/doc_id").should().respond(201);
-        put("/api/document/project/star/prj1/doc_id").should().respond(200);
-    }
-
-    @Test
     public void testGroupStarDocumentWithProject() {
         when(repository.star(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
         post("/api/document/project/prj1/group/star", "[\"id1\", \"id2\"]").should().respond(200);
@@ -74,13 +67,6 @@ public class DocumentResourceTest implements FluentRestTest {
     public void testGroupUnstarDocumentWithProject() {
         when(repository.unstar(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
         post("/api/document/project/prj1/group/unstar", "[\"id1\", \"id2\"]").should().respond(200);
-    }
-
-    @Test
-    public void testUnstarDocumentWithProject() {
-        when(repository.unstar(any(), any(), eq("doc_id"))).thenReturn(true).thenReturn(false);
-        put("/api/document/project/unstar/prj2/doc_id").should().respond(201);
-        put("/api/document/project/unstar/prj2/doc_id").should().respond(200);
     }
 
     @Test

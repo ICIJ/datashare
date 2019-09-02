@@ -120,20 +120,6 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_star_unstar_a_document_without_documents() {
-        User user = new User("userid");
-
-        assertThat(repository.star(project("prj"), user, "doc_id")).isTrue();
-        assertThat(repository.getStarredDocuments(project("prj"), user)).contains("doc_id");
-        assertThat(repository.getStarredDocuments(project("prj2"), user)).isEmpty();
-        assertThat(repository.star(project("prj"), user, "doc_id")).isFalse();
-
-        assertThat(repository.unstar(project("prj"), user,"doc_id")).isTrue();
-        assertThat(repository.getStarredDocuments(project("prj"), user)).isEmpty();
-        assertThat(repository.unstar(project("prj"), user, "doc_id")).isFalse();
-    }
-
-    @Test
     public void test_group_star_unstar_a_document_without_documents() {
         User user = new User("userid");
 
@@ -164,7 +150,7 @@ public class JooqRepositoryTest {
     @Test
     public void test_delete_all_project() {
         User user = new User("userid");
-        repository.star(project("prj"), user, "doc_id");
+        repository.star(project("prj"), user, singletonList("doc_id"));
         repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"));
 
         assertThat(repository.deleteAll("prj")).isTrue();

@@ -124,32 +124,11 @@ public class JooqRepository implements Repository {
     // they can use just the DOCUMENT_USER_STAR table thus denormalizing project information
     // this could be removed later
     @Override
-    public boolean star(Project project, User user, String documentId) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        Result<Record1<Integer>> existResult = create.selectCount().from(table(DOCUMENT_USER_STAR)).
-                where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
-        if (existResult.get(0).value1() == 0) {
-            return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id"), field("prj_id")).
-                    values(documentId, user.id, project.getId()).execute() > 0;
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public int star(Project project, User user, List<String> documentIds) {
         InsertValuesStep3<Record, Object, Object, Object> query = using(connectionProvider, dialect).
                 insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id"), field("prj_id"));
         documentIds.forEach(t -> query.values(t, user.id, project.getId()));
         return query.execute();
-    }
-
-    @Override
-    public boolean unstar(Project project, User user, String documentId) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
-                where(field("doc_id").equal(documentId),
-                        field("user_id").equal(user.id),
-                        field("prj_id").equal(project.getId())).execute() > 0;
     }
 
     @Override

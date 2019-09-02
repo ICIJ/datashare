@@ -29,25 +29,9 @@ public class DocumentResource {
         this.indexer = indexer;
     }
 
-    @Options("/project/star/:project/:docId")
-    public Payload starProjectDocumentOpts(final String projectId, final String docId) { return ok().withAllowMethods("OPTIONS", "PUT");}
-
-    @Put("/project/star/:project/:docId")
-    public Payload starProjectDocument(final String projectId, final String docId, Context context) {
-        return repository.star(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
-    }
-
     @Post("/project/:project/group/star")
     public int groupStarProject(final String projectId, final List<String> docIds, Context context) {
         return repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds);
-    }
-
-    @Options("/project/unstar/:project/:docId")
-    public Payload unstarProjectDocumentOpts(final String projectId, final String docId) { return ok().withAllowMethods("OPTIONS", "PUT");}
-
-    @Put("/project/unstar/:project/:docId")
-    public Payload unstarProjectDocument(final String projectId, final String docId, Context context) {
-        return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
 
     @Post("/project/:project/group/unstar")
