@@ -11,15 +11,11 @@ import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
 import java.sql.Timestamp;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.IntStream;
 
-import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.*;
 import static org.icij.datashare.batch.BatchSearchRepository.WebQuery.DEFAULT_SORT_FIELD;
 import static org.icij.datashare.text.Project.project;
 import static org.jooq.impl.DSL.*;
@@ -44,7 +40,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                     values(batchSearch.uuid, batchSearch.name, batchSearch.description, user.id, batchSearch.project.getId(), new Timestamp(batchSearch.getDate().getTime()), batchSearch.state.name()).execute();
             InsertValuesStep3<Record, Object, Object, Object> insertQuery =
                     inner.insertInto(table(BATCH_SEARCH_QUERY), field("search_uuid"), field("query"), field("query_number"));
-            IntStream.range(0, batchSearch.queries.size()).forEach(i -> insertQuery.values(batchSearch.uuid, batchSearch.queries.get(i), i));
+            List<String> queries = new ArrayList<>(batchSearch.queries.keySet());
+            IntStream.range(0, queries.size()).forEach(i -> insertQuery.values(batchSearch.uuid, queries.get(i), i));
             return insertQuery.execute() > 0;
         });
     }
@@ -136,30 +133,50 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         Map<String, List<BatchSearch>> collect = flatBatchSearches.stream().collect(groupingBy(bs -> bs.uuid));
         return collect.values().stream().map(batchSearches ->
                 new BatchSearch(batchSearches.get(0).uuid, batchSearches.get(0).project, batchSearches.get(0).name, batchSearches.get(0).description,
-                        batchSearches.stream().map(bs -> bs.queries).flatMap(List::stream).collect(toList()), batchSearches.get(0).getDate(),
+                        batchSearches.stream().map(bs -> bs.queries.entrySet()).flatMap(Collection::stream).collect(
+                                toMap(Map.Entry::getKey, Map.Entry::getValue,
+                                        (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); },
+                                        LinkedHashMap::new)),
+                        batchSearches.get(0).getDate(),
                         batchSearches.get(0).state, batchSearches.get(0).nbResults)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
-    private SelectJoinStep<Record11<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>> createBatchSearchWithQueriesSelectStatement(DSLContext create) {
+    private SelectJoinStep<Record12<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>> createBatchSearchWithQueriesSelectStatement(DSLContext create) {
         Field<Object> resultCount = create.selectCount().from(table(BATCH_SEARCH_RESULT)).
                 where(field(name(BATCH_SEARCH_RESULT, "search_uuid")).
                         equal(field(name(BATCH_SEARCH, "uuid")))).asField("count");
+        String countByQueryTableName = "countByQuery";
+        String hasResultField = "has_result";
+        String queryResultsField = "query_results";
+        Table<?> countByQueryDerivedTable = create.select(field(name(BATCH_SEARCH_QUERY, "query")), field(name(BATCH_SEARCH_RESULT, "query")).as(hasResultField), count().as(queryResultsField)).
+                from(table(BATCH_SEARCH_QUERY)).
+                leftJoin(BATCH_SEARCH_RESULT).on(field(name(BATCH_SEARCH_RESULT, "query")).eq(field(name(BATCH_SEARCH_QUERY, "query")))).
+                groupBy(field(name(BATCH_SEARCH_QUERY, "query")), field(hasResultField)).
+                asTable(countByQueryTableName);
         return create.select(field("uuid"), field("name"), field("description"), field("user_id"),
                 field("prj_id"), field("batch_date"), field("state"),
-                field("search_uuid"), field("query_number"), field("query"), resultCount).
+                field("query_number"), field(name(BATCH_SEARCH_QUERY, "query")),
+                field(name(countByQueryTableName, hasResultField)),
+                field(name(countByQueryTableName, queryResultsField)), resultCount).
                 from(table(BATCH_SEARCH).
                         join(BATCH_SEARCH_QUERY).
                         on(field(BATCH_SEARCH + ".uuid").
-                                equal(field(BATCH_SEARCH_QUERY + ".search_uuid"))));
+                                eq(field(BATCH_SEARCH_QUERY + ".search_uuid"))).
+                        join(countByQueryDerivedTable).on(field(name(countByQueryTableName, "query")).
+                                eq(field(name(BATCH_SEARCH_QUERY, "query"))
+                )));
     }
 
     private BatchSearch createBatchSearchFrom(final Record record) {
+        String hasResult = record.getValue("has_result", String.class);
+        Integer query_results = hasResult == null ? 0:record.getValue("query_results", Integer.class);
         return new BatchSearch(record.get("uuid", String.class).trim(),
                 project(record.getValue("prj_id", String.class)),
                 record.getValue("name", String.class),
                 record.getValue("description", String.class),
-                singletonList(record.getValue("query", String.class)),
+                new LinkedHashMap<String, Integer>() {{
+                    put(record.getValue("query", String.class), query_results);}},
                 new Date(record.get("batch_date", Timestamp.class).getTime()),
                 State.valueOf(record.get("state", String.class)),
                 record.get("count", Integer.class));

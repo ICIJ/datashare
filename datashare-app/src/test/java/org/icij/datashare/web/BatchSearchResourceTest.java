@@ -98,7 +98,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
-                asList("query one", "query two", "query three"), new Date(), BatchSearch.State.RUNNING, 0)));
+                asList("query one", "query two", "query three"), new Date(), BatchSearch.State.RUNNING)));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
-                singletonList("query"), new Date(), BatchSearch.State.RUNNING, 0)));
+                singletonList("query"), new Date(), BatchSearch.State.RUNNING)));
     }
 
     @Test

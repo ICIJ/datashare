@@ -53,7 +53,7 @@ public class BatchSearchRunner implements Callable<Integer> {
         logger.info("running {} queries for batch search {} on project {}", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project);
         repository.setState(batchSearch.uuid, State.RUNNING);
         try {
-            for (String query : batchSearch.queries) {
+            for (String query : batchSearch.queries.keySet()) {
                 Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).with(query).withoutSource("content").limit(MAX_SCROLL_SIZE);
                 List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
 
