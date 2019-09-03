@@ -185,12 +185,12 @@ public class BatchSearchResourceTest implements FluentRestTest {
     @Test
     public void test_get_search_results_csv() {
         when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asList("q1", "q2")));
-        when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery(0, 0))).thenReturn(asList(
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(asList(
                 new SearchResult("q1","docId1", "rootId1", "doc1", new Date(), "content/type", 123L, 1),
                 new SearchResult("q2","docId2", "rootId2", "doc2", new Date(), "content/type", 123L, 2)
         ));
 
-        post("/api/batch/search/result/csv/batchSearchId", "{\"from\":0, \"size\":0}").
+        get("/api/batch/search/result/csv/batchSearchId").
                 should().respond(200).haveType("text/csv").
                 haveHeader("Content-Disposition", "attachment;filename=\"batchSearchId.csv\"").
                 contain(format("\"localhost:%d/#/d/prj/docId1/rootId1\",\"docId1\",\"rootId1\"", port())).
@@ -207,12 +207,11 @@ public class BatchSearchResourceTest implements FluentRestTest {
                             filter(new LocalUserFilter(propertiesProvider));
         });
         when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", singletonList("q")));
-        when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery(0, 0))).thenReturn(singletonList(
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(singletonList(
                 new SearchResult("q", "docId", "rootId", "doc", new Date(), "content/type", 123L, 1)
         ));
 
-        post("/api/batch/search/result/csv/batchSearchId", "{\"from\":0, \"size\":0}").
-                should().respond(200).haveType("text/csv").
+        get("/api/batch/search/result/csv/batchSearchId").should().respond(200).haveType("text/csv").
                 haveHeader("Content-Disposition", "attachment;filename=\"batchSearchId.csv\"").
                 contain("\"http://foo.com:12345/#/d/prj/docId/rootId\",\"docId\",\"rootId\"");
     }
@@ -222,7 +221,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery(0, 0))).
                 thenThrow(new JooqBatchSearchRepository.UnauthorizedUserException("batchSearchId", "owner", "actual"));
 
-        post("/api/batch/search/result/csv/batchSearchId", "{\"from\":0, \"size\":0}").should().respond(401);
+        get("/api/batch/search/result/csv/batchSearchId").should().respond(401);
         post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0}").should().respond(401);
     }
 

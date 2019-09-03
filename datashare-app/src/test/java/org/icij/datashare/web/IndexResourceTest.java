@@ -112,8 +112,8 @@ public class IndexResourceTest implements FluentRestTest {
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new LocalUserFilter(new PropertiesProvider())));
         mockElastic.configure(routes -> routes
-            .get("/:uri", (context, uri) -> "I am elastic GET uri=" + uri + "?" + getQueryAsString(context.query()))
-            .post("/:uri", (context, uri) -> "I am elastic POST uri=" + uri + " " + new String(context.request().contentAsBytes()))
+            .get("/:uri:", (context, uri) -> "I am elastic GET uri=" + uri + "?" + getQueryAsString(context.query()))
+            .post("/:uri:", (context, uri) -> "I am elastic POST uri=" + uri + " " + new String(context.request().contentAsBytes()))
         );
     }
 }

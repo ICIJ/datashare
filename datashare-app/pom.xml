@@ -17,7 +17,7 @@
         <dependency>
        	    <groupId>com.github.bamthomas</groupId>
        	    <artifactId>fluent-http</artifactId>
-       	    <version>46c0c6c</version>
+       	    <version>67a2efe</version>
             <type>jar</type>
         </dependency>
         <dependency>

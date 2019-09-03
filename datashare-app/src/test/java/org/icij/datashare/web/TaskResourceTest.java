@@ -234,6 +234,7 @@ public class TaskResourceTest implements FluentRestTest {
             Thread.sleep(10000);
             return "ok";
         });
+        System.out.println("/api/task/stop/" + dummyTask);
         put("/api/task/stop/" + dummyTask).should().respond(200).contain("true");
 
         assertThat(taskManager.getTask(dummyTask.toString()).isCancelled()).isTrue();

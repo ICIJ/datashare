@@ -76,13 +76,13 @@ public class BatchSearchResource {
         return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
     }
 
-    @Post("search/result/csv/:batchid")
-    public Payload getResultAsCsv(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {
+    @Get("search/result/csv/:batchid")
+    public Payload getResultAsCsv(String batchId, Context context) {
         StringBuilder builder = new StringBuilder("\"query\", \"documentUrl\", \"documentId\",\"rootId\",\"contentType\",\"contentLength\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
         BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId);
         String url = propertiesProvider.get("rootHost").orElse(context.header("Host"));
 
-        getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery).forEach(result -> builder.
+        getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), new BatchSearchRepository.WebQuery()).forEach(result -> builder.
                 append("\"").append(result.query).append("\"").append(",").
                 append("\"").append(docUrl(url, batchSearch.project, result.documentId, result.rootId)).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").

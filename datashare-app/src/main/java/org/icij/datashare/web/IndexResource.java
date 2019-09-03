@@ -51,12 +51,12 @@ public class IndexResource {
         return indexer.createIndex(((User)context.currentUser()).projectName()) ? created() : ok();
     }
 
-    @Get("/search/:index/:path")
+    @Get("/search/:index/:path:")
     public Payload esGet(final String index, final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).get().build()).execute());
     }
 
-    @Post("/search/:index/:path")
+    @Post("/search/:index/:path:")
     public Payload esPost(final String index, final String path, Context context, final net.codestory.http.Request request) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).post(new RequestBody() {
             @Override
@@ -70,12 +70,12 @@ public class IndexResource {
         }).build()).execute());
     }
 
-    @Head("/search/:index/:path")
+    @Head("/search/:index/:path:")
     public Payload esHead(final String index, final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).head().build()).execute());
     }
 
-    @Options("/search/:index/:path")
+    @Options("/search/:index/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).method("OPTIONS", null).build()).execute());
     }

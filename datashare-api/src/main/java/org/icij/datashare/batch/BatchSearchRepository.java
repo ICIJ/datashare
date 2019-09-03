@@ -43,9 +43,8 @@ public interface BatchSearchRepository {
             this.queries = queries == null ? null: unmodifiableList(queries);
         }
 
-        public WebQuery(int size, int from) {
-            this(size, from, null, null, null);
-        }
+        public WebQuery(int size, int from) { this(size, from, null, null, null);}
+        public WebQuery() { this(0, 0, null, null, null);}
 
         @Override
         public boolean equals(Object o) {
