@@ -63,7 +63,7 @@ public interface Pipeline {
         }
 
         public static Set<Pipeline.Type> parseAll(final String comaSeparatedTypes) {
-            return comaSeparatedTypes.isEmpty() ? new HashSet<>():
+            return comaSeparatedTypes == null || comaSeparatedTypes.isEmpty() ? new HashSet<>():
                     stream(comaSeparatedTypes.split(",")).map(Type::valueOf).collect(Collectors.toSet());
         }
     }

@@ -1,7 +1,7 @@
 package org.icij.datashare;
 
 public enum Mode {
-    LOCAL(true), SERVER(true), CLI_SERVER(false), NER(true), BATCH(false);
+    LOCAL(true), SERVER(true), CLI(false), NER(true), BATCH(false);
 
     private final boolean webServer;
 

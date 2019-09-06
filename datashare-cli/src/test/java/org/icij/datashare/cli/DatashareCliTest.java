@@ -14,7 +14,7 @@ public class DatashareCliTest {
 
         assertThat(cli.parseArguments(new String[] {"--mode=BATCH"})).isTrue();
         assertThat(cli.isWebServer()).isFalse();
-        assertThat(cli.parseArguments(new String[] {"--mode=CLI_SERVER"})).isTrue();
+        assertThat(cli.parseArguments(new String[] {"--mode=CLI"})).isTrue();
         assertThat(cli.isWebServer()).isFalse();
     }
 
