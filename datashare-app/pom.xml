@@ -15,9 +15,9 @@
 
     <dependencies>
         <dependency>
-       	    <groupId>com.github.bamthomas</groupId>
+       	    <groupId>com.github.CodeStory</groupId>
        	    <artifactId>fluent-http</artifactId>
-       	    <version>67a2efe</version>
+       	    <version>9d9fb76</version>
             <type>jar</type>
         </dependency>
         <dependency>
