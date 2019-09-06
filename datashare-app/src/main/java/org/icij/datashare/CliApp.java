@@ -18,7 +18,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Set;
@@ -48,7 +47,7 @@ class CliApp {
         injector.getInstance(Indexer.class).close();
     }
 
-    private static void runTaskRunner(Injector injector, Properties properties) throws IOException, InterruptedException, ClassNotFoundException {
+    private static void runTaskRunner(Injector injector, Properties properties) throws Exception {
         TaskManager taskManager = injector.getInstance(TaskManager.class);
         TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
         Set<DatashareCli.Stage> stages = stream(properties.getProperty(DatashareCliOptions.STAGES_OPT).
@@ -73,13 +72,13 @@ class CliApp {
 
 
         if (stages.contains(DatashareCli.Stage.SCAN) && !resume(properties)) {
-            taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), Options.from(properties)));
+            taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), Options.from(properties)),
+                    () -> closeAndLogException(injector.getInstance(DocumentQueue.class)).run());
         }
 
         if (stages.contains(DatashareCli.Stage.INDEX)) {
-            taskManager.startTask(taskFactory.createIndexTask(nullUser(), Options.from(properties)), () -> {
-                closeAndLogException(injector.getInstance(DocumentQueue.class)).run();
-            });
+            taskManager.startTask(taskFactory.createIndexTask(nullUser(), Options.from(properties)),
+                    () -> closeAndLogException(injector.getInstance(DocumentQueue.class)).run());
         }
 
         if (stages.contains(DatashareCli.Stage.NLP)) {
