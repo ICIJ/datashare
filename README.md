@@ -22,6 +22,9 @@ Datashare allows investigative journalists to:
 - search pdfs, images, texts, spreadsheets, slides and any files, simultaneously
 - automatically detect and filter by people, organizations and locations
 
+## Translation of the interface
+
+You're welcome to suggest translations on Datashare's Crowdin https://crwd.in/datashare. Please contact us if you would like to add a language.
 
 ## Installing and using
 
