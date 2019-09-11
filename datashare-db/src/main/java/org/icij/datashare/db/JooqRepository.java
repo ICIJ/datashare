@@ -150,21 +150,11 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean tag(Project prj, String documentId, Tag... tags) {
-        return DSL.using(connectionProvider, dialect).transactionResult(configuration -> {
-            DSLContext inner = using(configuration);
-            Set<Tag> existResult = inner.select(field("label")).from(table(DOCUMENT_TAG)).
-                    where(field("label").in(stream(tags).map(t -> t.label).collect(toSet())), field("doc_id").equal(documentId)).
-                    fetch().getValues("label", String.class).stream().map(Tag::tag).collect(toSet());
-            if (existResult.size() != tags.length) {
-                List<Tag> tagList = asList(tags);
-                tagList.removeAll(existResult);
-                InsertValuesStep3<Record, Object, Object, Object> insertQuery = inner.insertInto(table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
-                tagList.forEach(t -> insertQuery.values(documentId, t.label, prj.getId()));
-                return insertQuery.execute() > 0;
-            } else {
-                return false;
-            }
-        });
+        InsertValuesStep3<Record, Object, Object, Object> query = using(connectionProvider, dialect).insertInto(
+                        table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
+        List<Tag> tagList = asList(tags);
+        tagList.forEach(t -> query.values(documentId, t.label, prj.getId()));
+        return query.onConflictDoNothing().execute() > 0;
     }
 
     @Override
@@ -181,7 +171,7 @@ public class JooqRepository implements Repository {
                 table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
         List<Tag> tagList = asList(tags);
         documentIds.forEach(d -> tagList.forEach(t -> query.values(d, t.label, prj.getId())));
-        return query.execute() > 0;
+        return query.onConflictDoNothing().execute() > 0;
     }
 
     @Override
