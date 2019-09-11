@@ -176,6 +176,23 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public boolean tag(Project prj, List<String> documentIds, Tag... tags) {
+        InsertValuesStep3<Record, Object, Object, Object> query = using(connectionProvider, dialect).insertInto(
+                table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
+        List<Tag> tagList = asList(tags);
+        documentIds.forEach(d -> tagList.forEach(t -> query.values(d, t.label, prj.getId())));
+        return query.execute() > 0;
+    }
+
+    @Override
+    public boolean untag(Project prj, List<String> documentIds, Tag... tags) {
+        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_TAG)).
+                        where(field("doc_id").in(documentIds),
+                                field("label").in(stream(tags).map(t -> t.label).collect(toSet())),
+                                field("prj_id").equal(prj.getId())).execute() > 0;
+    }
+
+    @Override
     public List<String> getDocuments(Project project, Tag... tags) {
         DSLContext create = DSL.using(connectionProvider, dialect);
         return create.selectDistinct(field("doc_id")).from(table(DOCUMENT_TAG)).

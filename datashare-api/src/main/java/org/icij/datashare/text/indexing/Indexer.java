@@ -36,6 +36,8 @@ public interface Indexer extends Closeable {
     // from Repository
     boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
     boolean untag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
+    boolean tag(Project prj, List<String> documentIds, Tag... tags) throws IOException;
+    boolean untag(Project prj, List<String> documentIds, Tag... tags) throws IOException;
 
     interface Searcher {
         Searcher ofStatus(Document.Status indexed);

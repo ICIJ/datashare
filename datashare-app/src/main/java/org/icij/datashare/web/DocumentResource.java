@@ -1,5 +1,7 @@
 package org.icij.datashare.web;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
@@ -60,6 +62,20 @@ public class DocumentResource {
         return tagSaved ? Payload.created(): Payload.ok();
     }
 
+    @Post("/project/:project/group/tag")
+    public Payload groupTagDocument(final String projectId, BatchTagQuery query) throws IOException {
+        repository.tag(project(projectId), query.docIds, query.tagsAsArray());
+        indexer.tag(project(projectId), query.docIds, query.tagsAsArray());
+        return Payload.ok();
+    }
+
+    @Post("/project/:project/group/untag")
+    public Payload groupUntagDocument(final String projectId, BatchTagQuery query) throws IOException {
+        repository.untag(project(projectId), query.docIds, query.tagsAsArray());
+        indexer.untag(project(projectId), query.docIds, query.tagsAsArray());
+        return Payload.ok();
+    }
+
     @Options("/project/untag/:project/:docId")
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
@@ -89,5 +105,20 @@ public class DocumentResource {
     @Put("/unstar/:docId")
     public Payload unstarDocument(final String docId, Context context) {
         return repository.unstar((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
+    }
+
+    private static class BatchTagQuery {
+        final List<String> tags;
+        final List<String> docIds;
+
+        @JsonCreator
+        private BatchTagQuery(@JsonProperty("tags") List<String> tags, @JsonProperty("docIds") List<String> docIds) {
+            this.tags = tags;
+            this.docIds = docIds;
+        }
+
+        Tag[] tagsAsArray() {
+            return tags.stream().map(Tag::new).toArray(Tag[]::new);
+        }
     }
 }

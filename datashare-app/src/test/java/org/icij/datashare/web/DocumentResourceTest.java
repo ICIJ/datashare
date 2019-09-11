@@ -71,24 +71,40 @@ public class DocumentResourceTest implements FluentRestTest {
 
     @Test
     public void testTagDocumentWithProject() throws Exception {
-        when(repository.tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
-        when(indexer.tag(eq(project("prj1")), any(), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(repository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(indexer.tag(eq(project("prj1")), anyString(), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
         put("/api/document/project/tag/prj1/doc_id", "[\"tag1\", \"tag2\"]").should().respond(201);
         put("/api/document/project/tag/prj1/doc_id", "[\"tag1\", \"tag2\"]").should().respond(200);
 
-        verify(indexer, times(2)).tag(eq(project("prj1")), any(), any(), eq(tag("tag1")), eq(tag("tag2")));
+        verify(indexer, times(2)).tag(eq(project("prj1")), eq("doc_id"), eq("doc_id"), eq(tag("tag1")), eq(tag("tag2")));
     }
 
     @Test
     public void testUntagDocumentWithProject() throws Exception {
-        when(repository.untag(eq(project("prj2")), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
-        when(indexer.untag(eq(project("prj2")), any(), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
+        when(repository.untag(eq(project("prj2")), anyString(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
+        when(indexer.untag(eq(project("prj2")), anyString(), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
 
         put("/api/document/project/untag/prj2/doc_id", "[\"tag3\", \"tag4\"]").should().respond(201);
         put("/api/document/project/untag/prj2/doc_id", "[\"tag3\", \"tag4\"]").should().respond(200);
 
-        verify(indexer, times(2)).untag(eq(project("prj2")), any(), any(), any(), any());
+        verify(indexer, times(2)).untag(eq(project("prj2")), anyString(), any(), any(), any());
+    }
+
+    @Test
+    public void testGroupTagDocumentWithProject() throws Exception {
+        when(repository.tag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(indexer.tag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+
+        post("/api/document/project/prj1/group/tag", "{\"tags\": [\"tag1\", \"tag2\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(200);
+    }
+
+    @Test
+    public void testGroupUntagDocumentWithProject() throws Exception {
+        when(repository.untag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(indexer.untag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+
+        post("/api/document/project/prj1/group/untag", "{\"tags\": [\"tag1\", \"tag2\"], \"docIds\": [\"doc1\", \"doc2\"]}").should().respond(200);
     }
 
     @Test
@@ -99,7 +115,7 @@ public class DocumentResourceTest implements FluentRestTest {
 
     @Test
     public void testTagDocumentWithProjectWithRouting() throws Exception {
-        when(repository.tag(eq(project("prj1")), any(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
+        when(repository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
         put("/api/document/project/tag/prj1/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(201);

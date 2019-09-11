@@ -133,10 +133,10 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_tag_untag_a_document_without_documents() {
+    public void test_tag_untag_a_document() {
         assertThat(repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"))).isTrue();
         assertThat(repository.getDocuments(project("prj"), tag("tag1"))).containsExactly("doc_id");
-        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).containsExactly("doc_id");
+        assertThat(repository.getDocuments(project("prj"), tag("tag2"))).containsExactly("doc_id");
         assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).containsExactly("doc_id");
 
         assertThat(repository.getDocuments(project("prj2"), tag("tag1"))).isEmpty();
@@ -145,6 +145,19 @@ public class JooqRepositoryTest {
         assertThat(repository.untag(project("prj"), "doc_id", tag("tag1"), tag("tag2"))).isTrue();
         assertThat(repository.getDocuments(project("prj"), tag("tag1"))).isEmpty();
         assertThat(repository.untag(project("prj"), "doc_id", tag("tag1"))).isFalse();
+    }
+
+    @Test
+    public void test_group_tag_untag_documents() {
+        assertThat(repository.tag(project("prj"), asList("doc_id1", "doc_id2"), tag("tag1"), tag("tag2"))).isTrue();
+        assertThat(repository.tag(project("prj2"), "doc_id3", tag("tag1"))).isTrue();
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).containsExactly("doc_id1", "doc_id2");
+
+        assertThat(repository.untag(project("prj"), asList("doc_id1", "doc_id2"), tag("tag1"), tag("tag2"))).isTrue();
+        assertThat(repository.getDocuments(project("prj"), tag("tag1"))).isEmpty();
+        assertThat(repository.getDocuments(project("prj"), tag("tag2"))).isEmpty();
+
+        assertThat(repository.getDocuments(project("prj2"), tag("tag1"))).containsExactly("doc_id3");
     }
 
     @Test

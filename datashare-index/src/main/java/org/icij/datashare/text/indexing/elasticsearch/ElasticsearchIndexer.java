@@ -18,10 +18,13 @@ import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.UpdateByQueryRequest;
 import org.elasticsearch.join.query.HasChildQueryBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.Script;
@@ -37,6 +40,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -50,8 +54,7 @@ import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
-import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
-import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
+import static org.elasticsearch.index.query.QueryBuilders.*;
 import static org.icij.datashare.json.JsonObjectMapper.*;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
 
@@ -198,8 +201,45 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException {
+        return tagUntag(prj, documentId, rootDocument, createTagScript(tags));
+    }
+
+    @Override
+    public boolean untag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException {
+        return tagUntag(prj, documentId, rootDocument, createUntagScript(tags));
+    }
+
+    private boolean tagUntag(Project prj, String documentId, String rootDocument, Script untagScript) throws IOException {
         UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId).routing(rootDocument);
-        update.script(new Script(ScriptType.INLINE, "painless",
+        update.script(untagScript);
+        update.setRefreshPolicy(esCfg.refreshPolicy);
+        UpdateResponse updateResponse = client.update(update);
+        return updateResponse.status() == RestStatus.OK && updateResponse.getResult() == DocWriteResponse.Result.UPDATED;
+    }
+
+    @Override
+    public boolean tag(Project prj, List<String> documentIds, Tag... tags) throws IOException {
+        return groupTagUntag(prj, documentIds, createTagScript(tags));
+    }
+
+    @Override
+    public boolean untag(Project prj, List<String> documentIds, Tag... tags) throws IOException {
+        return groupTagUntag(prj, documentIds, createUntagScript(tags));
+    }
+
+    private boolean groupTagUntag(Project prj, List<String> documentIds, Script untagScript) throws IOException {
+        UpdateByQueryRequest updateByQuery = new UpdateByQueryRequest(prj.getId());
+        updateByQuery.setQuery(termsQuery("_id", documentIds.toArray(new String[0])));
+        updateByQuery.setConflicts("proceed");
+        updateByQuery.setScript(untagScript);
+        updateByQuery.setRefresh(esCfg.refreshPolicy.getValue().equals("true"));
+        BulkByScrollResponse updateResponse = client.updateByQuery(updateByQuery, RequestOptions.DEFAULT);
+        return updateResponse.getBulkFailures().size() == 0 && updateResponse.getUpdated() > 0 ;
+    }
+
+    @NotNull
+    private Script createTagScript(Tag[] tags) {
+        return new Script(ScriptType.INLINE, "painless",
                 "int updates = 0;" +
                         "if (ctx._source.tags == null) ctx._source.tags = [];" +
                         "for (int i = 0; i < params.tags.length; i++) {" +
@@ -209,16 +249,12 @@ public class ElasticsearchIndexer implements Indexer {
                         "  }" +
                         "}" +
                         "if (updates == 0) ctx.op = 'none';",
-                new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}}));
-        update.setRefreshPolicy(esCfg.refreshPolicy);
-        UpdateResponse updateResponse = client.update(update);
-        return updateResponse.status() == RestStatus.OK && updateResponse.getResult() == DocWriteResponse.Result.UPDATED ;
+                new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}});
     }
 
-    @Override
-    public boolean untag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException {
-        UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId).routing(rootDocument);
-        update.script(new Script(ScriptType.INLINE, "painless",
+    @NotNull
+    private Script createUntagScript(Tag[] tags) {
+        return new Script(ScriptType.INLINE, "painless",
                 "int updates = 0;" +
                         "for (int i = 0; i < params.tags.length; i++) {" +
                         "  if (ctx._source.tags.contains(params.tags[i])) {" +
@@ -227,10 +263,7 @@ public class ElasticsearchIndexer implements Indexer {
                         "  }" +
                         "}" +
                         "if (updates == 0) ctx.op = 'none';",
-                new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}}));
-        update.setRefreshPolicy(esCfg.refreshPolicy);
-        UpdateResponse updateResponse = client.update(update);
-        return updateResponse.status() == RestStatus.OK && updateResponse.getResult() == DocWriteResponse.Result.UPDATED;
+                new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}});
     }
 
     @Override

@@ -1,0 +1,6 @@
+databaseChangeLog:
+  - changeSet:
+      id: 9
+      author: bthomas
+      sql:
+        - CREATE UNIQUE INDEX idx_document_tag_unique ON document_tag (doc_id, label)

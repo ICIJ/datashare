@@ -189,6 +189,24 @@ public class ElasticsearchIndexerTest {
         assertThat(((Document)indexer.get(TEST_INDEX, doc.getId())).getTags()).isEmpty();
     }
 
+   @Test
+    public void test_group_tag_untag_documents() throws IOException {
+        Document doc1 = new org.icij.datashare.text.Document("id1", project("prj"), Paths.get("doc1.txt"), "content1", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
+        Document doc2 = new org.icij.datashare.text.Document("id2", project("prj"), Paths.get("doc2.txt"), "content2", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
+        indexer.add(TEST_INDEX, doc1);
+        indexer.add(TEST_INDEX, doc2);
+
+        assertThat(indexer.tag(project(TEST_INDEX), asList("id1", "id2"), tag("foo"), tag("bar"))).isTrue();
+        assertThat(((Document)indexer.get(TEST_INDEX, "id1")).getTags()).containsOnly(tag("foo"), tag("bar"));
+        assertThat(((Document)indexer.get(TEST_INDEX, "id2")).getTags()).containsOnly(tag("foo"), tag("bar"));
+
+        assertThat(indexer.untag(project(TEST_INDEX), asList("id1", "id2"), tag("foo"), tag("bar"))).isTrue();
+        assertThat(((Document)indexer.get(TEST_INDEX, "id1")).getTags()).isEmpty();
+        assertThat(((Document)indexer.get(TEST_INDEX, "id2")).getTags()).isEmpty();
+    }
+
     @Test
     public void test_search_with_field_value() throws Exception {
         indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", 2, "docId", CORENLP, Language.FRENCH));

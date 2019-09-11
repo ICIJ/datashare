@@ -20,3 +20,6 @@ databaseChangeLog:
   - include:
       file: changes/006-batch-result-rename-colum.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/007-adds_tag_unique.yml
+      relativeToChangelogFile: true
