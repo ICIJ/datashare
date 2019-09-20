@@ -10,7 +10,9 @@ import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.icij.datashare.*;
+import org.icij.datashare.Mode;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Repository;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
@@ -100,6 +102,7 @@ public class CommonMode extends AbstractModule {
     private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
         routes.setIocAdapter(new GuiceAdapter(this))
                 .get("/version", getVersion())
+                .get("/config", getConfig())
                 .add(ConfigResource.class)
                 .setExtensions(new Extensions() {
                     @Override
@@ -117,6 +120,10 @@ public class CommonMode extends AbstractModule {
             routes.filter(new CorsFilter(cors));
         }
         return routes;
+    }
+
+    private Map<String, Object> getConfig() {
+        return propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*");
     }
 
     private Properties getVersion() {

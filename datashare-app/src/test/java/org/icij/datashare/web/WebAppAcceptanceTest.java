@@ -43,7 +43,7 @@ public class WebAppAcceptanceTest implements FluentRestTest {
 
     @Test
     public void test_get_config() {
-        get("/api/config").should().contain(format("\"dataDir\":\"%s\"", getClass().getResource("/data").getPath()));
+        get("/config").should().contain(format("\"dataDir\":\"%s\"", getClass().getResource("/data").getPath()));
     }
 
     @Test
