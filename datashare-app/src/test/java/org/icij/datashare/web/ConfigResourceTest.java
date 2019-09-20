@@ -6,7 +6,6 @@ import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
-import org.icij.datashare.web.ConfigResource;
 import org.junit.Test;
 
 import java.util.HashMap;
