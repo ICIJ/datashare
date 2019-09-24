@@ -56,6 +56,11 @@ public class BatchSearchResource {
         return batchSearchRepository.get((User) context.currentUser(), batchId);
     }
 
+    @Options("search/:batchid")
+    public Payload optionsDelete(Context context) {
+        return ok().withAllowMethods("OPTIONS", "DELETE");
+    }
+
     @Delete("search/:batchid")
     public Payload deleteBatch(String batchId, Context context) {
         return batchSearchRepository.deleteBatchSearch((User) context.currentUser(), batchId) ? new Payload(204): notFound();
