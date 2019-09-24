@@ -56,6 +56,11 @@ public class BatchSearchResource {
         return batchSearchRepository.get((User) context.currentUser(), batchId);
     }
 
+    @Delete("search/:batchid")
+    public Payload deleteBatch(String batchId, Context context) {
+        return batchSearchRepository.deleteBatchSearch((User) context.currentUser(), batchId) ? new Payload(204): notFound();
+    }
+
     @Post("search/:project")
     public Payload search(String projectId, Context context) throws Exception {
         List<Part> parts = context.parts();

@@ -16,11 +16,13 @@ public interface BatchSearchRepository {
     boolean saveResults(String batchSearchId, String query, List<Document> documents);
     boolean setState(String batchSearchId, BatchSearch.State state);
     boolean deleteBatchSearches(User user);
+    boolean deleteBatchSearch(User local, String batchId);
 
     List<BatchSearch> get(User user);
     List<BatchSearch> getQueued();
     List<SearchResult> getResults(User user, String batchSearchId);
     List<SearchResult> getResults(User user, String batchId, WebQuery webQuery);
+
     BatchSearch get(User user, String batchId);
 
     @JsonIgnoreProperties(ignoreUnknown = true)
