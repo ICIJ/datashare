@@ -5,7 +5,6 @@ import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.Document;
@@ -43,7 +42,7 @@ class CliApp {
     }
 
     private static void runBatch(Injector injector) throws Exception {
-        injector.getInstance(BatchSearchRunner.class).call();
+        injector.getInstance(TaskFactory.class).createBatchSearchRunner(nullUser()).call();
         injector.getInstance(Indexer.class).close();
     }
 

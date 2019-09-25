@@ -13,7 +13,9 @@ import org.mockito.stubbing.OngoingStubbing;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -24,6 +26,7 @@ import static org.icij.datashare.tasks.BatchSearchRunner.MAX_BATCH_RESULT_SIZE;
 import static org.icij.datashare.tasks.BatchSearchRunner.MAX_SCROLL_SIZE;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.user.User.local;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -42,7 +45,7 @@ public class BatchSearchRunnerTest {
                 new BatchSearch("uuid2", project("test-datashare"), "name2", "desc1", asList("query3", "query4"), new Date(), BatchSearch.State.RUNNING)
         ));
 
-        assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(2);
+        assertThat(new BatchSearchRunner(indexer, repository, local()).call()).isEqualTo(2);
 
         verify(repository).saveResults("uuid1", "query1", asList(documents));
         verify(repository).setState("uuid1", BatchSearch.State.RUNNING);
@@ -59,7 +62,7 @@ public class BatchSearchRunnerTest {
         ));
         when(repository.saveResults(anyString(), any(), anyList())).thenThrow(new RuntimeException());
 
-        assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(0);
+        assertThat(new BatchSearchRunner(indexer, repository, local()).call()).isEqualTo(0);
 
         verify(repository).setState("uuid1", BatchSearch.State.RUNNING);
         verify(repository).setState("uuid1", BatchSearch.State.FAILURE);
@@ -73,7 +76,7 @@ public class BatchSearchRunnerTest {
             new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asList("query"), new Date(), BatchSearch.State.RUNNING)
         ));
 
-        assertThat(new BatchSearchRunner(indexer, repository).call()).isEqualTo(60000);
+        assertThat(new BatchSearchRunner(indexer, repository, local()).call()).isEqualTo(60000);
     }
 
     private void firstSearchWillReturn(int nbOfScrolls, Document... documents) throws IOException {

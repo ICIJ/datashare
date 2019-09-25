@@ -215,7 +215,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.get(new User("foo"))).hasSize(1);
         assertThat(repository.get(User.local())).hasSize(0);
         assertThat(repository.getResults(User.local(), batchSearch1.uuid)).hasSize(0);
-    }   
+    }
 
     @Test
     public void test_delete_batch_search() {

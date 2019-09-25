@@ -1,12 +1,16 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearch.State;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
+import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +19,7 @@ import java.util.concurrent.Callable;
 
 import static java.util.stream.Collectors.toList;
 
-public class BatchSearchRunner implements Callable<Integer> {
+public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTask {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
@@ -28,21 +32,27 @@ public class BatchSearchRunner implements Callable<Integer> {
     static final int MAX_BATCH_RESULT_SIZE = 60000;
 
     private final Indexer indexer;
+    private final User user;
     private final BatchSearchRepository repository;
+    private int totalNbBatches = 0;
+    private int totalProcessed = 0;
 
     @Inject
-    public BatchSearchRunner(Indexer indexer, BatchSearchRepository repository) {
+    public BatchSearchRunner(Indexer indexer, BatchSearchRepository repository, @Assisted User user) {
         this.indexer = indexer;
         this.repository = repository;
+        this.user = user;
     }
 
     @Override
     public Integer call() {
         List<BatchSearch> batchSearches = repository.getQueued();
+        totalNbBatches = batchSearches.size();
         logger.info("found {} queued batch searches", batchSearches.size());
         int totalResults = 0;
         for (BatchSearch batchSearch : batchSearches) {
             totalResults += run(batchSearch);
+            totalProcessed += 1;
         }
         logger.info("done {} batch searches", batchSearches.size());
         return totalResults;
@@ -71,5 +81,15 @@ public class BatchSearchRunner implements Callable<Integer> {
         repository.setState(batchSearch.uuid, State.SUCCESS);
         logger.info("done batch search {} with success", batchSearch.uuid);
         return numberOfResults;
+    }
+
+    @Override
+    public double getProgressRate() {
+        return totalProcessed == 0 && totalNbBatches == 0 ? 0 : (double) totalProcessed/totalNbBatches;
+    }
+
+    @Override
+    public User getUser() {
+        return user;
     }
 }

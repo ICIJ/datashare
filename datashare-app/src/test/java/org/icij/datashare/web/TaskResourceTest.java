@@ -8,13 +8,9 @@ import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.ResumeNlpTask;
-import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -112,6 +108,14 @@ public class TaskResourceTest implements FluentRestTest {
         verify(taskFactory).createScanTask(local(), Paths.get("/default/data/dir"), Options.from(new HashMap<String, String>() {{
             put("dataDir", "/default/data/dir");
         }}));
+    }
+
+    @Test
+    public void test_run_batch_search() {
+        RestAssert response = post("/api/task/batchSearch", "{}");
+
+        response.should().respond(200).haveType("application/json");
+        verify(taskFactory).createBatchSearchRunner(local());
     }
 
     @Test
@@ -275,6 +279,7 @@ public class TaskResourceTest implements FluentRestTest {
     private void init(TaskFactory taskFactory) {
         reset(taskFactory);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
+        when(taskFactory.createBatchSearchRunner(any())).thenReturn(mock(BatchSearchRunner.class));
         when(taskFactory.createScanTask(any(), any(), any())).thenReturn(mock(ScanTask.class));
         when(taskFactory.createResumeNlpTask(any(), eq(singleton(Pipeline.Type.OPENNLP)))).thenReturn(mock(ResumeNlpTask.class));
         when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(NlpApp.class));

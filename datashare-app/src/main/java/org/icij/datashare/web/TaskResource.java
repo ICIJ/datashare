@@ -96,6 +96,11 @@ public class TaskResource {
         return taskManager.cleanDoneTasks().stream().map(TaskResponse::new).collect(toList());
     }
 
+    @Post("/batchSearch")
+    public TaskResponse runBatchSearches(Context context) {
+        return new TaskResponse(taskManager.startTask(taskFactory.createBatchSearchRunner((User)context.currentUser())));
+    }
+
     @Put("/stop/:taskName:")
     public boolean stopTask(final String taskName) {
         return taskManager.stopTask(notFoundIfNull(taskManager.getTask(taskName)).toString());
