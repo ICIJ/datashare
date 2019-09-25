@@ -209,13 +209,13 @@ public class JooqBatchSearchRepositoryTest {
         repository.saveResults(batchSearch1.uuid, "q2", asList(
                         createDoc("doc1"), createDoc("doc2"), createDoc("doc3"), createDoc("doc4")));
 
-        assertThat(repository.deleteBatchSearches(User.local())).isTrue();
-        assertThat(repository.deleteBatchSearches(User.local())).isFalse();
+        assertThat(repository.deleteAll(User.local())).isTrue();
+        assertThat(repository.deleteAll(User.local())).isFalse();
 
         assertThat(repository.get(new User("foo"))).hasSize(1);
         assertThat(repository.get(User.local())).hasSize(0);
         assertThat(repository.getResults(User.local(), batchSearch1.uuid)).hasSize(0);
-    }
+    }   
 
     @Test
     public void test_delete_batch_search() {
@@ -226,8 +226,8 @@ public class JooqBatchSearchRepositoryTest {
         repository.saveResults(batchSearch1.uuid, "q2", asList(
                         createDoc("doc1"), createDoc("doc2"), createDoc("doc3"), createDoc("doc4")));
 
-        assertThat(repository.deleteBatchSearch(User.local(), batchSearch1.uuid)).isTrue();
-        assertThat(repository.deleteBatchSearch(User.local(), batchSearch1.uuid)).isFalse();
+        assertThat(repository.delete(User.local(), batchSearch1.uuid)).isTrue();
+        assertThat(repository.delete(User.local(), batchSearch1.uuid)).isFalse();
 
         assertThat(repository.get(new User("foo"))).hasSize(1);
         assertThat(repository.get(User.local())).isEmpty();

@@ -67,7 +67,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
-    public boolean deleteBatchSearches(User user) {
+    public boolean deleteAll(User user) {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
             inner.deleteFrom(table(BATCH_SEARCH_QUERY)).where(field("search_uuid").
@@ -81,7 +81,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
-    public boolean deleteBatchSearch(User user, String batchId) {
+    public boolean delete(User user, String batchId) {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
             inner.deleteFrom(table(BATCH_SEARCH_QUERY)).where(field("search_uuid").eq(batchId)).execute();

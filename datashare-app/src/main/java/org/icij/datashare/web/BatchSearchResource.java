@@ -48,7 +48,7 @@ public class BatchSearchResource {
 
     @Delete("search")
     public Payload deleteSearches(Context context) {
-        return batchSearchRepository.deleteBatchSearches((User) context.currentUser()) ? new Payload(204): notFound();
+        return batchSearchRepository.deleteAll((User) context.currentUser()) ? new Payload(204): notFound();
     }
 
     @Get("search/:batchid")
@@ -63,7 +63,7 @@ public class BatchSearchResource {
 
     @Delete("search/:batchid")
     public Payload deleteBatch(String batchId, Context context) {
-        return batchSearchRepository.deleteBatchSearch((User) context.currentUser(), batchId) ? new Payload(204): notFound();
+        return batchSearchRepository.delete((User) context.currentUser(), batchId) ? new Payload(204): notFound();
     }
 
     @Post("search/:project")
