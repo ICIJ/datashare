@@ -57,7 +57,7 @@ public class BatchSearchResource {
     }
 
     @Options("search/:batchid")
-    public Payload optionsDelete(Context context) {
+    public Payload optionsDelete(String batchId, Context context) {
         return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
