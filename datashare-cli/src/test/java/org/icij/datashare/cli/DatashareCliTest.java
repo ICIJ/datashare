@@ -9,7 +9,7 @@ public class DatashareCliTest {
     private DatashareCli cli = new DatashareCli();
     @Test
     public void test_web_opt() {
-        assertThat(cli.parseArguments(new String[] {"-o"})).isTrue();
+        assertThat(cli.parseArguments(new String[] {"-o true"})).isTrue();
         assertThat(cli.isWebServer()).isTrue();
 
         assertThat(cli.parseArguments(new String[] {"--mode=BATCH"})).isTrue();

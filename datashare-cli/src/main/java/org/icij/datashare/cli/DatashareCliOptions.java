@@ -114,11 +114,12 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_NLP_PARALLELISM);
     }
 
-    static OptionSpecBuilder enableOcr(OptionParser parser) {
+    static OptionSpec<Boolean> enableOcr(OptionParser parser) {
         return parser.acceptsAll(
-                asList("enableOcr", "o"),
+                asList("ocr", "o"),
                 "Run optical character recognition at file parsing time. " +
-                        "(Tesseract must be installed beforehand).");
+                        "(Tesseract must be installed beforehand).").
+                withRequiredArg().ofType(Boolean.class).defaultsTo(true);
     }
 
     static OptionSpec<Pipeline.Type> nlpPipelines(OptionParser parser) {
