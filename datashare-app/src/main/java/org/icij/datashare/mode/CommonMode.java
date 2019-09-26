@@ -60,9 +60,8 @@ public class CommonMode extends AbstractModule {
             case SERVER:
                 return new ServerMode(properties);
             case CLI:
-                return new CommonMode(properties);
             case BATCH:
-                return new BatchMode(properties);
+                return new CliMode(properties);
             default:
                 throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
         }

@@ -5,8 +5,8 @@ import org.icij.datashare.db.RepositoryFactoryImpl;
 
 import java.util.Properties;
 
-public class BatchMode extends CommonMode {
-    BatchMode(Properties properties) {
+public class CliMode extends CommonMode {
+    CliMode(Properties properties) {
         super(properties);
     }
 
