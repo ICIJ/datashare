@@ -11,6 +11,7 @@ import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
 
 import java.io.IOException;
 import java.util.List;
@@ -62,17 +63,22 @@ public class DocumentResource {
         return tagSaved ? Payload.created(): Payload.ok();
     }
 
+    @Get("/project/:project/tag/:docId")
+    public List<Tag> getDocumentTags(final String projectId, final String docId) {
+        return repository.getTags(project(projectId), docId);
+    }
+
     @Post("/project/:project/group/tag")
-    public Payload groupTagDocument(final String projectId, BatchTagQuery query) throws IOException {
-        repository.tag(project(projectId), query.docIds, query.tagsAsArray());
-        indexer.tag(project(projectId), query.docIds, query.tagsAsArray());
+    public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
+        repository.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
+        indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         return Payload.ok();
     }
 
     @Post("/project/:project/group/untag")
-    public Payload groupUntagDocument(final String projectId, BatchTagQuery query) throws IOException {
-        repository.untag(project(projectId), query.docIds, query.tagsAsArray());
-        indexer.untag(project(projectId), query.docIds, query.tagsAsArray());
+    public Payload groupUntagDocument(final String projectId, BatchTagQuery query,  Context context) throws IOException {
+        repository.untag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
+        indexer.untag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         return Payload.ok();
     }
 
@@ -117,8 +123,8 @@ public class DocumentResource {
             this.docIds = docIds;
         }
 
-        Tag[] tagsAsArray() {
-            return tags.stream().map(Tag::new).toArray(Tag[]::new);
+        Tag[] tagsAsArray(User user) {
+            return tags.stream().map(label -> new Tag(label, user)).toArray(Tag[]::new);
         }
     }
 }

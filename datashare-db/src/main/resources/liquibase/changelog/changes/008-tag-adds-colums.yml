@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 10
+      author: bthomas
+      sql:
+        - ALTER TABLE document_tag ADD COLUMN user_id VARCHAR(255)
+
+  - changeSet:
+      id: 11
+      author: bthomas
+      sql:
+        - ALTER TABLE document_tag ADD COLUMN creation_date TIMESTAMP NOT NULL DEFAULT '01-01-1970 00:00:00'

@@ -114,6 +114,12 @@ public class DocumentResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void testTagsForDocument() {
+        when(repository.getTags(eq(project("prj")), eq("docId"))).thenReturn(asList(tag("tag1"), tag("tag2")));
+        get("/api/document/project/prj/tag/docId").should().respond(200).contain("tag1").contain("tag2");
+    }
+
+    @Test
     public void testTagDocumentWithProjectWithRouting() throws Exception {
         when(repository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);

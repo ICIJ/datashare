@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.junit.Rule;
@@ -13,10 +14,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -26,6 +24,7 @@ import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
+import static org.icij.datashare.user.User.nullUser;
 
 @RunWith(Parameterized.class)
 public class JooqRepositoryTest {
@@ -158,6 +157,30 @@ public class JooqRepositoryTest {
         assertThat(repository.getDocuments(project("prj"), tag("tag2"))).isEmpty();
 
         assertThat(repository.getDocuments(project("prj2"), tag("tag1"))).containsExactly("doc_id3");
+    }
+
+    @Test
+    public void test_get_tags_of_document() {
+        Date creationDate = new Date();
+
+        assertThat(repository.tag(project("prj"), "doc_id", tag("tag1"), new Tag("tag2", new User("foo"), creationDate))).isTrue();
+
+        assertThat(repository.getTags(project("prj"), "doc_id")).contains(tag("tag1"), tag("tag2"));
+        assertThat(repository.getTags(project("unknown"), "doc_id")).isEmpty();
+
+        assertThat(repository.getTags(project("prj"), "doc_id").get(0).user).isEqualTo(nullUser());
+        assertThat(repository.getTags(project("prj"), "doc_id").get(0).creationDate).isNotNull();
+        assertThat(repository.getTags(project("prj"), "doc_id").get(1).user).isEqualTo(new User("foo"));
+        assertThat(repository.getTags(project("prj"), "doc_id").get(1).creationDate).isEqualTo(creationDate);
+    }
+
+    @Test
+    public void test_get_group_tag_of_document() {
+        Date creationDate = new Date();
+        repository.tag(project("prj"), asList("doc1", "doc2"), new Tag("tag", new User("foo"), creationDate));
+
+        assertThat(repository.getTags(project("prj"), "doc1")).contains(tag("tag"));
+        assertThat(repository.getTags(project("prj"), "doc2")).contains(tag("tag"));
     }
 
     @Test

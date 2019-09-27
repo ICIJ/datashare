@@ -1,15 +1,31 @@
 package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import org.icij.datashare.user.User;
 
+import java.util.Date;
 import java.util.Objects;
+
+import static org.icij.datashare.user.User.nullUser;
 
 public class Tag {
     public final String label;
+    public final Date creationDate;
+    public final User user;
 
 
     public Tag(final String label) {
+        this(label, nullUser());
+    }
+
+    public Tag(final String label, User user) {
+        this(label, user, new Date());
+    }
+
+    public Tag(final String label, User user, Date creationDate) {
         this.label = label;
+        this.user = user;
+        this.creationDate = creationDate;
     }
 
     @JsonCreator

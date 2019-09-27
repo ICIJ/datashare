@@ -32,6 +32,7 @@ public interface Repository {
     boolean tag(Project prj, List<String> documentIds, Tag... tags);
     boolean untag(Project prj, List<String> documentIds, Tag... tags);
     List<String> getDocuments(Project project, Tag... tags);
+    List<Tag> getTags(Project project, String documentId);
 
     boolean deleteAll(String projectId);
 }

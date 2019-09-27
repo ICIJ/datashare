@@ -1,5 +1,7 @@
 package org.icij.datashare.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Objects;
 
 public class User {
@@ -9,7 +11,9 @@ public class User {
 
     public String projectName() { return getProjectNameFrom(id);}
     public String queueName() { return "extract:queue_" + id;}
+    @JsonIgnore
     public String getPath() { return this.equals(local()) || isNull()? "": id;}
+    @JsonIgnore
     public boolean isNull() { return this.id == null;}
 
     public static User local() { return new User("local");}

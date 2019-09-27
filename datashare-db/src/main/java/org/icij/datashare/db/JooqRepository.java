@@ -150,10 +150,11 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean tag(Project prj, String documentId, Tag... tags) {
-        InsertValuesStep3<Record, Object, Object, Object> query = using(connectionProvider, dialect).insertInto(
-                        table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
+        InsertValuesStep5<Record, Object, Object, Object, Object, Object> query = using(connectionProvider, dialect).insertInto(
+                        table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"),
+                                        field("creation_date"), field("user_id"));
         List<Tag> tagList = asList(tags);
-        tagList.forEach(t -> query.values(documentId, t.label, prj.getId()));
+        tagList.forEach(t -> query.values(documentId, t.label, prj.getId(), new Timestamp(t.creationDate.getTime()), t.user.id));
         return query.onConflictDoNothing().execute() > 0;
     }
 
@@ -167,10 +168,11 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean tag(Project prj, List<String> documentIds, Tag... tags) {
-        InsertValuesStep3<Record, Object, Object, Object> query = using(connectionProvider, dialect).insertInto(
-                table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"));
+        InsertValuesStep5<Record, Object, Object, Object, Object, Object> query = using(connectionProvider, dialect).insertInto(
+                table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"),
+                field("creation_date"), field("user_id"));
         List<Tag> tagList = asList(tags);
-        documentIds.forEach(d -> tagList.forEach(t -> query.values(d, t.label, prj.getId())));
+        documentIds.forEach(d -> tagList.forEach(t -> query.values(d, t.label, prj.getId(), new Timestamp(t.creationDate.getTime()), t.user.id)));
         return query.onConflictDoNothing().execute() > 0;
     }
 
@@ -187,8 +189,16 @@ public class JooqRepository implements Repository {
         DSLContext create = DSL.using(connectionProvider, dialect);
         return create.selectDistinct(field("doc_id")).from(table(DOCUMENT_TAG)).
                 where(field("label").in(stream(tags).map(t -> t.label).collect(toSet()))).
-                and(field("prj_id").eq(project.getId())).
+                and(field("prj_id").equal(project.getId())).
                 fetch().getValues("doc_id", String.class);
+    }
+
+    @Override
+    public List<Tag> getTags(Project project, String documentId) {
+        return DSL.using(connectionProvider, dialect).select().
+                from(table(DOCUMENT_TAG)).where(field("doc_id").equal(documentId)).
+                and(field("prj_id").equal(project.getId())).
+                stream().map(this::createTagFrom).collect(toList());
     }
 
     @Override
@@ -201,7 +211,6 @@ public class JooqRepository implements Repository {
        });
     }
     // ---------------------------
-
     private NamedEntity createFrom(Record record) {
         return NamedEntity.create(NamedEntity.Category.parse(record.get("category", String.class)),
                 record.get("mention", String.class), record.get("ne_offset", Integer.class),
@@ -223,5 +232,11 @@ public class JooqRepository implements Repository {
                 nerTags, new Date(result.get("extraction_date", Timestamp.class).getTime()), result.get("parent_id", String.class),
                 result.get("root_id", String.class), result.get("extraction_level", Integer.class),
                 result.get("content_length", Long.class));
+    }
+
+    private Tag createTagFrom(Record record) {
+        return new Tag(record.get("label", String.class),
+                new User(record.get("user_id", String.class)),
+                new Date(record.get("creation_date", Timestamp.class).getTime()));
     }
 }
