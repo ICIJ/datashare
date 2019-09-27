@@ -24,7 +24,6 @@ import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.datashare.web.ConfigResource;
-import org.icij.datashare.web.IndexWaiterFilter;
 
 import java.io.IOException;
 import java.util.Map;
@@ -78,7 +77,6 @@ public class CommonMode extends AbstractModule {
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
-        bind(IndexWaiterFilter.class).toInstance(new IndexWaiterFilter(esClient));
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
         bind(TaskManager.class).toInstance(new TaskManager(propertiesProvider));
         install(new FactoryModuleBuilder().build(TaskFactory.class));

@@ -10,6 +10,8 @@ import org.jooq.*;
 import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
+import java.io.Closeable;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.IntStream;
@@ -206,6 +208,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.getValue("content_type", String.class),
                 record.getValue("content_length", Long.class),
                 record.get("doc_nb", Integer.class));
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (dataSource instanceof Closeable) {
+            ((Closeable) dataSource).close();
+        }
     }
 
     public static class UnauthorizedUserException extends RuntimeException {

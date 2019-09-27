@@ -6,12 +6,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.user.User;
 
+import java.io.Closeable;
 import java.util.List;
 import java.util.Objects;
 
 import static java.util.Collections.unmodifiableList;
 
-public interface BatchSearchRepository {
+public interface BatchSearchRepository extends Closeable {
     boolean save(User user, BatchSearch batchSearch);
     boolean saveResults(String batchSearchId, String query, List<Document> documents);
     boolean setState(String batchSearchId, BatchSearch.State state);

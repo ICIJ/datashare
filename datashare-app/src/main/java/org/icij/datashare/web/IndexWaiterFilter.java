@@ -14,6 +14,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Warning the waiter could block the JVM if it has not pinged ES
+ */
 public class IndexWaiterFilter implements Filter {
     private Logger LOGGER = LoggerFactory.getLogger(getClass());
     private static int TIMEOUT_SECONDS = 45;
