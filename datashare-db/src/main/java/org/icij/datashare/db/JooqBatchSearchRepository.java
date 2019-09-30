@@ -201,7 +201,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     private SearchResult createSearchResult(final User actualUser, final Record record) {
         String owner = record.get("user_id", String.class);
-        if (!actualUser.id.equals(owner))
+        boolean published = record.get("published", Integer.class)>0;
+        if (!actualUser.id.equals(owner) && !published)
             throw new UnauthorizedUserException(record.get("uuid", String.class), owner, actualUser.id);
         Timestamp creationDate = record.get("creation_date", Timestamp.class);
         return new SearchResult(record.get(field("query"), String.class),

@@ -247,6 +247,17 @@ public class JooqBatchSearchRepositoryTest {
         repository.getResults(new User("hacker"), batchSearch.uuid);
     }
 
+    @Test
+    public void test_get_results_published_from_another_user() {
+        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"), true);
+        repository.save(User.local(), batchSearch);
+        repository.saveResults(batchSearch.uuid, "query", asList(
+              createDoc("doc1"), createDoc("doc2"), createDoc("doc3"), createDoc("doc4")));
+
+        assertThat(repository.getResults(new User("other"), batchSearch.uuid, new BatchSearchRepository.WebQuery(2, 0))).hasSize(2);
+    }
+
+
     private Document createDoc(String name) {
          return new Document(Project.project("prj"), "id_" + name, Paths.get("/path/to/").resolve(name), name,
                  FRENCH, Charset.defaultCharset(),
