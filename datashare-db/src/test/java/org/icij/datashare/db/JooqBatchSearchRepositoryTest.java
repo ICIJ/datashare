@@ -45,7 +45,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_save_batch_search() {
+    public void test_save_and_get_batch_search() {
         BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"), "name1", "description1",
                 asList("q1", "q2"), true);
         BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name2", "description2",
@@ -61,6 +61,8 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(project(batchSearches, b -> b.description)).containsExactly("description2", "description1");
         assertThat(project(batchSearches, b -> b.nbResults)).containsExactly(0, 0);
         assertThat(project(batchSearches, BatchSearch::getQueryList)).containsExactly(asList("q3", "q4"), asList("q1", "q2"));
+
+        assertThat(project(repository.get(new User("other")), b -> b.name)).containsExactly("name1");
     }
 
     @Test

@@ -97,7 +97,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public List<BatchSearch> get(final User user) {
         return mergeBatchSearches(
                 createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
-                where(field(BATCH_SEARCH + ".user_id").eq(user.id)).
+                where(field(BATCH_SEARCH + ".user_id").eq(user.id).
+                        or(field(name(BATCH_SEARCH, "published")).greaterThan(0))).
                         orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
                 fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
     }
