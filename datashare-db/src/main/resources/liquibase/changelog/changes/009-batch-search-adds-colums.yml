@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 12
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search ADD COLUMN published INTEGER NOT NULL DEFAULT 0
+
+  - changeSet:
+      id: 13
+      author: bthomas
+      changes:
+        - createIndex:
+            indexName: batch_search_published
+            tableName: batch_search
+            columns:
+              - column:
+                  name: published
+                  type: integer
+
+  - changeSet:
+      id: 14
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search ADD COLUMN phrase_matches INTEGER NOT NULL DEFAULT 0
+
+  - changeSet:
+      id: 15
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search ADD COLUMN sloppiness INTEGER NOT NULL DEFAULT 0
+
+  - changeSet:
+      id: 16
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search ADD COLUMN file_types TEXT
+
+  - changeSet:
+      id: 17
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search ADD COLUMN paths TEXT

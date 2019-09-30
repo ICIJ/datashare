@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.List;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
@@ -69,14 +70,18 @@ public class BatchSearchResource {
     @Post("search/:project")
     public Payload search(String projectId, Context context) throws Exception {
         List<Part> parts = context.parts();
-        if (parts.size() != 3 || !"name".equals(parts.get(0).name()) ||
+        if (parts.size() < 3 || !"name".equals(parts.get(0).name()) ||
                 !"description".equals(parts.get(1).name()) || !"csvFile".equals(parts.get(2).name())) {
             return Payload.badRequest();
         }
         Part namePart = parts.get(0);
         Part descPart = parts.get(1);
         Part csv = parts.get(2);
-        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv));
+        boolean published = false;
+        if (parts.size() == 4) {
+            published = parseBoolean(parts.get(3).content());
+        }
+        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv), published);
         return batchSearchRepository.save((User) context.currentUser(), batchSearch) ?
                 new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
     }

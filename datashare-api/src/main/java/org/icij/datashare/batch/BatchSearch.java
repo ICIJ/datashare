@@ -12,6 +12,7 @@ import static java.util.stream.Collectors.toMap;
 public class BatchSearch {
     public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
     public final String uuid;
+    public final boolean published;
     public final Project project;
     public final String name;
     public final String description;
@@ -22,19 +23,22 @@ public class BatchSearch {
 
     // batch search creation
     public BatchSearch(final Project project, final String name, final String description, final List<String> queries) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, false);
+    }
+    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, boolean published) {
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, published);
+    }
+    public BatchSearch(String uuid, Project project, String name, String description, List<String> queries, Date date, State state) {
+        this(uuid, project, name, description, toLinkedHashMap(queries), date, state, 0, false);
     }
 
     // for tests
     public BatchSearch(final Project project, final String name, final String description, final List<String> queries, Date date) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), date, State.QUEUED, 0);
-    }
-    public BatchSearch(String uuid, Project project, String name, String description, List<String> queries, Date date, State state) {
-        this(uuid, project, name, description, toLinkedHashMap(queries), date, state, 0);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), date, State.QUEUED, 0, false);
     }
 
     // retrieved from persistence
-    public BatchSearch(String uuid, Project project, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, int nbResults) {
+    public BatchSearch(String uuid, Project project, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, int nbResults, boolean published) {
         assert date != null && uuid != null;
         this.uuid = uuid;
         this.project = project;
@@ -44,6 +48,7 @@ public class BatchSearch {
         this.date = date;
         this.state = state;
         this.nbResults = nbResults;
+        this.published = published;
     }
 
     public Date getDate() { return date;}

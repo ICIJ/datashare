@@ -13,6 +13,7 @@ import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.sql.SQLException;
@@ -99,6 +100,36 @@ public class BatchSearchResourceTest implements FluentRestTest {
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
                 asList("query one", "query two", "query three"), new Date(), BatchSearch.State.RUNNING)));
+    }
+
+    @Test
+    public void test_upload_batch_search_csv_with_publish() throws SQLException {
+        when(batchSearchRepository.save(any(), any())).thenReturn(true);
+
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
+                "--AaB03x\r\n" +
+                "Content-Disposition: form-data; name=\"name\"\r\n" +
+                "\r\n" +
+                "my batch search\r\n" +
+                "--AaB03x\r\n" +
+                "Content-Disposition: form-data; name=\"description\"\r\n" +
+                "\r\n" +
+                "search description\r\n" +
+                "--AaB03x\r\n" +
+                "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                "Content-Type: text/csv\r\n" +
+                "\r\n" +
+                "query\r\n" +
+                "--AaB03x\r\n" +
+                "Content-Disposition: form-data; name=\"published\"\r\n" +
+                "\r\n" +
+                "True\r\n" +
+                "--AaB03x--").response();
+
+        assertThat(response.code()).isEqualTo(200);
+        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
+        verify(batchSearchRepository).save(any(), argument.capture());
+        assertThat(argument.getValue().published).isTrue();
     }
 
     @Test
