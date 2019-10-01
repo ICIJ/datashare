@@ -164,10 +164,15 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         String countByQueryTableName = "countByQuery";
         String hasResultField = "has_result";
         String queryResultsField = "query_results";
-        Table<?> countByQueryDerivedTable = create.select(field(name(BATCH_SEARCH_QUERY, "query")), field(name(BATCH_SEARCH_RESULT, "query")).as(hasResultField), count().as(queryResultsField)).
+        Table<?> countByQueryDerivedTable = create.select(
+                field(name(BATCH_SEARCH_QUERY, "query")),
+                field(name(BATCH_SEARCH_QUERY, "search_uuid")),
+                field(name(BATCH_SEARCH_RESULT, "query")).as(hasResultField),
+                count().as(queryResultsField)).
                 from(table(BATCH_SEARCH_QUERY)).
-                leftJoin(BATCH_SEARCH_RESULT).on(field(name(BATCH_SEARCH_RESULT, "query")).eq(field(name(BATCH_SEARCH_QUERY, "query")))).
-                groupBy(field(name(BATCH_SEARCH_QUERY, "query")), field(hasResultField)).
+                leftJoin(BATCH_SEARCH_RESULT).on(field(name(BATCH_SEARCH_RESULT, "query")).eq(field(name(BATCH_SEARCH_QUERY, "query"))).
+                and(field(name(BATCH_SEARCH_RESULT, "search_uuid")).eq(field(name(BATCH_SEARCH_QUERY, "search_uuid"))))).
+                groupBy(field(name(BATCH_SEARCH_QUERY, "query")), field(name(BATCH_SEARCH_QUERY, "search_uuid")), field(hasResultField)).
                 asTable(countByQueryTableName);
         return create.select(field("uuid"), field("name"), field("description"), field("user_id"),
                 field("prj_id"), field("batch_date"), field("state"),
@@ -177,11 +182,12 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 field(name(countByQueryTableName, queryResultsField)), resultCount).
                 from(table(BATCH_SEARCH).
                         join(BATCH_SEARCH_QUERY).
-                        on(field(BATCH_SEARCH + ".uuid").
-                                eq(field(BATCH_SEARCH_QUERY + ".search_uuid"))).
-                        join(countByQueryDerivedTable).on(field(name(countByQueryTableName, "query")).
-                                eq(field(name(BATCH_SEARCH_QUERY, "query"))
-                )));
+                        on(field(name(BATCH_SEARCH, "uuid")).
+                                eq(field(name(BATCH_SEARCH_QUERY, "search_uuid")))).
+                        leftJoin(countByQueryDerivedTable).on(field(name(countByQueryTableName, "query")).
+                                eq(field(name(BATCH_SEARCH_QUERY, "query"))).
+                        and(field(name(countByQueryTableName, "search_uuid")).
+                                eq(field(name(BATCH_SEARCH, "uuid"))))));
     }
 
     private BatchSearch createBatchSearchFrom(final Record record) {

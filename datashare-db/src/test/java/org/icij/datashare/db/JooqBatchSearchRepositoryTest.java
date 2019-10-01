@@ -132,6 +132,17 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_results_by_query_are_isolated() {
+        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"), "name1", "description1", asList("my query", "my other query"));
+        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name2", "description2", asList("my query", "3rd query"));
+        repository.save(User.local(), batchSearch1);
+        repository.save(User.local(), batchSearch2);
+        repository.saveResults(batchSearch1.uuid, "my query", asList(createDoc("doc1"), createDoc("doc2")));
+
+        assertThat(repository.get(User.local(), batchSearch2.uuid).queries).includes(entry("my query", 0), entry("3rd query", 0));
+    }
+
+    @Test
     public void test_get_results_paginated() {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"));
         repository.save(User.local(), batchSearch);
