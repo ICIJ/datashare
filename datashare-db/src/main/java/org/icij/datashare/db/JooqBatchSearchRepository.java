@@ -156,29 +156,26 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
-    private SelectJoinStep<Record13<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>>
+    private SelectJoinStep<Record12<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
         Field<Object> resultCount = create.selectCount().from(table(BATCH_SEARCH_RESULT)).
                 where(field(name(BATCH_SEARCH_RESULT, "search_uuid")).
                         equal(field(name(BATCH_SEARCH, "uuid")))).asField("count");
         String countByQueryTableName = "countByQuery";
-        String hasResultField = "has_result";
         String queryResultsField = "query_results";
         Table<?> countByQueryDerivedTable = create.select(
                 field(name(BATCH_SEARCH_QUERY, "query")),
-                field(name(BATCH_SEARCH_QUERY, "search_uuid")),
-                field(name(BATCH_SEARCH_RESULT, "query")).as(hasResultField),
+                field(name(BATCH_SEARCH_RESULT, "search_uuid")),
                 count().as(queryResultsField)).
                 from(table(BATCH_SEARCH_QUERY)).
                 leftJoin(BATCH_SEARCH_RESULT).on(field(name(BATCH_SEARCH_RESULT, "query")).eq(field(name(BATCH_SEARCH_QUERY, "query"))).
                 and(field(name(BATCH_SEARCH_RESULT, "search_uuid")).eq(field(name(BATCH_SEARCH_QUERY, "search_uuid"))))).
-                groupBy(field(name(BATCH_SEARCH_QUERY, "query")), field(name(BATCH_SEARCH_QUERY, "search_uuid")), field(hasResultField)).
+                groupBy(field(name(BATCH_SEARCH_QUERY, "query")), field(name(BATCH_SEARCH_RESULT, "search_uuid"))).
                 asTable(countByQueryTableName);
         return create.select(field("uuid"), field("name"), field("description"), field("user_id"),
                 field("prj_id"), field("batch_date"), field("state"),
                 field("query_number"), field(name(BATCH_SEARCH_QUERY, "query")),
                 field(name(BATCH_SEARCH, "published")),
-                field(name(countByQueryTableName, hasResultField)),
                 field(name(countByQueryTableName, queryResultsField)), resultCount).
                 from(table(BATCH_SEARCH).
                         join(BATCH_SEARCH_QUERY).
@@ -191,14 +188,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     private BatchSearch createBatchSearchFrom(final Record record) {
-        String hasResult = record.getValue("has_result", String.class);
-        Integer query_results = hasResult == null ? 0:record.getValue("query_results", Integer.class);
+        Integer query_results = record.getValue("query_results", Integer.class);
+        Integer nb_queries = query_results == null ? 0: query_results;
         return new BatchSearch(record.get("uuid", String.class).trim(),
                 project(record.getValue("prj_id", String.class)),
                 record.getValue("name", String.class),
                 record.getValue("description", String.class),
                 new LinkedHashMap<String, Integer>() {{
-                    put(record.getValue("query", String.class), query_results);}},
+                    put(record.getValue("query", String.class), nb_queries);}},
                 new Date(record.get("batch_date", Timestamp.class).getTime()),
                 State.valueOf(record.get("state", String.class)),
                 record.get("count", Integer.class),
