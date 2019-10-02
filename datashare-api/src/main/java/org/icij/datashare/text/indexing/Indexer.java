@@ -54,5 +54,6 @@ public interface Indexer extends Closeable {
         long totalHits();
         Searcher with(Tag... tags);
         Searcher with(String query);
+        Searcher withFieldValues(String key, String... values);
     }
 }

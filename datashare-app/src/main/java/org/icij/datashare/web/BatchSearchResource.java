@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.format;
@@ -81,7 +82,8 @@ public class BatchSearchResource {
         if (parts.size() == 4) {
             published = parseBoolean(parts.get(3).content());
         }
-        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv), published);
+        List<String> fileTypes = fieldValues("fileTypes", parts);
+        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv), published, fileTypes);
         return batchSearchRepository.save((User) context.currentUser(), batchSearch) ?
                 new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
     }
@@ -128,5 +130,15 @@ public class BatchSearchResource {
         } catch (JooqBatchSearchRepository.UnauthorizedUserException unauthorized) {
             throw new UnauthorizedException();
         }
+    }
+
+    private List<String> fieldValues(String field, List<Part> parts) {
+        return parts.stream().filter(p -> field.equals(p.name())).map(part -> {
+            try {
+                return part.content();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(Collectors.toList());
     }
 }

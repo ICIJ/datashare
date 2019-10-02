@@ -102,5 +102,5 @@ public class BatchSearchRunnerTest {
          }
 
     @Before
-    public void setUp() throws Exception { initMocks(this);}
+    public void setUp() { initMocks(this);}
 }
