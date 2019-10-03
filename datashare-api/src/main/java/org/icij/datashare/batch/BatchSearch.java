@@ -22,30 +22,31 @@ public class BatchSearch {
     public final State state;
     private final Date date;
     public final List<String> fileTypes;
+    public final List<String> paths;
     public final int nbResults;
 
     // batch search creation
     public BatchSearch(final Project project, final String name, final String description, final List<String> queries) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, false, null);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, false, null, null);
     }
     public BatchSearch(final Project project, final String name, final String description, final List<String> queries, boolean published) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, published, null);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, published, null, null);
     }
-    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, boolean published, List<String> fileTypes) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, published, fileTypes);
+    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, boolean published, List<String> fileTypes, List<String> paths) {
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, published, fileTypes, paths);
     }
     public BatchSearch(String uuid, Project project, String name, String description, List<String> queries, Date date, State state) {
-        this(uuid, project, name, description, toLinkedHashMap(queries), date, state, 0, false, null);
+        this(uuid, project, name, description, toLinkedHashMap(queries), date, state, 0, false, null, null);
     }
 
     // for tests
     public BatchSearch(final Project project, final String name, final String description, final List<String> queries, Date date) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), date, State.QUEUED, 0, false, null);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), date, State.QUEUED, 0, false, null, null);
     }
 
     // retrieved from persistence
     public BatchSearch(String uuid, Project project, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state,
-                       int nbResults, boolean published, List<String> fileTypes) {
+                       int nbResults, boolean published, List<String> fileTypes, List<String> paths) {
         assert date != null && uuid != null;
         this.uuid = uuid;
         this.project = project;
@@ -57,6 +58,7 @@ public class BatchSearch {
         this.nbResults = nbResults;
         this.published = published;
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
+        this.paths = unmodifiableList(ofNullable(paths).orElse(new ArrayList<>()));
     }
 
     public Date getDate() { return date;}

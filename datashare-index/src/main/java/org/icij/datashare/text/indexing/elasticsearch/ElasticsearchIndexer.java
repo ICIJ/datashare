@@ -43,6 +43,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -408,12 +409,27 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Searcher withFieldValues(String key, String... values) {
-            this.boolQuery.must(termsQuery(key, values));
+            if (values.length > 0) this.boolQuery.must(termsQuery(key, values));
             return this;
         }
 
         @Override
-        public Searcher withFieldValue(String name, String value) {
+        public Searcher withPrefixQuery(String key, String... values) {
+            if (values.length == 0) {
+                return this;
+            }
+            if (values.length == 1) {
+                this.boolQuery.must(prefixQuery(key, values[0]));
+                return this;
+            }
+            BoolQueryBuilder innerQuery = new BoolQueryBuilder();
+            Arrays.stream(values).forEach(v -> innerQuery.must(prefixQuery(key, v)));
+            this.boolQuery.must(innerQuery);
+            return this;
+        }
+
+        @Override
+        public Searcher thatMatchesFieldValue(String name, String value) {
             this.boolQuery.must(matchQuery(name, value));
             return this;
         }

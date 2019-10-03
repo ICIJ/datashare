@@ -41,7 +41,7 @@ public class NamedEntityResource {
     @Put("/namedEntity/hide/:mentionNorm")
     public Payload hide(final String mentionNorm, Context context) throws IOException {
         List<? extends Entity> nes = indexer.search(((User) context.currentUser()).projectName(), NamedEntity.class).
-                withFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
+                thatMatchesFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
         indexer.bulkUpdate(((User)context.currentUser()).projectName(), nes);
         return ok();
     }

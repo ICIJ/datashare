@@ -79,11 +79,12 @@ public class BatchSearchResource {
         Part descPart = parts.get(1);
         Part csv = parts.get(2);
         boolean published = false;
-        if (parts.size() == 4) {
+        if (parts.size() >= 4) {
             published = parseBoolean(parts.get(3).content());
         }
         List<String> fileTypes = fieldValues("fileTypes", parts);
-        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv), published, fileTypes);
+        List<String> paths = fieldValues("paths", parts);
+        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv), published, fileTypes, paths);
         return batchSearchRepository.save((User) context.currentUser(), batchSearch) ?
                 new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
     }

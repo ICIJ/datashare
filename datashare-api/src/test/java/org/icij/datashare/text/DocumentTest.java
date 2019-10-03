@@ -35,11 +35,12 @@ public class DocumentTest {
     }
 
     @Test
-    public void test_json_deserialize_path_with_special_chars_without_dirname() throws Exception {
+    public void test_json_deserialize_path_and_dirname_with_special_chars() throws Exception {
         String path = "/dir/to/docs/shared/foo/Data/2018-05/My Administrations/TGA_BAR/htmls/responses3/3#19221-Arrow CVC SET: 3-CORP 4FR X 8CM - Qux, blah, infusion, central portal|Pouet International Inc.html";
 
         Document document = JsonObjectMapper.MAPPER.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
                         "\"path\":\"" + path + "\"," +
+                        "\"dirname\":\"" + get(path).getParent() + "\"," +
                         "\"content\":\"content\",\"language\":\"FRENCH\"," +
                         "\"extractionDate\":\"2019-05-09T16:12:17.589Z\",\"contentEncoding\":\"UTF-8\"," +
                         "\"contentType\":\"text/plain\",\"extractionLevel\":0," +

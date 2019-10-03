@@ -49,11 +49,12 @@ public interface Indexer extends Closeable {
         Searcher without(Pipeline.Type... nlpPipelines);
         Searcher with(Pipeline.Type... nlpPipelines);
         Searcher limit(int maxCount);
-        Searcher withFieldValue(String key, String value);
         void clearScroll() throws IOException;
         long totalHits();
         Searcher with(Tag... tags);
         Searcher with(String query);
+        Searcher thatMatchesFieldValue(String key, String value);
         Searcher withFieldValues(String key, String... values);
+        Searcher withPrefixQuery(String key, String... values);
     }
 }

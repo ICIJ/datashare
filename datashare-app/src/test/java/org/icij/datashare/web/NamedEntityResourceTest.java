@@ -8,7 +8,6 @@ import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.web.NamedEntityResource;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -69,7 +68,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
         assertThat(toBeHidden.isHidden()).isFalse();
         Indexer.Searcher searcher = mock(Indexer.Searcher.class);
         doReturn(Stream.of(toBeHidden)).when(searcher).execute();
-        doReturn(searcher).when(searcher).withFieldValue(any(), any());
+        doReturn(searcher).when(searcher).thatMatchesFieldValue(any(), any());
         doReturn(searcher).when(indexer).search("local-datashare", NamedEntity.class);
 
         put("/api/namedEntity/hide/to_update").should().respond(200);

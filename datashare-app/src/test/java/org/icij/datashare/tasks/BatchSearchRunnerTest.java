@@ -88,6 +88,8 @@ public class BatchSearchRunnerTest {
         ongoingStubbing.thenAnswer(a -> Stream.empty());
         when(searcher.with((String) any())).thenReturn(searcher);
         when(searcher.withoutSource(any())).thenReturn(searcher);
+        when(searcher.withFieldValues(anyString())).thenReturn(searcher);
+        when(searcher.withPrefixQuery(anyString())).thenReturn(searcher);
         when(searcher.limit(anyInt())).thenReturn(searcher);
         when(searcher.totalHits()).thenReturn((long) documents.length).thenReturn(0L);
         when(indexer.search("test-datashare", Document.class)).thenReturn(searcher);

@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toSet;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -39,27 +40,33 @@ public class BatchSearchRunnerIntTest {
     @After public void tearDown() throws IOException { es.removeAll();}
 
     @Test
-    public void test_search_with_file_types_doesnt_find_if_type_do_not_match() throws Exception {
+    public void test_search_with_file_types() throws Exception {
         Document mydoc = createDoc("mydoc");
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("application/pdf"));
-        when(repository.getQueued()).thenReturn(singletonList(search));
+        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("application/pdf"), null);
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("text/plain"), null);
+        when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
 
         new BatchSearchRunner(indexer, repository, local()).call();
 
-        verify(repository, never()).saveResults(eq(search.uuid), eq("mydoc"), anyList());
+        verify(repository, never()).saveResults(eq(searchKo.uuid), eq("mydoc"), anyList());
+        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc));
     }
 
     @Test
-    public void test_search_with_file_types_finds_type() throws Exception {
+    public void test_search_with_paths() throws Exception {
         Document mydoc = createDoc("mydoc");
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("text/plain"));
-        when(repository.getQueued()).thenReturn(singletonList(search));
+        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, null,
+                singletonList("/foo/bar"));
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, null,
+                singletonList("file:///path/to"));
+        when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
 
         new BatchSearchRunner(indexer, repository, local()).call();
 
-        verify(repository).saveResults(search.uuid, "mydoc", singletonList(mydoc));
+        verify(repository, never()).saveResults(eq(searchKo.uuid), eq("mydoc"), anyList());
+        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc));
     }
 
     private Document createDoc(String name, Pipeline.Type... pipelineTypes) {

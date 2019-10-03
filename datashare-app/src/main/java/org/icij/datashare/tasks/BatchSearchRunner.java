@@ -64,10 +64,10 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         repository.setState(batchSearch.uuid, State.RUNNING);
         try {
             for (String query : batchSearch.queries.keySet()) {
-                Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).with(query).withoutSource("content").limit(MAX_SCROLL_SIZE);
-                if (!batchSearch.fileTypes.isEmpty()) {
-                    searcher.withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[] {}));
-                }
+                Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).with(query).
+                        withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[] {})).
+                        withPrefixQuery("dirname", batchSearch.paths.toArray(new String[] {})).
+                        withoutSource("content").limit(MAX_SCROLL_SIZE);
                 List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
 
                 while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE) {
