@@ -212,8 +212,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 State.valueOf(record.get("state", String.class)),
                 record.get("count", Integer.class),
                 record.get("published", Integer.class) > 0,
-                file_types.isEmpty()? null: asList(file_types.split(LIST_SEPARATOR)),
-                paths.isEmpty()? null: asList(paths.split(LIST_SEPARATOR)),
+                file_types == null || file_types.isEmpty()? null: asList(file_types.split(LIST_SEPARATOR)),
+                paths == null || paths.isEmpty()? null: asList(paths.split(LIST_SEPARATOR)),
                 record.get("fuzziness", Integer.class)
         );
     }
