@@ -43,8 +43,8 @@ public class BatchSearchRunnerIntTest {
     public void test_search_with_file_types() throws Exception {
         Document mydoc = createDoc("mydoc");
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("application/pdf"), null);
-        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("text/plain"), null);
+        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("application/pdf"), null, 0);
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("text/plain"), null, 0);
         when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
 
         new BatchSearchRunner(indexer, repository, local()).call();
@@ -58,15 +58,34 @@ public class BatchSearchRunnerIntTest {
         Document mydoc = createDoc("mydoc");
         indexer.add(TEST_INDEX, mydoc);
         BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, null,
-                singletonList("/foo/bar"));
+                singletonList("/foo/bar"), 0);
         BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, null,
-                singletonList("file:///path/to"));
+                singletonList("file:///path/to"), 0);
         when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
 
         new BatchSearchRunner(indexer, repository, local()).call();
 
         verify(repository, never()).saveResults(eq(searchKo.uuid), eq("mydoc"), anyList());
         verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc));
+    }
+
+    @Test
+    public void test_search_with_fuzziness() throws Exception {
+        Document mydoc = createDoc("mydoc");
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch searchKo1 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("doc"), false, null,
+                null, 1);
+        BatchSearch searchKo2 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("nodoc"), false, null,
+                null, 1);
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("hedoc"), false, null,
+                null, 2);
+        when(repository.getQueued()).thenReturn(asList(searchKo1, searchKo2, searchOk));
+
+        new BatchSearchRunner(indexer, repository, local()).call();
+
+        verify(repository, never()).saveResults(eq(searchKo1.uuid), eq("doc"), anyList());
+        verify(repository, never()).saveResults(eq(searchKo2.uuid), eq("nodoc"), anyList());
+        verify(repository).saveResults(searchOk.uuid, "hedoc", singletonList(mydoc));
     }
 
     private Document createDoc(String name, Pipeline.Type... pipelineTypes) {

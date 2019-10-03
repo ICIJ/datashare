@@ -17,9 +17,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.parseBoolean;
+import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
@@ -84,7 +86,9 @@ public class BatchSearchResource {
         }
         List<String> fileTypes = fieldValues("fileTypes", parts);
         List<String> paths = fieldValues("paths", parts);
-        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv), published, fileTypes, paths);
+        Optional<Part> fuzzinessPart = parts.stream().filter(p -> "fuzziness".equals(p.name())).findAny();
+        int fuzziness = fuzzinessPart.isPresent() ? parseInt(fuzzinessPart.get().content()):0;
+        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv), published, fileTypes, paths, fuzziness);
         return batchSearchRepository.save((User) context.currentUser(), batchSearch) ?
                 new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
     }

@@ -42,10 +42,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
             inner.insertInto(table(BATCH_SEARCH), field("uuid"), field("name"), field("description"), field("user_id"),
-                    field("prj_id"), field("batch_date"), field("state"), field("published"), field("file_types"), field("paths")).
+                    field("prj_id"), field("batch_date"), field("state"), field("published"), field("file_types"), field("paths"), field("fuzziness")).
                     values(batchSearch.uuid, batchSearch.name, batchSearch.description, user.id,
                             batchSearch.project.getId(), new Timestamp(batchSearch.getDate().getTime()), batchSearch.state.name(), batchSearch.published?1:0,
-                            join(LIST_SEPARATOR, batchSearch.fileTypes),join(LIST_SEPARATOR, batchSearch.paths)).execute();
+                            join(LIST_SEPARATOR, batchSearch.fileTypes),join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness).execute();
             InsertValuesStep3<Record, Object, Object, Object> insertQuery =
                     inner.insertInto(table(BATCH_SEARCH_QUERY), field("search_uuid"), field("query"), field("query_number"));
             List<String> queries = new ArrayList<>(batchSearch.queries.keySet());
@@ -159,11 +159,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                                         LinkedHashMap::new)),
                         batchSearches.get(0).getDate(),
                         batchSearches.get(0).state, batchSearches.get(0).nbResults, batchSearches.get(0).published,
-                        batchSearches.get(0).fileTypes, batchSearches.get(0).paths)).
+                        batchSearches.get(0).fileTypes, batchSearches.get(0).paths, batchSearches.get(0).fuzziness)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
-    private SelectJoinStep<Record14<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>>
+    private SelectJoinStep<Record15<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
         Field<Object> resultCount = create.selectCount().from(table(BATCH_SEARCH_RESULT)).
                 where(field(name(BATCH_SEARCH_RESULT, "search_uuid")).
@@ -185,6 +185,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 field(name(BATCH_SEARCH, "published")),
                 field(name(BATCH_SEARCH, "file_types")),
                 field(name(BATCH_SEARCH, "paths")),
+                field(name(BATCH_SEARCH, "fuzziness")),
                 field(name(countByQueryTableName, queryResultsField)), resultCount).
                 from(table(BATCH_SEARCH).
                         join(BATCH_SEARCH_QUERY).
@@ -212,7 +213,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.get("count", Integer.class),
                 record.get("published", Integer.class) > 0,
                 file_types.isEmpty()? null: asList(file_types.split(LIST_SEPARATOR)),
-                paths.isEmpty()? null: asList(paths.split(LIST_SEPARATOR))
+                paths.isEmpty()? null: asList(paths.split(LIST_SEPARATOR)),
+                record.get("fuzziness", Integer.class)
         );
     }
 

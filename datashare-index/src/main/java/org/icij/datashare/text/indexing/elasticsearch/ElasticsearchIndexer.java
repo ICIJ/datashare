@@ -393,9 +393,14 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Searcher with(String query) {
+            return with(query, 0);
+        }
+
+        @Override
+        public Searcher with(String query, int fuzziness) {
             this.boolQuery.must(new MatchAllQueryBuilder());
             BoolQueryBuilder innerQuery = new BoolQueryBuilder();
-            innerQuery.should(new QueryStringQueryBuilder(query).defaultField("*"));
+            innerQuery.should(new QueryStringQueryBuilder(query + "~" + fuzziness).defaultField("*"));
             innerQuery.should(new HasChildQueryBuilder("NamedEntity", new MatchQueryBuilder("mention", query), ScoreMode.None));
             this.boolQuery.must(innerQuery);
             return this;

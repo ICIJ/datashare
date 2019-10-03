@@ -35,7 +35,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class BatchSearchRunnerTest {
     @Mock Indexer indexer;
     @Mock BatchSearchRepository repository;
-
+    
     @Test
     public void test_run_batch_searches() throws Exception {
         Document[] documents = {createDoc("doc1"), createDoc("doc2")};
@@ -86,7 +86,7 @@ public class BatchSearchRunnerTest {
             ongoingStubbing = ongoingStubbing.thenAnswer(a -> Stream.of(documents));
         }
         ongoingStubbing.thenAnswer(a -> Stream.empty());
-        when(searcher.with((String) any())).thenReturn(searcher);
+        when(searcher.with(any(),anyInt())).thenReturn(searcher);
         when(searcher.withoutSource(any())).thenReturn(searcher);
         when(searcher.withFieldValues(anyString())).thenReturn(searcher);
         when(searcher.withPrefixQuery(anyString())).thenReturn(searcher);
