@@ -5,15 +5,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
+import net.codestory.http.errors.ForbiddenException;
+import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
+import net.codestory.http.types.ContentTypes;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.FileExtension;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
+import org.jetbrains.annotations.NotNull;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.util.List;
 
 import static java.util.Arrays.stream;
@@ -30,6 +40,16 @@ public class DocumentResource {
     public DocumentResource(Repository repository, Indexer indexer) {
         this.repository = repository;
         this.indexer = indexer;
+    }
+
+    @Get("/src/:project/:id?routing=:routing")
+    public Payload getSourceFile(final String index, final String id,
+                                 final String routing, final Context context) throws IOException {
+        boolean inline = context.request().query().getBoolean("inline");
+        if (isGranted((HashMapUser)context.currentUser(), index, context.request().clientAddress())) {
+            return routing == null ? getPayload(indexer.get(index, id), index, inline) : getPayload(indexer.get(index, id, routing),index, inline);
+        }
+        throw new ForbiddenException();
     }
 
     @Post("/project/:project/group/star")
@@ -111,6 +131,24 @@ public class DocumentResource {
     @Put("/unstar/:docId")
     public Payload unstarDocument(final String docId, Context context) {
         return repository.unstar((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
+    }
+
+    @NotNull
+    private Payload getPayload(Document doc, String index, boolean inline) throws IOException {
+        try (InputStream from = new SourceExtractor().getSource(project(index), doc)) {
+            String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
+            Payload payload = new Payload(contentType, InputStreams.readBytes(from));
+            String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
+            return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
+        } catch (FileNotFoundException fnf) {
+            return Payload.notFound();
+        }
+    }
+
+    private boolean isGranted(HashMapUser user, String projectId, InetSocketAddress inetSocketAddress) {
+        Project project = repository.getProject(projectId);
+        return (project == null || project.matches(inetSocketAddress.getAddress().getHostAddress())) &&
+                (user.getIndices().contains(projectId) || user.projectName().equals(projectId));
     }
 
     private static class BatchTagQuery {

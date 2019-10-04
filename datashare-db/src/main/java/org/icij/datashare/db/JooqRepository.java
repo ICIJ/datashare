@@ -30,6 +30,7 @@ public class JooqRepository implements Repository {
     private static final String NAMED_ENTITY = "named_entity";
     private static final String DOCUMENT_USER_STAR = "document_user_star";
     private static final String DOCUMENT_TAG = "document_tag";
+    public static final String PROJECT = "project";
 
     private final DataSource connectionProvider;
     private SQLDialect dialect;
@@ -63,8 +64,7 @@ public class JooqRepository implements Repository {
     @Override
     public Document getDocument(final String id) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        Record docResult = create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0);
-        return createDocumentFrom(docResult);
+        return createDocumentFrom(create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0));
     }
 
     @Override
@@ -210,7 +210,26 @@ public class JooqRepository implements Repository {
            return deleteStarResult + deleteTagResult > 0;
        });
     }
+
+    @Override
+    public Project getProject(String projectId) {
+        return createProjectFrom(DSL.using(connectionProvider, dialect).selectFrom(table(PROJECT)).
+                where(field("id").eq(projectId)).fetchOne());
+    }
+
+    boolean save(Project project) {
+        return DSL.using(connectionProvider, dialect).insertInto(table(PROJECT)).
+                columns(field("id"), field("path"), field("allow_from_mask")).
+                values(project.name, project.sourcePath.toString(), project.allowFromMask).execute() > 0;
+    }
+
     // ---------------------------
+    private Project createProjectFrom(Record record) {
+        return record == null ? null: new Project(record.get("id", String.class),
+                Paths.get(record.get("path", String.class)),
+                record.get("allow_from_mask", String.class));
+    }
+
     private NamedEntity createFrom(Record record) {
         return NamedEntity.create(NamedEntity.Category.parse(record.get("category", String.class)),
                 record.get("mention", String.class), record.get("ne_offset", Integer.class),

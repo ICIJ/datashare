@@ -3,20 +3,29 @@ package org.icij.datashare.web;
 import net.codestory.http.WebServer;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.Project.project;
@@ -27,20 +36,20 @@ import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class DocumentResourceTest implements FluentRestTest {
+    @Rule public TemporaryFolder temp = new TemporaryFolder();
     private static WebServer server = new WebServer() {
         @Override
         protected Env createEnv() {
             return Env.prod();
         }
     }.startOnRandomPort();
-    @Mock
-    Repository repository;
+    @Mock Repository repository;
     @Mock Indexer indexer;
 
     @Before
     public void setUp() {
         initMocks(this);
-        server.configure(routes -> routes.add(new DocumentResource(repository, indexer)));
+        server.configure(routes -> routes.add(new DocumentResource(repository, indexer)).filter(new LocalUserFilter(new PropertiesProvider())));
     }
 
     @Test
@@ -130,18 +139,56 @@ public class DocumentResourceTest implements FluentRestTest {
         verify(indexer, times(2)).tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")));
     }
 
-
     @Test
     public void testGetStarredDocuments() {
-        when(repository.getStarredDocuments(any())).thenReturn(asList(createDoc("doc1"), createDoc("doc2")));
+        when(repository.getStarredDocuments(any())).thenReturn(asList(createDoc("doc1", null), createDoc("doc2", null)));
         get("/api/document/starred").should().respond(200).haveType("application/json").contain("\"doc1\"").contain("\"doc2\"");
+    }
+
+    @Test
+    public void test_get_document_source_with_good_mask() throws Exception {
+        File txtFile = new File(temp.getRoot(), "file.txt");
+        write(txtFile, "content");
+        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc", txtFile.toPath()));
+
+        when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "*.*.*.*"));
+        get("/api/document/src/local-datashare/docId?routing=root").should().respond(200);
+
+        when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "127.0.0.*"));
+        get("/api/document/src/local-datashare/docId?routing=root").should().respond(200);
+    }
+
+    @Test
+    public void test_get_document_source_with_bad_mask() {
+        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc", null));
+
+        when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "1.2.3.4"));
+        get("/api/document/src/local-datashare/docId?routing=root").should().respond(403);
+
+        when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "127.0.1.*"));
+        get("/api/document/src/local-datashare/docId?routing=root").should().respond(403);
+    }
+
+    @Test
+    public void test_get_document_source_with_unknown_project() throws IOException {
+        File txtFile = new File(temp.getRoot(), "file.txt");
+        write(txtFile, "content");
+        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc", txtFile.toPath()));
+
+        when(repository.getProject("local-datashare")).thenReturn(null);
+        get("/api/document/src/local-datashare/docId?routing=root").should().respond(200);
+    }
+
+    static void write(File file, String content) throws IOException {
+        file.toPath().getParent().toFile().mkdirs();
+        Files.write(file.toPath(), content.getBytes(UTF_8));
     }
 
     @Override
     public int port() { return server.port();}
 
-    private Document createDoc(String name) {
-        return new Document(project("prj"), "docid", Paths.get("/path/to/").resolve(name), name,
+    private Document createDoc(String name, Path path) {
+        return new Document(project("prj"), "docid", path, name,
                 FRENCH, Charset.defaultCharset(),
                 "text/plain", new HashMap<>(), Document.Status.INDEXED,
                 new HashSet<>(), new Date(), null, null,

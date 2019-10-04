@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: 18
+      author: bthomas
+      changes:
+        - createTable:
+            tableName: project
+            columns:
+              - column:
+                  name: id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                 name: path
+                 type: varchar(4096)
+              - column:
+                  name: allow_from_mask
+                  type: varchar(64)

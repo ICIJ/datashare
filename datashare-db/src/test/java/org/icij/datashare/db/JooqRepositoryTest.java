@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -116,6 +117,19 @@ public class JooqRepositoryTest {
         assertThat(repository.unstar(user, doc.getId())).isTrue();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
         assertThat(repository.unstar(user, doc.getId())).isFalse();
+    }
+
+    @Test
+    public void test_save_read_project() {
+        assertThat(repository.save(new Project("prj", Paths.get("/source"), "10.0.*.*"))).isTrue();
+        assertThat(repository.getProject("prj").name).isEqualTo("prj");
+        assertThat(repository.getProject("prj").sourcePath.toString()).isEqualTo("/source");
+        assertThat(repository.getProject("prj").allowFromMask).isEqualTo("10.0.*.*");
+    }
+
+    @Test
+    public void test_get_unknown_project() {
+        assertThat(repository.getProject("unknown")).isNull();
     }
 
     @Test

@@ -5,21 +5,36 @@ import org.icij.datashare.Entity;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 
 public class Project implements Entity {
     private static final long serialVersionUID = 2568979856231459L;
 
-    private final String name;
-    private final Path sourcePath;
+    public final String name;
+    public final Path sourcePath;
+    public final String allowFromMask;
+    private final Pattern pattern;
 
     public Project(String corpusName) {
-        this(corpusName, Paths.get("/vault").resolve(corpusName));
+        this(corpusName, Paths.get("/vault").resolve(corpusName), "*");
     }
 
-    public Project(String corpusName, Path source) {
+    public Project(String corpusName, Path source, String allowFromMask) {
         name = corpusName;
         sourcePath = source;
+        this.allowFromMask = allowFromMask;
+        this.pattern = Pattern.compile(allowFromMask.
+                replace(".", "\\.").
+                replace("*", "\\d{1,3}"));
+    }
+
+    public Project(String corpusName, String allowFromMask) {
+        this(corpusName, Paths.get("/vault").resolve(corpusName), allowFromMask);
+    }
+
+    public boolean matches(final String ip) {
+        return pattern.matcher(ip).matches();
     }
 
     @Override

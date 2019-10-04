@@ -35,4 +35,5 @@ public interface Repository {
     List<Tag> getTags(Project project, String documentId);
 
     boolean deleteAll(String projectId);
+    Project getProject(String projectId);
 }
