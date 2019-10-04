@@ -86,7 +86,7 @@ public class BatchSearchRunnerTest {
             ongoingStubbing = ongoingStubbing.thenAnswer(a -> Stream.of(documents));
         }
         ongoingStubbing.thenAnswer(a -> Stream.empty());
-        when(searcher.with(any(),anyInt())).thenReturn(searcher);
+        when(searcher.with(any(),anyInt(),anyBoolean())).thenReturn(searcher);
         when(searcher.withoutSource(any())).thenReturn(searcher);
         when(searcher.withFieldValues(anyString())).thenReturn(searcher);
         when(searcher.withPrefixQuery(anyString())).thenReturn(searcher);

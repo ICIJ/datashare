@@ -88,8 +88,30 @@ public class BatchSearchRunnerIntTest {
         verify(repository).saveResults(searchOk.uuid, "hedoc", singletonList(mydoc));
     }
 
+    @Test
+    public void test_search_with_phraseMatches() throws Exception {
+        Document mydoc = createDoc("mydoc to find");
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch searchKo1 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("to find mydoc"), false, null,
+                null, true);
+        BatchSearch searchOk1 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc to find"), false, null,
+                null,true);
+        BatchSearch searchOk2 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("medoc to find"), false, null,
+                null, 1,true);
+        when(repository.getQueued()).thenReturn(asList(searchKo1, searchOk1, searchOk2));
+
+        new BatchSearchRunner(indexer, repository, local()).call();
+
+        verify(repository, never()).saveResults(eq(searchKo1.uuid), eq("to find mydoc"), anyList());
+        verify(repository).saveResults(searchOk1.uuid, "mydoc to find", singletonList(mydoc));
+       //verify(repository).saveResults(searchOk2.uuid, "medoc to find", singletonList(mydoc));
+
+    }
+
+
+
     private Document createDoc(String name, Pipeline.Type... pipelineTypes) {
-        return new Document(project("prj"), name, Paths.get("/path/to/").resolve(name), "content " + name,
+        return new Document(project("prj"), name.replaceAll(" ",""), Paths.get("/path/to/").resolve(name), "content " + name,
                 FRENCH, Charset.defaultCharset(),
                 "text/plain", new HashMap<>(), DONE,
                 Arrays.stream(pipelineTypes).collect(toSet()), new Date(),
