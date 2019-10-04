@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -401,10 +402,11 @@ public class ElasticsearchIndexer implements Indexer {
         @Override
         public Searcher with(String query, int fuzziness, boolean phraseMatches) {
             this.boolQuery.must(new MatchAllQueryBuilder());
-
             BoolQueryBuilder innerQuery = new BoolQueryBuilder();
-            String queryString= phraseMatches?new StringBuilder().append("\"").append(query).append("\"").toString():query;
-            innerQuery.should(new QueryStringQueryBuilder( queryString + "~" + fuzziness).defaultField("*"));
+            String queryString=phraseMatches? new StringBuilder().append("\"").append(query).append("\"").append("~").append(fuzziness).toString():
+                               Stream.of(query.split(" ")).map(s->new StringBuilder().append(s).append("~").append(fuzziness).toString()).collect(Collectors.joining(" ")) ;
+            System.out.println(queryString);
+            innerQuery.should(new QueryStringQueryBuilder( queryString).defaultField("*"));
 
             innerQuery.should(new HasChildQueryBuilder("NamedEntity", new MatchQueryBuilder("mention", query), ScoreMode.None));
             this.boolQuery.must(innerQuery);

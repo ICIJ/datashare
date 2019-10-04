@@ -98,14 +98,17 @@ public class BatchSearchRunnerIntTest {
                 null,true);
         BatchSearch searchOk2 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("medoc to find"), false, null,
                 null, 1,true);
-        when(repository.getQueued()).thenReturn(asList(searchKo1, searchOk1, searchOk2));
+
+        BatchSearch searchOk3= new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mudoc to find"), false, null,
+                null, 1,false);
+        when(repository.getQueued()).thenReturn(asList(searchKo1, searchOk1, searchOk2,searchOk3));
 
         new BatchSearchRunner(indexer, repository, local()).call();
 
         verify(repository, never()).saveResults(eq(searchKo1.uuid), eq("to find mydoc"), anyList());
         verify(repository).saveResults(searchOk1.uuid, "mydoc to find", singletonList(mydoc));
-       //verify(repository).saveResults(searchOk2.uuid, "medoc to find", singletonList(mydoc));
-
+     //   verify(repository).saveResults(searchOk2.uuid, "medoc to find", singletonList(mydoc));
+        verify(repository).saveResults(searchOk3.uuid, "mudoc to find", singletonList(mydoc));
     }
 
 
