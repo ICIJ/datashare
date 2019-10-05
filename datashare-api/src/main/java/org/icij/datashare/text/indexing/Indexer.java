@@ -53,7 +53,7 @@ public interface Indexer extends Closeable {
         long totalHits();
         Searcher with(Tag... tags);
         Searcher with(String query);
-        Searcher with(String query, int fuzziness);
+        Searcher with(String query, int fuzziness, boolean phraseMatches);
         Searcher thatMatchesFieldValue(String key, String value);
         Searcher withFieldValues(String key, String... values);
         Searcher withPrefixQuery(String key, String... values);

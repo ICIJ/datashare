@@ -42,10 +42,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
             inner.insertInto(table(BATCH_SEARCH), field("uuid"), field("name"), field("description"), field("user_id"),
-                    field("prj_id"), field("batch_date"), field("state"), field("published"), field("file_types"), field("paths"), field("fuzziness")).
+                    field("prj_id"), field("batch_date"), field("state"), field("published"), field("file_types"), field("paths"), field("fuzziness"), field("phrase_matches")).
                     values(batchSearch.uuid, batchSearch.name, batchSearch.description, user.id,
                             batchSearch.project.getId(), new Timestamp(batchSearch.getDate().getTime()), batchSearch.state.name(), batchSearch.published?1:0,
-                            join(LIST_SEPARATOR, batchSearch.fileTypes),join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness).execute();
+                            join(LIST_SEPARATOR, batchSearch.fileTypes),join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness,batchSearch.phraseMatches?1:0).execute();
             InsertValuesStep3<Record, Object, Object, Object> insertQuery =
                     inner.insertInto(table(BATCH_SEARCH_QUERY), field("search_uuid"), field("query"), field("query_number"));
             List<String> queries = new ArrayList<>(batchSearch.queries.keySet());
@@ -159,11 +159,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                                         LinkedHashMap::new)),
                         batchSearches.get(0).getDate(),
                         batchSearches.get(0).state, batchSearches.get(0).nbResults, batchSearches.get(0).published,
-                        batchSearches.get(0).fileTypes, batchSearches.get(0).paths, batchSearches.get(0).fuzziness)).
+                        batchSearches.get(0).fileTypes, batchSearches.get(0).paths, batchSearches.get(0).fuzziness,batchSearches.get(0).phraseMatches)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
-    private SelectJoinStep<Record15<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>>
+    private SelectJoinStep<Record16<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object,Object>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
         Field<Object> resultCount = create.selectCount().from(table(BATCH_SEARCH_RESULT)).
                 where(field(name(BATCH_SEARCH_RESULT, "search_uuid")).
@@ -186,6 +186,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 field(name(BATCH_SEARCH, "file_types")),
                 field(name(BATCH_SEARCH, "paths")),
                 field(name(BATCH_SEARCH, "fuzziness")),
+                field(name(BATCH_SEARCH, "phrase_matches")),
                 field(name(countByQueryTableName, queryResultsField)), resultCount).
                 from(table(BATCH_SEARCH).
                         join(BATCH_SEARCH_QUERY).
@@ -202,6 +203,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         Integer nb_queries = query_results == null ? 0: query_results;
         String file_types = record.get("file_types", String.class);
         String paths = record.get("paths", String.class);
+        boolean phraseMatches=record.get("phrase_matches",Integer.class)==0?false:true ;
         return new BatchSearch(record.get("uuid", String.class).trim(),
                 project(record.getValue("prj_id", String.class)),
                 record.getValue("name", String.class),
@@ -214,7 +216,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.get("published", Integer.class) > 0,
                 file_types == null || file_types.isEmpty()? null: asList(file_types.split(LIST_SEPARATOR)),
                 paths == null || paths.isEmpty()? null: asList(paths.split(LIST_SEPARATOR)),
-                record.get("fuzziness", Integer.class)
+                record.get("fuzziness", Integer.class),
+                phraseMatches
+
         );
     }
 

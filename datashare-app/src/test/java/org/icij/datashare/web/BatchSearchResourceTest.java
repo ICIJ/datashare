@@ -245,6 +245,44 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
 
     @Test
+    public void test_upload_batch_search_csv_with_phrase_matches() {
+        when(batchSearchRepository.save(any(), any())).thenReturn(true);
+
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
+                "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"description\"\r\n" +
+                        "\r\n" +
+                        "search description\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                        "Content-Type: text/csv\r\n" +
+                        "\r\n" +
+                        "query\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"published\"\r\n" +
+                        "\r\n" +
+                        "True\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"phrase_matches\"\r\n" +
+                        "\r\n" +
+                        "True\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"fuzziness\"\r\n" +
+                        "\r\n" +
+                        "4\r\n" +
+                        "--AaB03x--").response();
+
+        assertThat(response.code()).isEqualTo(200);
+        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
+        verify(batchSearchRepository).save(any(), argument.capture());
+        assertThat(argument.getValue().phraseMatches).isTrue();
+    }
+
+    @Test
     public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() throws SQLException {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
