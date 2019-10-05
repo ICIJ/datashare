@@ -2,6 +2,7 @@ package org.icij.datashare.text;
 
 import org.icij.datashare.Entity;
 
+import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -33,8 +34,12 @@ public class Project implements Entity {
         this(corpusName, Paths.get("/vault").resolve(corpusName), allowFromMask);
     }
 
-    public boolean matches(final String ip) {
-        return pattern.matcher(ip).matches();
+    public boolean isAllowed(final InetSocketAddress socketAddress) {
+        return pattern.matcher(socketAddress.getAddress().getHostAddress()).matches();
+    }
+
+    public static boolean isAllowed(Project project, InetSocketAddress socketAddress) {
+        return project == null || project.isAllowed(socketAddress);
     }
 
     @Override

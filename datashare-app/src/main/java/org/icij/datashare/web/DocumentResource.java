@@ -13,7 +13,6 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.FileExtension;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
@@ -23,12 +22,12 @@ import org.jetbrains.annotations.NotNull;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.util.List;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.payload.Payload.ok;
+import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
 
 @Prefix("/api/document")
@@ -46,7 +45,8 @@ public class DocumentResource {
     public Payload getSourceFile(final String index, final String id,
                                  final String routing, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
-        if (isGranted((HashMapUser)context.currentUser(), index, context.request().clientAddress())) {
+        if (isGranted((HashMapUser)context.currentUser(), index) &&
+                isAllowed(repository.getProject(index), context.request().clientAddress())) {
             return routing == null ? getPayload(indexer.get(index, id), index, inline) : getPayload(indexer.get(index, id, routing),index, inline);
         }
         throw new ForbiddenException();
@@ -145,10 +145,8 @@ public class DocumentResource {
         }
     }
 
-    private boolean isGranted(HashMapUser user, String projectId, InetSocketAddress inetSocketAddress) {
-        Project project = repository.getProject(projectId);
-        return (project == null || project.matches(inetSocketAddress.getAddress().getHostAddress())) &&
-                (user.getIndices().contains(projectId) || user.projectName().equals(projectId));
+    private boolean isGranted(HashMapUser user, String projectId) {
+        return user.getIndices().contains(projectId) || user.projectName().equals(projectId);
     }
 
     private static class BatchTagQuery {
