@@ -6,6 +6,7 @@ import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +29,25 @@ public class ProjectResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_project() {
+        when(repository.getProject("projectId")).thenReturn(new Project("projectId"));
         get("/api/project/id/projectId").should().respond(200).contain("projectId");
+    }
+
+    @Test
+    public void test_is_allowed() {
+        when(repository.getProject("projectId")).thenReturn(new Project("projectId", "127.0.0.1"));
+        get("/api/project/isAllowed/projectId").should().respond(200);
+    }
+
+    @Test
+    public void test_unknown_is_allowed() {
+        get("/api/project/isAllowed/projectId").should().respond(200);
+    }
+
+    @Test
+    public void test_is_not_allowed() {
+        when(repository.getProject("projectId")).thenReturn(new Project("projectId", "127.0.0.2"));
+        get("/api/project/isAllowed/projectId").should().respond(403);
     }
 
     @Test

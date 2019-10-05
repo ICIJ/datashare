@@ -28,7 +28,13 @@ public class ProjectResource {
 
     @Get("/id/:id")
     public Project getProject(String id) {
-        return project(id);
+        Project project = repository.getProject(id);
+        return project == null ? project(id):project;
+    }
+
+    @Get("/isAllowed/:id")
+    public Payload isProjectAllowed(String id, Context context) {
+        return Project.isAllowed(repository.getProject(id), context.request().clientAddress()) ? ok(): Payload.forbidden();
     }
 
     @Options("/id/:id")
