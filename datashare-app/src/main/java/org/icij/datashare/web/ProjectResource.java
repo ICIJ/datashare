@@ -13,6 +13,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 
 import static net.codestory.http.payload.Payload.ok;
+import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
 
 @Prefix("/api/project")
@@ -34,7 +35,7 @@ public class ProjectResource {
 
     @Get("/isAllowed/:id")
     public Payload isProjectAllowed(String id, Context context) {
-        return Project.isAllowed(repository.getProject(id), context.request().clientAddress()) ? ok(): Payload.forbidden();
+        return isAllowed(repository.getProject(id), context.request().clientAddress()) ? ok(): Payload.forbidden();
     }
 
     @Options("/id/:id")

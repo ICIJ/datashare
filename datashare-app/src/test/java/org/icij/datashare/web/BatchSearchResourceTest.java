@@ -35,23 +35,25 @@ import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchResourceTest implements FluentRestTest {
-    @Mock BatchSearchRepository batchSearchRepository;
+    @Mock
+    BatchSearchRepository batchSearchRepository;
     private static WebServer server = new WebServer() {
-            @Override
-            protected Env createEnv() {
-                return Env.prod();
-            }
-        }.startOnRandomPort();
+        @Override
+        protected Env createEnv() {
+            return Env.prod();
+        }
+    }.startOnRandomPort();
 
     @Test
     public void test_upload_batch_search_csv_with_bad_parts_number() {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
-        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"name\"\r\n" +
-                "\r\n" +
-                "value\r\n" +
-                "--AaB03x--").
+        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
+                "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "value\r\n" +
+                        "--AaB03x--").
                 should().respond(400);
     }
 
@@ -59,19 +61,20 @@ public class BatchSearchResourceTest implements FluentRestTest {
     public void test_upload_batch_search_csv_with_bad_names() {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
-        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"name\"\r\n" +
-                "\r\n" +
-                "my batch search\r\n" +
+        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"desc\"\r\n" +
-                "\r\n" +
-                "search description\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"files\"; filename=\"search.csv\"\r\n" +
-                "\r\n" +
-                "query\r\n" +
-                "--AaB03x--").
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"desc\"\r\n" +
+                        "\r\n" +
+                        "search description\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"files\"; filename=\"search.csv\"\r\n" +
+                        "\r\n" +
+                        "query\r\n" +
+                        "--AaB03x--").
                 should().respond(400);
     }
 
@@ -79,22 +82,23 @@ public class BatchSearchResourceTest implements FluentRestTest {
     public void test_upload_batch_search_csv() throws SQLException {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
-        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"name\"\r\n" +
-                "\r\n" +
-                "my batch search\r\n" +
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"description\"\r\n" +
-                "\r\n" +
-                "search description\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                "Content-Type: text/csv\r\n" +
-                "\r\n" +
-                "query one\n" +
-                "query two\r\n" +
-                "query three\r\n" +
-                "--AaB03x--").response();
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"description\"\r\n" +
+                        "\r\n" +
+                        "search description\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                        "Content-Type: text/csv\r\n" +
+                        "\r\n" +
+                        "query one\n" +
+                        "query two\r\n" +
+                        "query three\r\n" +
+                        "--AaB03x--").response();
 
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
@@ -108,23 +112,23 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"name\"\r\n" +
-                "\r\n" +
-                "my batch search\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"description\"\r\n" +
-                "\r\n" +
-                "search description\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                "Content-Type: text/csv\r\n" +
-                "\r\n" +
-                "query\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"published\"\r\n" +
-                "\r\n" +
-                "True\r\n" +
-                "--AaB03x--").response();
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"description\"\r\n" +
+                        "\r\n" +
+                        "search description\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                        "Content-Type: text/csv\r\n" +
+                        "\r\n" +
+                        "query\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"published\"\r\n" +
+                        "\r\n" +
+                        "True\r\n" +
+                        "--AaB03x--").response();
 
         assertThat(response.code()).isEqualTo(200);
         ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
@@ -138,31 +142,31 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"name\"\r\n" +
-                "\r\n" +
-                "my batch search\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"description\"\r\n" +
-                "\r\n" +
-                "search description\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                "Content-Type: text/csv\r\n" +
-                "\r\n" +
-                "query\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"published\"\r\n" +
-                "\r\n" +
-                "True\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"fileTypes\"\r\n" +
-                "\r\n" +
-                "application/pdf\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"fileTypes\"\r\n" +
-                "\r\n" +
-                "image/jpeg\r\n" +
-                "--AaB03x--").response();
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"description\"\r\n" +
+                        "\r\n" +
+                        "search description\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                        "Content-Type: text/csv\r\n" +
+                        "\r\n" +
+                        "query\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"published\"\r\n" +
+                        "\r\n" +
+                        "True\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"fileTypes\"\r\n" +
+                        "\r\n" +
+                        "application/pdf\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"fileTypes\"\r\n" +
+                        "\r\n" +
+                        "image/jpeg\r\n" +
+                        "--AaB03x--").response();
 
         assertThat(response.code()).isEqualTo(200);
         ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
@@ -177,31 +181,31 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"name\"\r\n" +
-                "\r\n" +
-                "my batch search\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"description\"\r\n" +
-                "\r\n" +
-                "search description\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                "Content-Type: text/csv\r\n" +
-                "\r\n" +
-                "query\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"published\"\r\n" +
-                "\r\n" +
-                "True\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"paths\"\r\n" +
-                "\r\n" +
-                "/path/to/document\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"paths\"\r\n" +
-                "\r\n" +
-                "/other/path/\r\n" +
-                "--AaB03x--").response();
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"description\"\r\n" +
+                        "\r\n" +
+                        "search description\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                        "Content-Type: text/csv\r\n" +
+                        "\r\n" +
+                        "query\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"published\"\r\n" +
+                        "\r\n" +
+                        "True\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"paths\"\r\n" +
+                        "\r\n" +
+                        "/path/to/document\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"paths\"\r\n" +
+                        "\r\n" +
+                        "/other/path/\r\n" +
+                        "--AaB03x--").response();
 
         assertThat(response.code()).isEqualTo(200);
         ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
@@ -215,27 +219,27 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"name\"\r\n" +
-                "\r\n" +
-                "my batch search\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"description\"\r\n" +
-                "\r\n" +
-                "search description\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                "Content-Type: text/csv\r\n" +
-                "\r\n" +
-                "query\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"published\"\r\n" +
-                "\r\n" +
-                "True\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"fuzziness\"\r\n" +
-                "\r\n" +
-                "4\r\n" +
-                "--AaB03x--").response();
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"description\"\r\n" +
+                        "\r\n" +
+                        "search description\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                        "Content-Type: text/csv\r\n" +
+                        "\r\n" +
+                        "query\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"published\"\r\n" +
+                        "\r\n" +
+                        "True\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"fuzziness\"\r\n" +
+                        "\r\n" +
+                        "4\r\n" +
+                        "--AaB03x--").response();
 
         assertThat(response.code()).isEqualTo(200);
         ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
@@ -286,22 +290,23 @@ public class BatchSearchResourceTest implements FluentRestTest {
     public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() throws SQLException {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
-        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x", "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"name\"\r\n" +
-                "\r\n" +
-                "my batch search\r\n" +
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"description\"\r\n" +
-                "\r\n" +
-                "search description\r\n" +
-                "--AaB03x\r\n" +
-                "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                "Content-Type: text/csv\r\n" +
-                "\r\n" +
-                "1\n" +
-                "\n" +
-                "query\r\n" +
-                "--AaB03x--").response();
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"description\"\r\n" +
+                        "\r\n" +
+                        "search description\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                        "Content-Type: text/csv\r\n" +
+                        "\r\n" +
+                        "1\n" +
+                        "\n" +
+                        "query\r\n" +
+                        "--AaB03x--").response();
 
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
@@ -335,8 +340,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
     @Test
     public void test_get_search_results_json() {
         when(batchSearchRepository.getResults(eq(User.local()), eq("batchSearchId"), any())).thenReturn(asList(
-            new SearchResult("q1", "docId1", "rootId1", "doc1", new Date(), "content/type", 123L, 1),
-            new SearchResult("q2", "docId2", "rootId2", "doc2", new Date(), "content/type", 123L, 2)
+                new SearchResult("q1", "docId1", "rootId1", "doc1", new Date(), "content/type", 123L, 1),
+                new SearchResult("q2", "docId2", "rootId2", "doc2", new Date(), "content/type", 123L, 2)
         ));
 
         post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0}").
@@ -367,8 +372,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
     public void test_get_search_results_csv() {
         when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asList("q1", "q2")));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(asList(
-                new SearchResult("q1","docId1", "rootId1", "doc1", new Date(), "content/type", 123L, 1),
-                new SearchResult("q2","docId2", "rootId2", "doc2", new Date(), "content/type", 123L, 2)
+                new SearchResult("q1", "docId1", "rootId1", "doc1", new Date(), "content/type", 123L, 1),
+                new SearchResult("q2", "docId2", "rootId2", "doc2", new Date(), "content/type", 123L, 2)
         ));
 
         get("/api/batch/search/result/csv/batchSearchId").
@@ -385,7 +390,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
                 put("rootHost", "http://foo.com:12345");
             }});
             routes.add(new BatchSearchResource(batchSearchRepository, propertiesProvider)).
-                            filter(new LocalUserFilter(propertiesProvider));
+                    filter(new LocalUserFilter(propertiesProvider));
         });
         when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", singletonList("q")));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(singletonList(
@@ -430,5 +435,6 @@ public class BatchSearchResourceTest implements FluentRestTest {
                 filter(new LocalUserFilter(new PropertiesProvider())));
     }
 
-    @Override public int port() { return server.port();}
+    @Override
+    public int port() { return server.port();}
 }
