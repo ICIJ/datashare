@@ -3,17 +3,13 @@ package org.icij.datashare.text;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Test;
 
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Document.nerMask;
-import static org.icij.datashare.text.Language.FRENCH;
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.icij.datashare.text.nlp.Pipeline.set;
@@ -85,38 +81,5 @@ public class DocumentTest {
     public void test_creation_date_unparseable() {
         assertThat(createDoc("name").with(new HashMap<String, Object>() {{
             put("tika_metadata_creation_date", "not a date");}}).build().getCreationDate()).isNull();
-    }
-
-    private DocumentBuilder createDoc(String name) {
-        return new DocumentBuilder(name);
-    }
-
-    static class DocumentBuilder {
-        String name;
-        Path path;
-        Map<String, Object> metadata = new HashMap<>();
-
-        public DocumentBuilder(String name) {
-            this.name = name;
-            this.path = get("/path/to/").resolve(name);
-        }
-
-        public DocumentBuilder with(Path path) {
-            this.path = path;
-            return this;
-        }
-
-        public DocumentBuilder with(Map<String, Object> metadata) {
-            this.metadata = metadata;
-            return this;
-        }
-
-        public Document build() {
-            return new Document(project("prj"), "docid", path, name,
-                            FRENCH, Charset.defaultCharset(),
-                            "text/plain", metadata, Document.Status.INDEXED,
-                            new HashSet<>(), new Date(), null, null,
-                            0, 123L);
-        }
     }
 }

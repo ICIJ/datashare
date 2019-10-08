@@ -6,7 +6,6 @@ import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
-import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -14,19 +13,12 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toSet;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
-import static org.icij.datashare.text.Document.Status.DONE;
-import static org.icij.datashare.text.Language.FRENCH;
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
 import static org.mockito.Mockito.*;
@@ -41,7 +33,7 @@ public class BatchSearchRunnerIntTest {
 
     @Test
     public void test_search_with_file_types() throws Exception {
-        Document mydoc = createDoc("mydoc");
+        Document mydoc = createDoc("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
         BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("application/pdf"), null, 0);
         BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, singletonList("text/plain"), null, 0);
@@ -55,7 +47,7 @@ public class BatchSearchRunnerIntTest {
 
     @Test
     public void test_search_with_paths() throws Exception {
-        Document mydoc = createDoc("mydoc");
+        Document mydoc = createDoc("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
         BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), false, null,
                 singletonList("/foo/bar"), 0);
@@ -71,7 +63,7 @@ public class BatchSearchRunnerIntTest {
 
     @Test
     public void test_search_with_fuzziness() throws Exception {
-        Document mydoc = createDoc("mydoc");
+        Document mydoc = createDoc("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
         BatchSearch searchKo1 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("doc"), false, null,
                 null, 1);
@@ -90,7 +82,7 @@ public class BatchSearchRunnerIntTest {
 
     @Test
     public void test_search_with_phraseMatches() throws Exception {
-        Document mydoc = createDoc("docId", "mydoc to find");
+        Document mydoc = createDoc("docId").with("mydoc to find").build();
         indexer.add(TEST_INDEX, mydoc);
         BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("to find mydoc"), false, null,
                 null, true);
@@ -108,7 +100,7 @@ public class BatchSearchRunnerIntTest {
     public void test_search_phrase_matches_with_slop() throws Exception {
         // with phrase match a permutation (they call it transposition) is 2 slop
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query-phrase.html
-        Document mydoc = createDoc("id", "mydoc find");
+        Document mydoc = createDoc("docId").with("mydoc find").build();
         indexer.add(TEST_INDEX, mydoc);
         BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("find mydoc"), false, null,
                  null, 2,true);
@@ -118,19 +110,6 @@ public class BatchSearchRunnerIntTest {
 
         verify(repository).saveResults(search.uuid, "find mydoc", singletonList(mydoc));
     }
-
-    private Document createDoc(String id, Pipeline.Type... pipelineTypes) {
-        return createDoc(id, id, pipelineTypes);
-    }
-
-    private Document createDoc(String id, String content, Pipeline.Type... pipelineTypes) {
-        return new Document(project("prj"), id, Paths.get("/path/to/").resolve(id), content,
-                FRENCH, Charset.defaultCharset(),
-                "text/plain", new HashMap<>(), DONE,
-                Arrays.stream(pipelineTypes).collect(toSet()), new Date(),
-                null, null, 0, 123L);
-    }
-
     @Before
     public void setUp() { initMocks(this);}
 }

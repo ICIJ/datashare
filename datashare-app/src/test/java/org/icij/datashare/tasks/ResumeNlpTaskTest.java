@@ -3,7 +3,6 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -12,19 +11,12 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import static java.util.stream.Collectors.toSet;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
-import static org.icij.datashare.text.Document.Status.DONE;
-import static org.icij.datashare.text.Language.FRENCH;
-import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -38,20 +30,12 @@ public class ResumeNlpTaskTest {
     @Test
     public void test_bug_size_of_search() throws Exception {
         for (int i = 0; i < 20; i++) {
-            indexer.add(TEST_INDEX, createDoc("doc" + i, Pipeline.Type.CORENLP));
+            indexer.add(TEST_INDEX, createDoc("doc" + i).with(Pipeline.Type.CORENLP).build());
         }
         Publisher publisher = mock(Publisher.class);
         ResumeNlpTask resumeNlpTask = new ResumeNlpTask(publisher, indexer,
                 new PropertiesProvider(new HashMap<>()), new User("test"), new HashSet<Pipeline.Type>() {{add(Pipeline.Type.OPENNLP);}});
         resumeNlpTask.call();
         verify(publisher, times(22)).publish(any(), any());
-    }
-
-    private Document createDoc(String name, Pipeline.Type... pipelineTypes) {
-        return new Document(project("prj"), name, Paths.get("/path/to/").resolve(name), "content " + name,
-                FRENCH, Charset.defaultCharset(),
-                "text/plain", new HashMap<>(), DONE,
-                Arrays.stream(pipelineTypes).collect(toSet()), new Date(),
-                null, null, 0, 123L);
     }
 }

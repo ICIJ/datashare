@@ -194,4 +194,6 @@ public class Document implements Entity {
         return mask == 0 ? new HashSet<>():
                 stream(Pipeline.Type.values()).filter(t -> (mask & t.mask) == t.mask ).collect(toSet());
     }
+
+
 }

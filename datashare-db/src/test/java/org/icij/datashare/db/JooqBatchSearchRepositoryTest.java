@@ -13,9 +13,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.nio.charset.Charset;
-import java.nio.file.Paths;
-import java.util.*;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -24,7 +24,7 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.text.Language.FRENCH;
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
 
 @RunWith(Parameterized.class)
 public class JooqBatchSearchRepositoryTest {
@@ -124,15 +124,15 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asList("my query", "my other query"));
         repository.save(User.local(), batchSearch);
 
-        assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1"), createDoc("doc2")))).isTrue();
+        assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1").build(), createDoc("doc2").build()))).isTrue();
         assertThat(repository.get(User.local(), batchSearch.uuid).nbResults).isEqualTo(2);
         assertThat(repository.get(User.local(), batchSearch.uuid).queries).includes(entry("my query", 2), entry("my other query", 0));
 
         List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid);
         assertThat(results).hasSize(2);
-        assertThat(results.get(0).documentId).isEqualTo("id_doc1");
+        assertThat(results.get(0).documentId).isEqualTo("doc1");
         assertThat(results.get(0).documentName).isEqualTo("doc1");
-        assertThat(results.get(1).documentId).isEqualTo("id_doc2");
+        assertThat(results.get(1).documentId).isEqualTo("doc2");
         assertThat(results.get(1).documentName).isEqualTo("doc2");
     }
 
@@ -142,7 +142,7 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name2", "description2", asList("my query", "3rd query"));
         repository.save(User.local(), batchSearch1);
         repository.save(User.local(), batchSearch2);
-        repository.saveResults(batchSearch1.uuid, "my query", asList(createDoc("doc1"), createDoc("doc2")));
+        repository.saveResults(batchSearch1.uuid, "my query", asList(createDoc("doc1").build(), createDoc("doc2").build()));
 
         assertThat(repository.get(User.local(), batchSearch2.uuid).queries).includes(entry("my query", 0), entry("3rd query", 0));
     }
@@ -153,27 +153,27 @@ public class JooqBatchSearchRepositoryTest {
         repository.save(User.local(), batchSearch);
 
         assertThat(repository.saveResults(batchSearch.uuid, "query", asList(
-                createDoc("doc1"), createDoc("doc2"), createDoc("doc3"), createDoc("doc4")))).isTrue();
+                createDoc("doc1").build(), createDoc("doc2").build(), createDoc("doc3").build(), createDoc("doc4").build()))).isTrue();
 
         assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(2, 0))).hasSize(2);
         assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(2, 0))).containsExactly(
-                resultFrom(createDoc("doc1"), 1, "query"), resultFrom(createDoc("doc2"), 2, "query"));
+                resultFrom(createDoc("doc1").build(), 1, "query"), resultFrom(createDoc("doc2").build(), 2, "query"));
         assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery( 2, 2))).containsExactly(
-                resultFrom(createDoc("doc3"), 3, "query"), resultFrom(createDoc("doc4"), 4, "query"));
+                resultFrom(createDoc("doc3").build(), 3, "query"), resultFrom(createDoc("doc4").build(), 4, "query"));
     }
 
     @Test
     public void test_get_results_filtered_by_query() {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asList("q1", "q2"));
         repository.save(User.local(), batchSearch);
-        repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("doc1"), createDoc("doc2")));
-        repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("doc3"), createDoc("doc4")));
+        repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("doc1").build(), createDoc("doc2").build()));
+        repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("doc3").build(), createDoc("doc4").build()));
 
         List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, null, null, singletonList("q1")));
         assertThat(results).hasSize(2);
         assertThat(results).containsExactly(
-                resultFrom(createDoc("doc1"), 1, "q1"),
-                resultFrom(createDoc("doc2"), 2, "q1")
+                resultFrom(createDoc("doc1").build(), 1, "q1"),
+                resultFrom(createDoc("doc2").build(), 2, "q1")
         );
         assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, null, null, singletonList("q2")))).
                 hasSize(2);
@@ -183,29 +183,29 @@ public class JooqBatchSearchRepositoryTest {
     public void test_get_results_order() {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asList("q1", "q2"));
         repository.save(User.local(), batchSearch);
-        repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("a"), createDoc("c")));
-        repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("b"), createDoc("d")));
+        repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("a").build(), createDoc("c").build()));
+        repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("b").build(), createDoc("d").build()));
 
         assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0))).
                 containsExactly(
-                        resultFrom(createDoc("a"), 1, "q1"),
-                        resultFrom(createDoc("c"), 2, "q1"),
-                        resultFrom(createDoc("b"), 1, "q2"),
-                        resultFrom(createDoc("d"), 2, "q2")
+                        resultFrom(createDoc("a").build(), 1, "q1"),
+                        resultFrom(createDoc("c").build(), 2, "q1"),
+                        resultFrom(createDoc("b").build(), 1, "q2"),
+                        resultFrom(createDoc("d").build(), 2, "q2")
                 );
         assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_name", "asc", null))).
                 containsExactly(
-                        resultFrom(createDoc("a"), 1, "q1"),
-                        resultFrom(createDoc("b"), 1, "q2"),
-                        resultFrom(createDoc("c"), 2, "q1"),
-                        resultFrom(createDoc("d"), 2, "q2")
+                        resultFrom(createDoc("a").build(), 1, "q1"),
+                        resultFrom(createDoc("b").build(), 1, "q2"),
+                        resultFrom(createDoc("c").build(), 2, "q1"),
+                        resultFrom(createDoc("d").build(), 2, "q2")
                 );
         assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_name", "desc", null))).
                 containsExactly(
-                        resultFrom(createDoc("d"), 2, "q2"),
-                        resultFrom(createDoc("c"), 2, "q1"),
-                        resultFrom(createDoc("b"), 1, "q2"),
-                        resultFrom(createDoc("a"), 1, "q1")
+                        resultFrom(createDoc("d").build(), 2, "q2"),
+                        resultFrom(createDoc("c").build(), 2, "q1"),
+                        resultFrom(createDoc("b").build(), 1, "q2"),
+                        resultFrom(createDoc("a").build(), 1, "q1")
                 );
     }
 
@@ -227,7 +227,7 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name", "description3", asList("q3", "q4"));
         repository.save(new User("foo"), batchSearch2);
         repository.saveResults(batchSearch1.uuid, "q2", asList(
-                        createDoc("doc1"), createDoc("doc2"), createDoc("doc3"), createDoc("doc4")));
+                        createDoc("doc1").build(), createDoc("doc2").build(), createDoc("doc3").build(), createDoc("doc4").build()));
 
         assertThat(repository.deleteAll(User.local())).isTrue();
         assertThat(repository.deleteAll(User.local())).isFalse();
@@ -244,7 +244,7 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name", "description3", asList("q3", "q4"));
         repository.save(new User("foo"), batchSearch2);
         repository.saveResults(batchSearch1.uuid, "q2", asList(
-                        createDoc("doc1"), createDoc("doc2"), createDoc("doc3"), createDoc("doc4")));
+                        createDoc("doc1").build(), createDoc("doc2").build(), createDoc("doc3").build(), createDoc("doc4").build()));
 
         assertThat(repository.delete(User.local(), batchSearch1.uuid)).isTrue();
         assertThat(repository.delete(User.local(), batchSearch1.uuid)).isFalse();
@@ -258,7 +258,7 @@ public class JooqBatchSearchRepositoryTest {
     public void test_get_results_with_bad_user() {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"));
         repository.save(User.local(), batchSearch);
-        repository.saveResults(batchSearch.uuid, "query", singletonList(createDoc("doc")));
+        repository.saveResults(batchSearch.uuid, "query", singletonList(createDoc("doc").build()));
 
         repository.getResults(new User("hacker"), batchSearch.uuid);
     }
@@ -268,19 +268,10 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", singletonList("query"), true);
         repository.save(User.local(), batchSearch);
         repository.saveResults(batchSearch.uuid, "query", asList(
-              createDoc("doc1"), createDoc("doc2"), createDoc("doc3"), createDoc("doc4")));
+              createDoc("doc1").build(), createDoc("doc2").build(), createDoc("doc3").build(), createDoc("doc4").build()));
 
         assertThat(repository.getResults(new User("other"), batchSearch.uuid, new BatchSearchRepository.WebQuery(2, 0))).hasSize(2);
     }
-
-
-    private Document createDoc(String name) {
-         return new Document(Project.project("prj"), "id_" + name, Paths.get("/path/to/").resolve(name), name,
-                 FRENCH, Charset.defaultCharset(),
-                 "text/plain", new HashMap<>(), Document.Status.INDEXED,
-                 new HashSet<>(), new Date(), null, null,
-                 0, 123L);
-     }
 
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {
         return new SearchResult(queryName, doc.getId(), doc.getRootDocument(), doc.getPath().getFileName().toString(), doc.getCreationDate(), doc.getContentType(), doc.getContentLength(), docNb);

@@ -6,7 +6,6 @@ import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -18,16 +17,11 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
-import static org.icij.datashare.text.Language.FRENCH;
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.mockito.Matchers.any;
@@ -141,7 +135,7 @@ public class DocumentResourceTest implements FluentRestTest {
 
     @Test
     public void testGetStarredDocuments() {
-        when(repository.getStarredDocuments(any())).thenReturn(asList(createDoc("doc1", null), createDoc("doc2", null)));
+        when(repository.getStarredDocuments(any())).thenReturn(asList(createDoc("doc1").build(), createDoc("doc2").build()));
         get("/api/document/starred").should().respond(200).haveType("application/json").contain("\"doc1\"").contain("\"doc2\"");
     }
 
@@ -149,7 +143,7 @@ public class DocumentResourceTest implements FluentRestTest {
     public void test_get_document_source_with_good_mask() throws Exception {
         File txtFile = new File(temp.getRoot(), "file.txt");
         write(txtFile, "content");
-        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc", txtFile.toPath()));
+        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
 
         when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "*.*.*.*"));
         get("/api/document/src/local-datashare/docId?routing=root").should().respond(200);
@@ -160,7 +154,7 @@ public class DocumentResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_document_source_with_bad_mask() {
-        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc", null));
+        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc").build());
 
         when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "1.2.3.4"));
         get("/api/document/src/local-datashare/docId?routing=root").should().respond(403);
@@ -173,7 +167,7 @@ public class DocumentResourceTest implements FluentRestTest {
     public void test_get_document_source_with_unknown_project() throws IOException {
         File txtFile = new File(temp.getRoot(), "file.txt");
         write(txtFile, "content");
-        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc", txtFile.toPath()));
+        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
 
         when(repository.getProject("local-datashare")).thenReturn(null);
         get("/api/document/src/local-datashare/docId?routing=root").should().respond(200);
@@ -186,12 +180,4 @@ public class DocumentResourceTest implements FluentRestTest {
 
     @Override
     public int port() { return server.port();}
-
-    private Document createDoc(String name, Path path) {
-        return new Document(project("prj"), "docid", path, name,
-                FRENCH, Charset.defaultCharset(),
-                "text/plain", new HashMap<>(), Document.Status.INDEXED,
-                new HashSet<>(), new Date(), null, null,
-                0, 123L);
-    }
 }

@@ -9,17 +9,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.nio.charset.Charset;
-import java.nio.file.Paths;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.NamedEntity.Category.EMAIL;
-import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.nlp.email.EmailPipeline.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,10 +34,10 @@ public class EmailPipelineConsumerTest {
 
     @Test
     public void test_adds_document_headers_parsing_for_email() throws Exception {
-        Document doc = createDoc("hello@world.com", new HashMap<String, Object>() {{
+        Document doc = createDoc("docid").with("hello@world.com").ofMimeType("message/rfc822").with(new HashMap<String, Object>() {{
             put(tikaMsgHeader("To"), "email1@domain.com");
             put(tikaMsgHeader("Cc"), "email2@domain.com");
-        }});
+        }}).build();
         when(indexer.get("projectName", doc.getId(), "routing")).thenReturn(doc);
 
         nlpListener.findNamedEntities("projectName", doc.getId(), "routing");
@@ -57,7 +52,7 @@ public class EmailPipelineConsumerTest {
 
     @Test
     public void test_filter_headers_that_contains_mail_addresses() throws Exception {
-        Document doc = createDoc("mail content", new HashMap<String, Object>() {{
+        Document doc = createDoc("docid").with("mail content").ofMimeType("message/rfc822").with(new HashMap<String, Object>() {{
             put(tikaRawHeader("field"), "email@domain.com");
             put(tikaRawHeader("Message-ID"), "id@domain.com");
             put(tikaRawHeader("Return-Path"), "return@head.er");
@@ -76,7 +71,7 @@ public class EmailPipelineConsumerTest {
             put(tikaRawHeader("Resent-To"), "resent-to@head.er");
             put(tikaRawHeader("Resent-cc"), "resent-cc@head.er");
             put(tikaRawHeader("Resent-bcc"), "resent-bcc@head.er");
-        }});
+        }}).build();
         when(indexer.get("projectName", doc.getId(), "routing")).thenReturn(doc);
 
         nlpListener.findNamedEntities("projectName", doc.getId(), "routing");
@@ -100,13 +95,5 @@ public class EmailPipelineConsumerTest {
                         NamedEntity.create(EMAIL, "to@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
                         NamedEntity.create(EMAIL, "resent-from@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH)
                 ), doc);
-    }
-
-    private Document createDoc(String name, Map<String, Object> metadata) {
-        return new Document(project("prj"), "docid", Paths.get("/path/to/").resolve(name), name,
-                FRENCH, Charset.defaultCharset(),
-                "message/rfc822", metadata, Document.Status.INDEXED,
-                new HashSet<>(), new Date(), null, null,
-                0, 123L);
     }
 }
