@@ -45,7 +45,20 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }.startOnRandomPort();
 
     @Test
-    public void test_upload_batch_search_csv_with_bad_parts_number() {
+    public void test_upload_batch_search_csv_without_name_should_send_bad_request() {
+        when(batchSearchRepository.save(any(), any())).thenReturn(true);
+
+        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
+                "--AaB03x\r\n" +
+                        "Content-Disposition: form-data;name=\"csvFile\"\r\n" +
+                        "\r\n" +
+                        "value\r\n" +
+                        "--AaB03x--").
+                should().respond(400);
+    }
+
+    @Test
+    public void test_upload_batch_search_csv_without_csvFile_should_send_bad_request() {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
         postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
@@ -58,28 +71,27 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_upload_batch_search_csv_with_bad_names() {
+    public void test_upload_batch_search_csv_with_name_and_csvfile_should_send_OK() {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
-        postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
                         "Content-Disposition: form-data; name=\"name\"\r\n" +
                         "\r\n" +
-                        "my batch search\r\n" +
+                        "nameValue\r\n" +
                         "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"desc\"\r\n" +
-                        "\r\n" +
-                        "search description\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"files\"; filename=\"search.csv\"\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"\r\n" +
                         "\r\n" +
                         "query\r\n" +
-                        "--AaB03x--").
-                should().respond(400);
+                        "--AaB03x--").response();
+        assertThat(response.code()).isEqualTo(200);
+        verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
+                project("prj"), "nameValue", null,
+                singletonList("query"), new Date(), BatchSearch.State.QUEUED)));
     }
 
     @Test
-    public void test_upload_batch_search_csv() throws SQLException {
+    public void test_upload_batch_search_csv_with_all_parameters()  {
         when(batchSearchRepository.save(any(), any())).thenReturn(true);
 
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
@@ -98,62 +110,6 @@ public class BatchSearchResourceTest implements FluentRestTest {
                         "query one\n" +
                         "query two\r\n" +
                         "query three\r\n" +
-                        "--AaB03x--").response();
-
-        assertThat(response.code()).isEqualTo(200);
-        verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
-                project("prj"), "my batch search", "search description",
-                asList("query one", "query two", "query three"), new Date(), BatchSearch.State.RUNNING)));
-    }
-
-    @Test
-    public void test_upload_batch_search_csv_with_publish() throws SQLException {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
-
-        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "my batch search\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"description\"\r\n" +
-                        "\r\n" +
-                        "search description\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                        "Content-Type: text/csv\r\n" +
-                        "\r\n" +
-                        "query\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"published\"\r\n" +
-                        "\r\n" +
-                        "True\r\n" +
-                        "--AaB03x--").response();
-
-        assertThat(response.code()).isEqualTo(200);
-        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
-        verify(batchSearchRepository).save(any(), argument.capture());
-        assertThat(argument.getValue().published).isTrue();
-    }
-
-    @Test
-    public void test_upload_batch_search_csv_with_file_types() {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
-
-        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "my batch search\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"description\"\r\n" +
-                        "\r\n" +
-                        "search description\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                        "Content-Type: text/csv\r\n" +
-                        "\r\n" +
-                        "query\r\n" +
                         "--AaB03x\r\n" +
                         "Content-Disposition: form-data; name=\"published\"\r\n" +
                         "\r\n" +
@@ -166,37 +122,6 @@ public class BatchSearchResourceTest implements FluentRestTest {
                         "Content-Disposition: form-data; name=\"fileTypes\"\r\n" +
                         "\r\n" +
                         "image/jpeg\r\n" +
-                        "--AaB03x--").response();
-
-        assertThat(response.code()).isEqualTo(200);
-        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
-        verify(batchSearchRepository).save(any(), argument.capture());
-        assertThat(argument.getValue().fileTypes).containsExactly("application/pdf", "image/jpeg");
-    }
-
-
-    @Test
-    public void test_upload_batch_search_csv_with_paths() {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
-
-        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "my batch search\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"description\"\r\n" +
-                        "\r\n" +
-                        "search description\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                        "Content-Type: text/csv\r\n" +
-                        "\r\n" +
-                        "query\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"published\"\r\n" +
-                        "\r\n" +
-                        "True\r\n" +
                         "--AaB03x\r\n" +
                         "Content-Disposition: form-data; name=\"paths\"\r\n" +
                         "\r\n" +
@@ -205,86 +130,27 @@ public class BatchSearchResourceTest implements FluentRestTest {
                         "Content-Disposition: form-data; name=\"paths\"\r\n" +
                         "\r\n" +
                         "/other/path/\r\n" +
-                        "--AaB03x--").response();
-
-        assertThat(response.code()).isEqualTo(200);
-        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
-        verify(batchSearchRepository).save(any(), argument.capture());
-        assertThat(argument.getValue().paths).containsExactly("/path/to/document", "/other/path/");
-    }
-
-    @Test
-    public void test_upload_batch_search_csv_with_fuzziness() {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
-
-        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "my batch search\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"description\"\r\n" +
-                        "\r\n" +
-                        "search description\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                        "Content-Type: text/csv\r\n" +
-                        "\r\n" +
-                        "query\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"published\"\r\n" +
-                        "\r\n" +
-                        "True\r\n" +
                         "--AaB03x\r\n" +
                         "Content-Disposition: form-data; name=\"fuzziness\"\r\n" +
                         "\r\n" +
                         "4\r\n" +
-                        "--AaB03x--").response();
-
-        assertThat(response.code()).isEqualTo(200);
-        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
-        verify(batchSearchRepository).save(any(), argument.capture());
-        assertThat(argument.getValue().fuzziness).isEqualTo(4);
-    }
-
-
-    @Test
-    public void test_upload_batch_search_csv_with_phrase_matches() {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
-
-        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "my batch search\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"description\"\r\n" +
-                        "\r\n" +
-                        "search description\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                        "Content-Type: text/csv\r\n" +
-                        "\r\n" +
-                        "query\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"published\"\r\n" +
-                        "\r\n" +
-                        "True\r\n" +
                         "--AaB03x\r\n" +
                         "Content-Disposition: form-data; name=\"phrase_matches\"\r\n" +
                         "\r\n" +
                         "True\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"fuzziness\"\r\n" +
-                        "\r\n" +
-                        "4\r\n" +
                         "--AaB03x--").response();
 
         assertThat(response.code()).isEqualTo(200);
         ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
         verify(batchSearchRepository).save(any(), argument.capture());
+        assertThat(argument.getValue().published).isTrue();
+        assertThat(argument.getValue().fileTypes).containsExactly("application/pdf", "image/jpeg");
+        assertThat(argument.getValue().paths).containsExactly("/path/to/document", "/other/path/");
+        assertThat(argument.getValue().fuzziness).isEqualTo(4);
         assertThat(argument.getValue().phraseMatches).isTrue();
+        assertThat(argument.getValue().description).isEqualTo("search description");
     }
+
 
     @Test
     public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() throws SQLException {

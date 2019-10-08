@@ -20,14 +20,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.parseBoolean;
+import static java.lang.Boolean.*;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
-import static net.codestory.http.payload.Payload.notFound;
-import static net.codestory.http.payload.Payload.ok;
+import static net.codestory.http.payload.Payload.*;
 import static org.icij.datashare.text.Project.project;
 
 @Prefix("/api/batch")
@@ -74,28 +72,25 @@ public class BatchSearchResource {
     @Post("search/:project")
     public Payload search(String projectId, Context context) throws Exception {
         List<Part> parts = context.parts();
-        if (parts.size() < 3 || !"name".equals(parts.get(0).name()) ||
-                !"description".equals(parts.get(1).name()) || !"csvFile".equals(parts.get(2).name())) {
-            return Payload.badRequest();
+        String name = fieldValue("name", parts);
+        String csv = fieldValue("csvFile", parts);
+
+        if (name == null  || csv == null) {
+            return badRequest();
         }
-        Part namePart = parts.get(0);
-        Part descPart = parts.get(1);
-        Part csv = parts.get(2);
-        boolean published = false;
-        if (parts.size() >= 4) {
-            published = parseBoolean(parts.get(3).content());
-        }
+
+        String description = fieldValue("description", parts);
+        boolean published = "true".equalsIgnoreCase(fieldValue("published", parts)) ? TRUE: FALSE ;
         List<String> fileTypes = fieldValues("fileTypes", parts);
         List<String> paths = fieldValues("paths", parts);
         Optional<Part> fuzzinessPart = parts.stream().filter(p -> "fuzziness".equals(p.name())).findAny();
         int fuzziness = fuzzinessPart.isPresent() ? parseInt(fuzzinessPart.get().content()):0;
-
         Optional<Part> phraseMatchesPart = parts.stream().filter(p -> "phrase_matches".equals(p.name())).findAny();
         boolean phraseMatches=phraseMatchesPart.isPresent()?parseBoolean(phraseMatchesPart.get().content()): FALSE;
 
-        BatchSearch batchSearch = new BatchSearch(project(projectId), namePart.content(), descPart.content(), getQueries(csv), published, fileTypes, paths, fuzziness,phraseMatches);
+        BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, getQueries(csv), published, fileTypes, paths, fuzziness,phraseMatches);
         return batchSearchRepository.save((User) context.currentUser(), batchSearch) ?
-                new Payload("application/json", batchSearch.uuid, 200) : Payload.badRequest();
+                new Payload("application/json", batchSearch.uuid, 200) : badRequest();
     }
 
     @Post("search/result/:batchid")
@@ -130,8 +125,8 @@ public class BatchSearchResource {
     }
 
     @NotNull
-    private List<String> getQueries(Part csv) throws IOException {
-        return stream(csv.content().split("\r?\n")).filter(q -> q.length() >= 2).collect(toList());
+    private List<String> getQueries(String csv) throws IOException {
+        return stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).collect(toList());
     }
 
     private List<SearchResult> getResultsOrThrowUnauthorized(String batchId, User user, BatchSearchRepository.WebQuery webQuery) {
@@ -140,6 +135,11 @@ public class BatchSearchResource {
         } catch (JooqBatchSearchRepository.UnauthorizedUserException unauthorized) {
             throw new UnauthorizedException();
         }
+    }
+
+    private String fieldValue(String field, List<Part> parts) {
+        List<String> values = fieldValues(field, parts);
+        return values.isEmpty() ? null: values.get(0);
     }
 
     private List<String> fieldValues(String field, List<Part> parts) {
