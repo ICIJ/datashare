@@ -77,4 +77,8 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
             @Override public net.codestory.http.security.User find(String s) { return users.get(s);}
         };
     }
+
+    public boolean isGranted(String index) {
+        return getIndices().contains(index) || projectName().equals(index);
+    }
 }

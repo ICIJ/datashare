@@ -45,7 +45,7 @@ public class DocumentResource {
     public Payload getSourceFile(final String index, final String id,
                                  final String routing, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
-        if (isGranted((HashMapUser)context.currentUser(), index) &&
+        if (((HashMapUser)context.currentUser()).isGranted(index) &&
                 isAllowed(repository.getProject(index), context.request().clientAddress())) {
             return routing == null ? getPayload(indexer.get(index, id), index, inline) : getPayload(indexer.get(index, id, routing),index, inline);
         }
@@ -144,11 +144,6 @@ public class DocumentResource {
             return Payload.notFound();
         }
     }
-
-    private boolean isGranted(HashMapUser user, String projectId) {
-        return user.getIndices().contains(projectId) || user.projectName().equals(projectId);
-    }
-
     private static class BatchTagQuery {
         final List<String> tags;
         final List<String> docIds;

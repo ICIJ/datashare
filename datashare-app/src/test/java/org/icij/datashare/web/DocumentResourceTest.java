@@ -6,6 +6,8 @@ import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -18,6 +20,8 @@ import org.mockito.Mock;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
@@ -44,6 +48,66 @@ public class DocumentResourceTest implements FluentRestTest {
     public void setUp() {
         initMocks(this);
         server.configure(routes -> routes.add(new DocumentResource(repository, indexer)).filter(new LocalUserFilter(new PropertiesProvider())));
+    }
+
+    @Test
+    public void test_get_source_file() throws Exception {
+        File txtFile = new File(temp.getRoot(), "file.txt");
+        write(txtFile, "text content");
+        indexFile("local-datashare", "id_txt", txtFile.toPath(), null, null);
+
+        get("/api/document/src/local-datashare/id_txt").should().contain("text content").haveType("text/plain;charset=UTF-8");
+    }
+
+    @Test
+    public void test_get_source_file_with_content_type() throws Exception {
+        File txtFile = new File(temp.getRoot(), "/my/path/to/file.ods");
+        write(txtFile, "content");
+        indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
+
+        get("/api/document/src/local-datashare/id_ods").should().
+                haveType("application/vnd.oasis.opendocument.spreadsheet").
+                haveHeader("Content-Disposition", "attachment;filename=\"file.ods\"");
+    }
+
+    @Test
+    public void test_get_source_file_with_content_type_inline() throws Exception {
+        File img = new File(temp.getRoot(), "/my/path/to/image.jpg");
+        write(img, "content");
+        indexFile("local-datashare", "id_jpg", img.toPath(), "image/jpg", null);
+
+        get("/api/document/src/local-datashare/id_jpg?inline=true").should().
+                haveType("image/jpg").contain("content").
+                should().not().haveHeader("Content-Disposition", "attachment;filename=\"image.jpg\"");
+    }
+
+    @Test
+    public void test_get_embedded_source_file_with_routing() {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        indexFile("local-datashare", "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623", Paths.get(path), "application/pdf", "id_eml");
+
+        get("/api/document/src/local-datashare/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml").
+                should().haveType("application/pdf").contain("PDF-1.3").haveHeader("Content-Disposition", "attachment;filename=\"d365f488df.pdf\"");;
+    }
+
+    @Test
+    public void test_get_embedded_source_file_with_routing_sha256_for_backward_compatibility() {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        indexFile("local-datashare", "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e", Paths.get(path), "application/pdf", "id_eml");
+
+        get("/api/document/src/local-datashare/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e?routing=id_eml").
+                should().haveType("application/pdf").contain("PDF-1.3").haveHeader("Content-Disposition", "attachment;filename=\"6abb969509.pdf\"");;
+    }
+
+    @Test
+    public void test_source_file_not_found_should_return_404() {
+        indexFile("local-datashare", "missing_file", Paths.get("missing/file"), null, null);
+        get("/api/document/src/local-datashare/missing_file").should().respond(404);
+    }
+
+    @Test
+    public void test_get_source_file_forbidden_index() {
+        get("/api/document/src/foo_index/id").should().respond(403);
     }
 
     @Test
@@ -171,6 +235,15 @@ public class DocumentResourceTest implements FluentRestTest {
 
         when(repository.getProject("local-datashare")).thenReturn(null);
         get("/api/document/src/local-datashare/docId?routing=root").should().respond(200);
+    }
+
+    private void indexFile(String index, String _id, Path path, String contentType, String routing) {
+        Document doc = DocumentBuilder.createDoc(_id).with(path).ofMimeType(contentType).withRootId(routing).build();
+        if (routing == null) {
+            when(indexer.get(index, _id)).thenReturn(doc);
+        } else {
+            when(indexer.get(index, _id, routing)).thenReturn(doc);
+        }
     }
 
     static void write(File file, String content) throws IOException {

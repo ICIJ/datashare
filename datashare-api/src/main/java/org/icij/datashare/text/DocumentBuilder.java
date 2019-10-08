@@ -18,6 +18,7 @@ public class DocumentBuilder {
     private Map<String, Object> metadata = new HashMap<>();
     private String mimeType;
     private Set<Pipeline.Type> pipelines;
+    private String rootId = null;
 
     public static DocumentBuilder createDoc(String id) {
         return new DocumentBuilder(id);
@@ -49,7 +50,7 @@ public class DocumentBuilder {
     public Document build() {
         return new Document(project("prj"), id, path, content, FRENCH, Charset.defaultCharset(),
                          mimeType, metadata, Document.Status.INDEXED,
-                        pipelines, new Date(), null, null,
+                        pipelines, new Date(), rootId, rootId,
                         0, 123L);
     }
 
@@ -60,6 +61,11 @@ public class DocumentBuilder {
 
     public DocumentBuilder with(Pipeline.Type ... pipelineTypes) {
         this.pipelines = Arrays.stream(pipelineTypes).collect(toSet());
+        return this;
+    }
+
+    public DocumentBuilder withRootId(String rootId) {
+        this.rootId=rootId;
         return this;
     }
 }
