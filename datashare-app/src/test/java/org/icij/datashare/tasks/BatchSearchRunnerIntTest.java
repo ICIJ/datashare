@@ -90,31 +90,41 @@ public class BatchSearchRunnerIntTest {
 
     @Test
     public void test_search_with_phraseMatches() throws Exception {
-        Document mydoc = createDoc("mydoc to find");
+        Document mydoc = createDoc("docId", "mydoc to find");
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch searchKo1 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("to find mydoc"), false, null,
+        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("to find mydoc"), false, null,
                 null, true);
-        BatchSearch searchOk1 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc to find"), false, null,
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc to find"), false, null,
                 null,true);
-        BatchSearch searchOk2 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("medoc to find"), false, null,
-                null, 1,true);
-
-        BatchSearch searchOk3= new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mudoc to find"), false, null,
-                null, 1,false);
-        when(repository.getQueued()).thenReturn(asList(searchKo1, searchOk1, searchOk2,searchOk3));
+        when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
 
         new BatchSearchRunner(indexer, repository, local()).call();
 
-        verify(repository, never()).saveResults(eq(searchKo1.uuid), eq("to find mydoc"), anyList());
-        verify(repository).saveResults(searchOk1.uuid, "mydoc to find", singletonList(mydoc));
-     //   verify(repository).saveResults(searchOk2.uuid, "medoc to find", singletonList(mydoc));
-        verify(repository).saveResults(searchOk3.uuid, "mudoc to find", singletonList(mydoc));
+        verify(repository, never()).saveResults(eq(searchKo.uuid), eq("to find mydoc"), anyList());
+        verify(repository).saveResults(searchOk.uuid, "mydoc to find", singletonList(mydoc));
     }
 
+    @Test
+    public void test_search_phrase_matches_with_slop() throws Exception {
+        // with phrase match a permutation (they call it transposition) is 2 slop
+        // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query-phrase.html
+        Document mydoc = createDoc("id", "mydoc find");
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("find mydoc"), false, null,
+                 null, 2,true);
+        when(repository.getQueued()).thenReturn(asList(search));
 
+        new BatchSearchRunner(indexer, repository, local()).call();
 
-    private Document createDoc(String name, Pipeline.Type... pipelineTypes) {
-        return new Document(project("prj"), name.replaceAll(" ",""), Paths.get("/path/to/").resolve(name), "content " + name,
+        verify(repository).saveResults(search.uuid, "find mydoc", singletonList(mydoc));
+    }
+
+    private Document createDoc(String id, Pipeline.Type... pipelineTypes) {
+        return createDoc(id, id, pipelineTypes);
+    }
+
+    private Document createDoc(String id, String content, Pipeline.Type... pipelineTypes) {
+        return new Document(project("prj"), id, Paths.get("/path/to/").resolve(id), content,
                 FRENCH, Charset.defaultCharset(),
                 "text/plain", new HashMap<>(), DONE,
                 Arrays.stream(pipelineTypes).collect(toSet()), new Date(),
