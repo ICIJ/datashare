@@ -39,37 +39,37 @@ public class BatchSearchResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    @Get("search")
+    @Get("/search")
     public List<BatchSearch> getSearches(Context context) {
         return batchSearchRepository.get((User) context.currentUser());
     }
 
-    @Options("search")
+    @Options("/search")
     public Payload optionsSearches(Context context) {
         return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
-    @Delete("search")
+    @Delete("/search")
     public Payload deleteSearches(Context context) {
         return batchSearchRepository.deleteAll((User) context.currentUser()) ? new Payload(204): notFound();
     }
 
-    @Get("search/:batchid")
+    @Get("/search/:batchid")
     public BatchSearch getBatch(String batchId, Context context) {
         return batchSearchRepository.get((User) context.currentUser(), batchId);
     }
 
-    @Options("search/:batchid")
+    @Options("/search/:batchid")
     public Payload optionsDelete(String batchId, Context context) {
         return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
-    @Delete("search/:batchid")
+    @Delete("/search/:batchid")
     public Payload deleteBatch(String batchId, Context context) {
         return batchSearchRepository.delete((User) context.currentUser(), batchId) ? new Payload(204): notFound();
     }
 
-    @Post("search/:project")
+    @Post("/search/:project")
     public Payload search(String projectId, Context context) throws Exception {
         List<Part> parts = context.parts();
         String name = fieldValue("name", parts);
@@ -93,12 +93,12 @@ public class BatchSearchResource {
                 new Payload("application/json", batchSearch.uuid, 200) : badRequest();
     }
 
-    @Post("search/result/:batchid")
+    @Post("/search/result/:batchid")
     public List<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {
         return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
     }
 
-    @Get("search/result/csv/:batchid")
+    @Get("/search/result/csv/:batchid")
     public Payload getResultAsCsv(String batchId, Context context) {
         StringBuilder builder = new StringBuilder("\"query\", \"documentUrl\", \"documentId\",\"rootId\",\"contentType\",\"contentLength\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
         BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId);

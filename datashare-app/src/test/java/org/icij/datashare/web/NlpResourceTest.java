@@ -43,12 +43,7 @@ public class NlpResourceTest implements FluentRestTest {
         initMocks(this);
         doReturn(true).when(pipeline).initialize(any());
         OptimaizeLanguageGuesser languageGuesser = new OptimaizeLanguageGuesser();
-        NlpResource nlpResource = new NlpResource(new PropertiesProvider(), languageGuesser) {
-            @Override
-            protected AbstractPipeline createPipeline(String pipelineName) {
-                return pipeline;
-            }
-        };
+        NlpResource nlpResource = new NlpResource(new PropertiesProvider(), languageGuesser, s -> pipeline);
         server.configure(routes -> routes.add(nlpResource));
     }
 
