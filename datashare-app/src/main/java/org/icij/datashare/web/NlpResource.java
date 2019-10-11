@@ -36,6 +36,15 @@ public class NlpResource {
         this.pipelineCreator = pipelineCreator;
     }
 
+    /**
+     * When datashare is launched in NER mode (without index) it exposes a name finding HTTP API. The text is sent with the HTTP body.
+     *
+     * @param pipeline to use
+     * @param text to analyse
+     * @return
+     *
+     * Example : $(curl -XPOST http://dsenv:8080/ner/findNames/CORENLP -d "Please find attached a PDF copy of the advance tax clearance obtained for our client")
+     */
     @Post("/findNames/:pipeline")
     public List<NamedEntity> getAnnotations(final String pipeline, String text) throws Exception {
         AbstractPipeline p = pipelineCreator.apply(pipeline);
