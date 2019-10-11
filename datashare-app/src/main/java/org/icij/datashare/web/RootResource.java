@@ -16,11 +16,25 @@ public class RootResource {
     @Inject
     public RootResource(PropertiesProvider propertiesProvider) {this.propertiesProvider = propertiesProvider;}
 
+    /**
+     * gets the public (i.e. without user's information) datashare configuration parameters.
+     *
+     * @return 200
+     *
+     * Example : $(curl -i localhost:8080/config)
+     */
     @Get("config")
     public Map<String, Object> getPublicConfig() {
         return propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*");
     }
 
+    /**
+     * Gets the versions (front/back/docker) of datashare.
+     *
+     * @return 200
+     *
+     * Example : $(curl -i localhost:8080/version)
+     */
     @Get("version")
     public Properties getVersion() {
         try {
