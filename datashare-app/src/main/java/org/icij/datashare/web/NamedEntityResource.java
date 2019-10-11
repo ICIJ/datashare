@@ -28,16 +28,38 @@ public class NamedEntityResource {
         this.indexer = indexer;
     }
 
+    /**
+     * Returns the named entity with given id and document id.
+     *
+     * @param id
+     * @param documentId the root document
+     * @return 200
+     *
+     * Example : $($ curl "localhost:8080/api/namedEntity/ab994e364f51ce59f93cf464c66e01c84c6c013a0703d53a4a01bfa1bbaa3d99bc7936aa49914dd5fc6dfd2e4c8011db?routing=5c98cae06574d8110c6ece3c934fd910ee057a2d07875858e438f92f3bc99529")
+     */
     @Get("/namedEntity/:id?routing=:documentId")
     public NamedEntity getById(final String id, final String documentId, Context context) {
         return notFoundIfNull(indexer.get(((User)context.currentUser()).projectName(), id, documentId));
     }
 
+    /**
+     * preflight request for hide
+     * @param mentionNorm
+     * @return 200 PUT
+     */
     @Options("/namedEntity/hide/:mentionNorm")
     public Payload hide(final String mentionNorm) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
+    /**
+     * hide all named entities with the given normalized mention
+     *
+     * @param mentionNorm
+     * @return 200
+     *
+     * Example : $(curl -i -XPUT localhost:8080/api/namedEntity/hide/xlsx)
+     */
     @Put("/namedEntity/hide/:mentionNorm")
     public Payload hide(final String mentionNorm, Context context) throws IOException {
         List<? extends Entity> nes = indexer.search(((User) context.currentUser()).projectName(), NamedEntity.class).
