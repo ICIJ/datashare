@@ -56,27 +56,68 @@ public class TaskResource {
         this.propertiesProvider = propertiesProvider;
     }
 
+    /**
+     * gets all the user tasks
+     *
+     * @return 200 and the list of tasks
+     *
+     * Example : $(curl localhost:8080/api/task/all)
+     */
     @Get("/all")
     public List<TaskResponse> tasks(Context context) {
         return taskManager.getTasks().stream().filter(t -> context.currentUser().equals(t.getUser())).map(TaskResponse::new).collect(toList());
     }
 
+    /**
+     * gets one task with its id
+     *
+     * @param id
+     * @return 200
+     *
+     * Example : $(curl localhost:8080/api/task/id/21148262)
+     */
     @Get("/name/:name")
     public TaskResponse getTask(String id) {
         return new TaskResponse(taskManager.getTask(id));
     }
 
+
+    /**
+     * index files from the queue
+     *
+     * @param optionsWrapper wrapper for options json
+     * @return 200 and json task
+     *
+     * Example : $(curl -XPOST localhost:8080/api/task/index -d '{}')
+     */
     @Post("/index")
     public TaskResponse indexQueue(final OptionsWrapper optionsWrapper, Context context) {
         IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), optionsWrapper.asOptions());
         return new TaskResponse(taskManager.startTask(indexTask));
     }
 
+    /**
+     * Indexes files in a directory (with docker, it is the mounted directory that is scanned)
+     *
+     * @param optionsWrapper
+     * @return 200 and the list of tasks created
+     *
+     * Example : $(curl -XPOST localhost:8080/api/task/index/file)
+     */
     @Post("/index/file")
     public List<TaskResponse> indexDefault(final OptionsWrapper optionsWrapper, Context context) {
         return indexFile(propertiesProvider.getProperties().getProperty("dataDir"), optionsWrapper, context);
     }
 
+    /**
+     * Indexes all files of a directory with the given path.
+     *
+     * @param filePath
+     * @param optionsWrapper
+     * @return 200 and the list of created tasks
+     *
+     * Example $(curl -XPOST localhost:8080/api/task/index/file/home/dev/myfile.txt)
+     */
     @Post("/index/file/:filePath:")
     public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
@@ -84,6 +125,15 @@ public class TaskResource {
         return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask((User) context.currentUser(), options))));
     }
 
+    /**
+     * Scans recursively a directory with the given path
+     *
+     * @param filePath
+     * @param optionsWrapper
+     * @return 200 and the task created
+     *
+     * Example : $(curl -XPOST localhost:8080/api/task/index/file/home/dev/mydir)
+     */
     @Post("/scan/file/:filePath:")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         Path path = get("/", filePath);
@@ -91,25 +141,54 @@ public class TaskResource {
         return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, options)));
     }
 
+    /**
+     * Cleans all DONE tasks.
+     *
+     * @return 200 and the list of removed tasks
+     *
+     * Example : $(curl -XPOST -d '{}' http://dsenv:8080/api/task/clean/
+     */
     @Post("/clean")
     public List<TaskResponse> cleanDoneTasks() {
         return taskManager.cleanDoneTasks().stream().map(TaskResponse::new).collect(toList());
     }
 
+    /**
+     * Run batch searches
+     *
+     * @return 200 and the created task
+     *
+     * Example : $(curl -XPOST localhost:8080/api/task/batchSearch)
+     */
     @Post("/batchSearch")
     public TaskResponse runBatchSearches(Context context) {
         return new TaskResponse(taskManager.startTask(taskFactory.createBatchSearchRunner((User)context.currentUser())));
     }
 
-    @Put("/stop/:taskName:")
-    public boolean stopTask(final String taskName) {
-        return taskManager.stopTask(notFoundIfNull(taskManager.getTask(taskName)).toString());
+    /**
+     * Cancels the task with the given name. It answers 200 with the cancellation status `true|false`
+     *
+     * @param taskId
+     * @return
+     */
+    @Put("/stop/:taskId:")
+    public boolean stopTask(final String taskId) {
+        return taskManager.stopTask(notFoundIfNull(taskManager.getTask(taskId)).toString());
     }
+
     @net.codestory.http.annotations.Options("/stop/:taskName:")
     public Payload stopTaskPreflight(final String taskName) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
+    /**
+     * Cancels the running tasks. It returns a map with task name/stop statuses.
+     * If the status is false, it means that the thread has not been stopped.
+     *
+     * @return 200 and the tasks stop result map
+     *
+     * Example : curl -XPUT localhost:8080/api/task/stopAll
+     */
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) {
         return taskManager.getTasks().stream().
@@ -123,6 +202,24 @@ public class TaskResource {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
+    /**
+     * Find names using the given pipeline :
+     *
+     * - OPENNLP
+     * - CORENLP
+     * - IXAPIPE
+     * - GATENLP
+     * - MITIE
+     *
+     * This endpoint is going to find all Documents that are not taggued with the given pipeline,
+     * and extract named entities for all these documents.
+     *
+     * @param pipeline
+     * @param optionsWrapper
+     * @return 200 and the list of created tasks
+     *
+     * Example : $(curl -XPOST http://dsenv:8080/api/task/findNames/CORENLP)
+     */
     @Post("/findNames/:pipeline")
     public List<TaskResponse> extractNlp(final String pipeline, final OptionsWrapper optionsWrapper, Context context)
             throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
