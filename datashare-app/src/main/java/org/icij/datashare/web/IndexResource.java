@@ -36,16 +36,33 @@ public class IndexResource {
         this.indexer = indexer;
     }
 
+    /**
+     * Create the index for the current user if it doesn't exist.
+     *
+     * @return 201 (Created) or 200 if it already exists
+     *
+     * Example : $(curl -i -XPUT localhost:8080/api/index/create)
+     */
     @Put("/create")
     public Payload createIndex(Context context) throws IOException {
         return indexer.createIndex(((User)context.currentUser()).projectName()) ? created() : ok();
     }
 
-    @Get("/search/:index/:path:")
-    public Payload esGet(final String index, final String path, Context context) throws IOException {
-        return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).get().build()).execute());
-    }
-
+    /**
+      * The search endpoint is just a proxy in front of Elasticsearch, everything sent is forwarded to Elasticsearch. DELETE method is not allowed.
+      *
+      * Warn: Normally with elasticsearch, the search url is of the form : http://elasticsearch:9200/index/_search with search request in the body.
+      * Datashare is appending the user to the index. So if you request http://dsenv:8080/api/search/datashare/_search then the url
+      * requested in elasticsearch will be http://dsenv:8080/api/index/search/local-datashare/_search
+      * because in local mode, the default user is called `local`
+      *
+      * The type requested is "doc" that is the default type of the datashare mapping.
+      * @param index
+      * @param path
+      * @return 200 or http error from Elasticsearch
+      *
+      * Example : $(curl -XPOST -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/datashare/_search -d '{}')
+      */
     @Post("/search/:index/:path:")
     public Payload esPost(final String index, final String path, Context context, final net.codestory.http.Request request) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).post(new RequestBody() {
@@ -60,11 +77,39 @@ public class IndexResource {
         }).build()).execute());
     }
 
+    /**
+     * Search GET request to Elasticsearch
+     *
+     * @param index
+     * @param path
+     * @return 200 or http error from Elasticsearch
+     *
+     * Example :  $(curl -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/datashare/_search?q=type:NamedEntity)
+     */
+    @Get("/search/:index/:path:")
+    public Payload esGet(final String index, final String path, Context context) throws IOException {
+        return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).get().build()).execute());
+    }
+
+    /**
+     * Head request useful for JS api (for example to test if an index exists)
+     *
+     * @param index
+     * @param path
+     * @return 200
+     */
     @Head("/search/:index/:path:")
     public Payload esHead(final String index, final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).head().build()).execute());
     }
 
+    /**
+     * Prefligth option request
+     *
+     * @param index
+     * @param path
+     * @return 200
+     */
     @Options("/search/:index/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).method("OPTIONS", null).build()).execute());
