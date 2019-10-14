@@ -11,6 +11,7 @@ import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
+import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
@@ -48,7 +49,8 @@ public class BatchSearchResource {
      */
     @Get("/search")
     public List<BatchSearch> getSearches(Context context) {
-        return batchSearchRepository.get((User) context.currentUser());
+        HashMapUser user = (HashMapUser) context.currentUser();
+        return batchSearchRepository.get(user, user.getIndices());
     }
 
     /**

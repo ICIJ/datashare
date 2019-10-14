@@ -71,6 +71,20 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_get_with_projects() {
+        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj1"), "name1", "description1",
+                asList("q1", "q2"), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj2"), "name2", "description2",
+                asList("q3", "q4"), new Date(new Date().getTime() + 1000000000));
+
+        repository.save(User.local(), batchSearch1);
+        repository.save(User.local(), batchSearch2);
+
+        assertThat(repository.get(User.local(), asList("prj1"))).containsExactly(batchSearch1);
+        assertThat(repository.get(User.local(), asList("prj2"))).containsExactly(batchSearch2);
+    }
+
+    @Test
     public void test_get_queued_searches() {
         repository.save(User.local(), new BatchSearch(Project.project("prj"), "name1", "description1",
                         asList("q1", "q2"), new Date()));

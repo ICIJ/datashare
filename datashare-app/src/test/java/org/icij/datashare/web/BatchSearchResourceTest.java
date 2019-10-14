@@ -28,8 +28,7 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -193,7 +192,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_batch_searches_json() {
-        when(batchSearchRepository.get(User.local())).thenReturn(asList(
+        when(batchSearchRepository.get(eq(User.local()), anyList())).thenReturn(asList(
                 new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2")),
                 new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"))
         ));
