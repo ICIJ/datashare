@@ -35,7 +35,8 @@ public class ProjectResource {
      *
      * Example :
      *
-     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/id/datashare-local | jq)
+     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/id/datashare-local Example :
+     *)
      */
     @Get("/id/:id")
     public Project getProject(String id) {

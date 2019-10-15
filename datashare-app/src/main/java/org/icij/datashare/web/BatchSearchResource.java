@@ -46,7 +46,7 @@ public class BatchSearchResource {
      * @return 200 and the list of batch searches
      *
      * Example :
-     * $(curl localhost:8080/api/batch/search | jq)
+     * $(curl localhost:8080/api/batch/search )
      */
     @Get("/search")
     public List<BatchSearch> getSearches(Context context) {
@@ -61,7 +61,7 @@ public class BatchSearchResource {
      * @return 200 and the batch search
      *
      * Example :
-     * $(curl localhost:8080/api/batch/search/314 | jq)
+     * $(curl localhost:8080/api/batch/search/314 )
      */
     @Get("/search/:batchid")
     public BatchSearch getBatch(String batchId, Context context) {
@@ -112,7 +112,7 @@ public class BatchSearchResource {
      * @return 204 or 404
      *
      * Example :
-     * $(curl -XDELETE localhost:8080/api/batch/search/id_batch_seearch)
+     * $(curl -i -XDELETE localhost:8080/api/batch/search/id_batch_seearch)
      *
      */
     @Delete("/search/:batchid")
@@ -203,7 +203,7 @@ public class BatchSearchResource {
      * @return 200
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/batch/search/result/3f82a76f-29ae-4c93-80af-d510d515ae9e -d "{\"from\":0, \"size\": 2}"| jq)
+     * $(curl -XPOST localhost:8080/api/batch/search/result/3f82a76f-29ae-4c93-80af-d510d515ae9e -d "{\"from\":0, \"size\": 2}")
      */
     @Post("/search/result/:batchid")
     public List<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {

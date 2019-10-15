@@ -160,7 +160,7 @@ public class DocumentResource {
      * @return 200 and the list of tags
      *
      * Example :
-     * $(curl  'http://localhost:8080/api/document/project/local-datashare/tag/e22daf445a1af6f0b75878751d093c7df851cb1e6745b58ba138982f7695a7326ef408264e397c3175e2390ec4c48682' -H 'Accept: application/json' | jq)
+     * $(curl  'http://localhost:8080/api/document/project/local-datashare/tag/e22daf445a1af6f0b75878751d093c7df851cb1e6745b58ba138982f7695a7326ef408264e397c3175e2390ec4c48682' -H 'Accept: application/json' )
      */
     @Get("/project/:project/tag/:docId")
     public List<Tag> getDocumentTags(final String projectId, final String docId) {
