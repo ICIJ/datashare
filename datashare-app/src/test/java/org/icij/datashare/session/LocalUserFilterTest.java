@@ -47,6 +47,18 @@ public class LocalUserFilterTest {
     }
 
     @Test
+    public void test_adds_custom_user_to_context() throws Exception {
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(new HashMap<String, String>() {{
+            put("defaultUserName", "foo");
+        }}));
+        Payload payload = localUserFilter.apply("url", context, nextFilter);
+
+        assertThat(payload).isSameAs(next);
+        verify(context).setCurrentUser(user.capture());
+        assertThat(user.getValue().login()).isEqualTo("foo");
+    }
+
+    @Test
     public void test_adds_cookie() throws Exception {
         LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider());
         Payload payload = localUserFilter.apply("url", context, nextFilter);

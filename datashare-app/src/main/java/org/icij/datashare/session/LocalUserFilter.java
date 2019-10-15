@@ -8,19 +8,22 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 
-import static org.icij.datashare.session.HashMapUser.local;
-import static org.icij.datashare.session.HashMapUser.singleUser;
+import static org.icij.datashare.session.HashMapUser.*;
 
 public class LocalUserFilter extends CookieAuthFilter {
+    private final String userName;
+
     @Inject
     public LocalUserFilter(final PropertiesProvider propertiesProvider) {
-        super(propertiesProvider.get("protectedUrPrefix").orElse("/"), singleUser(local()), SessionIdStore.inMemory());
+        super(propertiesProvider.get("protectedUrPrefix").orElse("/"),
+                singleUser(propertiesProvider.get("defaultUserName").orElse("local")), SessionIdStore.inMemory());
+        userName = propertiesProvider.get("defaultUserName").orElse("local");
     }
 
     @Override
     public Payload otherUri(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
         String sessionId = readSessionIdInCookie(context);
-        context.setCurrentUser(users.find("local"));
+        context.setCurrentUser(users.find(userName));
         if (sessionId == null) {
             return nextFilter.get().withCookie(this.authCookie(this.buildCookie(users.find("local"), "/")));
         } else {

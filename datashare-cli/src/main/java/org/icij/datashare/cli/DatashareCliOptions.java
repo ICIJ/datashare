@@ -6,6 +6,7 @@ import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
 import org.icij.datashare.Mode;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.User;
 
 import java.io.File;
 import java.util.Arrays;
@@ -46,6 +47,15 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType( Mode.class )
                 .defaultsTo(Mode.LOCAL);
+    }
+
+    static OptionSpec<String> defaultUser(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("u", "defaultUserName"),
+                "Default local user")
+                .withRequiredArg()
+                .ofType( String.class )
+                .defaultsTo(User.local().id);
     }
 
     static OptionSpecBuilder followSymlinks(OptionParser parser) {
