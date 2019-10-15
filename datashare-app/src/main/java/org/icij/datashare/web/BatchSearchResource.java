@@ -63,7 +63,7 @@ public class BatchSearchResource {
      * @return 200 and the batch search
      *
      * Example :
-     * $(curl localhost:8080/api/batch/search/314 )
+     * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146 )
      */
     @Get("/search/:batchid")
     public BatchSearch getBatch(String batchId, Context context) {
@@ -78,21 +78,6 @@ public class BatchSearchResource {
     @Options("/search")
     public Payload optionsSearches(Context context) {
         return ok().withAllowMethods("OPTIONS", "DELETE");
-    }
-
-    /**
-     * Delete batch searches and results for the current user.
-     *
-     * Returns 204 (No Content) if rows have been removed and 404 if nothing has been done (i.e. not found).
-     *
-     * @return 204 or 404
-     *
-     * Example :
-     * $(curl -XDELETE localhost:8080/api/batch/search)
-     */
-    @Delete("/search")
-    public Payload deleteSearches(Context context) {
-        return batchSearchRepository.deleteAll((User) context.currentUser()) ? new Payload(204): notFound();
     }
 
     /**
@@ -114,7 +99,7 @@ public class BatchSearchResource {
      * @return 204 or 404
      *
      * Example :
-     * $(curl -i -XDELETE localhost:8080/api/batch/search/id_batch_seearch)
+     * $(curl -i -XDELETE localhost:8080/api/batch/search/f74432db-9ae8-401d-977c-5c44a124f2c8)
      *
      */
     @Delete("/search/:batchid")
@@ -205,7 +190,7 @@ public class BatchSearchResource {
      * @return 200
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/batch/search/result/3f82a76f-29ae-4c93-80af-d510d515ae9e -d "{\"from\":0, \"size\": 2}")
+     * $(curl -XPOST localhost:8080/api/batch/search/result/b7bee2d8-5ede-4c56-8b69-987629742146 -d "{\"from\":0, \"size\": 2}")
      */
     @Post("/search/result/:batchid")
     public List<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {
@@ -221,7 +206,7 @@ public class BatchSearchResource {
      * @return 200 and the CSV file as attached file
      *
      * Example :
-     * $(curl -i localhost:8080/api/batch/search/result/csv/3f82a76f-29ae-4c93-80af-d510d515ae9e)
+     * $(curl -i localhost:8080/api/batch/search/result/csv/f74432db-9ae8-401d-977c-5c44a124f2c8)
      */
     @Get("/search/result/csv/:batchid")
     public Payload getResultAsCsv(String batchId, Context context) {
@@ -243,6 +228,21 @@ public class BatchSearchResource {
 
         return new Payload("text/csv", builder.toString()).
                 withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
+    }
+
+    /**
+     * Delete batch searches and results for the current user.
+     *
+     * Returns 204 (No Content) if rows have been removed and 404 if nothing has been done (i.e. not found).
+     *
+     * @return 204 or 404
+     *
+     * Example :
+     * $(curl -XDELETE localhost:8080/api/batch/search)
+     */
+    @Delete("/search")
+    public Payload deleteSearches(Context context) {
+        return batchSearchRepository.deleteAll((User) context.currentUser()) ? new Payload(204): notFound();
     }
 
     private String docUrl(String uri, Project project, String documentId, String rootId) {
