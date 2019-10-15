@@ -51,7 +51,9 @@ public class BatchSearchResource {
     @Get("/search")
     public List<BatchSearch> getSearches(Context context) {
         HashMapUser user = (HashMapUser) context.currentUser();
-        return batchSearchRepository.get(user, user.getIndices());
+        List<String> indices = user.getIndices();
+        indices.add(user.projectName());
+        return batchSearchRepository.get(user, indices);
     }
 
     /**

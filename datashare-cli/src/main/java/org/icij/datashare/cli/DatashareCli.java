@@ -32,11 +32,13 @@ public class DatashareCli {
         DatashareCliOptions.parallelism(parser);
         DatashareCliOptions.fileParserParallelism(parser);
         DatashareCliOptions.nlpParallelism(parser);
-        DatashareCliOptions.defaultUser(parser);
         DatashareCliOptions.followSymlinks(parser);
 
         DatashareCliOptions.clusterName(parser);
-        DatashareCliOptions.projectName(parser);
+
+        OptionSpec<String> userOption = DatashareCliOptions.defaultUser(parser);
+        OptionSpec<String> projectOption = DatashareCliOptions.projectName(parser);
+
         DatashareCliOptions.esHost(parser);
         DatashareCliOptions.queueName(parser);
 
@@ -55,12 +57,18 @@ public class DatashareCli {
 
         try {
             OptionSet options = parser.parse(args);
-
+            if (options.hasArgument(userOption) && options.hasArgument(projectOption)) {
+                throw new IllegalArgumentException("you should provide either user or project but not both");
+            }
             if (options.has(helpOpt)) {
                 printHelp(parser);
                 return false;
             }
             properties = asProperties(options, null);
+            if (options.hasArgument(userOption)) {
+                properties.setProperty(projectOption.options().get(1),
+                        userOption.value(options).trim() + "-datashare");
+            }
             return true;
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);

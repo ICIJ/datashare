@@ -53,13 +53,15 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     @Override public String login() { return id;}
     @Override public String name() { return userMap.get("name");}
     @Override public String[] roles() { return new String[0];}
-    public static HashMapUser local() {
-        return new HashMapUser("local") {
+    public static HashMapUser local() { return localUser("local"); }
+
+    public static HashMapUser localUser(String id) {
+        return new HashMapUser(id) {
             @Override public String[] roles() { return new String[] {"local"};}
         };
     }
 
-    public static Users singleUser(String name) { return singleUser(new HashMapUser(name));}
+    public static Users singleUser(String name) { return singleUser(localUser(name));}
     public static Users singleUser(final HashMapUser user) {
         return new Users() {
             @Override public net.codestory.http.security.User find(String s, String s1) { return s.equals(user.id) ? user : null;}

@@ -192,7 +192,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_batch_searches_json() {
-        when(batchSearchRepository.get(eq(User.local()), anyList())).thenReturn(asList(
+        when(batchSearchRepository.get(User.local(), singletonList("local-datashare"))).thenReturn(asList(
                 new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2")),
                 new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"))
         ));
