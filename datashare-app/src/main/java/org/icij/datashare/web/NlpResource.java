@@ -43,7 +43,8 @@ public class NlpResource {
      * @param text to analyse
      * @return
      *
-     * Example : $(curl -XPOST http://dsenv:8080/ner/findNames/CORENLP -d "Please find attached a PDF copy of the advance tax clearance obtained for our client")
+     * Example :
+     * $(curl -XPOST http://dsenv:8080/ner/findNames/CORENLP -d "Please find attached a PDF copy of the advance tax clearance obtained for our client")
      */
     @Post("/findNames/:pipeline")
     public List<NamedEntity> getAnnotations(final String pipeline, String text) throws Exception {

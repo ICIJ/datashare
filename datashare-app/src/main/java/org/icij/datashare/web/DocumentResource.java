@@ -55,7 +55,8 @@ public class DocumentResource {
      * @param routing
      * @return 200 or 404 or 403 (Forbidden)
      *
-     * Example : $(curl -i localhost:8080/api/index/src/local-datashare/1c04c3212e431f1bb527d92bb285765f6bbd5df865b433189bf905dde8fc3f5a?routing=1c04c3212e431f1bb527d92bb285765f6bbd5df865b433189bf905dde8fc3f5a)
+     * Example :
+     * $(curl -i localhost:8080/api/index/src/local-datashare/1c04c3212e431f1bb527d92bb285765f6bbd5df865b433189bf905dde8fc3f5a?routing=1c04c3212e431f1bb527d92bb285765f6bbd5df865b433189bf905dde8fc3f5a)
      */
     @Get("/src/:project/:id?routing=:routing")
     public Payload getSourceFile(final String index, final String id,
@@ -76,7 +77,8 @@ public class DocumentResource {
      * @param docIds as json
      * @return 200 and the number of documents updated
      *
-     * Example : $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/star -d '["id1", "id2"]')
+     * Example :
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/star -d '["id1", "id2"]')
      */
     @Post("/project/:project/group/star")
     public int groupStarProject(final String projectId, final List<String> docIds, Context context) {
@@ -92,7 +94,8 @@ public class DocumentResource {
      * @param docIds as json in body
      * @return 200 and the number of documents unstarred
      *
-     * Example : $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/unstar -d '["id1", "id2", "unknownId"]')
+     * Example :
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/unstar -d '["id1", "id2", "unknownId"]')
      */
     @Post("/project/:project/group/unstar")
     public int groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
@@ -107,7 +110,8 @@ public class DocumentResource {
      * @param projectId
      * @return 200
      *
-     * Example : $(curl -i localhost:8080/api/document/starred)
+     * Example :
+     * $(curl -i localhost:8080/api/document/starred)
      */
     @Get("/project/starred/:project")
     public List<String> getProjectStarredDocuments(final String projectId, Context context) {
@@ -123,7 +127,8 @@ public class DocumentResource {
      * @param comaSeparatedTags
      * @return 200
      *
-     * Example : $(curl -i localhost:8080/api/document/project/tagged/prj/tag_01,tag_02)
+     * Example :
+     * $(curl -i localhost:8080/api/document/project/tagged/prj/tag_01,tag_02)
      */
     @Get("/project/tagged/:project/:coma_separated_tags")
     public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags) {
@@ -154,7 +159,8 @@ public class DocumentResource {
      * @param docId
      * @return 200 and the list of tags
      *
-     * Example : $(curl  'http://localhost:8080/api/document/project/local-datashare/tag/e22daf445a1af6f0b75878751d093c7df851cb1e6745b58ba138982f7695a7326ef408264e397c3175e2390ec4c48682' -H 'Accept: application/json' | jq)
+     * Example :
+     * $(curl  'http://localhost:8080/api/document/project/local-datashare/tag/e22daf445a1af6f0b75878751d093c7df851cb1e6745b58ba138982f7695a7326ef408264e397c3175e2390ec4c48682' -H 'Accept: application/json' | jq)
      */
     @Get("/project/:project/tag/:docId")
     public List<Tag> getDocumentTags(final String projectId, final String docId) {
@@ -170,7 +176,8 @@ public class DocumentResource {
      * @param query
      * @return 200
      *
-     * Example : $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/tag -d '{"docIds": ["id1", "id2], "tags": ["foo", "bar"]}')
+     * Example :
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/tag -d '{"docIds": ["id1", "id2], "tags": ["foo", "bar"]}')
      */
     @Post("/project/:project/group/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
@@ -188,7 +195,8 @@ public class DocumentResource {
      * @param query
      * @return 200
      *
-     * Example : $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/untag -d '{"docIds": ["id1", "id2], "tags": ["foo", "bar"]}')
+     * Example :
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/untag -d '{"docIds": ["id1", "id2], "tags": ["foo", "bar"]}')
      */
     @Post("/project/:project/group/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query,  Context context) throws IOException {

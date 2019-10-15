@@ -35,7 +35,8 @@ public class NamedEntityResource {
      * @param documentId the root document
      * @return 200
      *
-     * Example : $($ curl "localhost:8080/api/namedEntity/ab994e364f51ce59f93cf464c66e01c84c6c013a0703d53a4a01bfa1bbaa3d99bc7936aa49914dd5fc6dfd2e4c8011db?routing=5c98cae06574d8110c6ece3c934fd910ee057a2d07875858e438f92f3bc99529")
+     * Example :
+     * $($ curl "localhost:8080/api/namedEntity/ab994e364f51ce59f93cf464c66e01c84c6c013a0703d53a4a01bfa1bbaa3d99bc7936aa49914dd5fc6dfd2e4c8011db?routing=5c98cae06574d8110c6ece3c934fd910ee057a2d07875858e438f92f3bc99529")
      */
     @Get("/namedEntity/:id?routing=:documentId")
     public NamedEntity getById(final String id, final String documentId, Context context) {
@@ -58,7 +59,8 @@ public class NamedEntityResource {
      * @param mentionNorm
      * @return 200
      *
-     * Example : $(curl -i -XPUT localhost:8080/api/namedEntity/hide/xlsx)
+     * Example :
+     * $(curl -i -XPUT localhost:8080/api/namedEntity/hide/xlsx)
      */
     @Put("/namedEntity/hide/:mentionNorm")
     public Payload hide(final String mentionNorm, Context context) throws IOException {

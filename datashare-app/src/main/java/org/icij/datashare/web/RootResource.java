@@ -21,7 +21,8 @@ public class RootResource {
      *
      * @return 200
      *
-     * Example : $(curl -i localhost:8080/config)
+     * Example :
+     * $(curl -i localhost:8080/config)
      */
     @Get("config")
     public Map<String, Object> getPublicConfig() {
@@ -33,7 +34,8 @@ public class RootResource {
      *
      * @return 200
      *
-     * Example : $(curl -i localhost:8080/version)
+     * Example :
+     * $(curl -i localhost:8080/version)
      */
     @Get("version")
     public Properties getVersion() {

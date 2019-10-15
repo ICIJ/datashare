@@ -61,7 +61,8 @@ public class TaskResource {
      *
      * @return 200 and the list of tasks
      *
-     * Example : $(curl localhost:8080/api/task/all)
+     * Example :
+     * $(curl localhost:8080/api/task/all)
      */
     @Get("/all")
     public List<TaskResponse> tasks(Context context) {
@@ -74,7 +75,8 @@ public class TaskResource {
      * @param id
      * @return 200
      *
-     * Example : $(curl localhost:8080/api/task/id/21148262)
+     * Example :
+     * $(curl localhost:8080/api/task/id/21148262)
      */
     @Get("/name/:name")
     public TaskResponse getTask(String id) {
@@ -88,7 +90,8 @@ public class TaskResource {
      * @param optionsWrapper wrapper for options json
      * @return 200 and json task
      *
-     * Example : $(curl -XPOST localhost:8080/api/task/index -d '{}')
+     * Example :
+     * $(curl -XPOST localhost:8080/api/task/index -d '{}')
      */
     @Post("/index")
     public TaskResponse indexQueue(final OptionsWrapper optionsWrapper, Context context) {
@@ -102,7 +105,8 @@ public class TaskResource {
      * @param optionsWrapper
      * @return 200 and the list of tasks created
      *
-     * Example : $(curl -XPOST localhost:8080/api/task/index/file)
+     * Example :
+     * $(curl -XPOST localhost:8080/api/task/index/file)
      */
     @Post("/index/file")
     public List<TaskResponse> indexDefault(final OptionsWrapper optionsWrapper, Context context) {
@@ -132,7 +136,8 @@ public class TaskResource {
      * @param optionsWrapper
      * @return 200 and the task created
      *
-     * Example : $(curl -XPOST localhost:8080/api/task/index/file/home/dev/mydir)
+     * Example :
+     * $(curl -XPOST localhost:8080/api/task/index/file/home/dev/mydir)
      */
     @Post("/scan/file/:filePath:")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
@@ -146,7 +151,8 @@ public class TaskResource {
      *
      * @return 200 and the list of removed tasks
      *
-     * Example : $(curl -XPOST -d '{}' http://dsenv:8080/api/task/clean/
+     * Example :
+     * $(curl -XPOST -d '{}' http://dsenv:8080/api/task/clean/
      */
     @Post("/clean")
     public List<TaskResponse> cleanDoneTasks() {
@@ -158,7 +164,8 @@ public class TaskResource {
      *
      * @return 200 and the created task
      *
-     * Example : $(curl -XPOST localhost:8080/api/task/batchSearch)
+     * Example :
+     * $(curl -XPOST localhost:8080/api/task/batchSearch)
      */
     @Post("/batchSearch")
     public TaskResponse runBatchSearches(Context context) {
@@ -187,7 +194,8 @@ public class TaskResource {
      *
      * @return 200 and the tasks stop result map
      *
-     * Example : curl -XPUT localhost:8080/api/task/stopAll
+     * Example :
+     * curl -XPUT localhost:8080/api/task/stopAll
      */
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) {
@@ -218,7 +226,8 @@ public class TaskResource {
      * @param optionsWrapper
      * @return 200 and the list of created tasks
      *
-     * Example : $(curl -XPOST http://dsenv:8080/api/task/findNames/CORENLP)
+     * Example :
+     * $(curl -XPOST http://dsenv:8080/api/task/findNames/CORENLP)
      */
     @Post("/findNames/:pipeline")
     public List<TaskResponse> extractNlp(final String pipeline, final OptionsWrapper optionsWrapper, Context context)

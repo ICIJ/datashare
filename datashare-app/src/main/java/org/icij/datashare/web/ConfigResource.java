@@ -20,6 +20,14 @@ public class ConfigResource {
         this.provider = provider;
     }
 
+    /**
+     * gets the private datashare configuration with user's information
+     *
+     * @return 200 and the json config
+     *
+     * Example :
+     * $(curl -i localhost:8080/api/config)
+     */
     @Get("/config")
     public Map<String, Object> getConfig(Context context) {
         Map<String, Object> filteredProperties = provider.getFilteredProperties(".*Address.*", ".*Secret.*");

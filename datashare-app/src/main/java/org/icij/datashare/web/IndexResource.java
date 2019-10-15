@@ -41,7 +41,8 @@ public class IndexResource {
      *
      * @return 201 (Created) or 200 if it already exists
      *
-     * Example : $(curl -i -XPUT localhost:8080/api/index/create)
+     * Example :
+     * $(curl -i -XPUT localhost:8080/api/index/create)
      */
     @Put("/create")
     public Payload createIndex(Context context) throws IOException {
@@ -61,7 +62,8 @@ public class IndexResource {
       * @param path
       * @return 200 or http error from Elasticsearch
       *
-      * Example : $(curl -XPOST -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/datashare/_search -d '{}')
+      * Example :
+     * $(curl -XPOST -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/datashare/_search -d '{}')
       */
     @Post("/search/:index/:path:")
     public Payload esPost(final String index, final String path, Context context, final net.codestory.http.Request request) throws IOException {
@@ -84,7 +86,8 @@ public class IndexResource {
      * @param path
      * @return 200 or http error from Elasticsearch
      *
-     * Example :  $(curl -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/datashare/_search?q=type:NamedEntity)
+     * Example :
+     *  $(curl -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/datashare/_search?q=type:NamedEntity)
      */
     @Get("/search/:index/:path:")
     public Payload esGet(final String index, final String path, Context context) throws IOException {

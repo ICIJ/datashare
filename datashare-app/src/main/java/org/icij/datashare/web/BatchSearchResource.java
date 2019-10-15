@@ -45,7 +45,8 @@ public class BatchSearchResource {
      *
      * @return 200 and the list of batch searches
      *
-     * Example : $(curl localhost:8080/api/batch/search | jq)
+     * Example :
+     * $(curl localhost:8080/api/batch/search | jq)
      */
     @Get("/search")
     public List<BatchSearch> getSearches(Context context) {
@@ -59,7 +60,8 @@ public class BatchSearchResource {
      * @param batchId
      * @return 200 and the batch search
      *
-     * Example : $(curl localhost:8080/api/batch/search/314 | jq)
+     * Example :
+     * $(curl localhost:8080/api/batch/search/314 | jq)
      */
     @Get("/search/:batchid")
     public BatchSearch getBatch(String batchId, Context context) {
@@ -82,6 +84,9 @@ public class BatchSearchResource {
      * Returns 204 (No Content) if rows have been removed and 404 if nothing has been done (i.e. not found).
      *
      * @return 204 or 404
+     *
+     * Example :
+     * $(curl -XDELETE localhost:8080/api/batch/search)
      */
     @Delete("/search")
     public Payload deleteSearches(Context context) {
@@ -105,6 +110,10 @@ public class BatchSearchResource {
      * Returns 204 (No Content) if rows have been removed and 404 if nothing has been done (i.e. not found).
      *
      * @return 204 or 404
+     *
+     * Example :
+     * $(curl -XDELETE localhost:8080/api/batch/search/id_batch_seearch)
+     *
      */
     @Delete("/search/:batchid")
     public Payload deleteBatch(String batchId, Context context) {
@@ -146,8 +155,9 @@ public class BatchSearchResource {
      * `sed -i 's/$/^M/g' ~/multipart.txt`
      *
      * TThen make a curl request with this file :
+     * ```
      * curl -i -XPOST localhost:8080/api/batch/search/prj -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
-     *
+     * ```
      * @param projectId
      * @param context : the request body
      * @return 200 or 400
@@ -192,7 +202,8 @@ public class BatchSearchResource {
      * @param webQuery
      * @return 200
      *
-     * Example : $(curl -XPOST localhost:8080/api/batch/search/result/3f82a76f-29ae-4c93-80af-d510d515ae9e -d "{\"from\":0, \"size\": 2}"| jq)
+     * Example :
+     * $(curl -XPOST localhost:8080/api/batch/search/result/3f82a76f-29ae-4c93-80af-d510d515ae9e -d "{\"from\":0, \"size\": 2}"| jq)
      */
     @Post("/search/result/:batchid")
     public List<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {
@@ -207,7 +218,8 @@ public class BatchSearchResource {
      * @param batchId
      * @return 200 and the CSV file as attached file
      *
-     * Example : $(curl -i localhost:8080/api/batch/search/result/csv/3f82a76f-29ae-4c93-80af-d510d515ae9e)
+     * Example :
+     * $(curl -i localhost:8080/api/batch/search/result/csv/3f82a76f-29ae-4c93-80af-d510d515ae9e)
      */
     @Get("/search/result/csv/:batchid")
     public Payload getResultAsCsv(String batchId, Context context) {

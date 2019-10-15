@@ -33,7 +33,9 @@ public class ProjectResource {
      * @param id
      * @return 200 and the project from database if it exists else a transient one
      *
-     * Example : $(curl -H 'Content-Type:application/json' localhost:8080/api/project/id/datashare-local | jq)
+     * Example :
+     *
+     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/id/datashare-local | jq)
      */
     @Get("/id/:id")
     public Project getProject(String id) {
@@ -49,8 +51,10 @@ public class ProjectResource {
      * @param id
      * @return 200 or 403 (Forbidden)
      *
-     * Example : $(curl -H 'Content-Type:application/json' localhost:8080/api/project/isAllowed/datashare-local)
-     * Example : $(curl -H 'Content-Type:application/json' localhost:8080/api/project/isAllowed/disallowed-project)
+     * Example :
+     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/isAllowed/datashare-local)
+     * Example :
+     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/isAllowed/disallowed-project)
      */
     @Get("/isAllowed/:id")
     public Payload isProjectAllowed(String id, Context context) {
@@ -77,7 +81,8 @@ public class ProjectResource {
      * @param id
      * @return 204 (no content) or 404
      *
-     * Example : $(curl -I -XDELETE -H 'Content-Type:application/json' localhost:8080/api/project/id/local-datashare)
+     * Example :
+     * $(curl -I -XDELETE -H 'Content-Type:application/json' localhost:8080/api/project/id/local-datashare)
      */
     @Delete("/id/:id")
     public Payload deleteProject(String id, Context context) throws Exception {
