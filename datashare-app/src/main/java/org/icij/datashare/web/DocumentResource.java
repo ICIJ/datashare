@@ -56,7 +56,8 @@ public class DocumentResource {
      * @return 200 or 404 or 403 (Forbidden)
      *
      * Example :
-     * $(curl -i localhost:8080/api/index/src/local-datashare/1c04c3212e431f1bb527d92bb285765f6bbd5df865b433189bf905dde8fc3f5a?routing=1c04c3212e431f1bb527d92bb285765f6bbd5df865b433189bf905dde8fc3f5a)
+     *
+     * $(curl -i http://localhost:8080/api/document/src/apigen-datashare/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f
      */
     @Get("/src/:project/:id?routing=:routing")
     public Payload getSourceFile(final String index, final String id,
@@ -78,7 +79,7 @@ public class DocumentResource {
      * @return 200 and the number of documents updated
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/star -d '["id1", "id2"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
      */
     @Post("/project/:project/group/star")
     public int groupStarProject(final String projectId, final List<String> docIds, Context context) {
@@ -95,7 +96,7 @@ public class DocumentResource {
      * @return 200 and the number of documents unstarred
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/unstar -d '["id1", "id2", "unknownId"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/unstar -d '["curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"", "unknownId"]')
      */
     @Post("/project/:project/group/unstar")
     public int groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
@@ -111,7 +112,7 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/api/document/starred)
+     * $(curl -i localhost:8080/api/document/project/starred/apigen-datashare)
      */
     @Get("/project/starred/:project")
     public List<String> getProjectStarredDocuments(final String projectId, Context context) {
@@ -128,7 +129,7 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/api/document/project/tagged/prj/tag_01,tag_02)
+     * $(curl -i localhost:8080/api/document/project/tagged/apigen-datashare/tag_01,tag_02)
      */
     @Get("/project/tagged/:project/:coma_separated_tags")
     public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags) {
@@ -146,6 +147,17 @@ public class DocumentResource {
     @Options("/project/tag/:project/:docId")
     public Payload tagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
+    /**
+     *
+     * @param projectId
+     * @param docId
+     * @param routing
+     * @param tags
+     * @return 201 if created else 200
+     *
+     * Example :
+     * $(curl localhost:8080/api/document/project/tag/apigen-datashare/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f -d '[\"tag1\",\"tag2\"]'
+     */
     @Put("/project/tag/:project/:docId?routing=:routing")
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
@@ -160,7 +172,7 @@ public class DocumentResource {
      * @return 200 and the list of tags
      *
      * Example :
-     * $(curl  'http://localhost:8080/api/document/project/local-datashare/tag/e22daf445a1af6f0b75878751d093c7df851cb1e6745b58ba138982f7695a7326ef408264e397c3175e2390ec4c48682' -H 'Accept: application/json' )
+     * $(curl  http://localhost:8080/api/document/project/apigen-datashare/tag/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
     @Get("/project/:project/tag/:docId")
     public List<Tag> getDocumentTags(final String projectId, final String docId) {
@@ -177,7 +189,7 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/tag -d '{"docIds": ["id1", "id2], "tags": ["foo", "bar"]}')
+     * $(curl -i -XPOST localhost:8080/api/document/project/apigen-datashare/group/tag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
      */
     @Post("/project/:project/group/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
@@ -196,7 +208,7 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/local-datashare/group/untag -d '{"docIds": ["id1", "id2], "tags": ["foo", "bar"]}')
+     * $(curl -i -XPOST localhost:8080/api/document/project/apigen-datashare/group/untag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
      */
     @Post("/project/:project/group/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query,  Context context) throws IOException {
@@ -215,6 +227,17 @@ public class DocumentResource {
     @Options("/project/untag/:project/:docId")
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
+    /**
+     * Untag one document
+     *
+     * @param projectId
+     * @param docId
+     * @param routing
+     * @param tags
+     * @return 201 if untagged else 200
+     *
+     * $(curl -i -XPUT localhost:8080/api/document/project/untag/apigen-datashare/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     */
     @Put("/project/untag/:project/:docId?routing=:routing")
     public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean untagSaved = repository.untag(project(projectId), docId, tags);
@@ -228,6 +251,8 @@ public class DocumentResource {
      * This service needs to have the document stored in the database.
      *
      * @return 200 and the list of Documents
+     *
+     * $(curl localhost:8080/api/document/starred)
      */
     @Get("/starred")
     public List<Document> getStarredDocuments(Context context) {
@@ -246,6 +271,8 @@ public class DocumentResource {
      * Star the document with id docId
      * @param docId
      * @return 201 if the document has been starred else 200
+     *
+     * $(curl localhost:8080/api/document/star/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
     @Put("/star/:docId")
     public Payload starDocument(final String docId, Context context) {
@@ -264,6 +291,7 @@ public class DocumentResource {
      * Star the document with id docId
      * @param docId
      * @return 201 if the document has been starred else 200
+     * $(curl localhost:8080/api/document/unstar/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
     @Put("/unstar/:docId")
     public Payload unstarDocument(final String docId, Context context) {

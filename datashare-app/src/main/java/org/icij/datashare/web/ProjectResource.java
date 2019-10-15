@@ -35,7 +35,7 @@ public class ProjectResource {
      *
      * Example :
      *
-     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/id/datashare-local Example :
+     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/id/apigen-datashare
      *)
      */
     @Get("/id/:id")
@@ -53,7 +53,7 @@ public class ProjectResource {
      * @return 200 or 403 (Forbidden)
      *
      * Example :
-     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/isAllowed/datashare-local)
+     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/isAllowed/apigen-datashare)
      * Example :
      * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/isAllowed/disallowed-project)
      */
@@ -83,7 +83,7 @@ public class ProjectResource {
      * @return 204 (no content) or 404
      *
      * Example :
-     * $(curl -I -XDELETE -H 'Content-Type:application/json' localhost:8080/api/project/id/local-datashare)
+     * $(curl -I -XDELETE -H 'Content-Type:application/json' localhost:8080/api/project/id/unknown-project)
      */
     @Delete("/id/:id")
     public Payload deleteProject(String id, Context context) throws Exception {

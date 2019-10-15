@@ -54,7 +54,7 @@ public class IndexResource {
       *
       * Warn: Normally with elasticsearch, the search url is of the form : http://elasticsearch:9200/index/_search with search request in the body.
       * Datashare is appending the user to the index. So if you request http://dsenv:8080/api/search/datashare/_search then the url
-      * requested in elasticsearch will be http://dsenv:8080/api/index/search/local-datashare/_search
+      * requested in elasticsearch will be http://dsenv:8080/api/index/search/apigen-datashare/_search
       * because in local mode, the default user is called `local`
       *
       * The type requested is "doc" that is the default type of the datashare mapping.

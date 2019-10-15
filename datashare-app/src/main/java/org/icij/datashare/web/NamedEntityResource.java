@@ -36,7 +36,7 @@ public class NamedEntityResource {
      * @return 200
      *
      * Example :
-     * $($ curl "localhost:8080/api/namedEntity/ab994e364f51ce59f93cf464c66e01c84c6c013a0703d53a4a01bfa1bbaa3d99bc7936aa49914dd5fc6dfd2e4c8011db?routing=5c98cae06574d8110c6ece3c934fd910ee057a2d07875858e438f92f3bc99529")
+     * $($ curl "localhost:8080/api/namedEntity/4c262715b69f33e9ba69c794cc37ce6a90081fa124ca2ef67ab4f0654c72cb250e08f1f8455fbf8e4331f8955300c83a?routing=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f")
      */
     @Get("/namedEntity/:id?routing=:documentId")
     public NamedEntity getById(final String id, final String documentId, Context context) {
