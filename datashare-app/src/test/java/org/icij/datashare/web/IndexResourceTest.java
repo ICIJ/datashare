@@ -92,8 +92,8 @@ public class IndexResourceTest implements FluentRestTest {
 
     @Test
     public void test_put_create_local_index_in_local_mode() throws Exception {
-        put("/api/index/create").should().respond(200);
-        verify(mockIndexer).createIndex("local-datashare");
+        put("/api/index/indexName").should().respond(200);
+        verify(mockIndexer).createIndex("indexName");
     }
 
     @Test
@@ -101,7 +101,7 @@ public class IndexResourceTest implements FluentRestTest {
         server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
-        put("/api/index/create").withPreemptiveAuthentication("cecile", "pass").should().respond(200);
+        put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(200);
         verify(mockIndexer).createIndex("cecile-datashare");
     }
 

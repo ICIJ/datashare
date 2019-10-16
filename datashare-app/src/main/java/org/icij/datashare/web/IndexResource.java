@@ -42,11 +42,11 @@ public class IndexResource {
      * @return 201 (Created) or 200 if it already exists
      *
      * Example :
-     * $(curl -i -XPUT localhost:8080/api/index/create)
+     * $(curl -i -XPUT localhost:8080/api/index/apigen-datashare)
      */
-    @Put("/create")
-    public Payload createIndex(Context context) throws IOException {
-        return indexer.createIndex(((User)context.currentUser()).projectName()) ? created() : ok();
+    @Put("/:index")
+    public Payload createIndex(final String index) throws IOException {
+        return indexer.createIndex(index) ? created() : ok();
     }
 
     /**
