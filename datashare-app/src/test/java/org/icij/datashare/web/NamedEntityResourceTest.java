@@ -42,14 +42,14 @@ public class NamedEntityResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_standalone_named_entity_should_return_not_found() {
-        get("/api/namedEntity/my_id").should().respond(404);
+        get("/api/index/namedEntity/my_id").should().respond(404);
     }
 
     @Test
     public void test_get_named_entity() {
         NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
-        doReturn(toBeReturned).when(indexer).get("local-datashare", "my_id", "root_parent");
-        get("/api/namedEntity/my_id?routing=root_parent").should().respond(200).haveType("application/json").contain(toBeReturned.getId());
+        doReturn(toBeReturned).when(indexer).get("index", "my_id", "root_parent");
+        get("/api/index/namedEntity/my_id?routing=root_parent").should().respond(200).haveType("application/json").contain(toBeReturned.getId());
     }
 
     @Test
@@ -58,7 +58,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
         NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("anne-datashare", "my_id", "root_parent");
 
-        get("/api/namedEntity/my_id?routing=root_parent").withAuthentication("anne", "notused").
+        get("/api/anne-datashare/namedEntity/my_id?routing=root_parent").withAuthentication("anne", "notused").
                 should().respond(200).haveType("application/json").contain(toBeReturned.getId());
     }
 
@@ -69,18 +69,18 @@ public class NamedEntityResourceTest implements FluentRestTest {
         Indexer.Searcher searcher = mock(Indexer.Searcher.class);
         doReturn(Stream.of(toBeHidden)).when(searcher).execute();
         doReturn(searcher).when(searcher).thatMatchesFieldValue(any(), any());
-        doReturn(searcher).when(indexer).search("local-datashare", NamedEntity.class);
+        doReturn(searcher).when(indexer).search("index", NamedEntity.class);
 
-        put("/api/namedEntity/hide/to_update").should().respond(200);
+        put("/api/index/namedEntity/hide/to_update").should().respond(200);
 
-        verify(indexer).bulkUpdate("local-datashare", singletonList(toBeHidden));
+        verify(indexer).bulkUpdate("index", singletonList(toBeHidden));
     }
 
     @Test
     public void test_hide_named_entity_when_failure() throws IOException {
-        doThrow(new RuntimeException()).when(indexer).search("local-datashare", NamedEntity.class);
+        doThrow(new RuntimeException()).when(indexer).search("index", NamedEntity.class);
 
-        put("/api/namedEntity/hide/to_update").should().respond(500);
+        put("/api/index/namedEntity/hide/to_update").should().respond(500);
     }
 
     @Override

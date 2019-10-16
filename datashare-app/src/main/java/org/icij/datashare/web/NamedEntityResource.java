@@ -36,11 +36,11 @@ public class NamedEntityResource {
      * @return 200
      *
      * Example :
-     * $($ curl "localhost:8080/api/namedEntity/4c262715b69f33e9ba69c794cc37ce6a90081fa124ca2ef67ab4f0654c72cb250e08f1f8455fbf8e4331f8955300c83a?routing=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f")
+     * $($ curl "localhost:8080/api/apigen-datashare/namedEntity/4c262715b69f33e9ba69c794cc37ce6a90081fa124ca2ef67ab4f0654c72cb250e08f1f8455fbf8e4331f8955300c83a?routing=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f")
      */
-    @Get("/namedEntity/:id?routing=:documentId")
-    public NamedEntity getById(final String id, final String documentId, Context context) {
-        return notFoundIfNull(indexer.get(((User)context.currentUser()).projectName(), id, documentId));
+    @Get("/:project/namedEntity/:id?routing=:documentId")
+    public NamedEntity getById(final String project, final String id, final String documentId) {
+        return notFoundIfNull(indexer.get(project, id, documentId));
     }
 
     /**
@@ -48,7 +48,7 @@ public class NamedEntityResource {
      * @param mentionNorm
      * @return 200 PUT
      */
-    @Options("/namedEntity/hide/:mentionNorm")
+    @Options("/:project/namedEntity/hide/:mentionNorm")
     public Payload hide(final String mentionNorm) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
@@ -62,11 +62,11 @@ public class NamedEntityResource {
      * Example :
      * $(curl -i -XPUT localhost:8080/api/namedEntity/hide/xlsx)
      */
-    @Put("/namedEntity/hide/:mentionNorm")
-    public Payload hide(final String mentionNorm, Context context) throws IOException {
-        List<? extends Entity> nes = indexer.search(((User) context.currentUser()).projectName(), NamedEntity.class).
+    @Put("/:project/namedEntity/hide/:mentionNorm")
+    public Payload hide(final String index, final String mentionNorm) throws IOException {
+        List<? extends Entity> nes = indexer.search(index, NamedEntity.class).
                 thatMatchesFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
-        indexer.bulkUpdate(((User)context.currentUser()).projectName(), nes);
+        indexer.bulkUpdate(index, nes);
         return ok();
     }
 }
