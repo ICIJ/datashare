@@ -32,11 +32,11 @@ public class ConfigResource {
     public Map<String, Object> getConfig(Context context) {
         Map<String, Object> filteredProperties = provider.getFilteredProperties(".*Address.*", ".*Secret.*");
         HashMapUser user = (HashMapUser) context.currentUser();
-        List<String> indices = user.getIndices();
+        List<String> projects = user.getProjects();
         if (!provider.get("mode").orElse(Mode.LOCAL.toString()).equals(Mode.SERVER.toString())) {
-            indices.add(0, user.defaultProject());
+            projects.add(0, user.defaultProject());
         }
-        filteredProperties.put("userIndices", indices);
+        filteredProperties.put("userProjects", projects);
         return filteredProperties;
     }
 }

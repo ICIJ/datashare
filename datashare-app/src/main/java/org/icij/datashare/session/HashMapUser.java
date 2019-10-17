@@ -31,7 +31,7 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
         return new HashMapUser(convert(hashMap));
     }
 
-    public List<String> getIndices() {
+    public List<String> getProjects() {
         return TypeConvert.fromJson(ofNullable(userMap.get(DATASHARE_INDICES_KEY)).orElse("[]"), List.class);
     }
 
@@ -81,6 +81,6 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
 
     public boolean isGranted(String index) {
-        return getIndices().contains(index) || defaultProject().equals(index);
+        return getProjects().contains(index) || defaultProject().equals(index);
     }
 }
