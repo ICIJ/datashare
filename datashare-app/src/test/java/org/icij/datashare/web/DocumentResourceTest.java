@@ -56,7 +56,7 @@ public class DocumentResourceTest implements FluentRestTest {
         write(txtFile, "text content");
         indexFile("local-datashare", "id_txt", txtFile.toPath(), null, null);
 
-        get("/api/local-datashare/document/src/id_txt").should().contain("text content").haveType("text/plain;charset=UTF-8");
+        get("/api/local-datashare/documents/src/id_txt").should().contain("text content").haveType("text/plain;charset=UTF-8");
     }
 
     @Test
@@ -65,7 +65,7 @@ public class DocumentResourceTest implements FluentRestTest {
         write(txtFile, "content");
         indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
 
-        get("/api/local-datashare/document/src/id_ods").should().
+        get("/api/local-datashare/documents/src/id_ods").should().
                 haveType("application/vnd.oasis.opendocument.spreadsheet").
                 haveHeader("Content-Disposition", "attachment;filename=\"file.ods\"");
     }
@@ -76,7 +76,7 @@ public class DocumentResourceTest implements FluentRestTest {
         write(img, "content");
         indexFile("local-datashare", "id_jpg", img.toPath(), "image/jpg", null);
 
-        get("/api/local-datashare/document/src/id_jpg?inline=true").should().
+        get("/api/local-datashare/documents/src/id_jpg?inline=true").should().
                 haveType("image/jpg").contain("content").
                 should().not().haveHeader("Content-Disposition", "attachment;filename=\"image.jpg\"");
     }
@@ -86,7 +86,7 @@ public class DocumentResourceTest implements FluentRestTest {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         indexFile("local-datashare", "d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623", Paths.get(path), "application/pdf", "id_eml");
 
-        get("/api/local-datashare/document/src/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml").
+        get("/api/local-datashare/documents/src/d365f488df3c84ecd6d7aa752ca268b78589f2082e4fe2fbe9f62dff6b3a6b74bedc645ec6df9ae5599dab7631433623?routing=id_eml").
                 should().haveType("application/pdf").contain("PDF-1.3").haveHeader("Content-Disposition", "attachment;filename=\"d365f488df.pdf\"");;
     }
 
@@ -95,19 +95,19 @@ public class DocumentResourceTest implements FluentRestTest {
         String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
         indexFile("local-datashare", "6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e", Paths.get(path), "application/pdf", "id_eml");
 
-        get("/api/local-datashare/document/src/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e?routing=id_eml").
+        get("/api/local-datashare/documents/src/6abb96950946b62bb993307c8945c0c096982783bab7fa24901522426840ca3e?routing=id_eml").
                 should().haveType("application/pdf").contain("PDF-1.3").haveHeader("Content-Disposition", "attachment;filename=\"6abb969509.pdf\"");;
     }
 
     @Test
     public void test_source_file_not_found_should_return_404() {
         indexFile("local-datashare", "missing_file", Paths.get("missing/file"), null, null);
-        get("/api/local-datashare/document/src/missing_file").should().respond(404);
+        get("/api/local-datashare/documents/src/missing_file").should().respond(404);
     }
 
     @Test
     public void test_get_source_file_forbidden_index() {
-        get("/api/foo_index/document/src/id").should().respond(403);
+        get("/api/foo_index/documents/src/id").should().respond(403);
     }
 
     @Test
@@ -127,13 +127,13 @@ public class DocumentResourceTest implements FluentRestTest {
     @Test
     public void testGroupStarDocumentWithProject() {
         when(repository.star(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/document/project/prj1/group/star", "[\"id1\", \"id2\"]").should().respond(200);
+        post("/api/prj1/documents/batchUpdate/star", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
     public void testGroupUnstarDocumentWithProject() {
         when(repository.unstar(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/document/project/prj1/group/unstar", "[\"id1\", \"id2\"]").should().respond(200);
+        post("/api/prj1/documents/batchUpdate/unstar", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
@@ -210,10 +210,10 @@ public class DocumentResourceTest implements FluentRestTest {
         when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
 
         when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "*.*.*.*"));
-        get("/api/local-datashare/document/src/docId?routing=root").should().respond(200);
+        get("/api/local-datashare/documents/src/docId?routing=root").should().respond(200);
 
         when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "127.0.0.*"));
-        get("/api/local-datashare/document/src/docId?routing=root").should().respond(200);
+        get("/api/local-datashare/documents/src/docId?routing=root").should().respond(200);
     }
 
     @Test
@@ -221,10 +221,10 @@ public class DocumentResourceTest implements FluentRestTest {
         when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc").build());
 
         when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "1.2.3.4"));
-        get("/api/local-datashare/document/src/docId?routing=root").should().respond(403);
+        get("/api/local-datashare/documents/src/docId?routing=root").should().respond(403);
 
         when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "127.0.1.*"));
-        get("/api/local-datashare/document/src/docId?routing=root").should().respond(403);
+        get("/api/local-datashare/documents/src/docId?routing=root").should().respond(403);
     }
 
     @Test
@@ -234,7 +234,7 @@ public class DocumentResourceTest implements FluentRestTest {
         when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
 
         when(repository.getProject("local-datashare")).thenReturn(null);
-        get("/api/local-datashare/document/src/docId?routing=root").should().respond(200);
+        get("/api/local-datashare/documents/src/docId?routing=root").should().respond(200);
     }
 
     private void indexFile(String index, String _id, Path path, String contentType, String routing) {

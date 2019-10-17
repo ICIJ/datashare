@@ -57,9 +57,9 @@ public class DocumentResource {
      *
      * Example :
      *
-     * $(curl -i http://localhost:8080/api/apigen-datashare/document/src/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f
+     * $(curl -i http://localhost:8080/api/apigen-datashare/documents/src/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f
      */
-    @Get("/:project/document/src/:id?routing=:routing")
+    @Get("/:project/documents/src/:id?routing=:routing")
     public Payload getSourceFile(final String project, final String id,
                                  final String routing, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
@@ -79,9 +79,9 @@ public class DocumentResource {
      * @return 200 and the number of documents updated
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/document/batchUpdate/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
      */
-    @Post("/document/project/:project/group/star")
+    @Post("/:project/documents/batchUpdate/star")
     public int groupStarProject(final String projectId, final List<String> docIds, Context context) {
         return repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds);
     }
@@ -96,9 +96,9 @@ public class DocumentResource {
      * @return 200 and the number of documents unstarred
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/unstar -d '["curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"", "unknownId"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/document/batchUpdate/unstar -d '["curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"", "unknownId"]')
      */
-    @Post("/document/project/:project/group/unstar")
+    @Post("/:project/documents/batchUpdate/unstar")
     public int groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
         return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docIds);
     }
