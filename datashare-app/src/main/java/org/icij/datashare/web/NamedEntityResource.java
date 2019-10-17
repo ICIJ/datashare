@@ -17,7 +17,7 @@ import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
 
-@Prefix("/api/")
+@Prefix("/api")
 public class NamedEntityResource {
     private final Indexer indexer;
 
