@@ -11,7 +11,6 @@ import okio.BufferedSink;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -47,6 +46,17 @@ public class IndexResource {
     @Put("/:index")
     public Payload createIndex(final String index) throws IOException {
         return indexer.createIndex(index) ? created() : ok();
+    }
+
+    /**
+     * Preflight for index creation.
+     *
+     * @param index
+     * @return 200 with PUT
+     */
+    @Options("/:index")
+    public Payload createIndexPreflight(final String index) {
+        return ok().withAllowMethods("OPTION", "PUT");
     }
 
     /**
