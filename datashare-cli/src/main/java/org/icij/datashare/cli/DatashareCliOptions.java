@@ -144,7 +144,7 @@ public final class DatashareCliOptions {
 
     static OptionSpec<Integer> parallelism(OptionParser parser) {
         return parser.acceptsAll(
-                asList("p", PARALLELISM),
+                asList(PARALLELISM),
                 "Number of threads allocated for task management.")
                 .withRequiredArg()
                 .ofType( Integer.class )
@@ -167,9 +167,9 @@ public final class DatashareCliOptions {
                 .defaultsTo("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared");
     }
 
-    static OptionSpec<String> projectName(OptionParser parser) {
+    static OptionSpec<String> defaultProject(OptionParser parser) {
         return parser.acceptsAll(
-                asList("projectName", "n"), "Project name")
+                asList("defaultProject", "p"), "Default project name")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("local-datashare");

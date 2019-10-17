@@ -53,7 +53,7 @@ public class IndexTask extends DefaultTask<Long> implements Monitorable, UserTas
         this.user = user;
         userOptions.ifPresent("parallelism", o -> o.parse().asInteger()).ifPresent(this::setParallelism);
         this.publisher = publisher;
-        String indexName = user.isNull() ? userOptions.valueIfPresent("projectName").orElse("local-datashare") : user.projectName();
+        String indexName = user.isNull() ? userOptions.valueIfPresent("defaultProject").orElse("local-datashare") : user.defaultProject();
         spewer.withIndex(indexName); // TODO: remove this
         spewer.createIndex();
 

@@ -52,7 +52,7 @@ public class BatchSearchResource {
     public List<BatchSearch> getSearches(Context context) {
         HashMapUser user = (HashMapUser) context.currentUser();
         List<String> indices = user.getIndices();
-        indices.add(user.projectName());
+        indices.add(user.defaultProject());
         return batchSearchRepository.get(user, indices);
     }
 

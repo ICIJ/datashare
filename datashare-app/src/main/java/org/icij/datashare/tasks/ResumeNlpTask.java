@@ -39,7 +39,7 @@ public class ResumeNlpTask implements Callable<Long>, UserTask {
         this.indexer = indexer;
         this.nlpPipelines = nlpPipelines;
         this.user = user;
-        this.projectName = propertiesProvider.get("projectName").orElse(user.projectName());
+        this.projectName = propertiesProvider.get("defaultProject").orElse(user.defaultProject());
     }
 
     @Override

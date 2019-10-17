@@ -34,7 +34,7 @@ public class ConfigResource {
         HashMapUser user = (HashMapUser) context.currentUser();
         List<String> indices = user.getIndices();
         if (!provider.get("mode").orElse(Mode.LOCAL.toString()).equals(Mode.SERVER.toString())) {
-            indices.add(0, user.projectName());
+            indices.add(0, user.defaultProject());
         }
         filteredProperties.put("userIndices", indices);
         return filteredProperties;

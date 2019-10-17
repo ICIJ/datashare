@@ -81,6 +81,6 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
 
     public boolean isGranted(String index) {
-        return getIndices().contains(index) || projectName().equals(index);
+        return getIndices().contains(index) || defaultProject().equals(index);
     }
 }

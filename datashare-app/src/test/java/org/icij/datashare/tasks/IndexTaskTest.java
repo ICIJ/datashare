@@ -39,7 +39,7 @@ public class IndexTaskTest {
 
         new IndexTask(spewer, mock(Publisher.class), nullUser(), Options.from(new HashMap<String, String>() {{
             put("redisAddress", "redis://redis:6379");
-            put("projectName", "foo");
+            put("defaultProject", "foo");
         }}));
 
         Mockito.verify(spewer).withIndex("foo");

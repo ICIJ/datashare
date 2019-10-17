@@ -9,7 +9,7 @@ public class User {
 
     public User(final String id) { this.id = id;}
 
-    public String projectName() { return getProjectNameFrom(id);}
+    public String defaultProject() { return getProjectNameFrom(id);}
     public String queueName() { return "extract:queue_" + id;}
     @JsonIgnore
     public String getPath() { return this.equals(local()) || isNull()? "": id;}

@@ -87,7 +87,7 @@ public class ProjectResource {
      */
     @Delete("/id/:id")
     public Payload deleteProject(String id, Context context) throws Exception {
-        if (!((User) context.currentUser()).projectName().equals(id)) {
+        if (!((User) context.currentUser()).defaultProject().equals(id)) {
             return new Payload(401);
         }
         boolean isDeleted = this.repository.deleteAll(id);

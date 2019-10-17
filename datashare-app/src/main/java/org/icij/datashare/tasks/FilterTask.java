@@ -27,7 +27,7 @@ public class FilterTask extends DefaultTask<Integer> implements UserTask {
 
     @Inject
     public FilterTask(final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted User user) {
-        this.projectName = propertiesProvider.get("projectName").orElse("local-datashare");
+        this.projectName = propertiesProvider.get("defaultProject").orElse("local-datashare");
         this.queue = new RedisUserDocumentQueue(user, Options.from(propertiesProvider.getProperties()));
         this.indexer = indexer;
         this.user = user;

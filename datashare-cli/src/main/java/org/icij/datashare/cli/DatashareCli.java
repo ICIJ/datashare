@@ -37,7 +37,7 @@ public class DatashareCli {
         DatashareCliOptions.clusterName(parser);
 
         OptionSpec<String> userOption = DatashareCliOptions.defaultUser(parser);
-        OptionSpec<String> projectOption = DatashareCliOptions.projectName(parser);
+        OptionSpec<String> projectOption = DatashareCliOptions.defaultProject(parser);
 
         DatashareCliOptions.esHost(parser);
         DatashareCliOptions.queueName(parser);
