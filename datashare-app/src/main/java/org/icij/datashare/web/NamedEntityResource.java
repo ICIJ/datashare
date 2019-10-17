@@ -1,7 +1,6 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
-import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Prefix;
@@ -10,7 +9,6 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.user.User;
 
 import java.io.IOException;
 import java.util.List;
@@ -49,7 +47,7 @@ public class NamedEntityResource {
      * @return 200 PUT
      */
     @Options("/:project/namedEntity/hide/:mentionNorm")
-    public Payload hide(final String mentionNorm) {
+    public Payload hidePreflight(final String project, final String mentionNorm) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
@@ -57,16 +55,17 @@ public class NamedEntityResource {
      * hide all named entities with the given normalized mention
      *
      * @param mentionNorm
+     * @param project
      * @return 200
      *
      * Example :
      * $(curl -i -XPUT localhost:8080/api/namedEntity/hide/xlsx)
      */
     @Put("/:project/namedEntity/hide/:mentionNorm")
-    public Payload hide(final String index, final String mentionNorm) throws IOException {
-        List<? extends Entity> nes = indexer.search(index, NamedEntity.class).
+    public Payload hide(final String project, final String mentionNorm) throws IOException {
+        List<? extends Entity> nes = indexer.search(project, NamedEntity.class).
                 thatMatchesFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
-        indexer.bulkUpdate(index, nes);
+        indexer.bulkUpdate(project, nes);
         return ok();
     }
 }
