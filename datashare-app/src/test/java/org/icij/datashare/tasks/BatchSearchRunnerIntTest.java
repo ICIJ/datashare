@@ -110,6 +110,21 @@ public class BatchSearchRunnerIntTest {
 
         verify(repository).saveResults(search.uuid, "find mydoc", singletonList(mydoc));
     }
+
+    @Test
+    public void test_search_with_operators() throws Exception {
+        Document mydoc1 = createDoc("docId1").with("mydoc one").build();
+        Document mydoc2 = createDoc("docId2").with("mydoc two").build();
+        indexer.add(TEST_INDEX, mydoc1);
+        indexer.add(TEST_INDEX, mydoc2);
+        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc AND one"));
+        when(repository.getQueued()).thenReturn(asList(search));
+
+        new BatchSearchRunner(indexer, repository, local()).call();
+
+        verify(repository).saveResults(search.uuid, "mydoc AND one", singletonList(mydoc1));
+    }
+
     @Before
     public void setUp() { initMocks(this);}
 }

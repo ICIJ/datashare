@@ -403,10 +403,13 @@ public class ElasticsearchIndexer implements Indexer {
         public Searcher with(String query, int fuzziness, boolean phraseMatches) {
             this.boolQuery.must(new MatchAllQueryBuilder());
             BoolQueryBuilder innerQuery = new BoolQueryBuilder();
-            String queryString=phraseMatches? "\"" + query + "\"~" + fuzziness :
-                               Stream.of(query.split(" ")).map(s-> s + "~" + fuzziness).collect(Collectors.joining(" ")) ;
-            innerQuery.should(new QueryStringQueryBuilder( queryString).defaultField("*"));
-
+            String queryString = query;
+            if (phraseMatches) {
+                queryString = "\"" + query + "\"" + (fuzziness == 0 ? "": "~" + fuzziness);
+            } else if (fuzziness > 0) {
+                queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
+            }
+            innerQuery.should(new QueryStringQueryBuilder(queryString).defaultField("*"));
             innerQuery.should(new HasChildQueryBuilder("NamedEntity", new MatchQueryBuilder("mention", query), ScoreMode.None));
             this.boolQuery.must(innerQuery);
             return this;
