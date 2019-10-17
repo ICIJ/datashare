@@ -30,7 +30,7 @@ import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
 
-@Prefix("/api/document")
+@Prefix("/api")
 public class DocumentResource {
     private final Repository repository;
     private final Indexer indexer;
@@ -50,22 +50,22 @@ public class DocumentResource {
      *
      * Returns 403 if the user has no access to the requested index.
      *
-     * @param index
+     * @param project
      * @param id
      * @param routing
      * @return 200 or 404 or 403 (Forbidden)
      *
      * Example :
      *
-     * $(curl -i http://localhost:8080/api/document/src/apigen-datashare/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f
+     * $(curl -i http://localhost:8080/api/apigen-datashare/document/src/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f
      */
-    @Get("/src/:project/:id?routing=:routing")
-    public Payload getSourceFile(final String index, final String id,
+    @Get("/:project/document/src/:id?routing=:routing")
+    public Payload getSourceFile(final String project, final String id,
                                  final String routing, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
-        if (((HashMapUser)context.currentUser()).isGranted(index) &&
-                isAllowed(repository.getProject(index), context.request().clientAddress())) {
-            return routing == null ? getPayload(indexer.get(index, id), index, inline) : getPayload(indexer.get(index, id, routing),index, inline);
+        if (((HashMapUser)context.currentUser()).isGranted(project) &&
+                isAllowed(repository.getProject(project), context.request().clientAddress())) {
+            return routing == null ? getPayload(indexer.get(project, id), project, inline) : getPayload(indexer.get(project, id, routing),project, inline);
         }
         throw new ForbiddenException();
     }
@@ -81,7 +81,7 @@ public class DocumentResource {
      * Example :
      * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
      */
-    @Post("/project/:project/group/star")
+    @Post("/document/project/:project/group/star")
     public int groupStarProject(final String projectId, final List<String> docIds, Context context) {
         return repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds);
     }
@@ -98,7 +98,7 @@ public class DocumentResource {
      * Example :
      * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/unstar -d '["curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"", "unknownId"]')
      */
-    @Post("/project/:project/group/unstar")
+    @Post("/document/project/:project/group/unstar")
     public int groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
         return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docIds);
     }
@@ -114,7 +114,7 @@ public class DocumentResource {
      * Example :
      * $(curl -i localhost:8080/api/document/project/starred/apigen-datashare)
      */
-    @Get("/project/starred/:project")
+    @Get("/document/project/starred/:project")
     public List<String> getProjectStarredDocuments(final String projectId, Context context) {
         return repository.getStarredDocuments(project(projectId), (HashMapUser)context.currentUser());
     }
@@ -131,7 +131,7 @@ public class DocumentResource {
      * Example :
      * $(curl -i localhost:8080/api/document/project/tagged/apigen-datashare/tag_01,tag_02)
      */
-    @Get("/project/tagged/:project/:coma_separated_tags")
+    @Get("/document/project/tagged/:project/:coma_separated_tags")
     public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags) {
         return repository.getDocuments(project(projectId),
                 stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
@@ -144,7 +144,7 @@ public class DocumentResource {
      * @param docId
      * @return 200 PUT
      */
-    @Options("/project/tag/:project/:docId")
+    @Options("/document/project/tag/:project/:docId")
     public Payload tagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     /**
@@ -158,7 +158,7 @@ public class DocumentResource {
      * Example :
      * $(curl localhost:8080/api/document/project/tag/apigen-datashare/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f -d '[\"tag1\",\"tag2\"]'
      */
-    @Put("/project/tag/:project/:docId?routing=:routing")
+    @Put("/document/project/tag/:project/:docId?routing=:routing")
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
@@ -174,7 +174,7 @@ public class DocumentResource {
      * Example :
      * $(curl  http://localhost:8080/api/document/project/apigen-datashare/tag/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Get("/project/:project/tag/:docId")
+    @Get("/document/project/:project/tag/:docId")
     public List<Tag> getDocumentTags(final String projectId, final String docId) {
         return repository.getTags(project(projectId), docId);
     }
@@ -191,7 +191,7 @@ public class DocumentResource {
      * Example :
      * $(curl -i -XPOST localhost:8080/api/document/project/apigen-datashare/group/tag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
      */
-    @Post("/project/:project/group/tag")
+    @Post("/document/project/:project/group/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         repository.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
@@ -210,7 +210,7 @@ public class DocumentResource {
      * Example :
      * $(curl -i -XPOST localhost:8080/api/document/project/apigen-datashare/group/untag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
      */
-    @Post("/project/:project/group/untag")
+    @Post("/document/project/:project/group/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query,  Context context) throws IOException {
         repository.untag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         indexer.untag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
@@ -224,7 +224,7 @@ public class DocumentResource {
      * @param docId
      * @return 200 PUT
      */
-    @Options("/project/untag/:project/:docId")
+    @Options("/document/project/untag/:project/:docId")
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     /**
@@ -238,7 +238,7 @@ public class DocumentResource {
      *
      * $(curl -i -XPUT localhost:8080/api/document/project/untag/apigen-datashare/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Put("/project/untag/:project/:docId?routing=:routing")
+    @Put("/document/project/untag/:project/:docId?routing=:routing")
     public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean untagSaved = repository.untag(project(projectId), docId, tags);
         indexer.untag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
@@ -254,7 +254,7 @@ public class DocumentResource {
      *
      * $(curl localhost:8080/api/document/starred)
      */
-    @Get("/starred")
+    @Get("/document/starred")
     public List<Document> getStarredDocuments(Context context) {
         return repository.getStarredDocuments((HashMapUser)context.currentUser());
     }
@@ -264,7 +264,7 @@ public class DocumentResource {
      * @param docId
      * @return 200 PUT
      */
-    @Options("/star/:docId")
+    @Options("/document/star/:docId")
     public Payload starDocument(final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     /**
@@ -274,7 +274,7 @@ public class DocumentResource {
      *
      * $(curl localhost:8080/api/document/star/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Put("/star/:docId")
+    @Put("/document/star/:docId")
     public Payload starDocument(final String docId, Context context) {
         return repository.star((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
@@ -284,7 +284,7 @@ public class DocumentResource {
      * @param docId
      * @return 200 PUT
      */
-    @Options("/unstar/:docId")
+    @Options("/document/unstar/:docId")
     public Payload unstarDocument(final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     /**
@@ -293,7 +293,7 @@ public class DocumentResource {
      * @return 201 if the document has been starred else 200
      * $(curl localhost:8080/api/document/unstar/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Put("/unstar/:docId")
+    @Put("/document/unstar/:docId")
     public Payload unstarDocument(final String docId, Context context) {
         return repository.unstar((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
