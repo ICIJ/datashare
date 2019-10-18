@@ -224,7 +224,7 @@ public class DocumentResource {
      * @param docId
      * @return 200 PUT
      */
-    @Options("/document/project/untag/:project/:docId")
+    @Options("/:project/documents/untag/:docId")
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     /**
@@ -236,9 +236,9 @@ public class DocumentResource {
      * @param tags
      * @return 201 if untagged else 200
      *
-     * $(curl -i -XPUT localhost:8080/api/document/project/untag/apigen-datashare/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     * $(curl -i -XPUT localhost:8080/api/apigen-datashare/documents/untag/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Put("/document/project/untag/:project/:docId?routing=:routing")
+    @Put("/:project/documents/untag/:docId?routing=:routing")
     public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean untagSaved = repository.untag(project(projectId), docId, tags);
         indexer.untag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);

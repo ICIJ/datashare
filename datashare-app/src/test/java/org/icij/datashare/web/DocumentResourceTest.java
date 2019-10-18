@@ -152,8 +152,8 @@ public class DocumentResourceTest implements FluentRestTest {
         when(repository.untag(eq(project("prj2")), anyString(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
         when(indexer.untag(eq(project("prj2")), anyString(), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
 
-        put("/api/document/project/untag/prj2/doc_id", "[\"tag3\", \"tag4\"]").should().respond(201);
-        put("/api/document/project/untag/prj2/doc_id", "[\"tag3\", \"tag4\"]").should().respond(200);
+        put("/api/prj2/documents/untag/doc_id", "[\"tag3\", \"tag4\"]").should().respond(201);
+        put("/api/prj2/documents/untag/doc_id", "[\"tag3\", \"tag4\"]").should().respond(200);
 
         verify(indexer, times(2)).untag(eq(project("prj2")), anyString(), any(), any(), any());
     }
