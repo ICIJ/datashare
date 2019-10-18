@@ -92,8 +92,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public boolean delete(User user, String batchId) {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            inner.deleteFrom(table(BATCH_SEARCH_QUERY)).where(field("search_uuid").eq(batchId)).execute();
-            inner.deleteFrom(table(BATCH_SEARCH_RESULT)).where(field("search_uuid").eq(batchId)).execute();
+            SelectConditionStep<Record1<Object>> batch_uuid = select(field("uuid")).from(table(BATCH_SEARCH)).
+                    where(field("user_id").eq(user.id)).and(field("uuid").eq(batchId));
+            inner.deleteFrom(table(BATCH_SEARCH_QUERY)).where(field("search_uuid").in(batch_uuid)).execute();
+            inner.deleteFrom(table(BATCH_SEARCH_RESULT)).where(field("search_uuid").in(batch_uuid)).execute();
             return inner.deleteFrom(table(BATCH_SEARCH)).where(field("user_id").eq(user.id)).
                     and(field("uuid").eq(batchId)).execute() > 0;
         });

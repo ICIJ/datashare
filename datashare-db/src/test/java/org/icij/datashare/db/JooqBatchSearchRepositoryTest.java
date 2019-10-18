@@ -255,17 +255,28 @@ public class JooqBatchSearchRepositoryTest {
     public void test_delete_batch_search() {
         BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"), "name", "description1", asList("q1", "q2"));
         repository.save(User.local(), batchSearch1);
-        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name", "description3", asList("q3", "q4"));
-        repository.save(new User("foo"), batchSearch2);
         repository.saveResults(batchSearch1.uuid, "q2", asList(
                         createDoc("doc1").build(), createDoc("doc2").build(), createDoc("doc3").build(), createDoc("doc4").build()));
 
         assertThat(repository.delete(User.local(), batchSearch1.uuid)).isTrue();
         assertThat(repository.delete(User.local(), batchSearch1.uuid)).isFalse();
 
-        assertThat(repository.get(new User("foo"))).hasSize(1);
         assertThat(repository.get(User.local())).isEmpty();
         assertThat(repository.getResults(User.local(), batchSearch1.uuid)).hasSize(0);
+    }
+
+    @Test
+    public void test_delete_batch_search_by_another_user() {
+        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "foo search", "description1", asList("q3", "q4"));
+        User foo = new User("foo");
+        repository.save(foo, batchSearch);
+        repository.saveResults(batchSearch.uuid, "q2", asList(
+                        createDoc("doc1").build(), createDoc("doc2").build(), createDoc("doc3").build(), createDoc("doc4").build()));
+
+        assertThat(repository.delete(User.local(), batchSearch.uuid)).isFalse();
+
+        assertThat(repository.get(foo)).hasSize(1);
+        assertThat(repository.getResults(foo, batchSearch.uuid)).hasSize(4);
     }
 
     @Test(expected = JooqBatchSearchRepository.UnauthorizedUserException.class)
