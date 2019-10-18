@@ -181,6 +181,12 @@ public class DocumentResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void testGetStarredDocumentsWithProject() {
+        when(repository.getStarredDocuments(project("local-datashare"), User.local())).thenReturn(asList("id1", "id2"));
+        get("/api/local-datashare/documents/starred").should().respond(200).contain("id1").contain("id2");
+    }
+
+    @Test
     public void testTagsForDocument() {
         when(repository.getTags(eq(project("prj")), eq("docId"))).thenReturn(asList(tag("tag1"), tag("tag2")));
         get("/api/document/project/prj/tag/docId").should().respond(200).contain("tag1").contain("tag2");
@@ -196,6 +202,7 @@ public class DocumentResourceTest implements FluentRestTest {
 
         verify(indexer, times(2)).tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")));
     }
+
 
     @Test
     public void testGetStarredDocuments() {

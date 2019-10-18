@@ -112,9 +112,9 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/api/document/project/starred/apigen-datashare)
+     * $(curl -i localhost:8080/api/apigen-datashare/documents/starred/)
      */
-    @Get("/document/project/starred/:project")
+    @Get("/:project/documents/starred")
     public List<String> getProjectStarredDocuments(final String projectId, Context context) {
         return repository.getStarredDocuments(project(projectId), (HashMapUser)context.currentUser());
     }
