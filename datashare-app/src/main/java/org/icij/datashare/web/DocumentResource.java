@@ -79,7 +79,7 @@ public class DocumentResource {
      * @return 200 and the number of documents updated
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/document/batchUpdate/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
      */
     @Post("/:project/documents/batchUpdate/star")
     public int groupStarProject(final String projectId, final List<String> docIds, Context context) {
@@ -96,7 +96,7 @@ public class DocumentResource {
      * @return 200 and the number of documents unstarred
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/document/batchUpdate/unstar -d '["curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"", "unknownId"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unstar -d '["curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/document/project/apigen-datashare/group/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"", "unknownId"]')
      */
     @Post("/:project/documents/batchUpdate/unstar")
     public int groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
