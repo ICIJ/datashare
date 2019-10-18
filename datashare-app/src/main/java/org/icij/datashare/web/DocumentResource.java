@@ -252,9 +252,9 @@ public class DocumentResource {
      *
      * @return 200 and the list of Documents
      *
-     * $(curl localhost:8080/api/document/starred)
+     * $(curl localhost:8080/api/documents/starred)
      */
-    @Get("/document/starred")
+    @Get("/documents/starred")
     public List<Document> getStarredDocuments(Context context) {
         return repository.getStarredDocuments((HashMapUser)context.currentUser());
     }

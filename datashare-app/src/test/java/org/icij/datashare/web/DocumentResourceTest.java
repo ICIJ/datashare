@@ -207,7 +207,7 @@ public class DocumentResourceTest implements FluentRestTest {
     @Test
     public void testGetStarredDocuments() {
         when(repository.getStarredDocuments(any())).thenReturn(asList(createDoc("doc1").build(), createDoc("doc2").build()));
-        get("/api/document/starred").should().respond(200).haveType("application/json").contain("\"doc1\"").contain("\"doc2\"");
+        get("/api/documents/starred").should().respond(200).haveType("application/json").contain("\"doc1\"").contain("\"doc2\"");
     }
 
     @Test
