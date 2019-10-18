@@ -129,9 +129,9 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/api/document/project/tagged/apigen-datashare/tag_01,tag_02)
+     * $(curl -i localhost:8080/api/apigen-datashare/documents/tagged/tag_01,tag_02)
      */
-    @Get("/document/project/tagged/:project/:coma_separated_tags")
+    @Get("/:projects/documents/tagged/:coma_separated_tags")
     public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags) {
         return repository.getDocuments(project(projectId),
                 stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
