@@ -189,9 +189,9 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i -XPOST localhost:8080/api/document/project/apigen-datashare/group/tag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
+     * $(curl -i -XPOST localhost:8080/api/apigen-datashare/documents/batchUpdate/tag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
      */
-    @Post("/document/project/:project/group/tag")
+    @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         repository.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
@@ -208,9 +208,9 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i -XPOST localhost:8080/api/document/project/apigen-datashare/group/untag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
+     * $(curl -i -XPOST localhost:8080/api/documents/apigen-datashare/batchUpdate/untag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
      */
-    @Post("/document/project/:project/group/untag")
+    @Post("/:project/documents/batchUpdate/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query,  Context context) throws IOException {
         repository.untag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         indexer.untag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
