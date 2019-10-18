@@ -189,7 +189,7 @@ public class DocumentResourceTest implements FluentRestTest {
     @Test
     public void testTagsForDocument() {
         when(repository.getTags(eq(project("prj")), eq("docId"))).thenReturn(asList(tag("tag1"), tag("tag2")));
-        get("/api/document/project/prj/tag/docId").should().respond(200).contain("tag1").contain("tag2");
+        get("/api/prj/documents/tags/docId").should().respond(200).contain("tag1").contain("tag2");
     }
 
     @Test

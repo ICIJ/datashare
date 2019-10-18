@@ -172,9 +172,9 @@ public class DocumentResource {
      * @return 200 and the list of tags
      *
      * Example :
-     * $(curl  http://localhost:8080/api/document/project/apigen-datashare/tag/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     * $(curl  http://localhost:8080/api/apigen-datashare/documents/tags/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Get("/document/project/:project/tag/:docId")
+    @Get("/:project/documents/tags/:docId")
     public List<Tag> getDocumentTags(final String projectId, final String docId) {
         return repository.getTags(project(projectId), docId);
     }
