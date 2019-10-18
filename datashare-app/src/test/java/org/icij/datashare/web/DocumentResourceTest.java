@@ -141,8 +141,8 @@ public class DocumentResourceTest implements FluentRestTest {
         when(repository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.tag(eq(project("prj1")), anyString(), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
-        put("/api/document/project/tag/prj1/doc_id", "[\"tag1\", \"tag2\"]").should().respond(201);
-        put("/api/document/project/tag/prj1/doc_id", "[\"tag1\", \"tag2\"]").should().respond(200);
+        put("/api/prj1/documents/tags/doc_id", "[\"tag1\", \"tag2\"]").should().respond(201);
+        put("/api/prj1/documents/tags/doc_id", "[\"tag1\", \"tag2\"]").should().respond(200);
 
         verify(indexer, times(2)).tag(eq(project("prj1")), eq("doc_id"), eq("doc_id"), eq(tag("tag1")), eq(tag("tag2")));
     }
@@ -197,8 +197,8 @@ public class DocumentResourceTest implements FluentRestTest {
         when(repository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
-        put("/api/document/project/tag/prj1/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(201);
-        put("/api/document/project/tag/prj1/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(200);
+        put("/api/prj1/documents/tags/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(201);
+        put("/api/prj1/documents/tags/doc_id?routing=routing", "[\"tag1\", \"tag2\"]").should().respond(200);
 
         verify(indexer, times(2)).tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")));
     }

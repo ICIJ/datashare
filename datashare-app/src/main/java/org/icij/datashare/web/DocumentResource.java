@@ -144,7 +144,7 @@ public class DocumentResource {
      * @param docId
      * @return 200 PUT
      */
-    @Options("/document/project/tag/:project/:docId")
+    @Options("/:project/documents/tags/:docId")
     public Payload tagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     /**
@@ -156,9 +156,9 @@ public class DocumentResource {
      * @return 201 if created else 200
      *
      * Example :
-     * $(curl localhost:8080/api/document/project/tag/apigen-datashare/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f -d '[\"tag1\",\"tag2\"]'
+     * $(curl localhost:8080/api/apigen-datashare/documents/tags/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f -d '[\"tag1\",\"tag2\"]'
      */
-    @Put("/document/project/tag/:project/:docId?routing=:routing")
+    @Put("/:project/documents/tags/:docId?routing=:routing")
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
         indexer.tag(project(projectId), docId, ofNullable(routing).orElse(docId), tags);
