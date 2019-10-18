@@ -113,15 +113,15 @@ public class DocumentResourceTest implements FluentRestTest {
     @Test
     public void testStarDocument() {
         when(repository.star(any(), any())).thenReturn(true).thenReturn(false);
-        put("/api/document/star/doc_id").should().respond(201);
-        put("/api/document/star/doc_id").should().respond(200);
+        put("/api/documents/star/doc_id").should().respond(201);
+        put("/api/documents/star/doc_id").should().respond(200);
     }
 
     @Test
     public void testUnstarDocument() {
         when(repository.unstar(any(), any())).thenReturn(true).thenReturn(false);
-        put("/api/document/unstar/doc_id").should().respond(201);
-        put("/api/document/unstar/doc_id").should().respond(200);
+        put("/api/documents/unstar/doc_id").should().respond(201);
+        put("/api/documents/unstar/doc_id").should().respond(200);
     }
 
     @Test

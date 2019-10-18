@@ -264,7 +264,7 @@ public class DocumentResource {
      * @param docId
      * @return 200 PUT
      */
-    @Options("/document/star/:docId")
+    @Options("/documents/star/:docId")
     public Payload starDocument(final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     /**
@@ -272,9 +272,9 @@ public class DocumentResource {
      * @param docId
      * @return 201 if the document has been starred else 200
      *
-     * $(curl localhost:8080/api/document/star/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     * $(curl localhost:8080/api/documents/star/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Put("/document/star/:docId")
+    @Put("/documents/star/:docId")
     public Payload starDocument(final String docId, Context context) {
         return repository.star((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
@@ -284,7 +284,7 @@ public class DocumentResource {
      * @param docId
      * @return 200 PUT
      */
-    @Options("/document/unstar/:docId")
+    @Options("/documents/unstar/:docId")
     public Payload unstarDocument(final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
     /**
@@ -293,7 +293,7 @@ public class DocumentResource {
      * @return 201 if the document has been starred else 200
      * $(curl localhost:8080/api/document/unstar/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Put("/document/unstar/:docId")
+    @Put("/documents/unstar/:docId")
     public Payload unstarDocument(final String docId, Context context) {
         return repository.unstar((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
