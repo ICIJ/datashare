@@ -36,18 +36,18 @@ public class ProjectResourceTest implements FluentRestTest {
     @Test
     public void test_is_allowed() {
         when(repository.getProject("projectId")).thenReturn(new Project("projectId", "127.0.0.1"));
-        get("/api/project/isAllowed/projectId").should().respond(200);
+        get("/api/project/isDownloadAllowed/projectId").should().respond(200);
     }
 
     @Test
     public void test_unknown_is_allowed() {
-        get("/api/project/isAllowed/projectId").should().respond(200);
+        get("/api/project/isDownloadAllowed/projectId").should().respond(200);
     }
 
     @Test
     public void test_is_not_allowed() {
         when(repository.getProject("projectId")).thenReturn(new Project("projectId", "127.0.0.2"));
-        get("/api/project/isAllowed/projectId").should().respond(403);
+        get("/api/project/isDownloadAllowed/projectId").should().respond(403);
     }
 
     @Test
