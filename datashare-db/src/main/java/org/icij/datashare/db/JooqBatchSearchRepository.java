@@ -154,7 +154,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (webQuery.isSorted()) {
             query.orderBy(field(webQuery.sort + " " + webQuery.order));
         } else {
-            query.orderBy(field("query"), field(DEFAULT_SORT_FIELD));
+            query.orderBy(field("query " + webQuery.order), field(DEFAULT_SORT_FIELD + " " + webQuery.order));
         }
         if (webQuery.size > 0) query.limit(webQuery.size);
         if (webQuery.from > 0) query.offset(webQuery.from);

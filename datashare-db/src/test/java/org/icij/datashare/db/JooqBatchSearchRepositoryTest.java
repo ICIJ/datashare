@@ -221,6 +221,13 @@ public class JooqBatchSearchRepositoryTest {
                         resultFrom(createDoc("b").build(), 1, "q2"),
                         resultFrom(createDoc("a").build(), 1, "q1")
                 );
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_nb", "desc", null))).
+                containsExactly(
+                        resultFrom(createDoc("d").build(), 2, "q2"),
+                        resultFrom(createDoc("b").build(), 1, "q2"),
+                        resultFrom(createDoc("c").build(), 2, "q1"),
+                        resultFrom(createDoc("a").build(), 1, "q1")
+                );
     }
 
     @Test
