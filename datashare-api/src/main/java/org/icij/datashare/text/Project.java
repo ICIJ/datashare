@@ -1,5 +1,6 @@
 package org.icij.datashare.text;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.icij.datashare.Entity;
 
 import java.net.InetSocketAddress;
@@ -14,7 +15,9 @@ public class Project implements Entity {
 
     public final String name;
     public final Path sourcePath;
+    @JsonIgnore
     public final String allowFromMask;
+    @JsonIgnore
     private final Pattern pattern;
 
     public Project(String corpusName) {
