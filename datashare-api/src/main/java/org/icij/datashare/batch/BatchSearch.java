@@ -2,6 +2,7 @@ package org.icij.datashare.batch;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -12,9 +13,8 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 public class BatchSearch {
-
-
     public enum State {QUEUED, RUNNING, SUCCESS, FAILURE;}
+
     public final String uuid;
     public final boolean published;
     public final Project project;
@@ -22,6 +22,7 @@ public class BatchSearch {
     public final String description;
     public final LinkedHashMap<String, Integer> queries; // LinkedHashMap keeps insert order
     public final State state;
+    public final User user;
     private final Date date;
     public final List<String> fileTypes;
     public final List<String> paths;
@@ -30,40 +31,44 @@ public class BatchSearch {
     public final int nbResults;
 
     // batch search creation
-    public BatchSearch(final Project project, final String name, final String description, final List<String> queries) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, false, null, null, 0,false);
+    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, User user) {
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user,
+                0, false, null, null, 0,false);
     }
-    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, boolean published) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, published, null, null, 0,false);
+    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, User user, boolean published) {
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, null, null, 0,false);
     }
-    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, boolean published, List<String> fileTypes, List<String> paths, int fuzziness) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, published, fileTypes, paths, fuzziness,false);
-    }
-
-    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, boolean published, List<String> fileTypes, List<String> paths, int fuzziness,boolean phraseMatches) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, published, fileTypes, paths, fuzziness,phraseMatches);
+    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness) {
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,false);
     }
 
-    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, boolean published, List<String> fileTypes, List<String> paths,boolean phraseMatches) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, 0, published, fileTypes, paths, 0,phraseMatches);
+    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness,boolean phraseMatches) {
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,phraseMatches);
     }
 
-    public BatchSearch(String uuid, Project project, String name, String description, List<String> queries, Date date, State state) {
-        this(uuid, project, name, description, toLinkedHashMap(queries), date, state, 0, false, null, null, 0,false);
+    public BatchSearch(final Project project, final String name, final String description, final List<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths,boolean phraseMatches) {
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, fileTypes, paths, 0,phraseMatches);
+    }
+
+    public BatchSearch(String uuid, Project project, String name, String description, List<String> queries, Date date, State state, User user) {
+        this(uuid, project, name, description, toLinkedHashMap(queries), date, state, user,
+                0, false, null, null, 0,false);
     }
 
     // for tests
     public BatchSearch(final Project project, final String name, final String description, final List<String> queries, Date date) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), date, State.QUEUED, 0, false, null, null, 0,false);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), date, State.QUEUED, User.local(),
+                0, false, null, null, 0,false);
     }
 
     // retrieved from persistence
-    public BatchSearch(String uuid, Project project, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state,
-                       int nbResults, boolean published, List<String> fileTypes, List<String> paths, int fuzziness,boolean phraseMatches) {
+    public BatchSearch(String uuid, Project project, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, User user,
+                        int nbResults, boolean published, List<String> fileTypes, List<String> paths, int fuzziness, boolean phraseMatches) {
         assert date != null && uuid != null;
         this.uuid = uuid;
         this.project = project;
         this.name = name;
+        this.user = user;
         this.description = description;
         this.queries = queries;
         this.date = date;

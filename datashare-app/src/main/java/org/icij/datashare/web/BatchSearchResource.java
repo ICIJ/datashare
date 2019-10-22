@@ -168,8 +168,9 @@ public class BatchSearchResource {
         Optional<Part> phraseMatchesPart = parts.stream().filter(p -> "phrase_matches".equals(p.name())).findAny();
         boolean phraseMatches=phraseMatchesPart.isPresent()?parseBoolean(phraseMatchesPart.get().content()): FALSE;
 
-        BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, getQueries(csv), published, fileTypes, paths, fuzziness,phraseMatches);
-        return batchSearchRepository.save((User) context.currentUser(), batchSearch) ?
+        BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, getQueries(csv),
+                (User) context.currentUser(), published, fileTypes, paths, fuzziness,phraseMatches);
+        return batchSearchRepository.save(batchSearch) ?
                 new Payload("application/json", batchSearch.uuid, 200) : badRequest();
     }
 

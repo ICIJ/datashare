@@ -38,12 +38,12 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
-    public boolean save(final User user, final BatchSearch batchSearch) {
+    public boolean save(final BatchSearch batchSearch) {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
             inner.insertInto(table(BATCH_SEARCH), field("uuid"), field("name"), field("description"), field("user_id"),
                     field("prj_id"), field("batch_date"), field("state"), field("published"), field("file_types"), field("paths"), field("fuzziness"), field("phrase_matches")).
-                    values(batchSearch.uuid, batchSearch.name, batchSearch.description, user.id,
+                    values(batchSearch.uuid, batchSearch.name, batchSearch.description, batchSearch.user.id,
                             batchSearch.project.getId(), new Timestamp(batchSearch.getDate().getTime()), batchSearch.state.name(), batchSearch.published?1:0,
                             join(LIST_SEPARATOR, batchSearch.fileTypes),join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness,batchSearch.phraseMatches?1:0).execute();
             InsertValuesStep3<Record, Object, Object, Object> insertQuery =
@@ -171,7 +171,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                                         (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); },
                                         LinkedHashMap::new)),
                         batchSearches.get(0).getDate(),
-                        batchSearches.get(0).state, batchSearches.get(0).nbResults, batchSearches.get(0).published,
+                        batchSearches.get(0).state, batchSearches.get(0).user, batchSearches.get(0).nbResults, batchSearches.get(0).published,
                         batchSearches.get(0).fileTypes, batchSearches.get(0).paths, batchSearches.get(0).fuzziness,batchSearches.get(0).phraseMatches)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
@@ -225,6 +225,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                     put(record.getValue("query", String.class), nb_queries);}},
                 new Date(record.get("batch_date", Timestamp.class).getTime()),
                 State.valueOf(record.get("state", String.class)),
+                new User(record.get("user_id", String.class)),
                 record.get("count", Integer.class),
                 record.get("published", Integer.class) > 0,
                 file_types == null || file_types.isEmpty()? null: asList(file_types.split(LIST_SEPARATOR)),

@@ -5,6 +5,7 @@ import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -37,8 +38,8 @@ public class BatchSearchRunnerTest {
         Document[] documents = {createDoc("doc1").build(), createDoc("doc2").build()};
         firstSearchWillReturn(1, documents);
         when(repository.getQueued()).thenReturn(asList(
-                new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING),
-                new BatchSearch("uuid2", project("test-datashare"), "name2", "desc1", asList("query3", "query4"), new Date(), BatchSearch.State.RUNNING)
+                new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING, User.local()),
+                new BatchSearch("uuid2", project("test-datashare"), "name2", "desc1", asList("query3", "query4"), new Date(), BatchSearch.State.RUNNING, User.local())
         ));
 
         assertThat(new BatchSearchRunner(indexer, repository, local()).call()).isEqualTo(2);
@@ -54,7 +55,7 @@ public class BatchSearchRunnerTest {
         Document[] documents = {createDoc("doc").build()};
         firstSearchWillReturn(1, documents);
         when(repository.getQueued()).thenReturn(singletonList(
-            new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING)
+            new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asList("query1", "query2"), new Date(), BatchSearch.State.RUNNING, User.local())
         ));
         when(repository.saveResults(anyString(), any(), anyList())).thenThrow(new RuntimeException());
 
@@ -69,7 +70,7 @@ public class BatchSearchRunnerTest {
         Document[] documents = IntStream.range(0, MAX_SCROLL_SIZE).mapToObj(i -> createDoc("doc" + i).build()).toArray(Document[]::new);
         firstSearchWillReturn(MAX_BATCH_RESULT_SIZE/MAX_SCROLL_SIZE + 1, documents);
         when(repository.getQueued()).thenReturn(singletonList(
-            new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asList("query"), new Date(), BatchSearch.State.RUNNING)
+            new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asList("query"), new Date(), BatchSearch.State.RUNNING, User.local())
         ));
 
         assertThat(new BatchSearchRunner(indexer, repository, local()).call()).isEqualTo(60000);

@@ -45,7 +45,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_upload_batch_search_csv_without_name_should_send_bad_request() {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
+        when(batchSearchRepository.save(any())).thenReturn(true);
 
         postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
@@ -58,7 +58,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_upload_batch_search_csv_without_csvFile_should_send_bad_request() {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
+        when(batchSearchRepository.save(any())).thenReturn(true);
 
         postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
@@ -71,7 +71,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_upload_batch_search_csv_with_name_and_csvfile_should_send_OK() {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
+        when(batchSearchRepository.save(any())).thenReturn(true);
 
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
@@ -84,14 +84,14 @@ public class BatchSearchResourceTest implements FluentRestTest {
                         "query\r\n" +
                         "--AaB03x--").response();
         assertThat(response.code()).isEqualTo(200);
-        verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
+        verify(batchSearchRepository).save(eq(new BatchSearch(response.content(),
                 project("prj"), "nameValue", null,
-                singletonList("query"), new Date(), BatchSearch.State.QUEUED)));
+                singletonList("query"), new Date(), BatchSearch.State.QUEUED, User.local())));
     }
 
     @Test
     public void test_upload_batch_search_csv_with_all_parameters()  {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
+        when(batchSearchRepository.save(any())).thenReturn(true);
 
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
@@ -141,19 +141,20 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
         assertThat(response.code()).isEqualTo(200);
         ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
-        verify(batchSearchRepository).save(any(), argument.capture());
+        verify(batchSearchRepository).save(argument.capture());
         assertThat(argument.getValue().published).isTrue();
         assertThat(argument.getValue().fileTypes).containsExactly("application/pdf", "image/jpeg");
         assertThat(argument.getValue().paths).containsExactly("/path/to/document", "/other/path/");
         assertThat(argument.getValue().fuzziness).isEqualTo(4);
         assertThat(argument.getValue().phraseMatches).isTrue();
+        assertThat(argument.getValue().user).isEqualTo(User.local());
         assertThat(argument.getValue().description).isEqualTo("search description");
     }
 
 
     @Test
     public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() throws SQLException {
-        when(batchSearchRepository.save(any(), any())).thenReturn(true);
+        when(batchSearchRepository.save(any())).thenReturn(true);
 
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 "--AaB03x\r\n" +
@@ -174,15 +175,15 @@ public class BatchSearchResourceTest implements FluentRestTest {
                         "--AaB03x--").response();
 
         assertThat(response.code()).isEqualTo(200);
-        verify(batchSearchRepository).save(any(), eq(new BatchSearch(response.content(),
+        verify(batchSearchRepository).save(eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
-                singletonList("query"), new Date(), BatchSearch.State.RUNNING)));
+                singletonList("query"), new Date(), BatchSearch.State.RUNNING, User.local())));
     }
 
     @Test
     public void test_get_batch_search() {
-        BatchSearch search1 = new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2"));
-        BatchSearch search2 = new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"));
+        BatchSearch search1 = new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2"), User.local());
+        BatchSearch search2 = new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"), User.local());
         when(batchSearchRepository.get(User.local(), search1.uuid)).thenReturn(search1);
         when(batchSearchRepository.get(User.local(), search2.uuid)).thenReturn(search2);
 
@@ -193,8 +194,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
     @Test
     public void test_get_batch_searches_json() {
         when(batchSearchRepository.get(User.local(), singletonList("local-datashare"))).thenReturn(asList(
-                new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2")),
-                new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"))
+                new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2"), User.local()),
+                new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"), User.local())
         ));
 
         get("/api/batch/search").should().respond(200).haveType("application/json").
@@ -235,7 +236,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_search_results_csv() {
-        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asList("q1", "q2")));
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asList("q1", "q2"),User.local()));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(asList(
                 new SearchResult("q1", "docId1", "rootId1", "doc1", new Date(), "content/type", 123L, 1),
                 new SearchResult("q2", "docId2", "rootId2", "doc2", new Date(), "content/type", 123L, 2)
@@ -257,7 +258,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
             routes.add(new BatchSearchResource(batchSearchRepository, propertiesProvider)).
                     filter(new LocalUserFilter(propertiesProvider));
         });
-        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", singletonList("q")));
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", singletonList("q"), User.local()));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(singletonList(
                 new SearchResult("q", "docId", "rootId", "doc", new Date(), "content/type", 123L, 1)
         ));

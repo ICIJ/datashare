@@ -13,7 +13,7 @@ import java.util.Objects;
 import static java.util.Collections.unmodifiableList;
 
 public interface BatchSearchRepository extends Closeable {
-    boolean save(User user, BatchSearch batchSearch);
+    boolean save(BatchSearch batchSearch);
     boolean saveResults(String batchSearchId, String query, List<Document> documents);
     boolean setState(String batchSearchId, BatchSearch.State state);
     boolean deleteAll(User user);
