@@ -137,9 +137,9 @@ public class TaskResource {
      * @return 200 and the task created
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/task/index/file/home/dev/mydir)
+     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/home/dev/mydir)
      */
-    @Post("/scan/file/:filePath:")
+    @Post("/batchUpdate/scan/:filePath:")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         Path path = get("/", filePath);
         Options<String> options = from(propertiesProvider.createMerged(optionsWrapper.asProperties()));

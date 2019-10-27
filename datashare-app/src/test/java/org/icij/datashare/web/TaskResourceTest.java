@@ -153,7 +153,7 @@ public class TaskResourceTest implements FluentRestTest {
     @Test
     public void test_scan_with_options() {
         String path = getClass().getResource("/docs/").getPath();
-        RestAssert response = post("/api/task/scan/file/" + path.substring(1),
+        RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
