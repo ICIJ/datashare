@@ -120,9 +120,9 @@ public class TaskResource {
      * @param optionsWrapper
      * @return 200 and the list of created tasks
      *
-     * Example $(curl -XPOST localhost:8080/api/task/index/file/home/dev/myfile.txt)
+     * Example $(curl -XPOST localhost:8080/api/task/batchUpdate/index/home/dev/myfile.txt)
      */
-    @Post("/index/file/:filePath:")
+    @Post("/batchUpdate/index/:filePath:")
     public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
         Options<String> options = from(propertiesProvider.createMerged(optionsWrapper.asProperties()));

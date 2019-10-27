@@ -80,7 +80,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_index_file() {
-        RestAssert response = post("/api/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}");
+        RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
@@ -91,7 +91,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_index_directory() {
-        RestAssert response = post("/api/task/index/file/" + getClass().getResource("/docs/").getPath().substring(1), "{}");
+        RestAssert response = post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/").getPath().substring(1), "{}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
@@ -122,7 +122,7 @@ public class TaskResourceTest implements FluentRestTest {
     public void test_index_and_scan_directory_with_options() {
         String path = getClass().getResource("/docs/").getPath();
 
-        RestAssert response = post("/api/task/index/file/" + path.substring(1),
+        RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
@@ -222,7 +222,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_clean_tasks() {
-        post("/api/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
+        post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
 
         ShouldChain responseBody = post("/api/task/clean", "{}").should().haveType("application/json");
