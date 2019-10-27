@@ -76,9 +76,9 @@ public class TaskResource {
      * @return 200
      *
      * Example :
-     * $(curl localhost:8080/api/task/id/21148262)
+     * $(curl localhost:8080/api/task/21148262)
      */
-    @Get("/name/:name")
+    @Get("/:name")
     public TaskResponse getTask(String id) {
         return new TaskResponse(taskManager.getTask(id));
     }
