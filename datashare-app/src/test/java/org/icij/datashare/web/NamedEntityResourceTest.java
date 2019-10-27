@@ -49,7 +49,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
     public void test_get_named_entity() {
         NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("index", "my_id", "root_parent");
-        get("/api/index/namedEntity/my_id?routing=root_parent").should().respond(200).haveType("application/json").contain(toBeReturned.getId());
+        get("/api/index/namedEntities/my_id?routing=root_parent").should().respond(200).haveType("application/json").contain(toBeReturned.getId());
     }
 
     @Test
@@ -58,7 +58,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
         NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("anne-datashare", "my_id", "root_parent");
 
-        get("/api/anne-datashare/namedEntity/my_id?routing=root_parent").withAuthentication("anne", "notused").
+        get("/api/anne-datashare/namedEntities/my_id?routing=root_parent").withAuthentication("anne", "notused").
                 should().respond(200).haveType("application/json").contain(toBeReturned.getId());
     }
 

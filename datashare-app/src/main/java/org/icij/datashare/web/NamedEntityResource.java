@@ -34,9 +34,9 @@ public class NamedEntityResource {
      * @return 200
      *
      * Example :
-     * $($ curl "localhost:8080/api/apigen-datashare/namedEntity/4c262715b69f33e9ba69c794cc37ce6a90081fa124ca2ef67ab4f0654c72cb250e08f1f8455fbf8e4331f8955300c83a?routing=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f")
+     * $($ curl "localhost:8080/api/apigen-datashare/namedEntities/4c262715b69f33e9ba69c794cc37ce6a90081fa124ca2ef67ab4f0654c72cb250e08f1f8455fbf8e4331f8955300c83a?routing=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f")
      */
-    @Get("/:project/namedEntity/:id?routing=:documentId")
+    @Get("/:project/namedEntities/:id?routing=:documentId")
     public NamedEntity getById(final String project, final String id, final String documentId) {
         return notFoundIfNull(indexer.get(project, id, documentId));
     }

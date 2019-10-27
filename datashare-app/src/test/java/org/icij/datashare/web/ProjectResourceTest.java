@@ -53,23 +53,23 @@ public class ProjectResourceTest implements FluentRestTest {
     @Test
     public void test_delete_project() throws SQLException {
         when(repository.deleteAll("local-datashare")).thenReturn(true).thenReturn(false);
-        delete("/api/project/id/local-datashare").should().respond(204);
-        delete("/api/project/id/local-datashare").should().respond(404);
+        delete("/api/project/local-datashare").should().respond(204);
+        delete("/api/project/local-datashare").should().respond(404);
     }
 
     @Test
     public void test_delete_project_only_delete_index() throws Exception {
         when(repository.deleteAll("local-datashare")).thenReturn(false).thenReturn(false);
         when(indexer.deleteAll("local-datashare")).thenReturn(true).thenReturn(false);
-        delete("/api/project/id/local-datashare").should().respond(204);
-        delete("/api/project/id/local-datashare").should().respond(404);
+        delete("/api/project/local-datashare").should().respond(204);
+        delete("/api/project/local-datashare").should().respond(404);
     }
 
     @Test
     public void test_delete_project_with_unauthorized_user() throws SQLException {
         when(repository.deleteAll("projectId")).thenReturn(true);
-        delete("/api/project/id/hacker-datashare").withPreemptiveAuthentication("hacker", "pass").should().respond(401);
-        delete("/api/project/id/projectId").should().respond(401);
+        delete("/api/project/hacker-datashare").withPreemptiveAuthentication("hacker", "pass").should().respond(401);
+        delete("/api/project/projectId").should().respond(401);
     }
 
     @Before
