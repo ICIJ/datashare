@@ -30,7 +30,7 @@ public class ProjectResourceTest implements FluentRestTest {
     @Test
     public void test_get_project() {
         when(repository.getProject("projectId")).thenReturn(new Project("projectId"));
-        get("/api/project/id/projectId").should().respond(200).contain("projectId");
+        get("/api/project/projectId").should().respond(200).contain("projectId");
     }
 
     @Test

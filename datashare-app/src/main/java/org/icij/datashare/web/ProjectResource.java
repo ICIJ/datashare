@@ -35,10 +35,10 @@ public class ProjectResource {
      *
      * Example :
      *
-     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/id/apigen-datashare
+     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/apigen-datashare
      *)
      */
-    @Get("/id/:id")
+    @Get("/:id")
     public Project getProject(String id) {
         Project project = repository.getProject(id);
         return project == null ? project(id):project;
