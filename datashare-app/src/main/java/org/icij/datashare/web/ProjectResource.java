@@ -67,7 +67,7 @@ public class ProjectResource {
      * @param id
      * @return 200 DELETE
      */
-    @Options("/id/:id")
+    @Options("/:id")
     public Payload deleteProjectOpt(String id) {return ok().withAllowMethods("OPTIONS", "DELETE");}
 
     /**
@@ -83,9 +83,9 @@ public class ProjectResource {
      * @return 204 (no content) or 404
      *
      * Example :
-     * $(curl -I -XDELETE -H 'Content-Type:application/json' localhost:8080/api/project/id/unknown-project)
+     * $(curl -I -XDELETE -H 'Content-Type:application/json' localhost:8080/api/project/unknown-project)
      */
-    @Delete("/id/:id")
+    @Delete("/:id")
     public Payload deleteProject(String id, Context context) throws Exception {
         if (!((User) context.currentUser()).defaultProject().equals(id)) {
             return new Payload(401);
