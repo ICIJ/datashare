@@ -46,7 +46,7 @@ public class NamedEntityResource {
      * @param mentionNorm
      * @return 200 PUT
      */
-    @Options("/:project/namedEntity/hide/:mentionNorm")
+    @Options("/:project/namedEntities/hide/:mentionNorm")
     public Payload hidePreflight(final String project, final String mentionNorm) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
@@ -59,9 +59,9 @@ public class NamedEntityResource {
      * @return 200
      *
      * Example :
-     * $(curl -i -XPUT localhost:8080/api/namedEntity/hide/xlsx)
+     * $(curl -i -XPUT localhost:8080/api/namedEntities/hide/xlsx)
      */
-    @Put("/:project/namedEntity/hide/:mentionNorm")
+    @Put("/:project/namedEntities/hide/:mentionNorm")
     public Payload hide(final String project, final String mentionNorm) throws IOException {
         List<? extends Entity> nes = indexer.search(project, NamedEntity.class).
                 thatMatchesFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
