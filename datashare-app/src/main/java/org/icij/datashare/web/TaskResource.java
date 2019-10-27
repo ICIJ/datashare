@@ -91,9 +91,9 @@ public class TaskResource {
      * @return 200 and json task
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/task/index -d '{}')
+     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index -d '{}')
      */
-    @Post("/index")
+    @Post("/batchUpdate/index")
     public TaskResponse indexQueue(final OptionsWrapper optionsWrapper, Context context) {
         IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), optionsWrapper.asOptions());
         return new TaskResponse(taskManager.startTask(indexTask));
@@ -106,9 +106,9 @@ public class TaskResource {
      * @return 200 and the list of tasks created
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/task/index/file)
+     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/file)
      */
-    @Post("/index/file")
+    @Post("/batchUpdate/index/file")
     public List<TaskResponse> indexDefault(final OptionsWrapper optionsWrapper, Context context) {
         return indexFile(propertiesProvider.getProperties().getProperty("dataDir"), optionsWrapper, context);
     }

@@ -102,7 +102,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_index_and_scan_default_directory() {
-        RestAssert response = post("/api/task/index/file", "{}");
+        RestAssert response = post("/api/task/batchUpdate/index/file", "{}");
 
         response.should().respond(200).haveType("application/json");
         verify(taskFactory).createScanTask(local(), Paths.get("/default/data/dir"), Options.from(new HashMap<String, String>() {{
@@ -140,7 +140,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_index_queue_with_options() {
-        RestAssert response = post("/api/task/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+        RestAssert response = post("/api/task/batchUpdate/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
         verify(taskFactory).createIndexTask(local(),  Options.from(new HashMap<String, String>() {{
