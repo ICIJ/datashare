@@ -3,7 +3,6 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import com.google.inject.Inject;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
-import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -25,7 +24,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.UpdateByQueryRequest;
-import org.elasticsearch.join.query.HasChildQueryBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
@@ -397,21 +395,17 @@ public class ElasticsearchIndexer implements Indexer {
             return with(query, 0,false);
         }
 
-
-
         @Override
         public Searcher with(String query, int fuzziness, boolean phraseMatches) {
             this.boolQuery.must(new MatchAllQueryBuilder());
-            BoolQueryBuilder innerQuery = new BoolQueryBuilder();
             String queryString = query;
             if (phraseMatches) {
                 queryString = "\"" + query + "\"" + (fuzziness == 0 ? "": "~" + fuzziness);
             } else if (fuzziness > 0) {
                 queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
             }
-            innerQuery.should(new QueryStringQueryBuilder(queryString).defaultField("*"));
-            innerQuery.should(new HasChildQueryBuilder("NamedEntity", new MatchQueryBuilder("mention", query), ScoreMode.None));
-            this.boolQuery.must(innerQuery);
+            this.boolQuery.must(new QueryStringQueryBuilder(queryString).defaultField("*"));
+            //this.boolQuery.should(new HasChildQueryBuilder("NamedEntity", new MatchQueryBuilder("mention", queryString), ScoreMode.None));
             return this;
         }
 

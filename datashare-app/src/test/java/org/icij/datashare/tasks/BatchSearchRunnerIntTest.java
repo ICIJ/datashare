@@ -5,7 +5,10 @@ import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Before;
@@ -95,6 +98,23 @@ public class BatchSearchRunnerIntTest {
 
         verify(repository, never()).saveResults(eq(searchKo.uuid), eq("to find mydoc"), anyList());
         verify(repository).saveResults(searchOk.uuid, "mydoc to find", singletonList(mydoc));
+    }
+
+    @Test
+    public void test_search_with_phraseMatches_with_ner() throws Exception {
+        Document mydoc = createDoc("docId").with("anne's doc to find").build();
+        indexer.add(TEST_INDEX, mydoc);
+        indexer.add(TEST_INDEX, NamedEntity.create(NamedEntity.Category.PERSON, "anne", 12, mydoc.getId(), Pipeline.Type.CORENLP, Language.FRENCH));
+        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("anne doc"), User.local(),false, null,
+                null, true);
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("anne's doc"), User.local(),false, null,
+                null,true);
+        when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
+
+        new BatchSearchRunner(indexer, repository, local()).call();
+
+        verify(repository, never()).saveResults(eq(searchKo.uuid), eq("anne doc"), anyList());
+        verify(repository).saveResults(searchOk.uuid, "anne's doc", singletonList(mydoc));
     }
 
     @Test
