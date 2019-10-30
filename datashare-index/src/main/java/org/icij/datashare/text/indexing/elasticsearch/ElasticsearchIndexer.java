@@ -3,6 +3,9 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import com.google.inject.Inject;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.search.Query;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -397,15 +400,25 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Searcher with(String query, int fuzziness, boolean phraseMatches) {
-            this.boolQuery.must(new MatchAllQueryBuilder());
+            org.apache.lucene.queryparser.classic.QueryParser parser =
+                    new org.apache.lucene.queryparser.classic.QueryParser("", new StandardAnalyzer(new CharArraySet(0, false)));
             String queryString = query;
-            if (phraseMatches) {
-                queryString = "\"" + query + "\"" + (fuzziness == 0 ? "": "~" + fuzziness);
-            } else if (fuzziness > 0) {
-                queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
+            try {
+                Query luceneQuery = parser.parse(query);
+                if (query.toLowerCase().equals(luceneQuery.toString()) ) {
+                    if (phraseMatches) {
+                        queryString = "\"" + query + "\"" + (fuzziness == 0 ? "": "~" + fuzziness);
+                    } else if (fuzziness > 0) {
+                        queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
+                    }
+                } else if (fuzziness != 0 || phraseMatches) {
+                    LOGGER.info("detected boolean operators in \"{}\", fuzziness and phrase match won't be applied", query);
+                }
+            } catch (org.apache.lucene.queryparser.classic.ParseException e) {
+                LOGGER.warn("cannot parse query. Processing query as text", e);
             }
+            this.boolQuery.must(new MatchAllQueryBuilder());
             this.boolQuery.must(new QueryStringQueryBuilder(queryString).defaultField("*"));
-            //this.boolQuery.should(new HasChildQueryBuilder("NamedEntity", new MatchQueryBuilder("mention", queryString), ScoreMode.None));
             return this;
         }
 
