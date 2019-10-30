@@ -326,7 +326,7 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_query_like_js_front_finds_document_from_its_child_named_entity() throws Exception {
-        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content",
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
                                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
         NamedEntity ne1 = create(PERSON, "John Doe", 12, doc.getId(), CORENLP, Language.FRENCH);
@@ -334,9 +334,9 @@ public class ElasticsearchIndexerTest {
 
         Object[] documents = indexer.search(TEST_INDEX, Document.class).withoutSource("content").with("john").execute().toArray();
 
-        assertThat(documents.length).isEqualTo(0);
-        // assertThat(((Document)documents[0]).getContent()).isEmpty();
-        // the query should be updated to query named entities
+        assertThat(documents.length).isEqualTo(1);
+        assertThat(((Document)documents[0]).getId()).isEqualTo("id");
+        assertThat(((Document)documents[0]).getContent()).isEmpty();
     }
 
     public ElasticsearchIndexerTest() throws UnknownHostException {}
