@@ -2,10 +2,13 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearch.State;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -17,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 
 public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTask {
@@ -62,12 +66,14 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         int numberOfResults = 0;
         logger.info("running {} queries for batch search {} on project {}", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project);
         repository.setState(batchSearch.uuid, State.RUNNING);
+        String query = null;
         try {
-            for (String query : batchSearch.queries.keySet()) {
+            for (String s : batchSearch.queries.keySet()) {
+                query = s;
                 Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).
-                        with(query, batchSearch.fuzziness,batchSearch.phraseMatches).
-                        withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[] {})).
-                        withPrefixQuery("dirname", batchSearch.paths.toArray(new String[] {})).
+                        with(query, batchSearch.fuzziness, batchSearch.phraseMatches).
+                        withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{})).
+                        withPrefixQuery("dirname", batchSearch.paths.toArray(new String[]{})).
                         withoutSource("content").limit(MAX_SCROLL_SIZE);
                 List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
 
@@ -77,9 +83,14 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                     docsToProcess = searcher.scroll().collect(toList());
                 }
             }
+        } catch (ElasticsearchStatusException esEx) {
+            logger.error("elasticsearch exception when running batch " + batchSearch.uuid, esEx);
+            repository.setState(batchSearch.uuid, new SearchException(query,
+                    stream(esEx.getSuppressed()).filter(t -> t instanceof ResponseException).findFirst().orElse(esEx)));
+            return numberOfResults;
         } catch (Exception ex) {
             logger.error("error when running batch " + batchSearch.uuid, ex);
-            repository.setState(batchSearch.uuid, State.FAILURE);
+            repository.setState(batchSearch.uuid, new SearchException(query, ex));
             return numberOfResults;
         }
         repository.setState(batchSearch.uuid, State.SUCCESS);

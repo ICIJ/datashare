@@ -16,6 +16,7 @@ public interface BatchSearchRepository extends Closeable {
     boolean save(BatchSearch batchSearch);
     boolean saveResults(String batchSearchId, String query, List<Document> documents);
     boolean setState(String batchSearchId, BatchSearch.State state);
+    boolean setState(String batchSearchId, SearchException error);
     boolean deleteAll(User user);
     boolean delete(User user, String batchId);
 

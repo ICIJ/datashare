@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.Entity;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -62,7 +63,7 @@ public class BatchSearchRunnerTest {
         assertThat(new BatchSearchRunner(indexer, repository, local()).call()).isEqualTo(0);
 
         verify(repository).setState("uuid1", BatchSearch.State.RUNNING);
-        verify(repository).setState("uuid1", BatchSearch.State.FAILURE);
+        verify(repository).setState(eq("uuid1"), any(SearchException.class));
     }
 
     @Test
