@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearch.State;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.user.User;
@@ -70,8 +71,17 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public boolean setState(String batchSearchId, State state) {
-        DSLContext create = DSL.using(dataSource, dialect);
-        return create.update(table(BATCH_SEARCH)).set(field("state"), state.name()).where(field("uuid").eq(batchSearchId)).execute() > 0;
+        return DSL.using(dataSource, dialect).update(table(BATCH_SEARCH)).
+                set(field("state"), state.name()).
+                where(field("uuid").eq(batchSearchId)).execute() > 0;
+    }
+
+    @Override
+    public boolean setState(String batchSearchId, SearchException error) {
+        return DSL.using(dataSource, dialect).update(table(BATCH_SEARCH)).
+                set(field("state"), State.FAILURE.name()).
+                set(field("error_message"), error.toString()).
+                where(field("uuid").eq(batchSearchId)).execute() > 0;
     }
 
     @Override
@@ -172,11 +182,12 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                                         LinkedHashMap::new)),
                         batchSearches.get(0).getDate(),
                         batchSearches.get(0).state, batchSearches.get(0).user, batchSearches.get(0).nbResults, batchSearches.get(0).published,
-                        batchSearches.get(0).fileTypes, batchSearches.get(0).paths, batchSearches.get(0).fuzziness,batchSearches.get(0).phraseMatches)).
+                        batchSearches.get(0).fileTypes, batchSearches.get(0).paths, batchSearches.get(0).fuzziness,
+                        batchSearches.get(0).phraseMatches, batchSearches.get(0).errorMessage)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
-    private SelectJoinStep<Record16<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object,Object>>
+    private SelectJoinStep<Record17<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
         Field<Object> resultCount = create.selectCount().from(table(BATCH_SEARCH_RESULT)).
                 where(field(name(BATCH_SEARCH_RESULT, "search_uuid")).
@@ -200,6 +211,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 field(name(BATCH_SEARCH, "paths")),
                 field(name(BATCH_SEARCH, "fuzziness")),
                 field(name(BATCH_SEARCH, "phrase_matches")),
+                field(name(BATCH_SEARCH, "error_message")),
                 field(name(countByQueryTableName, queryResultsField)), resultCount).
                 from(table(BATCH_SEARCH).
                         join(BATCH_SEARCH_QUERY).
@@ -231,9 +243,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 file_types == null || file_types.isEmpty()? null: asList(file_types.split(LIST_SEPARATOR)),
                 paths == null || paths.isEmpty()? null: asList(paths.split(LIST_SEPARATOR)),
                 record.get("fuzziness", Integer.class),
-                phraseMatches
-
-        );
+                phraseMatches,
+                record.get("error_message", String.class));
     }
 
     private SearchResult createSearchResult(final User actualUser, final Record record) {

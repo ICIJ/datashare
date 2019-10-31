@@ -417,7 +417,7 @@ public class ElasticsearchIndexer implements Indexer {
                     LOGGER.info("detected boolean operators in \"{}\", fuzziness and phrase match won't be applied", query);
                 }
             } catch (org.apache.lucene.queryparser.classic.ParseException e) {
-                LOGGER.warn("cannot parse query. Processing query as text", e);
+                LOGGER.warn("cannot parse query. Sending query as string query", e);
             }
             this.boolQuery.must(new MatchAllQueryBuilder());
             this.boolQuery.must(new QueryStringQueryBuilder(queryString).defaultField("*"));

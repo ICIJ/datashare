@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearch.State;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
@@ -130,6 +131,19 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.get(User.local()).get(0).state).isEqualTo(State.QUEUED);
         assertThat(repository.setState(batchSearch.uuid, State.RUNNING)).isTrue();
         assertThat(repository.get(User.local()).get(0).state).isEqualTo(State.RUNNING);
+    }
+
+    @Test
+    public void test_set_error_state() {
+        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asList("q1", "q2"), new Date());
+        repository.save(batchSearch);
+
+        SearchException error = new SearchException("q1", new RuntimeException("root exception"));
+        repository.setState(batchSearch.uuid, error);
+
+        assertThat(repository.get(User.local(), batchSearch.uuid).state).isEqualTo(State.FAILURE);
+        assertThat(repository.get(User.local(), batchSearch.uuid).errorMessage).isEqualTo(error.toString());
+        assertThat(error.toString()).contains("root exception").contains("q1");
     }
 
     @Test

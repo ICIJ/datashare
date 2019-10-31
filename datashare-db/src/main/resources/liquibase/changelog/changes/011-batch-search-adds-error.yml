@@ -1,0 +1,6 @@
+databaseChangeLog:
+  - changeSet:
+      id: 19
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search ADD COLUMN error_message TEXT

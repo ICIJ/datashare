@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -14,6 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.io.IOException;
@@ -21,6 +23,7 @@ import java.io.IOException;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
@@ -144,6 +147,20 @@ public class BatchSearchRunnerIntTest {
         new BatchSearchRunner(indexer, repository, local()).call();
 
         verify(repository).saveResults(search.uuid, "mydoc AND one", singletonList(mydoc1));
+    }
+
+    @Test
+    public void test_search_with_error() throws Exception {
+        Document mydoc = createDoc("docId1").with("mydoc").build();
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("AND mydoc"), User.local());
+        when(repository.getQueued()).thenReturn(asList(search));
+
+        new BatchSearchRunner(indexer, repository, local()).call();
+
+        ArgumentCaptor<SearchException> argument = ArgumentCaptor.forClass(SearchException.class);
+        verify(repository).setState(eq(search.uuid), argument.capture());
+        assertThat(argument.getValue().toString()).contains("Failed to parse query [AND mydoc]");
     }
 
     @Before
