@@ -12,6 +12,8 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.indexing.Indexer;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +30,7 @@ public class IndexResource {
     private OkHttpClient http = new OkHttpClient.Builder().
             readTimeout(60, TimeUnit.SECONDS).
             writeTimeout(60, TimeUnit.SECONDS).build();
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
     public IndexResource(PropertiesProvider propertiesProvider, Indexer indexer) {
@@ -146,6 +149,10 @@ public class IndexResource {
 
     @NotNull
     private Payload createPayload(Response esResponse) throws IOException {
-        return new Payload(esResponse.header("Content-Type"), esResponse.body().string(), esResponse.code());
+        String responseBody = esResponse.body().string();
+        if (!esResponse.isSuccessful()) {
+            logger.warn("Elasticsearch error response ({}): {}", esResponse.code(), responseBody);
+        }
+        return new Payload(esResponse.header("Content-Type"), responseBody, esResponse.code());
     }
 }
