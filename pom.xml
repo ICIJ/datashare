@@ -67,7 +67,7 @@
 
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>6.5.4</elasticsearch.version>
-        <jackson.version>2.9.10</jackson.version>
+        <jackson.version>2.9.10.1</jackson.version>
         <unidecode.version>0.0.7</unidecode.version>
         <joda-time.version>2.9.5</joda-time.version>
         <guava.version>19.0</guava.version>
