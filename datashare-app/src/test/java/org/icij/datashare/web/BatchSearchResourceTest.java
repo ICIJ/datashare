@@ -286,6 +286,14 @@ public class BatchSearchResourceTest implements FluentRestTest {
     }
 
     @Test
+    public void test_update_batch_search() {
+        when(batchSearchRepository.publish(User.local(), "batchId", true)).thenReturn(true).thenReturn(false);
+
+        patch("/api/batch/search/batchId", "{\"data\": {\"published\": true}}").should().respond(200);
+        patch("/api/batch/search/batchId", "{\"data\": {\"published\": true}}").should().respond(404);
+    }
+
+    @Test
     public void test_delete_batch_search_by_id() {
         when(batchSearchRepository.delete(User.local(), "myid")).thenReturn(true).thenReturn(false);
 

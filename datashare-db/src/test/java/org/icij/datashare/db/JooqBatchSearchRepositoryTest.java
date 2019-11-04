@@ -318,6 +318,24 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.getResults(new User("other"), batchSearch.uuid, new BatchSearchRepository.WebQuery(2, 0))).hasSize(2);
     }
 
+    @Test
+    public void test_publish() {
+        repository.save(new BatchSearch("uuid", Project.project("prj"), "name", "description",
+                        asList("q1", "q2"), new Date(), State.FAILURE, User.local()));
+
+        assertThat(repository.get(User.local(), "uuid").published).isFalse();
+        assertThat(repository.publish(User.local(), "uuid", true)).isTrue();
+        assertThat(repository.get(User.local(), "uuid").published).isTrue();
+    }
+
+    @Test
+    public void test_publish_unauthorized_user_does_nothing() {
+        repository.save(new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+                        asList("q1", "q2"), new Date(), State.FAILURE, User.local()));
+
+        assertThat(repository.publish(new User("unauthorized"), "uuid", true)).isFalse();
+    }
+
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {
         return new SearchResult(queryName, doc.getId(), doc.getRootDocument(), doc.getPath().getFileName().toString(), doc.getCreationDate(), doc.getContentType(), doc.getContentLength(), docNb);
     }

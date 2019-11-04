@@ -26,6 +26,8 @@ public interface BatchSearchRepository extends Closeable {
     List<SearchResult> getResults(User user, String batchSearchId);
     List<SearchResult> getResults(User user, String batchId, WebQuery webQuery);
 
+    boolean publish(User user, String batchId, boolean published);
+
     BatchSearch get(User user, String batchId);
 
     @JsonIgnoreProperties(ignoreUnknown = true)

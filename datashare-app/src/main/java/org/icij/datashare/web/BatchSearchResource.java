@@ -88,7 +88,7 @@ public class BatchSearchResource {
      */
     @Options("/search/:batchid")
     public Payload optionsDelete(String batchId, Context context) {
-        return ok().withAllowMethods("OPTIONS", "DELETE");
+        return ok().withAllowMethods("OPTIONS", "DELETE", "PATCH");
     }
 
     /**
@@ -105,6 +105,23 @@ public class BatchSearchResource {
     @Delete("/search/:batchid")
     public Payload deleteBatch(String batchId, Context context) {
         return batchSearchRepository.delete((User) context.currentUser(), batchId) ? new Payload(204): notFound();
+    }
+
+    /**
+     * Update batch search with the given id.
+     *
+     * Returns 200 and 404 if there is no batch id
+     * If the user issuing the request is not the same as the batch owner in database, it will do nothing (thus returning 404)
+     *
+     * @return 200 or 404
+     *
+     * Example :
+     * $(curl -i -XPATCH localhost:8080/api/batch/search/f74432db-9ae8-401d-977c-5c44a124f2c8 -H 'Content-Type: application/json' -d '{"data": {"published": true}}')
+     *
+     */
+    @Patch("/search/:batchid")
+    public Payload updateBatch(String batchId, Context context, JsonData data) {
+        return batchSearchRepository.publish((User) context.currentUser(), batchId, data.asBoolean("published")) ? ok(): notFound();
     }
 
     /**
