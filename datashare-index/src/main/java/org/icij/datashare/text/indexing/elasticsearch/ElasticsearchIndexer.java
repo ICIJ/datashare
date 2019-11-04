@@ -253,7 +253,7 @@ public class ElasticsearchIndexer implements Indexer {
                         "   updates++;" +
                         "  }" +
                         "}" +
-                        "if (updates == 0) ctx.op = 'none';",
+                        "if (updates == 0) ctx.op = 'noop';",
                 new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}});
     }
 
@@ -267,7 +267,7 @@ public class ElasticsearchIndexer implements Indexer {
                         "    updates++;" +
                         "  }" +
                         "}" +
-                        "if (updates == 0) ctx.op = 'none';",
+                        "if (updates == 0) ctx.op = 'noop';",
                 new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}});
     }
 

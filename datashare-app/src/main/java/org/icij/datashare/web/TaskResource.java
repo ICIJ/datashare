@@ -76,9 +76,9 @@ public class TaskResource {
      * @return 200
      *
      * Example :
-     * $(curl localhost:8080/api/task/id/21148262)
+     * $(curl localhost:8080/api/task/21148262)
      */
-    @Get("/name/:name")
+    @Get("/:name")
     public TaskResponse getTask(String id) {
         return new TaskResponse(taskManager.getTask(id));
     }
@@ -91,9 +91,9 @@ public class TaskResource {
      * @return 200 and json task
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/task/index -d '{}')
+     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index -d '{}')
      */
-    @Post("/index")
+    @Post("/batchUpdate/index")
     public TaskResponse indexQueue(final OptionsWrapper optionsWrapper, Context context) {
         IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), optionsWrapper.asOptions());
         return new TaskResponse(taskManager.startTask(indexTask));
@@ -106,9 +106,9 @@ public class TaskResource {
      * @return 200 and the list of tasks created
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/task/index/file)
+     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/file)
      */
-    @Post("/index/file")
+    @Post("/batchUpdate/index/file")
     public List<TaskResponse> indexDefault(final OptionsWrapper optionsWrapper, Context context) {
         return indexFile(propertiesProvider.getProperties().getProperty("dataDir"), optionsWrapper, context);
     }
@@ -120,9 +120,9 @@ public class TaskResource {
      * @param optionsWrapper
      * @return 200 and the list of created tasks
      *
-     * Example $(curl -XPOST localhost:8080/api/task/index/file/home/dev/myfile.txt)
+     * Example $(curl -XPOST localhost:8080/api/task/batchUpdate/index/home/dev/myfile.txt)
      */
-    @Post("/index/file/:filePath:")
+    @Post("/batchUpdate/index/:filePath:")
     public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
         Options<String> options = from(propertiesProvider.createMerged(optionsWrapper.asProperties()));
@@ -137,9 +137,9 @@ public class TaskResource {
      * @return 200 and the task created
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/task/index/file/home/dev/mydir)
+     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/home/dev/mydir)
      */
-    @Post("/scan/file/:filePath:")
+    @Post("/batchUpdate/scan/:filePath:")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         Path path = get("/", filePath);
         Options<String> options = from(propertiesProvider.createMerged(optionsWrapper.asProperties()));

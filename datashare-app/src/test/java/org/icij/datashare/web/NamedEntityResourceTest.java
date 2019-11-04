@@ -49,7 +49,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
     public void test_get_named_entity() {
         NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("index", "my_id", "root_parent");
-        get("/api/index/namedEntity/my_id?routing=root_parent").should().respond(200).haveType("application/json").contain(toBeReturned.getId());
+        get("/api/index/namedEntities/my_id?routing=root_parent").should().respond(200).haveType("application/json").contain(toBeReturned.getId());
     }
 
     @Test
@@ -58,7 +58,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
         NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("anne-datashare", "my_id", "root_parent");
 
-        get("/api/anne-datashare/namedEntity/my_id?routing=root_parent").withAuthentication("anne", "notused").
+        get("/api/anne-datashare/namedEntities/my_id?routing=root_parent").withAuthentication("anne", "notused").
                 should().respond(200).haveType("application/json").contain(toBeReturned.getId());
     }
 
@@ -71,7 +71,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
         doReturn(searcher).when(searcher).thatMatchesFieldValue(any(), any());
         doReturn(searcher).when(indexer).search("index", NamedEntity.class);
 
-        put("/api/index/namedEntity/hide/to_update").should().respond(200);
+        put("/api/index/namedEntities/hide/to_update").should().respond(200);
 
         verify(indexer).bulkUpdate("index", singletonList(toBeHidden));
     }
@@ -80,7 +80,7 @@ public class NamedEntityResourceTest implements FluentRestTest {
     public void test_hide_named_entity_when_failure() throws IOException {
         doThrow(new RuntimeException()).when(indexer).search("index", NamedEntity.class);
 
-        put("/api/index/namedEntity/hide/to_update").should().respond(500);
+        put("/api/index/namedEntities/hide/to_update").should().respond(500);
     }
 
     @Override

@@ -80,7 +80,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_index_file() {
-        RestAssert response = post("/api/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}");
+        RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
@@ -91,7 +91,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_index_directory() {
-        RestAssert response = post("/api/task/index/file/" + getClass().getResource("/docs/").getPath().substring(1), "{}");
+        RestAssert response = post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/").getPath().substring(1), "{}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
@@ -102,7 +102,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_index_and_scan_default_directory() {
-        RestAssert response = post("/api/task/index/file", "{}");
+        RestAssert response = post("/api/task/batchUpdate/index/file", "{}");
 
         response.should().respond(200).haveType("application/json");
         verify(taskFactory).createScanTask(local(), Paths.get("/default/data/dir"), Options.from(new HashMap<String, String>() {{
@@ -122,7 +122,7 @@ public class TaskResourceTest implements FluentRestTest {
     public void test_index_and_scan_directory_with_options() {
         String path = getClass().getResource("/docs/").getPath();
 
-        RestAssert response = post("/api/task/index/file/" + path.substring(1),
+        RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
@@ -140,7 +140,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_index_queue_with_options() {
-        RestAssert response = post("/api/task/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+        RestAssert response = post("/api/task/batchUpdate/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
         verify(taskFactory).createIndexTask(local(),  Options.from(new HashMap<String, String>() {{
@@ -153,7 +153,7 @@ public class TaskResourceTest implements FluentRestTest {
     @Test
     public void test_scan_with_options() {
         String path = getClass().getResource("/docs/").getPath();
-        RestAssert response = post("/api/task/scan/file/" + path.substring(1),
+        RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1),
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
@@ -222,7 +222,7 @@ public class TaskResourceTest implements FluentRestTest {
 
     @Test
     public void test_clean_tasks() {
-        post("/api/task/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
+        post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
 
         ShouldChain responseBody = post("/api/task/clean", "{}").should().haveType("application/json");
