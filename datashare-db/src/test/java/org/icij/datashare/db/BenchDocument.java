@@ -10,16 +10,14 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.*;
 
 import static org.icij.datashare.text.Project.project;
 
-public class Bench {
-    static Logger logger = LoggerFactory.getLogger(Bench.class);
+public class BenchDocument {
+    static Logger logger = LoggerFactory.getLogger(BenchDocument.class);
     @Rule
     public DbSetupRule dbRule = new DbSetupRule("jdbc:postgresql://postgresql/test?user=test&password=test");
     private JooqRepository repository = new JooqRepository(dbRule.dataSource, SQLDialect.POSTGRES_10);
@@ -80,5 +78,4 @@ public class Bench {
     private String generate(String seed, int nbBytes) {
         return String.join("", Collections.nCopies(nbBytes / seed.length(), seed));
     }
-    public Bench() throws IOException, SQLException {}
 }
