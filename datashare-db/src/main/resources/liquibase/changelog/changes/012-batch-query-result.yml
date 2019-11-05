@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search_query ADD COLUMN query_results int DEFAULT 0
+
+  - changeSet:
+      id: 21
+      author: bthomas
+      sql:
+        - CREATE UNIQUE INDEX idx_query_result_batch_unique ON batch_search_query (search_uuid, query)

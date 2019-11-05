@@ -35,3 +35,6 @@ databaseChangeLog:
   - include:
       file: changes/011-batch-search-adds-error.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/012-batch-query-result.yml
+      relativeToChangelogFile: true

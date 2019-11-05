@@ -47,26 +47,33 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                     values(batchSearch.uuid, batchSearch.name, batchSearch.description, batchSearch.user.id,
                             batchSearch.project.getId(), new Timestamp(batchSearch.getDate().getTime()), batchSearch.state.name(), batchSearch.published?1:0,
                             join(LIST_SEPARATOR, batchSearch.fileTypes),join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness,batchSearch.phraseMatches?1:0).execute();
-            InsertValuesStep3<Record, Object, Object, Object> insertQuery =
-                    inner.insertInto(table(BATCH_SEARCH_QUERY), field("search_uuid"), field("query"), field("query_number"));
+            InsertValuesStep4<Record, Object, Object, Object, Object> insertQuery =
+                    inner.insertInto(table(BATCH_SEARCH_QUERY), field("search_uuid"), field("query"), field("query_number"), field("query_results"));
             List<String> queries = new ArrayList<>(batchSearch.queries.keySet());
-            IntStream.range(0, queries.size()).forEach(i -> insertQuery.values(batchSearch.uuid, queries.get(i), i));
+            IntStream.range(0, queries.size()).forEach(i -> insertQuery.values(batchSearch.uuid, queries.get(i), i, 0));
             return insertQuery.execute() > 0;
         });
     }
 
     @Override
     public boolean saveResults(String batchSearchId, String query, List<Document> documents) {
-        DSLContext create = DSL.using(dataSource, dialect);
-        InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object> insertQuery =
-                create.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("query"), field("doc_nb"),
-                        field("doc_id"), field("root_id"), field("doc_name"), field("creation_date"), field("content_type"), field("content_length"));
-        IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
-                documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().getFileName().toString(),
-                documents.get(i).getCreationDate() == null ? val((Timestamp)null):
-                        new Timestamp(documents.get(i).getCreationDate().getTime()),
-                documents.get(i).getContentType(), documents.get(i).getContentLength()));
-        return insertQuery.execute() > 0;
+        return DSL.using(dataSource, dialect).transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+            inner.update(table(BATCH_SEARCH_QUERY)).set(field("query_results"),
+                    (Object) field("query_results").plus(documents.size())).
+                    where(field("search_uuid").eq(batchSearchId).
+                            and(field("query").eq(query))).execute();
+
+            InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object> insertQuery =
+                    inner.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("query"), field("doc_nb"),
+                            field("doc_id"), field("root_id"), field("doc_name"), field("creation_date"), field("content_type"), field("content_length"));
+            IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
+                    documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().getFileName().toString(),
+                    documents.get(i).getCreationDate() == null ? val((Timestamp) null) :
+                            new Timestamp(documents.get(i).getCreationDate().getTime()),
+                    documents.get(i).getContentType(), documents.get(i).getContentLength()));
+            return insertQuery.execute() > 0;
+        });
     }
 
     @Override
@@ -200,35 +207,21 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         Field<Object> resultCount = create.selectCount().from(table(BATCH_SEARCH_RESULT)).
                 where(field(name(BATCH_SEARCH_RESULT, "search_uuid")).
                         equal(field(name(BATCH_SEARCH, "uuid")))).asField("count");
-        String countByQueryTableName = "countByQuery";
-        String queryResultsField = "query_results";
-        Table<?> countByQueryDerivedTable = create.select(
-                field(name(BATCH_SEARCH_QUERY, "query")),
-                field(name(BATCH_SEARCH_RESULT, "search_uuid")),
-                count().as(queryResultsField)).
-                from(table(BATCH_SEARCH_QUERY)).
-                leftJoin(BATCH_SEARCH_RESULT).on(field(name(BATCH_SEARCH_RESULT, "query")).eq(field(name(BATCH_SEARCH_QUERY, "query"))).
-                and(field(name(BATCH_SEARCH_RESULT, "search_uuid")).eq(field(name(BATCH_SEARCH_QUERY, "search_uuid"))))).
-                groupBy(field(name(BATCH_SEARCH_QUERY, "query")), field(name(BATCH_SEARCH_RESULT, "search_uuid"))).
-                asTable(countByQueryTableName);
         return create.select(field("uuid"), field("name"), field("description"), field("user_id"),
                 field("prj_id"), field("batch_date"), field("state"),
-                field("query_number"), field(name(BATCH_SEARCH_QUERY, "query")),
                 field(name(BATCH_SEARCH, "published")),
                 field(name(BATCH_SEARCH, "file_types")),
                 field(name(BATCH_SEARCH, "paths")),
                 field(name(BATCH_SEARCH, "fuzziness")),
                 field(name(BATCH_SEARCH, "phrase_matches")),
                 field(name(BATCH_SEARCH, "error_message")),
-                field(name(countByQueryTableName, queryResultsField)), resultCount).
+                field(name(BATCH_SEARCH_QUERY, "query")),
+                field(name(BATCH_SEARCH_QUERY, "query_number")),
+                field(name(BATCH_SEARCH_QUERY, "query_results")), resultCount).
                 from(table(BATCH_SEARCH).
-                        join(BATCH_SEARCH_QUERY).
+                        join(table(BATCH_SEARCH_QUERY)).
                         on(field(name(BATCH_SEARCH, "uuid")).
-                                eq(field(name(BATCH_SEARCH_QUERY, "search_uuid")))).
-                        leftJoin(countByQueryDerivedTable).on(field(name(countByQueryTableName, "query")).
-                                eq(field(name(BATCH_SEARCH_QUERY, "query"))).
-                        and(field(name(countByQueryTableName, "search_uuid")).
-                                eq(field(name(BATCH_SEARCH, "uuid"))))));
+                                eq(field(name(BATCH_SEARCH_QUERY, "search_uuid")))));
     }
 
     private BatchSearch createBatchSearchFrom(final Record record) {
