@@ -10,7 +10,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -19,7 +18,7 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 
 public class BenchBatchSearch {
-    static Logger logger = LoggerFactory.getLogger(BenchBatchSearch.class);
+    private static Logger logger = LoggerFactory.getLogger(BenchBatchSearch.class);
     @Rule
     public DbSetupRule dbRule = new DbSetupRule("jdbc:postgresql://postgresql/test?user=test&password=test");
     private BatchSearchRepository repository = new JooqBatchSearchRepository(dbRule.dataSource, SQLDialect.POSTGRES_10);
@@ -27,8 +26,8 @@ public class BenchBatchSearch {
     @Test
     public void testReadsAndWrites() {
         int nbBatchSearches = 100;
-        int nbQueries = 100;
-        int nbResultsPerQuery = 100;
+        int nbQueries = 1000;
+        int nbResultsPerQuery = 10;
         logger.info("writing {} batch searches with {} queries and {} results per query", nbBatchSearches, nbQueries, nbResultsPerQuery);
         long beginTime = System.currentTimeMillis();
         for (int bsIdx = 0; bsIdx < nbBatchSearches; bsIdx++) {
@@ -52,9 +51,5 @@ public class BenchBatchSearch {
         repository.get(User.local());
         endTime = System.currentTimeMillis();
         logger.info("done in {}ms", endTime - beginTime);
-    }
-
-    private String generate(String seed, int nbBytes) {
-        return String.join("", Collections.nCopies(nbBytes / seed.length(), seed));
     }
 }
