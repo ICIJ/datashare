@@ -38,3 +38,6 @@ databaseChangeLog:
   - include:
       file: changes/012-batch-query-result.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/013-batch-search-results.yml
+      relativeToChangelogFile: true

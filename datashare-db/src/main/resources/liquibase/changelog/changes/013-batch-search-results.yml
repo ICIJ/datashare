@@ -1,0 +1,6 @@
+databaseChangeLog:
+  - changeSet:
+      id: 22
+      author: bthomas
+      sql:
+        - ALTER TABLE batch_search ADD COLUMN batch_results int DEFAULT 0

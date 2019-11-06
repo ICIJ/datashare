@@ -64,6 +64,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                     where(field("search_uuid").eq(batchSearchId).
                             and(field("query").eq(query))).execute();
 
+            inner.update(table(BATCH_SEARCH)).set(field("batch_results"),
+                    (Object) field("batch_results").plus(documents.size())).
+                    where(field("uuid").eq(batchSearchId)).execute();
+
             InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object> insertQuery =
                     inner.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("query"), field("doc_nb"),
                             field("doc_id"), field("root_id"), field("doc_name"), field("creation_date"), field("content_type"), field("content_length"));
@@ -204,9 +208,6 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     private SelectJoinStep<Record17<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
-        Field<Object> resultCount = create.selectCount().from(table(BATCH_SEARCH_RESULT)).
-                where(field(name(BATCH_SEARCH_RESULT, "search_uuid")).
-                        equal(field(name(BATCH_SEARCH, "uuid")))).asField("count");
         return create.select(field("uuid"), field("name"), field("description"), field("user_id"),
                 field("prj_id"), field("batch_date"), field("state"),
                 field(name(BATCH_SEARCH, "published")),
@@ -214,10 +215,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 field(name(BATCH_SEARCH, "paths")),
                 field(name(BATCH_SEARCH, "fuzziness")),
                 field(name(BATCH_SEARCH, "phrase_matches")),
+                field(name(BATCH_SEARCH, "batch_results")),
                 field(name(BATCH_SEARCH, "error_message")),
                 field(name(BATCH_SEARCH_QUERY, "query")),
                 field(name(BATCH_SEARCH_QUERY, "query_number")),
-                field(name(BATCH_SEARCH_QUERY, "query_results")), resultCount).
+                field(name(BATCH_SEARCH_QUERY, "query_results"))).
                 from(table(BATCH_SEARCH).
                         join(table(BATCH_SEARCH_QUERY)).
                         on(field(name(BATCH_SEARCH, "uuid")).
@@ -239,7 +241,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 new Date(record.get("batch_date", Timestamp.class).getTime()),
                 State.valueOf(record.get("state", String.class)),
                 new User(record.get("user_id", String.class)),
-                record.get("count", Integer.class),
+                record.get("batch_results", Integer.class),
                 record.get("published", Integer.class) > 0,
                 file_types == null || file_types.isEmpty()? null: asList(file_types.split(LIST_SEPARATOR)),
                 paths == null || paths.isEmpty()? null: asList(paths.split(LIST_SEPARATOR)),
