@@ -71,4 +71,7 @@ public class Project implements Entity {
     public int hashCode() {
         return Objects.hash(name);
     }
+
+    @Override
+    public String toString() { return "Project{name='" + name + '\'' + '}';}
 }
