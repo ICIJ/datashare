@@ -5,6 +5,8 @@ import org.icij.datashare.batch.BatchSearch.State;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.batch.SearchResult;
+import org.icij.datashare.db.public_.tables.records.BatchSearchQueryRecord;
+import org.icij.datashare.db.public_.tables.records.BatchSearchResultRecord;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.user.User;
 import org.jooq.*;
@@ -22,14 +24,17 @@ import static java.util.Arrays.asList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.*;
 import static org.icij.datashare.batch.BatchSearchRepository.WebQuery.DEFAULT_SORT_FIELD;
+import static org.icij.datashare.db.public_.tables.BatchSearch.BATCH_SEARCH;
+import static org.icij.datashare.db.public_.tables.BatchSearchQuery.BATCH_SEARCH_QUERY;
+import static org.icij.datashare.db.public_.tables.BatchSearchResult.BATCH_SEARCH_RESULT;
 import static org.icij.datashare.text.Project.project;
 import static org.jooq.impl.DSL.*;
 
 public class JooqBatchSearchRepository implements BatchSearchRepository {
     private static final String LIST_SEPARATOR = ",";
-    private static final String BATCH_SEARCH = "batch_search";
-    private static final String BATCH_SEARCH_QUERY = "batch_search_query";
-    private static final String BATCH_SEARCH_RESULT = "batch_search_result";
+    private static final String BATCH_SEARCH_TABLE_NAME = "batch_search";
+    private static final String BATCH_SEARCH_QUERY_TABLE_NAME = "batch_search_query";
+    private static final String BATCH_SEARCH_RESULT_TABLE_NAME = "batch_search_result";
     private final DataSource dataSource;
     private final SQLDialect dialect;
 
@@ -42,13 +47,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public boolean save(final BatchSearch batchSearch) {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            inner.insertInto(table(BATCH_SEARCH), field("uuid"), field("name"), field("description"), field("user_id"),
-                    field("prj_id"), field("batch_date"), field("state"), field("published"), field("file_types"), field("paths"), field("fuzziness"), field("phrase_matches")).
+            inner.insertInto(BATCH_SEARCH, BATCH_SEARCH.UUID, BATCH_SEARCH.NAME, BATCH_SEARCH.DESCRIPTION, BATCH_SEARCH.USER_ID,
+                    BATCH_SEARCH.PRJ_ID, BATCH_SEARCH.BATCH_DATE, BATCH_SEARCH.STATE, BATCH_SEARCH.PUBLISHED, BATCH_SEARCH.FILE_TYPES,
+                    BATCH_SEARCH.PATHS, BATCH_SEARCH.FUZZINESS, BATCH_SEARCH.PHRASE_MATCHES).
                     values(batchSearch.uuid, batchSearch.name, batchSearch.description, batchSearch.user.id,
                             batchSearch.project.getId(), new Timestamp(batchSearch.getDate().getTime()), batchSearch.state.name(), batchSearch.published?1:0,
                             join(LIST_SEPARATOR, batchSearch.fileTypes),join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness,batchSearch.phraseMatches?1:0).execute();
-            InsertValuesStep4<Record, Object, Object, Object, Object> insertQuery =
-                    inner.insertInto(table(BATCH_SEARCH_QUERY), field("search_uuid"), field("query"), field("query_number"), field("query_results"));
+
+            InsertValuesStep4<BatchSearchQueryRecord, String, String, Integer, Integer> insertQuery = inner.insertInto(BATCH_SEARCH_QUERY, BATCH_SEARCH_QUERY.SEARCH_UUID, BATCH_SEARCH_QUERY.QUERY, BATCH_SEARCH_QUERY.QUERY_NUMBER, BATCH_SEARCH_QUERY.QUERY_RESULTS);
             List<String> queries = new ArrayList<>(batchSearch.queries.keySet());
             IntStream.range(0, queries.size()).forEach(i -> insertQuery.values(batchSearch.uuid, queries.get(i), i, 0));
             return insertQuery.execute() > 0;
@@ -59,37 +65,38 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public boolean saveResults(String batchSearchId, String query, List<Document> documents) {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            inner.update(table(BATCH_SEARCH_QUERY)).set(field("query_results"),
-                    (Object) field("query_results").plus(documents.size())).
-                    where(field("search_uuid").eq(batchSearchId).
-                            and(field("query").eq(query))).execute();
+            inner.update(BATCH_SEARCH_QUERY).set(BATCH_SEARCH_QUERY.QUERY_RESULTS,
+                    BATCH_SEARCH_QUERY.QUERY_RESULTS.plus(documents.size())).
+                    where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchSearchId).
+                            and(BATCH_SEARCH_QUERY.QUERY.eq(query))).execute();
 
-            inner.update(table(BATCH_SEARCH)).set(field("batch_results"),
-                    (Object) field("batch_results").plus(documents.size())).
-                    where(field("uuid").eq(batchSearchId)).execute();
+            inner.update(BATCH_SEARCH).set(BATCH_SEARCH.BATCH_RESULTS,
+                    BATCH_SEARCH.BATCH_RESULTS.plus(documents.size())).
+                    where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute();
 
-            InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object> insertQuery =
-                    inner.insertInto(table(BATCH_SEARCH_RESULT), field("search_uuid"), field("query"), field("doc_nb"),
-                            field("doc_id"), field("root_id"), field("doc_name"), field("creation_date"), field("content_type"), field("content_length"));
+            InsertValuesStep9<BatchSearchResultRecord, String, String, Integer, String, String, String, Timestamp, String, Long> insertQuery =
+                    inner.insertInto(BATCH_SEARCH_RESULT, BATCH_SEARCH_RESULT.SEARCH_UUID, BATCH_SEARCH_RESULT.QUERY, BATCH_SEARCH_RESULT.DOC_NB,
+                    BATCH_SEARCH_RESULT.DOC_ID, BATCH_SEARCH_RESULT.ROOT_ID, BATCH_SEARCH_RESULT.DOC_NAME, BATCH_SEARCH_RESULT.CREATION_DATE,
+                    BATCH_SEARCH_RESULT.CONTENT_TYPE, BATCH_SEARCH_RESULT.CONTENT_LENGTH);
             IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
-                    documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().getFileName().toString(),
-                    documents.get(i).getCreationDate() == null ? val((Timestamp) null) :
-                            new Timestamp(documents.get(i).getCreationDate().getTime()),
-                    documents.get(i).getContentType(), documents.get(i).getContentLength()));
+                                documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().getFileName().toString(),
+                                documents.get(i).getCreationDate() == null ? (Timestamp) null:
+                                        new Timestamp(documents.get(i).getCreationDate().getTime()),
+                                documents.get(i).getContentType(), documents.get(i).getContentLength()));
             return insertQuery.execute() > 0;
         });
     }
 
     @Override
     public boolean setState(String batchSearchId, State state) {
-        return DSL.using(dataSource, dialect).update(table(BATCH_SEARCH)).
+        return DSL.using(dataSource, dialect).update(table(BATCH_SEARCH_TABLE_NAME)).
                 set(field("state"), state.name()).
                 where(field("uuid").eq(batchSearchId)).execute() > 0;
     }
 
     @Override
     public boolean setState(String batchSearchId, SearchException error) {
-        return DSL.using(dataSource, dialect).update(table(BATCH_SEARCH)).
+        return DSL.using(dataSource, dialect).update(table(BATCH_SEARCH_TABLE_NAME)).
                 set(field("state"), State.FAILURE.name()).
                 set(field("error_message"), error.toString()).
                 where(field("uuid").eq(batchSearchId)).execute() > 0;
@@ -99,13 +106,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public boolean deleteAll(User user) {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            inner.deleteFrom(table(BATCH_SEARCH_QUERY)).where(field("search_uuid").
-                    in(select(field("uuid")).from(table(BATCH_SEARCH)).where(field("user_id").eq(user.id)))).
+            inner.deleteFrom(table(BATCH_SEARCH_QUERY_TABLE_NAME)).where(field("search_uuid").
+                    in(select(field("uuid")).from(table(BATCH_SEARCH_TABLE_NAME)).where(field("user_id").eq(user.id)))).
                     execute();
-            inner.deleteFrom(table(BATCH_SEARCH_RESULT)).where(field("search_uuid").
-                    in(select(field("uuid")).from(table(BATCH_SEARCH)).where(field("user_id").eq(user.id)))).
+            inner.deleteFrom(table(BATCH_SEARCH_RESULT_TABLE_NAME)).where(field("search_uuid").
+                    in(select(field("uuid")).from(table(BATCH_SEARCH_TABLE_NAME)).where(field("user_id").eq(user.id)))).
                     execute();
-            return inner.deleteFrom(table(BATCH_SEARCH)).where(field("user_id").eq(user.id)).execute() > 0;
+            return inner.deleteFrom(table(BATCH_SEARCH_TABLE_NAME)).where(field("user_id").eq(user.id)).execute() > 0;
         });
     }
 
@@ -113,11 +120,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public boolean delete(User user, String batchId) {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            SelectConditionStep<Record1<Object>> batch_uuid = select(field("uuid")).from(table(BATCH_SEARCH)).
+            SelectConditionStep<Record1<Object>> batch_uuid = select(field("uuid")).from(table(BATCH_SEARCH_TABLE_NAME)).
                     where(field("user_id").eq(user.id)).and(field("uuid").eq(batchId));
-            inner.deleteFrom(table(BATCH_SEARCH_QUERY)).where(field("search_uuid").in(batch_uuid)).execute();
-            inner.deleteFrom(table(BATCH_SEARCH_RESULT)).where(field("search_uuid").in(batch_uuid)).execute();
-            return inner.deleteFrom(table(BATCH_SEARCH)).where(field("user_id").eq(user.id)).
+            inner.deleteFrom(table(BATCH_SEARCH_QUERY_TABLE_NAME)).where(field("search_uuid").in(batch_uuid)).execute();
+            inner.deleteFrom(table(BATCH_SEARCH_RESULT_TABLE_NAME)).where(field("search_uuid").in(batch_uuid)).execute();
+            return inner.deleteFrom(table(BATCH_SEARCH_TABLE_NAME)).where(field("user_id").eq(user.id)).
                     and(field("uuid").eq(batchId)).execute() > 0;
         });
     }
@@ -126,9 +133,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public List<BatchSearch> get(final User user) {
         return mergeBatchSearches(
                 createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
-                where(field(BATCH_SEARCH + ".user_id").eq(user.id).
-                        or(field(name(BATCH_SEARCH, "published")).greaterThan(0))).
-                        orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
+                where(BATCH_SEARCH.USER_ID.eq(user.id).
+                        or(BATCH_SEARCH.PUBLISHED.greaterThan(0))).
+                        orderBy(BATCH_SEARCH.BATCH_DATE.desc(), BATCH_SEARCH_QUERY.QUERY_NUMBER).
                 fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
     }
 
@@ -136,10 +143,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public List<BatchSearch> get(User user, List<String> projectsIds) {
         return mergeBatchSearches(
                createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
-               where(field(name(BATCH_SEARCH, "prj_id")).in(projectsIds).
-                       and(field(BATCH_SEARCH + ".user_id").eq(user.id).
-                               or(field(name(BATCH_SEARCH, "published")).greaterThan(0)))).
-                       orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
+               where(field(name(BATCH_SEARCH_TABLE_NAME, "prj_id")).in(projectsIds).
+                       and(field(BATCH_SEARCH_TABLE_NAME + ".user_id").eq(user.id).
+                               or(field(name(BATCH_SEARCH_TABLE_NAME, "published")).greaterThan(0)))).
+                       orderBy(field(BATCH_SEARCH_TABLE_NAME + ".batch_date").desc(), field(BATCH_SEARCH_QUERY_TABLE_NAME + ".query_number")).
                fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
     }
 
@@ -155,8 +162,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public List<BatchSearch> getQueued() {
         return mergeBatchSearches(
                 createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
-                where(field(BATCH_SEARCH + ".state").eq(State.QUEUED.name())).
-                        orderBy(field(BATCH_SEARCH + ".batch_date").desc(), field(BATCH_SEARCH_QUERY + ".query_number")).
+                where(field(BATCH_SEARCH_TABLE_NAME + ".state").eq(State.QUEUED.name())).
+                        orderBy(field(BATCH_SEARCH_TABLE_NAME + ".batch_date").desc(), field(BATCH_SEARCH_QUERY_TABLE_NAME + ".query_number")).
                 fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
     }
 
@@ -168,8 +175,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     @Override
     public List<SearchResult> getResults(User user, String batchSearchId, WebQuery webQuery) {
         DSLContext create = DSL.using(dataSource, dialect);
-        SelectConditionStep<Record> query = create.select().from(table(BATCH_SEARCH_RESULT)).
-                join(BATCH_SEARCH).on(field(BATCH_SEARCH + ".uuid").equal(field(BATCH_SEARCH_RESULT + ".search_uuid"))).
+        SelectConditionStep<Record> query = create.select().from(table(BATCH_SEARCH_RESULT_TABLE_NAME)).
+                join(BATCH_SEARCH_TABLE_NAME).on(field(BATCH_SEARCH_TABLE_NAME + ".uuid").equal(field(BATCH_SEARCH_RESULT_TABLE_NAME + ".search_uuid"))).
                 where(field("search_uuid").eq(batchSearchId));
         if (webQuery.hasFilteredQueries()) query.and(field("query").in(webQuery.queries));
         if (webQuery.isSorted()) {
@@ -185,7 +192,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public boolean publish(User user, String batchId, boolean published) {
-        return DSL.using(dataSource, dialect).update(table(BATCH_SEARCH)).
+        return DSL.using(dataSource, dialect).update(table(BATCH_SEARCH_TABLE_NAME)).
                 set(field("published"), published?1:0).
                 where(field("uuid").eq(batchId).
                         and(field("user_id").eq(user.id))).execute() > 0;
@@ -206,24 +213,27 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
-    private SelectJoinStep<Record17<Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, Object>>
+    private SelectJoinStep<Record17<String, String, String, String, String, Timestamp, String, Integer, String, String, Integer, Integer, Integer, String, String, Integer, Integer>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
-        return create.select(field("uuid"), field("name"), field("description"), field("user_id"),
-                field("prj_id"), field("batch_date"), field("state"),
-                field(name(BATCH_SEARCH, "published")),
-                field(name(BATCH_SEARCH, "file_types")),
-                field(name(BATCH_SEARCH, "paths")),
-                field(name(BATCH_SEARCH, "fuzziness")),
-                field(name(BATCH_SEARCH, "phrase_matches")),
-                field(name(BATCH_SEARCH, "batch_results")),
-                field(name(BATCH_SEARCH, "error_message")),
-                field(name(BATCH_SEARCH_QUERY, "query")),
-                field(name(BATCH_SEARCH_QUERY, "query_number")),
-                field(name(BATCH_SEARCH_QUERY, "query_results"))).
-                from(table(BATCH_SEARCH).
-                        join(table(BATCH_SEARCH_QUERY)).
-                        on(field(name(BATCH_SEARCH, "uuid")).
-                                eq(field(name(BATCH_SEARCH_QUERY, "search_uuid")))));
+        return create.select(
+                BATCH_SEARCH.UUID,
+                BATCH_SEARCH.NAME,
+                BATCH_SEARCH.DESCRIPTION,
+                BATCH_SEARCH.USER_ID,
+                BATCH_SEARCH.PRJ_ID,
+                BATCH_SEARCH.BATCH_DATE,
+                BATCH_SEARCH.STATE,
+                BATCH_SEARCH.PUBLISHED,
+                BATCH_SEARCH.FILE_TYPES,
+                BATCH_SEARCH.PATHS,
+                BATCH_SEARCH.FUZZINESS,
+                BATCH_SEARCH.PHRASE_MATCHES,
+                BATCH_SEARCH.BATCH_RESULTS,
+                BATCH_SEARCH.ERROR_MESSAGE,
+                BATCH_SEARCH_QUERY.QUERY,
+                BATCH_SEARCH_QUERY.QUERY_NUMBER,
+                BATCH_SEARCH_QUERY.QUERY_RESULTS).
+                from(BATCH_SEARCH.join(BATCH_SEARCH_QUERY).on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_QUERY.SEARCH_UUID)));
     }
 
     private BatchSearch createBatchSearchFrom(final Record record) {
