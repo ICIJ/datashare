@@ -149,6 +149,8 @@
                                     <name>org.jooq.meta.postgres.PostgresDatabase</name>
                                     <includes>.*</includes>
                                     <excludes>databasechange.* | pg_.*</excludes>
+                                    <inputSchema>public</inputSchema>
+                                    <outputSchemaToDefault>true</outputSchemaToDefault>
                                 </database>
                                 <target>
                                     <packageName>org.icij.datashare.db</packageName>
