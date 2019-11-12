@@ -20,7 +20,7 @@ public class BenchDocument {
     static Logger logger = LoggerFactory.getLogger(BenchDocument.class);
     @Rule
     public DbSetupRule dbRule = new DbSetupRule("jdbc:postgresql://postgresql/test?user=test&password=test");
-    private JooqRepository repository = new JooqRepository(dbRule.dataSource, SQLDialect.POSTGRES_10);
+    private JooqRepository repository = new JooqRepository(dbRule.dataSource, SQLDialect.POSTGRES);
 
     @Test
     public void testReadsAndWrites() {
