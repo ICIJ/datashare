@@ -14,7 +14,7 @@
 
     <properties>
         <liquibase.version>3.6.3</liquibase.version>
-        <jooq.version>3.11.9</jooq.version>
+        <jooq.version>3.12.3</jooq.version>
     </properties>
 
     <dependencies>
