@@ -2,7 +2,7 @@ version: 2
 jobs:
   build_back:
     docker:
-      - image: circleci/8-jdk-stretch-node-browsers
+      - image: circleci/openjdk:8-stretch
       - image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
         environment:
           - "discovery.type=single-node"
