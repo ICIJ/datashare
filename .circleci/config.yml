@@ -54,6 +54,7 @@ jobs:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
 
+      - run: mvn -pl datashare-api -am install
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run: mvn -Dmaven.test.skip=true package
