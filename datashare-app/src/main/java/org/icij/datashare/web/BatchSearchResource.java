@@ -19,14 +19,15 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.SortedSet;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.*;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
 import static net.codestory.http.payload.Payload.*;
+import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.Project.project;
 
 @Prefix("/api/batch")
@@ -268,8 +269,8 @@ public class BatchSearchResource {
     }
 
     @NotNull
-    private List<String> getQueries(String csv) throws IOException {
-        return stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).collect(toList());
+    private SortedSet<String> getQueries(String csv) {
+        return asSet(stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).toArray(String[]::new));
     }
 
     private List<SearchResult> getResultsOrThrowUnauthorized(String batchId, User user, BatchSearchRepository.WebQuery webQuery) {

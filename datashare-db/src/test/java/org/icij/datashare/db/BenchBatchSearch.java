@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 
@@ -31,8 +32,8 @@ public class BenchBatchSearch {
         logger.info("writing {} batch searches with {} queries and {} results per query", nbBatchSearches, nbQueries, nbResultsPerQuery);
         long beginTime = System.currentTimeMillis();
         for (int bsIdx = 0; bsIdx < nbBatchSearches; bsIdx++) {
-            List<String> queries = IntStream.range(0, nbQueries).mapToObj(i -> "query " + i).collect(Collectors.toList());
-            BatchSearch batch = new BatchSearch(project("test"), "name" + bsIdx, "desc" + bsIdx, queries, User.local());
+            String[] queries = IntStream.range(0, nbQueries).mapToObj(i -> "query " + i).toArray(String[]::new);
+            BatchSearch batch = new BatchSearch(project("test"), "name" + bsIdx, "desc" + bsIdx, asSet(queries), User.local());
             repository.save(batch);
 
             for (String q: queries) {

@@ -27,6 +27,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.verify;
@@ -86,7 +87,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(eq(new BatchSearch(response.content(),
                 project("prj"), "nameValue", null,
-                singletonList("query"), new Date(), BatchSearch.State.QUEUED, User.local())));
+                asSet("query"), new Date(), BatchSearch.State.QUEUED, User.local())));
     }
 
     @Test
@@ -177,13 +178,13 @@ public class BatchSearchResourceTest implements FluentRestTest {
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(eq(new BatchSearch(response.content(),
                 project("prj"), "my batch search", "search description",
-                singletonList("query"), new Date(), BatchSearch.State.RUNNING, User.local())));
+                asSet("query"), new Date(), BatchSearch.State.RUNNING, User.local())));
     }
 
     @Test
     public void test_get_batch_search() {
-        BatchSearch search1 = new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2"), User.local());
-        BatchSearch search2 = new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"), User.local());
+        BatchSearch search1 = new BatchSearch(project("prj"), "name1", "description1", asSet("query 1", "query 2"), User.local());
+        BatchSearch search2 = new BatchSearch(project("prj"), "name2", "description2", asSet("query 3", "query 4"), User.local());
         when(batchSearchRepository.get(User.local(), search1.uuid)).thenReturn(search1);
         when(batchSearchRepository.get(User.local(), search2.uuid)).thenReturn(search2);
 
@@ -194,8 +195,8 @@ public class BatchSearchResourceTest implements FluentRestTest {
     @Test
     public void test_get_batch_searches_json() {
         when(batchSearchRepository.get(User.local(), singletonList("local-datashare"))).thenReturn(asList(
-                new BatchSearch(project("prj"), "name1", "description1", asList("query 1", "query 2"), User.local()),
-                new BatchSearch(project("prj"), "name2", "description2", asList("query 3", "query 4"), User.local())
+                new BatchSearch(project("prj"), "name1", "description1", asSet("query 1", "query 2"), User.local()),
+                new BatchSearch(project("prj"), "name2", "description2", asSet("query 3", "query 4"), User.local())
         ));
 
         get("/api/batch/search").should().respond(200).haveType("application/json").
@@ -236,7 +237,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
 
     @Test
     public void test_get_search_results_csv() {
-        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asList("q1", "q2"),User.local()));
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asSet("q1", "q2"),User.local()));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(asList(
                 new SearchResult("q1", "docId1", "rootId1", "doc1", new Date(), "content/type", 123L, 1),
                 new SearchResult("q2", "docId2", "rootId2", "doc2", new Date(), "content/type", 123L, 2)
@@ -258,7 +259,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
             routes.add(new BatchSearchResource(batchSearchRepository, propertiesProvider)).
                     filter(new LocalUserFilter(propertiesProvider));
         });
-        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", singletonList("q"), User.local()));
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asSet("q"), User.local()));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(singletonList(
                 new SearchResult("q", "docId", "rootId", "doc", new Date(), "content/type", 123L, 1)
         ));

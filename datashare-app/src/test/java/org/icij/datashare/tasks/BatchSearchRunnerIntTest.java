@@ -24,6 +24,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
@@ -42,8 +43,8 @@ public class BatchSearchRunnerIntTest {
     public void test_search_with_file_types() throws Exception {
         Document mydoc = createDoc("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), User.local(), false, singletonList("application/pdf"), null, 0);
-        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), User.local(), false, singletonList("text/plain"), null, 0);
+        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("mydoc"), User.local(), false, singletonList("application/pdf"), null, 0);
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("mydoc"), User.local(), false, singletonList("text/plain"), null, 0);
         when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
 
         new BatchSearchRunner(indexer, repository, local()).call();
@@ -56,9 +57,9 @@ public class BatchSearchRunnerIntTest {
     public void test_search_with_paths() throws Exception {
         Document mydoc = createDoc("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), User.local(),false, null,
+        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("mydoc"), User.local(),false, null,
                 singletonList("/foo/bar"), 0);
-        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc"), User.local(),false, null,
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("mydoc"), User.local(),false, null,
                 singletonList("file:///path/to"), 0);
         when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
 
@@ -72,11 +73,11 @@ public class BatchSearchRunnerIntTest {
     public void test_search_with_fuzziness() throws Exception {
         Document mydoc = createDoc("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch searchKo1 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("doc"), User.local(),false, null,
+        BatchSearch searchKo1 = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("doc"), User.local(),false, null,
                 null, 1);
-        BatchSearch searchKo2 = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("nodoc"), User.local(),false, null,
+        BatchSearch searchKo2 = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("nodoc"), User.local(),false, null,
                 null, 1);
-        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("hedoc"), User.local(),false, null,
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("hedoc"), User.local(),false, null,
                 null, 2);
         when(repository.getQueued()).thenReturn(asList(searchKo1, searchKo2, searchOk));
 
@@ -91,9 +92,9 @@ public class BatchSearchRunnerIntTest {
     public void test_search_with_phraseMatches() throws Exception {
         Document mydoc = createDoc("docId").with("mydoc to find").build();
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("to find mydoc"), User.local(),false, null,
+        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("to find mydoc"), User.local(),false, null,
                 null, true);
-        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc to find"), User.local(),false, null,
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("mydoc to find"), User.local(),false, null,
                 null,true);
         when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
 
@@ -108,9 +109,9 @@ public class BatchSearchRunnerIntTest {
         Document mydoc = createDoc("docId").with("anne's doc to find").build();
         indexer.add(TEST_INDEX, mydoc);
         indexer.add(TEST_INDEX, NamedEntity.create(NamedEntity.Category.PERSON, "anne", 12, mydoc.getId(), Pipeline.Type.CORENLP, Language.FRENCH));
-        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("anne doc"), User.local(),false, null,
+        BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("anne doc"), User.local(),false, null,
                 null, true);
-        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("anne's doc"), User.local(),false, null,
+        BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("anne's doc"), User.local(),false, null,
                 null,true);
         when(repository.getQueued()).thenReturn(asList(searchKo, searchOk));
 
@@ -126,7 +127,7 @@ public class BatchSearchRunnerIntTest {
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query-phrase.html
         Document mydoc = createDoc("docId").with("mydoc find").build();
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("find mydoc"), User.local(), false, null,
+        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("find mydoc"), User.local(), false, null,
                  null, 2,true);
         when(repository.getQueued()).thenReturn(asList(search));
 
@@ -141,7 +142,7 @@ public class BatchSearchRunnerIntTest {
         Document mydoc2 = createDoc("docId2").with("mydoc two").build();
         indexer.add(TEST_INDEX, mydoc1);
         indexer.add(TEST_INDEX, mydoc2);
-        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("mydoc AND one"), User.local());
+        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("mydoc AND one"), User.local());
         when(repository.getQueued()).thenReturn(asList(search));
 
         new BatchSearchRunner(indexer, repository, local()).call();
@@ -153,7 +154,7 @@ public class BatchSearchRunnerIntTest {
     public void test_search_with_error() throws Exception {
         Document mydoc = createDoc("docId1").with("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", singletonList("AND mydoc"), User.local());
+        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("AND mydoc"), User.local());
         when(repository.getQueued()).thenReturn(asList(search));
 
         new BatchSearchRunner(indexer, repository, local()).call();
