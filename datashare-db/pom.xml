@@ -107,15 +107,11 @@
     </profiles>
 
     <build>
-        <filters>
-            <filter>src/main/resources/env/db.${env}.properties</filter>
-        </filters>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>liquibase/*.properties</include>
                     <include>liquibase/**/*.yml</include>
                 </includes>
             </resource>
@@ -126,8 +122,11 @@
                 <artifactId>liquibase-maven-plugin</artifactId>
                 <version>${liquibase.version}</version>
                 <configuration>
-                    <propertyFile>target/classes/liquibase/liquibase.properties</propertyFile>
-                    <propertyFileWillOverride>true</propertyFileWillOverride>
+                    <changeLogFile>src/main/resources/liquibase/changelog/db.changelog.yml</changeLogFile>
+                    <driver>org.postgresql.Driver</driver>
+                    <url>jdbc:postgresql://postgresql/datashare</url>
+                    <username>test</username>
+                    <password>test</password>
                     <promptOnNonLocalDatabase>false</promptOnNonLocalDatabase>
                 </configuration>
             </plugin>
