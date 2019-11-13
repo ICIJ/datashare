@@ -148,10 +148,14 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
 
 Requires 
 [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html),
-[Maven 3](http://maven.apache.org/download.cgi)
+[Maven 3](http://maven.apache.org/download.cgi) and a running [PostgreSQL](https://www.postgresql.org/) database with 
+two databases `datashare` and `test` with write access for user `test` / password `test`.
 
-From `datashare` root directory, type: `mvn package`
-
+```
+mvn validate
+mvn -pl datashare-db liquibase:update
+mvn test
+```
 
 ## License
 
