@@ -37,6 +37,12 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
+      - run:
+          name: create a bootstrap datashare DB for jooq code generation
+          command: |
+            echo "postgresql:5432:test:test:test" > ~/.pgpass && chmod 600 ~/.pgpass
+            psql -h postgresql -U test test -c "CREATE DATABASE datashare;"
+
       - run: mvn validate
 
       - save_cache:
