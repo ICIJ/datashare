@@ -54,8 +54,8 @@ jobs:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
 
+      - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
-
       - run: mvn -Dmaven.test.skip=true package
 
       # making a datashare-dist-latest as we cannot access dist directory with a wildcard
