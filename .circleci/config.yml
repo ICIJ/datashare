@@ -40,6 +40,7 @@ jobs:
       - run:
           name: create a bootstrap datashare DB for jooq code generation
           command: |
+            apt-get install postgresql-client
             echo "postgresql:5432:test:test:test" > ~/.pgpass && chmod 600 ~/.pgpass
             psql -h postgresql -U test test -c "CREATE DATABASE datashare;"
 
