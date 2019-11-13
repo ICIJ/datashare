@@ -153,6 +153,7 @@ two databases `datashare` and `test` with write access for user `test` / passwor
 
 ```
 mvn validate
+mvn -pl datashare-api -am install
 mvn -pl datashare-db liquibase:update
 mvn test
 ```
