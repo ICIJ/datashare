@@ -40,6 +40,8 @@ jobs:
       - run:
           name: create a bootstrap datashare DB for jooq code generation
           command: |
+            deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main
+            wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install postgresql-client
             echo "postgresql:5432:test:test:test" > ~/.pgpass && chmod 600 ~/.pgpass
