@@ -110,7 +110,7 @@ public class JooqRepository implements Repository {
     @Override
     public boolean unstar(User user, String documentId) {
         return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_STAR).
-                where(DOCUMENT_USER_STAR.DOC_ID.eq(documentId), DOCUMENT_USER_STAR.USER_ID.equal(user.id)).execute() > 0;
+                where(DOCUMENT_USER_STAR.DOC_ID.eq(documentId), DOCUMENT_USER_STAR.USER_ID.eq(user.id)).execute() > 0;
     }
 
     @Override
@@ -135,8 +135,8 @@ public class JooqRepository implements Repository {
     public int unstar(Project project, User user, List<String> documentIds) {
         return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_STAR).
                 where(DOCUMENT_USER_STAR.DOC_ID.in(documentIds),
-                        DOCUMENT_USER_STAR.USER_ID.equal(user.id),
-                        DOCUMENT_USER_STAR.PRJ_ID.equal(project.getId())).execute();
+                        DOCUMENT_USER_STAR.USER_ID.eq(user.id),
+                        DOCUMENT_USER_STAR.PRJ_ID.eq(project.getId())).execute();
     }
 
     @Override
@@ -163,7 +163,7 @@ public class JooqRepository implements Repository {
         return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_TAG).
                 where(DOCUMENT_TAG.DOC_ID.eq(documentId),
                         DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
-                        DOCUMENT_TAG.PRJ_ID.equal(prj.getId())).execute() > 0;
+                        DOCUMENT_TAG.PRJ_ID.eq(prj.getId())).execute() > 0;
     }
 
     @Override
@@ -181,7 +181,7 @@ public class JooqRepository implements Repository {
         return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_TAG).
                         where(DOCUMENT_TAG.DOC_ID.in(documentIds),
                                 DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
-                                DOCUMENT_TAG.PRJ_ID.equal(prj.getId())).execute() > 0;
+                                DOCUMENT_TAG.PRJ_ID.eq(prj.getId())).execute() > 0;
     }
 
     @Override
