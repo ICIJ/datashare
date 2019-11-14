@@ -24,18 +24,18 @@ public interface Pipeline {
     }
 
     enum Type implements EnumTypeToken {
-        CORENLP(0),
-        GATENLP(1),
-        IXAPIPE(2),
-        MITIE(3),
-        OPENNLP(4),
-        EMAIL(5);
+        CORENLP((short)0),
+        GATENLP((short)1),
+        IXAPIPE((short)2),
+        MITIE((short)3),
+        OPENNLP((short)4),
+        EMAIL((short)5);
 
         private final String className;
-        public final int code;
+        public final short code;
         public final int mask;
 
-        Type(final int code) {
+        Type(final short code) {
             this.code = code;
             mask = 1 << code;
             className = buildClassName(Pipeline.class, this);

@@ -44,7 +44,7 @@ public class DatabaseSpewer extends Spewer {
 
         Document document = new Document(project, tikaDocument.getId(), tikaDocument.getPath(), content,
                 languageGuesser.guess(content), charset, contentType, getMetadata(tikaDocument), Document.Status.INDEXED, new HashSet<>(), new Date(),
-                parentId, rootId, level, contentLength);
+                parentId, rootId, (short) level, contentLength);
         repository.create(document);
     }
 }

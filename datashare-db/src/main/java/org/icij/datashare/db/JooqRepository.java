@@ -2,6 +2,7 @@ package org.icij.datashare.db;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.Repository;
+import org.icij.datashare.db.tables.records.*;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -19,6 +20,11 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.icij.datashare.db.tables.Document.DOCUMENT;
+import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
+import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
+import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
+import static org.icij.datashare.db.tables.Project.PROJECT;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
@@ -26,12 +32,6 @@ import static org.icij.datashare.text.Project.project;
 import static org.jooq.impl.DSL.*;
 
 public class JooqRepository implements Repository {
-    private static final String DOCUMENT = "document";
-    private static final String NAMED_ENTITY = "named_entity";
-    private static final String DOCUMENT_USER_STAR = "document_user_star";
-    private static final String DOCUMENT_TAG = "document_tag";
-    public static final String PROJECT = "project";
-
     private final DataSource connectionProvider;
     private SQLDialect dialect;
 
@@ -42,18 +42,18 @@ public class JooqRepository implements Repository {
 
     @Override
     public NamedEntity getNamedEntity(String id) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        return createFrom(create.select().from(table(NAMED_ENTITY)).where(field("id").eq(id)).fetch().get(0));
+        return createFrom(DSL.using(connectionProvider, dialect).
+                selectFrom(NAMED_ENTITY).where(NAMED_ENTITY.ID.eq(id)).fetchOne());
     }
 
     @Override
     public void create(List<NamedEntity> neList) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        InsertValuesStep9<Record, Object, Object, Object, Object, Object, Object, Object, Object, Object>
-                insertQuery = create.insertInto(table(NAMED_ENTITY),
-                field("id"), field("mention"), field("ne_offset"), field("extractor"),
-                field("category"), field("doc_id"), field("root_id"),
-                field("extractor_language"), field("hidden"));
+        InsertValuesStep9<NamedEntityRecord, String, String, Long, Short, String, String, String, String, Boolean>
+                insertQuery = create.insertInto(NAMED_ENTITY,
+                NAMED_ENTITY.ID, NAMED_ENTITY.MENTION, NAMED_ENTITY.NE_OFFSET, NAMED_ENTITY.EXTRACTOR,
+                NAMED_ENTITY.CATEGORY, NAMED_ENTITY.DOC_ID, NAMED_ENTITY.ROOT_ID,
+                NAMED_ENTITY.EXTRACTOR_LANGUAGE, NAMED_ENTITY.HIDDEN);
         neList.forEach(ne -> insertQuery.values(
                 ne.getId(), ne.getMention(), ne.getOffset(), ne.getExtractor().code,
                 ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
@@ -63,19 +63,19 @@ public class JooqRepository implements Repository {
 
     @Override
     public Document getDocument(final String id) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        return createDocumentFrom(create.select().from(table(DOCUMENT)).where(field("id").eq(id)).fetch().get(0));
+        return createDocumentFrom(DSL.using(connectionProvider, dialect).
+                selectFrom(DOCUMENT).where(DOCUMENT.ID.eq(id)).fetchOne());
     }
 
     @Override
     public void create(Document doc) {
         DSLContext ctx = DSL.using(connectionProvider, dialect);
         try {
-            ctx.insertInto(table(DOCUMENT), field("project_id"),
-                    field("id"), field("path"), field("content"), field("status"),
-                    field("charset"), field("language"), field("content_type"),
-                    field("extraction_date"), field("parent_id"), field("root_id"),
-                    field("extraction_level"), field("content_length"), field("metadata"), field("ner_mask")).
+            ctx.insertInto(DOCUMENT, DOCUMENT.PROJECT_ID,
+                    DOCUMENT.ID, DOCUMENT.PATH, DOCUMENT.CONTENT, DOCUMENT.STATUS,
+                    DOCUMENT.CHARSET, DOCUMENT.LANGUAGE, DOCUMENT.CONTENT_TYPE,
+                    DOCUMENT.EXTRACTION_DATE, DOCUMENT.PARENT_ID, DOCUMENT.ROOT_ID,
+                    DOCUMENT.EXTRACTION_LEVEL, DOCUMENT.CONTENT_LENGTH, DOCUMENT.METADATA, DOCUMENT.NER_MASK).
                     values(doc.getProject().getId(), doc.getId(), doc.getPath().toString(), doc.getContent(), doc.getStatus().code,
                             doc.getContentEncoding().toString(), doc.getLanguage().iso6391Code(), doc.getContentType(),
                             new Timestamp(doc.getExtractionDate().getTime()), doc.getParentDocument(), doc.getRootDocument(),
@@ -89,18 +89,18 @@ public class JooqRepository implements Repository {
     @Override
     public List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        Result<Record> fetch = create.select().from(table(DOCUMENT)).where(
-                condition("(ner_mask & ?) = 0", type.mask)).fetch();
-        return fetch.stream().map(this::createDocumentFrom).collect(toList());
+        return create.selectFrom(DOCUMENT).where(
+                condition("(ner_mask & ?) = 0", type.mask)).
+                fetch().stream().map(this::createDocumentFrom).collect(toList());
     }
 
     @Override
     public boolean star(User user, String documentId) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        Result<Record1<Integer>> existResult = create.selectCount().from(table(DOCUMENT_USER_STAR)).
-                where(field("user_id").equal(user.id), field("doc_id").equal(documentId)).fetch();
+        Result<Record1<Integer>> existResult = create.selectCount().from(DOCUMENT_USER_STAR).
+                where(DOCUMENT_USER_STAR.USER_ID.eq(user.id), DOCUMENT_USER_STAR.DOC_ID.eq(documentId)).fetch();
         if (existResult.get(0).value1() == 0) {
-            return create.insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id")).
+            return create.insertInto(DOCUMENT_USER_STAR, DOCUMENT_USER_STAR.DOC_ID, DOCUMENT_USER_STAR.USER_ID).
                     values(documentId, user.id).execute() > 0;
         } else {
             return false;
@@ -109,15 +109,15 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean unstar(User user, String documentId) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
-                where(field("doc_id").equal(documentId), field("user_id").equal(user.id)).execute() > 0;
+        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_STAR).
+                where(DOCUMENT_USER_STAR.DOC_ID.eq(documentId), DOCUMENT_USER_STAR.USER_ID.equal(user.id)).execute() > 0;
     }
 
     @Override
     public List<Document> getStarredDocuments(User user) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.select().from(table(DOCUMENT_USER_STAR).join(DOCUMENT).on(field(DOCUMENT + ".id").equal(field(DOCUMENT_USER_STAR + ".doc_id")))).
-                where(field("user_id").eq(user.id)).fetch().stream().map(this::createDocumentFrom).collect(toList());
+        return create.selectFrom(DOCUMENT.join(DOCUMENT_USER_STAR).on(DOCUMENT.ID.eq(DOCUMENT_USER_STAR.DOC_ID))).
+                where(DOCUMENT_USER_STAR.USER_ID.eq(user.id)).fetch().stream().map(this::createDocumentFrom).collect(toList());
     }
 
     // ------------- functions that don't need document migration/indexing
@@ -125,34 +125,34 @@ public class JooqRepository implements Repository {
     // this could be removed later
     @Override
     public int star(Project project, User user, List<String> documentIds) {
-        InsertValuesStep3<Record, Object, Object, Object> query = using(connectionProvider, dialect).
-                insertInto(table(DOCUMENT_USER_STAR), field("doc_id"), field("user_id"), field("prj_id"));
+        InsertValuesStep3<DocumentUserStarRecord, String, String, String> query = using(connectionProvider, dialect).
+                insertInto(DOCUMENT_USER_STAR, DOCUMENT_USER_STAR.DOC_ID, DOCUMENT_USER_STAR.USER_ID, DOCUMENT_USER_STAR.PRJ_ID);
         documentIds.forEach(t -> query.values(t, user.id, project.getId()));
         return query.execute();
     }
 
     @Override
     public int unstar(Project project, User user, List<String> documentIds) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_USER_STAR)).
-                where(field("doc_id").in(documentIds),
-                        field("user_id").equal(user.id),
-                        field("prj_id").equal(project.getId())).execute();
+        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_STAR).
+                where(DOCUMENT_USER_STAR.DOC_ID.in(documentIds),
+                        DOCUMENT_USER_STAR.USER_ID.equal(user.id),
+                        DOCUMENT_USER_STAR.PRJ_ID.equal(project.getId())).execute();
     }
 
     @Override
     public List<String> getStarredDocuments(Project project, User user) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.select(field("doc_id")).from(table(DOCUMENT_USER_STAR)).
-                where(field("user_id").eq(user.id)).
-                and(field("prj_id").eq(project.getId())).
-                fetch().getValues("doc_id", String.class);
+        return create.select(DOCUMENT_USER_STAR.DOC_ID).from(DOCUMENT_USER_STAR).
+                where(DOCUMENT_USER_STAR.USER_ID.eq(user.id)).
+                and(DOCUMENT_USER_STAR.PRJ_ID.eq(project.getId())).
+                fetch().getValues(DOCUMENT_USER_STAR.DOC_ID);
     }
 
     @Override
     public boolean tag(Project prj, String documentId, Tag... tags) {
-        InsertValuesStep5<Record, Object, Object, Object, Object, Object> query = using(connectionProvider, dialect).insertInto(
-                        table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"),
-                                        field("creation_date"), field("user_id"));
+        InsertValuesStep5<DocumentTagRecord, String, String, String, Timestamp, String> query = using(connectionProvider, dialect).insertInto(
+                DOCUMENT_TAG, DOCUMENT_TAG.DOC_ID, DOCUMENT_TAG.LABEL, DOCUMENT_TAG.PRJ_ID,
+                DOCUMENT_TAG.CREATION_DATE, DOCUMENT_TAG.USER_ID);
         List<Tag> tagList = asList(tags);
         tagList.forEach(t -> query.values(documentId, t.label, prj.getId(), new Timestamp(t.creationDate.getTime()), t.user.id));
         return query.onConflictDoNothing().execute() > 0;
@@ -160,17 +160,17 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean untag(Project prj, String documentId, Tag... tags) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_TAG)).
-                where(field("doc_id").equal(documentId),
-                        field("label").in(stream(tags).map(t -> t.label).collect(toSet())),
-                        field("prj_id").equal(prj.getId())).execute() > 0;
+        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_TAG).
+                where(DOCUMENT_TAG.DOC_ID.eq(documentId),
+                        DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
+                        DOCUMENT_TAG.PRJ_ID.equal(prj.getId())).execute() > 0;
     }
 
     @Override
     public boolean tag(Project prj, List<String> documentIds, Tag... tags) {
-        InsertValuesStep5<Record, Object, Object, Object, Object, Object> query = using(connectionProvider, dialect).insertInto(
-                table(DOCUMENT_TAG)).columns(field("doc_id"), field("label"), field("prj_id"),
-                field("creation_date"), field("user_id"));
+        InsertValuesStep5<DocumentTagRecord, String, String, String, Timestamp, String> query = using(connectionProvider, dialect).insertInto(
+                        DOCUMENT_TAG, DOCUMENT_TAG.DOC_ID, DOCUMENT_TAG.LABEL, DOCUMENT_TAG.PRJ_ID,
+                        DOCUMENT_TAG.CREATION_DATE, DOCUMENT_TAG.USER_ID);
         List<Tag> tagList = asList(tags);
         documentIds.forEach(d -> tagList.forEach(t -> query.values(d, t.label, prj.getId(), new Timestamp(t.creationDate.getTime()), t.user.id)));
         return query.onConflictDoNothing().execute() > 0;
@@ -178,26 +178,25 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean untag(Project prj, List<String> documentIds, Tag... tags) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(table(DOCUMENT_TAG)).
-                        where(field("doc_id").in(documentIds),
-                                field("label").in(stream(tags).map(t -> t.label).collect(toSet())),
-                                field("prj_id").equal(prj.getId())).execute() > 0;
+        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_TAG).
+                        where(DOCUMENT_TAG.DOC_ID.in(documentIds),
+                                DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
+                                DOCUMENT_TAG.PRJ_ID.equal(prj.getId())).execute() > 0;
     }
 
     @Override
     public List<String> getDocuments(Project project, Tag... tags) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.selectDistinct(field("doc_id")).from(table(DOCUMENT_TAG)).
-                where(field("label").in(stream(tags).map(t -> t.label).collect(toSet()))).
-                and(field("prj_id").equal(project.getId())).
-                fetch().getValues("doc_id", String.class);
+        return create.selectDistinct(DOCUMENT_TAG.DOC_ID).from(DOCUMENT_TAG).
+                where(DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet()))).
+                and(DOCUMENT_TAG.PRJ_ID.eq(project.getId())).
+                fetch().getValues(DOCUMENT_TAG.DOC_ID);
     }
 
     @Override
     public List<Tag> getTags(Project project, String documentId) {
-        return DSL.using(connectionProvider, dialect).select().
-                from(table(DOCUMENT_TAG)).where(field("doc_id").equal(documentId)).
-                and(field("prj_id").equal(project.getId())).
+        return DSL.using(connectionProvider, dialect).selectFrom(DOCUMENT_TAG).
+                where(DOCUMENT_TAG.DOC_ID.eq(documentId)).and(DOCUMENT_TAG.PRJ_ID.eq(project.getId())).
                 stream().map(this::createTagFrom).collect(toList());
     }
 
@@ -205,57 +204,53 @@ public class JooqRepository implements Repository {
     public boolean deleteAll(String projectId) {
        return DSL.using(connectionProvider, dialect).transactionResult(configuration -> {
            DSLContext inner = using(configuration);
-           int deleteTagResult = inner.deleteFrom(table(DOCUMENT_TAG)).where(field("prj_id").equal(projectId)).execute();
-           int deleteStarResult = inner.deleteFrom(table(DOCUMENT_USER_STAR)).where(field("prj_id").equal(projectId)).execute();
+           int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
+           int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
            return deleteStarResult + deleteTagResult > 0;
        });
     }
 
     @Override
     public Project getProject(String projectId) {
-        return createProjectFrom(DSL.using(connectionProvider, dialect).selectFrom(table(PROJECT)).
-                where(field("id").eq(projectId)).fetchOne());
+        return createProjectFrom(DSL.using(connectionProvider, dialect).selectFrom(PROJECT).
+                where(PROJECT.ID.eq(projectId)).fetchOne());
     }
 
     boolean save(Project project) {
-        return DSL.using(connectionProvider, dialect).insertInto(table(PROJECT)).
-                columns(field("id"), field("path"), field("allow_from_mask")).
+        return DSL.using(connectionProvider, dialect).insertInto(PROJECT, PROJECT.ID, PROJECT.PATH, PROJECT.ALLOW_FROM_MASK).
                 values(project.name, project.sourcePath.toString(), project.allowFromMask).execute() > 0;
     }
 
     // ---------------------------
-    private Project createProjectFrom(Record record) {
-        return record == null ? null: new Project(record.get("id", String.class),
-                Paths.get(record.get("path", String.class)),
-                record.get("allow_from_mask", String.class));
+    private Project createProjectFrom(ProjectRecord record) {
+        return record == null ? null: new Project(record.getId(), Paths.get(record.getPath()), record.getAllowFromMask());
     }
 
-    private NamedEntity createFrom(Record record) {
-        return NamedEntity.create(NamedEntity.Category.parse(record.get("category", String.class)),
-                record.get("mention", String.class), record.get("ne_offset", Integer.class),
-                record.get("doc_id", String.class), Pipeline.Type.fromCode(record.get("extractor", Integer.class)),
-                Language.parse(record.get("extractor_language", String.class)));
+    private NamedEntity createFrom(NamedEntityRecord record) {
+        return NamedEntity.create(NamedEntity.Category.parse(record.getCategory()),
+                record.getMention(), record.getNeOffset(),
+                record.getDocId(), Pipeline.Type.fromCode(record.getExtractor()),
+                Language.parse(record.getExtractorLanguage()));
     }
 
     private Document createDocumentFrom(Record result) {
+        DocumentRecord documentRecord = result.into(DOCUMENT);
         Map<String, Object> metadata;
         try {
-            metadata = MAPPER.readValue(result.get("metadata", String.class), HashMap.class);
+            metadata = MAPPER.readValue(documentRecord.getMetadata(), HashMap.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        Set<Pipeline.Type> nerTags = Document.fromNerMask(result.get("ner_mask", Integer.class));
-        return new Document(project(result.get("project_id", String.class)), result.get("id", String.class),
-                Paths.get(result.get("path", String.class)), result.get("content", String.class), parse(result.get("language", String.class)),
-                forName(result.get("charset", String.class)), result.get("content_type", String.class), metadata, fromCode(result.get("status", Integer.class)),
-                nerTags, new Date(result.get("extraction_date", Timestamp.class).getTime()), result.get("parent_id", String.class),
-                result.get("root_id", String.class), result.get("extraction_level", Integer.class),
-                result.get("content_length", Long.class));
+        Set<Pipeline.Type> nerTags = Document.fromNerMask(documentRecord.getNerMask());
+        return new Document(project(documentRecord.getProjectId()), documentRecord.getId(),
+                Paths.get(documentRecord.getPath()), documentRecord.getContent(), parse(documentRecord.getLanguage()),
+                forName(documentRecord.getCharset()), documentRecord.getContentType(), metadata, fromCode(documentRecord.getStatus()),
+                nerTags, new Date(documentRecord.getExtractionDate().getTime()), documentRecord.getParentId(),
+                documentRecord.getRootId(), documentRecord.getExtractionLevel(),
+                documentRecord.getContentLength());
     }
 
-    private Tag createTagFrom(Record record) {
-        return new Tag(record.get("label", String.class),
-                new User(record.get("user_id", String.class)),
-                new Date(record.get("creation_date", Timestamp.class).getTime()));
+    private Tag createTagFrom(DocumentTagRecord record) {
+        return new Tag(record.getLabel(), new User(record.getUserId()), new Date(record.getCreationDate().getTime()));
     }
 }

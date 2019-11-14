@@ -42,7 +42,7 @@ public final class NamedEntity implements Entity {
     private final String documentId;
     @IndexRoot
     private final String rootDocument;
-    private final int offset;
+    private final long offset;
     private final Pipeline.Type extractor;
     private final Language extractorLanguage;
     private final String partsOfSpeech;
@@ -95,7 +95,7 @@ public final class NamedEntity implements Entity {
 
     public static NamedEntity create(Category cat,
                                      String mention,
-                                     int offset,
+                                     long offset,
                                      String doc,
                                      Pipeline.Type extr,
                                      Language extrLang) {
@@ -140,7 +140,7 @@ public final class NamedEntity implements Entity {
     private NamedEntity(
                         @JsonProperty("category") Category category,
                         @JsonProperty("mention") String mention,
-                        @JsonProperty("offset") int offset,
+                        @JsonProperty("offset") long offset,
                         @JsonProperty("documentId") String documentId,
                         @JsonProperty("rootDocument") String rootDocument,
                         @JsonProperty("extractor") Pipeline.Type extractor,
@@ -174,7 +174,7 @@ public final class NamedEntity implements Entity {
     public Category getCategory() { return category; }
     public String getDocumentId() { return documentId; }
     public String getRootDocument() { return rootDocument; }
-    public int getOffset() { return offset; }
+    public long getOffset() { return offset; }
     public Pipeline.Type getExtractor() { return extractor; }
     public Language getExtractorLanguage() { return extractorLanguage; }
     public Boolean isHidden() { return hidden; }

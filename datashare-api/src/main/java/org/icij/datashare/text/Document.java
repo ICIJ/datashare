@@ -28,10 +28,10 @@ import static java.util.stream.Collectors.toSet;
 public class Document implements Entity {
     private static final long serialVersionUID = 5913568429773112L;
     public enum Status {
-        PARSED(0), INDEXED(1), DONE(2);
+        PARSED((short)0), INDEXED((short)1), DONE((short)2);
 
-        public final int code;
-        Status(int code) {
+        public final short code;
+        Status(short code) {
             this.code = code;
         }
 
@@ -52,7 +52,7 @@ public class Document implements Entity {
     private final Path dirname;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private final Date extractionDate;
-    private final int extractionLevel;
+    private final short extractionLevel;
 
     private final String content;
     private final long contentLength;
@@ -74,7 +74,7 @@ public class Document implements Entity {
         this(project, getHash(project, filePath), filePath, content, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength, new HashSet<>());
     }
 
-    public Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Integer extractionLevel, Long contentLength) {
+    public Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
         this(project, id, filePath, content, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>());
     }
 
@@ -109,7 +109,7 @@ public class Document implements Entity {
         this.dirname = path == null ? null: getDirnameFrom(path);
         this.content = ofNullable(content).orElse("");
         this.extractionDate = extractionDate;
-        this.extractionLevel = extractionLevel;
+        this.extractionLevel = (short)extractionLevel;
         this.contentLength = ofNullable(contentLength).orElse(0L);
         this.language = language;
         this.contentType = contentType;
@@ -139,7 +139,7 @@ public class Document implements Entity {
     public Long getContentLength() { return contentLength; }
     public String getContentType() { return contentType; }
     public Language getLanguage() { return language; }
-    public int getExtractionLevel() { return extractionLevel;}
+    public short getExtractionLevel() { return extractionLevel;}
     public String getRootDocument() {return ofNullable(rootDocument).orElse(getId());}
     public boolean isRootDocument() {return getRootDocument().equals(getId());}
     public String getParentDocument() { return parentDocument;}
@@ -162,7 +162,7 @@ public class Document implements Entity {
     }
 
     @JsonIgnore
-    public int getNerMask() { return nerMask(getNerTags());}
+    public short getNerMask() { return nerMask(getNerTags());}
     public Map<String, Object> getMetadata() { return metadata; }
 
     @JsonIgnore
@@ -187,8 +187,8 @@ public class Document implements Entity {
     }
 
     private static Path getDirnameFrom(Path filePath) { return ofNullable(filePath.getParent()).orElse(get(""));}
-    static int nerMask(Set<Pipeline.Type> typeSet) {
-         return typeSet.stream().map(t -> t.mask).reduce(Integer::sum).orElse(0);
+    static short nerMask(Set<Pipeline.Type> typeSet) {
+         return typeSet.stream().map(t -> t.mask).reduce(Integer::sum).orElse(0).shortValue();
     }
     public static Set<Pipeline.Type> fromNerMask(int mask) {
         return mask == 0 ? new HashSet<>():

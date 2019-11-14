@@ -50,8 +50,7 @@ public class DocumentBuilder {
     public Document build() {
         return new Document(project("prj"), id, path, content, FRENCH, Charset.defaultCharset(),
                          mimeType, metadata, Document.Status.INDEXED,
-                        pipelines, new Date(), rootId, rootId,
-                        0, 123L);
+                        pipelines, new Date(), rootId, rootId, (short) 0, 123L);
     }
 
     public DocumentBuilder ofMimeType(String mimeType) {

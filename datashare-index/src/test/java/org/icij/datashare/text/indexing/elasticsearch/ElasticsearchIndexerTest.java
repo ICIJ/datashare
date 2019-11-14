@@ -96,7 +96,7 @@ public class ElasticsearchIndexerTest {
                             FRENCH, Charset.defaultCharset(),
                             "text/plain", new HashMap<>(), Document.Status.INDEXED,
                             new HashSet<>(), new Date(), "id", "id",
-                            1, 123L);
+                (short) 1, 123L);
         indexer.add(TEST_INDEX,parent);
         indexer.add(TEST_INDEX,child);
         NamedEntity ne1 = create(PERSON, "Jane Daffodil", 12, parent.getId(), CORENLP, Language.FRENCH);

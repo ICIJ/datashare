@@ -51,10 +51,10 @@ public class DocumentTest {
 
     @Test
     public void test_ner_mask() {
-        assertThat(nerMask(new HashSet<>())).isEqualTo(0);
-        assertThat(nerMask(set(CORENLP))).isEqualTo(1);
-        assertThat(nerMask(set(CORENLP, GATENLP))).isEqualTo(3);
-        assertThat(nerMask(set(OPENNLP, CORENLP))).isEqualTo(17);
+        assertThat(nerMask(new HashSet<>())).isEqualTo((short) 0);
+        assertThat(nerMask(set(CORENLP))).isEqualTo((short) 1);
+        assertThat(nerMask(set(CORENLP, GATENLP))).isEqualTo((short) 3);
+        assertThat(nerMask(set(OPENNLP, CORENLP))).isEqualTo((short) 17);
     }
 
     @Test
