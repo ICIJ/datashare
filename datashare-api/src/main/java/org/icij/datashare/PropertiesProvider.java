@@ -28,36 +28,36 @@ public class PropertiesProvider {
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
     public static final String CONFIG_FILE_PARAMETER_KEY = "configFile";
     private Logger logger = LoggerFactory.getLogger(getClass());
-    private final Path fileName;
+    private final Path configPath;
     private volatile Properties cachedProperties;
 
     public PropertiesProvider() {this((String) null);}
     public PropertiesProvider(String fileName) {
-        this.fileName = getFilePath(fileName);
+        this.configPath = getFilePath(fileName);
     }
 
     public PropertiesProvider(final Properties properties) {
         this.cachedProperties = properties;
-        fileName = null;
+        configPath = null;
     }
 
     public PropertiesProvider(final Map<String, String> hashMap) {
-        cachedProperties = new Properties();
-        cachedProperties.putAll(hashMap);
-        fileName = null;
+        cachedProperties = fromMap(hashMap);
+        configPath = null;
     }
+
     public Properties getProperties() {
         if (cachedProperties == null) {
             synchronized(this) {
                 if (cachedProperties == null) {
                     Properties localProperties = new Properties();
                     try {
-                        InputStream propertiesStream = new FileInputStream(fileName.toFile());
-                        logger.info("reading properties from {}", fileName);
+                        InputStream propertiesStream = new FileInputStream(configPath.toFile());
+                        logger.info("reading properties from {}", configPath);
                         localProperties.load(propertiesStream);
                         loadEnvVariables(localProperties);
                     } catch (IOException | NullPointerException e) {
-                        logger.warn("no {} file found, using default values", fileName);
+                        logger.warn("no {} file found, using default values", configPath);
                     }
                     cachedProperties = localProperties;
                 }
@@ -104,7 +104,7 @@ public class PropertiesProvider {
     }
 
     public void save() throws IOException {
-        getProperties().store(new FileOutputStream(fileName.toFile()), "Datashare properties");
+        getProperties().store(new FileOutputStream(configPath.toFile()), "Datashare properties");
     }
 
     private Path getFilePath(String fileName) {
