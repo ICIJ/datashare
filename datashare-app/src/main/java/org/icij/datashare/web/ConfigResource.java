@@ -3,16 +3,22 @@ package org.icij.datashare.web;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Patch;
 import net.codestory.http.annotations.Prefix;
+import net.codestory.http.payload.Payload;
 import org.icij.datashare.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 @Prefix("/api")
 public class ConfigResource {
+    Logger logger = LoggerFactory.getLogger(getClass());
     private PropertiesProvider provider;
 
     @Inject
@@ -38,5 +44,13 @@ public class ConfigResource {
         }
         filteredProperties.put("userProjects", projects);
         return filteredProperties;
+    }
+
+    @Patch("/config")
+    public Payload patchConfig(Context context, JsonData data) throws IOException {
+        logger.info("user {} is updating the configuration", context.currentUser().login());
+        provider.mergeWith(data.asProperties());
+        provider.save();
+        return Payload.ok();
     }
 }

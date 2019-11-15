@@ -6,14 +6,24 @@ import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.Properties;
 
+import static java.util.Arrays.asList;
+import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.session.HashMapUser.local;
 import static org.icij.datashare.session.HashMapUser.singleUser;
 
 public class ConfigResourceTest implements FluentRestTest {
+    @Rule public TemporaryFolder folder = new TemporaryFolder();
     private static WebServer server = new WebServer() {
             @Override
             protected Env createEnv() {
@@ -48,5 +58,19 @@ public class ConfigResourceTest implements FluentRestTest {
 
         get("/api/config").withPreemptiveAuthentication("local", "pass").should().respond(200).
                 haveType("application/json").contain("[\"local-datashare\"]");
+    }
+
+    @Test
+    public void test_patch_configuration() throws IOException {
+        File configFile = folder.newFile("file.config");
+        Files.write(configFile.toPath(), asList("foo=doe", "bar=baz"));
+        server.configure(routes -> routes.add(new ConfigResource(new PropertiesProvider(configFile.getAbsolutePath()))).
+                filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
+
+        patch("/api/config", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
+                withPreemptiveAuthentication("local", "pass").should().respond(200);
+
+        Properties properties = new PropertiesProvider(configFile.getAbsolutePath()).getProperties();
+        assertThat(properties).includes(entry("foo", "qux"), entry("bar", "baz"), entry("xyzzy", "fred"));
     }
 }
