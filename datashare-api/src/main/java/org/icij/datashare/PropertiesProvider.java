@@ -5,7 +5,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -16,19 +17,21 @@ import java.util.regex.Pattern;
 import static java.lang.Character.toUpperCase;
 import static java.lang.System.getenv;
 import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 public class PropertiesProvider {
     private static final String PREFIX = "DS_DOCKER_";
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
+    public static final String CONFIG_FILE_PARAMETER_KEY = "configFile";
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final String fileName;
     private volatile Properties cachedProperties;
 
     public PropertiesProvider() {fileName = DEFAULT_DATASHARE_PROPERTIES_FILE_NAME;}
     public PropertiesProvider(String fileName) {
-        this.fileName = fileName;
+        this.fileName = ofNullable(fileName).orElse(DEFAULT_DATASHARE_PROPERTIES_FILE_NAME);
     }
     public PropertiesProvider(final Properties properties) {
         this.cachedProperties = properties;
@@ -40,15 +43,27 @@ public class PropertiesProvider {
         fileName = null;
     }
 
+    public static Properties fromMap(Map<String, String> map) {
+        if (map == null) return null;
+        Properties properties = new Properties();
+        properties.putAll(map);
+        return properties;
+    }
+
     public Properties getProperties() {
         if (cachedProperties == null) {
             synchronized(this) {
                 if (cachedProperties == null) {
                     Properties localProperties = new Properties();
-                    URL propertiesUrl = Thread.currentThread().getContextClassLoader().getResource(fileName);
                     try {
-                        logger.info("reading properties from {}", propertiesUrl);
-                        localProperties.load(propertiesUrl.openStream());
+                        InputStream propertiesStream;
+                        if (Files.isReadable(Paths.get(fileName))) {
+                            propertiesStream = Files.newInputStream(Paths.get(fileName));
+                        } else {
+                            propertiesStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
+                        }
+                        logger.info("reading properties from {}", fileName);
+                        localProperties.load(propertiesStream);
                         loadEnvVariables(localProperties);
                     } catch (IOException | NullPointerException e) {
                         logger.warn("no {} file found, using default values", fileName);
@@ -98,7 +113,7 @@ public class PropertiesProvider {
     }
 
     public void save() throws IOException {
-        Path configFile = Paths.get(get("configFile").orElse("./" + DEFAULT_DATASHARE_PROPERTIES_FILE_NAME));
+        Path configFile = Paths.get(get(CONFIG_FILE_PARAMETER_KEY).orElse("./" + DEFAULT_DATASHARE_PROPERTIES_FILE_NAME));
         getProperties().store(new FileOutputStream(configFile.toFile()), "Datashare properties");
     }
 }

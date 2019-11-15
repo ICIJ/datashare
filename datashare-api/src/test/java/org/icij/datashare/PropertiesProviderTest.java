@@ -6,12 +6,14 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
 import static java.nio.file.Files.readAllLines;
+import static java.util.Arrays.asList;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.fest.assertions.Assertions.assertThat;
@@ -20,8 +22,20 @@ import static org.fest.assertions.MapAssert.entry;
 public class PropertiesProviderTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();
     @Test
-    public void test_read_properties() {
-        assertThat(new PropertiesProvider().getProperties().getProperty("foo")).isEqualTo("bar");
+    public void test_read_properties_first_from_config_file() throws Exception {
+        File configFile = folder.newFile("file.conf");
+        Files.write(configFile.toPath(), asList("foo=doe", "bar=baz"));
+
+        Properties properties = new PropertiesProvider(configFile.getAbsolutePath()).getProperties();
+
+        assertThat(properties)
+                .includes(entry("foo", "doe"), entry("bar", "baz"))
+                .excludes(entry("messageBusAddress", "redis"));
+    }
+
+    @Test
+    public void test_read_properties_from_classpath() {
+        assertThat(new PropertiesProvider((String) null).getProperties().getProperty("foo")).isEqualTo("bar");
     }
 
     @Test

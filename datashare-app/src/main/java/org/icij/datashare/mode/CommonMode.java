@@ -37,17 +37,12 @@ public class CommonMode extends AbstractModule {
     protected final PropertiesProvider propertiesProvider;
 
     protected CommonMode(Properties properties) {
-        propertiesProvider = properties == null ? new PropertiesProvider() : new PropertiesProvider().mergeWith(properties);
+        propertiesProvider = properties == null ? new PropertiesProvider() :
+                new PropertiesProvider(properties.getProperty(PropertiesProvider.CONFIG_FILE_PARAMETER_KEY)).mergeWith(properties);
     }
 
     CommonMode(final Map<String, String> map) {
-        if (map == null) {
-            propertiesProvider = new PropertiesProvider();
-        } else {
-            Properties properties = new Properties();
-            properties.putAll(map);
-            propertiesProvider = new PropertiesProvider().mergeWith(properties);
-        }
+        this(PropertiesProvider.fromMap(map));
     }
 
     public static CommonMode create(final Properties properties) {
