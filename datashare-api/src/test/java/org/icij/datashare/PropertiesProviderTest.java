@@ -116,10 +116,9 @@ public class PropertiesProviderTest {
     public void test_save_configuration_file() throws Exception {
         File configFile = folder.newFile("datashare.properties");
         Properties properties = new Properties();
-        properties.setProperty("configFile", configFile.getAbsolutePath());
         properties.setProperty("foo", "doe");
 
-        new PropertiesProvider(properties).save();
+        new PropertiesProvider(configFile.getAbsolutePath()).mergeWith(properties).save();
 
         assertThat(readAllLines(configFile.toPath())).contains("foo=doe");
     }

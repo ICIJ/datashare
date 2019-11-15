@@ -3,9 +3,11 @@ package org.icij.datashare;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,42 +28,31 @@ public class PropertiesProvider {
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
     public static final String CONFIG_FILE_PARAMETER_KEY = "configFile";
     private Logger logger = LoggerFactory.getLogger(getClass());
-    private final String fileName;
+    private final Path fileName;
     private volatile Properties cachedProperties;
 
-    public PropertiesProvider() {fileName = DEFAULT_DATASHARE_PROPERTIES_FILE_NAME;}
+    public PropertiesProvider() {this((String) null);}
     public PropertiesProvider(String fileName) {
-        this.fileName = ofNullable(fileName).orElse(DEFAULT_DATASHARE_PROPERTIES_FILE_NAME);
+        this.fileName = getFilePath(fileName);
     }
+
     public PropertiesProvider(final Properties properties) {
         this.cachedProperties = properties;
         fileName = null;
     }
+
     public PropertiesProvider(final Map<String, String> hashMap) {
         cachedProperties = new Properties();
         cachedProperties.putAll(hashMap);
         fileName = null;
     }
-
-    public static Properties fromMap(Map<String, String> map) {
-        if (map == null) return null;
-        Properties properties = new Properties();
-        properties.putAll(map);
-        return properties;
-    }
-
     public Properties getProperties() {
         if (cachedProperties == null) {
             synchronized(this) {
                 if (cachedProperties == null) {
                     Properties localProperties = new Properties();
                     try {
-                        InputStream propertiesStream;
-                        if (Files.isReadable(Paths.get(fileName))) {
-                            propertiesStream = Files.newInputStream(Paths.get(fileName));
-                        } else {
-                            propertiesStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
-                        }
+                        InputStream propertiesStream = new FileInputStream(fileName.toFile());
                         logger.info("reading properties from {}", fileName);
                         localProperties.load(propertiesStream);
                         loadEnvVariables(localProperties);
@@ -113,7 +104,24 @@ public class PropertiesProvider {
     }
 
     public void save() throws IOException {
-        Path configFile = Paths.get(get(CONFIG_FILE_PARAMETER_KEY).orElse("./" + DEFAULT_DATASHARE_PROPERTIES_FILE_NAME));
-        getProperties().store(new FileOutputStream(configFile.toFile()), "Datashare properties");
+        getProperties().store(new FileOutputStream(fileName.toFile()), "Datashare properties");
+    }
+
+    private Path getFilePath(String fileName) {
+        String nonNullFilename = ofNullable(fileName).orElse(DEFAULT_DATASHARE_PROPERTIES_FILE_NAME);
+        Path path = Paths.get(nonNullFilename);
+        if (Files.isReadable(path)) {
+            return path;
+        } else {
+            URL url = Thread.currentThread().getContextClassLoader().getResource(nonNullFilename);
+            return url == null ? null: Paths.get(url.getPath());
+        }
+    }
+
+    public static Properties fromMap(Map<String, String> map) {
+        if (map == null) return null;
+        Properties properties = new Properties();
+        properties.putAll(map);
+        return properties;
     }
 }
