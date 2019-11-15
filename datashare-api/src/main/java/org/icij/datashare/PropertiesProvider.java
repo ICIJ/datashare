@@ -3,8 +3,11 @@ package org.icij.datashare;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -18,11 +21,12 @@ import static java.util.stream.Collectors.toMap;
 
 public class PropertiesProvider {
     private static final String PREFIX = "DS_DOCKER_";
+    private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final String fileName;
     private volatile Properties cachedProperties;
 
-    public PropertiesProvider() {fileName = "datashare.properties";}
+    public PropertiesProvider() {fileName = DEFAULT_DATASHARE_PROPERTIES_FILE_NAME;}
     public PropertiesProvider(String fileName) {
         this.fileName = fileName;
     }
@@ -91,5 +95,10 @@ public class PropertiesProvider {
         return getProperties().entrySet().
                 stream().filter(e -> stream(excludedKeyPatterns).noneMatch(s -> Pattern.matches(s, (String)e.getKey()))).
                 collect(toMap(e -> (String)e.getKey(), Map.Entry::getValue));
+    }
+
+    public void save() throws IOException {
+        Path configFile = Paths.get(get("configFile").orElse("./" + DEFAULT_DATASHARE_PROPERTIES_FILE_NAME));
+        getProperties().store(new FileOutputStream(configFile.toFile()), "Datashare properties");
     }
 }

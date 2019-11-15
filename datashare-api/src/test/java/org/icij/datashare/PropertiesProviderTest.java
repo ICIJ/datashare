@@ -1,19 +1,24 @@
 package org.icij.datashare;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import static java.nio.file.Files.readAllLines;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
 public class PropertiesProviderTest {
+    @Rule public TemporaryFolder folder = new TemporaryFolder();
     @Test
     public void test_read_properties() {
         assertThat(new PropertiesProvider().getProperties().getProperty("foo")).isEqualTo("bar");
@@ -91,6 +96,18 @@ public class PropertiesProviderTest {
     public void test_adds_no_ds_env_variables() throws Exception {
         putEnv("MY_VARIABLE", "value");
         assertThat(new PropertiesProvider().getProperties().entrySet().size()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_save_configuration_file() throws Exception {
+        File configFile = folder.newFile("datashare.properties");
+        Properties properties = new Properties();
+        properties.setProperty("configFile", configFile.getAbsolutePath());
+        properties.setProperty("foo", "doe");
+
+        new PropertiesProvider(properties).save();
+
+        assertThat(readAllLines(configFile.toPath())).contains("foo=doe");
     }
 
     /**
