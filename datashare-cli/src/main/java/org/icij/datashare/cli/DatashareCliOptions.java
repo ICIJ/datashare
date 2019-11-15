@@ -52,7 +52,7 @@ public final class DatashareCliOptions {
     static OptionSpec<String> defaultUser(OptionParser parser) {
         return parser.acceptsAll(
                 asList("u", "defaultUserName"),
-                "Default local user")
+                "Default local user name")
                 .withRequiredArg()
                 .ofType( String.class )
                 .defaultsTo(User.local().id);
@@ -70,6 +70,36 @@ public final class DatashareCliOptions {
                         .defaultsTo("no-cors");
     }
 
+    static OptionSpec<String> configFile(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("c", "configFile"), "Property configuration file")
+                        .withRequiredArg()
+                        .ofType(String.class);
+    }
+
+    static OptionSpec<Integer> tcpListenPort(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList("tcpListenPort"), "Port used by the HTTP server")
+                        .withRequiredArg()
+                        .ofType(Integer.class)
+                        .defaultsTo(8080);
+    }
+
+    static OptionSpec<Integer> sessionTtlSeconds(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList("sessionTtlSeconds"), "Time to live for a HTTP session in seconds")
+                        .withRequiredArg()
+                        .ofType(Integer.class)
+                        .defaultsTo(43200);
+    }
+
+    static OptionSpec<String> protectedUriPrefix(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList("protectedUriPrefix"), "Protected URI prefix")
+                        .withRequiredArg()
+                        .ofType(String.class).defaultsTo("/api/");
+    }
+
     static OptionSpecBuilder resume(OptionParser parser) {
         return parser.acceptsAll(asList(RESUME_OPT, "r"), "Resume pending operations");
     }
@@ -77,7 +107,7 @@ public final class DatashareCliOptions {
     static OptionSpec<File> dataDir(OptionParser parser) {
         return parser.acceptsAll(
                 asList(DATA_DIR_OPT, "d"),
-                "Source files directory. WARN this directory must end with \"data\"" )
+                "Document source files directory" )
                 .withRequiredArg()
                 .ofType( File.class )
                 .defaultsTo(new File("/home/datashare/data"));
@@ -177,7 +207,7 @@ public final class DatashareCliOptions {
 
     static OptionSpec<String> clusterName(OptionParser parser) {
         return parser.acceptsAll(
-                asList("clusterName", "c"), "Cluster name")
+                singletonList("clusterName"), "Cluster name")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("datashare");

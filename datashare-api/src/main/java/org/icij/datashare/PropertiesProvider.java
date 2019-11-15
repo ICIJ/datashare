@@ -47,7 +47,7 @@ public class PropertiesProvider {
                         localProperties.load(propertiesUrl.openStream());
                         loadEnvVariables(localProperties);
                     } catch (IOException | NullPointerException e) {
-                        logger.warn("no {} found, using empty properties", fileName);
+                        logger.warn("no {} file found, using default values", fileName);
                     }
                     cachedProperties = localProperties;
                 }
