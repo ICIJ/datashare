@@ -49,10 +49,10 @@ public class ConfigResource {
     /**
      * update the datashare configuration with provided body. It will save the configuration on disk.
      *
-     * @return 200 
+     * @return 200
      *
      * Example :
-     * $(curl -XPATCH -H 'Content-Type: application/json' localhost:8080/api/config -d '{"data": {"foo": "bar"}}')
+     * $(curl -i -XPATCH -H 'Content-Type: application/json' localhost:8080/api/config -d '{"data":{"foo":"bar"}}')
      */
     @Patch("/config")
     public Payload patchConfig(Context context, JsonData data) throws IOException {
