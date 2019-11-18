@@ -87,13 +87,18 @@ public class PropertiesProvider {
     }
 
     public PropertiesProvider mergeWith(final Properties properties) {
+        putAllIfIsAbsent(getProperties(), properties);
+        return this;
+    }
+
+    public PropertiesProvider overrideWith(final Properties properties) {
         getProperties().putAll(properties);
         return this;
     }
 
     public Properties createMerged(Properties properties) {
         Properties mergedProperties = (Properties) getProperties().clone();
-        mergedProperties.putAll(properties);
+        putAllIfIsAbsent(mergedProperties, properties);
         return mergedProperties;
     }
 
@@ -107,6 +112,19 @@ public class PropertiesProvider {
         getProperties().store(new FileOutputStream(configPath.toFile()), "Datashare properties");
     }
 
+    public static Properties fromMap(Map<String, String> map) {
+        if (map == null) return null;
+        Properties properties = new Properties();
+        properties.putAll(map);
+        return properties;
+    }
+
+    private void putAllIfIsAbsent(Properties dest, Properties propertiesToMerge) {
+        for (Map.Entry entry: propertiesToMerge.entrySet()) {
+            dest.putIfAbsent(entry.getKey(), entry.getValue());
+        }
+    }
+
     private Path getFilePath(String fileName) {
         String nonNullFilename = ofNullable(fileName).orElse(DEFAULT_DATASHARE_PROPERTIES_FILE_NAME);
         Path path = Paths.get(nonNullFilename);
@@ -116,12 +134,5 @@ public class PropertiesProvider {
             URL url = Thread.currentThread().getContextClassLoader().getResource(nonNullFilename);
             return url == null ? null: Paths.get(url.getPath());
         }
-    }
-
-    public static Properties fromMap(Map<String, String> map) {
-        if (map == null) return null;
-        Properties properties = new Properties();
-        properties.putAll(map);
-        return properties;
     }
 }

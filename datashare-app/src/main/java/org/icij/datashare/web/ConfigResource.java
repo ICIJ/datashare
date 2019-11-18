@@ -57,7 +57,7 @@ public class ConfigResource {
     @Patch("/config")
     public Payload patchConfig(Context context, JsonData data) throws IOException {
         logger.info("user {} is updating the configuration", context.currentUser().login());
-        provider.mergeWith(data.asProperties());
+        provider.overrideWith(data.asProperties());
         provider.save();
         return Payload.ok();
     }

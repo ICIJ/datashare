@@ -56,6 +56,16 @@ public class PropertiesProviderTest {
         properties.setProperty("bar", "qux");
 
         Properties merged = new PropertiesProvider().mergeWith(properties).getProperties();
+        assertThat(merged).includes(entry("foo", "bar"), entry("messageBusAddress", "redis"), entry("bar", "qux"));
+    }
+
+    @Test
+    public void test_override_properties_in_provider() {
+        Properties properties = new Properties();
+        properties.setProperty("foo", "baz");
+        properties.setProperty("bar", "qux");
+
+        Properties merged = new PropertiesProvider().overrideWith(properties).getProperties();
         assertThat(merged).includes(entry("foo", "baz"), entry("messageBusAddress", "redis"), entry("bar", "qux"));
     }
 
@@ -68,7 +78,7 @@ public class PropertiesProviderTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider();
         Properties merged = propertiesProvider.createMerged(properties);
 
-        assertThat(merged).includes(entry("foo", "baz"), entry("messageBusAddress", "redis"), entry("bar", "qux"));
+        assertThat(merged).includes(entry("foo", "bar"), entry("messageBusAddress", "redis"), entry("bar", "qux"));
         assertThat(propertiesProvider.getProperties()).excludes(entry("foo", "baz"), entry("bar", "qux"));
     }
 

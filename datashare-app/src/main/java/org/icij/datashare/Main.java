@@ -13,7 +13,6 @@ public class Main {
             System.exit(0);
         }
         LOGGER.info("Running datashare " + (cli.isWebServer() ? "web server" : ""));
-        LOGGER.info("with properties: " + cli.properties);
 
         if (cli.isWebServer()) {
             WebApp.start(cli.properties);
