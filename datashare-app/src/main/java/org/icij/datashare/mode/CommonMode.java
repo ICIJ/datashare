@@ -25,7 +25,6 @@ import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.datashare.web.ConfigResource;
 import org.icij.datashare.web.RootResource;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Properties;
@@ -40,7 +39,6 @@ public class CommonMode extends AbstractModule {
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
                 new PropertiesProvider(properties.getProperty(PropertiesProvider.CONFIG_FILE_PARAMETER_KEY)).mergeWith(properties);
-        LoggerFactory.getLogger(getClass()).info("properties set to {}", propertiesProvider.getProperties());
     }
 
     CommonMode(final Map<String, String> map) {

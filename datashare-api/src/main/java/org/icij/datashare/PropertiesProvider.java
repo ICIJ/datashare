@@ -60,6 +60,7 @@ public class PropertiesProvider {
                         logger.warn("no {} file found, using default values", configPath);
                     }
                     cachedProperties = localProperties;
+                    logger.info("properties set to {}", cachedProperties);
                 }
             }
         }
@@ -88,10 +89,12 @@ public class PropertiesProvider {
 
     public PropertiesProvider mergeWith(final Properties properties) {
         putAllIfIsAbsent(getProperties(), properties);
+        logger.info("properties merged to {}", cachedProperties);
         return this;
     }
 
     public PropertiesProvider overrideWith(final Properties properties) {
+        logger.info("overriding properties with {}", properties);
         getProperties().putAll(properties);
         return this;
     }
