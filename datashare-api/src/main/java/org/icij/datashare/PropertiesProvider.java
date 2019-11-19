@@ -8,7 +8,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -19,7 +18,6 @@ import java.util.regex.Pattern;
 import static java.lang.Character.toUpperCase;
 import static java.lang.System.getenv;
 import static java.util.Arrays.stream;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
@@ -89,7 +87,7 @@ public class PropertiesProvider {
 
     public PropertiesProvider mergeWith(final Properties properties) {
         putAllIfIsAbsent(getProperties(), properties);
-        logger.info("properties merged to {}", cachedProperties);
+        logger.info("merged properties (without override) with {}", properties);
         return this;
     }
 
@@ -112,6 +110,7 @@ public class PropertiesProvider {
     }
 
     public void save() throws IOException {
+        logger.info("writing properties to file {}", configPath);
         getProperties().store(new FileOutputStream(configPath.toFile()), "Datashare properties");
     }
 
@@ -129,13 +128,32 @@ public class PropertiesProvider {
     }
 
     private Path getFilePath(String fileName) {
-        String nonNullFilename = ofNullable(fileName).orElse(DEFAULT_DATASHARE_PROPERTIES_FILE_NAME);
-        Path path = Paths.get(nonNullFilename);
-        if (Files.isReadable(path)) {
-            return path;
+        Path path;
+        if (fileName == null) {
+            URL url = Thread.currentThread().getContextClassLoader().getResource(DEFAULT_DATASHARE_PROPERTIES_FILE_NAME);
+            if (url == null) return null;
+            path = Paths.get(url.getPath());
         } else {
-            URL url = Thread.currentThread().getContextClassLoader().getResource(nonNullFilename);
-            return url == null ? null: Paths.get(url.getPath());
+            path = Paths.get(fileName);
+        }
+        return isFileReadable(path) ? path : null;
+    }
+
+    boolean isFileReadable(final Path filePath) {
+        if (filePath.toFile().exists()) {
+            if (!filePath.toFile().canWrite()) {
+                logger.warn("{} is not writable. The config file won't be able to be saved", filePath);
+            }
+            return true;
+        } else {
+            try {
+                filePath.toFile().createNewFile();
+                filePath.toFile().delete();
+                return true;
+            } catch (IOException e) {
+                logger.warn("{} is not writable. The config file won't be able to be saved", filePath);
+                return false;
+            }
         }
     }
 }

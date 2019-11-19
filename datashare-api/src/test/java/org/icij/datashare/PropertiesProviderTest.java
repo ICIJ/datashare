@@ -7,6 +7,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -131,6 +132,25 @@ public class PropertiesProviderTest {
         new PropertiesProvider(configFile.getAbsolutePath()).mergeWith(properties).save();
 
         assertThat(readAllLines(configFile.toPath())).contains("foo=doe");
+    }
+
+    @Test
+    public void test_save_configuration_file_with_no_property_file() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("foo", "doe");
+        Path givenPath = folder.getRoot().toPath().resolve("datashare.properties");
+
+        new PropertiesProvider(givenPath.toString()).mergeWith(properties).save();
+
+        assertThat(readAllLines(givenPath)).contains("foo=doe");
+    }
+
+    @Test
+    public void test_can_write_file_do_not_erase_file() throws Exception {
+        File configFile = folder.newFile("datashare.properties");
+
+        assertThat(new PropertiesProvider(configFile.getAbsolutePath()).isFileReadable(configFile.toPath())).isTrue();
+        assertThat(configFile).exists();
     }
 
     /**
