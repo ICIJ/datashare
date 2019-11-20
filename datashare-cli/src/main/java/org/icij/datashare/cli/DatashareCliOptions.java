@@ -97,7 +97,8 @@ public final class DatashareCliOptions {
         return parser.acceptsAll(
                 singletonList("protectedUriPrefix"), "Protected URI prefix")
                         .withRequiredArg()
-                        .ofType(String.class).defaultsTo("/api/");
+                        .ofType(String.class)
+                        .defaultsTo("/api/");
     }
 
     static OptionSpecBuilder resume(OptionParser parser) {
