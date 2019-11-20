@@ -265,7 +265,9 @@ public class ElasticsearchIndexerTest {
         assertThat(hasLuceneOperators("a | b")).isFalse();
         assertThat(hasLuceneOperators("*a*")).isFalse();
         assertThat(hasLuceneOperators("?a?")).isFalse();
+        assertThat(hasLuceneOperators("a \\\"b c\\\"")).isFalse();
 
+        assertThat(hasLuceneOperators("a \"b c\"")).isTrue();
         assertThat(hasLuceneOperators("a && b")).isTrue();
         assertThat(hasLuceneOperators("a || b")).isTrue();
         assertThat(hasLuceneOperators("a AND b")).isTrue();
