@@ -40,6 +40,7 @@ import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.NamedEntity.create;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer.hasLuceneOperators;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 
 public class ElasticsearchIndexerTest {
@@ -251,6 +252,29 @@ public class ElasticsearchIndexerTest {
         assertThat(actualDoc.getContentType()).isEqualTo("application/pdf");
         assertThat(actualDoc.getId()).isEqualTo(doc.getId());
         assertThat(actualDoc.getContent()).isEmpty();
+    }
+
+    @Test
+    public void test_query_with_lucene_chars() throws Exception {
+        assertThat(hasLuceneOperators("a   b")).isFalse();
+        assertThat(hasLuceneOperators(" a b  ")).isFalse();
+        assertThat(hasLuceneOperators("+a +b")).isFalse();
+        assertThat(hasLuceneOperators("-a -b")).isFalse();
+        assertThat(hasLuceneOperators("a/b")).isFalse();
+        assertThat(hasLuceneOperators("a & b")).isFalse();
+        assertThat(hasLuceneOperators("a | b")).isFalse();
+        assertThat(hasLuceneOperators("*a*")).isFalse();
+        assertThat(hasLuceneOperators("?a?")).isFalse();
+
+        assertThat(hasLuceneOperators("a && b")).isTrue();
+        assertThat(hasLuceneOperators("a || b")).isTrue();
+        assertThat(hasLuceneOperators("a AND b")).isTrue();
+        assertThat(hasLuceneOperators("a OR b")).isTrue();
+        assertThat(hasLuceneOperators("a NOT b")).isTrue();
+        assertThat(hasLuceneOperators("a^")).isTrue();
+        assertThat(hasLuceneOperators("a^2")).isTrue();
+        assertThat(hasLuceneOperators("a~")).isTrue();
+        assertThat(hasLuceneOperators("a~2")).isTrue();
     }
 
     @Test

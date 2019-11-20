@@ -1,11 +1,12 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import com.google.inject.Inject;
+import me.xuender.unidecode.Unidecode;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.search.Query;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -305,6 +306,23 @@ public class ElasticsearchIndexer implements Indexer {
         return this;
     }
 
+    static boolean hasLuceneOperators(String query) throws ParseException {
+        String sanitizedQuery = query.
+                replaceAll("/", " ").
+                replaceAll("(?<!&)&(?!&)", " ").
+                replaceAll("(?<!\\|)\\|(?!\\|)", " ").
+                replaceAll("\\^(?!\\d)", "\\^1").
+                replaceAll("~\\d+", "~");
+        org.apache.lucene.queryparser.classic.QueryParser parser =
+                            new org.apache.lucene.queryparser.classic.QueryParser("", new StandardAnalyzer(new CharArraySet(0, false)));
+        parser.setAllowLeadingWildcard(true);
+        return ! normalize(sanitizedQuery).equalsIgnoreCase(parser.parse(sanitizedQuery).toString());
+    }
+
+    private static String normalize(String unicoded) {
+        return Unidecode.decode(unicoded).trim().replaceAll("(\\s+)", " ").toLowerCase();
+    }
+
     static class ElasticsearchSearcher implements Searcher {
         static final TimeValue KEEP_ALIVE = new TimeValue(60000);
         private final BoolQueryBuilder boolQuery;
@@ -402,19 +420,16 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Searcher with(String query, int fuzziness, boolean phraseMatches) {
-            org.apache.lucene.queryparser.classic.QueryParser parser =
-                    new org.apache.lucene.queryparser.classic.QueryParser("", new StandardAnalyzer(new CharArraySet(0, false)));
             String queryString = query;
             try {
-                Query luceneQuery = parser.parse(query);
-                if (query.toLowerCase().equals(luceneQuery.toString()) ) {
+                if (!hasLuceneOperators(query)) {
                     if (phraseMatches) {
                         queryString = "\"" + query + "\"" + (fuzziness == 0 ? "": "~" + fuzziness);
                     } else if (fuzziness > 0) {
                         queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
                     }
                 } else if (fuzziness != 0 || phraseMatches) {
-                    LOGGER.info("detected boolean operators in \"{}\", fuzziness and phrase match won't be applied", query);
+                    LOGGER.info("detected lucene operators in \"{}\", fuzziness and phrase match won't be applied", query);
                 }
             } catch (org.apache.lucene.queryparser.classic.ParseException e) {
                 LOGGER.warn("cannot parse query. Sending query as string query", e);
