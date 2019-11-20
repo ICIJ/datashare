@@ -263,4 +263,10 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(String.class);
     }
+    static OptionSpec<String> oauthCallbackPath(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("oauthCallbackPath"), "OAuth2 callback path (in datashare)")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
 }
