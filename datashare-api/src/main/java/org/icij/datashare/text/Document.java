@@ -49,6 +49,7 @@ public class Document implements Entity {
     private final String id;
     @JsonDeserialize(using = PathDeserializer.class)
     private final Path path;
+    @JsonDeserialize(using = PathDeserializer.class)
     private final Path dirname;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private final Date extractionDate;
