@@ -7,6 +7,7 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -59,6 +60,7 @@ import java.util.stream.StreamSupport;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.*;
 import static org.icij.datashare.json.JsonObjectMapper.*;
@@ -307,22 +309,32 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     static boolean hasLuceneOperators(String query) throws ParseException {
-        if (!query.matches("([^\"]|\\\\\")*")) {
-            return true; // if there are non escaped double quotes
-        }
         String sanitizedQueryForLucene = query.
-                replaceAll("/", " ").
                 replaceAll("(?<!&)&(?!&)", " ").
                 replaceAll("(?<!\\|)\\|(?!\\|)", " ").
                 replaceAll("\\^(?!\\d)", "\\^1").
-                replaceAll("~\\d+", "~").
-                replaceAll("\\\\\"", " ");
+                replaceAll(" - ", " ").
+                replaceAll(" \\+ ", " ").
+                replaceAll("\\\\.", " ");
         org.apache.lucene.queryparser.classic.QueryParser parser =
-                            new org.apache.lucene.queryparser.classic.QueryParser("", new StandardAnalyzer(new CharArraySet(0, false)));
+                new org.apache.lucene.queryparser.classic.QueryParser("",
+                        new StandardAnalyzer(new CharArraySet(0, false)));
         parser.setAllowLeadingWildcard(true);
-        return ! normalize(sanitizedQueryForLucene).equalsIgnoreCase(parser.parse(sanitizedQueryForLucene).toString());
+
+        Query q = parser.parse(sanitizedQueryForLucene);
+        return hasOperator(q) || !normalize(sanitizedQueryForLucene).equals(q.toString());
     }
 
+    private static boolean hasOperator(Query q) {
+        if (q instanceof TermQuery) {
+            return ! "".equals(((TermQuery)q).getTerm().field());
+        } else if (!(q instanceof BooleanQuery)) {
+            return true;
+        }
+        return ((BooleanQuery)q).clauses().stream().anyMatch(b -> b.getOccur() != SHOULD || hasOperator(b.getQuery()));
+    }
+
+    @NotNull
     private static String normalize(String unicoded) {
         return Unidecode.decode(unicoded).trim().replaceAll("(\\s+)", " ").toLowerCase();
     }

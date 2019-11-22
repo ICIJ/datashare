@@ -188,7 +188,7 @@ PARSER_END(QueryParser)
 | <#_QUOTED_CHAR:     ( ~[ "\"", "\\" ] | <_ESCAPED_CHAR> ) >
 }
 
-<DEFAULT> SKIP : {
+<DEFAULT, Range> SKIP : {
   < <_WHITESPACE>>
 }
 
@@ -210,10 +210,20 @@ PARSER_END(QueryParser)
 | <PREFIXTERM:    ("*") | ( <_TERM_START_CHAR> (<_TERM_CHAR>)* "*" ) >
 | <WILDTERM:      (<_TERM_START_CHAR> | [ "*", "?" ]) (<_TERM_CHAR> | ( [ "*", "?" ] ))* >
 | <REGEXPTERM:    "/" (~[ "/" ] | "\\/" )* "/" >
+| <RANGEIN_START: "[" > : Range
+| <RANGEEX_START: "{" > : Range
 }
 
 <Boost> TOKEN : {
   <NUMBER: (<_NUM_CHAR>)+ ( "." (<_NUM_CHAR>)+ )? > : DEFAULT
+}
+
+<Range> TOKEN : {
+  <RANGE_TO:     "TO">
+| <RANGEIN_END:  "]"> : DEFAULT
+| <RANGEEX_END:  "}"> : DEFAULT
+| <RANGE_QUOTED: "\"" (~["\""] | "\\\"")+ "\"">
+| <RANGE_GOOP:   (~[ " ", "]", "}" ])+ >
 }
 
 // *   Query  ::= ( Clause )*
@@ -309,6 +319,7 @@ Query Term(String field) : {
   boolean wildcard = false;
   boolean fuzzy = false;
   boolean regexp = false;
+  boolean startInc=false;
   boolean endInc=false;
   Query q;
 }
@@ -328,6 +339,28 @@ Query Term(String field) : {
       | fuzzySlop=<FUZZY_SLOP> { fuzzy=true; } [ <CARAT> boost=<NUMBER> ]
     ]
     { q = handleBareTokenQuery(field, term, fuzzySlop, prefix, wildcard, fuzzy, regexp); }
+
+  | ( <RANGEIN_START> { startInc = true; } | <RANGEEX_START> )
+    ( goop1=<RANGE_GOOP> | goop1=<RANGE_QUOTED> | goop1=<RANGE_TO> )
+    ( <RANGE_TO> )
+    ( goop2=<RANGE_GOOP> | goop2=<RANGE_QUOTED> | goop2=<RANGE_TO> )
+    ( <RANGEIN_END> { endInc = true; } | <RANGEEX_END> )
+    [ <CARAT> boost=<NUMBER> ]
+    {
+      boolean startOpen=false;
+      boolean endOpen=false;
+      if (goop1.kind == RANGE_QUOTED) {
+        goop1.image = goop1.image.substring(1, goop1.image.length()-1);
+      } else if ("*".equals(goop1.image)) {
+        startOpen=true;
+      }
+      if (goop2.kind == RANGE_QUOTED) {
+        goop2.image = goop2.image.substring(1, goop2.image.length()-1);
+      } else if ("*".equals(goop2.image)) {
+        endOpen=true;
+      }
+      q = getRangeQuery(field, startOpen ? null : discardEscapeChar(goop1.image), endOpen ? null : discardEscapeChar(goop2.image), startInc, endInc);
+    }
 
   | term=<QUOTED>
     [

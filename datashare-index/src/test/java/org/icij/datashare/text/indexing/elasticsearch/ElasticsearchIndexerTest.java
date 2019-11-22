@@ -255,18 +255,24 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_query_with_lucene_chars() throws Exception {
+    public void test_query_with_lucene_reserved_chars() throws Exception {
         assertThat(hasLuceneOperators("a   b")).isFalse();
         assertThat(hasLuceneOperators(" a b  ")).isFalse();
-        assertThat(hasLuceneOperators("+a +b")).isFalse();
-        assertThat(hasLuceneOperators("-a -b")).isFalse();
-        assertThat(hasLuceneOperators("a/b")).isFalse();
+        assertThat(hasLuceneOperators("a\\/b")).isFalse();
         assertThat(hasLuceneOperators("a & b")).isFalse();
+        assertThat(hasLuceneOperators("a + b")).isFalse();
+        assertThat(hasLuceneOperators("a - b")).isFalse();
         assertThat(hasLuceneOperators("a | b")).isFalse();
-        assertThat(hasLuceneOperators("*a*")).isFalse();
-        assertThat(hasLuceneOperators("?a?")).isFalse();
         assertThat(hasLuceneOperators("a \\\"b c\\\"")).isFalse();
 
+        assertThat(hasLuceneOperators("a /b/")).isTrue();
+        assertThat(hasLuceneOperators("f:a")).isTrue();
+        assertThat(hasLuceneOperators("a f:b")).isTrue();
+        assertThat(hasLuceneOperators("n:[1 TO 5]")).isTrue();
+        assertThat(hasLuceneOperators("n:>10")).isTrue();
+        assertThat(hasLuceneOperators("*a*")).isTrue();
+        assertThat(hasLuceneOperators("?a?")).isTrue();
+        assertThat(hasLuceneOperators("+a -b")).isTrue();
         assertThat(hasLuceneOperators("a \"b c\"")).isTrue();
         assertThat(hasLuceneOperators("a && b")).isTrue();
         assertThat(hasLuceneOperators("a || b")).isTrue();
