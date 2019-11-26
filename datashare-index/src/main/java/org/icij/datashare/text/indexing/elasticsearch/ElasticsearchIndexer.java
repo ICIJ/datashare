@@ -1,13 +1,14 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import com.google.inject.Inject;
-import me.xuender.unidecode.Unidecode;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -325,11 +326,6 @@ public class ElasticsearchIndexer implements Indexer {
             return true;
         }
         return ((BooleanQuery)q).clauses().stream().anyMatch(b -> b.getOccur() != SHOULD || hasOperator(b.getQuery()));
-    }
-
-    @NotNull
-    private static String normalize(String unicoded) {
-        return Unidecode.decode(unicoded).trim().replaceAll("(\\s+)", " ").toLowerCase();
     }
 
     static class ElasticsearchSearcher implements Searcher {
