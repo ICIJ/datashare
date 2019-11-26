@@ -309,20 +309,13 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     static boolean hasLuceneOperators(String query) throws ParseException {
-        String sanitizedQueryForLucene = query.
-                replaceAll("(?<!&)&(?!&)", " ").
-                replaceAll("(?<!\\|)\\|(?!\\|)", " ").
-                replaceAll("\\^(?!\\d)", "\\^1").
-                replaceAll(" - ", " ").
-                replaceAll(" \\+ ", " ").
-                replaceAll("\\\\.", " ");
+        String sanitizedQueryForLucene = query.replaceAll("\\^(?!\\d)", "\\^1");
         org.apache.lucene.queryparser.classic.QueryParser parser =
                 new org.apache.lucene.queryparser.classic.QueryParser("",
                         new StandardAnalyzer(new CharArraySet(0, false)));
         parser.setAllowLeadingWildcard(true);
 
-        Query q = parser.parse(sanitizedQueryForLucene);
-        return hasOperator(q) || !normalize(sanitizedQueryForLucene).equals(q.toString());
+        return hasOperator(parser.parse(sanitizedQueryForLucene));
     }
 
     private static boolean hasOperator(Query q) {

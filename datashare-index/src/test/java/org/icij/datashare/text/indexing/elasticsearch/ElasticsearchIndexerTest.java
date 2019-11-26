@@ -264,6 +264,9 @@ public class ElasticsearchIndexerTest {
         assertThat(hasLuceneOperators("a - b")).isFalse();
         assertThat(hasLuceneOperators("a | b")).isFalse();
         assertThat(hasLuceneOperators("a \\\"b c\\\"")).isFalse();
+        assertThat(hasLuceneOperators("a b, c. de f.g")).isFalse();
+        assertThat(hasLuceneOperators("a || b")).isFalse();
+        assertThat(hasLuceneOperators("a OR b")).isFalse();
 
         assertThat(hasLuceneOperators("a /b/")).isTrue();
         assertThat(hasLuceneOperators("f:a")).isTrue();
@@ -275,9 +278,8 @@ public class ElasticsearchIndexerTest {
         assertThat(hasLuceneOperators("+a -b")).isTrue();
         assertThat(hasLuceneOperators("a \"b c\"")).isTrue();
         assertThat(hasLuceneOperators("a && b")).isTrue();
-        assertThat(hasLuceneOperators("a || b")).isTrue();
+        assertThat(hasLuceneOperators("\"a || b\"")).isTrue();
         assertThat(hasLuceneOperators("a AND b")).isTrue();
-        assertThat(hasLuceneOperators("a OR b")).isTrue();
         assertThat(hasLuceneOperators("a NOT b")).isTrue();
         assertThat(hasLuceneOperators("a^")).isTrue();
         assertThat(hasLuceneOperators("a^2")).isTrue();
