@@ -1,12 +1,12 @@
 package org.icij.datashare;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.LinkedHashSet;
 
 import static java.util.Arrays.asList;
 
 public class CollectionUtils {
-    public static <T> SortedSet<T> asSet(T... elements) {
-        return new TreeSet<>(asList(elements));
+    @SafeVarargs
+    public static <T> LinkedHashSet<T> asSet(T... elements) {
+        return new LinkedHashSet<>(asList(elements));
     }
 }

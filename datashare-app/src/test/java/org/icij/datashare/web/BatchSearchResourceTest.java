@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -29,7 +30,8 @@ import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.Project.project;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -150,6 +152,11 @@ public class BatchSearchResourceTest implements FluentRestTest {
         assertThat(argument.getValue().phraseMatches).isTrue();
         assertThat(argument.getValue().user).isEqualTo(User.local());
         assertThat(argument.getValue().description).isEqualTo("search description");
+        Iterator<String> iterator = argument.getValue().queries.keySet().iterator();
+        assertThat(iterator.next()).isEqualTo("query one");
+        assertThat(iterator.next()).isEqualTo("query two");
+        assertThat(iterator.next()).isEqualTo("query three");
+        assertThat(iterator.hasNext()).isFalse();
     }
 
 

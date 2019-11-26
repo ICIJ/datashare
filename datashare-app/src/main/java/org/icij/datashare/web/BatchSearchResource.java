@@ -17,9 +17,9 @@ import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.SortedSet;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.*;
@@ -269,7 +269,7 @@ public class BatchSearchResource {
     }
 
     @NotNull
-    private SortedSet<String> getQueries(String csv) {
+    private LinkedHashSet<String> getQueries(String csv) {
         return asSet(stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).toArray(String[]::new));
     }
 

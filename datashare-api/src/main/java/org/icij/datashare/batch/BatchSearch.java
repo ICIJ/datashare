@@ -32,32 +32,32 @@ public class BatchSearch {
     public final String errorMessage;
 
     // batch search creation
-    public BatchSearch(final Project project, final String name, final String description, final SortedSet<String> queries, User user) {
+    public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user) {
         this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user,
                 0, false, null, null, 0,false, null);
     }
-    public BatchSearch(final Project project, final String name, final String description, final SortedSet<String> queries, User user, boolean published) {
+    public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published) {
         this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, null, null, 0,false, null);
     }
-    public BatchSearch(final Project project, final String name, final String description, final SortedSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness) {
+    public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness) {
         this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,false, null);
     }
 
-    public BatchSearch(final Project project, final String name, final String description, final SortedSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness,boolean phraseMatches) {
+    public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness,boolean phraseMatches) {
         this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,phraseMatches, null);
     }
 
-    public BatchSearch(final Project project, final String name, final String description, final SortedSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths,boolean phraseMatches) {
+    public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths,boolean phraseMatches) {
         this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, fileTypes, paths, 0,phraseMatches, null);
     }
 
-    public BatchSearch(String uuid, Project project, String name, String description, SortedSet<String> queries, Date date, State state, User user) {
+    public BatchSearch(String uuid, Project project, String name, String description, LinkedHashSet<String> queries, Date date, State state, User user) {
         this(uuid, project, name, description, toLinkedHashMap(queries), date, state, user,
                 0, false, null, null, 0,false, null);
     }
 
     // for tests
-    public BatchSearch(final Project project, final String name, final String description, final SortedSet<String> queries, Date date) {
+    public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, Date date) {
         this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), date, State.QUEUED, User.local(),
                 0, false, null, null, 0,false, null);
     }
@@ -88,7 +88,7 @@ public class BatchSearch {
     public List<String> getQueryList() {return new ArrayList<>(queries.keySet());}
 
     @NotNull
-    private static LinkedHashMap<String, Integer> toLinkedHashMap(SortedSet<String> queries) {
+    private static LinkedHashMap<String, Integer> toLinkedHashMap(LinkedHashSet<String> queries) {
         return queries.stream().collect(toMap(identity(), i -> 0,
                 (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); },
                 LinkedHashMap::new));
