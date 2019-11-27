@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Patch;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.payload.Payload;
@@ -15,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+
+import static net.codestory.http.payload.Payload.ok;
 
 @Prefix("/api")
 public class ConfigResource {
@@ -44,6 +47,17 @@ public class ConfigResource {
         }
         filteredProperties.put("userProjects", projects);
         return filteredProperties;
+    }
+
+    /**
+     * Preflight for config.
+     *
+     * @param context
+     * @return 200 with PATCH
+     */
+    @Options("/config")
+    public Payload patchConfigPreflight(final Context context) {
+        return ok().withAllowMethods("OPTION", "PATCH");
     }
 
     /**
