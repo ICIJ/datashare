@@ -111,6 +111,9 @@ public class PropertiesProvider {
 
     public void save() throws IOException {
         logger.info("writing properties to file {}", configPath);
+        if (configPath == null) {
+            throw new ConfigurationNotFound();
+        }
         getProperties().store(new FileOutputStream(configPath.toFile()), "Datashare properties");
     }
 
@@ -155,5 +158,9 @@ public class PropertiesProvider {
                 return false;
             }
         }
+    }
+
+    public static class ConfigurationNotFound extends RuntimeException {
+        ConfigurationNotFound() { super("cannot find configuration file");}
     }
 }

@@ -73,4 +73,13 @@ public class ConfigResourceTest implements FluentRestTest {
         Properties properties = new PropertiesProvider(configFile.getAbsolutePath()).getProperties();
         assertThat(properties).includes(entry("foo", "qux"), entry("bar", "baz"), entry("xyzzy", "fred"));
     }
+
+    @Test
+    public void test_patch_configuration_with_no_config_file() {
+        server.configure(routes -> routes.add(new ConfigResource(new PropertiesProvider("/unwritable.conf"))).
+                filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
+
+        patch("/api/config", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
+                withPreemptiveAuthentication("local", "pass").should().respond(404);
+    }
 }

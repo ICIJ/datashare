@@ -49,7 +49,9 @@ public class ConfigResource {
     /**
      * update the datashare configuration with provided body. It will save the configuration on disk.
      *
-     * @return 200
+     * Returns 404 if configuration is not found. It means that the configuration file has not been set.
+     *
+     * @return 200 or 404
      *
      * Example :
      * $(curl -i -XPATCH -H 'Content-Type: application/json' localhost:8080/api/config -d '{"data":{"foo":"bar"}}')
@@ -57,7 +59,11 @@ public class ConfigResource {
     @Patch("/config")
     public Payload patchConfig(Context context, JsonData data) throws IOException {
         logger.info("user {} is updating the configuration", context.currentUser().login());
-        provider.overrideWith(data.asProperties()).save();
+        try {
+            provider.overrideWith(data.asProperties()).save();
+        } catch (PropertiesProvider.ConfigurationNotFound e) {
+            return Payload.notFound();
+        }
         return Payload.ok();
     }
 }
