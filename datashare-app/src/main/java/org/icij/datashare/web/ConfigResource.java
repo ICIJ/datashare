@@ -19,7 +19,7 @@ import java.util.Map;
 
 import static net.codestory.http.payload.Payload.ok;
 
-@Prefix("/api")
+@Prefix("/api/config")
 public class ConfigResource {
     Logger logger = LoggerFactory.getLogger(getClass());
     private PropertiesProvider provider;
@@ -37,7 +37,7 @@ public class ConfigResource {
      * Example :
      * $(curl -i localhost:8080/api/config)
      */
-    @Get("/config")
+    @Get()
     public Map<String, Object> getConfig(Context context) {
         Map<String, Object> filteredProperties = provider.getFilteredProperties(".*Address.*", ".*Secret.*");
         HashMapUser user = (HashMapUser) context.currentUser();
@@ -55,7 +55,7 @@ public class ConfigResource {
      * @param context
      * @return 200 with PATCH
      */
-    @Options("/config")
+    @Options()
     public Payload patchConfigPreflight(final Context context) {
         return ok().withAllowMethods("OPTION", "PATCH");
     }
@@ -78,7 +78,7 @@ public class ConfigResource {
      * Example :
      * $(curl -i -XPATCH -H 'Content-Type: application/json' localhost:8080/api/config -d '{"data":{"foo":"bar"}}')
      */
-    @Patch("/config")
+    @Patch()
     public Payload patchConfig(Context context, JsonData data) throws IOException {
         logger.info("user {} is updating the configuration", context.currentUser().login());
         try {
