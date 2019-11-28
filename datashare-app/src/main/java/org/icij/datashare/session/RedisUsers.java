@@ -23,7 +23,8 @@ public class RedisUsers implements Users {
 
     @Override
     public User find(String login, String password) {
-        return null;
+        HashMapUser user = getUser(login);
+        return user != null && user.get("password") != null && user.get("password").equals(password) ? user: null;
     }
 
     @Override

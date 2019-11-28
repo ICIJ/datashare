@@ -53,6 +53,7 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     @Override public String login() { return id;}
     @Override public String name() { return userMap.get("name");}
     @Override public String[] roles() { return new String[0];}
+    public String get(String key) {return userMap.get(key);}
     public static HashMapUser local() { return localUser("local"); }
 
     public static HashMapUser localUser(String id) {
