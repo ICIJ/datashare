@@ -78,6 +78,10 @@ public class CommonMode extends AbstractModule {
         bind(Publisher.class).to(RedisPublisher.class);
     }
 
+    public Properties properties() {
+        return propertiesProvider.getProperties();
+    }
+
     public Configuration createWebConfiguration() {
         return routes -> addModeConfiguration(defaultRoutes(routes, propertiesProvider));
     }

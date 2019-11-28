@@ -20,6 +20,6 @@ public class WebApp {
                 .withSelectThreads(2)
                 .withWebSocketThreads(1)
                 .configure(mode.createWebConfiguration())
-                .start(parseInt(properties.getProperty("tcpListenPort")));
+                .start(parseInt(mode.properties().getProperty("tcpListenPort")));
     }
 }
