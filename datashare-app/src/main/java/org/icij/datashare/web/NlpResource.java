@@ -40,11 +40,11 @@ public class NlpResource {
      * When datashare is launched in NER mode (without index) it exposes a name finding HTTP API. The text is sent with the HTTP body.
      *
      * @param pipeline to use
-     * @param text to analyse
-     * @return
+     * @param text to analyse in the request body
+     * @return list of NamedEntities annotations
      *
      * Example :
-     * $(curl -XPOST http://dsenv:8080/ner/findNames/CORENLP -d "Please find attached a PDF copy of the advance tax clearance obtained for our client")
+     * $(curl -XPOST http://dsenv:8080/ner/findNames/CORENLP -d "Please find attached a PDF copy of the advance tax clearance obtained for our client John Doe.")
      */
     @Post("/findNames/:pipeline")
     public List<NamedEntity> getAnnotations(final String pipeline, String text) throws Exception {
