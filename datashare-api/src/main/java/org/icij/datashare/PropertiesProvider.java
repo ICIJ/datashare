@@ -114,7 +114,9 @@ public class PropertiesProvider {
         if (configPath == null) {
             throw new ConfigurationNotFound();
         }
-        getProperties().store(new FileOutputStream(configPath.toFile()), "Datashare properties");
+        Properties toSave = new Properties();
+        toSave.putAll(getFilteredProperties("user.*"));
+        toSave.store(new FileOutputStream(configPath.toFile()), "Datashare properties");
     }
 
     public static Properties fromMap(Map<String, String> map) {

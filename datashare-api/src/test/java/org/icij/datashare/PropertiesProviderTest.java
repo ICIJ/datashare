@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -143,6 +144,22 @@ public class PropertiesProviderTest {
         new PropertiesProvider(givenPath.toString()).mergeWith(properties).save();
 
         assertThat(readAllLines(givenPath)).contains("foo=doe");
+    }
+
+    @Test
+    public void test_save_configuration_file_filter_user_data() throws Exception {
+        Properties properties = new Properties();
+        properties.putAll(new HashMap<String, Object>() {{
+            put("userProject", asList("i1", "i2"));
+            put("userFoo", "bar");
+        }});
+        Path givenPath = folder.getRoot().toPath().resolve("datashare.properties");
+
+        new PropertiesProvider(givenPath.toString()).mergeWith(properties).save();
+
+        Properties actualProperties = new Properties();
+        actualProperties.load(new FileInputStream(givenPath.toFile()));
+        assertThat(actualProperties).excludes(entry("userFoo", "bar"), entry("userProject", asList("i1", "i2")));
     }
 
     @Test
