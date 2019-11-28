@@ -53,9 +53,9 @@ public class ProjectResource {
      * @return 200 or 403 (Forbidden)
      *
      * Example :
-     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/isDownloadAllowed/apigen-datashare)
+     * $(curl -i -H 'Content-Type:application/json' localhost:8080/api/project/isDownloadAllowed/apigen-datashare)
      * Example :
-     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/isDownloadAllowed/disallowed-project)
+     * $(curl -i -H 'Content-Type:application/json' localhost:8080/api/project/isDownloadAllowed/disallowed-project)
      */
     @Get("/isDownloadAllowed/:id")
     public Payload isProjectAllowed(String id, Context context) {
