@@ -57,7 +57,7 @@ public class ConfigResource {
      */
     @Options()
     public Payload patchConfigPreflight(final Context context) {
-        return ok().withAllowMethods("OPTION", "PATCH");
+        return ok().withAllowMethods("OPTION", "PATCH").withAllowHeaders("content-type");
     }
 
     /**
