@@ -43,6 +43,7 @@ public class ServerMode extends CommonMode {
         return routes.
                 add(TaskResource.class).
                 add(IndexResource.class).
+                add(UserResource.class).
                 add(NamedEntityResource.class).
                 add(BatchSearchResource.class).
                 add(NlpResource.class).

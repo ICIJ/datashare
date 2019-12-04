@@ -35,6 +35,10 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
         return TypeConvert.fromJson(ofNullable(userMap.get(DATASHARE_INDICES_KEY)).orElse("[]"), List.class);
     }
 
+    public Map<String, String> getMap() {
+        return userMap;
+    }
+
     private static Map<String, String> convert(final HashMap hashMap) {
         Set<Map.Entry<Object, Object>> set = hashMap.entrySet();
         Map<String, String> result = new HashMap<>();

@@ -25,6 +25,7 @@ public class LocalMode extends CommonMode {
         return routes.
                 add(TaskResource.class).
                 add(IndexResource.class).
+                add(UserResource.class).
                 add(NamedEntityResource.class).
                 add(DocumentResource.class).
                 add(BatchSearchResource.class).
