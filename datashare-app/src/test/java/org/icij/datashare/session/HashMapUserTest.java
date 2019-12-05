@@ -28,6 +28,15 @@ public class HashMapUserTest {
     }
 
     @Test
+    public void test_get_map_filters_password() {
+        assertThat(new HashMapUser(new HashMap<String, String>() {{
+                put("uid", "userid");
+                put("password", "secret");
+        }}).getMap()).excludes(entry("password", "secret"));
+
+    }
+
+    @Test
     public void test_get_indices() {
         assertThat(HashMapUser.local().getProjects()).isEmpty();
         assertThat(new HashMapUser(new HashMap<String, String>() {{

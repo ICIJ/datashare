@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.convert.TypeConvert.toJson;
@@ -36,7 +37,9 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
 
     public Map<String, String> getMap() {
-        return userMap;
+        return userMap.entrySet().stream().filter(
+                k -> !k.getKey().equalsIgnoreCase("password")).
+                collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private static Map<String, String> convert(final HashMap hashMap) {
