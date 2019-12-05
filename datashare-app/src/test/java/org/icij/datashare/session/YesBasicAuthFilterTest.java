@@ -15,6 +15,9 @@ import static org.fest.assertions.MapAssert.entry;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.*;
 
+/**
+ * useful for the mockup
+ */
 public class YesBasicAuthFilterTest {
     private YesBasicAuthFilter filter;
 
