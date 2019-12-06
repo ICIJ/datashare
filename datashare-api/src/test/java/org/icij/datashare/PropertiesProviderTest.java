@@ -110,6 +110,14 @@ public class PropertiesProviderTest {
     }
 
     @Test
+    public void test_adds_ext_ds_env_parameters_without_configuration_file() throws Exception {
+        putEnv("DS_DOCKER_FOO", "bar");
+        PropertiesProvider propertiesProvider = new PropertiesProvider("unknown_file");
+
+        assertThat(propertiesProvider.getProperties()).includes(entry("foo", "bar"));
+    }
+
+    @Test
     public void test_adds_ext_ds_env_parameters_camel_case_with_underscores() throws Exception {
         putEnv("DS_DOCKER_MY_VARIABLE", "value");
 

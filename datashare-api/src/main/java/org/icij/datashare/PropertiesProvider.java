@@ -53,10 +53,10 @@ public class PropertiesProvider {
                         InputStream propertiesStream = new FileInputStream(configPath.toFile());
                         logger.info("reading properties from {}", configPath);
                         localProperties.load(propertiesStream);
-                        loadEnvVariables(localProperties);
                     } catch (IOException | NullPointerException e) {
                         logger.warn("no {} file found, using default values", configPath);
                     }
+                    loadEnvVariables(localProperties);
                     cachedProperties = localProperties;
                     logger.info("properties set to {}", cachedProperties);
                 }
