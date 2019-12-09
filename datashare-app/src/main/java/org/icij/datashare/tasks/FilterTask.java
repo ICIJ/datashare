@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
  * filters the document queue with extracted docs
  * and removes duplicates from the queue
  */
-public class FilterTask extends DefaultTask<Integer> implements UserTask {
+public class FilterTask extends DefaultTask<Long> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final String projectName;
     private Indexer indexer;
@@ -34,29 +34,20 @@ public class FilterTask extends DefaultTask<Integer> implements UserTask {
     }
 
     @Override
-    public Integer call() throws Exception {
+    public Long call() throws Exception {
         if (queue.size() == 0) {
             logger.info("filter empty queue {} nothing to do", queue.getName());
-            return 0;
+            return 0L;
         }
         int duplicates = queue.removeDuplicatePaths();
         logger.info("removed {} duplicate paths in queue {}", duplicates, queue.getName());
-        int initialSize = queue.size();
-        RedisUserDocumentQueue filteredQueue = (RedisUserDocumentQueue)new QueueFilterBuilder()
+        long extracted = new QueueFilterBuilder()
                 .filter(queue)
                 .with(new ElasticsearchExtractedStreamer(indexer, projectName))
                 .execute();
-        queue.delete();
-        logger.info("delete queue {}", queue.getName());
-        if (filteredQueue.size() > 0) {
-            logger.info("rename queue {} to {}", filteredQueue.getName(), queue.getName());
-            filteredQueue.rename(queue.getName());
-        }
-        int extracted = initialSize - filteredQueue.size();
-        logger.info("removed {} already extracted documents", extracted, filteredQueue.getName());
+        logger.info("removed {} extracted paths in queue {}", extracted, queue.getName());
+
         queue.close();
-        filteredQueue.close();
-        indexer.close();
         return duplicates + extracted;
     }
 
