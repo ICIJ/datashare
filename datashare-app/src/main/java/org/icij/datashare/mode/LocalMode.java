@@ -3,7 +3,6 @@ package org.icij.datashare.mode;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.text.indexing.elasticsearch.EsEmbeddedServer;
 import org.icij.datashare.web.*;
 
 import java.util.Map;
@@ -19,7 +18,6 @@ public class LocalMode extends CommonMode {
         bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
         bind(IndexWaiterFilter.class).asEagerSingleton();
         configurePersistence();
-        new EsEmbeddedServer("datashare", "/home/dev/es", "/home/dev/es", "9200").start();
     }
 
     @Override

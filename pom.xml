@@ -66,6 +66,7 @@
         <extract.version>3.2.1</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>6.5.4</elasticsearch.version>
+        <lucene.version>7.5.0</lucene.version>
         <jackson.version>2.10.0</jackson.version>
         <unidecode.version>0.0.7</unidecode.version>
         <joda-time.version>2.9.5</joda-time.version>

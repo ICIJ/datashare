@@ -62,6 +62,8 @@ public class CommonMode extends AbstractModule {
                 return new NerMode(properties);
             case LOCAL:
                 return new LocalMode(properties);
+            case EMBEDDED:
+                return new EmbeddedMode(properties);
             case SERVER:
                 return new ServerMode(properties);
             case CLI:

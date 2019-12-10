@@ -39,6 +39,11 @@
 
         <!-- for es embedded -->
         <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${lucene.version}</version>
+         </dependency>
+        <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
             <version>${elasticsearch.version}</version>
@@ -53,10 +58,31 @@
             <artifactId>netty-codec-http</artifactId>
             <version>4.1.43.Final</version>
         </dependency>
+        <!-- for path_hierarchy tokenizer -->
+        <dependency>
+            <groupId>org.codelibs.elasticsearch.module</groupId>
+            <artifactId>analysis-common</artifactId>
+            <version>${elasticsearch.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-common</artifactId>
+            <version>${lucene.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-slf4j</artifactId>
             <version>${log4jtoslf4j.version}</version>
+        </dependency>
+        <!--
+            see https://github.com/elastic/elasticsearch/issues/19415#issuecomment-301057712
+            we have to mock dynamic re-configuration of log4j with slf4j else it thows
+            either ClassCastException or ClassNotFoundException
+        -->
+        <dependency>
+            <groupId>de.dentrassi.elasticsearch</groupId>
+            <artifactId>log4j2-mock</artifactId>
+            <version>0.0.1</version>
         </dependency>
         <!-- end for es embedded -->
 
