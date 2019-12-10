@@ -37,6 +37,29 @@
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
         </dependency>
 
+        <!-- for es embedded -->
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>${elasticsearch.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.plugin</groupId>
+            <artifactId>transport-netty4-client</artifactId>
+            <version>${elasticsearch.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+            <version>4.1.43.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-to-slf4j</artifactId>
+            <version>${log4jtoslf4j.version}</version>
+        </dependency>
+        <!-- end for es embedded -->
+
         <!-- Slf4j / log4j bridge for elasticsearch -->
         <dependency>
             <groupId>org.slf4j</groupId>
