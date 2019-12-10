@@ -5,6 +5,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.join.ParentJoinPlugin;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.painless.PainlessPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
@@ -29,7 +30,12 @@ public class EsEmbeddedServer {
                 //.put("script.inline", "true")
                 .put("cluster.name", clusterName).build();
 
-        node = new PluginConfigurableNode(settings, asList(Netty4Plugin.class, ParentJoinPlugin.class, CommonAnalysisPlugin.class));
+        node = new PluginConfigurableNode(settings, asList(
+                Netty4Plugin.class,
+                ParentJoinPlugin.class,
+                CommonAnalysisPlugin.class,
+                PainlessPlugin.class
+        ));
     }
 
     public void start() {

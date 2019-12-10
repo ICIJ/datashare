@@ -58,6 +58,11 @@
             <artifactId>netty-codec-http</artifactId>
             <version>4.1.43.Final</version>
         </dependency>
+        <dependency>
+            <groupId>org.codelibs.elasticsearch.module</groupId>
+            <artifactId>lang-painless</artifactId>
+            <version>${elasticsearch.version}</version>
+        </dependency>
         <!-- for path_hierarchy tokenizer -->
         <dependency>
             <groupId>org.codelibs.elasticsearch.module</groupId>
