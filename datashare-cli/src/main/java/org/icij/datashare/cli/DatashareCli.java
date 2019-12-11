@@ -125,6 +125,7 @@ public class DatashareCli {
     public enum Stage {
         SCAN,
         FILTER,
+        DEDUPLICATE,
         INDEX,
         NLP;
 

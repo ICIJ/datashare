@@ -72,6 +72,10 @@ class CliApp {
             taskManager.startTask(taskFactory.createFilterTask(nullUser()));
         }
 
+        if (stages.contains(DatashareCli.Stage.DEDUPLICATE)) {
+            taskManager.startTask(taskFactory.createDeduplicateTask(nullUser()));
+        }
+
 
         if (stages.contains(DatashareCli.Stage.SCAN) && !resume(properties)) {
             taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), Options.from(properties)),

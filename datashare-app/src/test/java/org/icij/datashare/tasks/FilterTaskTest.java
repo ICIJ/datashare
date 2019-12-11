@@ -25,7 +25,7 @@ import static org.icij.datashare.user.User.local;
 public class FilterTaskTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private PropertiesProvider propertyProviader = new PropertiesProvider(new HashMap<String, String>() {{
+    private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
         put("defaultProject", TEST_INDEX);
         put("redisAddress", "redis://redis:6379");
     }});
@@ -48,22 +48,12 @@ public class FilterTaskTest {
     }
 
     @Test
-    public void test_filter_queue_removes_duplicates() throws Exception {
-        queue.put(documentFactory.create("/path/to/doc"));
-        queue.put(documentFactory.create("/path/to/doc"));
-
-        assertThat(new FilterTask(indexer, propertyProviader, local()).call()).isEqualTo(1);
-        assertThat(queue.size()).isEqualTo(1);
-    }
-
-    @Test
-    public void test_filter_queue_removes_already_extracted_docs_and_sums_with_duplicates() throws Exception {
+    public void test_filter_queue_removes_already_extracted_docs() throws Exception {
         indexer.add(TEST_INDEX, createDoc("id").with(get("/path/to/extracted")).build());
-        queue.put(documentFactory.create("file:/path/to/doc"));
         queue.put(documentFactory.create("file:/path/to/doc"));
         queue.put(documentFactory.create("file:/path/to/extracted"));
 
-        assertThat(new FilterTask(indexer, propertyProviader, local()).call()).isEqualTo(2);
+        assertThat(new FilterTask(indexer, propertiesProvider, local()).call()).isEqualTo(1);
         assertThat(queue.size()).isEqualTo(1);
     }
 }

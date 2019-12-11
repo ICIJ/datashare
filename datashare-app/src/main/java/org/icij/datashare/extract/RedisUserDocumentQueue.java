@@ -2,6 +2,7 @@ package org.icij.datashare.extract;
 
 import org.icij.datashare.user.User;
 import org.icij.extract.document.DocumentFactory;
+import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.redis.RedisDocumentQueue;
 import org.icij.task.Option;
@@ -17,7 +18,7 @@ public class RedisUserDocumentQueue extends RedisDocumentQueue {
     private final User user;
 
     public RedisUserDocumentQueue(@NotNull final User user, final Options<String> options) {
-        super(new DocumentFactory(options), createOrUpdateQueueNameInOptions(options, user, ""));
+        super(new DocumentFactory(options).withIdentifier(new PathIdentifier()), createOrUpdateQueueNameInOptions(options, user, ""));
         this.options = options;
         this.user = user;
     }
