@@ -1,8 +1,8 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
-import org.icij.task.Options;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -17,9 +17,9 @@ public class IndexTaskTest {
     public void test_index_task_uses_users_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(Publisher.class), local(), Options.from(new HashMap<String, String>() {{
+        new IndexTask(spewer, mock(Publisher.class), local(), new PropertiesProvider(new HashMap<String, String>() {{
             put("redisAddress", "redis://redis:6379");
-        }}));
+        }}).getProperties());
 
         Mockito.verify(spewer).withIndex("local-datashare");
     }
@@ -27,9 +27,9 @@ public class IndexTaskTest {
     public void test_index_task_with_null_user_and_null_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(Publisher.class), local(), Options.from(new HashMap<String, String>() {{
+        new IndexTask(spewer, mock(Publisher.class), local(), new PropertiesProvider(new HashMap<String, String>() {{
             put("redisAddress", "redis://redis:6379");
-        }}));
+        }}).getProperties());
 
         Mockito.verify(spewer).withIndex("local-datashare");
     }
@@ -37,10 +37,10 @@ public class IndexTaskTest {
     public void test_index_task_null_user_uses_options_for_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(Publisher.class), nullUser(), Options.from(new HashMap<String, String>() {{
+        new IndexTask(spewer, mock(Publisher.class), nullUser(), new PropertiesProvider(new HashMap<String, String>() {{
             put("redisAddress", "redis://redis:6379");
             put("defaultProject", "foo");
-        }}));
+        }}).getProperties());
 
         Mockito.verify(spewer).withIndex("foo");
     }

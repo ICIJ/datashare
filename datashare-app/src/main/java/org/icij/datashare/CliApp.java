@@ -14,7 +14,6 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
-import org.icij.task.Options;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +57,7 @@ class CliApp {
         Indexer indexer = injector.getInstance(Indexer.class);
 
         if (resume(properties)) {
-            RedisUserDocumentQueue queue = new RedisUserDocumentQueue(nullUser(), Options.from(properties));
+            RedisUserDocumentQueue queue = new RedisUserDocumentQueue(nullUser(), new PropertiesProvider(properties));
             boolean queueIsEmpty = queue.isEmpty();
             queue.close();
 
@@ -78,12 +77,12 @@ class CliApp {
 
 
         if (stages.contains(DatashareCli.Stage.SCAN) && !resume(properties)) {
-            taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), Options.from(properties)),
+            taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), properties),
                     () -> closeAndLogException(injector.getInstance(DocumentQueue.class)).run());
         }
 
         if (stages.contains(DatashareCli.Stage.INDEX)) {
-            taskManager.startTask(taskFactory.createIndexTask(nullUser(), Options.from(properties)),
+            taskManager.startTask(taskFactory.createIndexTask(nullUser(), properties),
                     () -> closeAndLogException(injector.getInstance(DocumentQueue.class)).run());
         }
 

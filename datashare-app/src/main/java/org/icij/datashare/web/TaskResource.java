@@ -16,7 +16,6 @@ import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.icij.task.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,6 @@ import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
-import static org.icij.task.Options.from;
 
 @Prefix("/api/task")
 public class TaskResource {
@@ -95,7 +93,7 @@ public class TaskResource {
      */
     @Post("/batchUpdate/index")
     public TaskResponse indexQueue(final OptionsWrapper optionsWrapper, Context context) {
-        IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), optionsWrapper.asOptions());
+        IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), optionsWrapper.asProperties());
         return new TaskResponse(taskManager.startTask(indexTask));
     }
 
@@ -106,7 +104,7 @@ public class TaskResource {
      * @return 200 and the list of tasks created
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/file)
+     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/file -d '{}')
      */
     @Post("/batchUpdate/index/file")
     public List<TaskResponse> indexDefault(final OptionsWrapper optionsWrapper, Context context) {
@@ -125,8 +123,16 @@ public class TaskResource {
     @Post("/batchUpdate/index/:filePath:")
     public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
-        Options<String> options = from(propertiesProvider.createMerged(optionsWrapper.asProperties()));
-        return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask((User) context.currentUser(), options))));
+        Properties properties = propertiesProvider.createMerged(optionsWrapper.asProperties());
+        if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
+            return asList(
+                    scanResponse,
+                    new TaskResponse(taskManager.startTask(taskFactory.createFilterTask((User) context.currentUser()))),
+                    new TaskResponse(taskManager.startTask(taskFactory.createIndexTask((User) context.currentUser(), properties)))
+            );
+        } else {
+            return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask((User) context.currentUser(), properties))));
+        }
     }
 
     /**
@@ -142,8 +148,8 @@ public class TaskResource {
     @Post("/batchUpdate/scan/:filePath:")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         Path path = get("/", filePath);
-        Options<String> options = from(propertiesProvider.createMerged(optionsWrapper.asProperties()));
-        return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, options)));
+        return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path,
+                propertiesProvider.createMerged(optionsWrapper.asProperties()))));
     }
 
     /**

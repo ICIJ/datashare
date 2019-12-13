@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
@@ -18,10 +17,7 @@ public class DeduplicateTaskTest {
         put("redisAddress", "redis://redis:6379");
     }});
     private DocumentFactory documentFactory = new DocumentFactory().withIdentifier(new PathIdentifier());
-    private RedisUserDocumentQueue queue = new RedisUserDocumentQueue(local(),
-            new OptionsWrapper(new HashMap<String, String>() {{
-                put("redisAddress", "redis://redis:6379");
-            }}).asOptions());
+    private RedisUserDocumentQueue queue = new RedisUserDocumentQueue(propertyProvider);
 
     @After
     public void tearDown() {

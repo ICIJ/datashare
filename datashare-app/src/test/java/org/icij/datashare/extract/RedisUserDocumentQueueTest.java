@@ -1,5 +1,6 @@
 package org.icij.datashare.extract;
 
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
@@ -22,7 +23,7 @@ public class RedisUserDocumentQueueTest {
 
     @Test
     public void test_redis_queue_name_with_null_user() {
-        RedisUserDocumentQueue queue = new RedisUserDocumentQueue(nullUser(), new OptionsWrapper(new HashMap<String, String>() {{ put("redisAddress", "redis://redis:6379");}}).asOptions());
+        RedisUserDocumentQueue queue = new RedisUserDocumentQueue(nullUser(), new PropertiesProvider(new HashMap<String, String>() {{ put("redisAddress", "redis://redis:6379");}}));
         queue.offer(new DocumentFactory().withIdentifier(new PathIdentifier()).create("/path/to/doc"));
 
         assertThat(redis.keys("extract:queue")).hasSize(1);
@@ -30,7 +31,7 @@ public class RedisUserDocumentQueueTest {
     }
     @Test
     public void test_redis_queue_name_with_user_not_null_and_no_parameter_queue_name() {
-        RedisUserDocumentQueue queue = new RedisUserDocumentQueue(new User("foo"), new OptionsWrapper(new HashMap<String, String>() {{ put("redisAddress", "redis://redis:6379");}}).asOptions());
+        RedisUserDocumentQueue queue = new RedisUserDocumentQueue(new User("foo"), new PropertiesProvider(new HashMap<String, String>() {{ put("redisAddress", "redis://redis:6379");}}));
         queue.offer(new DocumentFactory().withIdentifier(new PathIdentifier()).create("/path/to/doc"));
 
         assertThat(redis.keys("extract:queue_foo")).hasSize(1);
@@ -40,9 +41,10 @@ public class RedisUserDocumentQueueTest {
     @Test
     public void test_redis_queue_name_with_user_not_null_and_queue_name__user_queue_is_preferred() {
         RedisUserDocumentQueue queue = new RedisUserDocumentQueue(new User("foo"),
-                new OptionsWrapper(new HashMap<String, String>() {{
+                new PropertiesProvider(new HashMap<String, String>() {{
                     put("redisAddress", "redis://redis:6379");
-                    put("queueName", "myqueue");}}).asOptions());
+                    put("queueName", "myqueue");}})
+        );
         queue.offer(new DocumentFactory().withIdentifier(new PathIdentifier()).create("/path/to/doc"));
 
         assertThat(redis.keys("extract:queue_foo")).hasSize(1);

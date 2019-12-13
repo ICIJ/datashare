@@ -1,43 +1,32 @@
 package org.icij.datashare.extract;
 
+import org.icij.datashare.Entity;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
+import org.icij.extract.document.DigestIdentifier;
 import org.icij.extract.document.DocumentFactory;
-import org.icij.extract.document.PathIdentifier;
-import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.redis.RedisDocumentQueue;
-import org.icij.task.Option;
-import org.icij.task.Options;
-import org.icij.task.StringOptionParser;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.RedissonShutdownException;
-import org.slf4j.LoggerFactory;
+
+import java.nio.charset.Charset;
 
 public class RedisUserDocumentQueue extends RedisDocumentQueue {
-    private static final String QUEUE_NAME = "queueName";
-    private final Options<String> options;
-    private final User user;
+    private static final String QUEUE_NAME_OPTION = "queueName";
+    private final String queueName;
 
-    public RedisUserDocumentQueue(@NotNull final User user, final Options<String> options) {
-        super(new DocumentFactory(options).withIdentifier(new PathIdentifier()), createOrUpdateQueueNameInOptions(options, user, ""));
-        this.options = options;
-        this.user = user;
+    public RedisUserDocumentQueue(String queueName, PropertiesProvider propertiesProvider) {
+        super(new DocumentFactory().withIdentifier(new DigestIdentifier(Entity.HASHER.toString(),
+                Charset.defaultCharset())), queueName, propertiesProvider.get("redisAddress").orElse("redis://redis:6379"));
+        this.queueName = queueName;
     }
 
-    @Override
-    public DocumentQueue newQueue() {
-        return new RedisUserDocumentQueue(user, createOrUpdateQueueNameInOptions(options, user, ":filtered"));
+    public RedisUserDocumentQueue(@NotNull final User user, PropertiesProvider propertiesProvider) {
+        this(getQueueName(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue")), propertiesProvider);
     }
 
-    private static Options<String> createOrUpdateQueueNameInOptions(Options<String> userOptions, User user, String suffix) {
-        if (userOptions.get(QUEUE_NAME) == null) {
-            userOptions.add(new Option<>(QUEUE_NAME, StringOptionParser::new).update("extract:queue"));
-        }
-        String queueName = user.isNull() ? userOptions.valueIfPresent(QUEUE_NAME).orElse("extract:queue") : user.queueName();
-        queueName += suffix;
-        LoggerFactory.getLogger(RedisDocumentQueue.class).info("using redis queue name {}", queueName);
-        Options<String> options = userOptions.createFrom(new Options<String>()
-                .add(new Option<>(QUEUE_NAME, StringOptionParser::new).update(queueName)));
-        return options;
+    public RedisUserDocumentQueue(PropertiesProvider propertiesProvider) {
+        this(User.nullUser(), propertiesProvider);
     }
 
     @Override
@@ -47,5 +36,12 @@ public class RedisUserDocumentQueue extends RedisDocumentQueue {
         } catch (RedissonShutdownException e) {
             return -1;
         }
+    }
+
+    public String getQueueName() {
+        return queueName;
+    }
+    private static String getQueueName(User user, String baseQueueName) {
+        return user.isNull() ? baseQueueName : user.queueName();
     }
 }

@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -31,10 +30,7 @@ public class FilterTaskTest {
     }});
     private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
     private DocumentFactory documentFactory = new DocumentFactory().withIdentifier(new DigestIdentifier("sha256", Charset.defaultCharset()));
-    private RedisUserDocumentQueue queue = new RedisUserDocumentQueue(local(),
-            new OptionsWrapper(new HashMap<String, String>() {{
-                put("redisAddress", "redis://redis:6379");
-            }}).asOptions());
+    private RedisUserDocumentQueue queue = new RedisUserDocumentQueue(propertiesProvider);
 
     @After
     public void tearDown() throws IOException {
