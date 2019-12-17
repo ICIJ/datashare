@@ -2,8 +2,6 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
-import org.icij.extract.document.DocumentFactory;
-import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
 import org.junit.Rule;
@@ -14,9 +12,7 @@ import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.file.Files;
-import java.sql.SQLException;
 import java.util.Collection;
 
 import static java.nio.charset.Charset.forName;
@@ -32,7 +28,7 @@ public class DatabaseSpewerTest {
     private DatabaseSpewer dbSpewer;
 
     @Parameterized.Parameters
-    public static Collection<Object[]> dataSources() throws IOException, SQLException {
+    public static Collection<Object[]> dataSources() {
         return asList(new Object[][]{
                 {new DbSetupRule("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared")},
                 {new DbSetupRule("jdbc:postgresql://postgresql/test?user=test&password=test")}
@@ -48,10 +44,9 @@ public class DatabaseSpewerTest {
     public void test_spew_document_iso8859_encoded_is_stored_in_utf8_and_have_correct_parameters() throws Exception {
         File file = tmp.newFile("test_iso8859-1.txt");
         Files.write(file.toPath(), singletonList("chaîne en iso8859"), forName("ISO-8859-1"));
-        TikaDocument tikaDocument = new DocumentFactory().withIdentifier(new PathIdentifier()).create(file.toPath());
-        Reader reader = new Extractor().extract(tikaDocument);
+        TikaDocument tikaDocument = new Extractor().extract(file.toPath());
 
-        dbSpewer.write(tikaDocument, reader);
+        dbSpewer.write(tikaDocument);
 
         Document actual = dbSpewer.repository.getDocument(tikaDocument.getId());
         assertThat(actual.getContent()).isEqualTo("chaîne en iso8859");

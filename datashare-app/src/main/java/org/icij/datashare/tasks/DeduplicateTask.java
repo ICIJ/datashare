@@ -25,7 +25,7 @@ public class DeduplicateTask extends PipelineTask {
             logger.info("filter empty queue {} nothing to do", queue.getName());
             return 0L;
         }
-        int duplicates = queue.removeDuplicatePaths();
+        int duplicates = queue.removeDuplicates();
         logger.info("removed {} duplicate paths in queue {}", duplicates, queue.getName());
         queue.close();
         return (long)duplicates;

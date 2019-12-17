@@ -19,8 +19,8 @@ import org.mockito.Mockito;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.HashMap;
 
 import static java.nio.file.Paths.get;
@@ -49,14 +49,13 @@ public class SourceExtractorTest {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
             put("idDigestMethod", Document.HASHER.toString());
         }}));
-        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
-        final TikaDocument document = tikaFactory.create(path);
-        Extractor extractor = new Extractor();
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Extractor extractor = new Extractor(tikaFactory);
         extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.HASHER.toString()));
-        Reader reader = extractor.extract(document);
+        final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
                 new OptimaizeLanguageGuesser(), new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
-        spewer.write(document, reader);
+        spewer.write(document);
 
         Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).
                 get(TEST_INDEX, "1bf2b6aa27dd8b45c7db58875004b8cb27a78ced5200b4976b63e351ebbae5ececb86076d90e156a7cdea06cde9573ca",

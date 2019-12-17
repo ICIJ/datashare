@@ -1,6 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.ParsingReader;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -22,7 +23,6 @@ import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.UpdatableDigester;
-import org.icij.extract.parser.ParsingReader;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.junit.ClassRule;
@@ -32,8 +32,8 @@ import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,7 +54,6 @@ public class ElasticsearchSpewerTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
     private Publisher publisher = Mockito.mock(Publisher.class);
-    private final DocumentFactory factory = new DocumentFactory().withIdentifier(new PathIdentifier());
 
     private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
             new OptimaizeLanguageGuesser(), new FieldNames(), publisher, new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");
@@ -63,14 +62,15 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_simple_write() throws Exception {
-        final TikaDocument document = factory.create(get("test-file.txt"));
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("test-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+        document.setReader(reader);
 
-        spewer.write(document, reader);
+        spewer.write(document);
 
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
-        assertTrue(documentFields.isExists());
-        assertEquals(document.getId(), documentFields.getId());
+        assertThat(documentFields.isExists()).isTrue();
+        assertThat(documentFields.getId()).isEqualTo(document.getId());
         assertEquals(new HashMap<String, String>() {{
             put("name", "Document");
         }}, documentFields.getSourceAsMap().get("join"));
@@ -82,10 +82,10 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_metadata() throws Exception {
-        String path = getClass().getResource("/docs/a/b/c/doc.txt").getPath();
-        final TikaDocument document = factory.create(path);
+        Path path = get(getClass().getResource("/docs/a/b/c/doc.txt").getPath());
+        TikaDocument document = new Extractor().extract(path);
 
-        spewer.write(document, new Extractor().extract(document));
+        spewer.write(document);
 
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
         assertThat(documentFields.getSourceAsMap()).includes(
@@ -94,18 +94,17 @@ public class ElasticsearchSpewerTest {
                 entry("nerTags", new ArrayList<>()),
                 entry("contentLength", 45),
                 entry("status", "INDEXED"),
-                entry("path", path),
-                entry("dirname", get(path).getParent().toString())
+                entry("path", path.toString()),
+                entry("dirname", path.getParent().toString())
         );
     }
 
     @Test
     public void test_embedded_document() throws Exception {
-        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
-        final TikaDocument document = factory.create(path);
-        Reader reader = new Extractor().extract(document);
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        final TikaDocument document = new Extractor().extract(path);
 
-        spewer.write(document, reader);
+        spewer.write(document);
 
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
         assertTrue(documentFields.isExists());
@@ -126,11 +125,10 @@ public class ElasticsearchSpewerTest {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
             put("idDigestMethod", Document.HASHER.toString());
         }}));
-        final TikaDocument extractDocument = tikaFactory.create(getClass().getResource("/docs/embedded_doc.eml").getPath());
-        Extractor extractor = new Extractor();
+        Extractor extractor = new Extractor(tikaFactory);
         extractor.setDigester(new UpdatableDigester("project", Document.HASHER.toString()));
 
-        extractor.extract(extractDocument);
+        final TikaDocument extractDocument = extractor.extract(get(getClass().getResource("/docs/embedded_doc.eml").getPath()));
 
         Document document = new Document(Project.project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()),
                 "This is a document to be parsed by datashare.",
@@ -142,11 +140,12 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_language() throws Exception {
-        final TikaDocument document = factory.create(getClass().getResource("/docs/doc.txt").getPath());
-        final TikaDocument document_fr = factory.create(getClass().getResource("/docs/doc-fr.txt").getPath());
+        Extractor extractor = new Extractor();
+        final TikaDocument document = extractor.extract(get(getClass().getResource("/docs/doc.txt").getPath()));
+        final TikaDocument document_fr = extractor.extract(get(getClass().getResource("/docs/doc-fr.txt").getPath()));
 
-        spewer.write(document, new Extractor().extract(document));
-        spewer.write(document_fr, new Extractor().extract(document_fr));
+        spewer.write(document);
+        spewer.write(document_fr);
 
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
         GetResponse documentFields_fr = es.client.get(new GetRequest(TEST_INDEX, "doc", document_fr.getId()));

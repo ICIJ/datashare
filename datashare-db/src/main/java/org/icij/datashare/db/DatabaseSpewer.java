@@ -9,7 +9,6 @@ import org.icij.spewer.FieldNames;
 import org.icij.spewer.Spewer;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.HashSet;
@@ -34,8 +33,8 @@ public class DatabaseSpewer extends Spewer {
     }
 
     @Override
-    protected void writeDocument(TikaDocument tikaDocument, Reader reader, TikaDocument parent, TikaDocument root, int level) throws IOException {
-        String content = toString(reader).trim();
+    protected void writeDocument(TikaDocument tikaDocument, TikaDocument parent, TikaDocument root, int level) throws IOException {
+        String content = toString(tikaDocument.getReader()).trim();
         Charset charset = Charset.forName(ofNullable(tikaDocument.getMetadata().get(CONTENT_ENCODING)).orElse("utf-8"));
         String contentType = ofNullable(tikaDocument.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0];
         Long contentLength = valueOf(ofNullable(tikaDocument.getMetadata().get(CONTENT_LENGTH)).orElse("-1"));

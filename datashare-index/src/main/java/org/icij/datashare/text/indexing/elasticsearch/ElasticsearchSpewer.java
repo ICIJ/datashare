@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.io.IOException;
-import java.io.Reader;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
@@ -56,8 +55,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     @Override
-    protected void writeDocument(TikaDocument doc, Reader reader, TikaDocument parent, TikaDocument root, int level) throws IOException {
-        final IndexRequest req = prepareRequest(doc, reader, parent, root, level);
+    protected void writeDocument(TikaDocument doc, TikaDocument parent, TikaDocument root, int level) throws IOException {
+        final IndexRequest req = prepareRequest(doc, parent, root, level);
         long before = currentTimeMillis();
         IndexResponse indexResponse = client.index(req);
         logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
@@ -79,10 +78,9 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         ElasticsearchConfiguration.createIndex(client, indexName, DEFAULT_INDEX_TYPE);
     }
 
-    private IndexRequest prepareRequest(final TikaDocument document, final Reader reader,
-                                        final TikaDocument parent, TikaDocument root, final int level) throws IOException {
+    private IndexRequest prepareRequest(final TikaDocument document, final TikaDocument parent, TikaDocument root, final int level) throws IOException {
         IndexRequest req = new IndexRequest(indexName, esCfg.indexType, document.getId());
-        Map<String, Object> jsonDocument = getMap(document, reader);
+        Map<String, Object> jsonDocument = getMap(document);
 
         if (parent != null) {
             jsonDocument.put(DEFAULT_PARENT_DOC_FIELD, parent.getId());
@@ -95,7 +93,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return req;
     }
 
-    Map<String, Object> getMap(TikaDocument document, Reader reader) throws IOException {
+    Map<String, Object> getMap(TikaDocument document) throws IOException {
         Map<String, Object> jsonDocument = new HashMap<>();
 
         jsonDocument.put(esCfg.docTypeField, ES_DOCUMENT_TYPE);
@@ -113,7 +111,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("contentLength", valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")));
         jsonDocument.put("contentEncoding", ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN));
 
-        String content = toString(reader).trim();
+        String content = toString(document.getReader()).trim();
         jsonDocument.put("language", languageGuesser.guess(content));
         jsonDocument.put(ES_CONTENT_FIELD, content);
         return jsonDocument;

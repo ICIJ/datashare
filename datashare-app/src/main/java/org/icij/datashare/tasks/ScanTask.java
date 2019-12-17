@@ -7,7 +7,6 @@ import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.user.User;
 import org.icij.extract.Scanner;
 import org.icij.extract.ScannerVisitor;
-import org.icij.extract.document.DocumentFactory;
 import org.icij.task.Options;
 import org.icij.task.annotation.OptionsClass;
 
@@ -15,7 +14,6 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 @OptionsClass(Scanner.class)
-@OptionsClass(DocumentFactory.class)
 public class ScanTask extends PipelineTask {
     private final Scanner scanner;
     private final Path path;
@@ -25,7 +23,7 @@ public class ScanTask extends PipelineTask {
         super(DatashareCli.Stage.SCAN, user, new PropertiesProvider(properties));
         this.path = path.resolve(user.getPath());
         Options<String> allOptions = options().createFrom(Options.from(properties));
-        scanner = new Scanner(new DocumentFactory(allOptions), queue).configure(allOptions);
+        scanner = new Scanner(queue).configure(allOptions);
     }
 
     @Override

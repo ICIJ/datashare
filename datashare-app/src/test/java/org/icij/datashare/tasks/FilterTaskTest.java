@@ -4,14 +4,12 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
-import org.icij.extract.document.DigestIdentifier;
-import org.icij.extract.document.DocumentFactory;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 import static java.nio.file.Paths.get;
@@ -29,7 +27,6 @@ public class FilterTaskTest {
         put("redisAddress", "redis://redis:6379");
     }});
     private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
-    private DocumentFactory documentFactory = new DocumentFactory().withIdentifier(new DigestIdentifier("sha256", Charset.defaultCharset()));
     private RedisUserDocumentQueue queue = new RedisUserDocumentQueue(propertiesProvider);
 
     @After
@@ -46,8 +43,8 @@ public class FilterTaskTest {
     @Test
     public void test_filter_queue_removes_already_extracted_docs() throws Exception {
         indexer.add(TEST_INDEX, createDoc("id").with(get("/path/to/extracted")).build());
-        queue.put(documentFactory.create("file:/path/to/doc"));
-        queue.put(documentFactory.create("file:/path/to/extracted"));
+        queue.put(Paths.get("file:/path/to/doc"));
+        queue.put(Paths.get("file:/path/to/extracted"));
 
         assertThat(new FilterTask(indexer, propertiesProvider, local()).call()).isEqualTo(1);
         assertThat(queue.size()).isEqualTo(1);

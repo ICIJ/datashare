@@ -12,6 +12,8 @@ import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.user.User;
+import org.icij.extract.document.DigestIdentifier;
+import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.UpdatableDigester;
@@ -21,6 +23,7 @@ import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.Charset;
 import java.util.Properties;
 
 import static java.lang.Math.max;
@@ -53,7 +56,7 @@ public class IndexTask extends PipelineTask implements Monitorable{
         spewer.createIndex();
 
         Options<String> allTaskOptions = options().createFrom(Options.from(properties));
-        Extractor extractor = new Extractor().configure(allTaskOptions);
+        Extractor extractor = new Extractor(new DocumentFactory().withIdentifier(new DigestIdentifier(Entity.HASHER.toString(), Charset.defaultCharset())));
         extractor.setDigester(new UpdatableDigester(indexName, Entity.HASHER.toString()));
 
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);

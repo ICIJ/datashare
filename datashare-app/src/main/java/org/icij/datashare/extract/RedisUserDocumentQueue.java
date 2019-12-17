@@ -1,23 +1,17 @@
 package org.icij.datashare.extract;
 
-import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
-import org.icij.extract.document.DigestIdentifier;
-import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.redis.RedisDocumentQueue;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.RedissonShutdownException;
-
-import java.nio.charset.Charset;
 
 public class RedisUserDocumentQueue extends RedisDocumentQueue {
     private static final String QUEUE_NAME_OPTION = "queueName";
     private final String queueName;
 
     public RedisUserDocumentQueue(String queueName, PropertiesProvider propertiesProvider) {
-        super(new DocumentFactory().withIdentifier(new DigestIdentifier(Entity.HASHER.toString(),
-                Charset.defaultCharset())), queueName, propertiesProvider.get("redisAddress").orElse("redis://redis:6379"));
+        super(queueName, propertiesProvider.get("redisAddress").orElse("redis://redis:6379"));
         this.queueName = queueName;
     }
 
