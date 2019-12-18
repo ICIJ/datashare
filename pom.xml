@@ -63,7 +63,7 @@
         <guice.version>4.1.0</guice.version>
         <amazon.version>1.11.238</amazon.version>
 
-        <extract.version>3.0.1</extract.version>
+        <extract.version>3.0.0</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>6.5.4</elasticsearch.version>
         <jackson.version>2.10.0</jackson.version>
