@@ -25,6 +25,8 @@ public class PropertiesProvider {
     private static final String PREFIX = "DS_DOCKER_";
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
     public static final String CONFIG_FILE_PARAMETER_KEY = "configFile";
+    public static final String QUEUE_NAME_OPTION = "queueName";
+
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final Path configPath;
     private volatile Properties cachedProperties;

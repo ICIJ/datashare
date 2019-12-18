@@ -6,8 +6,9 @@ import org.icij.extract.redis.RedisDocumentQueue;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.RedissonShutdownException;
 
+import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
+
 public class RedisUserDocumentQueue extends RedisDocumentQueue {
-    private static final String QUEUE_NAME_OPTION = "queueName";
     private final String queueName;
 
     public RedisUserDocumentQueue(String queueName, PropertiesProvider propertiesProvider) {

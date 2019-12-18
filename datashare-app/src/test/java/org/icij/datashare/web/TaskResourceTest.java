@@ -282,7 +282,7 @@ public class TaskResourceTest implements FluentRestTest {
     }
 
     @Test
-    public void test_stop_all_filters_running_tasks() throws Exception {
+    public void test_stop_all_filters_running_tasks() {
         taskManager.startTask(() -> "ok");
         taskManager.waitTasksToBeDone(1, SECONDS);
 

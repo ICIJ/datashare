@@ -31,7 +31,7 @@ public abstract class PipelineTask extends DefaultTask<Long> implements UserTask
         }
     }
 
-    protected String getOutputQueueName() {
+    public String getOutputQueueName() {
         return queue.getQueueName() + ':' + stage.name().toLowerCase();
     }
 
