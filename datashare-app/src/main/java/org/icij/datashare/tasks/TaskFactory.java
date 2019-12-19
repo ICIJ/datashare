@@ -17,5 +17,6 @@ public interface TaskFactory {
     NlpApp createNlpTask(User user, AbstractPipeline pipeline);
     FilterTask createFilterTask(User user);
     DeduplicateTask createDeduplicateTask(User user);
+    ScanIndexTask createScanIndexTask(User user);
     BatchSearchRunner createBatchSearchRunner(User user);
 }

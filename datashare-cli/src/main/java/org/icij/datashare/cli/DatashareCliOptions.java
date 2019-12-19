@@ -155,6 +155,20 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_NLP_PARALLELISM);
     }
 
+    public static OptionSpec<Integer> scrollSize(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("scrollSize"), "Scroll size used for elasticsearch scrolls (SCANIDX task)")
+                .withRequiredArg()
+                .ofType(Integer.class).defaultsTo(1000);
+    }
+
+    public static OptionSpec<String> filterSet(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("filterSet"), "name of the set for queue filtering")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
     static OptionSpec<Boolean> enableOcr(OptionParser parser) {
         return parser.acceptsAll(
                 asList("ocr", "o"),

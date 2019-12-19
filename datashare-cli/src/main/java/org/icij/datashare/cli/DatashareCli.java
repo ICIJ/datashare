@@ -31,6 +31,8 @@ public class DatashareCli {
         DatashareCliOptions.enableOcr(parser);
         DatashareCliOptions.nlpPipelines(parser);
         DatashareCliOptions.resume(parser);
+        DatashareCliOptions.scrollSize(parser);
+        DatashareCliOptions.filterSet(parser);
         DatashareCliOptions.parallelism(parser);
         DatashareCliOptions.fileParserParallelism(parser);
         DatashareCliOptions.nlpParallelism(parser);
@@ -124,6 +126,7 @@ public class DatashareCli {
 
     public enum Stage {
         SCAN,
+        SCANIDX,
         FILTER,
         DEDUPLICATE,
         INDEX,
