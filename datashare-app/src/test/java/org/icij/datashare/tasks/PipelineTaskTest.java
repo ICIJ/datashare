@@ -17,6 +17,7 @@ import static org.icij.datashare.user.User.nullUser;
 public class PipelineTaskTest {
     private PropertiesProvider options = new PropertiesProvider(new HashMap<String, String>() {{
         put("redisAddress", "redis://redis:6379");
+        put("queueName", "test:queue");
     }});
     TestPipelineTask task = new TestPipelineTask(DatashareCli.Stage.FILTER, nullUser(), options);
     RedisDocumentQueue outputQueue = new RedisDocumentQueue(task.getOutputQueueName(), "redis://redis:6379");

@@ -166,7 +166,7 @@ public final class DatashareCliOptions {
         return parser.acceptsAll(
                 asList("filterSet"), "name of the set for queue filtering")
                 .withRequiredArg()
-                .ofType(String.class);
+                .ofType(String.class).defaultsTo("extract:filter");
     }
 
     static OptionSpec<Boolean> enableOcr(OptionParser parser) {
@@ -230,7 +230,7 @@ public final class DatashareCliOptions {
 
     static OptionSpec<String> queueName(OptionParser parser) {
         return parser.acceptsAll(
-                singletonList("queueName"), "Redis queue name (default extract:queue)")
+                singletonList("queueName"), "Redis queue name")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("extract:queue");

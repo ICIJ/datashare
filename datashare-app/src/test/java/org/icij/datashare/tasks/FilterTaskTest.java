@@ -2,51 +2,49 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
-import org.icij.datashare.test.ElasticsearchRule;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.extract.redis.RedisDocumentSet;
 import org.junit.After;
-import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
-import static java.nio.file.Paths.get;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
-import static org.icij.datashare.text.DocumentBuilder.createDoc;
+import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
 import static org.icij.datashare.user.User.local;
 
 public class FilterTaskTest {
-    @ClassRule
-    public static ElasticsearchRule es = new ElasticsearchRule();
     private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
-        put("defaultProject", TEST_INDEX);
+        put("filterSet", "extract:filter");
+        put(QUEUE_NAME_OPTION, "extract:queue");
         put("redisAddress", "redis://redis:6379");
     }});
-    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
     private RedisUserDocumentQueue queue = new RedisUserDocumentQueue(propertiesProvider);
+    private RedisDocumentSet set = new RedisDocumentSet("extract:filter","redis://redis:6379");
 
-    @After
-    public void tearDown() throws IOException {
-        queue.delete();
-        es.removeAll();
-    }
-
-    @Test
-    public void test_filter_empty() throws Exception {
-        assertThat(new FilterTask(indexer, new PropertiesProvider(), local()).call()).isEqualTo(0);
+    @Test(expected = IllegalArgumentException.class)
+    public void test_filter_with_no_filter() {
+        new FilterTask(new PropertiesProvider(), local());
     }
 
     @Test
     public void test_filter_queue_removes_already_extracted_docs() throws Exception {
-        indexer.add(TEST_INDEX, createDoc("id").with(get("/path/to/extracted")).build());
         queue.put(Paths.get("file:/path/to/doc"));
         queue.put(Paths.get("file:/path/to/extracted"));
+        set.add(Paths.get("file:/path/to/extracted"));
 
-        assertThat(new FilterTask(indexer, propertiesProvider, local()).call()).isEqualTo(1);
-        assertThat(queue.size()).isEqualTo(1);
+        FilterTask filterTask = new FilterTask(propertiesProvider, local());
+        assertThat(filterTask.call()).isEqualTo(1);
+
+        RedisUserDocumentQueue outputQueue = new RedisUserDocumentQueue(filterTask.getOutputQueueName(), propertiesProvider);
+        assertThat(outputQueue.size()).isEqualTo(1);
+        assertThat(outputQueue.take().toString()).isEqualTo("file:/path/to/doc");
+    }
+
+    @After
+    public void tearDown() {
+        queue.delete();
+        set.delete();
+        new RedisUserDocumentQueue("extract:queue:filter", propertiesProvider).delete();
     }
 }
