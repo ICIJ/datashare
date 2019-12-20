@@ -66,7 +66,7 @@ public class IndexTask extends PipelineTask implements Monitorable{
     @Override
     public Long call() throws Exception {
         logger.info("Processing up to {} file(s) in parallel", parallelism);
-        totalToProcess = drainer.drain().get();
+        totalToProcess = drainer.drain(POISON).get();
         drainer.shutdown();
         drainer.awaitTermination(10, SECONDS); // drain is finished
         logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);

@@ -11,12 +11,13 @@ import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
+import static org.icij.datashare.tasks.PipelineTask.POISON;
 import static org.icij.datashare.user.User.local;
 
 public class FilterTaskTest {
     private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
         put("filterSet", "extract:filter");
-        put(QUEUE_NAME_OPTION, "extract:queue");
+        put(QUEUE_NAME_OPTION, "extract:test");
         put("redisAddress", "redis://redis:6379");
     }});
     private RedisUserDocumentQueue queue = new RedisUserDocumentQueue(propertiesProvider);
@@ -31,13 +32,13 @@ public class FilterTaskTest {
     public void test_filter_queue_removes_already_extracted_docs() throws Exception {
         queue.put(Paths.get("file:/path/to/doc"));
         queue.put(Paths.get("file:/path/to/extracted"));
+        queue.put(POISON);
         set.add(Paths.get("file:/path/to/extracted"));
-
         FilterTask filterTask = new FilterTask(propertiesProvider, local());
         assertThat(filterTask.call()).isEqualTo(1);
 
         RedisUserDocumentQueue outputQueue = new RedisUserDocumentQueue(filterTask.getOutputQueueName(), propertiesProvider);
-        assertThat(outputQueue.size()).isEqualTo(1);
+        assertThat(outputQueue.size()).isEqualTo(2);
         assertThat(outputQueue.take().toString()).isEqualTo("file:/path/to/doc");
     }
 
@@ -45,6 +46,6 @@ public class FilterTaskTest {
     public void tearDown() {
         queue.delete();
         set.delete();
-        new RedisUserDocumentQueue("extract:queue:filter", propertiesProvider).delete();
+        new RedisUserDocumentQueue("extract:test:filter", propertiesProvider).delete();
     }
 }

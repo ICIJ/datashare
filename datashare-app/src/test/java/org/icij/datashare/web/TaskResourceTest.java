@@ -100,6 +100,8 @@ public class TaskResourceTest implements FluentRestTest {
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(2)));
+
+        verify(taskFactory).createScanIndexTask(eq(local()));
     }
 
     @Test
@@ -251,7 +253,6 @@ public class TaskResourceTest implements FluentRestTest {
             Thread.sleep(10000);
             return "ok";
         });
-        System.out.println("/api/task/stop/" + dummyTask);
         put("/api/task/stop/" + dummyTask).should().respond(200).contain("true");
 
         assertThat(taskManager.getTask(dummyTask.toString()).isCancelled()).isTrue();
@@ -295,7 +296,10 @@ public class TaskResourceTest implements FluentRestTest {
         when(taskFactory.createBatchSearchRunner(any())).thenReturn(mock(BatchSearchRunner.class));
         when(taskFactory.createScanTask(any(), any(), any())).thenReturn(mock(ScanTask.class));
         when(taskFactory.createDeduplicateTask(any())).thenReturn(mock(DeduplicateTask.class));
-        when(taskFactory.createFilterTask(any())).thenReturn(mock(FilterTask.class));
+        FilterTask filterTask = mock(FilterTask.class);
+        when(filterTask.getOutputQueueName()).thenReturn("filteredQueue");
+        when(taskFactory.createFilterTask(any())).thenReturn(filterTask);
+        when(taskFactory.createScanIndexTask(any())).thenReturn(mock(ScanIndexTask.class));
         when(taskFactory.createResumeNlpTask(any(), eq(singleton(Pipeline.Type.OPENNLP)))).thenReturn(mock(ResumeNlpTask.class));
         when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(NlpApp.class));
         when(taskFactory.createNlpTask(any(), any(), any(), any())).thenReturn(mock(NlpApp.class));
