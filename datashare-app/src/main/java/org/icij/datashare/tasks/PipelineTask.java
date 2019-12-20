@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
@@ -57,7 +58,7 @@ public abstract class PipelineTask extends DefaultTask<Long> implements UserTask
     }
 
     public String getOutputQueueName() {
-        return queue.getQueueName() + ':' + stage.name().toLowerCase();
+        return PipelineHelper.getQueueName(propertiesProvider, stage);
     }
 
     @Override

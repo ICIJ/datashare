@@ -25,7 +25,7 @@ public class FilterTaskTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_filter_with_no_filter() {
-        new FilterTask(new PropertiesProvider(), local());
+        new FilterTask(new PropertiesProvider(), local(), "queueName");
     }
 
     @Test
@@ -34,7 +34,7 @@ public class FilterTaskTest {
         queue.put(Paths.get("file:/path/to/extracted"));
         queue.put(POISON);
         set.add(Paths.get("file:/path/to/extracted"));
-        FilterTask filterTask = new FilterTask(propertiesProvider, local());
+        FilterTask filterTask = new FilterTask(propertiesProvider, local(), "extract:test");
         assertThat(filterTask.call()).isEqualTo(1);
 
         RedisUserDocumentQueue outputQueue = new RedisUserDocumentQueue(filterTask.getOutputQueueName(), propertiesProvider);

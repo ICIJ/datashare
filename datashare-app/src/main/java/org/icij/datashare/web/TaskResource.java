@@ -8,6 +8,7 @@ import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.tasks.FilterTask;
@@ -95,7 +96,8 @@ public class TaskResource {
      */
     @Post("/batchUpdate/index")
     public TaskResponse indexQueue(final OptionsWrapper optionsWrapper, Context context) {
-        IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), optionsWrapper.asProperties());
+        IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(),
+                propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), optionsWrapper.asProperties());
         return new TaskResponse(taskManager.startTask(indexTask));
     }
 
@@ -110,7 +112,7 @@ public class TaskResource {
      */
     @Post("/batchUpdate/index/file")
     public List<TaskResponse> indexDefault(final OptionsWrapper optionsWrapper, Context context) throws Exception {
-        return indexFile(propertiesProvider.getProperties().getProperty("dataDir"), optionsWrapper, context);
+        return indexFile(propertiesProvider.get("dataDir").orElse("/home/datashare/data"), optionsWrapper, context);
     }
 
     /**
@@ -129,15 +131,14 @@ public class TaskResource {
         User user = (User) context.currentUser();
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
             taskFactory.createScanIndexTask(user).call();
-            FilterTask filterTask = taskFactory.createFilterTask(user);
-            properties.setProperty(QUEUE_NAME_OPTION, filterTask.getOutputQueueName());
+            FilterTask filterTask = taskFactory.createFilterTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"));
             return asList(
                     scanResponse,
                     new TaskResponse(taskManager.startTask(filterTask)),
-                    new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(user, properties)))
+                    new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(user, filterTask.getOutputQueueName(), properties)))
             );
         } else {
-            return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(user, properties))));
+            return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), properties))));
         }
     }
 
@@ -154,7 +155,7 @@ public class TaskResource {
     @Post("/batchUpdate/scan/:filePath:")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         Path path = get("/", filePath);
-        return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path,
+        return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
                 propertiesProvider.createMerged(optionsWrapper.asProperties()))));
     }
 

@@ -19,8 +19,8 @@ public class ScanTask extends PipelineTask {
     private final Path path;
 
     @Inject
-    public ScanTask(@Assisted User user, @Assisted Path path, @Assisted final Properties properties) {
-        super(DatashareCli.Stage.SCAN, user, new PropertiesProvider(properties));
+    public ScanTask(@Assisted User user, @Assisted String queueName, @Assisted Path path, @Assisted final Properties properties) {
+        super(DatashareCli.Stage.SCAN, user, queueName, new PropertiesProvider(properties));
         this.path = path.resolve(user.getPath());
         Options<String> allOptions = options().createFrom(Options.from(properties));
         scanner = new Scanner(queue).configure(allOptions);

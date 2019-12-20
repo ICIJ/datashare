@@ -15,17 +15,14 @@ public class DeduplicateTask extends PipelineTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    public DeduplicateTask(final PropertiesProvider propertiesProvider, @Assisted User user) {
-        super(DatashareCli.Stage.DEDUPLICATE, user, propertiesProvider);
+    public DeduplicateTask(final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
+        super(DatashareCli.Stage.DEDUPLICATE, user, queueName, propertiesProvider);
     }
 
     @Override
     public Long call() throws Exception {
-        if (queue.size() == 0) {
-            logger.info("filter empty queue {} nothing to do", queue.getName());
-            return 0L;
-        }
         int duplicates = queue.removeDuplicates();
+        transferToOutputQueue();
         logger.info("removed {} duplicate paths in queue {}", duplicates, queue.getName());
         queue.close();
         return (long)duplicates;

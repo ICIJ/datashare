@@ -24,9 +24,7 @@ import java.util.Set;
 
 import static com.google.inject.Guice.createInjector;
 import static java.lang.Boolean.parseBoolean;
-import static java.util.Arrays.stream;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 import static org.icij.datashare.user.User.nullUser;
 
@@ -51,8 +49,7 @@ class CliApp {
     private static void runTaskRunner(Injector injector, Properties properties) throws Exception {
         TaskManager taskManager = injector.getInstance(TaskManager.class);
         TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
-        Set<DatashareCli.Stage> stages = stream(properties.getProperty(DatashareCliOptions.STAGES_OPT).
-                split(String.valueOf(DatashareCliOptions.ARG_VALS_SEP))).map(DatashareCli.Stage::valueOf).collect(toSet());
+
         Set<Pipeline.Type> nlpPipelines = parseAll(properties.getProperty(DatashareCliOptions.NLP_PIPELINES_OPT));
         Indexer indexer = injector.getInstance(Indexer.class);
 
@@ -67,29 +64,30 @@ class CliApp {
             }
         }
 
-        if (stages.contains(DatashareCli.Stage.FILTER)) {
-            taskManager.startTask(taskFactory.createFilterTask(nullUser()));
+        PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
+        if (pipeline.has(DatashareCli.Stage.FILTER)) {
+            taskManager.startTask(taskFactory.createFilterTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.FILTER)));
         }
 
-        if (stages.contains(DatashareCli.Stage.DEDUPLICATE)) {
-            taskManager.startTask(taskFactory.createDeduplicateTask(nullUser()));
+        if (pipeline.has(DatashareCli.Stage.DEDUPLICATE)) {
+            taskManager.startTask(taskFactory.createDeduplicateTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.DEDUPLICATE)));
         }
 
-        if (stages.contains(DatashareCli.Stage.SCANIDX)) {
+        if (pipeline.has(DatashareCli.Stage.SCANIDX)) {
             taskManager.startTask(taskFactory.createScanIndexTask(nullUser()));
         }
 
-        if (stages.contains(DatashareCli.Stage.SCAN) && !resume(properties)) {
-            taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), properties),
+        if (pipeline.has(DatashareCli.Stage.SCAN) && !resume(properties)) {
+            taskManager.startTask(taskFactory.createScanTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.SCAN), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), properties),
                     () -> closeAndLogException(injector.getInstance(DocumentQueue.class)).run());
         }
 
-        if (stages.contains(DatashareCli.Stage.INDEX)) {
-            taskManager.startTask(taskFactory.createIndexTask(nullUser(), properties),
+        if (pipeline.has(DatashareCli.Stage.INDEX)) {
+            taskManager.startTask(taskFactory.createIndexTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.INDEX), properties),
                     () -> closeAndLogException(injector.getInstance(DocumentQueue.class)).run());
         }
 
-        if (stages.contains(DatashareCli.Stage.NLP)) {
+        if (pipeline.has(DatashareCli.Stage.NLP)) {
             for (Pipeline.Type nlp : nlpPipelines) {
                 Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
                 taskManager.startTask(taskFactory.createNlpTask(nullUser(), injector.getInstance(pipelineClass)));

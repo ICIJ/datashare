@@ -120,7 +120,7 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/api/task/batchUpdate/index/file", "{}");
 
         response.should().respond(200).haveType("application/json");
-        verify(taskFactory).createScanTask(local(), Paths.get("/default/data/dir"), new PropertiesProvider(new HashMap<String, String>() {{
+        verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get("/default/data/dir"), new PropertiesProvider(new HashMap<String, String>() {{
             put("dataDir", "/default/data/dir");
         }}).getProperties());
     }
@@ -141,12 +141,12 @@ public class TaskResourceTest implements FluentRestTest {
                 "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(local(), "extract:queue", new PropertiesProvider(new HashMap<String, String>() {{
             put("dataDir", "/default/data/dir");
             put("key1", "val1");
             put("key2", "val2");
         }}).getProperties());
-        verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(new HashMap<String, String>() {{
+        verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get(path), new PropertiesProvider(new HashMap<String, String>() {{
             put("dataDir", "/default/data/dir");
             put("key1", "val1");
             put("key2", "val2");
@@ -158,11 +158,11 @@ public class TaskResourceTest implements FluentRestTest {
         RestAssert response = post("/api/task/batchUpdate/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(local(),  new PropertiesProvider(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(local(), "extract:queue", new PropertiesProvider(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}).getProperties());
-        verify(taskFactory, never()).createScanTask(eq(local()), any(Path.class), any(Properties.class));
+        verify(taskFactory, never()).createScanTask(eq(local()), eq("extract:queue"), any(Path.class), any(Properties.class));
     }
 
     @Test
@@ -176,12 +176,12 @@ public class TaskResourceTest implements FluentRestTest {
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
-        verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(new HashMap<String, String>() {{
+        verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get(path), new PropertiesProvider(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
             put("dataDir", "/default/data/dir");
         }}).getProperties());
-        verify(taskFactory, never()).createIndexTask(any(User.class), any(Properties.class));
+        verify(taskFactory, never()).createIndexTask(any(User.class), anyString(), any(Properties.class));
     }
 
     @Test
@@ -292,13 +292,13 @@ public class TaskResourceTest implements FluentRestTest {
 
     private void init(TaskFactory taskFactory) {
         reset(taskFactory);
-        when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
+        when(taskFactory.createIndexTask(any(), any(), any())).thenReturn(mock(IndexTask.class));
         when(taskFactory.createBatchSearchRunner(any())).thenReturn(mock(BatchSearchRunner.class));
-        when(taskFactory.createScanTask(any(), any(), any())).thenReturn(mock(ScanTask.class));
-        when(taskFactory.createDeduplicateTask(any())).thenReturn(mock(DeduplicateTask.class));
+        when(taskFactory.createScanTask(any(), any(), any(), any())).thenReturn(mock(ScanTask.class));
+        when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(mock(DeduplicateTask.class));
         FilterTask filterTask = mock(FilterTask.class);
         when(filterTask.getOutputQueueName()).thenReturn("filteredQueue");
-        when(taskFactory.createFilterTask(any())).thenReturn(filterTask);
+        when(taskFactory.createFilterTask(any(), any())).thenReturn(filterTask);
         when(taskFactory.createScanIndexTask(any())).thenReturn(mock(ScanIndexTask.class));
         when(taskFactory.createResumeNlpTask(any(), eq(singleton(Pipeline.Type.OPENNLP)))).thenReturn(mock(ResumeNlpTask.class));
         when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(NlpApp.class));

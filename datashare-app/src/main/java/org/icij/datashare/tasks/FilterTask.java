@@ -17,8 +17,8 @@ public class FilterTask extends PipelineTask {
     private final RedisDocumentSet filterSet;
 
     @Inject
-    public FilterTask(final PropertiesProvider propertiesProvider, @Assisted User user) {
-        super(DatashareCli.Stage.FILTER, user, propertiesProvider);
+    public FilterTask(final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
+        super(DatashareCli.Stage.FILTER, user, queueName, propertiesProvider);
         this.filterSet = new RedisDocumentSet(
                 propertiesProvider.get("filterSet").orElseThrow(() -> new IllegalArgumentException("no filterSet property defined")),
                 propertiesProvider.get("redisAddress").orElse("redis://redis:6379"));
