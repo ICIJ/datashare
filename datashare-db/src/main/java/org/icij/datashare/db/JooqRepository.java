@@ -25,14 +25,13 @@ import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
 import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
 import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
-import static org.icij.datashare.db.tables.Project.PROJECT;
 import static org.icij.datashare.db.tables.Note.NOTE;
+import static org.icij.datashare.db.tables.Project.PROJECT;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
 import static org.icij.datashare.text.Project.project;
-import static org.jooq.impl.DSL.condition;
-import static org.jooq.impl.DSL.using;
+import static org.jooq.impl.DSL.*;
 
 public class JooqRepository implements Repository {
     private final DataSource connectionProvider;
@@ -220,9 +219,9 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<Note> getNotes(Project prj, String pathPrefix) {
+    public List<Note> getNotes(Project prj, String documentPath) {
         return DSL.using(connectionProvider, dialect).selectFrom(NOTE).
-                where(NOTE.PROJECT_ID.eq(prj.getId())).and(NOTE.PATH.startsWith(pathPrefix)).
+                where(NOTE.PROJECT_ID.eq(prj.getId())).and(value(documentPath).like(NOTE.PATH.concat('%'))).
                 stream().map(this::createNoteFrom).collect(toList());
     }
 

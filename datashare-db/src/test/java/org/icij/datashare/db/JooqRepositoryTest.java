@@ -213,13 +213,15 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_create_get_notes() {
-        Note note = new Note(project("project"), Paths.get("/path/to/note"), "this is a note");
-        repository.save(note);
+        Note note1 = new Note(project("project"), Paths.get("/path"), "this is note 1");
+        Note note2 = new Note(project("project"), Paths.get("/path/to/note"), "this is note 2");
+        repository.save(note1);
+        repository.save(note2);
 
-        assertThat(repository.getNotes(project("other"), "/")).isEmpty();
-        assertThat(repository.getNotes(project("project"), "/path/wrong")).isEmpty();
+        assertThat(repository.getNotes(project("project"), "/doc.txt")).isEmpty();
+        assertThat(repository.getNotes(project("project"), "/other/path/to/doc.txt")).isEmpty();
 
-        assertThat(repository.getNotes(project("project"), "/")).containsExactly(note);
-        assertThat(repository.getNotes(project("project"), "/path/to/note")).containsExactly(note);
+        assertThat(repository.getNotes(project("project"), "/path/to/doc.txt")).containsExactly(note1);
+        assertThat(repository.getNotes(project("project"), "/path/to/note/for/my/doc.txt")).containsExactly(note1, note2);
     }
 }
