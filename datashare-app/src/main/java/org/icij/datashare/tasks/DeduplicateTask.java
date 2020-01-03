@@ -15,8 +15,8 @@ public class DeduplicateTask extends PipelineTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    public DeduplicateTask(final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
-        super(DatashareCli.Stage.DEDUPLICATE, user, queueName, propertiesProvider);
+    public DeduplicateTask(final DocumentCollectionFactory factory, final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
+        super(DatashareCli.Stage.DEDUPLICATE, user, queueName, factory, propertiesProvider);
     }
 
     @Override

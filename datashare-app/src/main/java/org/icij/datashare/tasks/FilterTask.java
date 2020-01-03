@@ -5,7 +5,7 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.user.User;
-import org.icij.extract.redis.RedisDocumentSet;
+import org.icij.extract.queue.DocumentSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,14 +14,12 @@ import org.slf4j.LoggerFactory;
  */
 public class FilterTask extends PipelineTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final RedisDocumentSet filterSet;
+    private final DocumentSet filterSet;
 
     @Inject
-    public FilterTask(final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
-        super(DatashareCli.Stage.FILTER, user, queueName, propertiesProvider);
-        this.filterSet = new RedisDocumentSet(
-                propertiesProvider.get("filterSet").orElseThrow(() -> new IllegalArgumentException("no filterSet property defined")),
-                propertiesProvider.get("redisAddress").orElse("redis://redis:6379"));
+    public FilterTask(final DocumentCollectionFactory factory, final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
+        super(DatashareCli.Stage.FILTER, user, queueName, factory, propertiesProvider);
+        this.filterSet = factory.createSet(propertiesProvider, propertiesProvider.get("filterSet").orElseThrow(() -> new IllegalArgumentException("no filterSet property defined")));
     }
 
     @Override

@@ -1,9 +1,7 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.extract.RedisUserDocumentQueue;
-import org.icij.extract.redis.RedisDocumentSet;
-import org.junit.After;
+import org.icij.extract.queue.DocumentQueue;
 import org.junit.Test;
 
 import java.nio.file.Paths;
@@ -18,34 +16,26 @@ public class FilterTaskTest {
     private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
         put("filterSet", "extract:filter");
         put(QUEUE_NAME_OPTION, "extract:test");
-        put("redisAddress", "redis://redis:6379");
     }});
-    private RedisUserDocumentQueue queue = new RedisUserDocumentQueue(propertiesProvider);
-    private RedisDocumentSet set = new RedisDocumentSet("extract:filter","redis://redis:6379");
+    DocumentCollectionFactory docCollectionFactory = new MemoryDocumentCollectionFactory();
 
     @Test(expected = IllegalArgumentException.class)
     public void test_filter_with_no_filter() {
-        new FilterTask(new PropertiesProvider(), local(), "queueName");
+        new FilterTask(docCollectionFactory, new PropertiesProvider(), local(), "queueName");
     }
 
     @Test
     public void test_filter_queue_removes_already_extracted_docs() throws Exception {
-        queue.put(Paths.get("file:/path/to/doc"));
-        queue.put(Paths.get("file:/path/to/extracted"));
-        queue.put(POISON);
-        set.add(Paths.get("file:/path/to/extracted"));
-        FilterTask filterTask = new FilterTask(propertiesProvider, local(), "extract:test");
+        docCollectionFactory.createQueue(propertiesProvider, "extract:test").put(Paths.get("file:/path/to/doc"));
+        docCollectionFactory.createQueue(propertiesProvider, "extract:test").put(Paths.get("file:/path/to/extracted"));
+        docCollectionFactory.createQueue(propertiesProvider, "extract:test").put(POISON);
+        docCollectionFactory.createSet(propertiesProvider, "extract:filter").add(Paths.get("file:/path/to/extracted"));
+
+        FilterTask filterTask = new FilterTask(docCollectionFactory, propertiesProvider, local(), "extract:test");
         assertThat(filterTask.call()).isEqualTo(1);
 
-        RedisUserDocumentQueue outputQueue = new RedisUserDocumentQueue(filterTask.getOutputQueueName(), propertiesProvider);
+        DocumentQueue outputQueue = docCollectionFactory.createQueue(propertiesProvider, filterTask.getOutputQueueName());
         assertThat(outputQueue.size()).isEqualTo(2);
         assertThat(outputQueue.take().toString()).isEqualTo("file:/path/to/doc");
-    }
-
-    @After
-    public void tearDown() {
-        queue.delete();
-        set.delete();
-        new RedisUserDocumentQueue("extract:test:filter", propertiesProvider).delete();
     }
 }

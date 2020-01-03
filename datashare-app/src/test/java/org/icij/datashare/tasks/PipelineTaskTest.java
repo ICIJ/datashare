@@ -3,11 +3,9 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.user.User;
-import org.icij.extract.redis.RedisDocumentQueue;
-import org.junit.After;
+import org.icij.extract.queue.DocumentQueue;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.HashMap;
 
 import static java.nio.file.Paths.get;
@@ -17,20 +15,20 @@ import static org.icij.datashare.user.User.nullUser;
 
 public class PipelineTaskTest {
     private PropertiesProvider options = new PropertiesProvider(new HashMap<String, String>() {{
-        put("redisAddress", "redis://redis:6379");
         put("queueName", "test:queue");
     }});
+    DocumentCollectionFactory docCollectionFactory = new MemoryDocumentCollectionFactory();
     TestPipelineTask task = new TestPipelineTask(DatashareCli.Stage.FILTER, nullUser(), options);
-    RedisDocumentQueue outputQueue = new RedisDocumentQueue(task.getOutputQueueName(), "redis://redis:6379");
 
     @Test
-    public void test_pipeline_task_transfer_to_output_queue() throws InterruptedException {
+    public void test_pipeline_task_transfer_to_output_queue() throws Exception {
         task.queue.put(get("/path/to/doc1"));
         task.queue.put(get("/path/to/doc2"));
 
         task.transferToOutputQueue();
 
         assertThat(task.queue.isEmpty()).isTrue();
+        DocumentQueue outputQueue = docCollectionFactory.createQueue(options, task.getOutputQueueName());
         assertThat(outputQueue.size()).isEqualTo(2);
         assertThat(outputQueue.poll().toString()).isEqualTo("/path/to/doc1");
         assertThat(outputQueue.poll().toString()).isEqualTo("/path/to/doc2");
@@ -45,20 +43,16 @@ public class PipelineTaskTest {
         task.transferToOutputQueue(p -> p.toString().contains("1"));
 
         assertThat(task.queue.isEmpty()).isTrue();
+        DocumentQueue outputQueue = docCollectionFactory.createQueue(options, task.getOutputQueueName());
         assertThat(outputQueue.size()).isEqualTo(2);
         assertThat(outputQueue.poll().toString()).isEqualTo("/path/to/doc1");
         assertThat(outputQueue.poll().toString()).isEqualTo(POISON.toString());
     }
 
-    static class TestPipelineTask extends PipelineTask {
+    class TestPipelineTask extends PipelineTask {
         public TestPipelineTask(DatashareCli.Stage stage, User user, PropertiesProvider propertiesProvider) {
-            super(stage, user, propertiesProvider);
+            super(stage, user, docCollectionFactory, propertiesProvider);
         }
         @Override public Long call() { return 0L;}
-    }
-    @After
-    public void tearDown() throws IOException {
-        task.queue.delete();
-        outputQueue.delete();
     }
 }

@@ -17,6 +17,9 @@ import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.redis.RedisPublisher;
 import org.icij.datashare.db.RepositoryFactoryImpl;
+import org.icij.datashare.extract.RedisUserDocumentQueue;
+import org.icij.datashare.extract.RedisUserDocumentSet;
+import org.icij.datashare.tasks.DocumentCollectionFactory;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.indexing.Indexer;
@@ -25,6 +28,8 @@ import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.datashare.web.ConfigResource;
 import org.icij.datashare.web.RootResource;
+import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.queue.DocumentSet;
 
 import java.util.Map;
 import java.util.Properties;
@@ -75,6 +80,10 @@ public class CommonMode extends AbstractModule {
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
         bind(TaskManager.class).toInstance(new TaskManager(propertiesProvider));
         install(new FactoryModuleBuilder().build(TaskFactory.class));
+        install(new FactoryModuleBuilder().
+                implement(DocumentQueue.class, RedisUserDocumentQueue.class).
+                implement(DocumentSet.class, RedisUserDocumentSet.class).
+                build(DocumentCollectionFactory.class));
         bind(Publisher.class).to(RedisPublisher.class);
     }
 

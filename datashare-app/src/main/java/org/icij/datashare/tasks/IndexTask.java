@@ -45,9 +45,9 @@ public class IndexTask extends PipelineTask implements Monitorable{
     private final Integer parallelism;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final Publisher publisher, @Assisted User user, @Assisted String queueName,
+    public IndexTask(final ElasticsearchSpewer spewer, final Publisher publisher, final DocumentCollectionFactory factory, @Assisted User user, @Assisted String queueName,
                      @Assisted final Properties properties) {
-        super(DatashareCli.Stage.INDEX, user, queueName, new PropertiesProvider(properties));
+        super(DatashareCli.Stage.INDEX, user, queueName, factory, new PropertiesProvider(properties));
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
         parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         this.publisher = publisher;

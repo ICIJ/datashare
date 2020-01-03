@@ -17,7 +17,7 @@ public class IndexTaskTest {
     public void test_index_task_uses_users_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(Publisher.class), local(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
+        new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), local(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
             put("redisAddress", "redis://redis:6379");
         }}).getProperties());
 
@@ -27,7 +27,7 @@ public class IndexTaskTest {
     public void test_index_task_with_null_user_and_null_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(Publisher.class), local(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
+        new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), local(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
             put("redisAddress", "redis://redis:6379");
         }}).getProperties());
 
@@ -37,7 +37,7 @@ public class IndexTaskTest {
     public void test_index_task_null_user_uses_options_for_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(Publisher.class), nullUser(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
+        new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
             put("redisAddress", "redis://redis:6379");
             put("defaultProject", "foo");
         }}).getProperties());
