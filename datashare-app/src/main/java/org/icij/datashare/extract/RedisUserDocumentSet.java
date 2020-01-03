@@ -26,5 +26,4 @@ public class RedisUserDocumentSet extends RedisDocumentSet {
     private static String getSetName(User user, String baseName) {
         return user.isNull() ? baseName : baseName + "_" + user.id;
     }
-
 }
