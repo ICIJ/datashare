@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
 import org.icij.datashare.db.tables.records.*;
 import org.icij.datashare.text.*;
@@ -25,11 +26,13 @@ import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
 import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
 import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
 import static org.icij.datashare.db.tables.Project.PROJECT;
+import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
 import static org.icij.datashare.text.Project.project;
-import static org.jooq.impl.DSL.*;
+import static org.jooq.impl.DSL.condition;
+import static org.jooq.impl.DSL.using;
 
 public class JooqRepository implements Repository {
     private final DataSource connectionProvider;
@@ -216,12 +219,33 @@ public class JooqRepository implements Repository {
                 where(PROJECT.ID.eq(projectId)).fetchOne());
     }
 
+    @Override
+    public List<Note> getNotes(Project prj, String pathPrefix) {
+        return DSL.using(connectionProvider, dialect).selectFrom(NOTE).
+                where(NOTE.PROJECT_ID.eq(prj.getId())).and(NOTE.PATH.startsWith(pathPrefix)).
+                stream().map(this::createNoteFrom).collect(toList());
+    }
+
+    @Override
+    public boolean save(Note note) {
+        return DSL.using(connectionProvider, dialect).insertInto(NOTE, NOTE.PROJECT_ID, NOTE.PATH, NOTE.NOTE_, NOTE.VARIANT).
+                values(note.project.name, note.path.toString(), note.note, note.variant.name()).execute() > 0;
+    }
+
     boolean save(Project project) {
         return DSL.using(connectionProvider, dialect).insertInto(PROJECT, PROJECT.ID, PROJECT.PATH, PROJECT.ALLOW_FROM_MASK).
                 values(project.name, project.sourcePath.toString(), project.allowFromMask).execute() > 0;
     }
 
     // ---------------------------
+    private Note createNoteFrom(NoteRecord noteRecord) {
+        return noteRecord == null ? null: new Note(
+                project(noteRecord.getProjectId()),
+                Paths.get(noteRecord.getPath()),
+                noteRecord.getNote(),
+                Note.Variant.valueOf(noteRecord.getVariant()));
+    }
+
     private Project createProjectFrom(ProjectRecord record) {
         return record == null ? null: new Project(record.getId(), Paths.get(record.getPath()), record.getAllowFromMask());
     }

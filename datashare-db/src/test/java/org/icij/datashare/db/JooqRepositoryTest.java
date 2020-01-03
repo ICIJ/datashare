@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 
+import org.icij.datashare.Note;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
@@ -208,5 +209,17 @@ public class JooqRepositoryTest {
 
         assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).isEmpty();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
+    }
+
+    @Test
+    public void test_create_get_notes() {
+        Note note = new Note(project("project"), Paths.get("/path/to/note"), "this is a note");
+        repository.save(note);
+
+        assertThat(repository.getNotes(project("other"), "/")).isEmpty();
+        assertThat(repository.getNotes(project("project"), "/path/wrong")).isEmpty();
+
+        assertThat(repository.getNotes(project("project"), "/")).containsExactly(note);
+        assertThat(repository.getNotes(project("project"), "/path/to/note")).containsExactly(note);
     }
 }

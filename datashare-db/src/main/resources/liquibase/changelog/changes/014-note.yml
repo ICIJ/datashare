@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: 23
+      author: bthomas
+      changes:
+        - createTable:
+            tableName: note
+            columns:
+              - column:
+                  name: project_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: path
+                  type: varchar(4096)
+              - column:
+                  name: note
+                  type: text
+              - column:
+                  name: variant
+                  type: varchar(16)
+
+        - createIndex:
+            indexName: note_project
+            tableName: note
+            columns:
+              - column:
+                  name: project_id
+                  type: varchar(96)
+
+  - changeSet:
+      id: 24
+      author: bthomas
+      sql:
+        - CREATE UNIQUE INDEX idx_unique_note_path_project ON note (project_id, path)

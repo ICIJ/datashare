@@ -30,6 +30,7 @@ public class LocalMode extends CommonMode {
                 add(DocumentResource.class).
                 add(BatchSearchResource.class).
                 add(ProjectResource.class).
+                add(NoteResource.class).
                 add(NlpResource.class).
                 filter(IndexWaiterFilter.class);
     }
