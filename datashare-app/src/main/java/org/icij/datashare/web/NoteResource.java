@@ -31,7 +31,7 @@ public class NoteResource {
      * @return list of Note
      *
      * Example:
-     * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/notes/url)
+     * $(curl localhost:8080/api/apigen-datashare/notes/path/to/note)
      */
     @Get("/:project/notes/:url:")
     public List<Note> getNotes(String project, String pathPrefix, Context context) {
