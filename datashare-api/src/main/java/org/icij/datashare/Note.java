@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public class Note {
     public enum Variant {
-        DARK, LIGHT, DANGER, INFO, SUCCESS, WARNING, PRIMARY, SECONDARY
+        dark, light, danger, info, success, warning, primary, secondary
     }
     public final Project project;
     public final String note;
@@ -15,7 +15,7 @@ public class Note {
     public final Variant variant;
 
     public Note(Project project, Path path, String note) {
-        this(project, path, note, Variant.INFO);
+        this(project, path, note, Variant.info);
     }
 
     public Note(Project project, Path path, String note, Variant variant) {
