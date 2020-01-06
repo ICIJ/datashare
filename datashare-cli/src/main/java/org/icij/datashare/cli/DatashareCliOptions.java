@@ -129,12 +129,28 @@ public final class DatashareCliOptions {
                 .defaultsTo("redis");
     }
 
+    public static OptionSpec<String> busType(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList("busType"),
+                "Backend data bus type. Values can be \"memory\" or \"redis\"")
+                .withRequiredArg()
+                .defaultsTo("redis");
+    }
+
     static OptionSpec<String> redisAddress(OptionParser parser) {
             return parser.acceptsAll(
                     singletonList("redisAddress"),
                     "Redis queue address")
                     .withRequiredArg()
                     .defaultsTo("redis://redis:6379");
+        }
+
+    static OptionSpec<String> queueType(OptionParser parser) {
+            return parser.acceptsAll(
+                    singletonList("queueType"),
+                    "Backend queues and sets type. Values can be \"memory\" or \"redis\"")
+                    .withRequiredArg()
+                    .defaultsTo("redis");
         }
 
     static OptionSpec<Integer> fileParserParallelism(OptionParser parser) {

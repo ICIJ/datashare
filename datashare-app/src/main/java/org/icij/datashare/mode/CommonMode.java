@@ -20,6 +20,7 @@ import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.extract.RedisUserDocumentSet;
 import org.icij.datashare.tasks.DocumentCollectionFactory;
+import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.indexing.Indexer;
@@ -80,10 +81,14 @@ public class CommonMode extends AbstractModule {
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
         bind(TaskManager.class).toInstance(new TaskManager(propertiesProvider));
         install(new FactoryModuleBuilder().build(TaskFactory.class));
-        install(new FactoryModuleBuilder().
+        if ("memory".equals(propertiesProvider.getProperties().get("queueType"))) {
+            bind(DocumentCollectionFactory.class).to(MemoryDocumentCollectionFactory.class).asEagerSingleton();
+        } else {
+            install(new FactoryModuleBuilder().
                 implement(DocumentQueue.class, RedisUserDocumentQueue.class).
                 implement(DocumentSet.class, RedisUserDocumentSet.class).
                 build(DocumentCollectionFactory.class));
+        }
         bind(Publisher.class).to(RedisPublisher.class);
     }
 

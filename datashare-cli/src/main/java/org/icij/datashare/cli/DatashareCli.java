@@ -47,6 +47,8 @@ public class DatashareCli {
         DatashareCliOptions.queueName(parser);
 
         DatashareCliOptions.cors(parser);
+        DatashareCliOptions.queueType(parser);
+        DatashareCliOptions.busType(parser);
         DatashareCliOptions.messageBusAddress(parser);
         DatashareCliOptions.redisAddress(parser);
         DatashareCliOptions.dataSourceUrl(parser);
