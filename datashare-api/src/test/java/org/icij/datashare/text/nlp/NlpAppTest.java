@@ -4,7 +4,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.ShutdownMessage;
-import org.icij.datashare.com.redis.RedisPublisher;
+import org.icij.datashare.com.redis.RedisDataBus;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.After;
@@ -38,7 +38,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class NlpAppTest {
     @Mock private AbstractPipeline pipeline;
     @Mock private Indexer indexer;
-    private RedisPublisher publisher = new RedisPublisher(new PropertiesProvider());
+    private RedisDataBus publisher = new RedisDataBus(new PropertiesProvider());
     private final ExecutorService executor = Executors.newFixedThreadPool(3);
 
     @Test(timeout = 5000)
@@ -113,7 +113,7 @@ public class NlpAppTest {
             if (nlpProcessDelayMillis > 0) Thread.sleep(nlpProcessDelayMillis);
             return new Annotations("docid_mock", Pipeline.Type.CORENLP, Language.FRENCH);
         });
-        NlpApp nlpApp = new NlpApp(indexer, pipeline, properties, latch::countDown, 1, local());
+        NlpApp nlpApp = new NlpApp(publisher, indexer, pipeline, properties, latch::countDown,1, local());
         executor.execute(nlpApp);
         latch.await(2, SECONDS);
         return nlpApp;

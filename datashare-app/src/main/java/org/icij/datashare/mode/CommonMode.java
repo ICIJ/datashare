@@ -14,8 +14,10 @@ import org.icij.datashare.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.com.DataBus;
 import org.icij.datashare.com.Publisher;
-import org.icij.datashare.com.redis.RedisPublisher;
+import org.icij.datashare.com.memory.MemoryDataBus;
+import org.icij.datashare.com.redis.RedisDataBus;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.extract.RedisUserDocumentSet;
@@ -81,6 +83,7 @@ public class CommonMode extends AbstractModule {
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
         bind(TaskManager.class).toInstance(new TaskManager(propertiesProvider));
         install(new FactoryModuleBuilder().build(TaskFactory.class));
+
         if ("memory".equals(propertiesProvider.getProperties().get("queueType"))) {
             bind(DocumentCollectionFactory.class).to(MemoryDocumentCollectionFactory.class).asEagerSingleton();
         } else {
@@ -89,7 +92,14 @@ public class CommonMode extends AbstractModule {
                 implement(DocumentSet.class, RedisUserDocumentSet.class).
                 build(DocumentCollectionFactory.class));
         }
-        bind(Publisher.class).to(RedisPublisher.class);
+        DataBus dataBus;
+        if ("memory".equals(propertiesProvider.getProperties().get("busType"))) {
+            dataBus = new MemoryDataBus();
+        } else {
+            dataBus = new RedisDataBus(propertiesProvider);
+        }
+        bind(DataBus.class).toInstance(dataBus);
+        bind(Publisher.class).toInstance((Publisher)dataBus);
     }
 
     public Properties properties() {

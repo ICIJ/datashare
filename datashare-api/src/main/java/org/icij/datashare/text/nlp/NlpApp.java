@@ -6,6 +6,7 @@ import com.google.inject.assistedinject.Assisted;
 import com.google.inject.assistedinject.AssistedInject;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.com.DataBus;
 import org.icij.datashare.user.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.ShutdownMessage;
@@ -42,17 +43,17 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
     private ExecutorService threadPool = null;
 
     @AssistedInject
-    public NlpApp(final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted final AbstractPipeline pipeline, @Assisted final User user) {
-        this(indexer, pipeline, propertiesProvider.getProperties(), () -> {}, 0, user);
+    public NlpApp(final DataBus dataBus, final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted final AbstractPipeline pipeline, @Assisted final User user) {
+        this(dataBus, indexer, pipeline, propertiesProvider.getProperties(), () -> {}, 0, user);
     }
 
     @AssistedInject
-    public NlpApp(final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties,
+    public NlpApp(final DataBus dataBus, final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties,
                   @Assisted final User user, @Assisted final Runnable subscribeCb) {
-        this(indexer, pipeline, properties, subscribeCb, 0, user);
+        this(dataBus, indexer, pipeline, properties, subscribeCb, 0, user);
     }
 
-    NlpApp(final Indexer indexer, final AbstractPipeline pipeline, final Properties properties,
+    NlpApp(final DataBus dataBus, final Indexer indexer, final AbstractPipeline pipeline, final Properties properties,
            Runnable subscribedCb, long shutdownTimeoutMillis, User user) {
         this.pipeline = pipeline;
         this.indexer = indexer;
@@ -61,7 +62,7 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
         this.user = user;
 
         parallelism = parseInt(ofNullable(properties.getProperty(NLP_PARALLELISM_OPT)).orElse("1"));
-        forwarder = new NlpForwarder(properties, queue, subscribedCb);
+        forwarder = new NlpForwarder(dataBus, queue, subscribedCb);
     }
 
     public void run() {

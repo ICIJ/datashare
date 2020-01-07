@@ -1,14 +1,12 @@
 package org.icij.datashare.text.nlp;
 
 import org.icij.datashare.com.Channel;
+import org.icij.datashare.com.DataBus;
 import org.icij.datashare.com.Message;
-import org.icij.datashare.com.redis.RedisSubscriber;
 import org.icij.datashare.monitoring.Monitorable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
 
-import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -17,24 +15,22 @@ import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 
 public class NlpForwarder implements DatashareListener,Monitorable {
+    private final DataBus dataBus;
     private final BlockingQueue<Message> messageQueue;
     private final Runnable subscribedCallback;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final String busAddress;
     private final AtomicLong totalToProcess = new AtomicLong(0);
     private final AtomicLong processed = new AtomicLong(0);
 
-    NlpForwarder(Properties properties, BlockingQueue<Message> messageQueue, Runnable subscribedCallback) {
+    NlpForwarder(DataBus dataBus, BlockingQueue<Message> messageQueue, Runnable subscribedCallback) {
+        this.dataBus = dataBus;
         this.messageQueue = messageQueue;
         this.subscribedCallback = subscribedCallback;
-        String messageBusAddress = properties.getProperty("messageBusAddress");
-        busAddress = messageBusAddress == null ? "localhost": messageBusAddress;
     }
 
     @Override
     public void run() {
-        logger.info("waiting for messages on host [{}]", busAddress);
-        createRedisSubscriber().subscribe(Channel.NLP).run();
+        dataBus.subscribe(this::onMessage, subscribedCallback, Channel.NLP);
     }
 
     void onMessage(final Message message) {
@@ -51,10 +47,6 @@ public class NlpForwarder implements DatashareListener,Monitorable {
                 logger.warn("cannot offer message {} to queue, it must be reprocessed later", message);
             }
         }
-    }
-
-    private RedisSubscriber createRedisSubscriber() {
-        return new RedisSubscriber(new Jedis(busAddress), this::onMessage, subscribedCallback);
     }
 
     public double getProgressRate() {
