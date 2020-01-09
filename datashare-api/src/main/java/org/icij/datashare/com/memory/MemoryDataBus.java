@@ -39,6 +39,7 @@ public class MemoryDataBus implements Publisher, DataBus {
                 listener.message.wait();
             }
         }
+        logger.info("exiting {}", subscriber);
         return listener.nbMessages.get();
     }
 
