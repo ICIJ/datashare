@@ -1,9 +1,11 @@
 package org.icij.datashare.com.memory;
 
-import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
+import org.icij.datashare.com.ShutdownMessage;
+import org.junit.After;
 import org.junit.Test;
 
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -12,58 +14,70 @@ import static org.icij.datashare.com.Channel.NLP;
 import static org.icij.datashare.com.Channel.TEST;
 
 public class MemoryDataBusTest {
+    private ExecutorService executor = Executors.newFixedThreadPool(2);
     private MemoryDataBus dataBus = new MemoryDataBus();
 
-    @Test
-    public void test_subscribe_unsubscribe() {
+    @Test(timeout = 5000)
+    public void test_subscribe_unsubscribe() throws Exception {
         AtomicInteger received = new AtomicInteger();
         Consumer<Message> messageConsumer = message -> received.getAndIncrement();
-        dataBus.subscribe(messageConsumer, TEST);
-        dataBus.unsubscribe(messageConsumer);
+        CountDownLatch subscription = new CountDownLatch(1);
+        Future<Integer> subscribed = executor.submit(() -> dataBus.subscribe(messageConsumer, subscription::countDown, TEST));
+        subscription.await(1, TimeUnit.SECONDS);
 
+        dataBus.unsubscribe(messageConsumer);
         dataBus.publish(TEST, new Message(Message.Type.EXTRACT_NLP));
 
-        assertThat(received.get()).isEqualTo(0);
-    }
-
-    @Test
-    public void test_subscribe_with_callback() {
-        AtomicInteger subscribed = new AtomicInteger();
-        AtomicInteger received = new AtomicInteger();
-
-        dataBus.subscribe(message -> received.getAndIncrement(), subscribed::getAndIncrement, Channel.TEST);
-
+        assertThat(received.get()).isEqualTo(1); // shutdown message
         assertThat(subscribed.get()).isEqualTo(1);
     }
 
-    @Test
-    public void test_pub_sub_one_subscriber() {
+    @Test(timeout = 5000)
+    public void test_pub_sub_one_subscriber() throws InterruptedException {
         AtomicInteger received = new AtomicInteger();
-        dataBus.subscribe(message -> received.getAndIncrement(), TEST);
+         Consumer<Message> messageConsumer = message -> received.getAndIncrement();
+         CountDownLatch subscription = new CountDownLatch(1);
+         executor.submit(() -> dataBus.subscribe(messageConsumer, subscription::countDown, TEST));
+         subscription.await(1, TimeUnit.SECONDS);
 
-        dataBus.publish(TEST, new Message(Message.Type.EXTRACT_NLP));
+         dataBus.publish(TEST, new Message(Message.Type.EXTRACT_NLP));
+         dataBus.unsubscribe(messageConsumer);
 
-        assertThat(received.get()).isEqualTo(1);
+         assertThat(received.get()).isEqualTo(2); // +shutdown
     }
 
-    @Test
-    public void test_pub_sub_one_subscriber_other_channel() {
+    @Test(timeout = 5000)
+    public void test_pub_sub_one_subscriber_other_channel() throws InterruptedException {
         AtomicInteger received = new AtomicInteger();
-        dataBus.subscribe(message -> received.getAndIncrement(), TEST);
+        Consumer<Message> messageConsumer = message -> received.getAndIncrement();
+        CountDownLatch subscription = new CountDownLatch(1);
+        executor.submit(() -> dataBus.subscribe(messageConsumer, subscription::countDown, TEST));
+        subscription.await(1, TimeUnit.SECONDS);
 
         dataBus.publish(NLP, new Message(Message.Type.EXTRACT_NLP));
+        dataBus.unsubscribe(messageConsumer);
 
-        assertThat(received.get()).isEqualTo(0);
+        assertThat(received.get()).isEqualTo(1); //shutdown
     }
 
-    @Test
-    public void test_pub_sub_two_subscribers() {
+    @Test(timeout = 5000)
+    public void test_pub_sub_two_subscribers() throws InterruptedException {
         AtomicInteger received = new AtomicInteger();
-        dataBus.subscribe(message -> received.getAndIncrement(), TEST);
-        dataBus.subscribe(message -> received.getAndIncrement(), TEST);
+        CountDownLatch subscriptions = new CountDownLatch(2);
+
+        executor.submit(() -> dataBus.subscribe(message -> received.getAndIncrement(), subscriptions::countDown, TEST));
+        executor.submit(() -> dataBus.subscribe(message -> received.getAndIncrement(), subscriptions::countDown, TEST));
+        subscriptions.await(1, TimeUnit.SECONDS);
 
         dataBus.publish(TEST, new Message(Message.Type.EXTRACT_NLP));
+        dataBus.publish(TEST, new ShutdownMessage());
 
-        assertThat(received.get()).isEqualTo(2);
+        assertThat(received.get()).isEqualTo(4); // EXTRACT received by 2 subscribers + 2 shutdown messages
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        executor.shutdown();
+        executor.awaitTermination(2, TimeUnit.SECONDS);
     }
 }

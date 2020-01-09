@@ -29,8 +29,8 @@ public class NlpForwarder implements DatashareListener,Monitorable {
     }
 
     @Override
-    public void run() {
-        dataBus.subscribe(this::onMessage, subscribedCallback, Channel.NLP);
+    public Integer call() throws InterruptedException {
+        return dataBus.subscribe(this::onMessage, subscribedCallback, Channel.NLP);
     }
 
     void onMessage(final Message message) {

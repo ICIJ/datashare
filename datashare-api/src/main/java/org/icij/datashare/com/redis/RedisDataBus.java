@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static java.util.Arrays.stream;
@@ -36,17 +37,18 @@ public class RedisDataBus implements Publisher, DataBus, Closeable {
     }
 
     @Override
-    public void subscribe(Consumer<Message> subscriber, Channel... channels) {
-        subscribe(subscriber, () -> logger.debug("subscribed to " + Arrays.toString(channels)), channels);
+    public int subscribe(Consumer<Message> subscriber, Channel... channels) {
+        return subscribe(subscriber, () -> logger.debug("subscribed to " + Arrays.toString(channels)), channels);
     }
 
     @Override
-    public void subscribe(Consumer<Message> subscriber, Runnable subscriptionCallback, Channel... channels) {
+    public int subscribe(Consumer<Message> subscriber, Runnable subscriptionCallback, Channel... channels) {
         JedisListener jedisListener = new JedisListener(subscriber, subscriptionCallback);
         subscribers.put(subscriber, jedisListener);
         try (Jedis jedis = redis.getResource()) {
             jedis.subscribe(jedisListener, stream(channels).map(Enum::name).toArray(String[]::new));
         }
+        return jedisListener.nbMessages.get();
     }
 
     @Override
@@ -67,32 +69,34 @@ public class RedisDataBus implements Publisher, DataBus, Closeable {
     }
 
     static class JedisListener extends JedisPubSub {
-         private final Consumer<Message> callback;
-         private final Runnable subscribedCallback;
+        private final Consumer<Message> callback;
+        private final Runnable subscribedCallback;
+        final AtomicInteger nbMessages = new AtomicInteger(0);
 
-         JedisListener(Consumer<Message> callback, Runnable subscribedCallback) {
-             this.callback = callback;
-             this.subscribedCallback = subscribedCallback;
-         }
+        JedisListener(Consumer<Message> callback, Runnable subscribedCallback) {
+            this.callback = callback;
+            this.subscribedCallback = subscribedCallback;
+        }
 
-         @Override
-         public void onSubscribe(String channel, int subscribedChannels) {
-             subscribedCallback.run();
-         }
+        @Override
+        public void onSubscribe(String channel, int subscribedChannels) {
+            subscribedCallback.run();
+        }
 
-         @Override
-         public void onMessage(String channel, String message) {
-             try {
-                 HashMap result = new ObjectMapper().readValue(message, HashMap.class);
-                 Message msg = new Message(result);
-                 if (msg.type == SHUTDOWN) {
-                     unsubscribe();
-                     logger.info("Shutdown called. Unsubscribe done.");
-                 }
-                 callback.accept(msg);
-             } catch (IOException e) {
-                 logger.error("cannot deserialize json message " + message, e);
-             }
-         }
-     }
+        @Override
+        public void onMessage(String channel, String message) {
+            try {
+                HashMap result = new ObjectMapper().readValue(message, HashMap.class);
+                Message msg = new Message(result);
+                if (msg.type == SHUTDOWN) {
+                    unsubscribe();
+                    logger.info("Shutdown called. Unsubscribe done.");
+                }
+                callback.accept(msg);
+                nbMessages.getAndIncrement();
+            } catch (IOException e) {
+                logger.error("cannot deserialize json message " + message, e);
+            }
+        }
+    }
 }

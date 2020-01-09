@@ -1,4 +1,6 @@
 package org.icij.datashare.text.nlp;
 
-interface DatashareListener extends Runnable {
+import java.util.concurrent.Callable;
+
+interface DatashareListener extends Callable<Integer> {
 }

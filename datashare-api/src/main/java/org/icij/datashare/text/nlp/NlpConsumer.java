@@ -30,8 +30,9 @@ public class NlpConsumer implements DatashareListener {
     }
 
     @Override
-    public void run() {
+    public Integer call() {
         boolean exitAsked = false;
+        int nbMessages = 0;
         while (! exitAsked) {
             try {
                 Message message = messageQueue.poll(30, TimeUnit.SECONDS);
@@ -39,6 +40,7 @@ public class NlpConsumer implements DatashareListener {
                     switch (message.type) {
                         case EXTRACT_NLP:
                             findNamedEntities(message.content.get(INDEX_NAME), message.content.get(DOC_ID), message.content.get(R_ID));
+                            nbMessages++;
                             break;
                         case SHUTDOWN:
                             exitAsked = true;
@@ -48,6 +50,7 @@ public class NlpConsumer implements DatashareListener {
                     }
                     synchronized (messageQueue) {
                         if (messageQueue.isEmpty()) {
+                            logger.debug("queue is empty notifying messageQueue {}", messageQueue.hashCode());
                             messageQueue.notify();
                         }
                     }
@@ -57,6 +60,7 @@ public class NlpConsumer implements DatashareListener {
             }
         }
         logger.info("exiting main loop");
+        return nbMessages;
     }
 
     void findNamedEntities(final String projectName, final String id, final String routing) throws InterruptedException {
