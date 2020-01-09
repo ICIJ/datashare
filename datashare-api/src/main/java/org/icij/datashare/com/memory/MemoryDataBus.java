@@ -34,13 +34,10 @@ public class MemoryDataBus implements Publisher, DataBus {
         subscribers.put(subscriber, listener);
         subscriptionCallback.run();
 
-        synchronized (listener.message) {
-            while (!listener.isShutdown()) {
-                listener.message.wait();
-            }
-        }
+        int nbMessages = listener.loopUntilShutdown();
         logger.info("exiting {}", subscriber);
-        return listener.nbMessages.get();
+
+        return nbMessages;
     }
 
     @Override
@@ -76,8 +73,17 @@ public class MemoryDataBus implements Publisher, DataBus {
             }
         }
 
-        boolean isShutdown() {
+        boolean shutdownAsked() {
             return this.message.get() != null && this.message.get().type == Message.Type.SHUTDOWN;
+        }
+
+        int loopUntilShutdown() throws InterruptedException {
+            synchronized (message) {
+                while (!shutdownAsked()) {
+                    message.wait();
+                }
+            }
+            return nbMessages.get();
         }
     }
 }
