@@ -148,8 +148,9 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
 
 Requires 
 [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html),
-[Maven 3](http://maven.apache.org/download.cgi) and a running [PostgreSQL](https://www.postgresql.org/) database with 
-two databases `datashare` and `test` with write access for user `test` / password `test`.
+[Maven 3](http://maven.apache.org/download.cgi) and a running [PostgreSQL](https://www.postgresql.org/) database (hostname `postgresql`) 
+with two databases `datashare` and `test` with write access for user `test` / password `test`. You'll need also a running
+elasticsearch instance with `elasticsearch` as hostname ; and a redis server named `redis` as well.
 
 ```
 mvn validate
