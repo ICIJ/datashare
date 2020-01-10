@@ -28,7 +28,6 @@ public class EsEmbeddedServer {
                 .put("path.home", homePath)
                 .put("path.data", dataPath)
                 .put("http.port", httpPort)
-                //.put("script.inline", "true")
                 .put("cluster.name", clusterName).build();
 
         node = new PluginConfigurableNode(settings, asList(

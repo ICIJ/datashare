@@ -44,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-index</artifactId>
+            <artifactId>datashare-index-embedded</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

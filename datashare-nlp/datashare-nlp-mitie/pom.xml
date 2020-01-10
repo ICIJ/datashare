@@ -25,7 +25,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>datashare-index</artifactId>
+            <artifactId>datashare-index-remote</artifactId>
             <scope>provided</scope>
         </dependency>
 
