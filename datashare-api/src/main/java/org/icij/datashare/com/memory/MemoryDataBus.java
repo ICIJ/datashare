@@ -67,12 +67,12 @@ public class MemoryDataBus implements Publisher, DataBus {
 
         @Override
         public void accept(Message message) {
-            this.message.set(message);
             subscriber.accept(message);
-            nbMessages.getAndIncrement();
             synchronized (this.message) {
+                this.message.set(message);
                 this.message.notify();
             }
+            nbMessages.getAndIncrement();
         }
 
         boolean shutdownAsked() {
