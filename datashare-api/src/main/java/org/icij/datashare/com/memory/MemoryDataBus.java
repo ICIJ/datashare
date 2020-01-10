@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.CollectionUtils.asSet;
 
@@ -20,7 +21,8 @@ public class MemoryDataBus implements Publisher, DataBus {
     private final Map<Consumer<Message>, MessageListener> subscribers = new ConcurrentHashMap<>();
 
     public void publish(final Channel channel, final Message message) {
-        subscribers.values().stream().filter(l -> l.hasSubscribedTo(channel)).forEach(l -> l.accept(message));
+        Message nonNullMessage = requireNonNull(message, "cannot publish a null message");
+        subscribers.values().stream().filter(l -> l.hasSubscribedTo(channel)).forEach(l -> l.accept(nonNullMessage));
     }
 
     @Override
@@ -74,7 +76,8 @@ public class MemoryDataBus implements Publisher, DataBus {
         }
 
         boolean shutdownAsked() {
-            return this.message.get() != null && this.message.get().type == Message.Type.SHUTDOWN;
+            Message message = this.message.get();
+            return message != null && message.type == Message.Type.SHUTDOWN;
         }
 
         int loopUntilShutdown() throws InterruptedException {

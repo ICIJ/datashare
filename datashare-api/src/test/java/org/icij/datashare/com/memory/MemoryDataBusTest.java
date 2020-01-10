@@ -17,6 +17,11 @@ public class MemoryDataBusTest {
     private ExecutorService executor = Executors.newFixedThreadPool(2);
     private MemoryDataBus dataBus = new MemoryDataBus();
 
+    @Test(expected = NullPointerException.class)
+    public void test_null_message() {
+        dataBus.publish(TEST, null);
+    }
+
     @Test(timeout = 5000)
     public void test_subscribe_unsubscribe() throws Exception {
         AtomicInteger received = new AtomicInteger();
