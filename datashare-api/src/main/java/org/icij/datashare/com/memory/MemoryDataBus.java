@@ -16,10 +16,11 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.CollectionUtils.asSet;
 
-public class MemoryDataBus implements Publisher, DataBus {
+public class MemoryDataBus implements DataBus {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Map<Consumer<Message>, MessageListener> subscribers = new ConcurrentHashMap<>();
 
+    @Override
     public void publish(final Channel channel, final Message message) {
         Message nonNullMessage = requireNonNull(message, "cannot publish a null message");
         subscribers.values().stream().filter(l -> l.hasSubscribedTo(channel)).forEach(l -> l.accept(nonNullMessage));
