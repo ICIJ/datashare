@@ -24,7 +24,7 @@
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-index-embedded</artifactId>
+            <artifactId>datashare-index</artifactId>
             <version>${project.version}</version>
             <type>jar</type>
             <classifier>jar-with-dependencies</classifier>

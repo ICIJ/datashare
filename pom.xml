@@ -139,16 +139,6 @@
             </dependency>
             <dependency>
                 <groupId>org.icij.datashare</groupId>
-                <artifactId>datashare-index-remote</artifactId>
-                <version>${datashare-elasticsearch.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.icij.datashare</groupId>
-                <artifactId>datashare-index-embedded</artifactId>
-                <version>${datashare-elasticsearch.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.icij.datashare</groupId>
                 <artifactId>datashare-nlp-corenlp</artifactId>
                 <version>${datashare-corenlp.version}</version>
                 <scope>runtime</scope>
