@@ -27,15 +27,15 @@ public class ElasticsearchConfiguration {
     static protected final int DEFAULT_SEARCH_SIZE = 10000;
     static protected final int DEFAULT_TIMEOUT_INSEC = 10;
 
-    private static final String INDEX_ADDRESS_PROP = "elasticsearchAddress";
-    private static final String INDEX_TYPE_PROP = "indexType";
-    private static final String INDEX_NAME_PROP = "indexName";
-    private static final String INDEX_JOIN_FIELD_NAME_PROP = "indexJoinFieldName";
-    private static final String INDEX_TYPE_FIELD_NAME_PROP = "indexTypeFieldName";
-    private static final String CLUSTER_PROP = "clusterName";
+    public static final String INDEX_ADDRESS_PROP = "elasticsearchAddress";
+    public static final String INDEX_TYPE_PROP = "indexType";
+    public static final String INDEX_NAME_PROP = "indexName";
+    public static final String INDEX_JOIN_FIELD_NAME_PROP = "indexJoinFieldName";
+    public static final String INDEX_TYPE_FIELD_NAME_PROP = "indexTypeFieldName";
+    public static final String CLUSTER_PROP = "clusterName";
 
-    private static final String DEFAULT_ADDRESS = "http://localhost:9200";
-    private static final String ES_CLUSTER_NAME = "datashare";
+    public static final String DEFAULT_ADDRESS = "http://localhost:9200";
+    public static final String ES_CLUSTER_NAME = "datashare";
     static final String  ES_DOCUMENT_TYPE = "Document";
     static final String  ES_CONTENT_FIELD = "content";
 

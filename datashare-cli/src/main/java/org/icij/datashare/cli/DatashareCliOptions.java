@@ -178,6 +178,13 @@ public final class DatashareCliOptions {
                 .ofType(Integer.class).defaultsTo(1000);
     }
 
+    public static OptionSpec<String> elasticsearchDataPath(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("elasticsearchDataPath"), "Data path used for embedded Elasticsearch")
+                .withRequiredArg()
+                .ofType(String.class).defaultsTo("/home/datashare/es");
+    }
+
     public static OptionSpec<String> filterSet(OptionParser parser) {
         return parser.acceptsAll(
                 asList("filterSet"), "name of the set for queue filtering")
