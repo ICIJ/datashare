@@ -12,11 +12,11 @@ public class EmbeddedMode extends LocalMode {
 
     @Override
     protected void configure() {
-        super.configure();
+        String elasticsearchDataPath = propertiesProvider.get("elasticsearchDataPath").orElse("/home/datashare/es");
+        new EsEmbeddedServer(ElasticsearchConfiguration.ES_CLUSTER_NAME, elasticsearchDataPath, elasticsearchDataPath, "9200").start();
         Properties properties = new Properties();
         properties.put(ElasticsearchConfiguration.INDEX_ADDRESS_PROP, "http://localhost:9200");
         propertiesProvider.overrideWith(properties);
-        String elasticsearchDataPath = propertiesProvider.get("elasticsearchDataPath").orElse("/home/datashare/es");
-        new EsEmbeddedServer(ElasticsearchConfiguration.ES_CLUSTER_NAME, elasticsearchDataPath, elasticsearchDataPath, "9200").start();
+        super.configure();
     }
 }
