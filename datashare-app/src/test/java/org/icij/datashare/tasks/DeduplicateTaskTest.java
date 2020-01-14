@@ -7,6 +7,7 @@ import java.util.HashMap;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.tasks.PipelineTask.POISON;
 import static org.icij.datashare.user.User.local;
 
 public class DeduplicateTaskTest {
@@ -17,6 +18,7 @@ public class DeduplicateTaskTest {
 
     @Test
     public void test_filter_empty() throws Exception {
+        docCollectionFactory.createQueue(propertyProvider, "test:queue").add(POISON);
         assertThat(new DeduplicateTask(docCollectionFactory, new PropertiesProvider(), local(), "test:queue").call()).isEqualTo(0);
     }
 
@@ -24,8 +26,10 @@ public class DeduplicateTaskTest {
     public void test_filter_queue_removes_duplicates() throws Exception {
         docCollectionFactory.createQueue(propertyProvider, "test:queue").put(get("/path/to/doc"));
         docCollectionFactory.createQueue(propertyProvider, "test:queue").put(get("/path/to/doc"));
+        docCollectionFactory.createQueue(propertyProvider, "test:queue").add(POISON);
 
         assertThat(new DeduplicateTask(docCollectionFactory, propertyProvider, local(), "test:queue").call()).isEqualTo(1);
-        assertThat(docCollectionFactory.createQueue(propertyProvider, "test:queue:deduplicate").size()).isEqualTo(1);
+
+        assertThat(docCollectionFactory.createQueue(propertyProvider, "test:queue:deduplicate").size()).isEqualTo(2); // with POISON
     }
 }

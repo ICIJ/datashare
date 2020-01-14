@@ -35,9 +35,7 @@ public abstract class PipelineTask extends DefaultTask<Long> implements UserTask
     }
 
     protected long transferToOutputQueue() throws Exception {
-        try (DocumentQueue outputQueue = factory.createQueue(propertiesProvider, getOutputQueueName())) {
-            return this.queue.drainTo(outputQueue);
-        }
+        return transferToOutputQueue(p -> true);
     }
 
     protected long transferToOutputQueue(Predicate<Path> filter) throws Exception {

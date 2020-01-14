@@ -24,14 +24,16 @@ public class PipelineTaskTest {
     public void test_pipeline_task_transfer_to_output_queue() throws Exception {
         task.queue.put(get("/path/to/doc1"));
         task.queue.put(get("/path/to/doc2"));
+        task.queue.put(POISON);
 
         task.transferToOutputQueue();
 
         assertThat(task.queue.isEmpty()).isTrue();
         DocumentQueue outputQueue = docCollectionFactory.createQueue(options, task.getOutputQueueName());
-        assertThat(outputQueue.size()).isEqualTo(2);
+        assertThat(outputQueue.size()).isEqualTo(3);
         assertThat(outputQueue.poll().toString()).isEqualTo("/path/to/doc1");
         assertThat(outputQueue.poll().toString()).isEqualTo("/path/to/doc2");
+        assertThat(outputQueue.poll().toString()).isEqualTo(POISON.toString());
     }
 
     @Test
