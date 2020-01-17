@@ -192,6 +192,14 @@ public final class DatashareCliOptions {
                 .ofType(String.class).defaultsTo("extract:filter");
     }
 
+    public static OptionSpec<String> reportName(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("reportName"), "name of the map for the report map (where index results are stored). " +
+                        "No report records are saved if not provided")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
     static OptionSpec<Boolean> enableOcr(OptionParser parser) {
         return parser.acceptsAll(
                 asList("ocr", "o"),

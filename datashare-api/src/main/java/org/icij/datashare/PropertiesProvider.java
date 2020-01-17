@@ -26,6 +26,8 @@ public class PropertiesProvider {
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
     public static final String CONFIG_FILE_PARAMETER_KEY = "configFile";
     public static final String QUEUE_NAME_OPTION = "queueName";
+    public static final String SET_NAME_OPTION = "filterSet";
+    public static final String MAP_NAME_OPTION = "reportName";
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final Path configPath;

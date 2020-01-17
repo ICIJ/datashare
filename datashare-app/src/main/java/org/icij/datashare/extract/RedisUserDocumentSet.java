@@ -7,7 +7,7 @@ import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedisDocumentSet;
 import org.jetbrains.annotations.NotNull;
 
-import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
+import static org.icij.datashare.PropertiesProvider.SET_NAME_OPTION;
 
 public class RedisUserDocumentSet extends RedisDocumentSet {
     public RedisUserDocumentSet(String setName, String redisAddress) {
@@ -20,7 +20,7 @@ public class RedisUserDocumentSet extends RedisDocumentSet {
     }
 
     public RedisUserDocumentSet(@NotNull final User user, PropertiesProvider propertiesProvider) {
-         this(propertiesProvider, getSetName(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue")));
+         this(propertiesProvider, getSetName(user, propertiesProvider.get(SET_NAME_OPTION).orElse("extract:filter")));
      }
 
     private static String getSetName(User user, String baseName) {

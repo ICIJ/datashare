@@ -18,6 +18,7 @@ import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.UpdatableDigester;
 import org.icij.extract.queue.DocumentQueueDrainer;
+import org.icij.extract.report.Reporter;
 import org.icij.task.Options;
 import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import static java.lang.Math.max;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.com.Message.Field.VALUE;
 import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 
@@ -41,7 +43,6 @@ public class IndexTask extends PipelineTask implements Monitorable{
     private final DocumentConsumer consumer;
     private final Publisher publisher;
     private long totalToProcess;
-
     private final Integer parallelism;
 
     @Inject
@@ -60,6 +61,10 @@ public class IndexTask extends PipelineTask implements Monitorable{
         extractor.setDigester(new UpdatableDigester(indexName, Entity.HASHER.toString()));
 
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
+        if (propertiesProvider.getProperties().get(MAP_NAME_OPTION) != null) {
+            logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(MAP_NAME_OPTION));
+            consumer.setReporter(new Reporter(factory.createMap(propertiesProvider, propertiesProvider.getProperties().get(MAP_NAME_OPTION).toString())));
+        }
         drainer = new DocumentQueueDrainer(queue, consumer).configure(allTaskOptions);
     }
 
@@ -71,9 +76,12 @@ public class IndexTask extends PipelineTask implements Monitorable{
         drainer.awaitTermination(10, SECONDS); // drain is finished
         logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);
         publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, valueOf(totalToProcess)));
+
         consumer.shutdown();
         consumer.awaitTermination(30, MINUTES); // documents could be currently processed
         publisher.publish(Channel.NLP, new ShutdownMessage());
+
+        if (consumer.getReporter() != null) consumer.getReporter().close();
         queue.close();
         logger.info("exiting");
         return totalToProcess;
