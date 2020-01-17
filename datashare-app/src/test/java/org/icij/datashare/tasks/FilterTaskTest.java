@@ -1,7 +1,9 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.extract.extractor.ExtractionStatus;
 import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.report.Report;
 import org.junit.Test;
 
 import java.nio.file.Paths;
@@ -14,7 +16,7 @@ import static org.icij.datashare.user.User.local;
 
 public class FilterTaskTest {
     private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
-        put("filterSet", "extract:filter");
+        put("reportName", "test:report");
         put(QUEUE_NAME_OPTION, "extract:test");
     }});
     DocumentCollectionFactory docCollectionFactory = new MemoryDocumentCollectionFactory();
@@ -29,7 +31,7 @@ public class FilterTaskTest {
         docCollectionFactory.createQueue(propertiesProvider, "extract:test").put(Paths.get("file:/path/to/doc"));
         docCollectionFactory.createQueue(propertiesProvider, "extract:test").put(Paths.get("file:/path/to/extracted"));
         docCollectionFactory.createQueue(propertiesProvider, "extract:test").put(POISON);
-        docCollectionFactory.createSet(propertiesProvider, "extract:filter").add(Paths.get("file:/path/to/extracted"));
+        docCollectionFactory.createMap(propertiesProvider, "test:report").put(Paths.get("file:/path/to/extracted"), new Report(ExtractionStatus.SUCCESS));
 
         FilterTask filterTask = new FilterTask(docCollectionFactory, propertiesProvider, local(), "extract:test");
         assertThat(filterTask.call()).isEqualTo(1);

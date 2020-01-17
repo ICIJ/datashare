@@ -5,7 +5,9 @@ import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.user.User;
-import org.icij.extract.queue.DocumentSet;
+import org.icij.extract.extractor.ExtractionStatus;
+import org.icij.extract.report.Report;
+import org.icij.extract.report.ReportMap;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -16,6 +18,7 @@ import java.util.HashMap;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 
 public class ScanIndexTaskTest {
@@ -23,7 +26,7 @@ public class ScanIndexTaskTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
     private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
         put("defaultProject", TEST_INDEX);
-        put("filterSet", "test:filter");
+        put("reportName", "test:report");
     }});
     private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
     private MemoryDocumentCollectionFactory documentCollectionFactory = new MemoryDocumentCollectionFactory();
@@ -40,8 +43,12 @@ public class ScanIndexTaskTest {
 
         assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser()).call()).isEqualTo(2);
 
-        DocumentSet actualSet = documentCollectionFactory.createSet(propertiesProvider, "test:filter");
-        assertThat(actualSet).contains(Paths.get("file:/path/to/id1"), Paths.get("file:/path/to/id2"));
+        ReportMap actualReportMap = documentCollectionFactory.createMap(propertiesProvider, "test:report");
+        System.out.println(actualReportMap);
+        assertThat(actualReportMap).includes(
+                entry(Paths.get("file:/path/to/id1"), new Report(ExtractionStatus.SUCCESS)),
+                entry(Paths.get("file:/path/to/id2"), new Report(ExtractionStatus.SUCCESS))
+        );
     }
 
     @After

@@ -20,7 +20,6 @@ import org.icij.datashare.com.memory.MemoryDataBus;
 import org.icij.datashare.com.redis.RedisDataBus;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
-import org.icij.datashare.extract.RedisUserDocumentSet;
 import org.icij.datashare.extract.RedisUserReportMap;
 import org.icij.datashare.tasks.DocumentCollectionFactory;
 import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
@@ -33,7 +32,6 @@ import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguage
 import org.icij.datashare.web.ConfigResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.extract.queue.DocumentQueue;
-import org.icij.extract.queue.DocumentSet;
 import org.icij.extract.report.ReportMap;
 
 import java.util.Map;
@@ -93,7 +91,6 @@ public class CommonMode extends AbstractModule {
         } else {
             install(new FactoryModuleBuilder().
                 implement(DocumentQueue.class, RedisUserDocumentQueue.class).
-                implement(DocumentSet.class, RedisUserDocumentSet.class).
                 implement(ReportMap.class, RedisUserReportMap.class).
                 build(DocumentCollectionFactory.class));
         }
