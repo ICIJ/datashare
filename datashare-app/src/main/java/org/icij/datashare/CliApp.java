@@ -74,7 +74,8 @@ class CliApp {
         }
 
         if (pipeline.has(DatashareCli.Stage.SCANIDX)) {
-            taskManager.startTask(taskFactory.createScanIndexTask(nullUser()));
+            TaskManager.MonitorableFutureTask<Long> longMonitorableFutureTask = taskManager.startTask(taskFactory.createScanIndexTask(nullUser()));
+            logger.info("scanned {}", longMonitorableFutureTask.get());
         }
 
         if (pipeline.has(DatashareCli.Stage.SCAN) && !resume(properties)) {

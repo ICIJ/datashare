@@ -34,7 +34,7 @@ public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
     public ScanIndexTask(DocumentCollectionFactory factory, final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted User user) {
         this.user = user;
         this.scrollSize = parseInt(propertiesProvider.get("scrollSize").orElse("1000"));
-        this.projectName = propertiesProvider.get("defaultProject").orElse("localœ-datashare");
+        this.projectName = propertiesProvider.get("defaultProject").orElse("local-datashare");
         Optional<String> reportName = propertiesProvider.get("reportName");
         this.reportMap = reportName.map(s -> factory.createMap(propertiesProvider, reportName.get())).
                 orElseThrow(() -> new IllegalArgumentException("no reportName property defined"));
@@ -49,7 +49,7 @@ public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
         long nbProcessed = 0;
         do {
             docsToProcess = search.scroll().collect(toList());
-            reportMap.putAll(docsToProcess.stream().map(d -> ((Document) d).getPath()).collect(toMap(p -> p, p -> new Report(ExtractionStatus.SUCCESS))));
+            reportMap.putAll(docsToProcess.stream().map(d -> ((Document) d).getPath()).collect(toMap(p -> p, p -> new Report(ExtractionStatus.SUCCESS), (a, b) -> b)));
             nbProcessed += docsToProcess.size();
         } while (docsToProcess.size() != 0);
         logger.info("imported {} paths into {}", nbProcessed, reportMap);
