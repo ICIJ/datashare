@@ -39,4 +39,6 @@ public interface Repository {
 
     List<Note> getNotes(Project prj, String pathPrefix);
     boolean save(Note note);
+
+    List<Note> getNotes(Project project);
 }

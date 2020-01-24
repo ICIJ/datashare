@@ -223,5 +223,8 @@ public class JooqRepositoryTest {
 
         assertThat(repository.getNotes(project("project"), "/path/to/doc.txt")).containsExactly(note1);
         assertThat(repository.getNotes(project("project"), "/path/to/note/for/my/doc.txt")).containsExactly(note1, note2);
+
+        assertThat(repository.getNotes(project("otherProject"))).isEmpty();
+        assertThat(repository.getNotes(project("project"))).containsExactly(note1, note2);
     }
 }

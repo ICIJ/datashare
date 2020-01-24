@@ -54,11 +54,32 @@ public class NoteResource {
      * $(curl localhost:8080/api/apigen-datashare/notes/path/to/note/for/doc.txt)
      */
     @Get("/:project/notes/:path:")
-    public List<Note> getNotes(String project, String documentPath, Context context) {
+    public List<Note> getPathNotes(String project, String documentPath, Context context) {
         HashMapUser user = (HashMapUser) context.currentUser();
         if (! user.isGranted(project)) {
             throw new ForbiddenException();
         }
         return repository.getNotes(project(project), documentPath);
+    }
+
+    /**
+     * Gets the list of notes for a project.
+     *
+     * If the user doesn't have access to the project she gets a 403 Forbidden
+     *
+     * @param project the project the note belongs to
+     * @param context HTTP context containing the user
+     * @return list of Note related to the project
+     *
+     * Example:
+     * $(curl localhost:8080/api/apigen-datashare/notes)
+     */
+    @Get("/:project/notes")
+    public List<Note> getProjectNotes(String project, Context context) {
+        HashMapUser user = (HashMapUser) context.currentUser();
+        if (! user.isGranted(project)) {
+            throw new ForbiddenException();
+        }
+        return repository.getNotes(project(project));
     }
 }

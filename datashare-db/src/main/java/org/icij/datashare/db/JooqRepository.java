@@ -226,6 +226,13 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public List<Note> getNotes(Project prj) {
+        return DSL.using(connectionProvider, dialect).selectFrom(NOTE).
+                where(NOTE.PROJECT_ID.eq(prj.getId())).
+                stream().map(this::createNoteFrom).collect(toList());
+    }
+
+    @Override
     public boolean save(Note note) {
         return DSL.using(connectionProvider, dialect).insertInto(NOTE, NOTE.PROJECT_ID, NOTE.PATH, NOTE.NOTE_, NOTE.VARIANT).
                 values(note.project.name, note.path.toString(), note.note, note.variant.name()).execute() > 0;
