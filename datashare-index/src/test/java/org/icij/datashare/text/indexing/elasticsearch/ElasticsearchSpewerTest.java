@@ -15,6 +15,7 @@ import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
@@ -151,6 +152,28 @@ public class ElasticsearchSpewerTest {
         GetResponse documentFields_fr = es.client.get(new GetRequest(TEST_INDEX, "doc", document_fr.getId()));
         assertThat(documentFields.getSourceAsMap()).includes(entry("language", "ENGLISH"));
         assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "FRENCH"));
+    }
+
+    @Test
+    public void test_duplicate_file() throws Exception {
+        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+            put("idDigestMethod", Document.HASHER.toString());
+        }}));
+        Extractor extractor = new Extractor(tikaFactory);
+        extractor.setDigester(new UpdatableDigester("project", Document.HASHER.toString()));
+
+        final TikaDocument document = extractor.extract(get(getClass().getResource("/docs/doc.txt").getPath()));
+        final TikaDocument document2 = extractor.extract(get(getClass().getResource("/docs/doc-duplicate.txt").getPath()));
+
+        spewer.write(document);
+        spewer.write(document2);
+
+        GetResponse actualDocument = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
+        GetResponse actualDocument2 = es.client.get(new GetRequest(TEST_INDEX, "doc", new Duplicate(document2.getPath(), document.getId()).getId()));
+        assertThat(actualDocument.isExists()).isTrue();
+        assertThat(actualDocument.getSourceAsMap()).includes(entry("type", "Document"));
+        assertThat(actualDocument2.isExists()).isTrue();
+        assertThat(actualDocument2.getSourceAsMap()).includes(entry("type", "Duplicate"));
     }
 
     private Map<String, Object> convert(Metadata metadata) {

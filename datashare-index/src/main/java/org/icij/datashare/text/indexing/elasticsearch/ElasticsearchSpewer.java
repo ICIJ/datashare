@@ -1,9 +1,13 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.WriteRequest;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
+import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
@@ -80,7 +84,14 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     private IndexRequest prepareRequest(final TikaDocument document, final TikaDocument parent, TikaDocument root, final int level) throws IOException {
         IndexRequest req = new IndexRequest(indexName, esCfg.indexType, document.getId());
-        Map<String, Object> jsonDocument = getMap(document);
+        Map<String, Object> jsonDocument = getDocumentMap(document);
+
+        if (isDuplicate(document.getId())) {
+            IndexRequest indexRequest = new IndexRequest(indexName, esCfg.indexType, Entity.HASHER.hash(document.getPath()));
+            indexRequest.source(getDuplicateMap(document));
+            indexRequest.setRefreshPolicy(esCfg.refreshPolicy);
+            return indexRequest;
+        }
 
         if (parent != null) {
             jsonDocument.put(DEFAULT_PARENT_DOC_FIELD, parent.getId());
@@ -93,7 +104,14 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return req;
     }
 
-    Map<String, Object> getMap(TikaDocument document) throws IOException {
+    private boolean isDuplicate(String docId) throws IOException {
+        GetRequest getRequest = new GetRequest(indexName, esCfg.indexType, docId);
+        getRequest.fetchSourceContext(new FetchSourceContext(false));
+        getRequest.storedFields("_none_");
+        return client.exists(getRequest, RequestOptions.DEFAULT);
+    }
+
+    Map<String, Object> getDocumentMap(TikaDocument document) throws IOException {
         Map<String, Object> jsonDocument = new HashMap<>();
 
         jsonDocument.put(esCfg.docTypeField, ES_DOCUMENT_TYPE);
@@ -114,6 +132,16 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         String content = toString(document.getReader()).trim();
         jsonDocument.put("language", languageGuesser.guess(content));
         jsonDocument.put(ES_CONTENT_FIELD, content);
+        return jsonDocument;
+    }
+
+    Map<String, Object> getDuplicateMap(TikaDocument document) {
+        Map<String, Object> jsonDocument = new HashMap<>();
+
+        jsonDocument.put(esCfg.docTypeField, ES_DUPLICATE_TYPE);
+        jsonDocument.put("path", document.getPath().toString());
+        jsonDocument.put("documentId", document.getId());
+
         return jsonDocument;
     }
 
