@@ -32,6 +32,8 @@ public class DatashareCli {
         DatashareCliOptions.nlpPipelines(parser);
         DatashareCliOptions.resume(parser);
         DatashareCliOptions.scrollSize(parser);
+        DatashareCliOptions.scrollSlices(parser);
+        DatashareCliOptions.redisPoolSize(parser);
         DatashareCliOptions.elasticsearchDataPath(parser);
         DatashareCliOptions.filterSet(parser);
         DatashareCliOptions.reportName(parser);

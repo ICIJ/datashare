@@ -5,17 +5,19 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedisReportMap;
+import org.icij.task.Options;
 import org.jetbrains.annotations.NotNull;
+
+import java.nio.charset.Charset;
+import java.util.HashMap;
 
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 
 public class RedisUserReportMap extends RedisReportMap {
-    private final String mapName;
 
     @Inject
     public RedisUserReportMap(PropertiesProvider provider, @Assisted String mapName) {
-        super(mapName, provider.get("redisAddress").orElse("redis://redis:6379"));
-        this.mapName = mapName;
+        super(Options.from(provider.createOverriddenWith(new HashMap<String, String>() {{put("reportName", mapName);put("charset", String.valueOf(Charset.defaultCharset()));}})));
     }
 
     public RedisUserReportMap(@NotNull final User user, PropertiesProvider propertiesProvider) {

@@ -101,6 +101,12 @@ public class PropertiesProvider {
         return this;
     }
 
+    public Properties createOverriddenWith(Map<String, String> map) {
+        Properties overriddenProperties = (Properties) getProperties().clone();
+        overriddenProperties.putAll(map);
+        return overriddenProperties;
+    }
+
     public Properties createMerged(Properties properties) {
         Properties mergedProperties = (Properties) getProperties().clone();
         putAllIfIsAbsent(mergedProperties, properties);

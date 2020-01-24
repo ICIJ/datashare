@@ -178,6 +178,20 @@ public final class DatashareCliOptions {
                 .ofType(Integer.class).defaultsTo(1000);
     }
 
+     public static OptionSpec<Integer> scrollSlices(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("scrollSlices"), "Scroll slice max number used for elasticsearch scrolls (SCANIDX task)")
+                .withRequiredArg()
+                .ofType(Integer.class).defaultsTo(1);
+    }
+
+     public static OptionSpec<Integer> redisPoolSize(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("redisPoolSize"), "Redis pool size used for each redis collection")
+                .withRequiredArg()
+                .ofType(Integer.class).defaultsTo(1);
+    }
+
     public static OptionSpec<String> elasticsearchDataPath(OptionParser parser) {
         return parser.acceptsAll(
                 asList("elasticsearchDataPath"), "Data path used for embedded Elasticsearch")

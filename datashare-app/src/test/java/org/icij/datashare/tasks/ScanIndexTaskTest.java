@@ -15,6 +15,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.stream.IntStream;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
@@ -44,7 +45,25 @@ public class ScanIndexTaskTest {
         assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser()).call()).isEqualTo(2);
 
         ReportMap actualReportMap = documentCollectionFactory.createMap(propertiesProvider, "test:report");
-        System.out.println(actualReportMap);
+        assertThat(actualReportMap).includes(
+                entry(Paths.get("file:/path/to/id1"), new Report(ExtractionStatus.SUCCESS)),
+                entry(Paths.get("file:/path/to/id2"), new Report(ExtractionStatus.SUCCESS))
+        );
+    }
+
+    @Test
+    public void test_bench() throws Exception {
+        IntStream.range(0, 100).forEach(i -> {
+            try {
+                indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id" + i).build());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser()).call()).isEqualTo(100);
+
+        ReportMap actualReportMap = documentCollectionFactory.createMap(propertiesProvider, "test:report");
         assertThat(actualReportMap).includes(
                 entry(Paths.get("file:/path/to/id1"), new Report(ExtractionStatus.SUCCESS)),
                 entry(Paths.get("file:/path/to/id2"), new Report(ExtractionStatus.SUCCESS))

@@ -37,6 +37,7 @@ import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.slice.SliceBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -365,7 +366,15 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Stream<? extends Entity> scroll() throws IOException {
+            return scroll(0, 0);
+        }
+
+        @Override
+        public Stream<? extends Entity> scroll(int numSlice, int nbSlices) throws IOException {
             sourceBuilder.query(boolQuery);
+            if (nbSlices > 1) {
+                sourceBuilder.slice(new SliceBuilder(numSlice, nbSlices));
+            }
             SearchResponse search;
             if (scrollId == null) {
                 SearchRequest searchRequest = new SearchRequest(new String[]{indexName}, sourceBuilder).scroll(KEEP_ALIVE);
