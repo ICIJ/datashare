@@ -86,7 +86,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         IndexRequest req = new IndexRequest(indexName, esCfg.indexType, document.getId());
         Map<String, Object> jsonDocument = getDocumentMap(document);
 
-        if (isDuplicate(document.getId())) {
+        if (parent == null && isDuplicate(document.getId())) {
             IndexRequest indexRequest = new IndexRequest(indexName, esCfg.indexType, Entity.HASHER.hash(document.getPath()));
             indexRequest.source(getDuplicateMap(document));
             indexRequest.setRefreshPolicy(esCfg.refreshPolicy);
