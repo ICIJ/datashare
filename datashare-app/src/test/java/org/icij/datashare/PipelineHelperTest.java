@@ -34,16 +34,4 @@ public class PipelineHelperTest {
         assertThat(pipelineHelper.getQueueNameFor(DatashareCli.Stage.DEDUPLICATE)).isEqualTo("extract:queue");
         assertThat(pipelineHelper.getQueueNameFor(DatashareCli.Stage.INDEX)).isEqualTo("extract:queue:deduplicate");
     }
-
-    @Test
-    public void test_get_queue_name_scan_deduplicate_filter_index() {
-        PipelineHelper pipelineHelper = new PipelineHelper(new PropertiesProvider(new HashMap<String, String>() {{
-            put("stages", "SCAN,DEDUPLICATE,FILTER,INDEX");
-            put("queueName", "extract:queue");
-        }}));
-        assertThat(pipelineHelper.getQueueNameFor(DatashareCli.Stage.SCAN)).isEqualTo("extract:queue");
-        assertThat(pipelineHelper.getQueueNameFor(DatashareCli.Stage.DEDUPLICATE)).isEqualTo("extract:queue");
-        assertThat(pipelineHelper.getQueueNameFor(DatashareCli.Stage.FILTER)).isEqualTo("extract:queue:deduplicate");
-        assertThat(pipelineHelper.getQueueNameFor(DatashareCli.Stage.INDEX)).isEqualTo("extract:queue:filter");
-    }
 }

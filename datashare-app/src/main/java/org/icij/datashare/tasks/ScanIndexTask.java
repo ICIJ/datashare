@@ -36,14 +36,13 @@ public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
     private final int scrollSlices;
 
     @Inject
-    public ScanIndexTask(DocumentCollectionFactory factory, final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted User user) {
+    public ScanIndexTask(DocumentCollectionFactory factory, final Indexer indexer, final PropertiesProvider propertiesProvider,
+                         @Assisted User user, @Assisted String reportName) {
         this.user = user;
         this.scrollSize = parseInt(propertiesProvider.get("scrollSize").orElse("1000"));
         this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));
         this.projectName = propertiesProvider.get("defaultProject").orElse("local-datashare");
-        Optional<String> reportName = propertiesProvider.get("reportName");
-        this.reportMap = reportName.map(s -> factory.createMap(propertiesProvider, reportName.get())).
-                orElseThrow(() -> new IllegalArgumentException("no reportName property defined"));
+        this.reportMap = factory.createMap(propertiesProvider, reportName);
         this.indexer = indexer;
     }
 

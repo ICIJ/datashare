@@ -8,10 +8,8 @@ import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.OptionsWrapper;
-import org.icij.datashare.tasks.FilterTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
@@ -40,6 +38,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
+import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
@@ -130,16 +129,11 @@ public class TaskResource {
         Properties properties = propertiesProvider.createMerged(optionsWrapper.asProperties());
         User user = (User) context.currentUser();
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
-            taskFactory.createScanIndexTask(user).call();
-            FilterTask filterTask = taskFactory.createFilterTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"));
-            return asList(
-                    scanResponse,
-                    new TaskResponse(taskManager.startTask(filterTask)),
-                    new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(user, filterTask.getOutputQueueName(), properties)))
-            );
-        } else {
-            return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), properties))));
+            String reportName = propertiesProvider.get(MAP_NAME_OPTION).orElse("extract:report");
+            taskFactory.createScanIndexTask(user, reportName).call();
+            properties.put(MAP_NAME_OPTION, reportName);
         }
+        return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), properties))));
     }
 
     /**

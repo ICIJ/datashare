@@ -14,10 +14,9 @@ public interface TaskFactory {
     NlpApp createNlpTask(User user, AbstractPipeline pipeline, Properties properties, Runnable subscribedCb);
     NlpApp createNlpTask(User user, AbstractPipeline pipeline);
     BatchSearchRunner createBatchSearchRunner(User user);
-    ScanIndexTask createScanIndexTask(User user);
+    ScanIndexTask createScanIndexTask(User user, String reportName);
 
     ScanTask createScanTask(User user, String queueName, final Path path, Properties properties);
     IndexTask createIndexTask(final User user, String queueName, final Properties properties);
-    FilterTask createFilterTask(User user, String queueName);
     DeduplicateTask createDeduplicateTask(User user, String queueName);
 }

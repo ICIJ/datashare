@@ -99,9 +99,8 @@ public class TaskResourceTest implements FluentRestTest {
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(2)));
 
-        verify(taskFactory).createScanIndexTask(eq(local()));
+        verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report"));
     }
 
     @Test
@@ -296,10 +295,7 @@ public class TaskResourceTest implements FluentRestTest {
         when(taskFactory.createBatchSearchRunner(any())).thenReturn(mock(BatchSearchRunner.class));
         when(taskFactory.createScanTask(any(), any(), any(), any())).thenReturn(mock(ScanTask.class));
         when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(mock(DeduplicateTask.class));
-        FilterTask filterTask = mock(FilterTask.class);
-        when(filterTask.getOutputQueueName()).thenReturn("filteredQueue");
-        when(taskFactory.createFilterTask(any(), any())).thenReturn(filterTask);
-        when(taskFactory.createScanIndexTask(any())).thenReturn(mock(ScanIndexTask.class));
+        when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));
         when(taskFactory.createResumeNlpTask(any(), eq(singleton(Pipeline.Type.OPENNLP)))).thenReturn(mock(ResumeNlpTask.class));
         when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(NlpApp.class));
         when(taskFactory.createNlpTask(any(), any(), any(), any())).thenReturn(mock(NlpApp.class));

@@ -134,7 +134,6 @@ public class DatashareCli {
         SCAN,
         SCANIDX,
         DEDUPLICATE,
-        FILTER,
         INDEX,
         NLP;
 

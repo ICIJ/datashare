@@ -18,7 +18,7 @@ public class PipelineTaskTest {
         put("queueName", "test:queue");
     }});
     DocumentCollectionFactory docCollectionFactory = new MemoryDocumentCollectionFactory();
-    TestPipelineTask task = new TestPipelineTask(DatashareCli.Stage.FILTER, nullUser(), options);
+    TestPipelineTask task = new TestPipelineTask(DatashareCli.Stage.DEDUPLICATE, nullUser(), options);
 
     @Test
     public void test_pipeline_task_transfer_to_output_queue() throws Exception {

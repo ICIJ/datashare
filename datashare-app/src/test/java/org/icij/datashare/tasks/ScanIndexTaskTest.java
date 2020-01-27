@@ -26,14 +26,13 @@ public class ScanIndexTaskTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
     private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
         put("defaultProject", TEST_INDEX);
-        put("reportName", "test:report");
     }});
     private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
     private MemoryDocumentCollectionFactory documentCollectionFactory = new MemoryDocumentCollectionFactory();
 
     @Test
     public void test_empty_index() throws Exception {
-        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser()).call()).isEqualTo(0);
+        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser(), "test:report").call()).isEqualTo(0);
     }
 
     @Test
@@ -41,7 +40,7 @@ public class ScanIndexTaskTest {
         indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id1").build());
         indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id2").build());
 
-        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser()).call()).isEqualTo(2);
+        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser(), "test:report").call()).isEqualTo(2);
 
         ReportMap actualReportMap = documentCollectionFactory.createMap(propertiesProvider, "test:report");
         assertThat(actualReportMap).includes(

@@ -24,7 +24,9 @@ import java.util.Set;
 
 import static com.google.inject.Guice.createInjector;
 import static java.lang.Boolean.parseBoolean;
+import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 import static org.icij.datashare.user.User.nullUser;
 
@@ -65,16 +67,12 @@ class CliApp {
         }
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
-        if (pipeline.has(DatashareCli.Stage.FILTER)) {
-            taskManager.startTask(taskFactory.createFilterTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.FILTER)));
-        }
-
         if (pipeline.has(DatashareCli.Stage.DEDUPLICATE)) {
             taskManager.startTask(taskFactory.createDeduplicateTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.DEDUPLICATE)));
         }
 
         if (pipeline.has(DatashareCli.Stage.SCANIDX)) {
-            TaskManager.MonitorableFutureTask<Long> longMonitorableFutureTask = taskManager.startTask(taskFactory.createScanIndexTask(nullUser()));
+            TaskManager.MonitorableFutureTask<Long> longMonitorableFutureTask = taskManager.startTask(taskFactory.createScanIndexTask(nullUser(), ofNullable(properties.getProperty(MAP_NAME_OPTION)).orElse("extract:report")));
             logger.info("scanned {}", longMonitorableFutureTask.get());
         }
 
