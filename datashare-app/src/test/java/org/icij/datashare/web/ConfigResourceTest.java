@@ -45,7 +45,7 @@ public class ConfigResourceTest implements FluentRestTest {
         server.configure(routes -> routes.add(new ConfigResource(new PropertiesProvider())).
                 filter(new BasicAuthFilter("/", "icij", singleUser(new HashMapUser(new HashMap<String, String>() {{
                     put("uid", "soline");
-                    put("datashare_indices", "[\"foo\",\"bar\"]");
+                    put("datashare_projects", "[\"foo\",\"bar\"]");
                 }})))));
 
         get("/api/config").withPreemptiveAuthentication("soline", "pass").should().respond(200).
