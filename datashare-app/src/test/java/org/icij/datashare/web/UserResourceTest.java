@@ -22,7 +22,7 @@ public class UserResourceTest implements FluentRestTest {
         server.configure(routes -> routes.add(new UserResource()).
                         filter(new BasicAuthFilter("/", "icij", singleUser("pierre"))));
 
-        get("/api/user").withPreemptiveAuthentication("pierre", "pass").
+        get("/api/users/me").withPreemptiveAuthentication("pierre", "pass").
                 should().respond(200).contain("\"uid\":\"pierre\"");
     }
 

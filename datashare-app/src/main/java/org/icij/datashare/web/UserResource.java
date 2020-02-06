@@ -7,7 +7,7 @@ import org.icij.datashare.session.HashMapUser;
 
 import java.util.Map;
 
-@Prefix("/api/user")
+@Prefix("/api/users")
 public class UserResource {
     /**
      * gets the user's session information
@@ -15,9 +15,9 @@ public class UserResource {
      * @return 200 and the user map
      *
      * Example :
-     * $(curl -i localhost:8080/api/user)
+     * $(curl -i localhost:8080/api/users/me)
      */
-    @Get()
+    @Get("/me")
     public Map<String, String> getUser(Context context) {
         return ((HashMapUser) context.currentUser()).getMap();
     }
