@@ -77,6 +77,13 @@ public final class DatashareCliOptions {
                         .ofType(String.class);
     }
 
+    static OptionSpec<String> pluginsDir(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("pluginsDir"), "Plugins directory")
+                        .withRequiredArg()
+                        .ofType(String.class);
+    }
+
     static OptionSpec<Integer> tcpListenPort(OptionParser parser) {
         return parser.acceptsAll(
                 singletonList("tcpListenPort"), "Port used by the HTTP server")

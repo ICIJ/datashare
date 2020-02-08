@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 public class PropertiesProvider {
+    public static final String PLUGINS_DIR = "pluginsDir";
     private static final String PREFIX = "DS_DOCKER_";
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
     public static final String CONFIG_FILE_PARAMETER_KEY = "configFile";

@@ -24,6 +24,7 @@ public class DatashareCli {
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
         DatashareCliOptions.configFile(parser);
+        DatashareCliOptions.pluginsDir(parser);
         DatashareCliOptions.tcpListenPort(parser);
         DatashareCliOptions.mode(parser);
         DatashareCliOptions.stages(parser);
