@@ -35,7 +35,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
     private User createUser(String userName) {
         HashMapUser user = new HashMapUser(new HashMap<String, String>() {{
             put("uid", userName);
-            put("datashare_projects", String.format("[\"%s\"]", project));
+            put("datashare_indices", String.format("[\"%s\"]", project));
         }});
         ((RedisUsers)users).createUser(user);
         return user;

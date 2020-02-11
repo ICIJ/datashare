@@ -15,7 +15,7 @@ import static net.codestory.http.convert.TypeConvert.toJson;
 import static org.apache.commons.collections4.map.UnmodifiableMap.unmodifiableMap;
 
 public class HashMapUser extends User implements net.codestory.http.security.User {
-    private static final String DATASHARE_INDICES_KEY = "datashare_projects";
+    private static final String DATASHARE_INDICES_KEY = "datashare_indices";
     final Map<String, String> userMap;
 
     public HashMapUser(final Map<String, String> userMap) {

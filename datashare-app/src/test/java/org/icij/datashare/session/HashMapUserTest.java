@@ -41,7 +41,7 @@ public class HashMapUserTest {
         assertThat(HashMapUser.local().getProjects()).isEmpty();
         assertThat(new HashMapUser(new HashMap<String, String>() {{
             put("uid", "userid");
-            put("datashare_projects", "[\"external_index\"]");
+            put("datashare_indices", "[\"external_index\"]");
         }}).getProjects()).containsExactly("external_index");
     }
 }
