@@ -29,12 +29,18 @@ public class WebApp {
     }
 
     public static void createLinkToPlugins(Path pathToApp, Properties properties) throws IOException {
-        try {
-            if (properties.containsKey(PLUGINS_DIR)) {
-                Files.createSymbolicLink(pathToApp.resolve("plugins"), Paths.get(properties.getProperty(PLUGINS_DIR)));
+        Path pluginsDir = pathToApp.resolve("plugins");
+        if (properties.containsKey(PLUGINS_DIR)) {
+            Path target = Paths.get(properties.getProperty(PLUGINS_DIR));
+            if (target.toFile().isDirectory()) {
+                pluginsDir.toFile().delete();
+                try {
+                    Files.createSymbolicLink(pluginsDir, target);
+                } catch (FileAlreadyExistsException e) {
+                    // nothing to do
+                }
             }
-        } catch (FileAlreadyExistsException e) {
-            // nothing to do
         }
+
     }
 }
