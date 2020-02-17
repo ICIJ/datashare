@@ -1,5 +1,7 @@
 package org.icij.datashare.web;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
@@ -85,10 +87,23 @@ public class RootResource {
     }
 
     private String getPluginUrl(File pluginDir, String pluginsDir) {
+        Path packageJson = pluginDir.toPath().resolve("package.json");
+        if (packageJson.toFile().isFile()) {
+            return "/plugins" + getPluginMain(packageJson).toString().replace(pluginsDir, "");
+        }
         Path indexJs = pluginDir.toPath().resolve("index.js");
         if (indexJs.toFile().isFile()) {
             return "/plugins" + indexJs.toString().replace(pluginsDir, "");
         }
         return null;
+    }
+
+    private Path getPluginMain(Path packageJson) {
+        try {
+            Map<String, String> packageJsonMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, String>>() {});
+            return packageJson.getParent().resolve(packageJsonMap.get("main"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

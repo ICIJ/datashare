@@ -12,11 +12,13 @@ import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
 import static java.nio.file.Files.copy;
+import static java.util.Arrays.asList;
 
 public class RootResourcePluginTest implements FluentRestTest {
     @ClassRule public static TemporaryFolder appFolder = new TemporaryFolder();
@@ -86,6 +88,21 @@ public class RootResourcePluginTest implements FluentRestTest {
 
         get("/testapp/").should().respond(200).contain("<script src=\"/plugins/my_plugin/index.js\"></script></body>");
         get("/plugins/my_plugin/index.js").should().respond(200);
+    }
+
+    @Test
+    public void test_get_with_plugin_directory_that_contains_a_folder_with_package_json_file() throws Exception {
+        WebApp.createLinkToPlugins(appFolder.getRoot().toPath().resolve("app"), propertiesProvider.getProperties());
+        Path pluginPath = folder.newFolder("my_plugin").toPath();
+        Files.write(pluginPath.resolve("package.json"), asList(
+                "{",
+                "  \"main\": \"app.js\"",
+                "}"
+        ));
+        pluginPath.resolve("app.js").toFile().createNewFile();
+
+        get("/testapp/").should().respond(200).contain("<script src=\"/plugins/my_plugin/app.js\"></script></body>");
+        get("/plugins/my_plugin/app.js").should().respond(200);
     }
 
     @Override
