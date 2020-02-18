@@ -6,7 +6,6 @@ import net.codestory.http.io.ClassPaths;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import org.apache.commons.io.FileUtils;
-import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
@@ -44,7 +43,7 @@ public class RootResourcePluginTest implements FluentRestTest {
         propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put("pluginsDir", folder.getRoot().toString());
         }});
-        server.configure(routes -> routes.add(new RootResource(propertiesProvider)));
+        server.configure(routes -> routes.add(new RootResource(propertiesProvider)).bind("/plugins", folder.getRoot()));
     }
 
     @Test
@@ -82,8 +81,6 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Test
     public void test_get_with_plugin_directory_that_contains_a_folder_with_indexjs() throws Exception {
-        PluginService.createLinkToPlugins(appFolder.getRoot().toPath().resolve("app"), propertiesProvider.getProperties());
-
         folder.newFolder("my_plugin").toPath().resolve("index.js").toFile().createNewFile();
 
         get("/testapp/").should().respond(200).contain("<script src=\"/plugins/my_plugin/index.js\"></script></body>");
@@ -92,7 +89,6 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Test
     public void test_get_with_plugin_directory_that_contains_a_folder_with_package_json_file() throws Exception {
-        PluginService.createLinkToPlugins(appFolder.getRoot().toPath().resolve("app"), propertiesProvider.getProperties());
         Path pluginPath = folder.newFolder("my_plugin").toPath();
         Files.write(pluginPath.resolve("package.json"), asList(
                 "{",

@@ -4,21 +4,18 @@ import net.codestory.http.WebServer;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.mode.CommonMode;
 
-import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Properties;
 
 import static java.lang.Integer.parseInt;
 
 public class WebApp {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         start(new DatashareCli().parseArguments(args).properties);
     }
 
-    static void start(Properties properties) throws IOException {
+    static void start(Properties properties) {
         CommonMode mode = CommonMode.create(properties);
-        PluginService.createLinkToPlugins(Paths.get("app"), properties);
         new WebServer()
                 .withThreadCount(10)
                 .withSelectThreads(2)

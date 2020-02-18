@@ -34,11 +34,13 @@ import org.icij.datashare.web.RootResource;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.report.ReportMap;
 
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public class CommonMode extends AbstractModule {
@@ -101,7 +103,7 @@ public class CommonMode extends AbstractModule {
             dataBus = new RedisDataBus(propertiesProvider);
         }
         bind(DataBus.class).toInstance(dataBus);
-        bind(Publisher.class).toInstance((Publisher)dataBus);
+        bind(Publisher.class).toInstance(dataBus);
     }
 
     public Properties properties() {
@@ -135,6 +137,10 @@ public class CommonMode extends AbstractModule {
                 .filter(Filter.class);
 
         addModeConfiguration(routes);
+
+        if (provider.get(PropertiesProvider.PLUGINS_DIR).orElse(null) != null) {
+            routes.bind(PLUGINS_BASE_URL, Paths.get(provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR)).toFile());
+        }
 
         String cors = provider.get("cors").orElse("no-cors");
         if (!cors.equals("no-cors")) {
