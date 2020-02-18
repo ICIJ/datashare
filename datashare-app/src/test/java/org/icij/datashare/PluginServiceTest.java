@@ -36,6 +36,13 @@ public class PluginServiceTest {
     }
 
     @Test
+    public void test_get_plugin_url() throws Exception {
+        appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("index.js").toFile().createNewFile();
+        assertThat(new PluginService().getPluginUrl(pluginDir.resolve("my_plugin"), pluginDir)).
+                isEqualTo("/plugins/my_plugin/index.js");
+    }
+
+    @Test
     public void test_create_link_with_nonexistent_target() throws Exception {
         PluginService.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
             put(PLUGINS_DIR, appFolder.getRoot().toPath().resolve("nonexistent").toString());

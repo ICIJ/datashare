@@ -8,6 +8,7 @@ import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -33,7 +34,7 @@ public class RootResource {
     public String getHome(Context context) {
         Map<String, Object> page = context.site().getPages().stream().filter(m -> "index".equals(m.get("name"))).findFirst().orElse(new HashMap<>());
         return propertiesProvider.get(PLUGINS_DIR).isPresent() ?
-                new PluginService().addPlugins((String) page.get("content"), propertiesProvider.getProperties().getProperty(PLUGINS_DIR)):
+                new PluginService().addPlugins((String) page.get("content"), Paths.get(propertiesProvider.getProperties().getProperty(PLUGINS_DIR))):
                 (String) page.get("content");
     }
 

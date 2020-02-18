@@ -19,11 +19,11 @@ import static java.util.stream.Collectors.joining;
 import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR;
 
 public class PluginService {
-    public String addPlugins(String stringContent, String pluginsDir) {
-        File[] dirs = ofNullable(Paths.get(pluginsDir).toFile().listFiles(File::isDirectory)).
+    public String addPlugins(String stringContent, Path pluginsDir) {
+        File[] dirs = ofNullable(pluginsDir.toFile().listFiles(File::isDirectory)).
                 orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginsDir));
         String scriptsString = stream(dirs).
-                map(d -> getPluginUrl(d, pluginsDir)).filter(Objects::nonNull).
+                map(d -> getPluginUrl(d.toPath(), pluginsDir)).filter(Objects::nonNull).
                 map(s -> "<script src=\"" + s + "\"></script>").collect(joining());
         return stringContent.replace("</body>", scriptsString + "</body>");
     }
@@ -39,16 +39,21 @@ public class PluginService {
         }
     }
 
-    private String getPluginUrl(File pluginDir, String pluginsDir) {
-        Path packageJson = pluginDir.toPath().resolve("package.json");
+    String getPluginUrl(Path pluginDir, Path pluginsDir) {
+        Path packageJson = pluginDir.resolve("package.json");
         if (packageJson.toFile().isFile()) {
-            return "/plugins" + getPluginMain(packageJson).toString().replace(pluginsDir, "");
+            Path pluginMain = getPluginMain(packageJson);
+            return relativeToPlugins(pluginsDir, pluginMain).toString();
         }
-        Path indexJs = pluginDir.toPath().resolve("index.js");
+        Path indexJs = pluginDir.resolve("index.js");
         if (indexJs.toFile().isFile()) {
-            return "/plugins" + indexJs.toString().replace(pluginsDir, "");
+            return relativeToPlugins(pluginsDir, indexJs).toString();
         }
         return null;
+    }
+
+    private Path relativeToPlugins(Path pluginsDir, Path pluginMain) {
+        return Paths.get("/plugins").resolve(pluginMain.subpath(pluginsDir.getNameCount(), pluginMain.getNameCount()));
     }
 
     private Path getPluginMain(Path packageJson) {
