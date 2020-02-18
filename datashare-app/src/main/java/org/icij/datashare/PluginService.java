@@ -37,7 +37,6 @@ public class PluginService {
                 Files.createSymbolicLink(pluginsDir, target);
             }
         }
-
     }
 
     private String getPluginUrl(File pluginDir, String pluginsDir) {

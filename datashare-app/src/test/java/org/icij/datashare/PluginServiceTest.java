@@ -16,7 +16,7 @@ import java.util.HashMap;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR;
 
-public class WebAppTest {
+public class PluginServiceTest {
     @Rule public TemporaryFolder appFolder = new TemporaryFolder();
     private Path pluginDir;
 
