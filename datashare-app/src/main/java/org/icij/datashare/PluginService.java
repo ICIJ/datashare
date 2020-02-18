@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,11 +34,7 @@ public class PluginService {
             Path target = Paths.get(properties.getProperty(PLUGINS_DIR));
             if (target.toFile().isDirectory()) {
                 pluginsDir.toFile().delete();
-                try {
-                    Files.createSymbolicLink(pluginsDir, target);
-                } catch (FileAlreadyExistsException e) {
-                    // nothing to do
-                }
+                Files.createSymbolicLink(pluginsDir, target);
             }
         }
 
