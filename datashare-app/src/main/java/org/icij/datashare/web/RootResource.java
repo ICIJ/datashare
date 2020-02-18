@@ -7,9 +7,12 @@ import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -30,12 +33,17 @@ public class RootResource {
      *
      * @return the content of index.html file
      */
-    @Get("testapp/")
-    public String getHome(Context context) {
-        Map<String, Object> page = context.site().getPages().stream().filter(m -> "index".equals(m.get("name"))).findFirst().orElse(new HashMap<>());
+    @Get()
+    public String getRoot(Context context) throws IOException {
+        Path index = new File(context.env().workingDir(), context.env().appFolder()).toPath().resolve("index.html");
+        if (context.env().classPath() && !index.toFile().isFile()) {
+            index = Paths.get(getClass().getClassLoader().getResource(Paths.get(context.env().appFolder()).resolve("index.html").toString()).getPath());
+        }
+        byte[] bytes = Files.readAllBytes(index);
+        String content = new String(bytes, Charset.defaultCharset());
         return propertiesProvider.get(PLUGINS_DIR).isPresent() ?
-                new PluginService().addPlugins((String) page.get("content"), Paths.get(propertiesProvider.getProperties().getProperty(PLUGINS_DIR))):
-                (String) page.get("content");
+                new PluginService().addPlugins(content, Paths.get(propertiesProvider.getProperties().getProperty(PLUGINS_DIR))):
+                content;
     }
 
     /**
