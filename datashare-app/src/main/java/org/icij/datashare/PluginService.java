@@ -19,6 +19,8 @@ import static java.util.stream.Collectors.joining;
 import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR;
 
 public class PluginService {
+    public static final String PLUGINS_LINK = "plugins";
+
     public String addPlugins(String stringContent, Path pluginsDir) {
         File[] dirs = ofNullable(pluginsDir.toFile().listFiles(File::isDirectory)).
                 orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginsDir));
@@ -29,7 +31,7 @@ public class PluginService {
     }
 
     public static void createLinkToPlugins(Path pathToApp, Properties properties) throws IOException {
-        Path pluginsDir = pathToApp.resolve("plugins");
+        Path pluginsDir = pathToApp.resolve(PLUGINS_LINK);
         if (properties.containsKey(PLUGINS_DIR)) {
             Path target = Paths.get(properties.getProperty(PLUGINS_DIR));
             if (target.toFile().isDirectory()) {
@@ -53,7 +55,7 @@ public class PluginService {
     }
 
     private Path relativeToPlugins(Path pluginMain) {
-        return Paths.get("/plugins").resolve(pluginMain.subpath(pluginMain.getNameCount() - 2, pluginMain.getNameCount()));
+        return Paths.get("/" + PLUGINS_LINK).resolve(pluginMain.subpath(pluginMain.getNameCount() - 2, pluginMain.getNameCount()));
     }
 
     private Path getPluginMain(Path packageJson) {
