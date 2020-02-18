@@ -1,8 +1,5 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.WebServer;
-import net.codestory.http.misc.Env;
-import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.LocalUserFilter;
@@ -11,6 +8,7 @@ import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
+import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,21 +31,15 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class DocumentResourceTest implements FluentRestTest {
+public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder temp = new TemporaryFolder();
-    private static WebServer server = new WebServer() {
-        @Override
-        protected Env createEnv() {
-            return Env.prod();
-        }
-    }.startOnRandomPort();
     @Mock Repository repository;
     @Mock Indexer indexer;
 
     @Before
     public void setUp() {
         initMocks(this);
-        server.configure(routes -> routes.add(new DocumentResource(repository, indexer)).filter(new LocalUserFilter(new PropertiesProvider())));
+        configure(routes -> routes.add(new DocumentResource(repository, indexer)).filter(new LocalUserFilter(new PropertiesProvider())));
     }
 
     @Test
@@ -257,7 +249,4 @@ public class DocumentResourceTest implements FluentRestTest {
         file.toPath().getParent().toFile().mkdirs();
         Files.write(file.toPath(), content.getBytes(UTF_8));
     }
-
-    @Override
-    public int port() { return server.port();}
 }

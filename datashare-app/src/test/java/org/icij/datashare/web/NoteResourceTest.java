@@ -1,12 +1,10 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.WebServer;
-import net.codestory.http.misc.Env;
-import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.Note;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -18,13 +16,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class NoteResourceTest implements FluentRestTest {
-    private static WebServer server = new WebServer() {
-            @Override
-            protected Env createEnv() {
-            return Env.prod();
-        }
-    }.startOnRandomPort();
+public class NoteResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
 
     @Test
@@ -56,10 +48,7 @@ public class NoteResourceTest implements FluentRestTest {
     @Before
     public void setUp() {
         initMocks(this);
-        server.configure(routes -> routes.add(new NoteResource(repository)).
+        configure(routes -> routes.add(new NoteResource(repository)).
                 filter(new LocalUserFilter(new PropertiesProvider())));
     }
-
-    @Override
-    public int port() { return server.port();}
 }

@@ -1,23 +1,14 @@
 package org.icij.datashare.web;
 
 
-import net.codestory.http.WebServer;
-import net.codestory.http.misc.Env;
-import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
 
-public class RootResourceTest implements FluentRestTest {
-    private static WebServer server = new WebServer() {
-        @Override
-        protected Env createEnv() {
-            return Env.prod();
-        }
-    }.startOnRandomPort();
-
+public class RootResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
-        server.configure(routes -> routes.add(RootResource.class));
+        configure(routes -> routes.add(RootResource.class));
     }
 
     @Test
@@ -29,7 +20,4 @@ public class RootResourceTest implements FluentRestTest {
     public void test_get_version() {
         get("/version").should().respond(200);
     }
-
-    @Override
-    public int port() { return server.port();}
 }

@@ -1,25 +1,15 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.WebServer;
 import net.codestory.http.filters.basic.BasicAuthFilter;
-import net.codestory.http.misc.Env;
-import net.codestory.rest.FluentRestTest;
+import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Test;
 
 import static org.icij.datashare.session.HashMapUser.singleUser;
 
-public class UserResourceTest implements FluentRestTest {
-    private static WebServer server = new WebServer() {
-            @Override
-            protected Env createEnv() {
-                return Env.prod();
-            }
-        }.startOnRandomPort();
-    @Override public int port() { return server.port();}
-
+public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void get_user_information_test() {
-        server.configure(routes -> routes.add(new UserResource()).
+        configure(routes -> routes.add(new UserResource()).
                         filter(new BasicAuthFilter("/", "icij", singleUser("pierre"))));
 
         get("/api/users/me").withPreemptiveAuthentication("pierre", "pass").

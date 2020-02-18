@@ -1,9 +1,6 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.WebServer;
 import net.codestory.http.convert.TypeConvert;
-import net.codestory.http.misc.Env;
-import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.NamedEntity;
@@ -11,6 +8,7 @@ import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguage
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -28,15 +26,9 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class NlpResourceTest implements FluentRestTest {
+public class NlpResourceTest extends AbstractProdWebServerTest {
     @Mock
     AbstractPipeline pipeline;
-    private static WebServer server = new WebServer() {
-        @Override
-        protected Env createEnv() {
-            return Env.prod();
-        }
-    }.startOnRandomPort();
 
     @Before
     public void setUp() throws Exception {
@@ -44,7 +36,7 @@ public class NlpResourceTest implements FluentRestTest {
         doReturn(true).when(pipeline).initialize(any());
         OptimaizeLanguageGuesser languageGuesser = new OptimaizeLanguageGuesser();
         NlpResource nlpResource = new NlpResource(new PropertiesProvider(), languageGuesser, s -> pipeline);
-        server.configure(routes -> routes.add(nlpResource));
+        configure(routes -> routes.add(nlpResource));
     }
 
     @Test
@@ -74,7 +66,4 @@ public class NlpResourceTest implements FluentRestTest {
                 entry("offset", 10)
         );
     }
-
-    @Override
-    public int port() { return server.port();}
 }

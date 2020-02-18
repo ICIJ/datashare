@@ -1,20 +1,18 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.basic.BasicAuthFilter;
-import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
-import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
+import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
 import org.junit.Test;
 
@@ -25,19 +23,8 @@ import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
 
-public class UserTaskResourceTest implements FluentRestTest {
-    private WebServer server = new WebServer() {
-        @Override
-        protected Env createEnv() {
-            return Env.prod();
-        }
-    }.startOnRandomPort();
+public class UserTaskResourceTest extends AbstractProdWebServerTest {
     private TaskManager taskManager;
-
-    @Override
-    public int port() {
-        return server.port();
-    }
 
     @After
     public void tearDown() {
@@ -79,12 +66,10 @@ public class UserTaskResourceTest implements FluentRestTest {
         @Override public User getUser() { return new User(user);}
     }
 
-
-
     private void setupAppWith(String... userLogins) {
         final PropertiesProvider propertiesProvider = new PropertiesProvider();
         taskManager = new TaskManager(propertiesProvider);
-        server.configure(new CommonMode(new Properties()) {
+        configure(new CommonMode(new Properties()) {
             @Override
             protected void configure() {
                 bind(PropertiesProvider.class).toInstance(propertiesProvider);

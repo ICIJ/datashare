@@ -3,11 +3,11 @@ package org.icij.datashare.web;
 import net.codestory.http.WebServer;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.misc.Env;
-import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -18,13 +18,7 @@ import static org.icij.datashare.web.IndexResource.getQueryAsString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class IndexResourceTest implements FluentRestTest {
-    private static WebServer server = new WebServer() {
-        @Override
-        protected Env createEnv() {
-            return Env.prod();
-        }
-    }.startOnRandomPort();
+public class IndexResourceTest extends AbstractProdWebServerTest {
     private static WebServer mockElastic = new WebServer() {
         @Override
         protected Env createEnv() {
@@ -32,7 +26,6 @@ public class IndexResourceTest implements FluentRestTest {
         }
     }.startOnRandomPort();
     @Mock Indexer mockIndexer;
-    @Override public int port() { return server.port();}
 
     @Test
     public void test_no_auth_get_forward_request_to_elastic() {
@@ -54,7 +47,7 @@ public class IndexResourceTest implements FluentRestTest {
     }
     @Test
     public void test_auth_forward_request_with_user_logged_on() {
-        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
+        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
 
@@ -69,7 +62,7 @@ public class IndexResourceTest implements FluentRestTest {
 
     @Test
     public void test_auth_forward_request_for_scroll_requests() {
-        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
+        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
 
@@ -83,7 +76,7 @@ public class IndexResourceTest implements FluentRestTest {
 
     @Test
     public void test_put_should_return_method_not_allowed() {
-        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
+        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
 
@@ -98,7 +91,7 @@ public class IndexResourceTest implements FluentRestTest {
 
     @Test
     public void test_put_createIndex_calls_indexer() throws Exception {
-        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
+        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
         put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(200);
@@ -108,7 +101,7 @@ public class IndexResourceTest implements FluentRestTest {
     @Before
     public void setUp() {
         initMocks(this);
-        server.configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
+        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new LocalUserFilter(new PropertiesProvider())));
         mockElastic.configure(routes -> routes

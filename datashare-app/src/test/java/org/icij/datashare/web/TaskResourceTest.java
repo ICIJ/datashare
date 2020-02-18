@@ -1,10 +1,7 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
-import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
-import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
@@ -17,9 +14,9 @@ import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.NlpApp;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
+import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -39,39 +36,27 @@ import static org.icij.datashare.session.HashMapUser.local;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
-public class TaskResourceTest implements FluentRestTest {
-    private static WebServer server = new WebServer() {
-        @Override
-        protected Env createEnv() {
-            return Env.prod();
-        }
-    }.startOnRandomPort();
+public class TaskResourceTest extends AbstractProdWebServerTest {
     private static TaskFactory taskFactory = mock(TaskFactory.class);
     private static TaskManager taskManager= new TaskManager(new PropertiesProvider());
-    @Override
-    public int port() {
-        return server.port();
-    }
-
-    @BeforeClass
-    public static void setUpClass() {
-        server.configure(new CommonMode(new Properties()) {
-            @Override
-            protected void configure() {
-                bind(TaskFactory.class).toInstance(taskFactory);
-                bind(Indexer.class).toInstance(mock(Indexer.class));
-                bind(TaskManager.class).toInstance(taskManager);
-                bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
-                bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new HashMap<String, String>() {{
-                    put("dataDir", "/default/data/dir");
-                }}));
-            }
-            @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class);}
-        }.createWebConfiguration());
-    }
 
     @Before
-    public void setUp() { init(taskFactory);}
+    public void setUp() {
+        configure(new CommonMode(new Properties()) {
+                    @Override
+                    protected void configure() {
+                        bind(TaskFactory.class).toInstance(taskFactory);
+                        bind(Indexer.class).toInstance(mock(Indexer.class));
+                        bind(TaskManager.class).toInstance(taskManager);
+                        bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
+                        bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new HashMap<String, String>() {{
+                            put("dataDir", "/default/data/dir");
+                        }}));
+                    }
+                    @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class);}
+                }.createWebConfiguration());
+        init(taskFactory);
+    }
 
     @After
     public void tearDown() {

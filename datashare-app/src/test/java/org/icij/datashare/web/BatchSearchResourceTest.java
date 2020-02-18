@@ -1,8 +1,5 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.WebServer;
-import net.codestory.http.misc.Env;
-import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
@@ -11,6 +8,7 @@ import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.user.User;
+import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,16 +34,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class BatchSearchResourceTest implements FluentRestTest {
+public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Mock
     BatchSearchRepository batchSearchRepository;
-    private static WebServer server = new WebServer() {
-        @Override
-        protected Env createEnv() {
-            return Env.prod();
-        }
-    }.startOnRandomPort();
-
     @Test
     public void test_upload_batch_search_csv_without_name_should_send_bad_request() {
         when(batchSearchRepository.save(any())).thenReturn(true);
@@ -313,10 +304,7 @@ public class BatchSearchResourceTest implements FluentRestTest {
     @Before
     public void setUp() {
         initMocks(this);
-        server.configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository, new PropertiesProvider())).
+        configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository, new PropertiesProvider())).
                 filter(new LocalUserFilter(new PropertiesProvider())));
     }
-
-    @Override
-    public int port() { return server.port();}
 }
