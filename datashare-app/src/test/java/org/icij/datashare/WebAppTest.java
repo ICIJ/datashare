@@ -28,7 +28,7 @@ public class WebAppTest {
 
     @Test
     public void test_create_link() throws Exception {
-        WebApp.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
+        PluginService.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
             put(PLUGINS_DIR, pluginDir.toString());
         }}));
         assertThat(appFolder.getRoot().toPath().resolve("plugins").toFile()).exists();
@@ -37,7 +37,7 @@ public class WebAppTest {
 
     @Test
     public void test_create_link_with_nonexistent_target() throws Exception {
-        WebApp.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
+        PluginService.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
             put(PLUGINS_DIR, appFolder.getRoot().toPath().resolve("nonexistent").toString());
         }}));
         assertThat(appFolder.getRoot().toPath().resolve("plugins").toFile()).doesNotExist();
@@ -46,12 +46,12 @@ public class WebAppTest {
 
     @Test
     public void test_create_link_with_existing_link() throws IOException {
-        WebApp.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
+        PluginService.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
             put(PLUGINS_DIR, pluginDir.toString());
         }}));
 
         pluginDir = appFolder.newFolder("other_target_dir").toPath();
-        WebApp.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
+        PluginService.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
             put(PLUGINS_DIR, pluginDir.toString());
         }}));
 
@@ -62,11 +62,11 @@ public class WebAppTest {
 
     @Test
     public void test_create_link_with_existing_link_and_nonexistent_target_should_leave_previous_link() throws IOException {
-        WebApp.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
+        PluginService.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
             put(PLUGINS_DIR, pluginDir.toString());
         }}));
 
-        WebApp.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
+        PluginService.createLinkToPlugins(appFolder.getRoot().toPath(), PropertiesProvider.fromMap(new HashMap<String, String>() {{
             put(PLUGINS_DIR, appFolder.getRoot().toPath().resolve("nonexistent").toString());
         }}));
 

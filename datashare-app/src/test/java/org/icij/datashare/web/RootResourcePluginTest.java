@@ -6,8 +6,8 @@ import net.codestory.http.io.ClassPaths;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import org.apache.commons.io.FileUtils;
+import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.WebApp;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
@@ -82,7 +82,7 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Test
     public void test_get_with_plugin_directory_that_contains_a_folder_with_indexjs() throws Exception {
-        WebApp.createLinkToPlugins(appFolder.getRoot().toPath().resolve("app"), propertiesProvider.getProperties());
+        PluginService.createLinkToPlugins(appFolder.getRoot().toPath().resolve("app"), propertiesProvider.getProperties());
 
         folder.newFolder("my_plugin").toPath().resolve("index.js").toFile().createNewFile();
 
@@ -92,7 +92,7 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Test
     public void test_get_with_plugin_directory_that_contains_a_folder_with_package_json_file() throws Exception {
-        WebApp.createLinkToPlugins(appFolder.getRoot().toPath().resolve("app"), propertiesProvider.getProperties());
+        PluginService.createLinkToPlugins(appFolder.getRoot().toPath().resolve("app"), propertiesProvider.getProperties());
         Path pluginPath = folder.newFolder("my_plugin").toPath();
         Files.write(pluginPath.resolve("package.json"), asList(
                 "{",
