@@ -23,7 +23,7 @@ public class PluginService {
         File[] dirs = ofNullable(pluginsDir.toFile().listFiles(File::isDirectory)).
                 orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginsDir));
         String scriptsString = stream(dirs).
-                map(d -> getPluginUrl(d.toPath(), pluginsDir)).filter(Objects::nonNull).
+                map(d -> getPluginUrl(d.toPath())).filter(Objects::nonNull).
                 map(s -> "<script src=\"" + s + "\"></script>").collect(joining());
         return stringContent.replace("</body>", scriptsString + "</body>");
     }
@@ -39,21 +39,21 @@ public class PluginService {
         }
     }
 
-    String getPluginUrl(Path pluginDir, Path pluginsDir) {
+    String getPluginUrl(Path pluginDir) {
         Path packageJson = pluginDir.resolve("package.json");
         if (packageJson.toFile().isFile()) {
             Path pluginMain = getPluginMain(packageJson);
-            return relativeToPlugins(pluginsDir, pluginMain).toString();
+            return relativeToPlugins(pluginMain).toString();
         }
         Path indexJs = pluginDir.resolve("index.js");
         if (indexJs.toFile().isFile()) {
-            return relativeToPlugins(pluginsDir, indexJs).toString();
+            return relativeToPlugins(indexJs).toString();
         }
         return null;
     }
 
-    private Path relativeToPlugins(Path pluginsDir, Path pluginMain) {
-        return Paths.get("/plugins").resolve(pluginMain.subpath(pluginsDir.getNameCount(), pluginMain.getNameCount()));
+    private Path relativeToPlugins(Path pluginMain) {
+        return Paths.get("/plugins").resolve(pluginMain.subpath(pluginMain.getNameCount() - 2, pluginMain.getNameCount()));
     }
 
     private Path getPluginMain(Path packageJson) {

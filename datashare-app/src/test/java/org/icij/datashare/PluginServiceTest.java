@@ -38,7 +38,7 @@ public class PluginServiceTest {
     @Test
     public void test_get_plugin_url() throws Exception {
         appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("index.js").toFile().createNewFile();
-        assertThat(new PluginService().getPluginUrl(pluginDir.resolve("my_plugin"), pluginDir)).
+        assertThat(new PluginService().getPluginUrl(pluginDir.resolve("my_plugin"))).
                 isEqualTo("/plugins/my_plugin/index.js");
     }
 
