@@ -19,7 +19,7 @@ public class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
     public Properties properties;
 
-    public boolean parseArguments(String[] args) {
+    public DatashareCli parseArguments(String[] args) {
         OptionParser parser = new OptionParser();
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
@@ -76,22 +76,25 @@ public class DatashareCli {
             }
             if (options.has(helpOpt)) {
                 printHelp(parser);
-                return false;
+                System.exit(0);
             }
             properties = asProperties(options, null);
             if (options.hasArgument(userOption)) {
                 properties.setProperty(projectOption.options().get(1),
                         userOption.value(options).trim() + "-datashare");
             }
-            return true;
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);
             printHelp(parser);
-            return false;
+            System.exit(1);
         }
+        return this;
     }
 
-    // from https://pholser.github.io/jopt-simple/examples.html
+    public boolean isWebServer() {
+        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")).isWebServer();
+    }
+
     private Properties asProperties(OptionSet options, String prefix) {
         Properties properties = new Properties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
@@ -125,10 +128,6 @@ public class DatashareCli {
         } catch (IOException e) {
             LOGGER.debug("Failed to print help message", e);
         }
-    }
-
-    public boolean isWebServer() {
-        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")).isWebServer();
     }
 
     public enum Stage {

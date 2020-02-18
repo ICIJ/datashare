@@ -7,11 +7,7 @@ import org.slf4j.LoggerFactory;
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
     public static void main(String[] args) throws Exception {
-        DatashareCli cli = new DatashareCli();
-        if (!cli.parseArguments(args)) {
-            LOGGER.info("Exiting...");
-            System.exit(0);
-        }
+        DatashareCli cli = new DatashareCli().parseArguments(args);
         LOGGER.info("Running datashare " + (cli.isWebServer() ? "web server" : ""));
 
         if (cli.isWebServer()) {

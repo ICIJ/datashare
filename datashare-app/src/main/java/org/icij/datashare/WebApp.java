@@ -13,11 +13,7 @@ import static java.lang.Integer.parseInt;
 public class WebApp {
 
     public static void main(String[] args) throws IOException {
-        DatashareCli cli = new DatashareCli();
-        if (!cli.parseArguments(args)) {
-            System.exit(0);
-        }
-        start(cli.properties);
+        start(new DatashareCli().parseArguments(args).properties);
     }
 
     static void start(Properties properties) throws IOException {
