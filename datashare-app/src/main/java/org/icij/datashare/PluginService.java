@@ -27,13 +27,19 @@ public class PluginService {
         String scriptsString = stream(dirs).
                 map(d -> getPluginUrl(d.toPath())).filter(Objects::nonNull).
                 map(s -> "<script src=\"" + s + "\"></script>").collect(joining());
-        return stringContent.replace("</body>", scriptsString + "</body>");
+        String cssString = stream(dirs).
+                map(d -> getCssPluginUrl(d.toPath())).filter(Objects::nonNull).
+                map(s -> "<link rel=\"stylesheet\" href=\"" + s + "\">").collect(joining());
+        return stringContent.
+                replace("</body>", scriptsString + "</body>").
+                replace("</head>", cssString + "</head>");
     }
 
     String getPluginUrl(Path pluginDir) {
         Path packageJson = pluginDir.resolve("package.json");
         if (packageJson.toFile().isFile()) {
-            Path pluginMain = getPluginMain(packageJson);
+            Path pluginMain = getPluginProperty(packageJson, "main");
+            if (pluginMain == null) return null;
             logger.info("detected plugin <{}> with package.json", pluginDir.getParent().relativize(pluginDir));
             return relativeToPlugins(pluginMain).toString();
         }
@@ -45,14 +51,26 @@ public class PluginService {
         return null;
     }
 
+    String getCssPluginUrl(Path pluginDir) {
+        Path packageJson = pluginDir.resolve("package.json");
+        if (packageJson.toFile().isFile()) {
+            Path pluginMain = getPluginProperty(packageJson, "style");
+            if (pluginMain == null) return null;
+            logger.info("detected css plugin <{}> with package.json", pluginDir.getParent().relativize(pluginDir));
+            return relativeToPlugins(pluginMain).toString();
+        }
+        return null;
+    }
+
     private Path relativeToPlugins(Path pluginMain) {
         return Paths.get(PLUGINS_BASE_URL).resolve(pluginMain.subpath(pluginMain.getNameCount() - 2, pluginMain.getNameCount()));
     }
 
-    private Path getPluginMain(Path packageJson) {
+    private Path getPluginProperty(Path packageJson, String property) {
         try {
             Map<String, String> packageJsonMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, String>>() {});
-            return packageJson.getParent().resolve(packageJsonMap.get("main"));
+            String value = packageJsonMap.get(property);
+            return value == null ? null: packageJson.getParent().resolve(value);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

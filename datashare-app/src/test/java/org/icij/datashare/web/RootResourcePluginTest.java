@@ -101,6 +101,20 @@ public class RootResourcePluginTest implements FluentRestTest {
         get("/plugins/my_plugin/app.js").should().respond(200);
     }
 
+    @Test
+    public void test_get_with_plugin_directory_that_contains_a_folder_with_package_json_file_and_css() throws Exception {
+        Path pluginPath = folder.newFolder("my_plugin").toPath();
+        Files.write(pluginPath.resolve("package.json"), asList(
+                "{",
+                "  \"style\": \"app.css\"",
+                "}"
+        ));
+        pluginPath.resolve("app.css").toFile().createNewFile();
+
+        get("/").should().respond(200).contain("<link rel=\"stylesheet\" href=\"/plugins/my_plugin/app.css\"></head>");
+        get("/plugins/my_plugin/app.css").should().respond(200);
+    }
+
     @Override
     public int port() { return server.port();}
 
