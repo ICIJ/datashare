@@ -68,8 +68,8 @@ public class PluginService {
 
     private Path getPluginProperty(Path packageJson, String property) {
         try {
-            Map<String, String> packageJsonMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, String>>() {});
-            String value = packageJsonMap.get(property);
+            Map<String, Object> packageJsonMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {});
+            String value = (String) packageJsonMap.get(property);
             return value == null ? null: packageJson.getParent().resolve(value);
         } catch (IOException e) {
             throw new RuntimeException(e);

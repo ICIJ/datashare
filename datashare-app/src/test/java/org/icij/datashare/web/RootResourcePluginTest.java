@@ -92,7 +92,9 @@ public class RootResourcePluginTest implements FluentRestTest {
         Path pluginPath = folder.newFolder("my_plugin").toPath();
         Files.write(pluginPath.resolve("package.json"), asList(
                 "{",
-                "  \"main\": \"app.js\"",
+                "  \"main\": \"app.js\",",
+                "  \"vue\": {\"filenameHashing\": false  },",
+                "  \"files\": [\"dist/{css,js}/*.{css,js,map}\"]",
                 "}"
         ));
         pluginPath.resolve("app.js").toFile().createNewFile();
