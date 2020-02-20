@@ -1,66 +1,65 @@
 package org.icij.datashare.session;
 
-import net.codestory.http.convert.TypeConvert;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.codestory.http.security.Users;
 import org.icij.datashare.user.User;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
-import static net.codestory.http.convert.TypeConvert.toJson;
 import static org.apache.commons.collections4.map.UnmodifiableMap.unmodifiableMap;
 
 public class HashMapUser extends User implements net.codestory.http.security.User {
     private static final String DATASHARE_INDICES_KEY = "datashare_indices";
-    final Map<String, String> userMap;
+    final Map<String, Object> userMap;
 
-    public HashMapUser(final Map<String, String> userMap) {
-        super(userMap.get("uid"));
+    public HashMapUser(final Map<String, Object> userMap) {
+        super((String) userMap.get("uid"));
         this.userMap = unmodifiableMap(userMap);
     }
 
     HashMapUser(final String login) {
-        this(new HashMap<String, String>() {{ put("uid", login); }});
+        this(new HashMap<String, Object>() {{ put("uid", login); }});
     }
 
     static HashMapUser fromJson(String json) {
-        HashMap hashMap = TypeConvert.fromJson(json, HashMap.class);
-        return new HashMapUser(convert(hashMap));
+        HashMap<String, Object> hashMap = null;
+        try {
+            hashMap = new ObjectMapper().readValue(json, new TypeReference<HashMap<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        return new HashMapUser(hashMap);
+    }
+
+    public String toJson() {
+        try {
+            return new ObjectMapper().writeValueAsString(this.userMap);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public List<String> getProjects() {
-        return TypeConvert.fromJson(ofNullable(userMap.get(DATASHARE_INDICES_KEY)).orElse("[]"), List.class);
+        return (List<String>) ofNullable(userMap.get(DATASHARE_INDICES_KEY)).orElse(new LinkedList<>());
     }
 
-    public Map<String, String> getMap() {
+    public Map<String, Object> getMap() {
         return userMap.entrySet().stream().filter(
                 k -> !k.getKey().equalsIgnoreCase("password")).
                 collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private static Map<String, String> convert(final HashMap hashMap) {
-        Set<Map.Entry<Object, Object>> set = hashMap.entrySet();
-        Map<String, String> result = new HashMap<>();
-        for (Map.Entry e: set) {
-            if (e.getValue() != null) {
-                if (e.getValue() instanceof String) {
-                    result.put((String) e.getKey(), (String) e.getValue());
-                } else {
-                    result.put((String) e.getKey(), toJson(e.getValue()));
-                }
-            }
-        }
-        return result;
-    }
-
-    @Override public String login() { return id;}
-    @Override public String name() { return userMap.get("name");}
-    @Override public String[] roles() { return new String[0];}
-    public String get(String key) {return userMap.get(key);}
+    @Override public String login() { return id; }
+    @Override public String name() { return (String) userMap.get("name"); }
+    @Override public String[] roles() { return new String[0]; }
+    public Object get(String key) { return userMap.get(key); }
     public static HashMapUser local() { return localUser("local"); }
 
     public static HashMapUser localUser(String id) {

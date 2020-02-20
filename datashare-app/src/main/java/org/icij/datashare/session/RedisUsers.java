@@ -10,6 +10,7 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Transaction;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.session.HashMapUser.fromJson;
 
 public class RedisUsers implements Users {
     private final JedisPool redis;
@@ -35,7 +36,7 @@ public class RedisUsers implements Users {
     void createUser(HashMapUser user) {
         try (Jedis jedis = redis.getResource()) {
             Transaction transaction = jedis.multi();
-            transaction.hmset(user.login(), user.userMap);
+            transaction.set(user.login(), user.toJson());
             transaction.expire(user.login(), this.ttl);
             transaction.exec();
         }
@@ -43,7 +44,7 @@ public class RedisUsers implements Users {
 
     HashMapUser getUser(String login) {
         try (Jedis jedis = redis.getResource()) {
-            return new HashMapUser(jedis.hgetAll(login));
+            return fromJson(jedis.get(login));
         }
     }
 

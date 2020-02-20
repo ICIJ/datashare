@@ -18,7 +18,7 @@ public class UserResource {
      * $(curl -i localhost:8080/api/users/me)
      */
     @Get("/me")
-    public Map<String, String> getUser(Context context) {
+    public Map<String, Object> getUser(Context context) {
         return ((HashMapUser) context.currentUser()).getMap();
     }
 }

@@ -10,6 +10,8 @@ import org.icij.datashare.PropertiesProvider;
 
 import java.util.HashMap;
 
+import static java.util.Collections.singletonList;
+
 public class YesCookieAuthFilter extends CookieAuthFilter {
     private final Integer ttl;
     private final String project;
@@ -33,9 +35,9 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
     }
 
     private User createUser(String userName) {
-        HashMapUser user = new HashMapUser(new HashMap<String, String>() {{
+        HashMapUser user = new HashMapUser(new HashMap<String, Object>() {{
             put("uid", userName);
-            put("datashare_indices", String.format("[\"%s\"]", project));
+            put("datashare_indices", singletonList(project));
         }});
         ((RedisUsers)users).createUser(user);
         return user;
