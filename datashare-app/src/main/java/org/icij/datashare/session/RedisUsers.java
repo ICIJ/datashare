@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -25,7 +26,7 @@ public class RedisUsers implements Users {
     @Override
     public User find(String login, String password) {
         HashMapUser user = getUser(login);
-        return user != null && user.get("password") != null && user.get("password").equals(password) ? user: null;
+        return user != null && user.get("password") != null && user.get("password").equals(Hasher.SHA_256.hash(password)) ? user: null;
     }
 
     @Override

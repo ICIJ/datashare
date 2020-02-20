@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.Hasher;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -14,12 +15,12 @@ public class RedisUsersTest {
     RedisUsers users = new RedisUsers(new PropertiesProvider(new HashMap<String, String>() {{
         put("messageBusAddress", "redis");
     }}));
-    
+
     @Test
     public void test_get_user_with_password() {
         users.createUser(new HashMapUser(new HashMap<String, Object>(){{
             put("uid", "test");
-            put("password", "test");
+            put("password", Hasher.SHA_256.hash("test"));
         }}));
         assertThat(users.find("test", "bad-pass")).isNull();
         assertThat(users.find("test", "test")).isNotNull();
@@ -29,7 +30,7 @@ public class RedisUsersTest {
     public void test_get_user_with_object() {
         users.createUser(new HashMapUser(new HashMap<String, Object>(){{
             put("uid", "test");
-            put("password", "test");
+            put("password", Hasher.SHA_256.hash("test"));
             put("projects", asList("project_01", "project_02"));
             put("object", new HashMap<String, String>() {{ put("key", "value"); }});
         }}));
