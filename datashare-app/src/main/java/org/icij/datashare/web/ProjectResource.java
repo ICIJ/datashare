@@ -10,7 +10,6 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.user.User;
 
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.isAllowed;
@@ -87,7 +86,7 @@ public class ProjectResource {
      */
     @Delete("/:id")
     public Payload deleteProject(String id, Context context) throws Exception {
-        if (!((User) context.currentUser()).defaultProject().equals(id)) {
+        if (!context.currentUser().isInRole("local")) {
             return new Payload(401);
         }
         boolean isDeleted = this.repository.deleteAll(id);

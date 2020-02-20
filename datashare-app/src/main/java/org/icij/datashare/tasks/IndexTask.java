@@ -52,7 +52,7 @@ public class IndexTask extends PipelineTask implements Monitorable{
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
         parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         this.publisher = publisher;
-        String indexName = user.isNull() ? propertiesProvider.get("defaultProject").orElse("local-datashare") : user.defaultProject();
+        String indexName = propertiesProvider.get("defaultProject").orElse("local-datashare");
         spewer.withIndex(indexName); // TODO: remove this
         spewer.createIndex();
 

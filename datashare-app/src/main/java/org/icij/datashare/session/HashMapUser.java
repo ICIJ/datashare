@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.collections4.map.UnmodifiableMap.unmodifiableMap;
 
@@ -63,7 +64,7 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     public static HashMapUser local() { return localUser("local"); }
 
     public static HashMapUser localUser(String id) {
-        return new HashMapUser(id) {
+        return new HashMapUser(new HashMap<String, Object>() {{ put("uid", id); put(DATASHARE_INDICES_KEY, singletonList(id + "-datashare"));}}) {
             @Override public String[] roles() { return new String[] {"local"};}
         };
     }
@@ -88,6 +89,6 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
 
     public boolean isGranted(String index) {
-        return getProjects().contains(index) || defaultProject().equals(index);
+        return getProjects().contains(index);
     }
 }

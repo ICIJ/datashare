@@ -27,15 +27,19 @@ public class HashMapUserTest {
     @Test
     public void test_get_map_filters_password() {
         assertThat(new HashMapUser(new HashMap<String, Object>() {{
-                put("uid", "userid");
-                put("password", "secret");
+            put("uid", "userid");
+            put("password", "secret");
         }}).getMap()).excludes(entry("password", "secret"));
-
     }
 
     @Test
-    public void test_get_indices() {
-        assertThat(HashMapUser.local().getProjects()).isEmpty();
+    public void test_get_indices_for_local_user() {
+        assertThat(HashMapUser.local().getProjects()).containsExactly("local-datashare");
+        assertThat(HashMapUser.localUser("foo").getProjects()).containsExactly("foo-datashare");
+    }
+
+    @Test
+    public void test_get_indices_for_external_user() {
         assertThat(new HashMapUser(new HashMap<String, Object>() {{
             put("uid", "userid");
             put("datashare_indices", Collections.singletonList("external_index"));

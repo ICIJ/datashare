@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.session.YesBasicAuthFilter;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -58,7 +59,9 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_delete_project_with_unauthorized_user() throws SQLException {
+    public void test_delete_project_with_unauthorized_user() {
+        configure(routes -> routes.add(new ProjectResource(repository, indexer)).
+                filter(new YesBasicAuthFilter(new PropertiesProvider())));
         when(repository.deleteAll("projectId")).thenReturn(true);
         delete("/api/project/hacker-datashare").withPreemptiveAuthentication("hacker", "pass").should().respond(401);
         delete("/api/project/projectId").should().respond(401);
