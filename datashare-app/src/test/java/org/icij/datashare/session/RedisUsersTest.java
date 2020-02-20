@@ -14,7 +14,7 @@ public class RedisUsersTest {
     RedisUsers users = new RedisUsers(new PropertiesProvider(new HashMap<String, String>() {{
         put("messageBusAddress", "redis");
     }}));
-
+    
     @Test
     public void test_get_user_with_password() {
         users.createUser(new HashMapUser(new HashMap<String, Object>(){{

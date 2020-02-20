@@ -19,6 +19,11 @@ public class HashMapUserTest {
     }
 
     @Test
+    public void test_from_json_null() {
+        assertThat(fromJson(null)).isNull();
+    }
+
+    @Test
     public void test_equals_with_user_subclass() {
         assertThat(User.local()).isEqualTo(HashMapUser.local());
         assertThat(HashMapUser.local()).isEqualTo(User.local());

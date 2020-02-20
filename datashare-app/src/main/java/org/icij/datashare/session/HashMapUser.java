@@ -30,13 +30,14 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
 
     static HashMapUser fromJson(String json) {
-        HashMap<String, Object> hashMap = null;
+        if (json == null) return null;
+        HashMap<String, Object> hashMap;
         try {
             hashMap = new ObjectMapper().readValue(json, new TypeReference<HashMap<String, Object>>() {});
+            return new HashMapUser(hashMap);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        return new HashMapUser(hashMap);
     }
 
     public String toJson() {
