@@ -37,16 +37,4 @@ public class DatashareCliTest {
 
         assertThat(cli.properties).excludes(entry("oauthClientId", "false"));
     }
-
-    @Test
-    public void test_project_name_is_mutually_exclusive_with_user_name(){
-        exit.expectSystemExit();
-        assertThat(cli.parseArguments(new String[]{"-p projectName", "-u userName"}));
-    }
-
-    @Test
-    public void test_user_name_sets_project_name(){
-        assertThat(cli.parseArguments(new String[]{"-u user"})).isNotNull();
-        assertThat(cli.properties).includes(entry("defaultProject", "user-datashare"));
-    }
 }
