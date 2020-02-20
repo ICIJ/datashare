@@ -41,12 +41,12 @@ public class PluginService {
             Path pluginMain = getPluginProperty(packageJson, "main");
             if (pluginMain == null) return null;
             logger.info("detected plugin <{}> with package.json", pluginDir.getParent().relativize(pluginDir));
-            return relativeToPlugins(pluginMain).toString();
+            return relativeToPlugins(pluginDir, pluginMain).toString();
         }
         Path indexJs = pluginDir.resolve("index.js");
         if (indexJs.toFile().isFile()) {
             logger.info("detected plugin <{}> with index.js", pluginDir.getParent().relativize(pluginDir));
-            return relativeToPlugins(indexJs).toString();
+            return relativeToPlugins(pluginDir, indexJs).toString();
         }
         return null;
     }
@@ -57,13 +57,13 @@ public class PluginService {
             Path pluginMain = getPluginProperty(packageJson, "style");
             if (pluginMain == null) return null;
             logger.info("detected css plugin <{}> with package.json", pluginDir.getParent().relativize(pluginDir));
-            return relativeToPlugins(pluginMain).toString();
+            return relativeToPlugins(pluginDir, pluginMain).toString();
         }
         return null;
     }
 
-    private Path relativeToPlugins(Path pluginMain) {
-        return Paths.get(PLUGINS_BASE_URL).resolve(pluginMain.subpath(pluginMain.getNameCount() - 2, pluginMain.getNameCount()));
+    private Path relativeToPlugins(Path pluginDir, Path pluginMain) {
+        return Paths.get(PLUGINS_BASE_URL).resolve(pluginDir.getParent().relativize(pluginMain));
     }
 
     private Path getPluginProperty(Path packageJson, String property) {
