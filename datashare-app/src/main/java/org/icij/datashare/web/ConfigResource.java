@@ -7,14 +7,11 @@ import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Patch;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.Mode;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.session.HashMapUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import static net.codestory.http.payload.Payload.ok;
@@ -39,14 +36,7 @@ public class ConfigResource {
      */
     @Get()
     public Map<String, Object> getConfig(Context context) {
-        Map<String, Object> filteredProperties = provider.getFilteredProperties(".*Address.*", ".*Secret.*");
-        HashMapUser user = (HashMapUser) context.currentUser();
-        List<String> projects = user.getProjects();
-        if (!provider.get("mode").orElse(Mode.LOCAL.toString()).equals(Mode.SERVER.toString())) {
-            projects.add(0, user.defaultProject());
-        }
-        filteredProperties.put("userProjects", projects);
-        return filteredProperties;
+        return provider.getFilteredProperties(".*Address.*", ".*Secret.*");
     }
 
     /**
