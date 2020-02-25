@@ -22,7 +22,7 @@ jobs:
     working_directory: /tmp/datashare
 
     environment:
-      MAVEN_OPTS: "-Xms256m -Xmx256m"
+      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
 
     dependencies:
       override:
