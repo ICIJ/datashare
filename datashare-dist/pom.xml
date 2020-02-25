@@ -51,33 +51,33 @@
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-corenlp</artifactId>
             <version>${project.version}</version>
-             <type>jar</type>
-             <classifier>jar-with-dependencies</classifier>
-             <scope>runtime</scope>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-opennlp</artifactId>
             <version>${project.version}</version>
-             <type>jar</type>
-             <classifier>jar-with-dependencies</classifier>
-             <scope>runtime</scope>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-mitie</artifactId>
             <version>${project.version}</version>
-             <type>jar</type>
-             <classifier>jar-with-dependencies</classifier>
-             <scope>runtime</scope>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-ixapipe</artifactId>
             <version>${project.version}</version>
-             <type>jar</type>
-             <classifier>jar-with-dependencies</classifier>
-             <scope>runtime</scope>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 
@@ -85,14 +85,18 @@
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.icij.datashare.Main</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
                 <executions>
-                    <execution>
-                        <id>assembly</id>
-                        <phase>none</phase>
-                        <configuration>
-                            <skip>true</skip>
-                        </configuration>
-                    </execution>
                     <execution>
                         <phase>package</phase>
                         <id>make-dist</id>

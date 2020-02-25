@@ -7,6 +7,6 @@ if [ "$1" = 'sh' ];
 then
     exec "$@"
 else
-    CLASSPATH=$(find /home/datashare/lib/ -name '*.jar' | sort -r | xargs | sed 's/ /:/g')
-    exec java ${DS_JAVA_OPTS} -DPROD_MODE=true -cp "/home/datashare/dist/:${CLASSPATH}" ${MAIN_CLASS} "$@"
+    CLASSPATH=$(ls /home/datashare/lib/)
+    exec java "${DS_JAVA_OPTS}" -DPROD_MODE=true -cp "/home/datashare/dist/:${CLASSPATH}" ${MAIN_CLASS} "$@"
 fi
