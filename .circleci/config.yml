@@ -58,14 +58,11 @@ jobs:
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run: mvn -Dmaven.test.skip=true package
-
-      # making a datashare-dist-latest as we cannot access dist directory with a wildcard
       - run:
-           name: make dist dir
-           command: |
-             mkdir -p datashare-dist/target/datashare-dist-latest
-             cp -a datashare-dist/target/datashare-dist-*.*/* datashare-dist/target/datashare-dist-latest
-
+          name: copy jar into dist dir
+          command: |
+            mkdir datashare-dist/target/datashare-dist-$CIRCLE_TAG/lib
+            cp datashare-dist/target/datashare-dist-$CIRCLE_TAG.jar datashare-dist/target/datashare-dist-$CIRCLE_TAG/lib/
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
@@ -150,8 +147,8 @@ jobs:
       - run:
           name: build and push docker image
           command: |
-            cp -a /tmp/datashare/dist/ /tmp/datashare/datashare-dist/target/datashare-dist-latest/app
-            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-latest/
+            cp -a /tmp/datashare/dist/ /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG/app
+            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG/
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
             docker push icij/datashare:${CIRCLE_TAG}
 

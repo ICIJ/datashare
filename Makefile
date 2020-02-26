@@ -25,6 +25,8 @@ release:
 
 docker: $(DIST_TARGET)
 		cp -a $(PATH_TO_APP_DIST) $(DIST_TARGET)/app || exit 1
+		mkdir -p $(DIST_TARGET)/lib
+		cp datashare-dist/target/*.jar $(DIST_TARGET)/lib/
 		docker build -t icij/datashare:$(VERSION) $(DIST_TARGET)
 
 unit:
