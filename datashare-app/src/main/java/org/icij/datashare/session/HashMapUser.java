@@ -53,8 +53,9 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
 
     public Map<String, Object> getMap() {
-        return userMap.entrySet().stream().filter(
-                k -> !k.getKey().equalsIgnoreCase("password")).
+        return userMap.entrySet().stream().
+                filter(k -> k.getValue() != null).
+                filter(k -> !k.getKey().equalsIgnoreCase("password")).
                 collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 

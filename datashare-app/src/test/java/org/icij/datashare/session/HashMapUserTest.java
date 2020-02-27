@@ -24,6 +24,11 @@ public class HashMapUserTest {
     }
 
     @Test
+    public void test_getMap_with_null_value() {
+        assertThat(fromJson("{\"key\":null,\"array\":[]}").getMap()).isNotEmpty();
+    }
+
+    @Test
     public void test_equals_with_user_subclass() {
         assertThat(User.local()).isEqualTo(HashMapUser.local());
         assertThat(HashMapUser.local()).isEqualTo(User.local());
