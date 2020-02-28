@@ -97,7 +97,6 @@
 
 
     <build>
-
         <resources>
             <resource>
                 <!-- Exclude models from jar -->

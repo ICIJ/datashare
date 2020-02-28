@@ -58,11 +58,7 @@ jobs:
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run: mvn -Dmaven.test.skip=true package
-      - run:
-          name: copy jar into dist dir
-          command: |
-            mkdir datashare-dist/target/datashare-dist-$CIRCLE_TAG/lib
-            cp datashare-dist/target/datashare-dist-$CIRCLE_TAG.jar datashare-dist/target/datashare-dist-$CIRCLE_TAG/lib/
+
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
@@ -147,8 +143,8 @@ jobs:
       - run:
           name: build and push docker image
           command: |
-            cp -a /tmp/datashare/dist/ /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG/app
-            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG/
+            cp -a /tmp/datashare/dist/ /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-all/app
+            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-all/
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
             docker push icij/datashare:${CIRCLE_TAG}
 

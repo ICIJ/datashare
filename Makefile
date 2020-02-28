@@ -1,5 +1,5 @@
 VERSION = $(shell cat pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
-DIST_TARGET=datashare-dist/target/datashare-dist-$(VERSION)
+DIST_TARGET=datashare-dist/target/datashare-dist-$(VERSION)-all
 PATH_TO_APP_DIST=../datashare-client/dist/
 
 $(DIST_TARGET): dist
@@ -25,8 +25,6 @@ release:
 
 docker: $(DIST_TARGET)
 		cp -a $(PATH_TO_APP_DIST) $(DIST_TARGET)/app || exit 1
-		mkdir -p $(DIST_TARGET)/lib
-		cp datashare-dist/target/*.jar $(DIST_TARGET)/lib/
 		docker build -t icij/datashare:$(VERSION) $(DIST_TARGET)
 
 unit:
