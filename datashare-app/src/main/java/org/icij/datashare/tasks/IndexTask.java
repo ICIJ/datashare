@@ -60,6 +60,11 @@ public class IndexTask extends PipelineTask implements Monitorable{
         Extractor extractor = new Extractor(new DocumentFactory().withIdentifier(new DigestIdentifier(Entity.HASHER.toString(), Charset.defaultCharset())));
         extractor.setDigester(new UpdatableDigester(indexName, Entity.HASHER.toString()));
 
+        logger.info(String.valueOf(properties));
+        if ("false".equals(properties.getProperty("ocr"))) {
+            logger.info("disable OCR");
+            extractor.disableOcr();
+        }
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
         if (propertiesProvider.getProperties().get(MAP_NAME_OPTION) != null) {
             logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(MAP_NAME_OPTION));
