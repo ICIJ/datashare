@@ -3,7 +3,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 VERSION=$(cat $DIR/pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
-CLASSPATH=$DIR/datashare-dist/target/datashare-dist-${VERSION}.jar
+CLASSPATH=$DIR/datashare-dist/target/datashare-dist-${VERSION}-all.jar
 
 export DS_DOCKER_PREVIEW_HOST="http://localhost:5000"
 export DS_DOCKER_BACK_HOST="http://localhost:$(docker ps|grep 8080|sed 's/.*0.0.0.0:\(.*\)->8080.*/\1/g')"
