@@ -16,39 +16,6 @@
     <dependencies>
         <dependency>
             <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-app</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-index</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-db</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
-            <artifactId>datashare-cli</artifactId>
-            <version>${project.version}</version>
-            <type>jar</type>
-            <classifier>jar-with-dependencies</classifier>
-            <scope>runtime</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-nlp-corenlp</artifactId>
             <version>${project.version}</version>
             <type>jar</type>
@@ -79,6 +46,39 @@
             <classifier>jar-with-dependencies</classifier>
             <scope>runtime</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-index</artifactId>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-db</artifactId>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-cli</artifactId>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-app</artifactId>
+            <version>${project.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -96,6 +96,11 @@
                             <resource>.dat</resource>
                         </transformer>
                     </transformers>
+                    <artifactSet>
+                    <excludes>
+                        <exclude>log4j:log4j:jar:</exclude>
+                    </excludes>
+                    </artifactSet>
                 </configuration>
                 <executions>
                     <execution>
