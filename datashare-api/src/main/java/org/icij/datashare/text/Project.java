@@ -1,6 +1,7 @@
 package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
 
 import java.net.InetSocketAddress;
@@ -24,6 +25,11 @@ public class Project implements Entity {
         this(corpusName, Paths.get("/vault").resolve(corpusName), "*");
     }
 
+    public Project( @JsonProperty("name") String corpusName,
+                    @JsonProperty("sourcePath") Path sourcePath) {
+        this(corpusName, sourcePath, "*");
+    }
+
     public Project(String corpusName, Path source, String allowFromMask) {
         name = corpusName;
         sourcePath = source;
@@ -45,6 +51,7 @@ public class Project implements Entity {
         return project == null || project.isAllowed(socketAddress);
     }
 
+    @JsonIgnore
     @Override
     public String getId() {
         return name;

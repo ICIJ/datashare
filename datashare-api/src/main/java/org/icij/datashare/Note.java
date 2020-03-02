@@ -1,16 +1,24 @@
 package org.icij.datashare;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.icij.datashare.text.PathDeserializer;
 import org.icij.datashare.text.Project;
 
 import java.nio.file.Path;
 import java.util.Objects;
 
+//@JsonSerialize(using = NoteSerializer.class)
 public class Note {
     public enum Variant {
         dark, light, danger, info, success, warning, primary, secondary
     }
     public final Project project;
     public final String note;
+    @JsonSerialize(using = PathSerializer.class)
+    @JsonDeserialize(using = PathDeserializer.class)
     public final Path path;
     public final Variant variant;
 
@@ -18,7 +26,11 @@ public class Note {
         this(project, path, note, Variant.info);
     }
 
-    public Note(Project project, Path path, String note, Variant variant) {
+    @JsonCreator
+    public Note(@JsonProperty("project") Project project,
+                @JsonProperty("path") Path path,
+                @JsonProperty("note") String note,
+                @JsonProperty("variant") Variant variant) {
         this.project = project;
         this.note = note;
         this.path = path;
@@ -37,5 +49,5 @@ public class Note {
     @Override
     public int hashCode() { return Objects.hash(project, path);}
     @Override
-    public String toString() { return "Note{project=" + project.name + ", path=" + path + '}';}
+    public String toString() {  return "Note{project=" + project.name + ", path=" + path + '}';}
 }
