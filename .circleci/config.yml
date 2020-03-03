@@ -113,7 +113,9 @@ jobs:
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-client.git
-            git checkout tags/${CIRCLE_TAG}
+            cd datashare-client
+            git pull origin master --tags
+            git checkout ${CIRCLE_TAG}
       - run:
           name: install third party packages
           command: |
