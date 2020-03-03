@@ -106,7 +106,7 @@ jobs:
       - run:
           name: release client on GitHub
           command: |
-           curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }"
+           curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases"
 
       - run:
           name: checkout
