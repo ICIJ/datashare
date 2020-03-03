@@ -111,8 +111,6 @@ jobs:
           name: release client on GitHub
           command: |
             upload_url=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
-            upload_url="${upload_url%\{*}"
-            mkdir -p /tmp/datashare-client/dist
             echo $upload_url > /tmp/datashare-client/datashare-client.url
       - run:
           name: checkout tag
@@ -157,7 +155,8 @@ jobs:
             tar czf ../datashare-client-${CIRCLE_TAG}.tgz .
             zip -r ../datashare-client-${CIRCLE_TAG}.zip .
             cd ..
-            upload_url=$(cat /tmp/datashare/datashare-client.url)
+            upload_url=$(cat /tmp/datashare/datashare-client.url | jq -r '.upload_url')
+            upload_url="${upload_url%\{*}"
             echo "uploading asset to release url: $upload_url"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/datashare-client-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-client-${CIRCLE_TAG}.tgz&label=datashare-client-${CIRCLE_TAG}.tgz"
