@@ -107,7 +107,8 @@ jobs:
           command: |
             upload_url=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
             upload_url="${upload_url%\{*}"
-            echo $upload_url > /tmp/datashare/datashare-client.url
+            mkdir -p /tmp/datashare-client/dist
+            echo $upload_url > /tmp/datashare-client/dist/datashare-client.url
       - run:
           name: checkout
           command: |
@@ -121,10 +122,12 @@ jobs:
           command: |
             cd /tmp/datashare-client
             make install
+
       - save_cache:
           key: dependency-cache-{{ checksum "/tmp/datashare-client/package.json" }}
           paths:
             - /tmp/datashare-client/node_modules
+
       - run:
           name: run tests and build dist
           command: |
@@ -146,11 +149,11 @@ jobs:
       - run:
           name: deploy datashare-client dist to github release
           command: |
-            cd /tmp/datashare-client/dist
+            cd /tmp/datashare/dist
             tar czf ../datashare-client-${CIRCLE_TAG}.tgz .
             zip -r ../datashare-client-${CIRCLE_TAG}.zip .
             cd ..
-            upload_url=$(cat /tmp/datashare/datashare-client.url)
+            upload_url=$(cat /tmp/datashare/dist/datashare-client.url)
             echo "uploading asset to release url: $upload_url"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/datashare-client-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-client-${CIRCLE_TAG}.tgz&label=datashare-client-${CIRCLE_TAG}.tgz"
