@@ -109,6 +109,10 @@ jobs:
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-client.git
       - run:
+          name: install third party packages
+          command: |
+            sudo apt-get install zip
+      - run:
           name: make install
           command: |
             cd /tmp/datashare-client
@@ -122,6 +126,24 @@ jobs:
           command: |
             cd /tmp/datashare-client
             make unit dist
+      - run:
+          name: release datashare-client
+          command: |
+            cd /tmp/datashare-client
+            make NEW_VERSION=${CIRCLE_TAG} release
+            git push origin master --tags- run:
+      - name: create and push assets to the release
+          command: |
+            cd /tmp/datashare-client/dist
+            tar czf ../datashare-client-${CIRCLE_TAG}.tgz .
+            zip -r ../datashare-client-${CIRCLE_TAG}.zip .
+            cd ..
+            upload_url=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare-client/releases" | jq -r '.upload_url')
+            upload_url="${upload_url%\{*}"
+            echo "uploading asset to release url: $upload_url"
+            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
+            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/datashare-client-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-client-${CIRCLE_TAG}.tgz&label=datashare-client-${CIRCLE_TAG}.tgz"
+
       - persist_to_workspace:
           root: /tmp/datashare-client
           paths:
