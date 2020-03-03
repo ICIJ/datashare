@@ -18,7 +18,6 @@ jobs:
           POSTGRES_PASSWORD: test
           POSTGRES_DB: test
 
-
     working_directory: /tmp/datashare
 
     environment:
@@ -143,9 +142,9 @@ jobs:
     working_directory: /tmp
     steps:
       - attach_workspace:
-        at: /tmp/datashare
+          at: /tmp/datashare
       - run:
-          name: create and push assets to the release
+          name: deploy datashare-client dist to github release
           command: |
             cd /tmp/datashare-client/dist
             tar czf ../datashare-client-${CIRCLE_TAG}.tgz .
