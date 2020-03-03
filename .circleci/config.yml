@@ -103,6 +103,11 @@ jobs:
           fingerprints:
             - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
+          name: clone
+          command: |
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            git clone git@github.com:ICIJ/datashare-client.git
+      - run:
           name: release client on GitHub
           command: |
             upload_url=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
@@ -110,10 +115,8 @@ jobs:
             mkdir -p /tmp/datashare-client/dist
             echo $upload_url > /tmp/datashare-client/dist/datashare-client.url
       - run:
-          name: checkout
+          name: checkout tag
           command: |
-            ssh-keyscan github.com >> ~/.ssh/known_hosts
-            git clone git@github.com:ICIJ/datashare-client.git
             cd datashare-client
             git pull origin master --tags
             git checkout ${CIRCLE_TAG}
