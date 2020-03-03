@@ -132,7 +132,8 @@ jobs:
             cd /tmp/datashare-client
             make NEW_VERSION=${CIRCLE_TAG} release
             git push origin master --tags- run:
-      - name: create and push assets to the release
+      - run:
+          name: create and push assets to the release
           command: |
             cd /tmp/datashare-client/dist
             tar czf ../datashare-client-${CIRCLE_TAG}.tgz .
