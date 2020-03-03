@@ -104,10 +104,16 @@ jobs:
           fingerprints:
             - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
+          name: release client on GitHub
+          command: |
+           curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }"
+
+      - run:
           name: checkout
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-client.git
+            git checkout tags/${CIRCLE_TAG}
       - run:
           name: install third party packages
           command: |
@@ -126,12 +132,6 @@ jobs:
           command: |
             cd /tmp/datashare-client
             make unit dist
-      - run:
-          name: release datashare-client
-          command: |
-            cd /tmp/datashare-client
-            make NEW_VERSION=${CIRCLE_TAG} release
-            git push origin master --tags- run:
       - run:
           name: create and push assets to the release
           command: |
