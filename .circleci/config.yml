@@ -131,6 +131,19 @@ jobs:
           command: |
             cd /tmp/datashare-client
             make unit dist
+
+      - persist_to_workspace:
+          root: /tmp/datashare-client
+          paths:
+            - dist
+
+  deploy_front:
+    docker:
+      - image: circleci/node:10.15.2
+    working_directory: /tmp
+    steps:
+      - attach_workspace:
+        at: /tmp/datashare
       - run:
           name: create and push assets to the release
           command: |
@@ -142,11 +155,6 @@ jobs:
             echo "uploading asset to release url: $upload_url"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/datashare-client-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-client-${CIRCLE_TAG}.tgz&label=datashare-client-${CIRCLE_TAG}.tgz"
-
-      - persist_to_workspace:
-          root: /tmp/datashare-client
-          paths:
-            - dist
 
   build_docker:
     docker:
@@ -241,9 +249,17 @@ workflows:
                   only: /^[0-9.]*/
               branches:
                   ignore: /.*/
-      - build_docker:
+      - deploy_front:
           requires:
             - build_front
+          filters:
+            tags:
+              only: /^[0-9.]*/
+            branches:
+              ignore: /.*/
+      - build_docker:
+          requires:
+            - deploy_front
           filters:
               tags:
                   only: /^[0-9.]*/
