@@ -106,8 +106,9 @@ jobs:
       - run:
           name: release client on GitHub
           command: |
-           curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases"
-
+            upload_url=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
+            upload_url="${upload_url%\{*}"
+            echo $upload_url > /tmp/datashare/datashare-client.url
       - run:
           name: checkout
           command: |
@@ -116,10 +117,6 @@ jobs:
             cd datashare-client
             git pull origin master --tags
             git checkout ${CIRCLE_TAG}
-      - run:
-          name: install third party packages
-          command: |
-            sudo apt-get install zip
       - run:
           name: make install
           command: |
@@ -141,8 +138,7 @@ jobs:
             tar czf ../datashare-client-${CIRCLE_TAG}.tgz .
             zip -r ../datashare-client-${CIRCLE_TAG}.zip .
             cd ..
-            upload_url=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare-client/releases" | jq -r '.upload_url')
-            upload_url="${upload_url%\{*}"
+            upload_url=$(cat /tmp/datashare/datashare-client.url)
             echo "uploading asset to release url: $upload_url"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/datashare-client-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-client-${CIRCLE_TAG}.tgz&label=datashare-client-${CIRCLE_TAG}.tgz"
