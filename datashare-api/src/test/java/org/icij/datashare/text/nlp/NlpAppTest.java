@@ -126,7 +126,7 @@ public class NlpAppTest {
             if (nlpProcessDelayMillis > 0) Thread.sleep(nlpProcessDelayMillis);
             return new Annotations("docid_mock", Pipeline.Type.CORENLP, Language.FRENCH);
         });
-        NlpApp nlpApp = new NlpApp(dataBus, indexer, pipeline, properties, latch::countDown,1, local());
+        NlpApp nlpApp = new NlpApp(dataBus, indexer, pipeline, properties, latch::countDown, 1, true, local());
         executor.execute(nlpApp);
         latch.await(2, SECONDS);
         return nlpApp;
