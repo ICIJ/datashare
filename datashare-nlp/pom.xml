@@ -7,7 +7,7 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>5.8.15</version>
+        <version>5.8.16</version>
     </parent>
 
     <artifactId>datashare-nlp</artifactId>
