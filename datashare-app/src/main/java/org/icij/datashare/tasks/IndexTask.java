@@ -83,18 +83,13 @@ public class IndexTask extends PipelineTask implements Monitorable{
         publisher.publish(Channel.NLP, new Message(INIT_MONITORING).add(VALUE, valueOf(totalToProcess)));
 
         consumer.shutdown();
-        boolean consumerTerminated = false;
         // documents could be currently processed
-        while (!consumerTerminated) {
-          try {
-              consumerTerminated = consumer.awaitTermination(30, MINUTES);
-            if (!consumerTerminated) {
+        try {
+            while (!consumer.awaitTermination(30, MINUTES)) {
                 logger.info("Consumer has not terminated yet.");
             }
-          } catch (InterruptedException iex) {
-              logger.info("Got InterruptedException while waiting for the consumer shutdown.");
-              consumerTerminated = true;
-          }
+        } catch (InterruptedException iex) {
+            logger.info("Got InterruptedException while waiting for the consumer shutdown.");
         }
         publisher.publish(Channel.NLP, new ShutdownMessage());
 
