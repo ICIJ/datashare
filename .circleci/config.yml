@@ -155,6 +155,9 @@ jobs:
             tar czf ../datashare-client-${CIRCLE_TAG}.tgz .
             zip -r ../datashare-client-${CIRCLE_TAG}.zip .
             upload_url=$(cat /tmp/datashare/datashare-client.url | jq -r '.upload_url')
+            if [ "$upload_url" = "null" ]; then
+              upload_url=$(curl -s "https://api.github.com/repos/ICIJ/datashare-client/releases/tags/${CIRCLE_TAG}" | jq -r '.upload_url')
+            fi
             upload_url="${upload_url%\{*}"
             echo "uploading asset to release url: $upload_url"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/tmp/datashare/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
