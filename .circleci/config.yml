@@ -179,8 +179,8 @@ jobs:
       - run:
           name: build and push docker image
           command: |
-            cp -a /tmp/datashare/dist/ /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-all/app
-            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-all/
+            cp -a /tmp/datashare/dist/ /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/app
+            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
             docker push icij/datashare:${CIRCLE_TAG}
 
