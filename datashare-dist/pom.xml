@@ -84,34 +84,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.2</version>
-                <configuration>
-                    <shadedClassifierName>all</shadedClassifierName>
-                    <shadedArtifactAttached>true</shadedArtifactAttached>
-                    <transformers>
-                        <!--remove models from jar see mitie -->
-                        <transformer implementation="org.apache.maven.plugins.shade.resource.DontIncludeResourceTransformer">
-                            <resource>.dat</resource>
-                        </transformer>
-                    </transformers>
-                    <artifactSet>
-                    <excludes>
-                        <exclude>log4j:log4j:jar:</exclude>
-                    </excludes>
-                    </artifactSet>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
                     <execution>
@@ -123,6 +95,7 @@
                         <configuration>
                             <descriptors>
                                 <descriptor>src/assembly/all.xml</descriptor>
+                                <descriptor>src/assembly/docker.xml</descriptor>
                             </descriptors>
                         </configuration>
                     </execution>

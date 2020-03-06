@@ -1,23 +1,19 @@
 <assembly>
     <id>all</id>
     <formats>
-        <format>dir</format>
+        <format>jar</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
-    <fileSets>
-        <fileSet>
-            <directory>${project.basedir}/src/main/docker</directory>
+
+    <dependencySets>
+        <dependencySet>
+            <includes>
+                <include>*:jar:*</include>
+            </includes>
             <outputDirectory>/</outputDirectory>
-            <includes>
-                <include>*</include>
-            </includes>
-        </fileSet>
-        <fileSet>
-            <directory>${project.build.directory}</directory>
-            <outputDirectory>lib</outputDirectory>
-            <includes>
-                <include>*.jar</include>
-            </includes>
-        </fileSet>
-    </fileSets>
+            <useProjectArtifact>true</useProjectArtifact>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
+            <unpack>true</unpack>
+        </dependencySet>
+    </dependencySets>
 </assembly>
