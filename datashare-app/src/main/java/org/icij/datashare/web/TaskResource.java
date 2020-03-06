@@ -19,6 +19,7 @@ import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -38,6 +39,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
+import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
@@ -148,7 +150,7 @@ public class TaskResource {
      */
     @Post("/batchUpdate/scan/:filePath:")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
-        Path path = get("/", filePath);
+        Path path = IS_OS_WINDOWS ?  get(filePath):get(File.separator, filePath);
         return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
                 propertiesProvider.createMerged(optionsWrapper.asProperties()))));
     }
