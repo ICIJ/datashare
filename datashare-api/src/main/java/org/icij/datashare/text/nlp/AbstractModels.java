@@ -97,7 +97,7 @@ public abstract class AbstractModels<T> {
     }
 
     protected void downloadIfNecessary(Language language, ClassLoader loader) {
-        String remoteKey = getModelsFilesystemPath(language).toString();
+        String remoteKey = getModelsFilesystemPath(language).toString().replace("\\", "/");
         RemoteFiles remoteFiles = getRemoteFiles();
         try {
             if (isPresent(language, loader) && remoteFiles.isSync(remoteKey, BASE_DIR.toFile())) {

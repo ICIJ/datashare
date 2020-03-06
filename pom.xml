@@ -64,7 +64,7 @@
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-ixapipe.version>${project.version}</datashare-ixapipe.version>
         <guice.version>4.1.0</guice.version>
-        <amazon.version>1.11.238</amazon.version>
+        <amazon.version>1.11.327</amazon.version>
 
         <extract.version>3.3.4</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
