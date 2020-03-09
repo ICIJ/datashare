@@ -17,6 +17,7 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static java.nio.file.Files.walk;
 import static java.nio.file.Paths.get;
@@ -84,15 +85,20 @@ public class RemoteFiles {
             Map<String, Long> localFilesMap = walk(localDir.toPath(), FileVisitOption.FOLLOW_LINKS)
                     .map(Path::toFile)
                     .filter(File::isFile)
-                    .collect(toMap(f -> get(f.getPath()
-                            .replace(localFile.getPath(), "")
-                            .replaceAll("^/+", "")).toString(),
-                            File::length));
+                    .collect(toMap(f -> getKeyFromFile(localFile, f), File::length));
+
             return localFilesMap.equals(remoteObjectsMap);
         } else {
             ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
             return objectMetadata.getContentLength() == localFile.length();
         }
+    }
+
+    private String getKeyFromFile(File localFile, File f) {
+        return f.getPath().
+                replace(localFile.getPath(), "").
+                replaceAll("^" + Pattern.quote(File.separator) + "+", "").
+                replace(File.separator, "/");
     }
 
     boolean objectExists(final String key) {
