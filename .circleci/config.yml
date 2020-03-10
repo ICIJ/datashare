@@ -222,6 +222,7 @@ jobs:
           command: |
             cd /tmp/datashare-installer/windows
             make VERSION=${CIRCLE_TAG} dist/installDatashare.exe
+            make VERSION=${CIRCLE_TAG} dist/installDatashareStandalone.exe
       - run:
           name: build linux installer
           command: |
