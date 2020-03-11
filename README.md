@@ -13,6 +13,13 @@ https://datashare.icij.org/
 Datashare's user guide can be found here: https://icij.gitbook.io/datashare/
 
 
+## Frontend
+
+This repository is only the backend part of Datashare.
+
+Please find the frontend here : https://github.com/ICIJ/datashare-client.
+
+
 ## Description
 
 Datashare is a free open-source desktop application developed by non-profit International Consortium of Investigative Journalists (ICIJ). 
