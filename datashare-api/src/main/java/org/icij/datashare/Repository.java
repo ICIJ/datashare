@@ -19,6 +19,9 @@ public interface Repository {
     boolean star(User user, String documentId);
     boolean unstar(User user, String documentId);
     List<Document> getStarredDocuments(User user);
+    boolean markRead(User user, String documentId);
+    boolean unmarkRead(User user, String documentId);
+    List<String> getMarkedReadDocumentUsers(String documentId);
 
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
@@ -26,6 +29,9 @@ public interface Repository {
     int star(Project project, User user, List<String> documentIds);
     int unstar(Project project, User user, List<String> documentIds);
     List<String> getStarredDocuments(Project project, User user);
+    int markRead(Project project, User user, List<String> documentIds);
+    int unmarkRead(Project project, User user, List<String> documentIds);
+    List<String> getMarkedReadDocumentUsers(Project project, String documentId);
 
     boolean tag(Project prj, String documentId, Tag... tags);
     boolean untag(Project prj, String documentId, Tag... tags);

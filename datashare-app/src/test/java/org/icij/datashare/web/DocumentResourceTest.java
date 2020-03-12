@@ -129,6 +129,38 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void testMarkReadDocument() {
+        when(repository.markRead(any(),any())).thenReturn(true).thenReturn(false);
+        post("/api/documents/markRead/doc_id").should().respond(201);
+        post("/api/documents/markRead/doc_id").should().respond(200);
+    }
+
+    @Test
+    public void testUnmarkReadDocument() {
+        when(repository.unmarkRead(any(),any())).thenReturn(true).thenReturn(false);
+        post("/api/documents/unmarkRead/doc_id").should().respond(201);
+        post("/api/documents/unmarkRead/doc_id").should().respond(200);
+    }
+
+    @Test
+    public void testGroupMarkReadDocumentWithProject() {
+        when(repository.markRead(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/prj1/documents/batchUpdate/markRead", "[\"id1\", \"id2\"]").should().respond(200);
+    }
+
+    @Test
+    public void testGroupUnmarkReadDocumentWithProject() {
+        when(repository.unmarkRead(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/prj1/documents/batchUpdate/unmarkRead", "[\"id1\", \"id2\"]").should().respond(200);
+    }
+
+    @Test
+    public void testGetMarkedReadDocumentUsers() {
+        when(repository.getMarkedReadDocumentUsers(eq(project("prj")), eq("docId"))).thenReturn(asList("user1", "user2"));
+        get("/api/prj/documents/docId/markedRead").should().respond(200).contain("user1").contain("user2");
+    }
+
+    @Test
     public void testTagDocumentWithProject() throws Exception {
         when(repository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.tag(eq(project("prj1")), anyString(), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);

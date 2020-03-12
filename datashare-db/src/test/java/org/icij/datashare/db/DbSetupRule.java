@@ -19,7 +19,7 @@ public class DbSetupRule extends ExternalResource {
     private final String dataSourceUrl;
     private static final Operation DELETE_ALL = deleteAllFrom(
             "document", "named_entity", "document_user_star", "document_tag", "batch_search",
-            "batch_search_query", "batch_search_result", "project", "note");
+            "batch_search_query", "batch_search_result", "project", "note","document_user_mark_read");
 
     DbSetupRule(String dataSourceUrl) {
         this.dataSource = createDatasource(dataSourceUrl);

@@ -27,6 +27,7 @@ import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
 import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
 import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
+import static org.icij.datashare.db.tables.DocumentUserMarkRead.DOCUMENT_USER_MARK_READ;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
@@ -122,6 +123,32 @@ public class JooqRepository implements Repository {
                 where(DOCUMENT_USER_STAR.USER_ID.eq(user.id)).fetch().stream().map(this::createDocumentFrom).collect(toList());
     }
 
+    @Override
+    public boolean markRead(User user, String documentId) {
+        DSLContext create = DSL.using(connectionProvider, dialect);;
+        Result<Record1<Integer>> existResult = create.selectCount().from(DOCUMENT_USER_MARK_READ).
+                where(DOCUMENT_USER_MARK_READ.USER_ID.eq(user.id), DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).fetch();
+        if (existResult.get(0).value1() == 0) {
+            return create.insertInto(DOCUMENT_USER_MARK_READ, DOCUMENT_USER_MARK_READ.DOC_ID, DOCUMENT_USER_MARK_READ.USER_ID).
+                    values(documentId, user.id).execute() > 0;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean unmarkRead(User user, String documentId) {
+        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_MARK_READ).
+                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId), DOCUMENT_USER_MARK_READ.USER_ID.eq(user.id)).execute() > 0;
+    }
+
+    @Override
+    public List<String> getMarkedReadDocumentUsers(String documentId) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        return create.select(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ).
+                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID);
+    }
+
     // ------------- functions that don't need document migration/indexing
     // they can use just the DOCUMENT_USER_STAR table thus denormalizing project information
     // this could be removed later
@@ -148,6 +175,31 @@ public class JooqRepository implements Repository {
                 where(DOCUMENT_USER_STAR.USER_ID.eq(user.id)).
                 and(DOCUMENT_USER_STAR.PRJ_ID.eq(project.getId())).
                 fetch().getValues(DOCUMENT_USER_STAR.DOC_ID);
+    }
+
+    @Override
+    public int markRead(Project project, User user, List<String> documentIds) {
+        InsertValuesStep3<DocumentUserMarkReadRecord, String, String, String> query = using(connectionProvider, dialect).
+                insertInto(DOCUMENT_USER_MARK_READ, DOCUMENT_USER_MARK_READ.DOC_ID, DOCUMENT_USER_MARK_READ.USER_ID, DOCUMENT_USER_MARK_READ.PRJ_ID);
+        documentIds.forEach(t -> query.values(t, user.id, project.getId()));
+        return query.execute();
+    }
+
+    @Override
+    public int unmarkRead(Project project, User user, List<String> documentIds) {
+        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_MARK_READ).
+                where(DOCUMENT_USER_MARK_READ.DOC_ID.in(documentIds),
+                        DOCUMENT_USER_MARK_READ.USER_ID.eq(user.id),
+                        DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).execute();
+    }
+
+    @Override
+    public List<String> getMarkedReadDocumentUsers(Project project, String documentId) {
+        DSLContext create = DSL.using(connectionProvider, dialect);
+        return create.select(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ).
+                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).
+                and(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).
+                fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID);
     }
 
     @Override

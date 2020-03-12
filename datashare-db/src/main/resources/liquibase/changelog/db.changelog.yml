@@ -44,3 +44,6 @@ databaseChangeLog:
   - include:
       file: changes/014-note.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/015-markRead.yml
+      relativeToChangelogFile: true

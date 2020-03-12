@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: 25
+      author: mvanza
+      changes:
+        - createTable:
+            tableName: document_user_mark_read
+            columns:
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: document_user_mark_read_doc_id
+            tableName: document_user_mark_read
+            columns:
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: document_user_mark_read_project_id
+            tableName: document_user_mark_read
+            columns:
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: document_user_mark_read_user_id
+            tableName: document_user_mark_read
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(96)
