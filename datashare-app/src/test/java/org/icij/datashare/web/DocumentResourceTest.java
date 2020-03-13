@@ -103,65 +103,65 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void testStarDocument() {
+    public void test_star_document() {
         when(repository.star(any(), any())).thenReturn(true).thenReturn(false);
         put("/api/documents/star/doc_id").should().respond(201);
         put("/api/documents/star/doc_id").should().respond(200);
     }
 
     @Test
-    public void testUnstarDocument() {
+    public void test_unstar_document() {
         when(repository.unstar(any(), any())).thenReturn(true).thenReturn(false);
         put("/api/documents/unstar/doc_id").should().respond(201);
         put("/api/documents/unstar/doc_id").should().respond(200);
     }
 
     @Test
-    public void testGroupStarDocumentWithProject() {
+    public void test_group_star_document_with_project() {
         when(repository.star(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
         post("/api/prj1/documents/batchUpdate/star", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
-    public void testGroupUnstarDocumentWithProject() {
+    public void test_group_unstar_document_with_project() {
         when(repository.unstar(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
         post("/api/prj1/documents/batchUpdate/unstar", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
-    public void testMarkReadDocument() {
+    public void test_mark_read_document() {
         when(repository.markRead(any(),any())).thenReturn(true).thenReturn(false);
         post("/api/documents/markRead/doc_id").should().respond(201);
         post("/api/documents/markRead/doc_id").should().respond(200);
     }
 
     @Test
-    public void testUnmarkReadDocument() {
+    public void test_unmark_read_document() {
         when(repository.unmarkRead(any(),any())).thenReturn(true).thenReturn(false);
         post("/api/documents/unmarkRead/doc_id").should().respond(201);
         post("/api/documents/unmarkRead/doc_id").should().respond(200);
     }
 
     @Test
-    public void testGroupMarkReadDocumentWithProject() {
+    public void test_group_mark_read_document_with_project() {
         when(repository.markRead(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
         post("/api/prj1/documents/batchUpdate/markRead", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
-    public void testGroupUnmarkReadDocumentWithProject() {
+    public void test_group_unmark_read_document_with_project() {
         when(repository.unmarkRead(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
         post("/api/prj1/documents/batchUpdate/unmarkRead", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
-    public void testGetMarkedReadDocumentUsers() {
+    public void test_get_marked_read_document_users() {
         when(repository.getMarkedReadDocumentUsers(eq(project("prj")), eq("docId"))).thenReturn(asList("user1", "user2"));
         get("/api/prj/documents/docId/markedRead").should().respond(200).contain("user1").contain("user2");
     }
 
     @Test
-    public void testTagDocumentWithProject() throws Exception {
+    public void test_tag_document_with_project() throws Exception {
         when(repository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.tag(eq(project("prj1")), anyString(), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
@@ -172,7 +172,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void testUntagDocumentWithProject() throws Exception {
+    public void test_untag_document_with_project() throws Exception {
         when(repository.untag(eq(project("prj2")), anyString(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
         when(indexer.untag(eq(project("prj2")), anyString(), any(), eq(tag("tag3")), eq(tag("tag4")))).thenReturn(true).thenReturn(false);
 
@@ -183,7 +183,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void testGroupTagDocumentWithProject() throws Exception {
+    public void test_group_tag_document_with_project() throws Exception {
         when(repository.tag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.tag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
@@ -191,7 +191,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void testGroupUntagDocumentWithProject() throws Exception {
+    public void test_group_untag_document_with_project() throws Exception {
         when(repository.untag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.untag(eq(project("prj1")), eq(asList("doc1", "doc2")), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
@@ -199,25 +199,25 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void testGetTaggedDocumentsWithProject() {
+    public void test_get_tagged_documents_with_project() {
         when(repository.getDocuments(eq(project("prj3")), eq(tag("foo")), eq(tag("bar")), eq(tag("baz")))).thenReturn(asList("id1", "id2"));
         get("/api/prj3/documents/tagged/foo,bar,baz").should().respond(200).contain("id1").contain("id2");
     }
 
     @Test
-    public void testGetStarredDocumentsWithProject() {
+    public void test_get_starred_documents_with_project() {
         when(repository.getStarredDocuments(project("local-datashare"), User.local())).thenReturn(asList("id1", "id2"));
         get("/api/local-datashare/documents/starred").should().respond(200).contain("id1").contain("id2");
     }
 
     @Test
-    public void testTagsForDocument() {
+    public void test_tags_for_document() {
         when(repository.getTags(eq(project("prj")), eq("docId"))).thenReturn(asList(tag("tag1"), tag("tag2")));
         get("/api/prj/documents/tags/docId").should().respond(200).contain("tag1").contain("tag2");
     }
 
     @Test
-    public void testTagDocumentWithProjectWithRouting() throws Exception {
+    public void test_tag_document_with_project_with_routing() throws Exception {
         when(repository.tag(eq(project("prj1")), anyString(), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
         when(indexer.tag(eq(project("prj1")), any(), eq("routing"), eq(tag("tag1")), eq(tag("tag2")))).thenReturn(true).thenReturn(false);
 
@@ -229,7 +229,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
 
     @Test
-    public void testGetStarredDocuments() {
+    public void test_get_starred_documents() {
         when(repository.getStarredDocuments(any())).thenReturn(asList(createDoc("doc1").build(), createDoc("doc2").build()));
         get("/api/documents/starred").should().respond(200).haveType("application/json").contain("\"doc1\"").contain("\"doc2\"");
     }
