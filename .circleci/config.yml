@@ -216,7 +216,7 @@ jobs:
           name: build mac installer
           command: |
             cd /tmp/datashare-installer/mac
-            make VERSION=${CIRCLE_TAG} dist/Datashare.pkg
+            make VERSION=${CIRCLE_TAG} all
       - run:
           name: build windows installer
           command: |
