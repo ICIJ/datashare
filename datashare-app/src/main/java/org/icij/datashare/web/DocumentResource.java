@@ -73,7 +73,7 @@ public class DocumentResource {
     /**
      * Group star the documents. The id list is passed in the request body as a json list.
      *
-     * It answers 200 if the change as been done and the number of documents updated in the response body.
+     * It answers 200 if the change has been done and the number of documents updated in the response body.
      * @param projectId
      * @param docIds as json
      * @return 200 and the number of documents updated
@@ -89,7 +89,7 @@ public class DocumentResource {
     /**
      * Group unstar the documents. The id list is passed in the request body as a json list.
      *
-     * It answers 200 if the change as been done and the number of documents updated in the response body.
+     * It answers 200 if the change has been done and the number of documents updated in the response body.
      *
      * @param projectId
      * @param docIds as json in body
@@ -335,7 +335,7 @@ public class DocumentResource {
     /**
      * Group mark the documents "read". The id list is passed in the request body as a json list.
      *
-     * It answers 200 if the change as been done and the number of documents updated in the response body.
+     * It answers 200 if the change has been done and the number of documents updated in the response body.
      * @param projectId
      * @param docIds as json
      * @return 200 and the number of documents marked
@@ -351,7 +351,7 @@ public class DocumentResource {
     /**
      * Group unmark the documents. The id list is passed in the request body as a json list.
      *
-     * It answers 200 if the change as been done and the number of documents updated in the response body.
+     * It answers 200 if the change has been done and the number of documents updated in the response body.
      *
      * @param projectId
      * @param docIds as json
