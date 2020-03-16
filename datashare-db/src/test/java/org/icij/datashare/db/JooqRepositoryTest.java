@@ -133,6 +133,8 @@ public class JooqRepositoryTest {
         assertThat(repository.markRead(user, doc.getId())).isTrue();
         assertThat(repository.markRead(user, doc.getId())).isFalse();
 
+        assertThat(repository.getMarkedReadDocumentUsers(doc.getId())).contains(user);
+
         assertThat(repository.unmarkRead(user, doc.getId())).isTrue();
         assertThat(repository.unmarkRead(user, doc.getId())).isFalse();
     }
@@ -165,12 +167,15 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_group_markRead_unmarkRead_a_document_without_documents() {
-        User user = new User("userid");
+        User user1 = new User("user1");
+        User user2 = new User("user2");
 
-        assertThat(repository.markRead(project("prj"), user, asList("id1", "id2", "id3"))).isEqualTo(3);
+        assertThat(repository.markRead(project("prj"), user1, asList("id1", "id2", "id3"))).isEqualTo(3);
+        assertThat(repository.markRead(project("prj"), user2, asList("id1"))).isEqualTo(1);
+        assertThat(repository.getMarkedReadDocumentUsers(project("prj"),"id1")).contains(user1).contains(user2);
 
-        assertThat(repository.unmarkRead(project("prj"), user,asList("id1", "id2"))).isEqualTo(2);
-        assertThat(repository.unmarkRead(project("prj"), user, singletonList("id3"))).isEqualTo(1);
+        assertThat(repository.unmarkRead(project("prj"), user1,asList("id1", "id2"))).isEqualTo(2);
+        assertThat(repository.unmarkRead(project("prj"), user1, singletonList("id3"))).isEqualTo(1);
     }
 
     @Test

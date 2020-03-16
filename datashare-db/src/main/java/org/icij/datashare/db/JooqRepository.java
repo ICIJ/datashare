@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
@@ -143,10 +144,10 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<String> getMarkedReadDocumentUsers(String documentId) {
+    public List<User> getMarkedReadDocumentUsers(String documentId) {
         DSLContext create = DSL.using(connectionProvider, dialect);
         return create.select(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ).
-                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID);
+                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(x -> new User(x)).collect(toList());
     }
 
     // ------------- functions that don't need document migration/indexing
@@ -194,12 +195,12 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<String> getMarkedReadDocumentUsers(Project project, String documentId) {
+    public List<User> getMarkedReadDocumentUsers(Project project, String documentId) {
         DSLContext create = DSL.using(connectionProvider, dialect);
         return create.select(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ).
                 where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).
                 and(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).
-                fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID);
+                fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(x -> new User(x)).collect(toList());
     }
 
     @Override

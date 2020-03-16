@@ -156,7 +156,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_marked_read_document_users() {
-        when(repository.getMarkedReadDocumentUsers(eq(project("prj")), eq("docId"))).thenReturn(asList("user1", "user2"));
+        when(repository.getMarkedReadDocumentUsers(eq(project("prj")), eq("docId"))).thenReturn(asList(new User("user1"), new User("user2")));
         get("/api/prj/documents/getMarkedReadUsers/docId").should().respond(200).contain("user1").contain("user2");
     }
 

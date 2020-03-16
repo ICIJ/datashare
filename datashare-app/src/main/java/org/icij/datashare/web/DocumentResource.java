@@ -308,7 +308,7 @@ public class DocumentResource {
      * $(curl  http://localhost:8080/api/apigen-datashare/documents/getMarkedReadUsers/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
     @Get("/:project/documents/getMarkedReadUsers/:docId")
-    public List<String> getMarkedReadDocumentUsers(final String projectId,final String docId) {
+    public List<User> getMarkedReadDocumentUsers(final String projectId,final String docId) {
         return repository.getMarkedReadDocumentUsers(project(projectId),docId);
     }
 
