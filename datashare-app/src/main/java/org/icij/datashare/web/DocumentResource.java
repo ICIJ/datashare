@@ -297,57 +297,24 @@ public class DocumentResource {
     }
 
     /**
-     * Gets all the tags from a document with the user and timestamp.
+     * Get all users who marked read a document
      * @param projectId
      * @param docId
      * @return 200 and the list of tags
      *
      * Example :
-     * $(curl  http://localhost:8080/api/apigen-datashare/documents/tags/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     * $(curl  http://localhost:8080/api/apigen-datashare/documents/markedRead/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Get("/:project/documents/:docId/markedRead")
+    @Get("/:project/documents/markedRead/:docId")
     public List<User> getMarkedReadDocumentUsers(final String projectId, final String docId) {
         return repository.getMarkedReadDocumentUsers(project(projectId),docId);
-    }
-
-    /**
-     * Group star the documents. The id list is passed in the request body as a json list.
-     *
-     * It answers 200 if the change as been done and the number of documents updated in the response body.
-     * @param projectId
-     * @param docIds as json
-     * @return 200 and the number of documents updated
-     *
-     * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
-     */
-    @Post("/:projectId/documents/batchUpdate/markRead")
-    public int groupMarkReadProject(final String projectId, final List<String> docIds, Context context) {
-        return repository.markRead(project(projectId), (HashMapUser)context.currentUser(), docIds);
-    }
-
-    /**
-     * Group unstar the documents. The id list is passed in the request body as a json list.
-     *
-     * It answers 200 if the change as been done and the number of documents updated in the response body.
-     *
-     * @param projectId
-     * @param docIds as json in body
-     * @return 200 and the number of documents unstarred
-     *
-     * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unstar -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "unknownId"]')
-     */
-    @Post("/:project/documents/batchUpdate/unmarkRead")
-    public int groupUnmarkReadProject(final String projectId, final List<String> docIds, Context context) {
-        return repository.unmarkRead(project(projectId), (HashMapUser)context.currentUser(), docIds);
     }
 
     /**
      * Mark the document read by the user with id docId
      * @param docId
      * @return 201 if the document has been marked else 200
-     * $(curl localhost:8080/api/document/markRead/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     * $(curl -i -XPOST localhost:8080/api/document/markRead/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
     @Post("/documents/markRead/:docId")
     public Payload markReadDocument(final String docId, Context context) {
@@ -358,11 +325,44 @@ public class DocumentResource {
      * Unmark the document read by the user with id docId
      * @param docId
      * @return 201 if the document has been unmarked else 200
-     * $(curl localhost:8080/api/document/markRead/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     * $(curl -i -XPOST localhost:8080/api/document/unmarkRead/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
     @Post("/documents/unmarkRead/:docId")
     public Payload unmarkReadDocument(final String docId, Context context) {
         return repository.unmarkRead((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
+    }
+
+    /**
+     * Group mark the documents "read". The id list is passed in the request body as a json list.
+     *
+     * It answers 200 if the change as been done and the number of documents updated in the response body.
+     * @param projectId
+     * @param docIds as json
+     * @return 200 and the number of documents marked
+     *
+     * Example :
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/markRead -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
+     */
+    @Post("/:projectId/documents/batchUpdate/markRead")
+    public int groupMarkReadProject(final String projectId, final List<String> docIds, Context context) {
+        return repository.markRead(project(projectId), (HashMapUser)context.currentUser(), docIds);
+    }
+
+    /**
+     * Group unmark the documents. The id list is passed in the request body as a json list.
+     *
+     * It answers 200 if the change as been done and the number of documents updated in the response body.
+     *
+     * @param projectId
+     * @param docIds as json
+     * @return 200 and the number of documents unmarked
+     *
+     * Example :
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unmarkRead -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "unknownId"]')
+     */
+    @Post("/:project/documents/batchUpdate/unmarkRead")
+    public int groupUnmarkReadProject(final String projectId, final List<String> docIds, Context context) {
+        return repository.unmarkRead(project(projectId), (HashMapUser)context.currentUser(), docIds);
     }
 
     @NotNull
