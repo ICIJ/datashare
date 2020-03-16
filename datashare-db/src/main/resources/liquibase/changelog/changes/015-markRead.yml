@@ -43,3 +43,9 @@ databaseChangeLog:
               - column:
                   name: user_id
                   type: varchar(96)
+
+  - changeSet:
+      id: 26
+      author: bthomas
+      sql:
+        - CREATE UNIQUE INDEX idx_document_mark_read_unique ON document_user_mark_read (doc_id, user_id, prj_id)
