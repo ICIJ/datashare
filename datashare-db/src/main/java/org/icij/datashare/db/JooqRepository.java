@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
@@ -24,11 +23,11 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
+import static org.icij.datashare.db.tables.DocumentUserMarkRead.DOCUMENT_USER_MARK_READ;
 import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
 import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
 import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
-import static org.icij.datashare.db.tables.DocumentUserMarkRead.DOCUMENT_USER_MARK_READ;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
@@ -147,7 +146,7 @@ public class JooqRepository implements Repository {
     public List<User> getMarkedReadDocumentUsers(String documentId) {
         DSLContext create = DSL.using(connectionProvider, dialect);
         return create.select(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ).
-                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(x -> new User(x)).collect(toList());
+                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toList());
     }
 
     // ------------- functions that don't need document migration/indexing
