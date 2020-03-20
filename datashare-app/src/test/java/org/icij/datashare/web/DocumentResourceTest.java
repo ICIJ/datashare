@@ -20,6 +20,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
@@ -158,6 +161,18 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_get_marked_read_document_users() {
         when(repository.getMarkedReadDocumentUsers(eq(project("prj")), eq("docId"))).thenReturn(asList(new User("user1"), new User("user2")));
         get("/api/prj/documents/markedRead/docId").should().respond(200).contain("user1").contain("user2");
+    }
+
+    @Test
+    public void test_get_all_mark_read_users() {
+        when(repository.getAllMarkReadUsers(eq(project("prj")))).thenReturn(asList(new User("user1"), new User("user2")));
+        get("/api/prj/documents/markReadUsers").should().respond(200).contain("user1").contain("user2");
+    }
+
+    @Test
+    public void test_get_marked_read_documents() {
+        when(repository.getMarkedReadDocuments(eq(project("prj")),eq(asList(new User("user1"), new User("user2"))))).thenReturn(Stream.of("doc1","doc2").collect(Collectors.toSet()));
+        get("/api/prj/documents/markedReadDocuments/user1,user2").should().respond(200).contain("doc1").contain("doc2");
     }
 
     @Test

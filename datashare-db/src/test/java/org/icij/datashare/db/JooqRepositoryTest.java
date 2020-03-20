@@ -172,7 +172,10 @@ public class JooqRepositoryTest {
 
         assertThat(repository.markRead(project("prj"), user1, asList("id1", "id2", "id3"))).isEqualTo(3);
         assertThat(repository.markRead(project("prj"), user2, asList("id1"))).isEqualTo(1);
+
         assertThat(repository.getMarkedReadDocumentUsers(project("prj"),"id1")).contains(user1).contains(user2);
+        assertThat(repository.getAllMarkReadUsers(project("prj"))).contains(user1).contains(user2);
+        assertThat(repository.getMarkedReadDocuments(project("prj"),asList(user1,user2))).contains("id1").contains("id2").contains("id3");
 
         assertThat(repository.unmarkRead(project("prj"), user1,asList("id1", "id2"))).isEqualTo(2);
         assertThat(repository.unmarkRead(project("prj"), user1, singletonList("id3"))).isEqualTo(1);

@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
@@ -23,11 +24,11 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
-import static org.icij.datashare.db.tables.DocumentUserMarkRead.DOCUMENT_USER_MARK_READ;
 import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
 import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
 import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
+import static org.icij.datashare.db.tables.DocumentUserMarkRead.DOCUMENT_USER_MARK_READ;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
@@ -199,7 +200,24 @@ public class JooqRepository implements Repository {
         return create.select(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ).
                 where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).
                 and(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).
-                fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(x -> new User(x)).collect(toList());
+                fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toList());
+    }
+
+    @Override
+    public List<User> getAllMarkReadUsers(Project project) {
+        DSLContext create = DSL.using(connectionProvider,dialect);
+        return create.selectDistinct(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ)
+                .where(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).fetch()
+                .getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toList());
+    }
+
+    @Override
+    public Set<String> getMarkedReadDocuments(Project project, List<User> users){
+        DSLContext create = DSL.using(connectionProvider,dialect);
+        return create.select(DOCUMENT_USER_MARK_READ.DOC_ID).from(DOCUMENT_USER_MARK_READ)
+                .where(DOCUMENT_USER_MARK_READ.USER_ID.in(users.stream().map(x -> x.id).collect(toList())))
+                .and(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId()))
+                .fetch().getValues(DOCUMENT_USER_MARK_READ.DOC_ID).stream().collect(Collectors.toSet());
     }
 
     @Override

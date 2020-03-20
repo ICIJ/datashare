@@ -23,6 +23,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -364,6 +367,40 @@ public class DocumentResource {
     public int groupUnmarkReadProject(final String projectId, final List<String> docIds, Context context) {
         return repository.unmarkRead(project(projectId), (HashMapUser)context.currentUser(), docIds);
     }
+
+    /**
+     * Retrieves the list of users who marked read a document for the given project id.
+     *
+     * @param projectId
+     * @return 200
+     *
+     * Example :
+     * $(curl -i localhost:8080/api/apigen-datashare/documents/markReadUsers)
+     */
+    @Get("/:project/documents/markReadUsers")
+    public List<User> getProjectMarkReadUsers(final String projectId) {
+        return repository.getAllMarkReadUsers(project(projectId));
+
+    }
+
+    /**
+     * Retrieves the set of marked read documents for the given project id and a list of users
+     * provided in the url.
+     *
+     * This service doesn't need to have the document stored in the database (no join is made)
+     *
+     * @param projectId
+     * @param comaSeparatedUsers
+     * @return 200
+     *
+     * Example :
+     * $(curl -i localhost:8080/api/apigen-datashare/documents/markedReadDocuments/user1,user2)
+     */
+    @Get("/:project/documents/markedReadDocuments/:coma_separated_tags")
+    public Set<String> getProjectMarkedReadDocuments(final String projectId, final String comaSeparatedUsers) {
+        return repository.getMarkedReadDocuments(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
+    }
+
 
     @NotNull
     private Payload getPayload(Document doc, String index, boolean inline) throws IOException {

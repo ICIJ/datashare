@@ -8,6 +8,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 
 import java.util.List;
+import java.util.Set;
 
 public interface Repository {
     NamedEntity getNamedEntity(String id);
@@ -23,6 +24,7 @@ public interface Repository {
     boolean unmarkRead(User user, String documentId);
     List<User> getMarkedReadDocumentUsers(String documentId);
 
+
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
     // standalone (to remove later ?)
@@ -32,6 +34,9 @@ public interface Repository {
     int markRead(Project project, User user, List<String> documentIds);
     int unmarkRead(Project project, User user, List<String> documentIds);
     List<User> getMarkedReadDocumentUsers(Project project, String documentId);
+
+    List<User> getAllMarkReadUsers(Project project);
+    Set<String> getMarkedReadDocuments(Project project, List<User> users);
 
     boolean tag(Project prj, String documentId, Tag... tags);
     boolean untag(Project prj, String documentId, Tag... tags);
@@ -47,4 +52,6 @@ public interface Repository {
     boolean save(Note note);
 
     List<Note> getNotes(Project project);
+
+
 }
