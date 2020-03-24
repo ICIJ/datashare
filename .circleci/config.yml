@@ -95,7 +95,8 @@ jobs:
             upload_url=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare/releases" | jq -r '.upload_url')
             upload_url="${upload_url%\{*}"
             echo "uploading asset to release url: $upload_url"
-            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.jar&label=datashare-dist-${CIRCLE_TAG}.jar"
+            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}-all.jar&label=datashare-dist-${CIRCLE_TAG}-all.jar"
+            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-back.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.jar&label=datashare-dist-${CIRCLE_TAG}.jar"
 
   build_front:
     docker:
