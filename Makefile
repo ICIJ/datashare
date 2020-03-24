@@ -24,7 +24,6 @@ release:
 		echo "If everything is OK, you can push with tags i.e. git push origin master --tags"
 
 docker: $(DIST_TARGET)
-		cp -a $(PATH_TO_APP_DIST) $(DIST_TARGET)/app || exit 1
 		docker build -t icij/datashare:$(VERSION) $(DIST_TARGET)
 
 unit:
