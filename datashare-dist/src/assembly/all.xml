@@ -20,9 +20,9 @@
         <fileSet>
             <directory>${basedir}/../app/</directory>
             <outputDirectory>app</outputDirectory>
-            <includes>
-                <include>*.*</include>
-            </includes>
+            <excludes>
+                <exclude>docs/.gitbook/**</exclude>
+            </excludes>
         </fileSet>
     </fileSets>
 </assembly>
