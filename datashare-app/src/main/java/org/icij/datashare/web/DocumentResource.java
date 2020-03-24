@@ -25,7 +25,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -85,8 +84,9 @@ public class DocumentResource {
      * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
      */
     @Post("/:project/documents/batchUpdate/star")
-    public int groupStarProject(final String projectId, final List<String> docIds, Context context) {
-        return repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds);
+    public Result<Integer> groupStarProject(final String projectId, final List<String> docIds, Context context) {
+        Result<Integer> res = new Result(repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds));
+        return new Result(repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
 
     /**
@@ -102,8 +102,8 @@ public class DocumentResource {
      * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unstar -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "unknownId"]')
      */
     @Post("/:project/documents/batchUpdate/unstar")
-    public int groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
-        return repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docIds);
+    public Result<Integer> groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
+        return new Result(repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
 
     /**
@@ -347,8 +347,8 @@ public class DocumentResource {
      * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/markRead -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
      */
     @Post("/:projectId/documents/batchUpdate/markRead")
-    public int groupMarkReadProject(final String projectId, final List<String> docIds, Context context) {
-        return repository.markRead(project(projectId), (HashMapUser)context.currentUser(), docIds);
+    public Result<Integer> groupMarkReadProject(final String projectId, final List<String> docIds, Context context) {
+        return new Result(repository.markRead(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
 
     /**
@@ -364,8 +364,8 @@ public class DocumentResource {
      * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unmarkRead -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "unknownId"]')
      */
     @Post("/:project/documents/batchUpdate/unmarkRead")
-    public int groupUnmarkReadProject(final String projectId, final List<String> docIds, Context context) {
-        return repository.unmarkRead(project(projectId), (HashMapUser)context.currentUser(), docIds);
+    public Result<Integer> groupUnmarkReadProject(final String projectId, final List<String> docIds, Context context) {
+        return new Result(repository.unmarkRead(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
 
     /**
