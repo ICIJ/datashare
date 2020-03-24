@@ -50,7 +50,7 @@ jobs:
       - run: mvn -pl datashare-api -am install
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
-      - run: mvn -pl datashare-app -am install -Dmaven.test.skip=true
+      - run: mvn -pl datashare-app -pl datashare-nlp/datashare-nlp-corenlp -pl datashare-nlp/datashare-nlp-mitie -pl datashare-nlp/datashare-nlp-ixapipe -pl datashare-nlp/datashare-nlp-opennlp -am install -Dmaven.test.skip=true
       - save_cache:
           paths:
             - ~/.m2
@@ -72,7 +72,7 @@ jobs:
       - run:
           name: make app link to front
           command: ln -s /tmp/datashare/dist /tmp/datashare/app
-      - run: mvn -Dmaven.test.skip=true package
+      - run: mvn -pl datashare-dist package
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
@@ -194,7 +194,6 @@ jobs:
       - run:
           name: build and push docker image
           command: |
-            cp -a /tmp/datashare/dist/ /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/app
             docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
             docker push icij/datashare:${CIRCLE_TAG}
@@ -292,7 +291,7 @@ workflows:
               ignore: /.*/
       - build_docker:
           requires:
-            - deploy_front
+            - package_back
           filters:
               tags:
                   only: /^[0-9.]*/
