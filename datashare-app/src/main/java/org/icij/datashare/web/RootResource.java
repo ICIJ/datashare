@@ -9,6 +9,7 @@ import org.icij.datashare.PropertiesProvider;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,10 +17,12 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.apache.commons.io.IOUtils.copy;
 import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR;
 
 @Prefix("/")
 public class RootResource {
+    public static final String INDEX_HTML = "index.html";
     private final PropertiesProvider propertiesProvider;
 
     @Inject
@@ -35,12 +38,15 @@ public class RootResource {
      */
     @Get()
     public String getRoot(Context context) throws IOException {
-        Path index = new File(context.env().workingDir(), context.env().appFolder()).toPath().resolve("index.html");
+        Path index = new File(context.env().workingDir(), context.env().appFolder()).toPath().resolve(INDEX_HTML);
+        String content;
         if (context.env().classPath() && !index.toFile().isFile()) {
-            index = Paths.get(getClass().getClassLoader().getResource(Paths.get(context.env().appFolder()).resolve("index.html").toString()).getPath());
+            StringWriter writer = new StringWriter();
+            copy(getClass().getResourceAsStream("/" + Paths.get(context.env().appFolder(), INDEX_HTML).toString()), writer, Charset.defaultCharset());
+            content = writer.toString();
+        } else {
+            content = new String(Files.readAllBytes(index), Charset.defaultCharset());
         }
-        byte[] bytes = Files.readAllBytes(index);
-        String content = new String(bytes, Charset.defaultCharset());
         return propertiesProvider.get(PLUGINS_DIR).isPresent() ?
                 new PluginService().addPlugins(content, Paths.get(propertiesProvider.getProperties().getProperty(PLUGINS_DIR))):
                 content;
