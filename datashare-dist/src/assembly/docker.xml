@@ -16,7 +16,7 @@
             <directory>${project.build.directory}</directory>
             <outputDirectory>lib</outputDirectory>
             <includes>
-                <include>*.jar</include>
+                <include>*all.jar</include>
             </includes>
         </fileSet>
     </fileSets>

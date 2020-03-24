@@ -47,17 +47,32 @@ jobs:
             psql -h postgresql -U test test -c "CREATE DATABASE datashare;"
 
       - run: mvn validate
-
+      - run: mvn -pl datashare-api -am install
+      - run: mvn -pl datashare-db liquibase:update
+      - run: mvn test
+      - run: mvn -pl datashare-app -am install -Dmaven.test.skip=true
       - save_cache:
           paths:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
 
-      - run: mvn -pl datashare-api -am install
-      - run: mvn -pl datashare-db liquibase:update
-      - run: mvn test
-      - run: mvn -Dmaven.test.skip=true package
+  package_back:
+    docker:
+      - image: circleci/openjdk:8-stretch
+    working_directory: /tmp/datashare
+    steps:
+      - checkout
+      # restore cache from previous workflow
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
 
+      - run:
+          name: make app link to front
+          command: ln -s /tmp/datashare/dist /tmp/datashare/app
+      - run: mvn -Dmaven.test.skip=true package
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
@@ -242,9 +257,18 @@ workflows:
           filters:
               tags:
                   only: /.*/
-      - deploy_back:
+      - package_back:
           requires:
             - build_back
+            - build_front
+          filters:
+            tags:
+              only: /^[0-9.]*/
+            branches:
+              ignore: /.*/
+      - deploy_back:
+          requires:
+            - package_back
           filters:
             tags:
               only: /^[0-9.]*/
@@ -252,7 +276,7 @@ workflows:
               ignore: /.*/
       - build_front:
           requires:
-            - deploy_back
+            - build_back
           filters:
               tags:
                   only: /^[0-9.]*/

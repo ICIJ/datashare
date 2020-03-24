@@ -93,8 +93,14 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
+                              <archive>
+                                <manifest>
+                                  <mainClass>org.icij.datashare.Main</mainClass>
+                                </manifest>
+                              </archive>
                             <descriptors>
                                 <descriptor>src/assembly/all.xml</descriptor>
+                                <descriptor>src/assembly/back.xml</descriptor>
                                 <descriptor>src/assembly/docker.xml</descriptor>
                             </descriptors>
                         </configuration>

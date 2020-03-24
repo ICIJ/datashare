@@ -1,5 +1,5 @@
 <assembly>
-    <id>all</id>
+    <id>back</id>
     <formats>
         <format>jar</format>
     </formats>
@@ -16,13 +16,4 @@
             <unpack>true</unpack>
         </dependencySet>
     </dependencySets>
-    <fileSets>
-        <fileSet>
-            <directory>${basedir}/../app/</directory>
-            <outputDirectory>app</outputDirectory>
-            <includes>
-                <include>*.*</include>
-            </includes>
-        </fileSet>
-    </fileSets>
 </assembly>
