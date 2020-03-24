@@ -64,7 +64,7 @@ jobs:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
     steps:
       - attach_workspace:
-          at: /tmp/datashare
+          at: /tmp/datashare-client
       - checkout
       # restore cache from previous workflow
       - restore_cache:
@@ -75,7 +75,7 @@ jobs:
 
       - run:
           name: make app link to front
-          command: ln -s /tmp/datashare/dist /tmp/datashare/app
+          command: ln -s /tmp/datashare-client/dist /tmp/datashare/app
       - run: mvn -pl datashare-dist package
       - persist_to_workspace:
           root: /tmp/datashare
