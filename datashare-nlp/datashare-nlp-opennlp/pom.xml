@@ -7,7 +7,7 @@
     <parent>
         <artifactId>datashare-nlp</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>5.9.9</version>
+        <version>5.9.10</version>
     </parent>
 
     <artifactId>datashare-nlp-opennlp</artifactId>
@@ -71,7 +71,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>commons-test</artifactId>
-            <version>5.9.9</version>
+            <version>5.9.10</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
