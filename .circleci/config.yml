@@ -60,7 +60,11 @@ jobs:
     docker:
       - image: circleci/openjdk:8-stretch
     working_directory: /tmp/datashare
+    environment:
+      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
     steps:
+      - attach_workspace:
+          at: /tmp/datashare
       - checkout
       # restore cache from previous workflow
       - restore_cache:
