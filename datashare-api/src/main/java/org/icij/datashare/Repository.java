@@ -17,13 +17,7 @@ public interface Repository {
     void create(Document document);
 
     // user related
-    boolean star(User user, String documentId);
-    boolean unstar(User user, String documentId);
     List<Document> getStarredDocuments(User user);
-    boolean markRead(User user, String documentId);
-    boolean unmarkRead(User user, String documentId);
-    List<User> getMarkedReadDocumentUsers(String documentId);
-
 
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
