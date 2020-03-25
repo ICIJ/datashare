@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATASHARE_HOME="${HOME}"/.local/share/datashare
-mkdir -p "${DATASHARE_HOME}"/dist "${DATASHARE_HOME}"/index
+mkdir -p "${DATASHARE_HOME}"/dist "${DATASHARE_HOME}"/index "${DATASHARE_HOME}"/plugins
 mkdir -p "${HOME}"/Datashare
 
 DATASHARE_JAR=/usr/share/java/datashare.jar
@@ -13,4 +13,5 @@ ${JAVA} -DPROD_MODE=true -cp ./dist:"${DATASHARE_JAR}" org.icij.datashare.Main \
     -d "${HOME}"/Datashare  --queueType memory --busType memory \
     --dataSourceUrl jdbc:sqlite:file:"${DATASHARE_HOME}/dist/datashare.db" \
     --configFile ./dist/datashare.conf --mode EMBEDDED \
-    --elasticsearchDataPath "${DATASHARE_HOME}"/index
+    --pluginsDir "${DATASHARE_HOME}"/plugins \
+    --elasticsearchDataPath "${DATASHARE_HOME}"/index "$@"
