@@ -252,6 +252,7 @@ jobs:
           command: |
             cd /tmp/datashare-installer
             ./deploy.sh ${CIRCLE_TAG}
+            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist_${CIRCLE_TAG}_all.deb" "$upload_url?name=datashare-dist_${CIRCLE_TAG}_all.deb&label=datashare-dist_${CIRCLE_TAG}_all.deb"
 
 workflows:
   version: 2
