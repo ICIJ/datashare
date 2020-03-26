@@ -23,6 +23,12 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_override_opt_last_option_wins() {
+        cli.parseArguments(new String[] {"--mode=SERVER", "--mode=LOCAL"});
+        assertThat(cli.properties).includes(entry("mode", "LOCAL"));
+    }
+
+    @Test
     public void test_mode_opt() {
         cli.parseArguments(new String[] {""});
         assertThat(cli.properties).includes(entry("mode", "LOCAL"));

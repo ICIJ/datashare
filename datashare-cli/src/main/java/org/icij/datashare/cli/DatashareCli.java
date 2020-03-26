@@ -1,6 +1,5 @@
 package org.icij.datashare.cli;
 
-import com.google.common.base.Joiner;
 import joptsimple.AbstractOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -110,7 +109,7 @@ public class DatashareCli {
     }
 
     private String asPropertyValue(List<?> values) {
-        String stringValue = Joiner.on(",").join(values);
+        String stringValue = values.size() > 0 ? String.valueOf(values.get(values.size() - 1)): "";
         return stringValue.isEmpty() ? "true": stringValue;
     }
 

@@ -99,55 +99,10 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public boolean star(User user, String documentId) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        Result<Record1<Integer>> existResult = create.selectCount().from(DOCUMENT_USER_STAR).
-                where(DOCUMENT_USER_STAR.USER_ID.eq(user.id), DOCUMENT_USER_STAR.DOC_ID.eq(documentId)).fetch();
-        if (existResult.get(0).value1() == 0) {
-            return create.insertInto(DOCUMENT_USER_STAR, DOCUMENT_USER_STAR.DOC_ID, DOCUMENT_USER_STAR.USER_ID).
-                    values(documentId, user.id).execute() > 0;
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean unstar(User user, String documentId) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_STAR).
-                where(DOCUMENT_USER_STAR.DOC_ID.eq(documentId), DOCUMENT_USER_STAR.USER_ID.eq(user.id)).execute() > 0;
-    }
-
-    @Override
     public List<Document> getStarredDocuments(User user) {
         DSLContext create = DSL.using(connectionProvider, dialect);
         return create.selectFrom(DOCUMENT.join(DOCUMENT_USER_STAR).on(DOCUMENT.ID.eq(DOCUMENT_USER_STAR.DOC_ID))).
                 where(DOCUMENT_USER_STAR.USER_ID.eq(user.id)).fetch().stream().map(this::createDocumentFrom).collect(toList());
-    }
-
-    @Override
-    public boolean markRead(User user, String documentId) {
-        DSLContext create = DSL.using(connectionProvider, dialect);;
-        Result<Record1<Integer>> existResult = create.selectCount().from(DOCUMENT_USER_MARK_READ).
-                where(DOCUMENT_USER_MARK_READ.USER_ID.eq(user.id), DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).fetch();
-        if (existResult.get(0).value1() == 0) {
-            return create.insertInto(DOCUMENT_USER_MARK_READ, DOCUMENT_USER_MARK_READ.DOC_ID, DOCUMENT_USER_MARK_READ.USER_ID).
-                    values(documentId, user.id).execute() > 0;
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean unmarkRead(User user, String documentId) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_MARK_READ).
-                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId), DOCUMENT_USER_MARK_READ.USER_ID.eq(user.id)).execute() > 0;
-    }
-
-    @Override
-    public List<User> getMarkedReadDocumentUsers(String documentId) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.select(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ).
-                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toList());
     }
 
     // ------------- functions that don't need document migration/indexing

@@ -106,20 +106,6 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_star_document() {
-        when(repository.star(any(), any())).thenReturn(true).thenReturn(false);
-        put("/api/documents/star/doc_id").should().respond(201);
-        put("/api/documents/star/doc_id").should().respond(200);
-    }
-
-    @Test
-    public void test_unstar_document() {
-        when(repository.unstar(any(), any())).thenReturn(true).thenReturn(false);
-        put("/api/documents/unstar/doc_id").should().respond(201);
-        put("/api/documents/unstar/doc_id").should().respond(200);
-    }
-
-    @Test
     public void test_group_star_document_with_project() {
         when(repository.star(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
         post("/api/prj1/documents/batchUpdate/star", "[\"id1\", \"id2\"]").should().respond(200);
@@ -129,20 +115,6 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_group_unstar_document_with_project() {
         when(repository.unstar(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
         post("/api/prj1/documents/batchUpdate/unstar", "[\"id1\", \"id2\"]").should().respond(200);
-    }
-
-    @Test
-    public void test_mark_read_document() {
-        when(repository.markRead(any(),any())).thenReturn(true).thenReturn(false);
-        post("/api/documents/markRead/doc_id").should().respond(201);
-        post("/api/documents/markRead/doc_id").should().respond(200);
-    }
-
-    @Test
-    public void test_unmark_read_document() {
-        when(repository.unmarkRead(any(),any())).thenReturn(true).thenReturn(false);
-        post("/api/documents/unmarkRead/doc_id").should().respond(201);
-        post("/api/documents/unmarkRead/doc_id").should().respond(200);
     }
 
     @Test

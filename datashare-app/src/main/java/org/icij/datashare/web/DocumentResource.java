@@ -261,45 +261,6 @@ public class DocumentResource {
     }
 
     /**
-     * preflight request
-     * @param docId
-     * @return 200 PUT
-     */
-    @Options("/documents/star/:docId")
-    public Payload starDocument(final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
-
-    /**
-     * Star the document with id docId
-     * @param docId
-     * @return 201 if the document has been starred else 200
-     *
-     * $(curl localhost:8080/api/documents/star/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
-     */
-    @Put("/documents/star/:docId")
-    public Payload starDocument(final String docId, Context context) {
-        return repository.star((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
-    }
-
-    /**
-     * preflight request
-     * @param docId
-     * @return 200 PUT
-     */
-    @Options("/documents/unstar/:docId")
-    public Payload unstarDocument(final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
-
-    /**
-     * Star the document with id docId
-     * @param docId
-     * @return 201 if the document has been starred else 200
-     * $(curl localhost:8080/api/document/unstar/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
-     */
-    @Put("/documents/unstar/:docId")
-    public Payload unstarDocument(final String docId, Context context) {
-        return repository.unstar((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
-    }
-
-    /**
      * Get all users who marked read a document
      * @param projectId
      * @param docId
@@ -311,28 +272,6 @@ public class DocumentResource {
     @Get("/:project/documents/markedRead/:docId")
     public List<User> getMarkedReadDocumentUsers(final String projectId, final String docId) {
         return repository.getMarkedReadDocumentUsers(project(projectId),docId);
-    }
-
-    /**
-     * Mark the document read by the user with id docId
-     * @param docId
-     * @return 201 if the document has been marked else 200
-     * $(curl -i -XPOST localhost:8080/api/document/markRead/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
-     */
-    @Post("/documents/markRead/:docId")
-    public Payload markReadDocument(final String docId, Context context) {
-        return repository.markRead((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
-    }
-
-    /**
-     * Unmark the document read by the user with id docId
-     * @param docId
-     * @return 201 if the document has been unmarked else 200
-     * $(curl -i -XPOST localhost:8080/api/document/unmarkRead/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
-     */
-    @Post("/documents/unmarkRead/:docId")
-    public Payload unmarkReadDocument(final String docId, Context context) {
-        return repository.unmarkRead((HashMapUser)context.currentUser(), docId) ? Payload.created(): Payload.ok();
     }
 
     /**
@@ -380,7 +319,6 @@ public class DocumentResource {
     @Get("/:project/documents/markReadUsers")
     public List<User> getProjectMarkReadUsers(final String projectId) {
         return repository.getAllMarkReadUsers(project(projectId));
-
     }
 
     /**
@@ -400,7 +338,6 @@ public class DocumentResource {
     public Set<String> getProjectMarkedReadDocuments(final String projectId, final String comaSeparatedUsers) {
         return repository.getMarkedReadDocuments(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
     }
-
 
     @NotNull
     private Payload getPayload(Document doc, String index, boolean inline) throws IOException {

@@ -103,43 +103,6 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_star_unstar_a_document_with_join() {
-        Document doc = new Document("id", project("prj"), Paths.get("/path/to/docId"), "my doc",
-                        FRENCH, Charset.defaultCharset(),
-                        "text/plain", new HashMap<>(),
-                        Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
-        repository.create(doc);
-        User user = new User("userid");
-
-        assertThat(repository.star(user, doc.getId())).isTrue();
-        assertThat(repository.getStarredDocuments(user)).contains(doc);
-        assertThat(repository.star(user, doc.getId())).isFalse();
-
-        assertThat(repository.unstar(user, doc.getId())).isTrue();
-        assertThat(repository.getStarredDocuments(user)).isEmpty();
-        assertThat(repository.unstar(user, doc.getId())).isFalse();
-    }
-
-    @Test
-    public void test_markRead_unmarkRead_a_document_with_join() {
-        // we consider that this one is unmarked and become marked
-        Document doc = new Document("id", project("prj"), Paths.get("/path/to/docId"), "my doc",
-                FRENCH, Charset.defaultCharset(),
-                "text/plain", new HashMap<>(),
-                Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
-        repository.create(doc);
-        User user = new User("userid");
-
-        assertThat(repository.markRead(user, doc.getId())).isTrue();
-        assertThat(repository.markRead(user, doc.getId())).isFalse();
-
-        assertThat(repository.getMarkedReadDocumentUsers(doc.getId())).contains(user);
-
-        assertThat(repository.unmarkRead(user, doc.getId())).isTrue();
-        assertThat(repository.unmarkRead(user, doc.getId())).isFalse();
-    }
-
-    @Test
     public void test_save_read_project() {
         assertThat(repository.save(new Project("prj", Paths.get("/source"), "10.0.*.*"))).isTrue();
         assertThat(repository.getProject("prj").name).isEqualTo("prj");
