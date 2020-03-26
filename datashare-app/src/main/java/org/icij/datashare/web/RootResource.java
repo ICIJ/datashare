@@ -42,7 +42,7 @@ public class RootResource {
         String content;
         if (context.env().classPath() && !index.toFile().isFile()) {
             StringWriter writer = new StringWriter();
-            copy(getClass().getResourceAsStream("/" + Paths.get(context.env().appFolder(), INDEX_HTML).toString()), writer, Charset.defaultCharset());
+            copy(getClass().getResourceAsStream("/" + context.env().appFolder() + "/" + INDEX_HTML), writer, Charset.defaultCharset());
             content = writer.toString();
         } else {
             content = new String(Files.readAllBytes(index), Charset.defaultCharset());
