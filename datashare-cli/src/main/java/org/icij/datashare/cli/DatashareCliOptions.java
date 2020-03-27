@@ -30,14 +30,12 @@ public final class DatashareCliOptions {
     public static final String RESUME_OPT = "resume";
     public static final String PARALLELISM = "parallelism";
 
-    static OptionSpec<DatashareCli.Stage> stages(OptionParser parser) {
+    static OptionSpec<String> stages(OptionParser parser) {
         return parser.acceptsAll(
                 asList(STAGES_OPT, "s"),
-                "Stages to be run. WARN that FILTER/DEDUPLICATE stages are not streamable like the others. They should be run alone.")
+                "Stages to be run. WARN that DEDUPLICATE stages are not streamable like the others. They should be run alone.")
                 .withRequiredArg()
-                .ofType( DatashareCli.Stage.class )
-                .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(DatashareCli.Stage.values());
+                .ofType( String.class );
     }
 
     static OptionSpec<Mode> mode(OptionParser parser) {
