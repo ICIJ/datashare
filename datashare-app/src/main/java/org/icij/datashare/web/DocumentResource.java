@@ -300,7 +300,7 @@ public class DocumentResource {
      * @return 200 and the number of documents unmarked
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unmarkRead -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "unknownId"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unmarkRead -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
      */
     @Post("/:project/documents/batchUpdate/unmarkRead")
     public Result<Integer> groupUnmarkReadProject(final String projectId, final List<String> docIds, Context context) {
@@ -332,7 +332,7 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/api/apigen-datashare/documents/markedReadDocuments/user1,user2)
+     * $(curl -i localhost:8080/api/apigen-datashare/documents/markedReadDocuments/apigen)
      */
     @Get("/:project/documents/markedReadDocuments/:coma_separated_tags")
     public Set<String> getProjectMarkedReadDocuments(final String projectId, final String comaSeparatedUsers) {
