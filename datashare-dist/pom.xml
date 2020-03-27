@@ -99,8 +99,8 @@
                                 </manifest>
                             </archive>
                             <descriptors>
-                                <descriptor>src/assembly/all.xml</descriptor>
                                 <descriptor>src/assembly/back.xml</descriptor>
+                                <descriptor>src/assembly/all.xml</descriptor>
                                 <descriptor>src/assembly/docker.xml</descriptor>
                             </descriptors>
                         </configuration>

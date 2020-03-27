@@ -5,4 +5,4 @@ Priority: low
 Architecture: all
 Description: [[description]]
 Maintainer: Bruno Thomas <bthomas@icij.org>
-Depends: default-jre | openjdk-8-jre
+Depends: default-jre | openjdk-8-jre, tesseract-ocr
