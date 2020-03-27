@@ -8,6 +8,7 @@
     <packaging>pom</packaging>
 
     <inceptionYear>2016</inceptionYear>
+    <description>ICIJ Datashare - Better analyze information, in all its forms</description>
 
     <organization>
         <name>ICIJ</name>
