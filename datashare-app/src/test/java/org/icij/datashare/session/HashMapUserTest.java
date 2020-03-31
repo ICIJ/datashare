@@ -52,7 +52,7 @@ public class HashMapUserTest {
     public void test_get_indices_for_external_user() {
         assertThat(new HashMapUser(new HashMap<String, Object>() {{
             put("uid", "userid");
-            put("datashare_indices", Collections.singletonList("external_index"));
+            put("datashare_projects", Collections.singletonList("external_index"));
         }}).getProjects()).containsExactly("external_index");
     }
 }

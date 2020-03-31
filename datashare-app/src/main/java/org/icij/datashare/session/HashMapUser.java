@@ -17,7 +17,7 @@ import static java.util.Optional.ofNullable;
 import static org.apache.commons.collections4.map.UnmodifiableMap.unmodifiableMap;
 
 public class HashMapUser extends User implements net.codestory.http.security.User {
-    private static final String DATASHARE_INDICES_KEY = "datashare_indices";
+    public static final String DATASHARE_PROJECTS_KEY = "datashare_projects";
     final Map<String, Object> userMap;
 
     public HashMapUser(final Map<String, Object> userMap) {
@@ -49,7 +49,7 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
 
     public List<String> getProjects() {
-        return (List<String>) ofNullable(userMap.get(DATASHARE_INDICES_KEY)).orElse(new LinkedList<>());
+        return (List<String>) ofNullable(userMap.get(DATASHARE_PROJECTS_KEY)).orElse(new LinkedList<>());
     }
 
     public Map<String, Object> getMap() {
@@ -66,7 +66,7 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     public static HashMapUser local() { return localUser("local"); }
 
     public static HashMapUser localUser(String id) {
-        return new HashMapUser(new HashMap<String, Object>() {{ put("uid", id); put(DATASHARE_INDICES_KEY, singletonList(id + "-datashare"));}}) {
+        return new HashMapUser(new HashMap<String, Object>() {{ put("uid", id); put(DATASHARE_PROJECTS_KEY, singletonList(id + "-datashare"));}}) {
             @Override public String[] roles() { return new String[] {"local"};}
         };
     }
