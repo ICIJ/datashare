@@ -36,6 +36,7 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
     private final AbstractPipeline pipeline;
     private final Indexer indexer;
     private final long shutdownTimeoutMillis;
+    private final boolean cleanShutdown;
     private final BlockingQueue<Message> queue;
     private final int parallelism;
     private final NlpForwarder forwarder;
@@ -44,20 +45,21 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
 
     @AssistedInject
     public NlpApp(final DataBus dataBus, final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted final AbstractPipeline pipeline, @Assisted final User user) {
-        this(dataBus, indexer, pipeline, propertiesProvider.getProperties(), () -> {}, 0, user);
+        this(dataBus, indexer, pipeline, propertiesProvider.getProperties(), () -> {}, 0, false, user);
     }
 
     @AssistedInject
     public NlpApp(final DataBus dataBus, final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties,
                   @Assisted final User user, @Assisted final Runnable subscribeCb) {
-        this(dataBus, indexer, pipeline, properties, subscribeCb, 0, user);
+        this(dataBus, indexer, pipeline, properties, subscribeCb, 0, false, user);
     }
 
     NlpApp(final DataBus dataBus, final Indexer indexer, final AbstractPipeline pipeline, final Properties properties,
-           Runnable subscribedCb, long shutdownTimeoutMillis, User user) {
+           Runnable subscribedCb, long shutdownTimeoutMillis, boolean cleanShutdown, User user) {
         this.pipeline = pipeline;
         this.indexer = indexer;
         this.shutdownTimeoutMillis = shutdownTimeoutMillis == 0 ? DEFAULT_TIMEOUT_MILLIS : shutdownTimeoutMillis;
+        this.cleanShutdown = cleanShutdown;
         this.queue = new LinkedBlockingQueue<>();
         this.user = user;
 
@@ -84,13 +86,21 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
         waitForQueueToBeEmpty();
         threadPool.shutdown();
         generate(() -> queue.offer(new ShutdownMessage())).limit(parallelism).collect(toList()); // trying to clean exit
-        if (! threadPool.awaitTermination(shutdownTimeoutMillis, MILLISECONDS)) {
-            logger.info("consumers have not finished yet, interrupting...");
-            threadPool.shutdownNow();
-            if (! threadPool.awaitTermination(shutdownTimeoutMillis, MILLISECONDS)) {
-                logger.info("consumers still not interrupted (should maybe hit CTRL-C to exit)");
+        boolean threadPoolExited = false;
+        while (!(threadPoolExited = threadPool.awaitTermination(shutdownTimeoutMillis, MILLISECONDS))) {
+            if (cleanShutdown) {
+                // Loop-wait for a clean shutdown
+                logger.info("consumers have not finished yet. Waiting...");
             } else {
-                logger.info("consumers interrupted");
+                logger.info("consumers have not finished yet, interrupting...");
+                threadPool.shutdownNow();
+                if (! threadPool.awaitTermination(shutdownTimeoutMillis, MILLISECONDS)) {
+                    logger.info("consumers still not interrupted (should maybe hit CTRL-C to exit)");
+                } else {
+                    logger.info("consumers interrupted");
+                }
+                // break out of the wait loop
+                break;
             }
         }
     }
