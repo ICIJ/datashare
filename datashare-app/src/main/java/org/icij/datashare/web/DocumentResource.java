@@ -267,9 +267,9 @@ public class DocumentResource {
      * @return 200 and the list of tags
      *
      * Example :
-     * $(curl  http://localhost:8080/api/apigen-datashare/documents/markedRead/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     * $(curl  http://localhost:8080/api/apigen-datashare/documents/readBy/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
-    @Get("/:project/documents/markedRead/:docId")
+    @Get("/:project/documents/readBy/:docId")
     public List<User> getMarkedReadDocumentUsers(final String projectId, final String docId) {
         return repository.getMarkedReadDocumentUsers(project(projectId),docId);
     }
@@ -283,9 +283,9 @@ public class DocumentResource {
      * @return 200 and the number of documents marked
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/markRead -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/markReadBy -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
      */
-    @Post("/:projectId/documents/batchUpdate/markRead")
+    @Post("/:projectId/documents/batchUpdate/markReadBy")
     public Result<Integer> groupMarkReadProject(final String projectId, final List<String> docIds, Context context) {
         return new Result(repository.markRead(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
@@ -300,9 +300,9 @@ public class DocumentResource {
      * @return 200 and the number of documents unmarked
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unmarkRead -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unmarkReadBy -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
      */
-    @Post("/:project/documents/batchUpdate/unmarkRead")
+    @Post("/:project/documents/batchUpdate/unmarkReadBy")
     public Result<Integer> groupUnmarkReadProject(final String projectId, final List<String> docIds, Context context) {
         return new Result(repository.unmarkRead(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
@@ -314,9 +314,9 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/api/apigen-datashare/documents/markReadUsers)
+     * $(curl -i localhost:8080/api/apigen-datashare/documents/readBy)
      */
-    @Get("/:project/documents/markReadUsers")
+    @Get("/:project/documents/readBy")
     public List<User> getProjectMarkReadUsers(final String projectId) {
         return repository.getAllMarkReadUsers(project(projectId));
     }
@@ -332,9 +332,9 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/api/apigen-datashare/documents/markedReadDocuments/apigen)
+     * $(curl -i localhost:8080/api/apigen-datashare/documents/documentsReadBy/apigen)
      */
-    @Get("/:project/documents/markedReadDocuments/:coma_separated_tags")
+    @Get("/:project/documents/documentsReadBy/:coma_separated_tags")
     public Set<String> getProjectMarkedReadDocuments(final String projectId, final String comaSeparatedUsers) {
         return repository.getMarkedReadDocuments(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
     }

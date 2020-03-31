@@ -120,31 +120,31 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_group_mark_read_document_with_project() {
         when(repository.markRead(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/prj1/documents/batchUpdate/markRead", "[\"id1\", \"id2\"]").should().respond(200);
+        post("/api/prj1/documents/batchUpdate/markReadBy", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
     public void test_group_unmark_read_document_with_project() {
         when(repository.unmarkRead(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/prj1/documents/batchUpdate/unmarkRead", "[\"id1\", \"id2\"]").should().respond(200);
+        post("/api/prj1/documents/batchUpdate/unmarkReadBy", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
     public void test_get_marked_read_document_users() {
         when(repository.getMarkedReadDocumentUsers(eq(project("prj")), eq("docId"))).thenReturn(asList(new User("user1"), new User("user2")));
-        get("/api/prj/documents/markedRead/docId").should().respond(200).contain("user1").contain("user2");
+        get("/api/prj/documents/readBy/docId").should().respond(200).contain("user1").contain("user2");
     }
 
     @Test
     public void test_get_all_mark_read_users() {
         when(repository.getAllMarkReadUsers(eq(project("prj")))).thenReturn(asList(new User("user1"), new User("user2")));
-        get("/api/prj/documents/markReadUsers").should().respond(200).contain("user1").contain("user2");
+        get("/api/prj/documents/readBy").should().respond(200).contain("user1").contain("user2");
     }
 
     @Test
     public void test_get_marked_read_documents() {
         when(repository.getMarkedReadDocuments(eq(project("prj")),eq(asList(new User("user1"), new User("user2"))))).thenReturn(Stream.of("doc1","doc2").collect(Collectors.toSet()));
-        get("/api/prj/documents/markedReadDocuments/user1,user2").should().respond(200).contain("doc1").contain("doc2");
+        get("/api/prj/documents/documentsReadBy/user1,user2").should().respond(200).contain("doc1").contain("doc2");
     }
 
     @Test
