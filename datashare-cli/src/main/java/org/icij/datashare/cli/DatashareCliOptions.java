@@ -29,6 +29,7 @@ public final class DatashareCliOptions {
     static final String ROOT_HOST = "rootHost";
     public static final String RESUME_OPT = "resume";
     public static final String PARALLELISM = "parallelism";
+    public static final String OPEN_LINK = "browserOpenLink";
 
     static OptionSpec<String> stages(OptionParser parser) {
         return parser.acceptsAll(
@@ -217,6 +218,13 @@ public final class DatashareCliOptions {
                         "No report records are saved if not provided")
                 .withRequiredArg()
                 .ofType(String.class);
+    }
+
+    static OptionSpec<Boolean> enableBrowserOpenLink(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList(OPEN_LINK),
+                "try to open link in the default browser").
+                withRequiredArg().ofType(Boolean.class).defaultsTo(false);
     }
 
     static OptionSpec<Boolean> enableOcr(OptionParser parser) {
