@@ -201,12 +201,14 @@ public class JooqRepositoryTest {
         User user = new User("userid");
         repository.star(project("prj"), user, singletonList("doc_id"));
         repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"));
+        repository.markRead(project("prj"), user, asList("doc_id"));
 
         assertThat(repository.deleteAll("prj")).isTrue();
         assertThat(repository.deleteAll("prj")).isFalse();
 
         assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).isEmpty();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
+        assertThat(repository.getMarkedReadDocuments(project("prj"),asList(user))).isEmpty();
     }
 
     @Test

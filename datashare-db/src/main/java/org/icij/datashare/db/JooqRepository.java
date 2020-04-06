@@ -233,7 +233,8 @@ public class JooqRepository implements Repository {
            DSLContext inner = using(configuration);
            int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
            int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
-           return deleteStarResult + deleteTagResult > 0;
+           int deleteMarkReadResult = inner.deleteFrom(DOCUMENT_USER_MARK_READ).where(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(projectId)).execute();
+           return deleteStarResult + deleteTagResult + deleteMarkReadResult > 0;
        });
     }
 
