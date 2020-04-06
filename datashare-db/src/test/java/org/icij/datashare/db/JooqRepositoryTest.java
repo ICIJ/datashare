@@ -121,6 +121,8 @@ public class JooqRepositoryTest {
 
         assertThat(repository.star(project("prj"), user, asList("id1", "id2", "id3"))).isEqualTo(3);
         assertThat(repository.getStarredDocuments(project("prj"), user)).contains("id1", "id2", "id3");
+
+        assertThat(repository.star(project("prj"), user, singletonList("id1"))).isEqualTo(0);
         assertThat(repository.getStarredDocuments(project("prj2"), user)).isEmpty();
 
         assertThat(repository.unstar(project("prj"), user,asList("id1", "id2"))).isEqualTo(2);

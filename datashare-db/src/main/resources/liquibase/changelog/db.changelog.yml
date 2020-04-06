@@ -47,3 +47,6 @@ databaseChangeLog:
   - include:
       file: changes/015-markRead.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/016-adds_stars_unique.yml
+      relativeToChangelogFile: true

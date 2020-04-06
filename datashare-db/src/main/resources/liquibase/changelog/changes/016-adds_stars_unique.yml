@@ -1,0 +1,6 @@
+databaseChangeLog:
+  - changeSet:
+      id: 27
+      author: bthomas
+      sql:
+        - CREATE UNIQUE INDEX idx_document_star_unique ON document_user_star (doc_id, user_id, prj_id)

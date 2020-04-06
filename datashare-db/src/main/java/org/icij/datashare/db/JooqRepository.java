@@ -113,7 +113,7 @@ public class JooqRepository implements Repository {
         InsertValuesStep3<DocumentUserStarRecord, String, String, String> query = using(connectionProvider, dialect).
                 insertInto(DOCUMENT_USER_STAR, DOCUMENT_USER_STAR.DOC_ID, DOCUMENT_USER_STAR.USER_ID, DOCUMENT_USER_STAR.PRJ_ID);
         documentIds.forEach(t -> query.values(t, user.id, project.getId()));
-        return query.execute();
+        return query.onConflictDoNothing().execute();
     }
 
     @Override
