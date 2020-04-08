@@ -7,6 +7,7 @@ import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Patch;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,7 @@ public class ConfigResource {
      * update the datashare configuration with provided body. It will save the configuration on disk.
      *
      * Returns 404 if configuration is not found. It means that the configuration file has not been set (or is not readable)
+     * Returns 403 if we are in SERVER mode
      *
      * The configuration priority is basically
      * DS_DOCKER_* variables > command line. I.e. > -c file > classpath:datashare.properties :
@@ -62,16 +64,19 @@ public class ConfigResource {
      * - if a file is given (w/ -c path/to/file) to the command line it will be read and used but the command line is still prioritised (it can be empty or not present)
      * - if no file is given, we are looking for datashare.properties in the classpath (for example in /dist)
      * - if none of the two above cases is fulfilled we are taking the default CLI parameters (and those given by the user)
-     * - if there are common parameters in CLI and a config file, the config file "wins"
+     * - if there are common parameters in CLI and a config file, the command line "wins"
      * - if a config file is not writable then 404 will be returned (and a WARN will be logged at start)
      *
-     * @return 200 or 404
+     * @return 200 or 404 or 403
      *
      * Example :
      * $(curl -i -XPATCH -H 'Content-Type: application/json' localhost:8080/api/config -d '{"data":{"foo":"bar"}}')
      */
     @Patch()
     public Payload patchConfig(Context context, JsonData data) throws IOException {
+        if (provider.get("mode").orElse(Mode.LOCAL.name()).equals(Mode.SERVER.name())) {
+            return Payload.forbidden();
+        }
         logger.info("user {} is updating the configuration", context.currentUser().login());
         try {
             provider.overrideWith(data.asProperties()).save();

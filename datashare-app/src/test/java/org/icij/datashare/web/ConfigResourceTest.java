@@ -10,6 +10,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.Properties;
 
 import static java.util.Arrays.asList;
@@ -41,5 +42,16 @@ public class ConfigResourceTest extends AbstractProdWebServerTest {
 
         patch("/api/config", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
                 withPreemptiveAuthentication("local", "pass").should().respond(404);
+    }
+
+    @Test
+    public void test_patch_configuration_should_answer_403_in_server_mode() {
+        PropertiesProvider properties = new PropertiesProvider(new HashMap<String, String>() {{
+            put("mode", "SERVER");
+        }});
+        configure(routes -> routes.add(new ConfigResource(properties)).filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
+
+        patch("/api/config", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
+            withPreemptiveAuthentication("local", "pass").should().respond(403);
     }
 }
