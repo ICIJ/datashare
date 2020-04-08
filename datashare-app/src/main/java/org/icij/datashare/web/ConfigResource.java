@@ -56,10 +56,10 @@ public class ConfigResource {
      * Returns 404 if configuration is not found. It means that the configuration file has not been set (or is not readable)
      *
      * The configuration priority is basically
-     * DS_DOCKER_* variables > -c file > classpath:datashare.properties > command line. I.e. :
+     * DS_DOCKER_* variables > command line. I.e. > -c file > classpath:datashare.properties :
      *
      * - DS_DOCKER_* variables will be taken and override all keys (if any similar keys exist)
-     * - if a file is given (w/ -c path/to/file) to the command line it will be read and used (it can be empty or not present)
+     * - if a file is given (w/ -c path/to/file) to the command line it will be read and used but the command line is still prioritised (it can be empty or not present)
      * - if no file is given, we are looking for datashare.properties in the classpath (for example in /dist)
      * - if none of the two above cases is fulfilled we are taking the default CLI parameters (and those given by the user)
      * - if there are common parameters in CLI and a config file, the config file "wins"
