@@ -17,21 +17,20 @@ public interface Repository {
     void create(Document document);
 
     // user related
-    List<Document> getStarredDocuments(User user);
+    Set<User> getRecommendations(Project project);
+    Set<User> getRecommendations(Project project, List<String> documentIds);
 
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
+    List<Document> getStarredDocuments(User user);
+    List<String> getStarredDocuments(Project project, User user);
+    Set<String> getRecommentationsBy(Project project, List<User> users);
+
     // standalone (to remove later ?)
     int star(Project project, User user, List<String> documentIds);
     int unstar(Project project, User user, List<String> documentIds);
-    List<String> getStarredDocuments(Project project, User user);
-    int markRead(Project project, User user, List<String> documentIds);
-    int unmarkRead(Project project, User user, List<String> documentIds);
-    List<User> getMarkedReadDocumentUsers(Project project, String documentId);
-
-    List<User> getAllMarkReadUsers(Project project);
-    Set<String> getMarkedReadDocuments(Project project, List<User> users);
-
+    int recommend(Project project, User user, List<String> documentIds);
+    int unrecommend(Project project, User user, List<String> documentIds);
     boolean tag(Project prj, String documentId, Tag... tags);
     boolean untag(Project prj, String documentId, Tag... tags);
     boolean tag(Project prj, List<String> documentIds, Tag... tags);

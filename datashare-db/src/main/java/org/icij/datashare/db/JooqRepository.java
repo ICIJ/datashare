@@ -134,7 +134,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public int markRead(Project project, User user, List<String> documentIds) {
+    public int recommend(Project project, User user, List<String> documentIds) {
         InsertValuesStep3<DocumentUserMarkReadRecord, String, String, String> query = using(connectionProvider, dialect).
                 insertInto(DOCUMENT_USER_MARK_READ, DOCUMENT_USER_MARK_READ.DOC_ID, DOCUMENT_USER_MARK_READ.USER_ID, DOCUMENT_USER_MARK_READ.PRJ_ID);
         documentIds.forEach(t -> query.values(t, user.id, project.getId()));
@@ -142,7 +142,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public int unmarkRead(Project project, User user, List<String> documentIds) {
+    public int unrecommend(Project project, User user, List<String> documentIds) {
         return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_MARK_READ).
                 where(DOCUMENT_USER_MARK_READ.DOC_ID.in(documentIds),
                         DOCUMENT_USER_MARK_READ.USER_ID.eq(user.id),
@@ -150,24 +150,24 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<User> getMarkedReadDocumentUsers(Project project, String documentId) {
+    public Set<User> getRecommendations(Project project, List<String> documentIds) {
         DSLContext create = DSL.using(connectionProvider, dialect);
         return create.select(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ).
-                where(DOCUMENT_USER_MARK_READ.DOC_ID.eq(documentId)).
+                where(DOCUMENT_USER_MARK_READ.DOC_ID.in(documentIds)).
                 and(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).
-                fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toList());
+                fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toSet());
     }
 
     @Override
-    public List<User> getAllMarkReadUsers(Project project) {
+    public Set<User> getRecommendations(Project project) {
         DSLContext create = DSL.using(connectionProvider,dialect);
         return create.selectDistinct(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ)
                 .where(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).fetch()
-                .getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toList());
+                .getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toSet());
     }
 
     @Override
-    public Set<String> getMarkedReadDocuments(Project project, List<User> users){
+    public Set<String> getRecommentationsBy(Project project, List<User> users){
         DSLContext create = DSL.using(connectionProvider,dialect);
         return create.select(DOCUMENT_USER_MARK_READ.DOC_ID).from(DOCUMENT_USER_MARK_READ)
                 .where(DOCUMENT_USER_MARK_READ.USER_ID.in(users.stream().map(x -> x.id).collect(toList())))

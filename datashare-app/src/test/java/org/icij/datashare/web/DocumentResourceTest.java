@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -118,33 +117,33 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_group_mark_read_document_with_project() {
-        when(repository.markRead(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/prj1/documents/batchUpdate/markReadBy", "[\"id1\", \"id2\"]").should().respond(200);
+    public void test_group_recommend_document_with_project() {
+        when(repository.recommend(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/prj1/documents/batchUpdate/recommend", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
-    public void test_group_unmark_read_document_with_project() {
-        when(repository.unmarkRead(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
-        post("/api/prj1/documents/batchUpdate/unmarkReadBy", "[\"id1\", \"id2\"]").should().respond(200);
+    public void test_group_unrecommend_document_with_project() {
+        when(repository.unrecommend(project("prj1"), User.local(), asList("id1", "id2"))).thenReturn(2);
+        post("/api/prj1/documents/batchUpdate/unrecommend", "[\"id1\", \"id2\"]").should().respond(200);
     }
 
     @Test
-    public void test_get_marked_read_document_users() {
-        when(repository.getMarkedReadDocumentUsers(eq(project("prj")), eq("docId"))).thenReturn(asList(new User("user1"), new User("user2")));
-        get("/api/prj/documents/readBy/docId").should().respond(200).contain("user1").contain("user2");
+    public void test_get_recommendation_users_of_documents() {
+        when(repository.getRecommendations(eq(project("prj")), eq(asList("docId1","docId2")))).thenReturn(Stream.of(new User("user1"), new User("user2")).collect(Collectors.toSet()));
+        get("/api/users/recommendationsby?project=prj&docIds=docId1,docId2").should().respond(200).contain("user1").contain("user2");
     }
 
     @Test
-    public void test_get_all_mark_read_users() {
-        when(repository.getAllMarkReadUsers(eq(project("prj")))).thenReturn(asList(new User("user1"), new User("user2")));
-        get("/api/prj/documents/readBy").should().respond(200).contain("user1").contain("user2");
+    public void test_get_recommendations_users() {
+        when(repository.getRecommendations(eq(project("prj")))).thenReturn(Stream.of(new User("user1"), new User("user2")).collect(Collectors.toSet()));
+        get("/api/users/recommendations?project=prj").should().respond(200).contain("user1").contain("user2");
     }
 
     @Test
-    public void test_get_marked_read_documents() {
-        when(repository.getMarkedReadDocuments(eq(project("prj")),eq(asList(new User("user1"), new User("user2"))))).thenReturn(Stream.of("doc1","doc2").collect(Collectors.toSet()));
-        get("/api/prj/documents/documentsReadBy/user1,user2").should().respond(200).contain("doc1").contain("doc2");
+    public void test_get_recommended_documents() {
+        when(repository.getRecommentationsBy(eq(project("prj")),eq(asList(new User("user1"), new User("user2"))))).thenReturn(Stream.of("doc1","doc2").collect(Collectors.toSet()));
+        get("/api/prj/documents/recommendations?userids=user1,user2").should().respond(200).contain("doc1").contain("doc2");
     }
 
     @Test

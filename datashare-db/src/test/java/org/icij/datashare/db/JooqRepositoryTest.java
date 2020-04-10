@@ -135,15 +135,15 @@ public class JooqRepositoryTest {
         User user1 = new User("user1");
         User user2 = new User("user2");
 
-        assertThat(repository.markRead(project("prj"), user1, asList("id1", "id2", "id3"))).isEqualTo(3);
-        assertThat(repository.markRead(project("prj"), user2, asList("id1"))).isEqualTo(1);
+        assertThat(repository.recommend(project("prj"), user1, asList("id1", "id2", "id3"))).isEqualTo(3);
+        assertThat(repository.recommend(project("prj"), user2, asList("id1"))).isEqualTo(1);
 
-        assertThat(repository.getMarkedReadDocumentUsers(project("prj"),"id1")).contains(user1).contains(user2);
-        assertThat(repository.getAllMarkReadUsers(project("prj"))).contains(user1).contains(user2);
-        assertThat(repository.getMarkedReadDocuments(project("prj"),asList(user1,user2))).contains("id1").contains("id2").contains("id3");
+        assertThat(repository.getRecommendations(project("prj"),asList("id1","id2"))).contains(user1).contains(user2);
+        assertThat(repository.getRecommendations(project("prj"))).contains(user1).contains(user2);
+        assertThat(repository.getRecommentationsBy(project("prj"),asList(user1,user2))).contains("id1").contains("id2").contains("id3");
 
-        assertThat(repository.unmarkRead(project("prj"), user1,asList("id1", "id2"))).isEqualTo(2);
-        assertThat(repository.unmarkRead(project("prj"), user1, singletonList("id3"))).isEqualTo(1);
+        assertThat(repository.unrecommend(project("prj"), user1,asList("id1", "id2"))).isEqualTo(2);
+        assertThat(repository.unrecommend(project("prj"), user1, singletonList("id3"))).isEqualTo(1);
     }
 
     @Test
@@ -203,14 +203,14 @@ public class JooqRepositoryTest {
         User user = new User("userid");
         repository.star(project("prj"), user, singletonList("doc_id"));
         repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"));
-        repository.markRead(project("prj"), user, asList("doc_id"));
+        repository.recommend(project("prj"), user, asList("doc_id"));
 
         assertThat(repository.deleteAll("prj")).isTrue();
         assertThat(repository.deleteAll("prj")).isFalse();
 
         assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).isEmpty();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
-        assertThat(repository.getMarkedReadDocuments(project("prj"),asList(user))).isEmpty();
+        assertThat(repository.getRecommentationsBy(project("prj"),asList(user))).isEmpty();
     }
 
     @Test

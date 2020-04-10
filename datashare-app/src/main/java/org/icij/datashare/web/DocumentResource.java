@@ -86,7 +86,7 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/star")
     public Result<Integer> groupStarProject(final String projectId, final List<String> docIds, Context context) {
         Result<Integer> res = new Result(repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds));
-        return new Result(repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds));
+        return new Result<>(repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
 
     /**
@@ -103,7 +103,7 @@ public class DocumentResource {
      */
     @Post("/:project/documents/batchUpdate/unstar")
     public Result<Integer> groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
-        return new Result(repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docIds));
+        return new Result<>(repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
 
     /**
@@ -192,7 +192,7 @@ public class DocumentResource {
      * Example :
      * $(curl -i -XPOST  -H "Content-Type: application/json"  localhost:8080/api/apigen-datashare/documents/batchUpdate/tag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
      */
-    @Post("/:projectId/documents/batchUpdate/tag")
+    @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         repository.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
         indexer.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
@@ -261,64 +261,31 @@ public class DocumentResource {
     }
 
     /**
-     * Get all users who marked read a document
-     * @param projectId
-     * @param docId
-     * @return 200 and the list of tags
-     *
-     * Example :
-     * $(curl  http://localhost:8080/api/apigen-datashare/documents/readBy/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
-     */
-    @Get("/:project/documents/readBy/:docId")
-    public List<User> getMarkedReadDocumentUsers(final String projectId, final String docId) {
-        return repository.getMarkedReadDocumentUsers(project(projectId),docId);
-    }
-
-    /**
-     * Group mark the documents "read". The id list is passed in the request body as a json list.
-     *
-     * It answers 200 if the change has been done and the number of documents updated in the response body.
-     * @param projectId
-     * @param docIds as json
-     * @return 200 and the number of documents marked
-     *
-     * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/markReadBy -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
-     */
-    @Post("/:projectId/documents/batchUpdate/markReadBy")
-    public Result<Integer> groupMarkReadProject(final String projectId, final List<String> docIds, Context context) {
-        return new Result(repository.markRead(project(projectId), (HashMapUser)context.currentUser(), docIds));
-    }
-
-    /**
-     * Group unmark the documents. The id list is passed in the request body as a json list.
-     *
-     * It answers 200 if the change has been done and the number of documents updated in the response body.
-     *
-     * @param projectId
-     * @param docIds as json
-     * @return 200 and the number of documents unmarked
-     *
-     * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unmarkReadBy -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
-     */
-    @Post("/:project/documents/batchUpdate/unmarkReadBy")
-    public Result<Integer> groupUnmarkReadProject(final String projectId, final List<String> docIds, Context context) {
-        return new Result(repository.unmarkRead(project(projectId), (HashMapUser)context.currentUser(), docIds));
-    }
-
-    /**
      * Retrieves the list of users who marked read a document for the given project id.
      *
      * @param projectId
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/api/apigen-datashare/documents/readBy)
+     * $(curl -i localhost:8080/api/users/recommendations?project=apigen-datashare)
      */
-    @Get("/:project/documents/readBy")
-    public List<User> getProjectMarkReadUsers(final String projectId) {
-        return repository.getAllMarkReadUsers(project(projectId));
+    @Get("/users/recommendations?project=:project")
+    public Set<User> getProjectRecommendations(final String projectId) {
+        return repository.getRecommendations(project(projectId));
+    }
+
+    /**
+     * Get all users who marked read a document
+     * @param projectId
+     * @param comaSeparatedDocIds
+     * @return 200 and the list of tags
+     *
+     * Example :
+     * $(curl  http://localhost:8080/api/users/recommendations?project=apigen-datashare&docIds=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     */
+    @Get("/users/recommendationsby?project=:project&docIds=:coma_separated_docIds")
+    public Set<User> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds) {
+        return repository.getRecommendations(project(projectId),stream(comaSeparatedDocIds.split(",")).map(String::new).collect(Collectors.toList()));
     }
 
     /**
@@ -332,11 +299,45 @@ public class DocumentResource {
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/api/apigen-datashare/documents/documentsReadBy/apigen)
+     * $(curl -i localhost:8080/api/apigen-datashare/documents/recommendations?userids=apigen)
      */
-    @Get("/:project/documents/documentsReadBy/:coma_separated_tags")
-    public Set<String> getProjectMarkedReadDocuments(final String projectId, final String comaSeparatedUsers) {
-        return repository.getMarkedReadDocuments(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
+    @Get("/:project/documents/recommendations?userids=:coma_separated_users")
+    public Set<String> getProjectRecommentationsBy(final String projectId, final String comaSeparatedUsers) {
+        return repository.getRecommentationsBy(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
+    }
+
+
+    /**
+     * Group mark the documents "read". The id list is passed in the request body as a json list.
+     *
+     * It answers 200 if the change has been done and the number of documents updated in the response body.
+     * @param projectId
+     * @param docIds as json
+     * @return 200 and the number of documents marked
+     *
+     * Example :
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/recommend -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
+     */
+    @Post("/:project/documents/batchUpdate/recommend")
+    public Result<Integer> groupRecommend(final String projectId, final List<String> docIds, Context context) {
+        return new Result<>(repository.recommend(project(projectId), (HashMapUser)context.currentUser(), docIds));
+    }
+
+    /**
+     * Group unmark the documents. The id list is passed in the request body as a json list.
+     *
+     * It answers 200 if the change has been done and the number of documents updated in the response body.
+     *
+     * @param projectId
+     * @param docIds as json
+     * @return 200 and the number of documents unmarked
+     *
+     * Example :
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unrecommend -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
+     */
+    @Post("/:project/documents/batchUpdate/unrecommend")
+    public Result<Integer> groupUnrecommend(final String projectId, final List<String> docIds, Context context) {
+        return new Result<>(repository.unrecommend(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
 
     @NotNull
