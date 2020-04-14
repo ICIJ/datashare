@@ -1,0 +1,8 @@
+databaseChangeLog:
+  - changeSet:
+      id: 28
+      author: mvanza
+      changes:
+        - renameTable:
+            newTableName: document_user_recommendation
+            oldTableName: document_user_mark_read

@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
+import org.icij.datashare.db.tables.DocumentUserRecommendation;
 import org.icij.datashare.db.tables.records.*;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -28,7 +29,7 @@ import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
 import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
 import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
-import static org.icij.datashare.db.tables.DocumentUserMarkRead.DOCUMENT_USER_MARK_READ;
+import static org.icij.datashare.db.tables.DocumentUserRecommendation.DOCUMENT_USER_RECOMMENDATION;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
@@ -135,44 +136,44 @@ public class JooqRepository implements Repository {
 
     @Override
     public int recommend(Project project, User user, List<String> documentIds) {
-        InsertValuesStep3<DocumentUserMarkReadRecord, String, String, String> query = using(connectionProvider, dialect).
-                insertInto(DOCUMENT_USER_MARK_READ, DOCUMENT_USER_MARK_READ.DOC_ID, DOCUMENT_USER_MARK_READ.USER_ID, DOCUMENT_USER_MARK_READ.PRJ_ID);
+        InsertValuesStep3<DocumentUserRecommendationRecord, String, String, String> query = using(connectionProvider, dialect).
+                insertInto(DOCUMENT_USER_RECOMMENDATION, DOCUMENT_USER_RECOMMENDATION.DOC_ID, DOCUMENT_USER_RECOMMENDATION.USER_ID, DOCUMENT_USER_RECOMMENDATION.PRJ_ID);
         documentIds.forEach(t -> query.values(t, user.id, project.getId()));
         return query.execute();
     }
 
     @Override
     public int unrecommend(Project project, User user, List<String> documentIds) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_MARK_READ).
-                where(DOCUMENT_USER_MARK_READ.DOC_ID.in(documentIds),
-                        DOCUMENT_USER_MARK_READ.USER_ID.eq(user.id),
-                        DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).execute();
+        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_RECOMMENDATION).
+                where(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds),
+                        DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(user.id),
+                        DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).execute();
     }
 
     @Override
     public Set<User> getRecommendations(Project project, List<String> documentIds) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.select(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ).
-                where(DOCUMENT_USER_MARK_READ.DOC_ID.in(documentIds)).
-                and(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).
-                fetch().getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toSet());
+        return create.select(DOCUMENT_USER_RECOMMENDATION.USER_ID).from(DOCUMENT_USER_RECOMMENDATION).
+                where(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)).
+                and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).
+                fetch().getValues(DOCUMENT_USER_RECOMMENDATION.USER_ID).stream().map(User::new).collect(toSet());
     }
 
     @Override
     public Set<User> getRecommendations(Project project) {
         DSLContext create = DSL.using(connectionProvider,dialect);
-        return create.selectDistinct(DOCUMENT_USER_MARK_READ.USER_ID).from(DOCUMENT_USER_MARK_READ)
-                .where(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId())).fetch()
-                .getValues(DOCUMENT_USER_MARK_READ.USER_ID).stream().map(User::new).collect(toSet());
+        return create.selectDistinct(DOCUMENT_USER_RECOMMENDATION.USER_ID).from(DOCUMENT_USER_RECOMMENDATION)
+                .where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).fetch()
+                .getValues(DOCUMENT_USER_RECOMMENDATION.USER_ID).stream().map(User::new).collect(toSet());
     }
 
     @Override
     public Set<String> getRecommentationsBy(Project project, List<User> users){
         DSLContext create = DSL.using(connectionProvider,dialect);
-        return create.select(DOCUMENT_USER_MARK_READ.DOC_ID).from(DOCUMENT_USER_MARK_READ)
-                .where(DOCUMENT_USER_MARK_READ.USER_ID.in(users.stream().map(x -> x.id).collect(toList())))
-                .and(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(project.getId()))
-                .fetch().getValues(DOCUMENT_USER_MARK_READ.DOC_ID).stream().collect(Collectors.toSet());
+        return create.select(DOCUMENT_USER_RECOMMENDATION.DOC_ID).from(DOCUMENT_USER_RECOMMENDATION)
+                .where(DOCUMENT_USER_RECOMMENDATION.USER_ID.in(users.stream().map(x -> x.id).collect(toList())))
+                .and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()))
+                .fetch().getValues(DOCUMENT_USER_RECOMMENDATION.DOC_ID).stream().collect(Collectors.toSet());
     }
 
     @Override
@@ -196,8 +197,8 @@ public class JooqRepository implements Repository {
     @Override
     public boolean tag(Project prj, List<String> documentIds, Tag... tags) {
         InsertValuesStep5<DocumentTagRecord, String, String, String, Timestamp, String> query = using(connectionProvider, dialect).insertInto(
-                        DOCUMENT_TAG, DOCUMENT_TAG.DOC_ID, DOCUMENT_TAG.LABEL, DOCUMENT_TAG.PRJ_ID,
-                        DOCUMENT_TAG.CREATION_DATE, DOCUMENT_TAG.USER_ID);
+                DOCUMENT_TAG, DOCUMENT_TAG.DOC_ID, DOCUMENT_TAG.LABEL, DOCUMENT_TAG.PRJ_ID,
+                DOCUMENT_TAG.CREATION_DATE, DOCUMENT_TAG.USER_ID);
         List<Tag> tagList = asList(tags);
         documentIds.forEach(d -> tagList.forEach(t -> query.values(d, t.label, prj.getId(), new Timestamp(t.creationDate.getTime()), t.user.id)));
         return query.onConflictDoNothing().execute() > 0;
@@ -206,9 +207,9 @@ public class JooqRepository implements Repository {
     @Override
     public boolean untag(Project prj, List<String> documentIds, Tag... tags) {
         return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_TAG).
-                        where(DOCUMENT_TAG.DOC_ID.in(documentIds),
-                                DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
-                                DOCUMENT_TAG.PRJ_ID.eq(prj.getId())).execute() > 0;
+                where(DOCUMENT_TAG.DOC_ID.in(documentIds),
+                        DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
+                        DOCUMENT_TAG.PRJ_ID.eq(prj.getId())).execute() > 0;
     }
 
     @Override
@@ -229,13 +230,13 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean deleteAll(String projectId) {
-       return DSL.using(connectionProvider, dialect).transactionResult(configuration -> {
-           DSLContext inner = using(configuration);
-           int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
-           int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
-           int deleteMarkReadResult = inner.deleteFrom(DOCUMENT_USER_MARK_READ).where(DOCUMENT_USER_MARK_READ.PRJ_ID.eq(projectId)).execute();
-           return deleteStarResult + deleteTagResult + deleteMarkReadResult > 0;
-       });
+        return DSL.using(connectionProvider, dialect).transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+            int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
+            int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
+            int deleteMarkReadResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId)).execute();
+            return deleteStarResult + deleteTagResult + deleteMarkReadResult > 0;
+        });
     }
 
     @Override
