@@ -53,15 +53,15 @@ public class RootResource {
     }
 
     /**
-     * gets the public (i.e. without user's information) datashare configuration parameters.
+     * gets the public (i.e. without user's information) datashare settings parameters.
      *
      * @return 200
      *
      * Example :
-     * $(curl -i localhost:8080/config)
+     * $(curl -i localhost:8080/settings)
      */
-    @Get("config")
-    public Map<String, Object> getPublicConfig() {
+    @Get("settings")
+    public Map<String, Object> getPublicSettings() {
         return propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*");
     }
 

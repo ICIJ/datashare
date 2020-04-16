@@ -24,11 +24,11 @@ import static org.fest.assertions.MapAssert.entry;
 public class PropertiesProviderTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();
     @Test
-    public void test_read_properties_first_from_config_file() throws Exception {
-        File configFile = folder.newFile("file.conf");
-        Files.write(configFile.toPath(), asList("foo=doe", "bar=baz"));
+    public void test_read_properties_first_from_stgs_file() throws Exception {
+        File settings = folder.newFile("file.conf");
+        Files.write(settings.toPath(), asList("foo=doe", "bar=baz"));
 
-        Properties properties = new PropertiesProvider(configFile.getAbsolutePath()).getProperties();
+        Properties properties = new PropertiesProvider(settings.getAbsolutePath()).getProperties();
 
         assertThat(properties)
                 .includes(entry("foo", "doe"), entry("bar", "baz"))
@@ -110,7 +110,7 @@ public class PropertiesProviderTest {
     }
 
     @Test
-    public void test_adds_ext_ds_env_parameters_without_configuration_file() throws Exception {
+    public void test_adds_ext_ds_env_parameters_without_settings_file() throws Exception {
         putEnv("DS_DOCKER_FOO", "bar");
         PropertiesProvider propertiesProvider = new PropertiesProvider("unknown_file");
 
@@ -133,18 +133,18 @@ public class PropertiesProviderTest {
     }
 
     @Test
-    public void test_save_configuration_file() throws Exception {
-        File configFile = folder.newFile("datashare.properties");
+    public void test_save_settings_file() throws Exception {
+        File settings = folder.newFile("datashare.properties");
         Properties properties = new Properties();
         properties.setProperty("foo", "doe");
 
-        new PropertiesProvider(configFile.getAbsolutePath()).mergeWith(properties).save();
+        new PropertiesProvider(settings.getAbsolutePath()).mergeWith(properties).save();
 
-        assertThat(readAllLines(configFile.toPath())).contains("foo=doe");
+        assertThat(readAllLines(settings.toPath())).contains("foo=doe");
     }
 
     @Test
-    public void test_save_configuration_file_with_no_property_file() throws Exception {
+    public void test_save_settings_file_with_no_property_file() throws Exception {
         Properties properties = new Properties();
         properties.setProperty("foo", "doe");
         Path givenPath = folder.getRoot().toPath().resolve("datashare.properties");
@@ -155,7 +155,7 @@ public class PropertiesProviderTest {
     }
 
     @Test
-    public void test_save_configuration_file_filter_user_data() throws Exception {
+    public void test_save_settings_file_filter_user_data() throws Exception {
         Properties properties = new Properties();
         properties.putAll(new HashMap<String, Object>() {{
             put("userProject", asList("i1", "i2"));
@@ -172,10 +172,10 @@ public class PropertiesProviderTest {
 
     @Test
     public void test_can_write_file_do_not_erase_file() throws Exception {
-        File configFile = folder.newFile("datashare.properties");
+        File settings = folder.newFile("datashare.properties");
 
-        assertThat(new PropertiesProvider(configFile.getAbsolutePath()).isFileReadable(configFile.toPath())).isTrue();
-        assertThat(configFile).exists();
+        assertThat(new PropertiesProvider(settings.getAbsolutePath()).isFileReadable(settings.toPath())).isTrue();
+        assertThat(settings).exists();
     }
 
     /**

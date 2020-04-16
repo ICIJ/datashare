@@ -13,7 +13,7 @@ public class RootResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_public_config() {
-        get("/config").should().respond(200);
+        get("/settings").should().respond(200);
     }
 
     @Test

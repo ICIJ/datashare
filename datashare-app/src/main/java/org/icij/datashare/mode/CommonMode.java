@@ -29,7 +29,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
-import org.icij.datashare.web.ConfigResource;
+import org.icij.datashare.web.SettingsResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.report.ReportMap;
@@ -48,7 +48,7 @@ public class CommonMode extends AbstractModule {
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
-                new PropertiesProvider(properties.getProperty(PropertiesProvider.CONFIG_FILE_PARAMETER_KEY)).mergeWith(properties);
+                new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).mergeWith(properties);
     }
 
     CommonMode(final Map<String, String> map) {
@@ -126,7 +126,7 @@ public class CommonMode extends AbstractModule {
     private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
         routes.setIocAdapter(new GuiceAdapter(this))
                 .add(RootResource.class)
-                .add(ConfigResource.class)
+                .add(SettingsResource.class)
                 .setExtensions(new Extensions() {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {

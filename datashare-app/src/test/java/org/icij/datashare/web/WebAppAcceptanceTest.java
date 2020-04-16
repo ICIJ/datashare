@@ -30,8 +30,8 @@ public class WebAppAcceptanceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_config() {
-        get("/config").should().haveType("application/json").
+    public void test_get_settings() {
+        get("/settings").should().haveType("application/json").
                 contain(format("\"dataDir\":\"%s\"", getClass().getResource("/data").getPath()));
     }
 
@@ -48,7 +48,7 @@ public class WebAppAcceptanceTest extends AbstractProdWebServerTest {
 
     private void waitForDatashare() throws Exception {
         for(int nbTries = 10; nbTries > 0 ; nbTries--) {
-            if (get("/config").response().contentType().contains("application/json")) {
+            if (get("/settings").response().contentType().contains("application/json")) {
                 return;
             }
             Thread.sleep(500); // ms

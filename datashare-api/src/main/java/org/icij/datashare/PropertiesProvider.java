@@ -26,28 +26,28 @@ public class PropertiesProvider {
     public static final String TCP_LISTEN_PORT = "tcpListenPort";
     private static final String PREFIX = "DS_DOCKER_";
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
-    public static final String CONFIG_FILE_PARAMETER_KEY = "configFile";
+    public static final String SETTINGS_FILE_PARAMETER_KEY = "settings";
     public static final String QUEUE_NAME_OPTION = "queueName";
     public static final String SET_NAME_OPTION = "filterSet";
     public static final String MAP_NAME_OPTION = "reportName";
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-    private final Path configPath;
+    private final Path settingsPath;
     private volatile Properties cachedProperties;
 
     public PropertiesProvider() {this((String) null);}
     public PropertiesProvider(String fileName) {
-        this.configPath = getFilePath(fileName);
+        this.settingsPath = getFilePath(fileName);
     }
 
     public PropertiesProvider(final Properties properties) {
         this.cachedProperties = properties;
-        configPath = null;
+        settingsPath = null;
     }
 
     public PropertiesProvider(final Map<String, String> hashMap) {
         cachedProperties = fromMap(hashMap);
-        configPath = null;
+        settingsPath = null;
     }
 
     public Properties getProperties() {
@@ -56,11 +56,11 @@ public class PropertiesProvider {
                 if (cachedProperties == null) {
                     Properties localProperties = new Properties();
                     try {
-                        InputStream propertiesStream = new FileInputStream(configPath.toFile());
-                        logger.info("reading properties from {}", configPath);
+                        InputStream propertiesStream = new FileInputStream(settingsPath.toFile());
+                        logger.info("reading properties from {}", settingsPath);
                         localProperties.load(propertiesStream);
                     } catch (IOException | NullPointerException e) {
-                        logger.warn("no {} file found, using default values", configPath);
+                        logger.warn("no {} file found, using default values", settingsPath);
                     }
                     loadEnvVariables(localProperties);
                     cachedProperties = localProperties;
@@ -122,13 +122,13 @@ public class PropertiesProvider {
     }
 
     public void save() throws IOException {
-        logger.info("writing properties to file {}", configPath);
-        if (configPath == null) {
-            throw new ConfigurationNotFound();
+        logger.info("writing properties to file {}", settingsPath);
+        if (settingsPath == null) {
+            throw new SettingsNotFound();
         }
         Properties toSave = new Properties();
         toSave.putAll(getFilteredProperties("user.*"));
-        toSave.store(new FileOutputStream(configPath.toFile()), "Datashare properties");
+        toSave.store(new FileOutputStream(settingsPath.toFile()), "Datashare properties");
     }
 
     public static Properties fromMap(Map<String, String> map) {
@@ -159,7 +159,7 @@ public class PropertiesProvider {
     boolean isFileReadable(final Path filePath) {
         if (filePath.toFile().exists()) {
             if (!filePath.toFile().canWrite()) {
-                logger.warn("{} is not writable. The config file won't be able to be saved", filePath);
+                logger.warn("{} is not writable. The settings file won't be able to be saved", filePath);
             }
             return true;
         } else {
@@ -168,13 +168,13 @@ public class PropertiesProvider {
                 filePath.toFile().delete();
                 return true;
             } catch (IOException e) {
-                logger.warn("{} is not writable. The config file won't be able to be saved", filePath);
+                logger.warn("{} is not writable. The settings file won't be able to be saved", filePath);
                 return false;
             }
         }
     }
 
-    public static class ConfigurationNotFound extends RuntimeException {
-        ConfigurationNotFound() { super("cannot find configuration file");}
+    public static class SettingsNotFound extends RuntimeException {
+        SettingsNotFound() { super("cannot find settings file");}
     }
 }

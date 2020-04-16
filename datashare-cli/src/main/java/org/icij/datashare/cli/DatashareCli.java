@@ -22,7 +22,7 @@ public class DatashareCli {
         OptionParser parser = new OptionParser();
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
 
-        DatashareCliOptions.configFile(parser);
+        DatashareCliOptions.settings(parser);
         DatashareCliOptions.pluginsDir(parser);
         DatashareCliOptions.tcpListenPort(parser);
         DatashareCliOptions.mode(parser);

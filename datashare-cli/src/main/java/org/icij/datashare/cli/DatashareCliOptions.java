@@ -33,7 +33,7 @@ public final class DatashareCliOptions {
 
     static OptionSpec<String> stages(OptionParser parser) {
         return parser.acceptsAll(
-                asList(STAGES_OPT, "s"),
+                asList(STAGES_OPT),
                 "Stages to be run. WARN that DEDUPLICATE stages are not streamable like the others. They should be run alone.")
                 .withRequiredArg()
                 .ofType( String.class );
@@ -69,9 +69,9 @@ public final class DatashareCliOptions {
                         .defaultsTo("no-cors");
     }
 
-    static OptionSpec<String> configFile(OptionParser parser) {
+    static OptionSpec<String> settings (OptionParser parser) {
         return parser.acceptsAll(
-                asList("c", "configFile"), "Property configuration file")
+                asList("s", "settings"), "Property settings file")
                         .withRequiredArg()
                         .ofType(String.class);
     }

@@ -17,70 +17,70 @@ import java.util.Map;
 
 import static net.codestory.http.payload.Payload.ok;
 
-@Prefix("/api/config")
-public class ConfigResource {
+@Prefix("/api/settings")
+public class SettingsResource {
     Logger logger = LoggerFactory.getLogger(getClass());
     private PropertiesProvider provider;
 
     @Inject
-    public ConfigResource(PropertiesProvider provider) {
+    public SettingsResource(PropertiesProvider provider) {
         this.provider = provider;
     }
 
     /**
-     * gets the private datashare configuration with user's information
+     * gets the private datashare settings with user's information
      *
-     * @return 200 and the json config
+     * @return 200 and the json settings
      *
      * Example :
-     * $(curl -i localhost:8080/api/config)
+     * $(curl -i localhost:8080/api/settings)
      */
     @Get()
-    public Map<String, Object> getConfig(Context context) {
+    public Map<String, Object> getSettings(Context context) {
         return provider.getFilteredProperties(".*Address.*", ".*Secret.*");
     }
 
     /**
-     * Preflight for config.
+     * Preflight for settings.
      *
      * @param context
      * @return 200 with PATCH
      */
     @Options()
-    public Payload patchConfigPreflight(final Context context) {
+    public Payload patchSettingsPreflight(final Context context) {
         return ok().withAllowMethods("OPTION", "PATCH").withAllowHeaders("content-type");
     }
 
     /**
-     * update the datashare configuration with provided body. It will save the configuration on disk.
+     * update the datashare settings with provided body. It will save the settings on disk.
      *
-     * Returns 404 if configuration is not found. It means that the configuration file has not been set (or is not readable)
+     * Returns 404 if settings is not found. It means that the settings file has not been set (or is not readable)
      * Returns 403 if we are in SERVER mode
      *
-     * The configuration priority is basically
+     * The settings priority is basically
      * DS_DOCKER_* variables > -c file > classpath:datashare.properties > command line. I.e. :
      *
      * - DS_DOCKER_* variables will be taken and override all keys (if any similar keys exist)
      * - if a file is given (w/ -c path/to/file) to the command line it will be read and used (it can be empty or not present)
      * - if no file is given, we are looking for datashare.properties in the classpath (for example in /dist)
      * - if none of the two above cases is fulfilled we are taking the default CLI parameters (and those given by the user)
-     * - parameters are common between CLI and config file, the config file "wins"
-     * - if a config file is not writable then 404 will be returned (and a WARN will be logged at start)
+     * - parameters are common between CLI and settings file, the settings file "wins"
+     * - if a settings file is not writable then 404 will be returned (and a WARN will be logged at start)
      *
      * @return 200 or 404 or 403
      *
      * Example :
-     * $(curl -i -XPATCH -H 'Content-Type: application/json' localhost:8080/api/config -d '{"data":{"foo":"bar"}}')
+     * $(curl -i -XPATCH -H 'Content-Type: application/json' localhost:8080/api/settings -d '{"data":{"foo":"bar"}}')
      */
     @Patch()
-    public Payload patchConfig(Context context, JsonData data) throws IOException {
+    public Payload patchSettings(Context context, JsonData data) throws IOException {
         if (provider.get("mode").orElse(Mode.LOCAL.name()).equals(Mode.SERVER.name())) {
             return Payload.forbidden();
         }
-        logger.info("user {} is updating the configuration", context.currentUser().login());
+        logger.info("user {} is updating the settings", context.currentUser().login());
         try {
             provider.overrideWith(data.asProperties()).save();
-        } catch (PropertiesProvider.ConfigurationNotFound e) {
+        } catch (PropertiesProvider.SettingsNotFound e) {
             return Payload.notFound();
         }
         return Payload.ok();
