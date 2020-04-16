@@ -48,7 +48,7 @@ public class CommonMode extends AbstractModule {
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
-                new PropertiesProvider(properties.getProperty(PropertiesProvider.CONFIG_FILE_PARAMETER_KEY)).overrideWith(properties);
+                new PropertiesProvider(properties.getProperty(PropertiesProvider.CONFIG_FILE_PARAMETER_KEY)).mergeWith(properties);
     }
 
     CommonMode(final Map<String, String> map) {
