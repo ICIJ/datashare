@@ -62,7 +62,7 @@ public class RootResource {
      */
     @Get("settings")
     public Map<String, Object> getPublicSettings() {
-        return propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*");
+        return propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*", ".*Url.*");
     }
 
     /**

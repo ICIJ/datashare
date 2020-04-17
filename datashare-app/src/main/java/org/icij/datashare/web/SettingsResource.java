@@ -37,7 +37,7 @@ public class SettingsResource {
      */
     @Get()
     public Map<String, Object> getSettings(Context context) {
-        return provider.getFilteredProperties(".*Address.*", ".*Secret.*");
+        return provider.getFilteredProperties(".*Address.*", ".*Secret.*", ".*Url.*");
     }
 
     /**
