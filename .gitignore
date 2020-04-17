@@ -5,6 +5,7 @@ dependency-reduced-pom.xml
 *.iml
 dist/
 logs/
+**/doc
 /app
 pom.xml.versionsBackup
 .gitsecret/keys/random_seed
