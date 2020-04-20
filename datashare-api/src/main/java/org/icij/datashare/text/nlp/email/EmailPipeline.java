@@ -8,7 +8,6 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.nio.charset.Charset;
 import java.util.*;
@@ -127,7 +126,7 @@ public class EmailPipeline extends AbstractPipeline {
     public void terminate(Language language) {}
 
     @Override
-    public Map<Language, Set<NlpStage>> supportedStages() { throw new NotImplementedException();}
+    public Map<Language, Set<NlpStage>> supportedStages() { throw new UnsupportedOperationException();}
 
     @Override
     public boolean supports(NlpStage stage, Language language) { return stage == NlpStage.NER;}
