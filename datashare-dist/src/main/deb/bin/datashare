@@ -12,7 +12,7 @@ cd "${DATASHARE_HOME}" || exit
 ${JAVA} -DPROD_MODE=true -cp ./dist:"${DATASHARE_JAR}" org.icij.datashare.Main \
     -d "${HOME}"/Datashare  --queueType memory --busType memory \
     --dataSourceUrl jdbc:sqlite:file:"${DATASHARE_HOME}/dist/datashare.db" \
-    --configFile ./dist/datashare.conf --mode EMBEDDED \
+    --settings ./dist/datashare.conf --mode EMBEDDED \
     --browserOpenLink true \
     --pluginsDir "${DATASHARE_HOME}"/plugins \
     --elasticsearchDataPath "${DATASHARE_HOME}"/index "$@"
