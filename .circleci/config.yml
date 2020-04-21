@@ -51,6 +51,7 @@ jobs:
             psql -h postgresql -U test test -c "CREATE DATABASE datashare;"
 
       - run: mvn validate
+      - run: cp .circleci/maven-release-settings.xml ~/.m2/settings.xml
       - run: mvn -pl datashare-api -am install
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
