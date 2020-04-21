@@ -28,6 +28,10 @@ jobs:
 
     steps:
       - checkout
+      - run:
+          name: Configure GPG private key for signing project artifacts in OSS Sonatype
+          command: |
+              echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
 
       # Download and cache dependencies
       - restore_cache:
