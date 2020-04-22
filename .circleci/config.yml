@@ -86,6 +86,7 @@ jobs:
           root: /tmp/datashare
           paths:
             - datashare-dist
+            - datashare-api
 
   deploy_back:
     docker:
