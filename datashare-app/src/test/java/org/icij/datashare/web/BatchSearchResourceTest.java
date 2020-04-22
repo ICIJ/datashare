@@ -6,6 +6,7 @@ import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
+import org.icij.datashare.function.Pair;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -15,10 +16,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.sql.SQLException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.lang.String.format;
@@ -85,74 +84,12 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_upload_batch_search_csv_triple_double_quote_match_phrases_false() {
-        when(batchSearchRepository.save(any())).thenReturn(true);
-
-        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "my batch search\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                        "Content-Type: text/csv\r\n" +
-                        "\r\n" +
-                        "\"\"\"query one\"\"\"\n" +
-                        "\"query two\"\r\n" +
-                        "query three\r\n" +
-                        "query\" four\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"phrase_matches\"\r\n" +
-                        "\r\n" +
-                        "False\r\n" +
-                        "--AaB03x--").response();
-
-        assertThat(response.code()).isEqualTo(200);
-        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
-        verify(batchSearchRepository).save(argument.capture());
-        assertThat(argument.getValue().phraseMatches).isFalse();
-        assertThat(argument.getValue().user).isEqualTo(User.local());
-        Iterator<String> iterator = argument.getValue().queries.keySet().iterator();
-        assertThat(iterator.next()).isEqualTo("\"query one\"");
-        assertThat(iterator.next()).isEqualTo("\"query two\"");
-        assertThat(iterator.next()).isEqualTo("query three");
-        assertThat(iterator.next()).isEqualTo("query\" four");
-        assertThat(iterator.hasNext()).isFalse();
+        testTripleQuote(false, "\"query one\"");
     }
 
     @Test
     public void test_upload_batch_search_csv_triple_double_quote_match_phrases_true(){
-        when(batchSearchRepository.save(any())).thenReturn(true);
-
-        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "my batch search\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                        "Content-Type: text/csv\r\n" +
-                        "\r\n" +
-                        "\"\"\"query one\"\"\"\n" +
-                        "\"query two\"\r\n" +
-                        "query three\r\n" +
-                        "query\" four\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"phrase_matches\"\r\n" +
-                        "\r\n" +
-                        "True\r\n" +
-                        "--AaB03x--").response();
-
-        assertThat(response.code()).isEqualTo(200);
-        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
-        verify(batchSearchRepository).save(argument.capture());
-        assertThat(argument.getValue().phraseMatches).isTrue();
-        assertThat(argument.getValue().user).isEqualTo(User.local());
-        Iterator<String> iterator = argument.getValue().queries.keySet().iterator();
-        assertThat(iterator.next()).isEqualTo("\"\"\"query one\"\"\"");
-        assertThat(iterator.next()).isEqualTo("\"query two\"");
-        assertThat(iterator.next()).isEqualTo("query three");
-        assertThat(iterator.next()).isEqualTo("query\" four");
-        assertThat(iterator.hasNext()).isFalse();
+        testTripleQuote(true, "\"\"\"query one\"\"\"");
     }
 
     @Test
@@ -373,10 +310,94 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         delete("/api/batch/search/myid").should().respond(404);
     }
 
+    private void testTripleQuote(Boolean phraseMatch, String tripleQuoteResult) {
+        when(batchSearchRepository.save(any())).thenReturn(true);
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
+                new MultipartContentBuilder("AaB03x").
+                        addField("name", "my batch search").
+                        addFile(
+                                new FileUpload("csvFile").withFilename("search.csv").withContentType("text/csv").withContent("\"\"\"query one\"\"\"\n" +
+                                        "\"query two\"\r\n" +
+                                        "query three\r\n" +
+                                        "query\" four\r\n")).
+                        addField("phrase_matches", String.valueOf(phraseMatch)).
+                        build()).response();
+
+
+        assertThat(response.code()).isEqualTo(200);
+        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
+        verify(batchSearchRepository).save(argument.capture());
+        assertThat(argument.getValue().queries.keySet()).containsOnly(tripleQuoteResult, "\"query two\"", "query three", "query\" four");
+    }
+
     @Before
     public void setUp() {
         initMocks(this);
         configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository, new PropertiesProvider())).
                 filter(new LocalUserFilter(new PropertiesProvider())));
+    }
+
+    private static class MultipartContentBuilder {
+        private final String boundary;
+        private final List<Pair<String, String>> nameValuePairs = new LinkedList<>();
+        private final List<FileUpload> files = new LinkedList<>();
+
+        public MultipartContentBuilder(String boundary) {
+            this.boundary = boundary;
+        }
+
+        public String build() {
+            String fields = nameValuePairs.stream().map(nv -> format(
+                    "--%s\r\n" +
+                        "Content-Disposition: form-data; name=\"%s\"\r\n" +
+                        "\r\n" +
+                        "%s\r\n", boundary,
+                    nv._1(), nv._2())).collect(Collectors.joining());
+            String fileUploads = files.stream().map(fu -> format("--%s\r\n%s", boundary, fu.build())).collect(Collectors.joining());
+            return fields + fileUploads + format("--%s--", boundary);
+        }
+
+        public MultipartContentBuilder addField(String name, String value) {
+            nameValuePairs.add(new Pair<>(name, value));
+            return this;
+        }
+
+        public MultipartContentBuilder addFile(FileUpload file) {
+            files.add(file);
+            return this;
+        }
+    }
+
+    private static class FileUpload {
+        private final String name;
+        private String contentType;
+        private String content;
+        private String filename;
+
+        FileUpload(String name) {
+            this.name = name;
+        }
+
+        public FileUpload withContentType(String contentType) {
+            this.contentType = contentType;
+            return this;
+        }
+
+        public FileUpload withContent(String content) {
+            this.content = content;
+            return this;
+        }
+
+        public String build() {
+            return format("Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n" +
+                                    "Content-Type: %s\r\n" +
+                                    "\r\n" +
+                                    "%s", name, filename, contentType, content);
+        }
+
+        public FileUpload withFilename(String filename) {
+            this.filename = filename;
+            return this;
+        }
     }
 }
