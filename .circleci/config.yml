@@ -94,6 +94,18 @@ jobs:
     steps:
       - attach_workspace:
           at: /tmp/datashare
+      # restore cache from previous workflow
+      - restore_cache:
+        keys:
+          - v1-dependencies-{{ checksum "pom.xml" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run:
+          name: Configure GPG private key for signing project artifacts in OSS Sonatype
+          command: |
+            echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
+
       - run:
           name: deploy datashare dist jar to github release
           command: |
@@ -102,6 +114,11 @@ jobs:
             echo "uploading asset to release url: $upload_url"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}-all.jar&label=datashare-dist-${CIRCLE_TAG}-all.jar"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-back.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.jar&label=datashare-dist-${CIRCLE_TAG}.jar"
+      - run:
+          name: deploy datashare-api jar to maven central
+          command: |
+            cd /tmp/datashare
+            mvn -pl datashare-api deploy -Dmaven.test.skip=true
 
   build_front:
     docker:
