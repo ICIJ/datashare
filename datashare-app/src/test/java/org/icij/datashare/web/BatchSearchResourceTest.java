@@ -84,6 +84,78 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_upload_batch_search_csv_triple_double_quote_match_phrases_false() {
+        when(batchSearchRepository.save(any())).thenReturn(true);
+
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
+                "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                        "Content-Type: text/csv\r\n" +
+                        "\r\n" +
+                        "\"\"\"query one\"\"\"\n" +
+                        "\"query two\"\r\n" +
+                        "query three\r\n" +
+                        "query\" four\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"phrase_matches\"\r\n" +
+                        "\r\n" +
+                        "False\r\n" +
+                        "--AaB03x--").response();
+
+        assertThat(response.code()).isEqualTo(200);
+        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
+        verify(batchSearchRepository).save(argument.capture());
+        assertThat(argument.getValue().phraseMatches).isFalse();
+        assertThat(argument.getValue().user).isEqualTo(User.local());
+        Iterator<String> iterator = argument.getValue().queries.keySet().iterator();
+        assertThat(iterator.next()).isEqualTo("\"query one\"");
+        assertThat(iterator.next()).isEqualTo("\"query two\"");
+        assertThat(iterator.next()).isEqualTo("query three");
+        assertThat(iterator.next()).isEqualTo("query\" four");
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    @Test
+    public void test_upload_batch_search_csv_triple_double_quote_match_phrases_true(){
+        when(batchSearchRepository.save(any())).thenReturn(true);
+
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
+                "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"name\"\r\n" +
+                        "\r\n" +
+                        "my batch search\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
+                        "Content-Type: text/csv\r\n" +
+                        "\r\n" +
+                        "\"\"\"query one\"\"\"\n" +
+                        "\"query two\"\r\n" +
+                        "query three\r\n" +
+                        "query\" four\r\n" +
+                        "--AaB03x\r\n" +
+                        "Content-Disposition: form-data; name=\"phrase_matches\"\r\n" +
+                        "\r\n" +
+                        "True\r\n" +
+                        "--AaB03x--").response();
+
+        assertThat(response.code()).isEqualTo(200);
+        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
+        verify(batchSearchRepository).save(argument.capture());
+        assertThat(argument.getValue().phraseMatches).isTrue();
+        assertThat(argument.getValue().user).isEqualTo(User.local());
+        Iterator<String> iterator = argument.getValue().queries.keySet().iterator();
+        assertThat(iterator.next()).isEqualTo("\"\"\"query one\"\"\"");
+        assertThat(iterator.next()).isEqualTo("\"query two\"");
+        assertThat(iterator.next()).isEqualTo("query three");
+        assertThat(iterator.next()).isEqualTo("query\" four");
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    @Test
     public void test_upload_batch_search_csv_with_all_parameters()  {
         when(batchSearchRepository.save(any())).thenReturn(true);
 

@@ -183,8 +183,10 @@ public class BatchSearchResource {
         int fuzziness = fuzzinessPart.isPresent() ? parseInt(fuzzinessPart.get().content()):0;
         Optional<Part> phraseMatchesPart = parts.stream().filter(p -> "phrase_matches".equals(p.name())).findAny();
         boolean phraseMatches=phraseMatchesPart.isPresent()?parseBoolean(phraseMatchesPart.get().content()): FALSE;
+        LinkedHashSet<String> queries = getQueries(csv)
+                .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : query.replaceAll("\"\"\"","\"")).collect(Collectors.toCollection(LinkedHashSet::new));
 
-        BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, getQueries(csv),
+        BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, queries,
                 (User) context.currentUser(), published, fileTypes, paths, fuzziness,phraseMatches);
         return batchSearchRepository.save(batchSearch) ?
                 new Payload("application/json", batchSearch.uuid, 200) : badRequest();
