@@ -85,7 +85,7 @@ jobs:
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
-            - pow.xml
+            - pom.xml
             - datashare-dist
             - datashare-api
 
