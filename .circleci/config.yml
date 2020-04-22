@@ -96,10 +96,10 @@ jobs:
           at: /tmp/datashare
       # restore cache from previous workflow
       - restore_cache:
-        keys:
-          - v1-dependencies-{{ checksum "pom.xml" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
 
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
@@ -114,6 +114,7 @@ jobs:
             echo "uploading asset to release url: $upload_url"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}-all.jar&label=datashare-dist-${CIRCLE_TAG}-all.jar"
             curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-back.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.jar&label=datashare-dist-${CIRCLE_TAG}.jar"
+
       - run:
           name: deploy datashare-api jar to maven central
           command: |
