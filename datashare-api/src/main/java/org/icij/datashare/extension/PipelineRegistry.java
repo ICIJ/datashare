@@ -25,7 +25,6 @@ import static java.util.Optional.ofNullable;
 public class PipelineRegistry {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
     private final Path pluginDir;
-    @org.jetbrains.annotations.NotNull
     private final PropertiesProvider propertiesProvider;
     private Map<Pipeline.Type, Pipeline> pipelines = new HashMap<>();
 
