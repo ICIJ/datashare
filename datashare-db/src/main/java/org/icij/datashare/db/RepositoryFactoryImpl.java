@@ -11,7 +11,6 @@ import liquibase.resource.ClassLoaderResourceAccessor;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
-import org.jetbrains.annotations.NotNull;
 import org.jooq.SQLDialect;
 
 import javax.sql.DataSource;
@@ -78,7 +77,6 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         return new HikariDataSource(config);
     }
 
-    @NotNull
     private String getDataSourceUrl() {
         return propertiesProvider.get("dataSourceUrl").orElse("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared");
     }
