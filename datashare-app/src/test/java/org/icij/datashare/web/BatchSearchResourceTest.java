@@ -39,43 +39,26 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_upload_batch_search_csv_without_name_should_send_bad_request() {
         when(batchSearchRepository.save(any())).thenReturn(true);
-
         postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data;name=\"csvFile\"\r\n" +
-                        "\r\n" +
-                        "value\r\n" +
-                        "--AaB03x--").
-                should().respond(400);
+                new MultipartContentBuilder("AaB03x")
+                        .addFile(new FileUpload("csvFile").withContent("value\r\n")).build()).should().respond(400);
     }
 
     @Test
     public void test_upload_batch_search_csv_without_csvFile_should_send_bad_request() {
         when(batchSearchRepository.save(any())).thenReturn(true);
-
         postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "value\r\n" +
-                        "--AaB03x--").
-                should().respond(400);
+                new MultipartContentBuilder("AaB03x")
+                        .addField("name","name").build()).should().respond(400);
     }
 
     @Test
     public void test_upload_batch_search_csv_with_name_and_csvfile_should_send_OK() {
         when(batchSearchRepository.save(any())).thenReturn(true);
-
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "nameValue\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"\r\n" +
-                        "\r\n" +
-                        "query\r\n" +
-                        "--AaB03x--").response();
+            new MultipartContentBuilder("AaB03x")
+                    .addField("name","nameValue")
+                    .addFile(new FileUpload("csvFile").withContent("query\r\n")).build()).response();
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(eq(new BatchSearch(response.content(),
                 project("prj"), "nameValue", null,
@@ -95,52 +78,21 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_upload_batch_search_csv_with_all_parameters()  {
         when(batchSearchRepository.save(any())).thenReturn(true);
-
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "my batch search\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"description\"\r\n" +
-                        "\r\n" +
-                        "search description\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                        "Content-Type: text/csv\r\n" +
-                        "\r\n" +
-                        "query one\n" +
-                        "query two\r\n" +
-                        "query three\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"published\"\r\n" +
-                        "\r\n" +
-                        "True\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"fileTypes\"\r\n" +
-                        "\r\n" +
-                        "application/pdf\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"fileTypes\"\r\n" +
-                        "\r\n" +
-                        "image/jpeg\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"paths\"\r\n" +
-                        "\r\n" +
-                        "/path/to/document\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"paths\"\r\n" +
-                        "\r\n" +
-                        "/other/path/\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"fuzziness\"\r\n" +
-                        "\r\n" +
-                        "4\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"phrase_matches\"\r\n" +
-                        "\r\n" +
-                        "True\r\n" +
-                        "--AaB03x--").response();
+            new MultipartContentBuilder("AaB03x")
+                .addField("name","my batch search")
+                .addField("description","search description")
+                .addFile(
+                        new FileUpload("csvFile").withFilename("search.csv").withContentType("text/csv").withContent("query one\n" +
+                                "query two\r\n" +
+                                "query three\r\n"))
+                .addField("published",String.valueOf(true))
+                .addField("fileTypes","application/pdf")
+                .addField("fileTypes","image/jpeg")
+                .addField("paths","/path/to/document")
+                .addField("paths","/other/path/")
+                .addField("fuzziness",String.valueOf(4))
+                .addField("phrase_matches",String.valueOf(true)).build()).response();
 
         assertThat(response.code()).isEqualTo(200);
         ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
@@ -163,24 +115,12 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() throws SQLException {
         when(batchSearchRepository.save(any())).thenReturn(true);
-
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
-                "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"name\"\r\n" +
-                        "\r\n" +
-                        "my batch search\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"description\"\r\n" +
-                        "\r\n" +
-                        "search description\r\n" +
-                        "--AaB03x\r\n" +
-                        "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"\r\n" +
-                        "Content-Type: text/csv\r\n" +
-                        "\r\n" +
-                        "1\n" +
-                        "\n" +
-                        "query\r\n" +
-                        "--AaB03x--").response();
+                new MultipartContentBuilder("AaB03x").
+                        addField("name","my batch search").
+                        addField("description", "search description").
+                        addFile(new FileUpload("csvFile").withFilename("search.csv").withContentType("text/csv")
+                                .withContent("1\n" + "\n" + "query\r\n")).build()).response();
 
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(eq(new BatchSearch(response.content(),
