@@ -35,6 +35,7 @@ jobs:
         MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
 
     steps:
+      - checkout
       - run:
           name: Configure GPG private key for signing project artifacts in OSS Sonatype
           command: |
