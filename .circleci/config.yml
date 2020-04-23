@@ -33,8 +33,6 @@ jobs:
       - restore_cache:
           keys:
           - v1-dependencies-{{ checksum "pom.xml" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
 
       - run:
           name: create a bootstrap datashare DB for jooq code generation
@@ -66,12 +64,9 @@ jobs:
           at: /tmp/datashare-client
       - checkout
 
-      # restore cache from previous workflow
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "pom.xml" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
 
       - run:
           name: make app link to front
