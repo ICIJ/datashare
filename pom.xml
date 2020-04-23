@@ -31,7 +31,6 @@
 
     <modules>
         <module>commons-test</module>
-        <module>datashare-api</module>
         <module>datashare-db</module>
         <module>datashare-cli</module>
         <module>datashare-index</module>
@@ -71,7 +70,8 @@
         <project.build.jdk.source>1.8</project.build.jdk.source>
         <project.build.jdk.target>1.8</project.build.jdk.target>
 
-        <datashare-api.version>${project.version}</datashare-api.version>
+        <datashare-api.version>6.3.3</datashare-api.version>
+
         <datashare-cli.version>${project.version}</datashare-cli.version>
         <datashare-.version>${project.version}</datashare-.version>
         <datashare-mitie.version>${project.version}</datashare-mitie.version>

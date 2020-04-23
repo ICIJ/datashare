@@ -28,10 +28,6 @@ jobs:
 
     steps:
       - checkout
-      - run:
-          name: Configure GPG private key for signing project artifacts in OSS Sonatype
-          command: |
-              echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
 
       # Download and cache dependencies
       - restore_cache:
@@ -51,8 +47,6 @@ jobs:
             psql -h postgresql -U test test -c "CREATE DATABASE datashare;"
 
       - run: mvn validate
-      - run: cp .circleci/maven-release-settings.xml ~/.m2/settings.xml
-      - run: mvn -pl datashare-api -am install
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run: mvn -pl datashare-app -pl datashare-nlp/datashare-nlp-corenlp -pl datashare-nlp/datashare-nlp-mitie -pl datashare-nlp/datashare-nlp-ixapipe -pl datashare-nlp/datashare-nlp-opennlp -am install -Dmaven.test.skip=true
@@ -71,10 +65,6 @@ jobs:
       - attach_workspace:
           at: /tmp/datashare-client
       - checkout
-      - run:
-          name: Configure GPG private key for signing project artifacts in OSS Sonatype
-          command: |
-            echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
 
       # restore cache from previous workflow
       - restore_cache:
@@ -89,9 +79,6 @@ jobs:
       - run:
           name: make dist including frontend
           command: mvn -pl datashare-dist package
-      - run:
-          name: deploy datashare-api jar to maven central
-          command: mvn -pl datashare-api deploy -Dmaven.test.skip=true
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
