@@ -9,7 +9,9 @@
     <version>6.3.1</version>
     <packaging>jar</packaging>
 
-    <inceptionYear>2016</inceptionYear>
+    <name>ICIJ Datashare API</name>
+    <url>https://github.com/ICIJ/datashare-api</url>
+    <inceptionYear>2020</inceptionYear>
     <description>Datashare API to build datashare extensions</description>
 
     <organization>
