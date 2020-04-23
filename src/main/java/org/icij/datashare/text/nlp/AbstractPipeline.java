@@ -99,7 +99,7 @@ public abstract class AbstractPipeline implements Pipeline {
      * @param docId  the input hash code*/
     public abstract Annotations process(String content, String docId, Language language) throws InterruptedException;
 
-    protected List<NamedEntity> processHeaders(Document doc) { return new LinkedList<>();}
+    public List<NamedEntity> processHeaders(Document doc) { return new LinkedList<>();}
 
     /**
      * Post-processing operations
