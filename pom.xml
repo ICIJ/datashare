@@ -6,7 +6,7 @@
 
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare-api</artifactId>
-    <version>6.2.0</version>
+    <version>6.3.0</version>
     <packaging>jar</packaging>
 
     <inceptionYear>2016</inceptionYear>
