@@ -17,7 +17,6 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -340,7 +339,6 @@ public class DocumentResource {
         return new Result<>(repository.unrecommend(project(projectId), (HashMapUser)context.currentUser(), docIds));
     }
 
-    @NotNull
     private Payload getPayload(Document doc, String index, boolean inline) throws IOException {
         try (InputStream from = new SourceExtractor().getSource(project(index), doc)) {
             String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));

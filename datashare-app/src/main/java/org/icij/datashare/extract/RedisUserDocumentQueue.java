@@ -5,7 +5,6 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedisDocumentQueue;
-import org.jetbrains.annotations.NotNull;
 import org.redisson.RedissonShutdownException;
 
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
@@ -19,7 +18,7 @@ public class RedisUserDocumentQueue extends RedisDocumentQueue {
         this.queueName = queueName;
     }
 
-    public RedisUserDocumentQueue(@NotNull final User user, PropertiesProvider propertiesProvider) {
+    public RedisUserDocumentQueue(final User user, PropertiesProvider propertiesProvider) {
         this(propertiesProvider, getQueueName(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue")));
     }
 

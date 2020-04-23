@@ -6,7 +6,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedisReportMap;
 import org.icij.task.Options;
-import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -20,7 +19,7 @@ public class RedisUserReportMap extends RedisReportMap {
         super(Options.from(provider.createOverriddenWith(new HashMap<String, String>() {{put("reportName", mapName);put("charset", String.valueOf(Charset.defaultCharset()));}})));
     }
 
-    public RedisUserReportMap(@NotNull final User user, PropertiesProvider propertiesProvider) {
+    public RedisUserReportMap(final User user, PropertiesProvider propertiesProvider) {
          this(propertiesProvider, getMapName(user, propertiesProvider.get(MAP_NAME_OPTION).orElse("extract:report")));
      }
 

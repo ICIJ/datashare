@@ -14,7 +14,6 @@ import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.LinkedHashSet;
@@ -268,7 +267,6 @@ public class BatchSearchResource {
         return format("%s/#/d/%s/%s/%s", uri, project.getId(), documentId, rootId);
     }
 
-    @NotNull
     private LinkedHashSet<String> getQueries(String csv) {
         return asSet(stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).toArray(String[]::new));
     }

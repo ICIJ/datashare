@@ -5,7 +5,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,17 +100,17 @@ public class TaskManager {
 
     public static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable, UserTask {
         private final Object runnableOrCallable;
-        public MonitorableFutureTask(@NotNull Callable<V> callable) {
+        public MonitorableFutureTask(Callable<V> callable) {
             super(callable);
             runnableOrCallable = callable;
         }
 
-        public MonitorableFutureTask(@NotNull Runnable runnable, V result) {
+        public MonitorableFutureTask(Runnable runnable, V result) {
             super(runnable, result);
             runnableOrCallable = runnable;
         }
 
-        private Monitorable getMonitorable(@NotNull Object runnableOrCallable) {
+        private Monitorable getMonitorable(Object runnableOrCallable) {
             if (runnableOrCallable instanceof Monitorable) {
                 return (Monitorable) runnableOrCallable;
             }

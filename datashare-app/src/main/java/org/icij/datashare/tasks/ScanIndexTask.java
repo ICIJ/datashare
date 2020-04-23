@@ -12,7 +12,6 @@ import org.icij.extract.extractor.ExtractionStatus;
 import org.icij.extract.report.Report;
 import org.icij.extract.report.ReportMap;
 import org.icij.task.DefaultTask;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +54,6 @@ public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
         return nb.get();
     }
 
-    @NotNull
     private Long slicedScroll(int sliceNum) {
         Indexer.Searcher search = indexer.search(projectName, Document.class).withSource("path").limit(scrollSize);
         List<? extends Entity> docsToProcess = new ArrayList<>();

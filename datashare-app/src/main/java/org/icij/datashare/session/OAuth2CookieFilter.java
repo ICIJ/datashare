@@ -14,7 +14,6 @@ import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +106,6 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         }
     }
 
-    @NotNull
     private String getCallbackUrl(Context context) {
         return context.request().isSecure() ? "https://" : "http://"
                 + context.request().header("Host") + this.oauthCallbackPath;

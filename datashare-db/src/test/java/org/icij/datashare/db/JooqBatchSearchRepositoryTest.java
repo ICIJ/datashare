@@ -8,7 +8,6 @@ import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -353,7 +352,6 @@ public class JooqBatchSearchRepositoryTest {
         return new SearchResult(queryName, doc.getId(), doc.getRootDocument(), doc.getPath().getFileName().toString(), doc.getCreationDate(), doc.getContentType(), doc.getContentLength(), docNb);
     }
 
-    @NotNull
     private <T> List<T> project(List<BatchSearch> batchSearches, Function<BatchSearch, T> batchSearchListFunction) {
         return batchSearches.stream().map(batchSearchListFunction).collect(toList());
     }

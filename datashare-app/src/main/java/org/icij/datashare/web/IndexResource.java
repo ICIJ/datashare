@@ -11,7 +11,6 @@ import okio.BufferedSink;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.indexing.Indexer;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,7 +130,6 @@ public class IndexResource {
         return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).method("OPTIONS", null).build()).execute());
     }
 
-    @NotNull
     private String getUrl(String index, String path, Context context) {
         if (((HashMapUser)context.currentUser()).isGranted(index) || ("scroll".equals(path) && "_search".equals(index))) {
             String s = es_url + "/" + index + "/" + path;
@@ -147,7 +145,6 @@ public class IndexResource {
         return join("&", query.keyValues().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(toList()));
     }
 
-    @NotNull
     private Payload createPayload(Response esResponse) throws IOException {
         String responseBody = esResponse.body().string();
         if (!esResponse.isSuccessful()) {

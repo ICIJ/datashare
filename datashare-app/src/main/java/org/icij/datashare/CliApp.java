@@ -14,7 +14,6 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +98,6 @@ class CliApp {
         indexer.close();
     }
 
-    @NotNull
     private static Runnable closeAndLogException(AutoCloseable closeable) {
         return () -> {
             try {
