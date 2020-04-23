@@ -3,7 +3,6 @@ package org.icij.datashare.batch;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -87,7 +86,6 @@ public class BatchSearch {
     @JsonIgnore
     public List<String> getQueryList() {return new ArrayList<>(queries.keySet());}
 
-    @NotNull
     private static LinkedHashMap<String, Integer> toLinkedHashMap(LinkedHashSet<String> queries) {
         return queries.stream().collect(toMap(identity(), i -> 0,
                 (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); },
