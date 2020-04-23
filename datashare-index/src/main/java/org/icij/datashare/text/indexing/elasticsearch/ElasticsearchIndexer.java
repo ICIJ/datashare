@@ -47,7 +47,6 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -247,7 +246,6 @@ public class ElasticsearchIndexer implements Indexer {
         return updateResponse.getBulkFailures().size() == 0 && updateResponse.getUpdated() > 0 ;
     }
 
-    @NotNull
     private Script createTagScript(Tag[] tags) {
         return new Script(ScriptType.INLINE, "painless",
                 "int updates = 0;" +
@@ -262,7 +260,6 @@ public class ElasticsearchIndexer implements Indexer {
                 new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}});
     }
 
-    @NotNull
     private Script createUntagScript(Tag[] tags) {
         return new Script(ScriptType.INLINE, "painless",
                 "int updates = 0;" +

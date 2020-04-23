@@ -1,6 +1,5 @@
 package org.icij.datashare.text.nlp.corenlp;
 
-import com.google.inject.Inject;
 import edu.stanford.nlp.ie.AbstractSequenceClassifier;
 import edu.stanford.nlp.ling.CoreAnnotations.*;
 import edu.stanford.nlp.ling.CoreLabel;
@@ -46,7 +45,6 @@ import static org.icij.datashare.text.nlp.NlpStage.*;
  * Created by julien on 3/24/16.
  */
 public final class CorenlpPipeline extends AbstractPipeline {
-    @Inject
     public CorenlpPipeline(final PropertiesProvider propertiesProvider) {
         super(propertiesProvider.getProperties());
 

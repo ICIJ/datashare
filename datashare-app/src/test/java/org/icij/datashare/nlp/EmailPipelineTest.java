@@ -1,57 +1,104 @@
-package org.icij.datashare.text.nlp;
+package org.icij.datashare.nlp;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.email.EmailPipeline;
-import org.junit.Before;
+import org.icij.datashare.text.nlp.Annotations;
+import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.NlpTag;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.Test;
-import org.mockito.Mock;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 
-import static java.util.Arrays.asList;
+import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.nlp.EmailPipeline.*;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.NamedEntity.Category.EMAIL;
-import static org.icij.datashare.text.nlp.email.EmailPipeline.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
 
-public class EmailPipelineConsumerTest {
-    @Mock
-    private Indexer indexer;
-    private NlpConsumer nlpListener;
-    private EmailPipeline pipeline = new EmailPipeline(new PropertiesProvider());
+public class EmailPipelineTest {
+    private final EmailPipeline pipeline = new EmailPipeline(new PropertiesProvider());
+    @Test
+    public void test_no_email() {
+        Annotations annotations = pipeline.process("this is a content without email but with an arobase (@).", "docId", Language.ENGLISH);
 
-    @Before
-    public void setUp() {
-        initMocks(this);
-        nlpListener = new NlpConsumer(pipeline, indexer, null);
+        assertThat(annotations.getDocumentId()).isEqualTo("docId");
+        assertThat(annotations.getLanguage()).isEqualTo(Language.ENGLISH);
+        assertThat(annotations.get(NlpStage.NER)).isEmpty();
     }
 
     @Test
-    public void test_adds_document_headers_parsing_for_email() throws Exception {
+    public void test_one_email() {
+        String content = "this is a content with email@domain.com";
+        Annotations annotations = pipeline.process(content, "docId", Language.ENGLISH);
+
+        assertThat(annotations.get(NlpStage.NER)).hasSize(1);
+        NlpTag nlpTag = annotations.get(NlpStage.NER).get(0);
+        assertThat(nlpTag.getBegin()).isEqualTo(23);
+        assertThat(nlpTag.getEnd()).isEqualTo(39);
+        assertThat(nlpTag.getCategory()).isEqualTo(NamedEntity.Category.EMAIL);
+        assertThat(content.substring(nlpTag.getBegin(), nlpTag.getEnd())).isEqualTo("email@domain.com");
+    }
+
+    @Test
+    public void test_one_email_twice() {
+        String content = "this is a content with email@domain.com\n" +
+                "that is twice in the document\n" +
+                "email@domain.com";
+        Annotations annotations = pipeline.process(content, "docId", Language.ENGLISH);
+
+        assertThat(annotations.get(NlpStage.NER)).hasSize(2);
+
+        NlpTag nlpTag = annotations.get(NlpStage.NER).get(1);
+        assertThat(nlpTag.getBegin()).isEqualTo(70);
+        assertThat(nlpTag.getEnd()).isEqualTo(86);
+        assertThat(content.substring(nlpTag.getBegin(), nlpTag.getEnd())).isEqualTo("email@domain.com");
+    }
+
+    @Test
+    public void test_three_emails() {
+        Annotations annotations = pipeline.process("this is a content with email@domain.com\n" +
+                "and another one : foo@bar.com\n" +
+                "and baz@qux.fr", "docId", Language.ENGLISH);
+
+        assertThat(annotations.get(NlpStage.NER)).hasSize(3);
+    }
+
+    @Test
+    public void test_acceptance() throws IOException {
+        Path emailFile = Paths.get(getClass().getResource("/email.eml").getPath());
+        String content = new String(Files.readAllBytes(emailFile));
+
+        Annotations annotations = pipeline.process(content, "docId", Language.ENGLISH);
+
+        assertThat(annotations.get(NlpStage.NER)).hasSize(10);
+        assertThat(NamedEntity.allFrom(content, annotations)).hasSize(10);
+    }
+
+    @Test
+    public void test_adds_document_headers_parsing_for_email() {
         Document doc = createDoc("docid").with("hello@world.com").ofMimeType("message/rfc822").with(new HashMap<String, Object>() {{
             put(tikaMsgHeader("To"), "email1@domain.com");
             put(tikaMsgHeader("Cc"), "email2@domain.com");
         }}).build();
-        when(indexer.get("projectName", doc.getId(), "routing")).thenReturn(doc);
 
-        nlpListener.findNamedEntities("projectName", doc.getId(), "routing");
+        List<NamedEntity> namedEntities = pipeline.processHeaders(doc);
 
-        verify(indexer).bulkAdd("projectName", Pipeline.Type.EMAIL,
-                asList(
-                        NamedEntity.create(EMAIL, "hello@world.com", 0, "docid", Pipeline.Type.EMAIL, FRENCH),
+        assertThat(namedEntities).containsExactly(
                         NamedEntity.create(EMAIL, "email2@domain.com", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
                         NamedEntity.create(EMAIL, "email1@domain.com", -1, "docid", Pipeline.Type.EMAIL, FRENCH)
-                        ), doc);
+                        );
     }
 
     @Test
-    public void test_filter_headers_that_contains_mail_addresses() throws Exception {
+    public void test_filter_headers_that_contains_mail_addresses() {
         Document doc = createDoc("docid").with("mail content").ofMimeType("message/rfc822").with(new HashMap<String, Object>() {{
             put(tikaRawHeader("field"), "email@domain.com");
             put(tikaRawHeader("Message-ID"), "id@domain.com");
@@ -72,12 +119,10 @@ public class EmailPipelineConsumerTest {
             put(tikaRawHeader("Resent-cc"), "resent-cc@head.er");
             put(tikaRawHeader("Resent-bcc"), "resent-bcc@head.er");
         }}).build();
-        when(indexer.get("projectName", doc.getId(), "routing")).thenReturn(doc);
 
-        nlpListener.findNamedEntities("projectName", doc.getId(), "routing");
+        List<NamedEntity> namedEntities = pipeline.processHeaders(doc);
 
-        verify(indexer).bulkAdd("projectName", Pipeline.Type.EMAIL,
-                asList(
+        assertThat(namedEntities).containsExactly(
                         NamedEntity.create(EMAIL, "replyto@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
                         NamedEntity.create(EMAIL, "alternate@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
                         NamedEntity.create(EMAIL, "resent-sender@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
@@ -94,6 +139,6 @@ public class EmailPipelineConsumerTest {
                         NamedEntity.create(EMAIL, "bcc@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
                         NamedEntity.create(EMAIL, "to@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
                         NamedEntity.create(EMAIL, "resent-from@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH)
-                ), doc);
+                );
     }
 }

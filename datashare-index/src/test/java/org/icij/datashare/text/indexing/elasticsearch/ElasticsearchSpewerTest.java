@@ -18,7 +18,6 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
@@ -57,7 +56,7 @@ public class ElasticsearchSpewerTest {
     private Publisher publisher = Mockito.mock(Publisher.class);
 
     private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-            new OptimaizeLanguageGuesser(), new FieldNames(), publisher, new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");
+            text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");
 
     public ElasticsearchSpewerTest() throws IOException {}
 
@@ -137,21 +136,6 @@ public class ElasticsearchSpewerTest {
                 Document.Status.INDEXED, 45L);
 
         assertThat(document.getId()).isEqualTo(extractDocument.getId());
-    }
-
-    @Test
-    public void test_language() throws Exception {
-        Extractor extractor = new Extractor();
-        final TikaDocument document = extractor.extract(get(getClass().getResource("/docs/doc.txt").getPath()));
-        final TikaDocument document_fr = extractor.extract(get(getClass().getResource("/docs/doc-fr.txt").getPath()));
-
-        spewer.write(document);
-        spewer.write(document_fr);
-
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
-        GetResponse documentFields_fr = es.client.get(new GetRequest(TEST_INDEX, "doc", document_fr.getId()));
-        assertThat(documentFields.getSourceAsMap()).includes(entry("language", "ENGLISH"));
-        assertThat(documentFields_fr.getSourceAsMap()).includes(entry("language", "FRENCH"));
     }
 
     @Test

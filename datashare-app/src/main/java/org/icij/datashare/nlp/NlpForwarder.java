@@ -1,9 +1,10 @@
-package org.icij.datashare.text.nlp;
+package org.icij.datashare.nlp;
 
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.DataBus;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.monitoring.Monitorable;
+import org.icij.datashare.text.nlp.DatashareListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

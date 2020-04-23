@@ -1,7 +1,7 @@
 package org.icij.datashare.db;
 
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
+import org.icij.datashare.text.Language;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
 import org.junit.Rule;
@@ -11,7 +11,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collection;
 
@@ -35,9 +34,9 @@ public class DatabaseSpewerTest {
         });
     }
 
-    public DatabaseSpewerTest(DbSetupRule rule) throws IOException {
+    public DatabaseSpewerTest(DbSetupRule rule) {
         dbRule = rule;
-        dbSpewer = new DatabaseSpewer(project("prj"), rule.createRepository(), new OptimaizeLanguageGuesser());
+        dbSpewer = new DatabaseSpewer(project("prj"), rule.createRepository(), text -> Language.ENGLISH);
     }
 
     @Test

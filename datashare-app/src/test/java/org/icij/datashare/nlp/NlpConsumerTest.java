@@ -1,8 +1,11 @@
-package org.icij.datashare.text.nlp;
+package org.icij.datashare.nlp;
 
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.nlp.AbstractPipeline;
+import org.icij.datashare.text.nlp.Annotations;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;

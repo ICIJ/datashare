@@ -1,7 +1,7 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.NlpApp;
+import org.icij.datashare.nlp.NlpApp;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 

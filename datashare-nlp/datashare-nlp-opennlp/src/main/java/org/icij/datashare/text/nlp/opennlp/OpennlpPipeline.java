@@ -1,6 +1,5 @@
 package org.icij.datashare.text.nlp.opennlp;
 
-import com.google.inject.Inject;
 import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.namefind.TokenNameFinderModel;
 import opennlp.tools.postag.POSModel;
@@ -64,7 +63,6 @@ public final class OpennlpPipeline extends AbstractPipeline {
     Map<Language, POSTagger> posTagger;
     Map<Language, List<NameFinderME>> nerFinder;
 
-    @Inject
     public OpennlpPipeline(final PropertiesProvider propertiesProvider) {
         super(propertiesProvider.getProperties());
 

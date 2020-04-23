@@ -5,7 +5,6 @@ import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
-import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
@@ -54,7 +53,7 @@ public class SourceExtractorTest {
         extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.HASHER.toString()));
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-                new OptimaizeLanguageGuesser(), new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
+                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
         spewer.write(document);
 
         Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).

@@ -1,6 +1,5 @@
-package org.icij.datashare.com.memory;
+package org.icij.datashare.com;
 
-import org.icij.datashare.com.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

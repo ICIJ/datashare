@@ -1,4 +1,4 @@
-package org.icij.datashare.text.indexing.elasticsearch.language;
+package org.icij.datashare.nlp;
 
 import com.optimaize.langdetect.LanguageDetector;
 import com.optimaize.langdetect.LanguageDetectorBuilder;

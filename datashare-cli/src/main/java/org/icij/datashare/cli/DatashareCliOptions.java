@@ -13,7 +13,7 @@ import java.util.Arrays;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.icij.datashare.text.nlp.NlpApp.NLP_PARALLELISM_OPT;
+import static org.icij.datashare.PropertiesProvider.NLP_PARALLELISM_OPT;
 
 
 public final class DatashareCliOptions {

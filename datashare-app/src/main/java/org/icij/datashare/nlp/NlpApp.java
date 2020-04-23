@@ -1,4 +1,4 @@
-package org.icij.datashare.text.nlp;
+package org.icij.datashare.nlp;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.inject.AbstractModule;
@@ -7,6 +7,7 @@ import com.google.inject.assistedinject.AssistedInject;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.DataBus;
+import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.user.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.ShutdownMessage;
@@ -32,7 +33,6 @@ import static java.util.stream.Stream.generate;
 public class NlpApp implements Runnable, Monitorable, UserTask {
     private static final long DEFAULT_TIMEOUT_MILLIS = 30 * 60 * 1000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
     private final AbstractPipeline pipeline;
     private final Indexer indexer;
     private final long shutdownTimeoutMillis;
@@ -63,7 +63,7 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
         this.queue = new LinkedBlockingQueue<>();
         this.user = user;
 
-        parallelism = parseInt(ofNullable(properties.getProperty(NLP_PARALLELISM_OPT)).orElse("1"));
+        parallelism = parseInt(ofNullable(properties.getProperty(PropertiesProvider.NLP_PARALLELISM_OPT)).orElse("1"));
         forwarder = new NlpForwarder(dataBus, queue, subscribedCb);
     }
 

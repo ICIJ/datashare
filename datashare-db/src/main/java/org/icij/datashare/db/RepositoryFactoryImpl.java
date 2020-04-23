@@ -1,6 +1,5 @@
 package org.icij.datashare.db;
 
-import com.google.inject.Inject;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import liquibase.Contexts;
@@ -27,7 +26,6 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         this(new PropertiesProvider());
     }
 
-    @Inject
     public RepositoryFactoryImpl(final PropertiesProvider propertiesProvider) {
         this.propertiesProvider = propertiesProvider;
         System.getProperties().setProperty("org.jooq.no-logo", "true");

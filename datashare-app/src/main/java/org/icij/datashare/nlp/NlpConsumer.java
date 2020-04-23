@@ -1,10 +1,13 @@
-package org.icij.datashare.text.nlp;
+package org.icij.datashare.nlp;
 
 import com.google.inject.Inject;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.nlp.AbstractPipeline;
+import org.icij.datashare.text.nlp.Annotations;
+import org.icij.datashare.text.nlp.DatashareListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

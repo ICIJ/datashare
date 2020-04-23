@@ -1,4 +1,4 @@
-package org.icij.datashare.text.nlp.email;
+package org.icij.datashare.nlp;
 
 import com.google.inject.Inject;
 import org.icij.datashare.PropertiesProvider;
@@ -95,7 +95,7 @@ public class EmailPipeline extends AbstractPipeline {
     }
 
     @Override
-    protected List<NamedEntity> processHeaders(Document doc) {
+    public List<NamedEntity> processHeaders(Document doc) {
         if ("message/rfc822".equals(doc.getContentType())) {
             String metadataString = parsedEmailHeaders.stream().map(key -> doc.getMetadata().getOrDefault(key, "").toString()).collect(joining(" "));
             Annotations metaDataAnnotations = process(metadataString, doc.getId(), doc.getLanguage());

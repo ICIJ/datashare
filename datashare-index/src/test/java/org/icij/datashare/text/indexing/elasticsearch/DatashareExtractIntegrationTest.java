@@ -5,7 +5,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.extract.document.DigestIdentifier;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.TikaDocument;
@@ -31,7 +30,7 @@ public class DatashareExtractIntegrationTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
 
-	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client, new OptimaizeLanguageGuesser(),
+	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client, l -> ENGLISH,
             new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");
 	private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider());
 

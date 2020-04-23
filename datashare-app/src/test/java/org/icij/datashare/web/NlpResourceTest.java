@@ -4,7 +4,6 @@ import net.codestory.http.convert.TypeConvert;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.indexing.elasticsearch.language.OptimaizeLanguageGuesser;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
@@ -34,8 +33,7 @@ public class NlpResourceTest extends AbstractProdWebServerTest {
     public void setUp() throws Exception {
         initMocks(this);
         doReturn(true).when(pipeline).initialize(any());
-        OptimaizeLanguageGuesser languageGuesser = new OptimaizeLanguageGuesser();
-        NlpResource nlpResource = new NlpResource(new PropertiesProvider(), languageGuesser, s -> pipeline);
+        NlpResource nlpResource = new NlpResource(new PropertiesProvider(), l -> ENGLISH, s -> pipeline);
         configure(routes -> routes.add(nlpResource));
     }
 
