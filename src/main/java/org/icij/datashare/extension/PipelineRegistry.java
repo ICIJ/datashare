@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -58,9 +59,9 @@ public class PipelineRegistry {
         }
     }
 
-    public synchronized void load() {
+    public synchronized void load() throws FileNotFoundException {
         File[] jars = ofNullable(pluginDir.toFile().listFiles((file, s) -> s.endsWith(".jar"))).
-                orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginDir));
+                orElseThrow(() -> new FileNotFoundException("invalid path for plugins: " + pluginDir));
         URLClassLoader classLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
         for (File jar : jars) {
             try {

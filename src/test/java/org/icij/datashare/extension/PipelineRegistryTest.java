@@ -32,7 +32,7 @@ public class PipelineRegistryTest {
     PipelineRegistry pipelineRegistry;
 
     @Test
-    public void test_init_pipeline_registry_no_extension() {
+    public void test_init_pipeline_registry_no_extension() throws FileNotFoundException {
         pipelineRegistry.load();
         assertThat(pipelineRegistry.getPipelineTypes()).isEmpty();
     }
@@ -54,6 +54,11 @@ public class PipelineRegistryTest {
     public void test_register_pipeline_from_type() {
         pipelineRegistry.register(Pipeline.Type.TEST);
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
+    }
+
+    @Test(expected = FileNotFoundException.class)
+    public void test_plugin_dir_not_found() throws Exception {
+        new PipelineRegistry(new PropertiesProvider(new HashMap<>())).load();
     }
 
     private void createJar(Path pathToJar, String jarName, File... javaSources) throws IOException {
