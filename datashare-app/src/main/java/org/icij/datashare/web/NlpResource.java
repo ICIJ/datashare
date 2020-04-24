@@ -28,6 +28,13 @@ public class NlpResource {
         this.languageGuesser = languageGuesser;
     }
 
+    /**
+     * Get the list of registered pipelines.
+     *
+     * @return pipeline set
+     * Example:
+     * $(curl http://dsenv:8080/ner/pipelines)
+     */
     @Get("pipelines")
     public Set<Pipeline.Type> getRegisteredPipelines() {
         return pipelineRegistry.getPipelineTypes();
