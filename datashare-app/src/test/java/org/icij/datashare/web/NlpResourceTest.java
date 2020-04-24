@@ -2,11 +2,11 @@ package org.icij.datashare.web;
 
 import net.codestory.http.convert.TypeConvert;
 import net.codestory.rest.Response;
-import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +18,7 @@ import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
 import static org.mockito.Matchers.*;
@@ -26,14 +27,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class NlpResourceTest extends AbstractProdWebServerTest {
-    @Mock
-    AbstractPipeline pipeline;
+    @Mock Pipeline pipeline;
+    @Mock PipelineRegistry registry;
 
     @Before
     public void setUp() throws Exception {
         initMocks(this);
         doReturn(true).when(pipeline).initialize(any());
-        NlpResource nlpResource = new NlpResource(new PropertiesProvider(), l -> ENGLISH, s -> pipeline);
+        doReturn(pipeline).when(registry).get(any());
+        NlpResource nlpResource = new NlpResource(registry, l -> ENGLISH);
         configure(routes -> routes.add(nlpResource));
     }
 
@@ -44,6 +46,12 @@ public class NlpResourceTest extends AbstractProdWebServerTest {
 
         verify(pipeline).initialize(ENGLISH);
         verify(pipeline).process("", "inline", ENGLISH);
+    }
+
+    @Test
+    public void test_get_pipeline_list() throws Exception {
+        doReturn(asSet(Pipeline.Type.EMAIL, Pipeline.Type.IXAPIPE)).when(registry).getPipelineTypes();
+        get("/ner/pipelines").should().respond(200).contain("EMAIL").contain("IXAPIPE");
     }
 
     @Test

@@ -19,8 +19,10 @@ import org.icij.datashare.com.MemoryDataBus;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.RedisDataBus;
 import org.icij.datashare.db.RepositoryFactoryImpl;
+import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.extract.RedisUserReportMap;
+import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.DocumentCollectionFactory;
 import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
@@ -29,11 +31,14 @@ import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.report.ReportMap;
+import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
@@ -104,6 +109,16 @@ public class CommonMode extends AbstractModule {
         }
         bind(DataBus.class).toInstance(dataBus);
         bind(Publisher.class).toInstance(dataBus);
+
+        PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
+        pipelineRegistry.register(EmailPipeline.class);
+        pipelineRegistry.register(Pipeline.Type.CORENLP);
+        try {
+            pipelineRegistry.load();
+        } catch (FileNotFoundException e) {
+            LoggerFactory.getLogger(getClass()).info("plugin dir not found " + e.getMessage());
+        }
+        bind(PipelineRegistry.class).toInstance(pipelineRegistry);
     }
 
     public Properties properties() {
