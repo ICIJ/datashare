@@ -26,7 +26,7 @@ public class PipelineRegistry {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
     private final Path pluginDir;
     private final PropertiesProvider propertiesProvider;
-    private Map<Pipeline.Type, Pipeline> pipelines = new HashMap<>();
+    private final Map<Pipeline.Type, Pipeline> pipelines = new HashMap<>();
 
     public PipelineRegistry(PropertiesProvider propertiesProvider) {
         this.pluginDir = Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse("./plugins"));
@@ -41,6 +41,11 @@ public class PipelineRegistry {
         return pipelines.keySet();
     }
 
+    public void register(Class<? extends Pipeline> pipelineClass) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        Pipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
+        pipelines.put(abstractPipeline.getType(), abstractPipeline);
+    }
+
     public synchronized void load() {
         File[] jars = ofNullable(pluginDir.toFile().listFiles((file, s) -> s.endsWith(".jar"))).
                 orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginDir));
@@ -53,8 +58,7 @@ public class PipelineRegistry {
                     Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
                     method.setAccessible(true);
                     method.invoke(classLoader, classLoader.getResource(jar.toString())); // hack to load jar
-                    Pipeline abstractPipeline = (Pipeline) pipelineClassInJar.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
-                    pipelines.put(abstractPipeline.getType(), abstractPipeline);
+                    register((Class<? extends Pipeline>)pipelineClassInJar);
                 }
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | IOException | InstantiationException | ClassNotFoundException e) {
                 LOGGER.error("Cannot load jar " + jar, e);
@@ -62,7 +66,7 @@ public class PipelineRegistry {
         }
     }
 
-    public synchronized Class<?> findClassesInJar(final Class<?> baseInterface, final String jarName) throws IOException, ClassNotFoundException {
+    synchronized Class<?> findClassesInJar(final Class<?> baseInterface, final String jarName) throws IOException, ClassNotFoundException {
         final String jarFullPath = File.separator + jarName;
         final ClassLoader classLoader = getClass().getClassLoader();
         final URL url = new URL("jar:file:" + jarFullPath + "!/");

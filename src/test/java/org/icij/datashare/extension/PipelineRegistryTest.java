@@ -43,6 +43,12 @@ public class PipelineRegistryTest {
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
     }
 
+    @Test
+    public void test_register_pipeline_from_class() throws Exception {
+        pipelineRegistry.register(DummyPipeline.class);
+        assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
+    }
+
     private void createJar(Path pathToJar, String jarName, File... javaSources) throws IOException {
         Path jarRoot = pathToJar.resolve("jar");
         jarRoot.toFile().mkdirs();
