@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp.mitie;
 
+import com.google.inject.Inject;
 import edu.mit.ll.mitie.*;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
@@ -37,7 +38,7 @@ public class MitiePipeline extends AbstractPipeline {
                 put(SPANISH, new HashSet<>(asList(TOKEN, NER)));
             }};
 
-
+    @Inject
     public MitiePipeline(PropertiesProvider propertiesProvider) {
         super(propertiesProvider.getProperties());
 
