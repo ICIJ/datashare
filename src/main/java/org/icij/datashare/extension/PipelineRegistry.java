@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
@@ -91,7 +92,8 @@ public class PipelineRegistry {
                 classname = classname.substring(0, classname.length() - 6);
                 if (!classname.contains("$")) {
                     final Class<?> myLoadedClass = Class.forName(classname, true, ucl);
-                    if (baseInterface.isAssignableFrom(myLoadedClass)) {
+                    if (baseInterface.isAssignableFrom(myLoadedClass) &&
+                            !myLoadedClass.isInterface() && !Modifier.isAbstract(myLoadedClass.getModifiers())) {
                         return myLoadedClass;
                     }
                 }

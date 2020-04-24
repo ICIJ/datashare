@@ -45,6 +45,14 @@ public class PipelineRegistryTest {
     }
 
     @Test
+    public void test_load_pipeline_registry_one_extension_with_interface() throws IOException {
+        createJar(folder.getRoot().toPath(), "plugin", new File("src/test/java/org/icij/datashare/text/nlp/test/TestPipeline.java"),
+                new File("src/main/java/org/icij/datashare/text/nlp/AbstractPipeline.java"));
+        pipelineRegistry.load();
+        assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
+    }
+
+    @Test
     public void test_register_pipeline_from_class() {
         pipelineRegistry.register(TestPipeline.class);
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
