@@ -64,6 +64,11 @@
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-nlp-corenlp</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-cli</artifactId>
             <scope>compile</scope>
         </dependency>
