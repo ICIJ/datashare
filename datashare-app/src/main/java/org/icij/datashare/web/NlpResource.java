@@ -35,7 +35,7 @@ public class NlpResource {
      * Example:
      * $(curl http://dsenv:8080/ner/pipelines)
      */
-    @Get("pipelines")
+    @Get("/pipelines")
     public Set<Pipeline.Type> getRegisteredPipelines() {
         return pipelineRegistry.getPipelineTypes();
     }
