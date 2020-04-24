@@ -1,5 +1,6 @@
 package org.icij.datashare.extension;
 
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Annotations;
@@ -13,9 +14,10 @@ import java.util.Optional;
 public class DummyPipeline implements Pipeline {
     @Override
     public Type getType() {
-        return null;
+        return Type.TEST;
     }
 
+    public DummyPipeline(PropertiesProvider provider) {}
     @Override
     public boolean initialize(Language language) throws InterruptedException {
         return false;

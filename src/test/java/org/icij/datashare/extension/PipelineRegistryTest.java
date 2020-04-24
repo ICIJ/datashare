@@ -1,6 +1,7 @@
 package org.icij.datashare.extension;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,12 +36,12 @@ public class PipelineRegistryTest {
         assertThat(pipelineRegistry.getPipelineTypes()).isEmpty();
     }
 
- /*   @Test
+    @Test
     public void test_load_pipeline_registry_one_extension() throws IOException {
-        createJar(folder.getRoot().toPath(), "plugin", new File("src/main/java/org/icij/datashare/text/nlp/email/EmailPipeline.java"));
+        createJar(folder.getRoot().toPath(), "plugin", new File("src/test/java/org/icij/datashare/extension/DummyPipeline.java"));
         pipelineRegistry.load();
-        assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.EMAIL);
-    }*/
+        assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
+    }
 
     private void createJar(Path pathToJar, String jarName, File... javaSources) throws IOException {
         Path jarRoot = pathToJar.resolve("jar");
