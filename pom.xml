@@ -325,8 +325,6 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler.version}</version>
                     <configuration>
-                        <source>${project.build.jdk.source}</source>
-                        <target>${project.build.jdk.target}</target>
                         <compilerArgument>-Xlint:all</compilerArgument>
                         <compilerArgument>-parameters</compilerArgument>
                         <showDeprecation>true</showDeprecation>
