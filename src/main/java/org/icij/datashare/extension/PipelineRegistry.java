@@ -41,9 +41,21 @@ public class PipelineRegistry {
         return pipelines.keySet();
     }
 
-    public void register(Class<? extends Pipeline> pipelineClass) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        Pipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
-        pipelines.put(abstractPipeline.getType(), abstractPipeline);
+    public void register(Class<? extends Pipeline> pipelineClass) {
+        try {
+            Pipeline abstractPipeline = pipelineClass.getDeclaredConstructor(PropertiesProvider.class).newInstance(propertiesProvider);
+            pipelines.put(abstractPipeline.getType(), abstractPipeline);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void register(Pipeline.Type type) {
+        try {
+            register((Class<? extends Pipeline>) Class.forName(type.getClassName()));
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public synchronized void load() {
@@ -60,7 +72,7 @@ public class PipelineRegistry {
                     method.invoke(classLoader, classLoader.getResource(jar.toString())); // hack to load jar
                     register((Class<? extends Pipeline>)pipelineClassInJar);
                 }
-            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | IOException | InstantiationException | ClassNotFoundException e) {
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | IOException | ClassNotFoundException e) {
                 LOGGER.error("Cannot load jar " + jar, e);
             }
         }

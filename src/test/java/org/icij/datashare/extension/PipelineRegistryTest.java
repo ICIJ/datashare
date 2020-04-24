@@ -2,6 +2,7 @@ package org.icij.datashare.extension;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.text.nlp.test.TestPipeline;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,14 +39,20 @@ public class PipelineRegistryTest {
 
     @Test
     public void test_load_pipeline_registry_one_extension() throws IOException {
-        createJar(folder.getRoot().toPath(), "plugin", new File("src/test/java/org/icij/datashare/extension/DummyPipeline.java"));
+        createJar(folder.getRoot().toPath(), "plugin", new File("src/test/java/org/icij/datashare/text/nlp/test/TestPipeline.java"));
         pipelineRegistry.load();
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
     }
 
     @Test
-    public void test_register_pipeline_from_class() throws Exception {
-        pipelineRegistry.register(DummyPipeline.class);
+    public void test_register_pipeline_from_class() {
+        pipelineRegistry.register(TestPipeline.class);
+        assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
+    }
+
+    @Test
+    public void test_register_pipeline_from_type() {
+        pipelineRegistry.register(Pipeline.Type.TEST);
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
     }
 

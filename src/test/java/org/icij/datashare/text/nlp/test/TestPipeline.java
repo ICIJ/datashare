@@ -1,4 +1,4 @@
-package org.icij.datashare.extension;
+package org.icij.datashare.text.nlp.test;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
@@ -11,13 +11,13 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Optional;
 
-public class DummyPipeline implements Pipeline {
+public class TestPipeline implements Pipeline {
     @Override
     public Type getType() {
         return Type.TEST;
     }
 
-    public DummyPipeline(PropertiesProvider provider) {}
+    public TestPipeline(PropertiesProvider provider) {}
     @Override
     public boolean initialize(Language language) throws InterruptedException {
         return false;
