@@ -47,7 +47,7 @@ public class ServerMode extends CommonMode {
                 add(NamedEntityResource.class).
                 add(BatchSearchResource.class).
                 add(NoteResource.class).
-                add(NlpResource.class).
+                add(NerResource.class).
                 add(ProjectResource.class).
                 add(DocumentResource.class);
     }

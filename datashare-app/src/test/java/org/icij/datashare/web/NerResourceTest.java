@@ -26,7 +26,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class NlpResourceTest extends AbstractProdWebServerTest {
+public class NerResourceTest extends AbstractProdWebServerTest {
     @Mock Pipeline pipeline;
     @Mock PipelineRegistry registry;
 
@@ -35,14 +35,14 @@ public class NlpResourceTest extends AbstractProdWebServerTest {
         initMocks(this);
         doReturn(true).when(pipeline).initialize(any());
         doReturn(pipeline).when(registry).get(any());
-        NlpResource nlpResource = new NlpResource(registry, l -> ENGLISH);
-        configure(routes -> routes.add(nlpResource));
+        NerResource nerResource = new NerResource(registry, l -> ENGLISH);
+        configure(routes -> routes.add(nerResource));
     }
 
     @Test
     public void test_post_empty_text() throws Exception {
         doReturn(new Annotations("inline", CORENLP, ENGLISH)).when(pipeline).process(anyString(), anyString(), any());
-        post("/ner/findNames/CORENLP", "").should().respond(200).contain("[]");
+        post("/api/ner/findNames/CORENLP", "").should().respond(200).contain("[]");
 
         verify(pipeline).initialize(ENGLISH);
         verify(pipeline).process("", "inline", ENGLISH);
@@ -51,7 +51,7 @@ public class NlpResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_pipeline_list() throws Exception {
         doReturn(asSet(Pipeline.Type.EMAIL, Pipeline.Type.IXAPIPE)).when(registry).getPipelineTypes();
-        get("/ner/pipelines").should().respond(200).contain("EMAIL").contain("IXAPIPE");
+        get("/api/ner/pipelines").should().respond(200).contain("EMAIL").contain("IXAPIPE");
     }
 
     @Test
@@ -60,7 +60,7 @@ public class NlpResourceTest extends AbstractProdWebServerTest {
         annotations.add(NlpStage.NER, 10, 13, NamedEntity.Category.PERSON);
         doReturn(annotations).when(pipeline).process(anyString(), eq("inline"), any());
 
-        Response response = post("/ner/findNames/CORENLP", "This the 'foù' file content.").response();
+        Response response = post("/api/ner/findNames/CORENLP", "This the 'foù' file content.").response();
 
         List actualNerList = TypeConvert.fromJson(response.content(), List.class);
         assertThat(actualNerList).hasSize(1);

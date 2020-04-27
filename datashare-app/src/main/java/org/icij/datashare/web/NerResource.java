@@ -17,13 +17,13 @@ import java.util.Set;
 import static java.util.Collections.emptyList;
 import static org.icij.datashare.text.NamedEntity.allFrom;
 
-@Prefix("/ner")
-public class NlpResource {
+@Prefix("/api/ner")
+public class NerResource {
     private final PipelineRegistry pipelineRegistry;
     private final LanguageGuesser languageGuesser;
 
     @Inject
-    public NlpResource(final PipelineRegistry pipelineRegistry, final LanguageGuesser languageGuesser) {
+    public NerResource(final PipelineRegistry pipelineRegistry, final LanguageGuesser languageGuesser) {
         this.pipelineRegistry = pipelineRegistry;
         this.languageGuesser = languageGuesser;
     }
@@ -33,7 +33,7 @@ public class NlpResource {
      *
      * @return pipeline set
      * Example:
-     * $(curl http://dsenv:8080/ner/pipelines)
+     * $(curl http://dsenv:8080/api/ner/pipelines)
      */
     @Get("/pipelines")
     public Set<Pipeline.Type> getRegisteredPipelines() {
@@ -48,7 +48,7 @@ public class NlpResource {
      * @return list of NamedEntities annotations
      *
      * Example :
-     * $(curl -XPOST http://dsenv:8080/ner/findNames/CORENLP -d "Please find attached a PDF copy of the advance tax clearance obtained for our client John Doe.")
+     * $(curl -XPOST http://dsenv:8080/api/ner/findNames/CORENLP -d "Please find attached a PDF copy of the advance tax clearance obtained for our client John Doe.")
      */
     @Post("/findNames/:pipeline")
     public List<NamedEntity> getAnnotations(final String pipeline, String text) throws Exception {

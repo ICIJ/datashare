@@ -5,7 +5,7 @@ import net.codestory.http.routes.Routes;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.indexing.LanguageGuesser;
-import org.icij.datashare.web.NlpResource;
+import org.icij.datashare.web.NerResource;
 
 import java.util.Properties;
 
@@ -20,6 +20,6 @@ public class NerMode extends CommonMode {
 
     @Override
     protected Routes addModeConfiguration(Routes routes) {
-        return routes.add(NlpResource.class);
+        return routes.add(NerResource.class);
     }
 }

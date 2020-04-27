@@ -31,7 +31,7 @@ public class LocalMode extends CommonMode {
                 add(BatchSearchResource.class).
                 add(ProjectResource.class).
                 add(NoteResource.class).
-                add(NlpResource.class).
+                add(NerResource.class).
                 filter(IndexWaiterFilter.class);
     }
 }
