@@ -66,7 +66,7 @@ public class PipelineRegistry {
         URLClassLoader classLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
         for (File jar : jars) {
             try {
-                Class<?> pipelineClassInJar = findClassesInJar(Pipeline.class, jar.toString());
+                Class<?> pipelineClassInJar = findClassesInJar(Pipeline.class, jar);
                 if (pipelineClassInJar != null) {
                     LOGGER.info("adding pipeline {} to system classloader", pipelineClassInJar);
                     Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
@@ -80,12 +80,9 @@ public class PipelineRegistry {
         }
     }
 
-    synchronized Class<?> findClassesInJar(final Class<?> baseInterface, final String jarName) throws IOException, ClassNotFoundException {
-        final String jarFullPath = File.separator + jarName;
-        final ClassLoader classLoader = getClass().getClassLoader();
-        final URL url = new URL("jar:file:" + jarFullPath + "!/");
-        URLClassLoader ucl = new URLClassLoader(new URL[]{url}, classLoader);
-        JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFullPath));
+    synchronized Class<?> findClassesInJar(final Class<?> baseInterface, final File jarFile) throws IOException, ClassNotFoundException {
+        URLClassLoader ucl = new URLClassLoader(new URL[]{jarFile.toURI().toURL()}, getClass().getClassLoader());
+        JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFile));
         for (JarEntry jarEntry = jarInputStream.getNextJarEntry(); jarEntry != null; jarEntry = jarInputStream.getNextJarEntry()) {
             if (jarEntry.getName().endsWith(".class")) {
                 String classname = jarEntry.getName().replaceAll("/", "\\.");
