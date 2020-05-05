@@ -4,6 +4,7 @@ import com.google.inject.Injector;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
+import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
@@ -11,7 +12,6 @@ import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
@@ -87,8 +87,8 @@ class CliApp {
 
         if (pipeline.has(DatashareCli.Stage.NLP)) {
             for (Pipeline.Type nlp : nlpPipelines) {
-                Class<? extends AbstractPipeline> pipelineClass = (Class<? extends AbstractPipeline>) Class.forName(nlp.getClassName());
-                taskManager.startTask(taskFactory.createNlpTask(nullUser(), injector.getInstance(pipelineClass)));
+                Pipeline pipelineClass = injector.getInstance(PipelineRegistry.class).get(nlp);
+                taskManager.startTask(taskFactory.createNlpTask(nullUser(), pipelineClass));
             }
             if (resume(properties)) {
                 taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), nlpPipelines));
