@@ -1,6 +1,7 @@
 package org.icij.datashare.text.nlp;
 
 import org.icij.datashare.reflect.EnumTypeToken;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 
@@ -99,7 +100,9 @@ public interface Pipeline {
     Type getType();
 
     boolean initialize(Language language) throws InterruptedException;
-    Annotations process(String content, String docId, Language language) throws InterruptedException;
+
+    List<NamedEntity> process(Document doc) throws InterruptedException;
+
     void terminate(Language language) throws InterruptedException ;
 
     /**

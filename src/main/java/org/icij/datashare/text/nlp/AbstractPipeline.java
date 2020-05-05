@@ -95,11 +95,8 @@ public abstract class AbstractPipeline implements Pipeline {
 
     /**
      * Apply all specified stages/annotators on input
-     *  @param content is the source String to process
-     * @param docId  the input hash code*/
-    public abstract Annotations process(String content, String docId, Language language) throws InterruptedException;
-
-    public List<NamedEntity> processHeaders(Document doc) { return new LinkedList<>();}
+     *  @param doc is the document source to process */
+    public abstract List<NamedEntity> process(Document doc) throws InterruptedException;
 
     /**
      * Post-processing operations
