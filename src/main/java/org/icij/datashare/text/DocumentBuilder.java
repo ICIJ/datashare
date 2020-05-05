@@ -8,7 +8,7 @@ import java.util.*;
 
 import static java.nio.file.Paths.get;
 import static java.util.stream.Collectors.toSet;
-import static org.icij.datashare.text.Language.FRENCH;
+import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
 
 public class DocumentBuilder {
@@ -19,6 +19,7 @@ public class DocumentBuilder {
     private String mimeType;
     private Set<Pipeline.Type> pipelines;
     private String rootId = null;
+    private Language language = ENGLISH;
 
     public static DocumentBuilder createDoc(String id) {
         return new DocumentBuilder(id);
@@ -42,13 +43,18 @@ public class DocumentBuilder {
         return this;
     }
 
+    public DocumentBuilder with(Language language) {
+        this.language = language;
+        return this;
+    }
+
     public DocumentBuilder with(Map<String, Object> metadata) {
         this.metadata = metadata;
         return this;
     }
 
     public Document build() {
-        return new Document(project("prj"), id, path, content, FRENCH, Charset.defaultCharset(),
+        return new Document(project("prj"), id, path, content, language, Charset.defaultCharset(),
                          mimeType, metadata, Document.Status.INDEXED,
                         pipelines, new Date(), rootId, rootId, (short) 0, 123L);
     }

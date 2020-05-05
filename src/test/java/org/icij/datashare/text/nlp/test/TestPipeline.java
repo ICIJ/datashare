@@ -1,9 +1,9 @@
 package org.icij.datashare.text.nlp.test;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
@@ -24,7 +24,7 @@ public class TestPipeline implements Pipeline {
     }
 
     @Override
-    public Annotations process(String content, String docId, Language language) throws InterruptedException {
+    public List<NamedEntity> process(Document doc) throws InterruptedException {
         return null;
     }
 

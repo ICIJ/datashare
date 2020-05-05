@@ -5,24 +5,14 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
-
-import static java.util.Optional.ofNullable;
+import java.util.function.Consumer;
 
 public class PipelineRegistry {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
@@ -61,42 +51,7 @@ public class PipelineRegistry {
     }
 
     public synchronized void load() throws FileNotFoundException {
-        File[] jars = ofNullable(pluginDir.toFile().listFiles((file, s) -> s.endsWith(".jar"))).
-                orElseThrow(() -> new FileNotFoundException("invalid path for plugins: " + pluginDir));
-        URLClassLoader classLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
-        for (File jar : jars) {
-            try {
-                Class<?> pipelineClassInJar = findClassesInJar(Pipeline.class, jar);
-                if (pipelineClassInJar != null) {
-                    LOGGER.info("adding pipeline {} to system classloader", pipelineClassInJar);
-                    Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-                    method.setAccessible(true);
-                    method.invoke(classLoader, classLoader.getResource(jar.toString())); // hack to load jar
-                    register((Class<? extends Pipeline>)pipelineClassInJar);
-                }
-            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | IOException | ClassNotFoundException e) {
-                LOGGER.error("Cannot load jar " + jar, e);
-            }
-        }
-    }
-
-    synchronized Class<?> findClassesInJar(final Class<?> baseInterface, final File jarFile) throws IOException, ClassNotFoundException {
-        URLClassLoader ucl = new URLClassLoader(new URL[]{jarFile.toURI().toURL()}, getClass().getClassLoader());
-        JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFile));
-        for (JarEntry jarEntry = jarInputStream.getNextJarEntry(); jarEntry != null; jarEntry = jarInputStream.getNextJarEntry()) {
-            if (jarEntry.getName().endsWith(".class")) {
-                String classname = jarEntry.getName().replaceAll("/", "\\.");
-                classname = classname.substring(0, classname.length() - 6);
-                if (!classname.contains("$")) {
-                    final Class<?> myLoadedClass = Class.forName(classname, true, ucl);
-                    if (baseInterface.isAssignableFrom(myLoadedClass) &&
-                            !myLoadedClass.isInterface() && !Modifier.isAbstract(myLoadedClass.getModifiers())) {
-                        return myLoadedClass;
-                    }
-                }
-            }
-        }
-        return null;
+        new ExtensionLoader(pluginDir).load((Consumer<Class<? extends Pipeline>>) this::register, Pipeline.class::isAssignableFrom);
     }
 }
 
