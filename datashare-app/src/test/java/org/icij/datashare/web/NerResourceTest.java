@@ -3,6 +3,8 @@ package org.icij.datashare.web;
 import net.codestory.http.convert.TypeConvert;
 import net.codestory.rest.Response;
 import org.icij.datashare.extension.PipelineRegistry;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
@@ -16,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.CollectionUtils.asSet;
@@ -41,11 +45,12 @@ public class NerResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_post_empty_text() throws Exception {
-        doReturn(new Annotations("inline", CORENLP, ENGLISH)).when(pipeline).process(anyString(), anyString(), any());
-        post("/api/ner/findNames/CORENLP", "").should().respond(200).contain("[]");
+        Document doc = DocumentBuilder.createDoc("inline").with("").with(ENGLISH).build();
+        doReturn(emptyList()).when(pipeline).process(eq(doc));
+        post("/api/ner/findNames/CORENLP", doc.getContent()).should().respond(200).contain("[]");
 
         verify(pipeline).initialize(ENGLISH);
-        verify(pipeline).process("", "inline", ENGLISH);
+        verify(pipeline).process(doc);
     }
 
     @Test
@@ -56,11 +61,12 @@ public class NerResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_post_text_returns_NamedEntity_list() throws Exception {
+        Document doc = DocumentBuilder.createDoc("inline").with("This the 'foù' file content.").with(ENGLISH).build();
         final Annotations annotations = new Annotations("inline", CORENLP, ENGLISH);
         annotations.add(NlpStage.NER, 10, 13, NamedEntity.Category.PERSON);
-        doReturn(annotations).when(pipeline).process(anyString(), eq("inline"), any());
+        doReturn(asList(NamedEntity.create(NamedEntity.Category.PERSON, "foù", 10, doc.getId(), CORENLP, ENGLISH))).when(pipeline).process(eq(doc));
 
-        Response response = post("/api/ner/findNames/CORENLP", "This the 'foù' file content.").response();
+        Response response = post("/api/ner/findNames/CORENLP", doc.getContent()).response();
 
         List actualNerList = TypeConvert.fromJson(response.content(), List.class);
         assertThat(actualNerList).hasSize(1);

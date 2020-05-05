@@ -13,7 +13,6 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableSet;
@@ -83,28 +82,25 @@ public class EmailPipeline extends AbstractPipeline {
     }
 
     @Override
-    public Annotations process(String content, String docId, Language language) {
-        Annotations annotations = new Annotations(docId, getType(), language);
-        Matcher matcher = pattern.matcher(content);
+    public List<NamedEntity> process(Document doc) {
+        Annotations annotations = new Annotations(doc.getId(), getType(), doc.getLanguage());
+        Matcher matcher = pattern.matcher(doc.getContent());
         while (matcher.find()) {
             String email = matcher.group(0);
             int start = matcher.start();
             annotations.add(NlpStage.NER, start, start + email.length(), NamedEntity.Category.EMAIL);
         }
-        return annotations;
-    }
-
-    @Override
-    public List<NamedEntity> processHeaders(Document doc) {
+        List<NamedEntity> neList = allFrom(doc.getContent(), annotations);
         if ("message/rfc822".equals(doc.getContentType())) {
             String metadataString = parsedEmailHeaders.stream().map(key -> doc.getMetadata().getOrDefault(key, "").toString()).collect(joining(" "));
-            Annotations metaDataAnnotations = process(metadataString, doc.getId(), doc.getLanguage());
-            return allFrom(metadataString, metaDataAnnotations).stream().map(ne ->
-                    NamedEntity.create(ne.getCategory(), ne.getMention(), -1,
-                            ne.getDocumentId(), ne.getRootDocument(), ne.getExtractor(),
-                            ne.getExtractorLanguage())).collect(Collectors.toList());
+            Matcher metaMatcher = pattern.matcher(metadataString);
+            while (metaMatcher.find()) {
+                neList.add(NamedEntity.create(NamedEntity.Category.EMAIL, metaMatcher.group(0), -1,
+                                            doc.getId(), doc.getRootDocument(), EMAIL,
+                                            doc.getLanguage()));
+            }
         }
-        return super.processHeaders(doc);
+        return neList;
     }
 
     public static String tikaRawHeader(String s) {

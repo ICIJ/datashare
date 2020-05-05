@@ -4,9 +4,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.nlp.Annotations;
-import org.icij.datashare.text.nlp.NlpStage;
-import org.icij.datashare.text.nlp.NlpTag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.Test;
 
@@ -27,24 +24,23 @@ public class EmailPipelineTest {
     private final EmailPipeline pipeline = new EmailPipeline(new PropertiesProvider());
     @Test
     public void test_no_email() {
-        Annotations annotations = pipeline.process("this is a content without email but with an arobase (@).", "docId", Language.ENGLISH);
+        List<NamedEntity> annotations = pipeline.process(createDocument("this is a content without email but with an arobase (@).", "docId", Language.ENGLISH));
+        assertThat(annotations).isEmpty();
+    }
 
-        assertThat(annotations.getDocumentId()).isEqualTo("docId");
-        assertThat(annotations.getLanguage()).isEqualTo(Language.ENGLISH);
-        assertThat(annotations.get(NlpStage.NER)).isEmpty();
+    private Document createDocument(String content, String docId, Language language) {
+        return createDoc(docId).with(content).with(language).build();
     }
 
     @Test
     public void test_one_email() {
         String content = "this is a content with email@domain.com";
-        Annotations annotations = pipeline.process(content, "docId", Language.ENGLISH);
+        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
 
-        assertThat(annotations.get(NlpStage.NER)).hasSize(1);
-        NlpTag nlpTag = annotations.get(NlpStage.NER).get(0);
-        assertThat(nlpTag.getBegin()).isEqualTo(23);
-        assertThat(nlpTag.getEnd()).isEqualTo(39);
-        assertThat(nlpTag.getCategory()).isEqualTo(NamedEntity.Category.EMAIL);
-        assertThat(content.substring(nlpTag.getBegin(), nlpTag.getEnd())).isEqualTo("email@domain.com");
+        assertThat(annotations).hasSize(1);
+        assertThat(annotations.get(0).getOffset()).isEqualTo(23);
+        assertThat(annotations.get(0).getCategory()).isEqualTo(NamedEntity.Category.EMAIL);
+        assertThat(annotations.get(0).getMention()).isEqualTo("email@domain.com");
     }
 
     @Test
@@ -52,23 +48,22 @@ public class EmailPipelineTest {
         String content = "this is a content with email@domain.com\n" +
                 "that is twice in the document\n" +
                 "email@domain.com";
-        Annotations annotations = pipeline.process(content, "docId", Language.ENGLISH);
+        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
 
-        assertThat(annotations.get(NlpStage.NER)).hasSize(2);
+        assertThat(annotations).hasSize(2);
 
-        NlpTag nlpTag = annotations.get(NlpStage.NER).get(1);
-        assertThat(nlpTag.getBegin()).isEqualTo(70);
-        assertThat(nlpTag.getEnd()).isEqualTo(86);
-        assertThat(content.substring(nlpTag.getBegin(), nlpTag.getEnd())).isEqualTo("email@domain.com");
+        NamedEntity nlpTag = annotations.get(1);
+        assertThat(nlpTag.getOffset()).isEqualTo(70);
+        assertThat(nlpTag.getMention()).isEqualTo("email@domain.com");
     }
 
     @Test
     public void test_three_emails() {
-        Annotations annotations = pipeline.process("this is a content with email@domain.com\n" +
+        List<NamedEntity> annotations = pipeline.process(createDocument("this is a content with email@domain.com\n" +
                 "and another one : foo@bar.com\n" +
-                "and baz@qux.fr", "docId", Language.ENGLISH);
+                "and baz@qux.fr", "docId", Language.ENGLISH));
 
-        assertThat(annotations.get(NlpStage.NER)).hasSize(3);
+        assertThat(annotations).hasSize(3);
     }
 
     @Test
@@ -76,10 +71,9 @@ public class EmailPipelineTest {
         Path emailFile = Paths.get(getClass().getResource("/email.eml").getPath());
         String content = new String(Files.readAllBytes(emailFile));
 
-        Annotations annotations = pipeline.process(content, "docId", Language.ENGLISH);
+        List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
 
-        assertThat(annotations.get(NlpStage.NER)).hasSize(10);
-        assertThat(NamedEntity.allFrom(content, annotations)).hasSize(10);
+        assertThat(annotations).hasSize(10);
     }
 
     @Test
@@ -89,9 +83,10 @@ public class EmailPipelineTest {
             put(tikaMsgHeader("Cc"), "email2@domain.com");
         }}).build();
 
-        List<NamedEntity> namedEntities = pipeline.processHeaders(doc);
+        List<NamedEntity> namedEntities = pipeline.process(doc);
 
         assertThat(namedEntities).containsExactly(
+                        NamedEntity.create(EMAIL, "hello@world.com", 0, "docid", Pipeline.Type.EMAIL, FRENCH),
                         NamedEntity.create(EMAIL, "email2@domain.com", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
                         NamedEntity.create(EMAIL, "email1@domain.com", -1, "docid", Pipeline.Type.EMAIL, FRENCH)
                         );
@@ -120,7 +115,7 @@ public class EmailPipelineTest {
             put(tikaRawHeader("Resent-bcc"), "resent-bcc@head.er");
         }}).build();
 
-        List<NamedEntity> namedEntities = pipeline.processHeaders(doc);
+        List<NamedEntity> namedEntities = pipeline.process(doc);
 
         assertThat(namedEntities).containsExactly(
                         NamedEntity.create(EMAIL, "replyto@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),

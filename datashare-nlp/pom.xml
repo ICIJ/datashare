@@ -14,10 +14,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>datashare-nlp-opennlp</module>
         <module>datashare-nlp-corenlp</module>
-        <module>datashare-nlp-mitie</module>
-        <module>datashare-nlp-ixapipe</module>
     </modules>
 
 

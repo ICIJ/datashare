@@ -10,6 +10,7 @@ import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Triple;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
@@ -28,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static java.util.Collections.singletonList;
+import static org.icij.datashare.text.NamedEntity.allFrom;
 import static org.icij.datashare.text.nlp.NlpStage.*;
 
 
@@ -82,21 +84,18 @@ public final class CorenlpPipeline extends AbstractPipeline {
         return initializePipelineAnnotator(language);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public Annotations process(String content, String docId, Language language) throws InterruptedException {
+    public List<NamedEntity> process(Document doc) throws InterruptedException {
         // Is NER the unique target stage?
         if (singletonList(NER).equals(targetStages))
-            return processNerClassifier(content, docId, language);
+            return allFrom(doc.getContent(), processNerClassifier(doc.getContent(), doc.getId(), doc.getLanguage()));
 
         // Is POS the unique target stage?
         if (singletonList(POS).equals(targetStages))
-            return processPosClassifier(content, docId, language);
+            return allFrom(doc.getContent(), processPosClassifier(doc.getContent(), doc.getId(), doc.getLanguage()));
 
         // Otherwise
-        return processPipeline(content, docId, language);
+        return allFrom(doc.getContent(), processPipeline(doc.getContent(), doc.getId(), doc.getLanguage()));
     }
 
     /**

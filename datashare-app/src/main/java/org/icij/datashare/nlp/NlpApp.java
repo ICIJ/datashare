@@ -7,12 +7,13 @@ import com.google.inject.assistedinject.AssistedInject;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.DataBus;
-import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.user.User;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.nlp.AbstractPipeline;
+import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,7 @@ import static java.util.stream.Stream.generate;
 public class NlpApp implements Runnable, Monitorable, UserTask {
     private static final long DEFAULT_TIMEOUT_MILLIS = 30 * 60 * 1000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final AbstractPipeline pipeline;
+    private final Pipeline pipeline;
     private final Indexer indexer;
     private final long shutdownTimeoutMillis;
     private final boolean cleanShutdown;
@@ -44,17 +45,17 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
     private ExecutorService threadPool = null;
 
     @AssistedInject
-    public NlpApp(final DataBus dataBus, final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted final AbstractPipeline pipeline, @Assisted final User user) {
+    public NlpApp(final DataBus dataBus, final Indexer indexer, final PropertiesProvider propertiesProvider, @Assisted final Pipeline pipeline, @Assisted final User user) {
         this(dataBus, indexer, pipeline, propertiesProvider.getProperties(), () -> {}, 0, false, user);
     }
 
     @AssistedInject
-    public NlpApp(final DataBus dataBus, final Indexer indexer, @Assisted final AbstractPipeline pipeline, @Assisted final Properties properties,
+    public NlpApp(final DataBus dataBus, final Indexer indexer, @Assisted final Pipeline pipeline, @Assisted final Properties properties,
                   @Assisted final User user, @Assisted final Runnable subscribeCb) {
         this(dataBus, indexer, pipeline, properties, subscribeCb, 0, false, user);
     }
 
-    NlpApp(final DataBus dataBus, final Indexer indexer, final AbstractPipeline pipeline, final Properties properties,
+    NlpApp(final DataBus dataBus, final Indexer indexer, final Pipeline pipeline, final Properties properties,
            Runnable subscribedCb, long shutdownTimeoutMillis, boolean cleanShutdown, User user) {
         this.pipeline = pipeline;
         this.indexer = indexer;

@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.nlp.NlpApp;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -11,8 +10,8 @@ import java.util.Set;
 
 public interface TaskFactory {
     ResumeNlpTask createResumeNlpTask(final User user, Set<Pipeline.Type> pipelines);
-    NlpApp createNlpTask(User user, AbstractPipeline pipeline, Properties properties, Runnable subscribedCb);
-    NlpApp createNlpTask(User user, AbstractPipeline pipeline);
+    NlpApp createNlpTask(User user, Pipeline pipeline, Properties properties, Runnable subscribedCb);
+    NlpApp createNlpTask(User user, Pipeline pipeline);
     BatchSearchRunner createBatchSearchRunner(User user);
     ScanIndexTask createScanIndexTask(User user, String reportName);
 

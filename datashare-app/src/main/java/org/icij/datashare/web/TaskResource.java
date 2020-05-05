@@ -9,18 +9,17 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -50,12 +49,14 @@ public class TaskResource {
     private TaskFactory taskFactory;
     private TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
+    private final PipelineRegistry pipelineRegistry;
 
     @Inject
-    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider) {
+    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
+        this.pipelineRegistry = pipelineRegistry;
     }
 
     /**
@@ -231,7 +232,7 @@ public class TaskResource {
      * This endpoint is going to find all Documents that are not taggued with the given pipeline,
      * and extract named entities for all these documents.
      *
-     * @param pipeline
+     * @param pipelineName
      * @param optionsWrapper
      * @return 200 and the list of created tasks
      *
@@ -239,27 +240,25 @@ public class TaskResource {
      * $(curl -XPOST http://dsenv:8080/api/task/findNames/CORENLP)
      */
     @Post("/findNames/:pipeline")
-    public List<TaskResponse> extractNlp(final String pipeline, final OptionsWrapper optionsWrapper, Context context)
-            throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
-
+    public List<TaskResponse> extractNlp(final String pipelineName, final OptionsWrapper optionsWrapper, Context context) {
         Properties mergedProps = propertiesProvider.createMerged(optionsWrapper.asProperties());
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
 
-        AbstractPipeline abstractPipeline = AbstractPipeline.create(pipeline, new PropertiesProvider(mergedProps));
+        Pipeline pipeline = pipelineRegistry.get(Pipeline.Type.parse(pipelineName));
 
-        TaskManager.MonitorableFutureTask<Void> nlpTask = createNlpApp(pipeline, context, mergedProps, abstractPipeline);
+        TaskManager.MonitorableFutureTask<Void> nlpTask = createNlpApp(context, mergedProps, pipeline);
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
             TaskManager.MonitorableFutureTask<Long> resumeNlpTask = taskManager.startTask(
                     taskFactory.createResumeNlpTask((User) context.currentUser(),
-                            new HashSet<Pipeline.Type>() {{add(Pipeline.Type.parse(pipeline));}}));
+                            new HashSet<Pipeline.Type>() {{add(Pipeline.Type.parse(pipelineName));}}));
             return asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
         }
         return singletonList(new TaskResponse(nlpTask));
     }
 
-    private TaskManager.MonitorableFutureTask<Void> createNlpApp(String pipeline, Context context, Properties mergedProps, AbstractPipeline abstractPipeline) {
+    private TaskManager.MonitorableFutureTask<Void> createNlpApp(Context context, Properties mergedProps, Pipeline pipeline) {
         CountDownLatch latch = new CountDownLatch(1);
-        TaskManager.MonitorableFutureTask<Void> task = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), abstractPipeline, mergedProps, latch::countDown));
+        TaskManager.MonitorableFutureTask<Void> task = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), pipeline, mergedProps, latch::countDown));
         if (parseBoolean(mergedProps.getProperty("waitForNlpApp", "true"))) {
             try {
                 logger.info("waiting for NlpApp {} to listen...", pipeline);

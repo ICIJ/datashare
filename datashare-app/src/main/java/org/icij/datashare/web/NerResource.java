@@ -5,17 +5,17 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.extension.PipelineRegistry;
+import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.LanguageGuesser;
-import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.emptyList;
-import static org.icij.datashare.text.NamedEntity.allFrom;
 
 @Prefix("/api/ner")
 public class NerResource {
@@ -52,11 +52,11 @@ public class NerResource {
      */
     @Post("/findNames/:pipeline")
     public List<NamedEntity> getAnnotations(final String pipeline, String text) throws Exception {
+        LoggerFactory.getLogger(getClass()).info(String.valueOf(getClass().getClassLoader()));
         Pipeline p = pipelineRegistry.get(Pipeline.Type.parse(pipeline));
         Language language = languageGuesser.guess(text);
         if (p.initialize(language)) {
-            Annotations annotations = p.process(text, "inline", language);
-            return allFrom(text, annotations);
+            return p.process(DocumentBuilder.createDoc("inline").with(text).with(language).build());
         }
         return emptyList();
     }

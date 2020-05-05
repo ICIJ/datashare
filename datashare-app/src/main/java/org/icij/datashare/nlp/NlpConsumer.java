@@ -5,9 +5,8 @@ import org.icij.datashare.com.Message;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.DatashareListener;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,16 +16,15 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static org.icij.datashare.com.Message.Field.*;
-import static org.icij.datashare.text.NamedEntity.allFrom;
 
 public class NlpConsumer implements DatashareListener {
     private final Indexer indexer;
     private final BlockingQueue<Message> messageQueue;
-    private final AbstractPipeline nlpPipeline;
+    private final Pipeline nlpPipeline;
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    public NlpConsumer(AbstractPipeline pipeline, Indexer indexer, BlockingQueue<Message> messageQueue) {
+    public NlpConsumer(Pipeline pipeline, Indexer indexer, BlockingQueue<Message> messageQueue) {
         this.indexer = indexer;
         this.messageQueue = messageQueue;
         this.nlpPipeline = pipeline;
@@ -72,9 +70,7 @@ public class NlpConsumer implements DatashareListener {
             if (doc != null) {
                 logger.info("extracting {} entities for document {}", nlpPipeline.getType(), doc.getId());
                 if (nlpPipeline.initialize(doc.getLanguage())) {
-                    Annotations annotations = nlpPipeline.process(doc.getContent(), doc.getId(), doc.getLanguage());
-                    List<NamedEntity> namedEntities = allFrom(doc.getContent(), annotations);
-                    namedEntities.addAll(nlpPipeline.processHeaders(doc));
+                    List<NamedEntity> namedEntities = nlpPipeline.process(doc);
                     indexer.bulkAdd(projectName, nlpPipeline.getType(), namedEntities, doc);
                     logger.info("added {} named entities to document {}", namedEntities.size(), doc.getId());
                     nlpPipeline.terminate(doc.getLanguage());

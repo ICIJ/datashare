@@ -2,13 +2,10 @@ package org.icij.datashare.nlp;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.*;
-import org.icij.datashare.com.MemoryDataBus;
-import org.icij.datashare.com.RedisDataBus;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.Annotations;
-import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.stubbing.Answer;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -25,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.PropertiesProvider.NLP_PARALLELISM_OPT;
@@ -32,8 +31,6 @@ import static org.icij.datashare.com.Message.Field.*;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
-import static org.icij.datashare.text.Language.FRENCH;
-import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
 import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
 import static org.icij.datashare.user.User.local;
 import static org.mockito.Matchers.any;
@@ -65,7 +62,7 @@ public class NlpAppTest {
         dataBus.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
-        verify(pipeline, times(1)).process(anyString(), anyString(), any(Language.class));
+        verify(pipeline, times(1)).process(any());
     }
 
     @Test(timeout = 5000)
@@ -77,7 +74,7 @@ public class NlpAppTest {
         dataBus.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
-        verify(pipeline, times(2)).process(anyString(), anyString(), any(Language.class));
+        verify(pipeline, times(2)).process(any());
     }
 
     @Test(timeout = 5000)
@@ -88,7 +85,7 @@ public class NlpAppTest {
         dataBus.publish(Channel.NLP, new ShutdownMessage());
 
         shutdownNlpApp();
-        verify(pipeline, times(3)).process(anyString(), anyString(), any(Language.class));
+        verify(pipeline, times(3)).process(any());
     }
 
     @Test(timeout = 5000)
@@ -125,9 +122,9 @@ public class NlpAppTest {
         properties.setProperty("messageBusAddress", "redis");
         CountDownLatch latch = new CountDownLatch(1);
 
-        when(pipeline.process(anyString(), anyString(), any())).thenAnswer((Answer<Annotations>) invocationOnMock -> {
+        when(pipeline.process(any())).thenAnswer((Answer<List<NamedEntity>>) invocationOnMock -> {
             if (nlpProcessDelayMillis > 0) Thread.sleep(nlpProcessDelayMillis);
-            return new Annotations("docid_mock", Pipeline.Type.CORENLP, Language.FRENCH);
+            return emptyList();
         });
         NlpApp nlpApp = new NlpApp(dataBus, indexer, pipeline, properties, latch::countDown, 1, true, local());
         executor.execute(nlpApp);
@@ -146,8 +143,7 @@ public class NlpAppTest {
         when(indexer.get(anyString(), anyString(), anyString())).thenReturn(createDoc("name").build());
         when(pipeline.getType()).thenReturn(OPENNLP);
         when(pipeline.initialize(any(Language.class))).thenReturn(true);
-        when(pipeline.process(anyString(), anyString(), any(Language.class))).thenReturn(
-                new Annotations("doc", CORENLP, FRENCH));
+        when(pipeline.process(any())).thenReturn(emptyList());
     }
 
     @After

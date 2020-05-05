@@ -124,11 +124,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>datashare-nlp-opennlp</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>commons-test</artifactId>
             <version>6.3.6</version>

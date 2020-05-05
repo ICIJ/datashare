@@ -5,6 +5,7 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.tasks.TaskFactory;
@@ -73,6 +74,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
             @Override
             protected void configure() {
                 bind(PropertiesProvider.class).toInstance(propertiesProvider);
+                bind(PipelineRegistry.class).toInstance(mock(PipelineRegistry.class));
                 bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
                 bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", HashMapUser.users(userLogins)));
                 bind(TaskManager.class).toInstance(taskManager);
