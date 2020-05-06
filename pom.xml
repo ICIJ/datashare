@@ -34,7 +34,7 @@
         <module>datashare-db</module>
         <module>datashare-cli</module>
         <module>datashare-index</module>
-        <module>datashare-nlp</module>
+        <module>datashare-nlp-corenlp</module>
         <module>datashare-dist</module>
         <module>datashare-app</module>
     </modules>
