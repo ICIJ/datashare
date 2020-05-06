@@ -9,9 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
@@ -33,6 +31,21 @@ public class PluginService {
         return stringContent.
                 replace("</body>", scriptsString + "</body>").
                 replace("</head>", cssString + "</head>");
+    }
+
+    String projectFilter(String pluginUrl, List<String> projects) throws IOException {
+        Map<String, Object> pluginMap = new ObjectMapper().readValue(Paths.get(pluginUrl).toFile(), new TypeReference<HashMap<String, Object>>() {});
+        if (pluginMap.containsKey("private")) {
+            if(!Boolean.parseBoolean((String) pluginMap.get("private"))){
+                return pluginUrl;
+            }
+            if(pluginMap.containsKey("datashare") && ((Map<String,Object>)pluginMap.get("datashare")).containsKey("projects")){
+                LinkedHashMap ara = (LinkedHashMap)pluginMap.get("datashare");
+                List<String> ada = (List<String>) ara.get("projects");
+                return ada.containsAll(projects)? pluginUrl : null;
+            }
+        }
+        return null;
     }
 
     String getPluginUrl(Path pluginDir) {
