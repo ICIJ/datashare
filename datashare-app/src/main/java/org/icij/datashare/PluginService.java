@@ -19,11 +19,12 @@ public class PluginService {
     Logger logger = LoggerFactory.getLogger(getClass());
     public static final String PLUGINS_BASE_URL = "/plugins";
 
-    public String addPlugins(String stringContent, Path pluginsDir) {
+    public String addPlugins(String stringContent, Path pluginsDir, List<String> userProjects) {
         File[] dirs = ofNullable(pluginsDir.toFile().listFiles(File::isDirectory)).
                 orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginsDir));
         String scriptsString = stream(dirs).
-                map(d -> getPluginUrl(d.toPath())).filter(Objects::nonNull).
+                map(d -> projectFilter(d.toPath(),userProjects)).filter(Objects::nonNull).
+                map(this::getPluginUrl).filter(Objects::nonNull).
                 map(s -> "<script src=\"" + s + "\"></script>").collect(joining());
         String cssString = stream(dirs).
                 map(d -> getCssPluginUrl(d.toPath())).filter(Objects::nonNull).
@@ -31,21 +32,6 @@ public class PluginService {
         return stringContent.
                 replace("</body>", scriptsString + "</body>").
                 replace("</head>", cssString + "</head>");
-    }
-
-    String projectFilter(String pluginUrl, List<String> projects) throws IOException {
-        Map<String, Object> pluginMap = new ObjectMapper().readValue(Paths.get(pluginUrl).toFile(), new TypeReference<HashMap<String, Object>>() {});
-        if (pluginMap.containsKey("private")) {
-            if(!Boolean.parseBoolean((String) pluginMap.get("private"))){
-                return pluginUrl;
-            }
-            if(pluginMap.containsKey("datashare") && ((Map<String,Object>)pluginMap.get("datashare")).containsKey("projects")){
-                LinkedHashMap ara = (LinkedHashMap)pluginMap.get("datashare");
-                List<String> ada = (List<String>) ara.get("projects");
-                return ada.containsAll(projects)? pluginUrl : null;
-            }
-        }
-        return null;
     }
 
     String getPluginUrl(Path pluginDir) {
@@ -62,6 +48,29 @@ public class PluginService {
             return relativeToPlugins(pluginDir, indexJs).toString();
         }
         return null;
+    }
+
+    Path projectFilter(Path pluginDir, List<String> projects){
+        try {
+            Path packageJson = pluginDir.resolve("package.json");
+            if (packageJson.toFile().isFile()) {
+                Map<String, Object> packageMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {});
+                if (packageMap.containsKey("private")) {
+                    if(!Boolean.parseBoolean((String) packageMap.get("private"))){
+                        return pluginDir;
+                    }
+                    if(packageMap.containsKey("datashare")){
+                        LinkedHashMap datashareMap = (LinkedHashMap)packageMap.get("datashare");
+                        List<String> pluginProjects = ofNullable((List<String>) datashareMap.get("projects")).orElse(Collections.emptyList());
+                        return !Collections.disjoint(pluginProjects,projects)? pluginDir : null;
+                    }
+                    return null;
+                }
+            }
+            return pluginDir;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     String getCssPluginUrl(Path pluginDir) {

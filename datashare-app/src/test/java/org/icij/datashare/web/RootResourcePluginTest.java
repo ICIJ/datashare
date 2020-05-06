@@ -7,6 +7,7 @@ import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import org.apache.commons.io.FileUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.session.LocalUserFilter;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
@@ -43,7 +44,7 @@ public class RootResourcePluginTest implements FluentRestTest {
         propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put("pluginsDir", folder.getRoot().toString());
         }});
-        server.configure(routes -> routes.add(new RootResource(propertiesProvider)).bind("/plugins", folder.getRoot()));
+        server.configure(routes -> routes.add(new RootResource(propertiesProvider)).bind("/plugins", folder.getRoot()).filter(new LocalUserFilter(new PropertiesProvider())));
     }
 
     @Test
@@ -95,6 +96,26 @@ public class RootResourcePluginTest implements FluentRestTest {
                 "  \"main\": \"app.js\",",
                 "  \"vue\": {\"filenameHashing\": false  },",
                 "  \"files\": [\"dist/{css,js}/*.{css,js,map}\"]",
+                "}"
+        ));
+        pluginPath.resolve("app.js").toFile().createNewFile();
+
+        get("/").should().respond(200).contain("<script src=\"/plugins/my_plugin/app.js\"></script></body>");
+        get("/plugins/my_plugin/app.js").should().respond(200);
+    }
+
+    @Test
+    public void test_get_with_plugin_directory_that_contains_a_folder_with_package_json_file_with_private_and_projects_ok() throws Exception {
+        Path pluginPath = folder.newFolder("my_plugin").toPath();
+        Files.write(pluginPath.resolve("package.json"), asList(
+                "{",
+                "  \"main\": \"app.js\",",
+                "  \"vue\": {\"filenameHashing\": false  },",
+                "  \"files\": [\"dist/{css,js}/*.{css,js,map}\"],",
+                "  \"private\": \"true\",",
+                "  \"datashare\": {",
+                "    \"projects\": [\"local-datashare\", \"Tata\"]",
+                "   }",
                 "}"
         ));
         pluginPath.resolve("app.js").toFile().createNewFile();
