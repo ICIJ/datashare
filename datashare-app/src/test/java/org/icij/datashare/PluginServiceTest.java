@@ -66,7 +66,7 @@ public class PluginServiceTest {
     }
 
     @Test
-    public void test_project_filter_json_with_private_true_with_projects() throws IOException {
+    public void test_project_filter_json_with_private_true_with_projects_ok() throws IOException {
         appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
         Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"),asList(
@@ -78,5 +78,20 @@ public class PluginServiceTest {
                 "}"
         ));
         assertThat(new PluginService().projectFilter(packageJson,asList("Tata")).toString()).isEqualTo(packageJson.toString());
+    }
+
+    @Test
+    public void test_project_filter_json_with_private_true_with_projects_nok() throws IOException {
+        appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
+        Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
+        Files.write(packageJson.resolve("package.json"),asList(
+                "{",
+                "  \"private\": \"true\",",
+                "  \"datashare\": {",
+                "    \"projects\": [\"Titi\", \"Tata\"]",
+                "   }",
+                "}"
+        ));
+        assertThat(new PluginService().projectFilter(packageJson,asList("Toto"))).isNull();
     }
 }
