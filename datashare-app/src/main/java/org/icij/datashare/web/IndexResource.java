@@ -64,18 +64,14 @@ public class IndexResource {
     /**
       * The search endpoint is just a proxy in front of Elasticsearch, everything sent is forwarded to Elasticsearch. DELETE method is not allowed.
       *
-      * Warn: Normally with elasticsearch, the search url is of the form : http://elasticsearch:9200/index/_search with search request in the body.
-      * Datashare is appending the user to the index. So if you request http://dsenv:8080/api/search/datashare/_search then the url
-      * requested in elasticsearch will be http://dsenv:8080/api/index/search/apigen-datashare/_search
-      * because in local mode, the default user is called `local`
       *
-      * The type requested is "doc" that is the default type of the datashare mapping.
+      *
       * @param index
       * @param path
       * @return 200 or http error from Elasticsearch
       *
       * Example :
-     * $(curl -XPOST -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/datashare/_search -d '{}')
+     * $(curl -XPOST -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/apigen-datashare/_search -d '{}')
       */
     @Post("/search/:index/:path:")
     public Payload esPost(final String index, final String path, Context context, final net.codestory.http.Request request) throws IOException {
@@ -131,7 +127,7 @@ public class IndexResource {
     }
 
     private String getUrl(String index, String path, Context context) {
-        if (((HashMapUser)context.currentUser()).isGranted(index) || ("scroll".equals(path) && "_search".equals(index))) {
+        if (((HashMapUser)context.currentUser()).isGranted(index) && (path.startsWith("_search") || path.startsWith("_count"))) {
             String s = es_url + "/" + index + "/" + path;
             if (context.query().keyValues().size() > 0) {
                 s += "?" + getQueryAsString(context.query());

@@ -29,9 +29,9 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_no_auth_get_forward_request_to_elastic() {
-        get("/api/index/search/local-datashare/foo/bar").should().respond(200)
+        get("/api/index/search/local-datashare/_search/foo/bar").should().respond(200)
                 .contain("I am elastic GET")
-                .contain("uri=local-datashare/foo/bar");
+                .contain("uri=local-datashare/_search/foo/bar");
     }
     @Test
     public void test_no_auth_get_unauthorized_on_unknown_index() {
@@ -40,9 +40,9 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_no_auth_post_forward_request_to_elastic_with_body() {
         String body = "{\"body\": \"es\"}";
-        post("/api/index/search/local-datashare/foo/bar", body).should().respond(200)
+        post("/api/index/search/local-datashare/_search", body).should().respond(200)
                         .contain("I am elastic POST")
-                        .contain("uri=local-datashare/foo/bar")
+                        .contain("uri=local-datashare/_search")
                         .contain(body);
     }
     @Test
@@ -51,13 +51,24 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
 
-        get("/api/index/search/cecile-datashare/foo/bar?routing=baz").withPreemptiveAuthentication("cecile", "").should().respond(200)
-                .contain("uri=cecile-datashare/foo/bar?routing=baz");
-        post("/api/index/search/cecile-datashare/foo/bar").withPreemptiveAuthentication("cecile", "").should().respond(200)
-                .contain("uri=cecile-datashare/foo/bar");
+        get("/api/index/search/cecile-datashare/_search/foo/bar?routing=baz").withPreemptiveAuthentication("cecile", "").should().respond(200)
+                .contain("uri=cecile-datashare/_search/foo/bar?routing=baz");
 
         get("/api/index/search/hacker/foo/bar?routing=baz").withPreemptiveAuthentication("cecile", "").should().respond(401);
         post("/api/index/search/hacker/foo/bar").withPreemptiveAuthentication("cecile", "").should().respond(401);
+    }
+
+    @Test
+    public void test_auth_forward_request_with_user_logged_on_only_allow_search_and_count_on_post() {
+        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
+            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
+        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
+
+        post("/api/index/search/cecile-datashare/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/cecile-datashare/_search/scroll").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/cecile-datashare/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
+
+        post("/api/index/search/cecile-datashare/_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(401);
     }
 
     @Test
@@ -66,7 +77,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
 
-        post("/api/index/search/_search/scroll").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/cecile-datashare/_search/scroll").withPreemptiveAuthentication("cecile", "").should().respond(200);
     }
 
     @Test
