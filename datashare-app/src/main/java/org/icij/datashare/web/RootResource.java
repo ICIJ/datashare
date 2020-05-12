@@ -15,6 +15,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -48,8 +50,9 @@ public class RootResource {
         } else {
             content = new String(Files.readAllBytes(index), Charset.defaultCharset());
         }
+        List<String> projects = context.currentUser() == null ? new LinkedList<String>() : ((HashMapUser)context.currentUser()).getProjects();
         return propertiesProvider.get(PLUGINS_DIR).isPresent() ?
-                new PluginService().addPlugins(content, Paths.get(propertiesProvider.getProperties().getProperty(PLUGINS_DIR)),((HashMapUser)context.currentUser()).getProjects()):
+                new PluginService().addPlugins(content, Paths.get(propertiesProvider.getProperties().getProperty(PLUGINS_DIR)),projects):
                 content;
     }
 
