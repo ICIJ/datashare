@@ -47,7 +47,7 @@ public class PluginServiceTest {
         Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"),asList(
                 "{",
-                "  \"private\": \"false\"",
+                "  \"private\": false",
                 "}"
         ));
         assertThat(new PluginService().projectFilter(packageJson,asList("Toto","Tata")).toString()).isEqualTo(packageJson.toString());
@@ -59,7 +59,7 @@ public class PluginServiceTest {
         Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"),asList(
                 "{",
-                "  \"private\": \"true\"",
+                "  \"private\": true",
                 "}"
         ));
         assertThat(new PluginService().projectFilter(packageJson,asList("Toto","Tata"))).isNull();
@@ -71,7 +71,7 @@ public class PluginServiceTest {
         Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"),asList(
                 "{",
-                "  \"private\": \"true\",",
+                "  \"private\": true,",
                 "  \"datashare\": {",
                 "    \"projects\": [\"Titi\", \"Tata\"]",
                 "   }",
@@ -86,7 +86,7 @@ public class PluginServiceTest {
         Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"),asList(
                 "{",
-                "  \"private\": \"true\",",
+                "  \"private\": true,",
                 "  \"datashare\": {",
                 "    \"projects\": [\"Titi\", \"Tata\"]",
                 "   }",

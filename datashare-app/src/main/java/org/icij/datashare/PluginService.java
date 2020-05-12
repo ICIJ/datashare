@@ -56,7 +56,7 @@ public class PluginService {
             if (packageJson.toFile().isFile()) {
                 Map<String, Object> packageMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {});
                 if (packageMap.containsKey("private")) {
-                    if(!Boolean.parseBoolean((String) packageMap.get("private"))){
+                    if(!Boolean.parseBoolean((packageMap.get("private").toString()))){
                         return pluginDir;
                     }
                     if(packageMap.containsKey("datashare")){
