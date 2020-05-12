@@ -13,6 +13,7 @@ import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
+import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +76,27 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         } else {
             return uri.startsWith("/auth/signout") && "GET".equals(context.method()) ? this.signout(context) : nextFilter.get();
         }
+    }
+
+    @Override
+    public boolean matches(String uri, Context context) {
+        return super.matches(uri, context) || uri.isEmpty() || uri.equals("/");
+    }
+
+    @Override
+    protected Payload otherUri(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
+        String sessionId = readSessionIdInCookie(context);
+        if(uri.equals("/") || uri.isEmpty()) {
+            if (sessionId != null) {
+                String login = sessionIdStore.getLogin(sessionId);
+                if (login != null) {
+                    User user = users.find(login);
+                    context.setCurrentUser(user);
+                }
+            }
+            return nextFilter.get();
+        }
+        return super.otherUri(uri, context, nextFilter);
     }
 
     protected Payload callback(Context context) throws IOException, ExecutionException, InterruptedException {
