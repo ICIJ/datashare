@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
+import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Prefix;
 import net.codestory.http.extensions.Extensions;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.injection.GuiceAdapter;
@@ -19,6 +21,7 @@ import org.icij.datashare.com.MemoryDataBus;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.RedisDataBus;
 import org.icij.datashare.db.RepositoryFactoryImpl;
+import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.extract.RedisUserReportMap;
@@ -42,6 +45,7 @@ import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Consumer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.util.Optional.ofNullable;
@@ -152,6 +156,7 @@ public class CommonMode extends AbstractModule {
                 .filter(Filter.class);
 
         addModeConfiguration(routes);
+        addExtensionConfiguration(routes);
 
         if (provider.get(PropertiesProvider.PLUGINS_DIR).orElse(null) != null) {
             routes.bind(PLUGINS_BASE_URL, Paths.get(provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR)).toFile());
@@ -160,6 +165,19 @@ public class CommonMode extends AbstractModule {
         String cors = provider.get("cors").orElse("no-cors");
         if (!cors.equals("no-cors")) {
             routes.filter(new CorsFilter(cors));
+        }
+        return routes;
+    }
+
+    Routes addExtensionConfiguration(Routes routes) {
+        String pluginsDir = propertiesProvider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR);
+        if (pluginsDir != null) {
+            try {
+                new ExtensionLoader(Paths.get(pluginsDir)).load((Consumer<Class<?>>)routes::add,
+                        c -> c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class));
+            } catch (FileNotFoundException e) {
+                LoggerFactory.getLogger(getClass()).info("plugin dir not found", e);
+            }
         }
         return routes;
     }
