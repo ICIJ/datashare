@@ -1,9 +1,6 @@
 package org.icij.datashare.text;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 import me.xuender.unidecode.Unidecode;
 import org.icij.datashare.Entity;
 import org.icij.datashare.function.ThrowingFunction;
@@ -177,6 +174,7 @@ public final class NamedEntity implements Entity {
     public long getOffset() { return offset; }
     public Pipeline.Type getExtractor() { return extractor; }
     public Language getExtractorLanguage() { return extractorLanguage; }
+    @JsonGetter("isHidden")
     public Boolean isHidden() { return hidden; }
     public NamedEntity hide() { this.hidden = true; return this;}
     public NamedEntity unhide() { this.hidden = false; return this;}

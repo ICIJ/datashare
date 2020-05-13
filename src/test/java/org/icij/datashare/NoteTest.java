@@ -5,6 +5,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -17,7 +18,7 @@ public class NoteTest {
     }
 
     @Test
-    public void deserialize_note() throws JsonProcessingException {
+    public void deserialize_note() throws IOException {
         Note note = JsonObjectMapper.MAPPER.readValue("{\"project\":{\"name\":\"project\",\"sourcePath\":\"file:///vault/projet\",\"id\":\"projet\"},\"note\":\"This is a test\",\"path\":\"toto/tata\",\"variant\":\"info\"}", Note.class);
         assertThat(note.path.toString()).isEqualTo("toto/tata");
         assertThat(note.project.getId()).isEqualTo("project");
