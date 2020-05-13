@@ -40,7 +40,7 @@ public class ElasticsearchConfiguration {
     static final String  ES_DUPLICATE_TYPE = "Duplicate";
     static final String  ES_CONTENT_FIELD = "content";
 
-    static final String DEFAULT_INDEX_TYPE = "doc";
+    public static final String DEFAULT_INDEX_TYPE = "doc";
     private static final String DEFAULT_INDEX_JOIN_FIELD = "join";
     static final String DEFAULT_PARENT_DOC_FIELD = "parentDocument";
 

@@ -65,6 +65,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
 
         post("/api/index/search/cecile-datashare/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/cecile-datashare/doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
         post("/api/index/search/cecile-datashare/_search/scroll").withPreemptiveAuthentication("cecile", "").should().respond(200);
         post("/api/index/search/cecile-datashare/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
 
