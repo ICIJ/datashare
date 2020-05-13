@@ -128,7 +128,11 @@ public class IndexResource {
     }
 
     private String getUrl(String index, String path, Context context) {
-        if (((HashMapUser)context.currentUser()).isGranted(index) && (path.startsWith("_search") || path.startsWith("_count") || path.startsWith(DEFAULT_INDEX_TYPE + "/_search"))) {
+        if (((HashMapUser)context.currentUser()).isGranted(index) &&
+                ("GET".equalsIgnoreCase(context.method()) ||
+                        path.startsWith("_search") ||
+                        path.startsWith("_count") ||
+                        path.startsWith(DEFAULT_INDEX_TYPE + "/_search"))) {
             String s = es_url + "/" + index + "/" + path;
             if (context.query().keyValues().size() > 0) {
                 s += "?" + getQueryAsString(context.query());
