@@ -65,18 +65,21 @@ public class IndexResource {
     /**
       * The search endpoint is just a proxy in front of Elasticsearch, everything sent is forwarded to Elasticsearch. DELETE method is not allowed.
       *
+      * Path can be of the form :
+      * * _search/scroll
+      * * index_name/_search
+      * * index_name/_count
+      * * index_name/doc/_search
       *
-      *
-      * @param index
       * @param path
       * @return 200 or http error from Elasticsearch
       *
       * Example :
      * $(curl -XPOST -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/apigen-datashare/_search -d '{}')
       */
-    @Post("/search/:index/:path:")
-    public Payload esPost(final String index, final String path, Context context, final net.codestory.http.Request request) throws IOException {
-        return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).post(new RequestBody() {
+    @Post("/search/:path:")
+    public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
+        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).post(new RequestBody() {
             @Override
             public MediaType contentType() {
                 return MediaType.parse(request.contentType());
@@ -91,55 +94,62 @@ public class IndexResource {
     /**
      * Search GET request to Elasticsearch
      *
-     * @param index
+     * As it is a GET method, all paths are accepted.
+     *
      * @param path
      * @return 200 or http error from Elasticsearch
      *
      * Example :
      *  $(curl -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/datashare/_search?q=type:NamedEntity)
      */
-    @Get("/search/:index/:path:")
-    public Payload esGet(final String index, final String path, Context context) throws IOException {
-        return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).get().build()).execute());
+    @Get("/search/:path:")
+    public Payload esGet(final String path, Context context) throws IOException {
+        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).get().build()).execute());
     }
 
     /**
      * Head request useful for JS api (for example to test if an index exists)
      *
-     * @param index
      * @param path
      * @return 200
      */
-    @Head("/search/:index/:path:")
-    public Payload esHead(final String index, final String path, Context context) throws IOException {
-        return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).head().build()).execute());
+    @Head("/search/:path:")
+    public Payload esHead(final String path, Context context) throws IOException {
+        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).head().build()).execute());
     }
 
     /**
      * Prefligth option request
      *
-     * @param index
      * @param path
      * @return 200
      */
-    @Options("/search/:index/:path:")
+    @Options("/search/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
-        return createPayload(http.newCall(new Request.Builder().url(getUrl(index, path, context)).method("OPTIONS", null).build()).execute());
+        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).method("OPTIONS", null).build()).execute());
     }
 
-    private String getUrl(String index, String path, Context context) {
+    private String getUrl(String path, Context context) {
+        String[] pathParts = path.split("/");
+        if ("_search".equals(pathParts[0]) && "scroll".equals(pathParts[1])) {
+            return getUrlString(context, es_url + "/" + path);
+        }
+        String index = pathParts[0];
         if (((HashMapUser)context.currentUser()).isGranted(index) &&
                 ("GET".equalsIgnoreCase(context.method()) ||
-                        path.startsWith("_search") ||
-                        path.startsWith("_count") ||
-                        path.startsWith(DEFAULT_INDEX_TYPE + "/_search"))) {
-            String s = es_url + "/" + index + "/" + path;
-            if (context.query().keyValues().size() > 0) {
-                s += "?" + getQueryAsString(context.query());
-            }
-            return s;
+                        "_search".equals(pathParts[1]) ||
+                        "_count".equals(pathParts[1]) ||
+                        (pathParts.length >=3 && DEFAULT_INDEX_TYPE.equals(pathParts[1]) && "_search".equals(pathParts[2])))) {
+            return getUrlString(context, es_url + "/" + path);
         }
         throw new UnauthorizedException();
+    }
+
+    private String getUrlString(Context context, String s) {
+        if (context.query().keyValues().size() > 0) {
+            s += "?" + getQueryAsString(context.query());
+        }
+        return s;
     }
 
     static String getQueryAsString(final Query query) {

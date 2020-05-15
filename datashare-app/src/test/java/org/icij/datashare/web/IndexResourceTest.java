@@ -79,7 +79,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
             put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
         }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
 
-        post("/api/index/search/cecile-datashare/_search/scroll").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/_search/scroll?scroll_id=scroll_id").withPreemptiveAuthentication("cecile", "").should().respond(200);
     }
 
     @Test
