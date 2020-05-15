@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.join;
@@ -96,6 +97,9 @@ public class IndexResource {
      *
      * As it is a GET method, all paths are accepted.
      *
+     * if a body is provided, the body will be sent to ES as source=urlencoded(body)&source_content_type=application%2Fjson
+     * in that case, request parameters are not taken into account.
+     *
      * @param path
      * @return 200 or http error from Elasticsearch
      *
@@ -104,7 +108,16 @@ public class IndexResource {
      */
     @Get("/search/:path:")
     public Payload esGet(final String path, Context context) throws IOException {
-        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).get().build()).execute());
+        String url;
+        byte[] getBody = context.request().contentAsBytes();
+        if (getBody != null && getBody.length > 0) {
+            // hack to remove when we will upgrade elasticsearch-py/ES to v7
+            url = es_url + "/" + path;
+            url += "?source_content_type=application%2Fjson&source=" + URLEncoder.encode(new String(getBody), "utf-8");
+        } else {
+            url = getUrl(path, context);
+        }
+        return createPayload(http.newCall(new Request.Builder().url(url).get().build()).execute());
     }
 
     /**
