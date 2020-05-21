@@ -1,0 +1,66 @@
+package org.icij.datashare.time;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+/**
+ *  time provider for testing purpose
+ */
+public class DatashareMockTime implements Time {
+
+    protected final Log logger = LogFactory.getLog(this.getClass());
+    private Date mockDate = new Date();
+    private final List<DateChangeListener> listeners = new LinkedList<>();
+
+    public void setMockDate(Date mockDate) {
+        logger.debug("mock time in datashare : " + mockDate);
+        this.mockDate = mockDate;
+        notifyListeners();
+    }
+
+    @Override
+    public void sleep(int milliseconds) {
+        addMilliseconds(milliseconds);
+    }
+
+    public void setMockDate(String mockDate) {
+		Matcher matcher = Pattern.compile("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}").matcher(mockDate);
+		if (! matcher.matches() ) {
+			throw new IllegalArgumentException(mockDate + " is not formatted like " + FORMAT_DATE);
+		}
+		setMockDate(DatashareDateUtils.formatDate(mockDate));
+	}
+
+	public void addMilliseconds(int timeToAddInMs) {
+		setMockDate(DatashareDateUtils.addMilliseconds(now(), timeToAddInMs));
+	}
+
+    protected void notifyListeners() {
+        for (DateChangeListener listener : listeners) {
+            listener.dateChanged();
+        }
+    }
+
+    public Date now() { return mockDate; }
+
+    public long currentTimeMillis() {
+        return mockDate.getTime();
+    }
+
+    public void register(DateChangeListener listener) {
+        listeners.add(listener);
+    }
+
+    public Date itIsNow(String date) {
+    	setMockDate(date);
+    	return now();
+    }
+
+}
