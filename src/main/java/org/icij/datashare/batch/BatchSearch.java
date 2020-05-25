@@ -12,7 +12,7 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
 public class BatchSearch {
-    public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
+    public enum State {QUEUED, RUNNING, SUCCESS, TIMEOUT, FAILURE}
 
     public final String uuid;
     public final boolean published;
