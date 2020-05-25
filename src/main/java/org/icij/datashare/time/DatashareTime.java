@@ -55,7 +55,7 @@ public class DatashareTime implements Time {
                         || !datashareTimeClassName.equals(systemPropertyInstance.getClass().getName())) {
                     systemPropertyInstance = (Time) datashareMockTimeClass.newInstance();
                     if (logger.isDebugEnabled()) {
-                        logger.debug("instance de temps datashare : <" + datashareTimeClassName + ">");
+                        logger.debug("time instance for datashare : <" + datashareTimeClassName + ">");
                     }
                 }
                 return systemPropertyInstance;
