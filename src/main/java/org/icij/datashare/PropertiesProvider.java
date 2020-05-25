@@ -31,6 +31,8 @@ public class PropertiesProvider {
     public static final String QUEUE_NAME_OPTION = "queueName";
     public static final String SET_NAME_OPTION = "filterSet";
     public static final String MAP_NAME_OPTION = "reportName";
+    public static final String BATCH_SEARCH_THROTTLE = "batchSearchThrottleMilliseconds";
+    public static final String BATCH_SEARCH_MAX_TIME = "batchSearchMaxTimeSeconds";
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final Path settingsPath;
