@@ -71,7 +71,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         int numberOfResults = 0;
         int throttleMs = Integer.parseInt(propertiesProvider.get(PropertiesProvider.BATCH_SEARCH_THROTTLE).orElse("0"));
         int maxTimeSeconds = Integer.parseInt(propertiesProvider.get(PropertiesProvider.BATCH_SEARCH_MAX_TIME).orElse("100000"));
-        logger.info("running {} queries for batch search {} on project {} with throtlle {}ms", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project, throttleMs);
+        logger.info("running {} queries for batch search {} on project {} with throttle {}ms", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project, throttleMs);
         repository.setState(batchSearch.uuid, State.RUNNING);
         String query = null;
         try {
