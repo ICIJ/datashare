@@ -5,6 +5,7 @@ import com.google.inject.assistedinject.Assisted;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.Entity;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearch.State;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -12,6 +13,7 @@ import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
@@ -19,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
@@ -36,15 +39,17 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
     static final int MAX_BATCH_RESULT_SIZE = 60000;
 
     private final Indexer indexer;
+    private final PropertiesProvider propertiesProvider;
     private final User user;
     private final BatchSearchRepository repository;
     private int totalNbBatches = 0;
     private int totalProcessed = 0;
 
     @Inject
-    public BatchSearchRunner(Indexer indexer, BatchSearchRepository repository, @Assisted User user) {
+    public BatchSearchRunner(Indexer indexer, BatchSearchRepository repository, PropertiesProvider propertiesProvider, @Assisted User user) {
         this.indexer = indexer;
         this.repository = repository;
+        this.propertiesProvider = propertiesProvider;
         this.user = user;
     }
 
@@ -64,7 +69,9 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
     private int run(BatchSearch batchSearch) {
         int numberOfResults = 0;
-        logger.info("running {} queries for batch search {} on project {}", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project);
+        int throttleMs = Integer.parseInt(propertiesProvider.get(PropertiesProvider.BATCH_SEARCH_THROTTLE).orElse("0"));
+        int maxTimeSeconds = Integer.parseInt(propertiesProvider.get(PropertiesProvider.BATCH_SEARCH_MAX_TIME).orElse("100000"));
+        logger.info("running {} queries for batch search {} on project {} with throtlle {}ms", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project, throttleMs);
         repository.setState(batchSearch.uuid, State.RUNNING);
         String query = null;
         try {
@@ -77,8 +84,14 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                         withoutSource("content").limit(MAX_SCROLL_SIZE);
                 List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
 
+                long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
                 while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE) {
                     repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
+                    if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds*1000) {
+                        DatashareTime.getInstance().sleep(throttleMs);
+                    } else {
+                        throw new TimeoutException("Batch timed out after " + maxTimeSeconds + "s");
+                    }
                     numberOfResults += docsToProcess.size();
                     docsToProcess = searcher.scroll().collect(toList());
                 }

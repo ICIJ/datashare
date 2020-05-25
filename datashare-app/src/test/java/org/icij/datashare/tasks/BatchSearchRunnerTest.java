@@ -1,19 +1,23 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.Entity;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
+import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -21,6 +25,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
+import static org.icij.datashare.PropertiesProvider.BATCH_SEARCH_MAX_TIME;
+import static org.icij.datashare.PropertiesProvider.BATCH_SEARCH_THROTTLE;
 import static org.icij.datashare.tasks.BatchSearchRunner.MAX_BATCH_RESULT_SIZE;
 import static org.icij.datashare.tasks.BatchSearchRunner.MAX_SCROLL_SIZE;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
@@ -34,6 +40,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class BatchSearchRunnerTest {
     @Mock Indexer indexer;
     @Mock BatchSearchRepository repository;
+    @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
 
     @Test
     public void test_run_batch_searches() throws Exception {
@@ -44,7 +51,7 @@ public class BatchSearchRunnerTest {
                 new BatchSearch("uuid2", project("test-datashare"), "name2", "desc1", asSet("query3", "query4"), new Date(), BatchSearch.State.RUNNING, User.local())
         ));
 
-        assertThat(new BatchSearchRunner(indexer, repository, local()).call()).isEqualTo(2);
+        assertThat(new BatchSearchRunner(indexer, repository, new PropertiesProvider(), local()).call()).isEqualTo(2);
 
         verify(repository).saveResults("uuid1", "query1", asList(documents));
         verify(repository).setState("uuid1", BatchSearch.State.RUNNING);
@@ -61,7 +68,7 @@ public class BatchSearchRunnerTest {
         ));
         when(repository.saveResults(anyString(), any(), anyList())).thenThrow(new RuntimeException());
 
-        assertThat(new BatchSearchRunner(indexer, repository, local()).call()).isEqualTo(0);
+        assertThat(new BatchSearchRunner(indexer, repository, new PropertiesProvider(), local()).call()).isEqualTo(0);
 
         verify(repository).setState("uuid1", BatchSearch.State.RUNNING);
         verify(repository).setState(eq("uuid1"), any(SearchException.class));
@@ -75,7 +82,38 @@ public class BatchSearchRunnerTest {
             new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asSet("query"), new Date(), BatchSearch.State.RUNNING, User.local())
         ));
 
-        assertThat(new BatchSearchRunner(indexer, repository, local()).call()).isEqualTo(60000);
+        assertThat(new BatchSearchRunner(indexer, repository, new PropertiesProvider(), local()).call()).isEqualTo(60000);
+    }
+
+    @Test
+    public void test_run_batch_search_with_throttle() throws Exception {
+        firstSearchWillReturn(1, createDoc("doc").build());
+        when(repository.getQueued()).thenReturn(singletonList(
+            new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.RUNNING, User.local())
+        ));
+        Date beforeBatch  = timeRule.now;
+
+        new BatchSearchRunner(indexer, repository, new PropertiesProvider(new HashMap<String, String>() {{
+            put(BATCH_SEARCH_THROTTLE, "1000");
+        }}), local()).call();
+
+        assertThat(timeRule.now().getTime() - beforeBatch.getTime()).isEqualTo(1000);
+    }
+
+    @Test
+    public void test_run_batch_search_with_throttle_should_not_last_more_than_max_time() throws Exception {
+        firstSearchWillReturn(5, createDoc("doc").build());
+        when(repository.getQueued()).thenReturn(singletonList(
+            new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.RUNNING, User.local())
+        ));
+        Date beforeBatch  = timeRule.now;
+
+        new BatchSearchRunner(indexer, repository, new PropertiesProvider(new HashMap<String, String>() {{
+            put(BATCH_SEARCH_THROTTLE, "1000");
+            put(BATCH_SEARCH_MAX_TIME, "1");
+        }}), local()).call();
+
+        assertThat(timeRule.now().getTime() - beforeBatch.getTime()).isEqualTo(1000);
     }
 
     private void firstSearchWillReturn(int nbOfScrolls, Document... documents) throws IOException {
@@ -93,9 +131,6 @@ public class BatchSearchRunnerTest {
         when(searcher.totalHits()).thenReturn((long) documents.length).thenReturn(0L);
         when(indexer.search("test-datashare", Document.class)).thenReturn(searcher);
     }
-
-
-
 
     @Before
     public void setUp() { initMocks(this);}

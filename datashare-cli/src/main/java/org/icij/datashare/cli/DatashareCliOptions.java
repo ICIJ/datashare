@@ -5,6 +5,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
 import org.icij.datashare.Mode;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 
@@ -175,6 +176,20 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType( Integer.class )
                 .defaultsTo(DEFAULT_NLP_PARALLELISM);
+    }
+
+    public static OptionSpec<Integer> batchSearchMaxTime(OptionParser parser) {
+         return parser.acceptsAll(
+                         asList(PropertiesProvider.BATCH_SEARCH_MAX_TIME), "Max time for batch search in seconds")
+                         .withRequiredArg()
+                         .ofType(Integer.class);
+    }
+
+    public static OptionSpec<Integer> batchSearchThrottle(OptionParser parser) {
+         return parser.acceptsAll(
+                         asList(PropertiesProvider.BATCH_SEARCH_THROTTLE), "Throttle for batch search in milliseconds")
+                         .withRequiredArg()
+                         .ofType(Integer.class);
     }
 
     public static OptionSpec<Integer> scrollSize(OptionParser parser) {

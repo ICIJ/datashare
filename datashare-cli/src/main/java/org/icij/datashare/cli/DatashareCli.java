@@ -42,6 +42,8 @@ public class DatashareCli {
         DatashareCliOptions.nlpParallelism(parser);
         DatashareCliOptions.followSymlinks(parser);
         DatashareCliOptions.enableBrowserOpenLink(parser);
+        DatashareCliOptions.batchSearchMaxTime(parser);
+        DatashareCliOptions.batchSearchThrottle(parser);
 
         DatashareCliOptions.clusterName(parser);
 
