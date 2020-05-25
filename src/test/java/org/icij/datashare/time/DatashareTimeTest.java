@@ -3,6 +3,7 @@ package org.icij.datashare.time;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -32,7 +33,7 @@ public class DatashareTimeTest {
 
 	@Test
 	public void testGetNowReturnMockDate() {
-		Date date = DatashareDateUtils.formatDate("2020-02-20 12:13:14");
+		Date date = DatashareDateUtils.formatDate("2020-02-20T12:13:14Z");
 
 		DatashareTime.setMockTime(true);
 		DatashareTime.getInstance().setMockDate(date);
@@ -60,7 +61,7 @@ public class DatashareTimeTest {
 
 	@Test
 	public void testMockInstance() {
-		Date date = DatashareDateUtils.formatDate("2020-02-20 12:13:14");
+		Date date = DatashareDateUtils.formatDate("2020-02-20T12:13:14Z");
 
 		System.setProperty(DatashareTime.DATASHARE_TIME_CLASS_PROPERTY, "org.icij.datashare.time.DatashareMockTime");
 		Time time = DatashareTime.getInstance();
@@ -79,7 +80,7 @@ public class DatashareTimeTest {
 
 	@Test
 	public void testSetMockDateInMockMode() {
-		Date date = DatashareDateUtils.formatDate("2020-02-20 12:13:14");
+		Date date = DatashareDateUtils.formatDate("2020-02-20T12:13:14Z");
 
 		DatashareTime.setMockTime(true);
 		DatashareTime.getInstance().setMockDate(date);
@@ -148,7 +149,7 @@ public class DatashareTimeTest {
 
 	@Test
 	public void testSetMockDateString() {
-		final String dateStr = "2009-10-10 11:15:00";
+		final String dateStr = "2009-10-10T11:15:00Z";
 		DatashareTime.setMockTime(true);
 
 		DatashareTime.getInstance().setMockDate(dateStr);
@@ -157,7 +158,7 @@ public class DatashareTimeTest {
 				DatashareTime.getInstance().now());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = DateTimeParseException.class)
 	public void testSetMockDateString_withBadFormat() {
 		DatashareTime.setMockTime(true);
 		DatashareTime.getInstance().setMockDate("2009-10-10");

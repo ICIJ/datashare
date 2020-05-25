@@ -6,8 +6,6 @@ import org.apache.commons.logging.LogFactory;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 /**
@@ -30,12 +28,8 @@ public class DatashareMockTime implements Time {
         addMilliseconds(milliseconds);
     }
 
-    public void setMockDate(String mockDate) {
-		Matcher matcher = Pattern.compile("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}").matcher(mockDate);
-		if (! matcher.matches() ) {
-			throw new IllegalArgumentException(mockDate + " is not formatted like " + FORMAT_DATE);
-		}
-		setMockDate(DatashareDateUtils.formatDate(mockDate));
+    public void setMockDate(String dateTime) {
+		setMockDate(DatashareDateUtils.formatDate(dateTime));
 	}
 
 	public void addMilliseconds(int timeToAddInMs) {

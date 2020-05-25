@@ -6,9 +6,6 @@ import java.util.Date;
  * Interface for getting time in datashare.
  */
 public interface Time {
-
-	String FORMAT_DATE = "yyyy-MM-dd HH:mm:ss";
-
     /**
      * @return <code>Date</code> now date for Datashare
      */
@@ -37,17 +34,17 @@ public interface Time {
      * sets current date
      *
      * @throws UnsupportedOperationException
-     * @param date formatted like {@link #FORMAT_DATE} ({@value #FORMAT_DATE})
+     * @param dateTime formatted iso8601
      */
-    void setMockDate(String date);
+    void setMockDate(String dateTime);
 
     /**
      * sets current date and returns this date
      *
      * @throws UnsupportedOperationException
-     * @param date formatted like {@link #FORMAT_DATE} ({@value #FORMAT_DATE})
+     * @param dateTime formatted iso8601
      */
-    Date itIsNow(String date);
+    Date itIsNow(String dateTime);
 
 	void addMilliseconds(int toAddInMs);
 

@@ -93,7 +93,7 @@ public class DatashareTime implements Time {
         Thread.sleep(milliseconds);
     }
 
-    public void setMockDate(String date) {
+    public void setMockDate(String dateTime) {
         throw new UnsupportedOperationException("DatashareTime is in real time mode");
 	}
 
