@@ -42,7 +42,7 @@ class CliApp {
     }
 
     private static void runBatch(Injector injector) throws Exception {
-        injector.getInstance(BatchSearchRunner.class).call();
+        new BatchSearchRunner(injector.getInstance(Indexer.class), injector.getInstance(BatchSearchRepository.class), injector.getInstance(PropertiesProvider.class), nullUser()).call();
         injector.getInstance(Indexer.class).close();
         injector.getInstance(BatchSearchRepository.class).close();
     }
