@@ -34,12 +34,12 @@ public class ExtensionLoader {
         URLClassLoader classLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
         for (File jar : jars) {
             try {
+                LOGGER.info("loading jar {}", jar);
+                Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+                method.setAccessible(true);
+                method.invoke(classLoader, classLoader.getResource(jar.toString())); // hack to load jar
                 Class<?> expectedClass = findClassesInJar(predicate, jar);
                 if (expectedClass != null) {
-                    LOGGER.info("loading class {} and its jar {}", expectedClass, jar);
-                    Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-                    method.setAccessible(true);
-                    method.invoke(classLoader, classLoader.getResource(jar.toString())); // hack to load jar
                     registerFunc.accept((T) expectedClass);
                 }
             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | IOException | ClassNotFoundException e) {
