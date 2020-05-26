@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.icij.datashare</groupId>
@@ -40,21 +41,21 @@
     </modules>
 
     <scm>
-         <url>https://github.com/ICIJ/datashare</url>
-         <connection>scm:git:https://github.com/ICIJ/datashare.git</connection>
-         <developerConnection>scm:git:https://github.com/ICIJ/datashare.git</developerConnection>
-     </scm>
+        <url>https://github.com/ICIJ/datashare</url>
+        <connection>scm:git:https://github.com/ICIJ/datashare.git</connection>
+        <developerConnection>scm:git:https://github.com/ICIJ/datashare.git</developerConnection>
+    </scm>
 
     <distributionManagement>
-         <snapshotRepository>
-             <id>ossrh</id>
-             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-         </snapshotRepository>
-         <repository>
-             <id>ossrh</id>
-             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-         </repository>
-     </distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <repositories>
         <repository>
@@ -101,7 +102,8 @@
         <joptsimple.version>5.0.4</joptsimple.version>
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.1.7</logback.version>
-        <log4jtoslf4j.version>2.9.1</log4jtoslf4j.version>
+        <log4jtoslf4j.version>2.11.1</log4jtoslf4j.version>
+        <log4-over-slf4j.version>2.11.1</log4-over-slf4j.version>
         <junit.version>4.12</junit.version>
 
         <!-- Maven Plugins -->
@@ -288,13 +290,18 @@
                 <artifactId>logback-classic</artifactId>
                 <version>${logback.version}</version>
             </dependency>
-            <!--to use when having errors like
-            “StatusLogger Log4j2 could not find a logging implementation"implementation-->
+
+            <!--
+            for legacy libraries that use log4j API
+            for example apache commons-logging
+            see https://stackoverflow.com/questions/31044619/difference-between-slf4j-log4j12-and-log4j-over-slf4j
+            -->
             <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-to-slf4j</artifactId>
-                <version>${log4jtoslf4j.version}</version>
+                <groupId>org.slf4j</groupId>
+                <artifactId>log4j-over-slf4j</artifactId>
+                <version>${slf4j.version}</version>
             </dependency>
+
 
             <!-- JUnit -->
             <dependency>
@@ -305,11 +312,11 @@
             </dependency>
 
             <dependency>
-              <groupId>com.amazonaws</groupId>
-              <artifactId>aws-java-sdk-bom</artifactId>
-              <version>${amazon.version}</version>
-              <type>pom</type>
-              <scope>import</scope>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-bom</artifactId>
+                <version>${amazon.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -395,7 +402,9 @@
                                         <type>${project.packaging}</type>
                                     </artifactItem>
                                 </artifactItems>
-                                <outputDirectory>${session.executionRootDirectory}/datashare-dist/target/datashare-dist-${project.version}-all/lib</outputDirectory>
+                                <outputDirectory>
+                                    ${session.executionRootDirectory}/datashare-dist/target/datashare-dist-${project.version}-all/lib
+                                </outputDirectory>
                             </configuration>
                         </execution>
                     </executions>
@@ -467,7 +476,8 @@
                     <prefix>git</prefix>
                     <verbose>false</verbose>
                     <generateGitPropertiesFile>true</generateGitPropertiesFile>
-                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+                    <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties
+                    </generateGitPropertiesFilename>
                     <format>properties</format>
                     <gitDescribe>
                         <skip>false</skip>
