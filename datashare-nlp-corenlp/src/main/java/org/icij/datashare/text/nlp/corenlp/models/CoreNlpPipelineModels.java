@@ -6,7 +6,6 @@ import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.NlpStage;
 import org.icij.datashare.text.nlp.Pipeline;
 
-import java.io.IOException;
 import java.util.*;
 
 import static java.util.Arrays.asList;
@@ -37,7 +36,7 @@ public class CoreNlpPipelineModels extends AbstractModels<StanfordCoreNLP> {
             }};
 
     @Override
-    protected StanfordCoreNLP loadModelFile(Language language, ClassLoader loader) throws IOException {
+    protected StanfordCoreNLP loadModelFile(Language language) {
         LOGGER.info("loading pipeline Annotator for " + language);
         Properties properties = new Properties();
         properties.setProperty("annotators", String.join(", ", getCoreNlpStages()));
