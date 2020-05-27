@@ -55,7 +55,8 @@ public class ExtensionLoader {
             if (jarEntry.getName().endsWith(".class")) {
                 String classname = jarEntry.getName().replaceAll("/", "\\.");
                 classname = classname.substring(0, classname.length() - 6);
-                if (!classname.contains("$")) {
+                System.out.println(classname);
+                if (!classname.contains("$") && !"module-info".equals(classname)) {
                     try {
                         final Class<?> myLoadedClass = Class.forName(classname, true, ucl);
                         if (predicate.test(myLoadedClass) &&
