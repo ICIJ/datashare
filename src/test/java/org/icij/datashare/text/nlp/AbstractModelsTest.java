@@ -45,7 +45,7 @@ public class AbstractModelsTest {
     private static class ConcreteModelsForTesting extends AbstractModels<HashMap> {
         boolean hasBeenDownloaded = false;
         ConcreteModelsForTesting(Pipeline.Type type, NlpStage stage) { super(type, stage);}
-        @Override protected HashMap loadModelFile(Language language, ClassLoader loader) { return new HashMap() {{
+        @Override protected HashMap loadModelFile(Language language) { return new HashMap() {{
             put("foo", "bar");
         }};}
         @Override protected String getVersion() { return "1.0";}

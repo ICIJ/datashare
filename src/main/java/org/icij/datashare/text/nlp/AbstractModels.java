@@ -1,15 +1,13 @@
 package org.icij.datashare.text.nlp;
 
+import org.icij.datashare.DynamicClassLoader;
 import org.icij.datashare.io.RemoteFiles;
 import org.icij.datashare.text.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -40,7 +38,7 @@ public abstract class AbstractModels<T> {
         this.models = new HashMap<>();
     }
 
-    protected abstract T loadModelFile(Language language, ClassLoader loader) throws IOException;
+    protected abstract T loadModelFile(Language language) throws IOException;
     protected abstract String getVersion();
 
     public T get(Language language) throws InterruptedException {
@@ -58,7 +56,7 @@ public abstract class AbstractModels<T> {
             if (isSync()) {
                 downloadIfNecessary(language, getLoader());
             }
-            models.put(language, loadModelFile(language, getLoader()));
+            models.put(language, loadModelFile(language));
             LOGGER.info("loaded {} model for {}", stage, language);
         } catch (IOException e) {
             LOGGER.error("failed loading " + stage, e);
@@ -78,18 +76,12 @@ public abstract class AbstractModels<T> {
         return Paths.get(PREFIX).resolve(getModelsBasePath(language));
     }
 
-    public void addResourceToContextClassLoader(Path resourcePath, ClassLoader loader) {
-        final URL resource = loader.getResource(resourcePath.toString());
+    public void addResourceToContextClassLoader(Path resourcePath) {
+        DynamicClassLoader classLoader = (DynamicClassLoader)ClassLoader.getSystemClassLoader();
+        final URL resource = classLoader.getResource(resourcePath.toString());
 
-        URLClassLoader classLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
-        try {
-            LOGGER.info("adding {} to system classloader", resourcePath);
-            Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-            method.setAccessible(true);
-            method.invoke(classLoader, resource); // hack to load jar for CoreNLP resources
-        } catch (NoSuchMethodException|IllegalAccessException|InvocationTargetException e) {
-            LOGGER.error("cannot invoke SystemClassloader.addURL. Cannot load language resource for " + resourcePath, e);
-        }
+        LOGGER.info("adding {} to system classloader", resourcePath);
+        classLoader.add(resource);
     }
 
     protected boolean isPresent(Language language, ClassLoader loader) {
