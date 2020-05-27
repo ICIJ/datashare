@@ -42,13 +42,13 @@ public class ExtensionLoader {
                 if (expectedClass != null) {
                     registerFunc.accept((T) expectedClass);
                 }
-            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | IOException | ClassNotFoundException e) {
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | IOException e) {
                 LOGGER.error("Cannot load jar " + jar, e);
             }
         }
     }
 
-    synchronized <T> Class<?> findClassesInJar(Predicate<Class<?>> predicate, final File jarFile) throws IOException, ClassNotFoundException {
+    synchronized <T> Class<?> findClassesInJar(Predicate<Class<?>> predicate, final File jarFile) throws IOException {
         URLClassLoader ucl = new URLClassLoader(new URL[]{jarFile.toURI().toURL()}, getClass().getClassLoader());
         JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFile));
         for (JarEntry jarEntry = jarInputStream.getNextJarEntry(); jarEntry != null; jarEntry = jarInputStream.getNextJarEntry()) {
@@ -56,11 +56,16 @@ public class ExtensionLoader {
                 String classname = jarEntry.getName().replaceAll("/", "\\.");
                 classname = classname.substring(0, classname.length() - 6);
                 if (!classname.contains("$")) {
-                    final Class<?> myLoadedClass = Class.forName(classname, true, ucl);
-                    if (predicate.test(myLoadedClass) &&
-                            !myLoadedClass.isInterface() && !Modifier.isAbstract(myLoadedClass.getModifiers())) {
-                        return myLoadedClass;
+                    try {
+                        final Class<?> myLoadedClass = Class.forName(classname, true, ucl);
+                        if (predicate.test(myLoadedClass) &&
+                                !myLoadedClass.isInterface() && !Modifier.isAbstract(myLoadedClass.getModifiers())) {
+                            return myLoadedClass;
+                        }
+                    } catch (ClassNotFoundException|LinkageError e) {
+                        LOGGER.warn("cannot load class {}: {}", classname, e);
                     }
+
                 }
             }
         }
