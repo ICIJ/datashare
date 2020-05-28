@@ -64,10 +64,6 @@
                                     <pattern>org.apache.lucene</pattern>
                                     <shadedPattern>org.apache.lucene410-corenlp</shadedPattern>
                                 </relocation>
-                                <relocation>
-                                    <pattern>META-INF/services/org.apache.lucene</pattern>
-                                    <shadedPattern>META-INF/services/org.apache.lucene410-corenlp</shadedPattern>
-                                </relocation>
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
