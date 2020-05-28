@@ -23,9 +23,8 @@
             <artifactId>datashare-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>datashare-index</artifactId>
-            <scope>provided</scope>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
         </dependency>
         <!-- Stanford CoreNLP -->
         <dependency>
@@ -65,7 +64,14 @@
                                     <pattern>org.apache.lucene</pattern>
                                     <shadedPattern>org.apache.lucene410-corenlp</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>META-INF/services/org.apache.lucene</pattern>
+                                    <shadedPattern>META-INF/services/org.apache.lucene410-corenlp</shadedPattern>
+                                </relocation>
                             </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>
