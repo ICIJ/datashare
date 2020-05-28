@@ -23,10 +23,10 @@
             <artifactId>datashare-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>datashare-index</artifactId>
+            <scope>provided</scope>
         </dependency>
-
         <!-- Stanford CoreNLP -->
         <dependency>
             <groupId>edu.stanford.nlp</groupId>
