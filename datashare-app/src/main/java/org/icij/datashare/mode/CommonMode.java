@@ -12,7 +12,7 @@ import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.icij.datashare.Mode;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.batch.BatchSearchRepository;

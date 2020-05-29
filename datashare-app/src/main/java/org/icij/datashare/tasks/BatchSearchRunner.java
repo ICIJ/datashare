@@ -25,6 +25,8 @@ import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_THROTTLE;
 
 public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTask {
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -69,8 +71,8 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
     private int run(BatchSearch batchSearch) {
         int numberOfResults = 0;
-        int throttleMs = Integer.parseInt(propertiesProvider.get(PropertiesProvider.BATCH_SEARCH_THROTTLE).orElse("0"));
-        int maxTimeSeconds = Integer.parseInt(propertiesProvider.get(PropertiesProvider.BATCH_SEARCH_MAX_TIME).orElse("100000"));
+        int throttleMs = Integer.parseInt(propertiesProvider.get(BATCH_SEARCH_THROTTLE).orElse("0"));
+        int maxTimeSeconds = Integer.parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME).orElse("100000"));
         logger.info("running {} queries for batch search {} on project {} with throttle {}ms", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project, throttleMs);
         repository.setState(batchSearch.uuid, State.RUNNING);
         String query = null;

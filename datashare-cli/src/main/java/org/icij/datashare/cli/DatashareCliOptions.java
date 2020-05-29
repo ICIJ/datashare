@@ -4,17 +4,12 @@ import joptsimple.AbstractOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
-import org.icij.datashare.Mode;
-import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.text.nlp.Pipeline;
-import org.icij.datashare.user.User;
 
 import java.io.File;
 import java.util.Arrays;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.icij.datashare.PropertiesProvider.NLP_PARALLELISM_OPT;
 
 
 public final class DatashareCliOptions {
@@ -26,6 +21,8 @@ public final class DatashareCliOptions {
     public static final String STAGES_OPT = "stages";
     public static final String DATA_DIR_OPT = "dataDir";
     public static final String NLP_PIPELINES_OPT = "nlpPipelines";
+    public static final String BATCH_SEARCH_THROTTLE = "batchSearchThrottleMilliseconds";
+    public static final String BATCH_SEARCH_MAX_TIME = "batchSearchMaxTimeSeconds";
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String ROOT_HOST = "rootHost";
     public static final String RESUME_OPT = "resume";
@@ -55,7 +52,7 @@ public final class DatashareCliOptions {
                 "Default local user name")
                 .withRequiredArg()
                 .ofType( String.class )
-                .defaultsTo(User.local().id);
+                .defaultsTo("local");
     }
 
     static OptionSpecBuilder followSymlinks(OptionParser parser) {
@@ -171,7 +168,7 @@ public final class DatashareCliOptions {
 
     static OptionSpec<Integer> nlpParallelism(OptionParser parser) {
         return parser.acceptsAll(
-                asList("np", NLP_PARALLELISM_OPT),
+                asList("np", "nlpParallelism"),
                 "Number of NLP extraction threads per pipeline.")
                 .withRequiredArg()
                 .ofType( Integer.class )
@@ -180,14 +177,14 @@ public final class DatashareCliOptions {
 
     public static OptionSpec<Integer> batchSearchMaxTime(OptionParser parser) {
          return parser.acceptsAll(
-                         asList(PropertiesProvider.BATCH_SEARCH_MAX_TIME), "Max time for batch search in seconds")
+                         asList(BATCH_SEARCH_MAX_TIME), "Max time for batch search in seconds")
                          .withRequiredArg()
                          .ofType(Integer.class);
     }
 
     public static OptionSpec<Integer> batchSearchThrottle(OptionParser parser) {
          return parser.acceptsAll(
-                         asList(PropertiesProvider.BATCH_SEARCH_THROTTLE), "Throttle for batch search in milliseconds")
+                         asList(BATCH_SEARCH_THROTTLE), "Throttle for batch search in milliseconds")
                          .withRequiredArg()
                          .ofType(Integer.class);
     }
@@ -250,14 +247,12 @@ public final class DatashareCliOptions {
                 withRequiredArg().ofType(Boolean.class).defaultsTo(true);
     }
 
-    static OptionSpec<Pipeline.Type> nlpPipelines(OptionParser parser) {
+    static OptionSpec<String> nlpPipelines(OptionParser parser) {
         return parser.acceptsAll(
                 asList(NLP_PIPELINES_OPT, "nlpp"),
                 "NLP pipelines to be run.")
                 .withRequiredArg()
-                .ofType( Pipeline.Type.class )
-                .withValuesSeparatedBy(ARG_VALS_SEP)
-                .defaultsTo(new Pipeline.Type[]{});
+                .withValuesSeparatedBy(ARG_VALS_SEP);
     }
 
     static OptionSpec<Integer> parallelism(OptionParser parser) {

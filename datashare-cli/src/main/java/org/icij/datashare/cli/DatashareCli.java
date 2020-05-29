@@ -4,7 +4,6 @@ import joptsimple.AbstractOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import org.icij.datashare.Mode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

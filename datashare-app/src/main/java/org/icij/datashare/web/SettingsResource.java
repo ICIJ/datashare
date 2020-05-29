@@ -7,7 +7,7 @@ import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Patch;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.Mode;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
