@@ -49,6 +49,6 @@ public class AbstractModelsTest {
             put("foo", "bar");
         }};}
         @Override protected String getVersion() { return "1.0";}
-        @Override protected void downloadIfNecessary(Language language, ClassLoader loader) { this.hasBeenDownloaded = true;}
+        @Override protected void downloadIfNecessary(Language language) { this.hasBeenDownloaded = true;}
     }
 }

@@ -54,7 +54,7 @@ public abstract class AbstractModels<T> {
         try {
             if (isLoaded(language)) return;
             if (isSync()) {
-                downloadIfNecessary(language, getLoader());
+                downloadIfNecessary(language);
             }
             models.put(language, loadModelFile(language));
             LOGGER.info("loaded {} model for {}", stage, language);
@@ -79,20 +79,19 @@ public abstract class AbstractModels<T> {
     public void addResourceToContextClassLoader(Path resourcePath) {
         DynamicClassLoader classLoader = (DynamicClassLoader)ClassLoader.getSystemClassLoader();
         final URL resource = classLoader.getResource(resourcePath.toString());
-
         LOGGER.info("adding {} to system classloader", resourcePath);
         classLoader.add(resource);
     }
 
-    protected boolean isPresent(Language language, ClassLoader loader) {
-        return loader.getResource(getModelsBasePath(language).toString()) != null;
+    protected boolean isPresent(Language language) {
+        return Thread.currentThread().getContextClassLoader().getResource(getModelsBasePath(language).toString()) != null;
     }
 
-    protected void downloadIfNecessary(Language language, ClassLoader loader) {
+    protected void downloadIfNecessary(Language language) {
         String remoteKey = getModelsFilesystemPath(language).toString().replace("\\", "/");
         RemoteFiles remoteFiles = getRemoteFiles();
         try {
-            if (isPresent(language, loader) && remoteFiles.isSync(remoteKey, BASE_DIR.toFile())) {
+            if (isPresent(language) && remoteFiles.isSync(remoteKey, BASE_DIR.toFile())) {
                 return;
             }
             LOGGER.info("downloading models for language {} under {}", language, remoteKey);
@@ -103,10 +102,6 @@ public abstract class AbstractModels<T> {
         } finally {
             remoteFiles.shutdown();
         }
-    }
-
-    protected ClassLoader getLoader() {
-        return Thread.currentThread().getContextClassLoader();
     }
 
     public void unload(Language language) throws InterruptedException {
