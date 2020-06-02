@@ -30,6 +30,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.generate;
+import static org.icij.datashare.cli.DatashareCliOptions.NLP_PARALLELISM_OPT;
 
 public class NlpApp implements Runnable, Monitorable, UserTask {
     private static final long DEFAULT_TIMEOUT_MILLIS = 30 * 60 * 1000;
@@ -64,7 +65,7 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
         this.queue = new LinkedBlockingQueue<>();
         this.user = user;
 
-        parallelism = parseInt(ofNullable(properties.getProperty(PropertiesProvider.NLP_PARALLELISM_OPT)).orElse("1"));
+        parallelism = parseInt(ofNullable(properties.getProperty(NLP_PARALLELISM_OPT)).orElse("1"));
         forwarder = new NlpForwarder(dataBus, queue, subscribedCb);
     }
 

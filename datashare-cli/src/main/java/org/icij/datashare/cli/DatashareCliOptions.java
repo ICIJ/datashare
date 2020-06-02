@@ -28,6 +28,7 @@ public final class DatashareCliOptions {
     public static final String RESUME_OPT = "resume";
     public static final String PARALLELISM = "parallelism";
     public static final String OPEN_LINK = "browserOpenLink";
+    public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
 
     static OptionSpec<String> stages(OptionParser parser) {
         return parser.acceptsAll(
@@ -168,7 +169,7 @@ public final class DatashareCliOptions {
 
     static OptionSpec<Integer> nlpParallelism(OptionParser parser) {
         return parser.acceptsAll(
-                asList("np", "nlpParallelism"),
+                asList("np", NLP_PARALLELISM_OPT),
                 "Number of NLP extraction threads per pipeline.")
                 .withRequiredArg()
                 .ofType( Integer.class )

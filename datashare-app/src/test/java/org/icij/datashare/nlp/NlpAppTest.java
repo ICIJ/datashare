@@ -26,7 +26,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.PropertiesProvider.NLP_PARALLELISM_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.NLP_PARALLELISM_OPT;
 import static org.icij.datashare.com.Message.Field.*;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
