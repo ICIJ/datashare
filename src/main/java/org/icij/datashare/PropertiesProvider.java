@@ -24,15 +24,13 @@ import static java.util.stream.Collectors.toMap;
 public class PropertiesProvider {
     public static final String PLUGINS_DIR = "pluginsDir";
     public static final String TCP_LISTEN_PORT = "tcpListenPort";
-    public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
     private static final String PREFIX = "DS_DOCKER_";
     private static final String DEFAULT_DATASHARE_PROPERTIES_FILE_NAME = "datashare.properties";
     public static final String SETTINGS_FILE_PARAMETER_KEY = "settings";
     public static final String QUEUE_NAME_OPTION = "queueName";
     public static final String SET_NAME_OPTION = "filterSet";
     public static final String MAP_NAME_OPTION = "reportName";
-    public static final String BATCH_SEARCH_THROTTLE = "batchSearchThrottleMilliseconds";
-    public static final String BATCH_SEARCH_MAX_TIME = "batchSearchMaxTimeSeconds";
+    
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final Path settingsPath;
