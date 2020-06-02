@@ -1,6 +1,7 @@
 package org.icij.datashare.io;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
@@ -42,6 +43,15 @@ public class RemoteFiles {
         config.setSocketTimeout(READ_TIMEOUT_MS);
         return new RemoteFiles(AmazonS3ClientBuilder.standard().withRegion(S3_REGION)
                 .withClientConfiguration(config).build(), S3_DATASHARE_BUCKET_NAME);
+    }
+
+    public static RemoteFiles getAuthenticated() {
+        ClientConfiguration config = new ClientConfiguration();
+        config.setConnectionTimeout(CONNECTION_TIMEOUT_MS);
+        config.setSocketTimeout(READ_TIMEOUT_MS);
+        return new RemoteFiles(AmazonS3ClientBuilder.standard().withRegion(S3_REGION)
+                .withClientConfiguration(config).withCredentials(DefaultAWSCredentialsProviderChain.getInstance()).
+                        build(), S3_DATASHARE_BUCKET_NAME);
     }
 
     public void upload(final File localFile, final String remoteKey) throws InterruptedException, FileNotFoundException {
