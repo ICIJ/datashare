@@ -127,6 +127,7 @@ public class BatchSearchResource {
      * name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches
      *
      * No matter the order. The name and csv file are mandatory else it will return 400 (bad request)
+     * Queries with less than two characters are filtered
      *
      * To do so with bash you can create a text file like :
      * ```
