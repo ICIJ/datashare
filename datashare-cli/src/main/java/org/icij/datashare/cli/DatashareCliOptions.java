@@ -23,6 +23,8 @@ public final class DatashareCliOptions {
     public static final String NLP_PIPELINES_OPT = "nlpPipelines";
     public static final String BATCH_SEARCH_THROTTLE = "batchSearchThrottleMilliseconds";
     public static final String BATCH_SEARCH_MAX_TIME = "batchSearchMaxTimeSeconds";
+    public static final String SCROLL_SIZE = "scrollSize";
+
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String ROOT_HOST = "rootHost";
     public static final String RESUME_OPT = "resume";

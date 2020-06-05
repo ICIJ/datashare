@@ -25,8 +25,7 @@ import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_THROTTLE;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTask {
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -73,7 +72,10 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         int numberOfResults = 0;
         int throttleMs = Integer.parseInt(propertiesProvider.get(BATCH_SEARCH_THROTTLE).orElse("0"));
         int maxTimeSeconds = Integer.parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME).orElse("100000"));
-        logger.info("running {} queries for batch search {} on project {} with throttle {}ms", batchSearch.queries.size(), batchSearch.uuid, batchSearch.project, throttleMs);
+        int scrollSize = Integer.parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000"));
+
+        logger.info("running {} queries for batch search {} on project {} with throttle {}ms and scroll size of {}",
+                batchSearch.queries.size(), batchSearch.uuid, batchSearch.project, throttleMs, scrollSize);
         repository.setState(batchSearch.uuid, State.RUNNING);
         String query = null;
         try {
@@ -83,7 +85,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                         with(query, batchSearch.fuzziness, batchSearch.phraseMatches).
                         withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{})).
                         withPrefixQuery("dirname", batchSearch.paths.toArray(new String[]{})).
-                        withoutSource("content").limit(MAX_SCROLL_SIZE);
+                        withoutSource("content").limit(scrollSize);
                 List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
 
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();

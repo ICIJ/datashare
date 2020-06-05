@@ -24,6 +24,7 @@ import java.util.stream.IntStream;
 import static java.lang.Integer.parseInt;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
 
 public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -38,7 +39,7 @@ public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
     public ScanIndexTask(DocumentCollectionFactory factory, final Indexer indexer, final PropertiesProvider propertiesProvider,
                          @Assisted User user, @Assisted String reportName) {
         this.user = user;
-        this.scrollSize = parseInt(propertiesProvider.get("scrollSize").orElse("1000"));
+        this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000"));
         this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));
         this.projectName = propertiesProvider.get("defaultProject").orElse("local-datashare");
         this.reportMap = factory.createMap(propertiesProvider, reportName);
