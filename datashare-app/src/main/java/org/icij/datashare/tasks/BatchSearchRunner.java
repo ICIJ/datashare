@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 
+import static java.lang.Integer.min;
+import static java.lang.Integer.parseInt;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -70,9 +72,9 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
     private int run(BatchSearch batchSearch) {
         int numberOfResults = 0;
-        int throttleMs = Integer.parseInt(propertiesProvider.get(BATCH_SEARCH_THROTTLE).orElse("0"));
-        int maxTimeSeconds = Integer.parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME).orElse("100000"));
-        int scrollSize = Integer.parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000"));
+        int throttleMs = parseInt(propertiesProvider.get(BATCH_SEARCH_THROTTLE).orElse("0"));
+        int maxTimeSeconds = parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME).orElse("100000"));
+        int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
 
         logger.info("running {} queries for batch search {} on project {} with throttle {}ms and scroll size of {}",
                 batchSearch.queries.size(), batchSearch.uuid, batchSearch.project, throttleMs, scrollSize);
