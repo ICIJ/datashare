@@ -311,6 +311,10 @@ public final class DatashareCliOptions {
         return parser.acceptsAll(asList("help", "h", "?")).forHelp();
     }
 
+    static AbstractOptionSpec<Void> version(OptionParser parser) {
+        return parser.acceptsAll(asList("version", "v"));
+    }
+
     static OptionSpec<String> authFilter(OptionParser parser) {
         return parser.acceptsAll(
                 asList("authFilter"), "Server mode auth filter class")

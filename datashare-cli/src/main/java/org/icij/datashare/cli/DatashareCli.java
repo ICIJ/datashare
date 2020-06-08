@@ -20,6 +20,7 @@ public class DatashareCli {
     public DatashareCli parseArguments(String[] args) {
         OptionParser parser = new OptionParser();
         AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
+        AbstractOptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);
 
         DatashareCliOptions.settings(parser);
         DatashareCliOptions.pluginsDir(parser);
@@ -76,6 +77,10 @@ public class DatashareCli {
                 printHelp(parser);
                 System.exit(0);
             }
+            if (options.has(versionOpt)) {
+                System.out.println(getVersion());
+                System.exit(0);
+            }
             properties = asProperties(options, null);
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);
@@ -122,6 +127,12 @@ public class DatashareCli {
         } catch (IOException e) {
             LOGGER.debug("Failed to print help message", e);
         }
+    }
+
+    public String getVersion() throws IOException {
+        Properties versions = new Properties();
+        versions.load(getClass().getResourceAsStream("/git.properties"));
+        return versions.getProperty("git.build.version");
     }
 
     public enum Stage {

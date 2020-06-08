@@ -4,6 +4,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
+import java.io.IOException;
+
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
@@ -42,5 +44,10 @@ public class DatashareCliTest {
         cli.parseArguments(new String[] {""});
 
         assertThat(cli.properties).excludes(entry("oauthClientId", "false"));
+    }
+
+    @Test
+    public void test_get_version() throws IOException {
+        assertThat(cli.getVersion()).isEqualTo("7.0.2");
     }
 }

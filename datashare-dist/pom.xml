@@ -73,6 +73,10 @@
                                 <manifest>
                                     <mainClass>org.icij.datashare.Main</mainClass>
                                 </manifest>
+                                <manifestEntries>
+                                    <Build-Time>${maven.build.timestamp}</Build-Time>
+                                    <Implementation-Version>${version}</Implementation-Version>
+                                </manifestEntries>
                             </archive>
                             <descriptors>
                                 <descriptor>src/assembly/back.xml</descriptor>
