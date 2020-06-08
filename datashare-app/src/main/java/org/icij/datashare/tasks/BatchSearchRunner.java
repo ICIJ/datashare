@@ -34,11 +34,12 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
     /**
      * max scroll size will get n results at each scroll
-     * each result is binding 7 fields on an insert query
+     * each result is binding 9 fields on an insert query
      * and max sql binding is an int(2) = 32768
-     * so max scroll size should be < 32768 / 7 (4681)
+     * As we do batch insert with VALUES (val1, ..., val9), (val1, ..., val9)
+     * max scroll size should be < 32768 / 9 (3640)
      */
-    static final int MAX_SCROLL_SIZE = 4000;
+    static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 60000;
 
     private final Indexer indexer;
