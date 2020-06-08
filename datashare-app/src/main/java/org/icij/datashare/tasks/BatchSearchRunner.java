@@ -92,7 +92,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                 List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
 
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
-                while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE) {
+                while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
                     repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
                     if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds*1000) {
                         DatashareTime.getInstance().sleep(throttleMs);

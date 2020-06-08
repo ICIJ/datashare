@@ -82,7 +82,7 @@ public class BatchSearchRunnerTest {
             new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asSet("query"), new Date(), BatchSearch.State.RUNNING, User.local())
         ));
 
-        assertThat(new BatchSearchRunner(indexer, repository, new PropertiesProvider(), local()).call()).isEqualTo(60000);
+        assertThat(new BatchSearchRunner(indexer, repository, new PropertiesProvider(), local()).call()).isLessThan(60000);
     }
 
     @Test
