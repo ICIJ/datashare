@@ -68,7 +68,8 @@ public class ElasticsearchConfiguration {
         RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(create(indexAddress)).setRequestConfigCallback(
                 requestConfigBuilder -> requestConfigBuilder
                     .setConnectTimeout(5000)
-                    .setSocketTimeout(60000)));
+                    .setSocketTimeout(60000)).
+                setMaxRetryTimeoutMillis(50000)); // listener t/o cf https://github.com/ICIJ/datashare/issues/462
         String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
         return client;
     }
