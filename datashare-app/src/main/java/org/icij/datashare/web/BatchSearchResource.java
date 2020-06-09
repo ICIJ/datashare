@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.*;
@@ -66,6 +67,28 @@ public class BatchSearchResource {
     @Get("/search/:batchid")
     public BatchSearch getBatch(String batchId, Context context) {
         return batchSearchRepository.get((User) context.currentUser(), batchId);
+    }
+
+    /**
+     * Retrieve the batch search queries with the given batch id and returns a list of strings UTF-8 encoded
+     *
+     * if the request parameter format is set with csv, then it will answer with
+     * content-disposition attachment (file downloading)
+     *
+     * @param batchId
+     * @return 200 and the batch search
+     *
+     * Example :
+     * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146/queries?format=csv )
+     */
+    @Get("/search/:batchid/queries")
+    public Payload getBatchQueries(String batchId, Context context) {
+        Set<String> queries = batchSearchRepository.get((User) context.currentUser(), batchId).queries.keySet();
+        if ("csv".equals(context.get("format"))) {
+            return new Payload("text/csv;charset=UTF-8", String.join("\n", queries)).
+                            withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
+        }
+        return new Payload(queries);
     }
 
     /**

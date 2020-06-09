@@ -250,6 +250,24 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         delete("/api/batch/search/myid").should().respond(404);
     }
 
+    @Test
+    public void test_get_queries_json() {
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asSet("q1", "q2"),User.local()));
+        get("/api/batch/search/batchSearchId/queries").should().
+                respond(200).
+                haveType("application/json;charset=UTF-8").
+                contain("[\"q1\",\"q2\"]");
+    }
+
+    @Test
+    public void test_get_queries_csv() {
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asSet("q1", "q2"),User.local()));
+        get("/api/batch/search/batchSearchId/queries?format=csv").should().
+                respond(200).
+                haveType("text/csv;charset=UTF-8").
+                contain("q1\nq2");
+    }
+
     private void testTripleQuote(Boolean phraseMatch, String tripleQuoteResult) {
         when(batchSearchRepository.save(any())).thenReturn(true);
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
