@@ -86,7 +86,7 @@ public class BatchSearchResource {
         Set<String> queries = batchSearchRepository.get((User) context.currentUser(), batchId).queries.keySet();
         if ("csv".equals(context.get("format"))) {
             return new Payload("text/csv;charset=UTF-8", String.join("\n", queries)).
-                            withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
+                            withHeader("Content-Disposition", "attachment;filename=\"" + batchId + "-queries.csv\"");
         }
         return new Payload(queries);
     }
