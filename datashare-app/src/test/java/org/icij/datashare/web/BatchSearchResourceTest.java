@@ -58,11 +58,11 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
             new MultipartContentBuilder("AaB03x")
                     .addField("name","nameValue")
-                    .addFile(new FileUpload("csvFile").withContent("query\r\n")).build()).response();
+                    .addFile(new FileUpload("csvFile").withContent("query\r\néèàç\r\n")).build()).response();
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(eq(new BatchSearch(response.content(),
                 project("prj"), "nameValue", null,
-                asSet("query"), new Date(), BatchSearch.State.QUEUED, User.local())));
+                asSet("query","éèàç"), new Date(), BatchSearch.State.QUEUED, User.local())));
     }
 
     @Test
