@@ -68,7 +68,7 @@ public class PipelineRegistryTest {
     @Before
     public void setUp() {
         pipelineRegistry = new PipelineRegistry(new PropertiesProvider(new HashMap<String, String>() {{
-            put(PropertiesProvider.PLUGINS_DIR, folder.getRoot().getPath());
+            put(PropertiesProvider.EXTENSIONS_DIR, folder.getRoot().getPath());
         }}));
     }
 

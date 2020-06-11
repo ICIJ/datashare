@@ -21,7 +21,7 @@ public class PipelineRegistry {
     private final Map<Pipeline.Type, Pipeline> pipelines = new HashMap<>();
 
     public PipelineRegistry(PropertiesProvider propertiesProvider) {
-        this.pluginDir = Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse("./plugins"));
+        this.pluginDir = Paths.get(propertiesProvider.get(PropertiesProvider.EXTENSIONS_DIR).orElse("./extensions"));
         this.propertiesProvider = propertiesProvider;
     }
 
