@@ -59,7 +59,7 @@ public class CommonModeTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         mode = new CommonMode(new HashMap<String, String>() {{
-            put("pluginsDir", pluginFolder.getRoot().toString());
+            put("extensionsDir", pluginFolder.getRoot().toString());
         }});
     }
 }

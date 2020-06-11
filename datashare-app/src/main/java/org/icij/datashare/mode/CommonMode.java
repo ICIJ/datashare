@@ -170,7 +170,7 @@ public class CommonMode extends AbstractModule {
     }
 
     Routes addExtensionConfiguration(Routes routes) {
-        String pluginsDir = propertiesProvider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR);
+        String pluginsDir = propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
         if (pluginsDir != null) {
             try {
                 new ExtensionLoader(Paths.get(pluginsDir)).load((Consumer<Class<?>>)routes::add,

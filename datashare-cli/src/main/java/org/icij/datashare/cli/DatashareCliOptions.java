@@ -84,6 +84,13 @@ public final class DatashareCliOptions {
                         .ofType(String.class);
     }
 
+    public static OptionSpec<String> extensionsDir(OptionParser parser) {
+        return parser.acceptsAll(
+                        asList("extensionsDir"), "Extensions directory (backend)")
+                                .withRequiredArg()
+                                .ofType(String.class);
+    }
+
     static OptionSpec<Integer> tcpListenPort(OptionParser parser) {
         return parser.acceptsAll(
                 singletonList("tcpListenPort"), "Port used by the HTTP server")
