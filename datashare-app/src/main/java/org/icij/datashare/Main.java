@@ -12,6 +12,8 @@ public class Main {
 
         if (cli.isWebServer()) {
             WebApp.start(cli.properties);
+        } else if (cli.isBatchDaemon()) {
+            BatchSearchApp.start(cli.properties);
         } else {
             CliApp.start(cli.properties);
         }
