@@ -127,6 +127,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
+    public BatchSearch get(String id) {
+        List<BatchSearch> batchSearches = mergeBatchSearches(
+                createBatchSearchWithQueriesSelectStatement(using(dataSource, dialect)).where(BATCH_SEARCH.UUID.eq(id)).
+                        fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
+        return batchSearches.get(0);
+    }
+
+    @Override
     public List<BatchSearch> get(final User user) {
         return mergeBatchSearches(
                 createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).

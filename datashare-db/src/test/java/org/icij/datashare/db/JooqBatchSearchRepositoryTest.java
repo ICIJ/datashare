@@ -103,6 +103,18 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_get_search_by_id() {
+        BatchSearch expected = new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+                asSet("q1", "q2"), new Date(), State.RUNNING, User.local());
+        repository.save(expected);
+
+        BatchSearch actual = repository.get("uuid");
+
+        assertThat(actual).isNotNull();
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     public void test_get_queued_searches_without_success_state() {
         repository.save(new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.SUCCESS, User.local()));
