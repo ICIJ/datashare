@@ -45,6 +45,7 @@ public class DatashareCli {
         DatashareCliOptions.enableBrowserOpenLink(parser);
         DatashareCliOptions.batchSearchMaxTime(parser);
         DatashareCliOptions.batchSearchThrottle(parser);
+        DatashareCliOptions.batchSearchQueueType(parser);
 
         DatashareCliOptions.clusterName(parser);
 
@@ -91,10 +92,6 @@ public class DatashareCli {
         return this;
     }
 
-    public boolean isWebServer() {
-        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")).isWebServer();
-    }
-
     private Properties asProperties(OptionSet options, String prefix) {
         Properties properties = new Properties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
@@ -134,6 +131,14 @@ public class DatashareCli {
         Properties versions = new Properties();
         versions.load(getClass().getResourceAsStream("/git.properties"));
         return versions.getProperty("git.build.version");
+    }
+
+    public boolean isBatchDaemon() {
+        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")) == Mode.BATCH;
+    }
+
+    public boolean isWebServer() {
+        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")).isWebServer();
     }
 
     public enum Stage {

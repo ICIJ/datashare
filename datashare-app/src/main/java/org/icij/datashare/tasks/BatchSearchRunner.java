@@ -19,6 +19,7 @@ import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
@@ -71,7 +72,12 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         return totalResults;
     }
 
-    private int run(BatchSearch batchSearch) {
+    public int run(String batchSearchId) {
+        BatchSearch batchSearch = repository.get(batchSearchId);
+        return batchSearch.state == State.QUEUED ? run(batchSearch): 0;
+    }
+
+    int run(BatchSearch batchSearch) {
         int numberOfResults = 0;
         int throttleMs = parseInt(propertiesProvider.get(BATCH_SEARCH_THROTTLE).orElse("0"));
         int maxTimeSeconds = parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME).orElse("100000"));
@@ -126,5 +132,10 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
     @Override
     public User getUser() {
         return user;
+    }
+
+    public void close() throws IOException {
+        indexer.close();
+        repository.close();
     }
 }

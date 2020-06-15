@@ -17,6 +17,7 @@ import org.mockito.Mock;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -34,8 +35,9 @@ import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchResourceTest extends AbstractProdWebServerTest {
-    @Mock
-    BatchSearchRepository batchSearchRepository;
+    @Mock BatchSearchRepository batchSearchRepository;
+    @Mock BlockingQueue<String> batchSearchQueue;
+
     @Test
     public void test_upload_batch_search_csv_without_name_should_send_bad_request() {
         when(batchSearchRepository.save(any())).thenReturn(true);
@@ -53,16 +55,18 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_upload_batch_search_csv_with_name_and_csvfile_should_send_OK() {
+    public void test_upload_batch_search_csv_with_name_and_csvfile_should_send_OK() throws InterruptedException {
         when(batchSearchRepository.save(any())).thenReturn(true);
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
             new MultipartContentBuilder("AaB03x")
                     .addField("name","nameValue")
                     .addFile(new FileUpload("csvFile").withContent("query\r\néèàç\r\n")).build()).response();
         assertThat(response.code()).isEqualTo(200);
-        verify(batchSearchRepository).save(eq(new BatchSearch(response.content(),
+        BatchSearch expected = new BatchSearch(response.content(),
                 project("prj"), "nameValue", null,
-                asSet("query","éèàç"), new Date(), BatchSearch.State.QUEUED, User.local())));
+                asSet("query", "éèàç"), new Date(), BatchSearch.State.QUEUED, User.local());
+        verify(batchSearchRepository).save(eq(expected));
+        verify(batchSearchQueue).put(expected.uuid);
     }
 
     @Test
@@ -203,7 +207,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
             PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
                 put("rootHost", "http://foo.com:12345");
             }});
-            routes.add(new BatchSearchResource(batchSearchRepository, propertiesProvider)).
+            routes.add(new BatchSearchResource(batchSearchRepository, batchSearchQueue, propertiesProvider)).
                     filter(new LocalUserFilter(propertiesProvider));
         });
         when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asSet("q"), User.local()));
@@ -291,7 +295,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository, new PropertiesProvider())).
+        configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository, batchSearchQueue, new PropertiesProvider())).
                 filter(new LocalUserFilter(new PropertiesProvider())));
     }
 

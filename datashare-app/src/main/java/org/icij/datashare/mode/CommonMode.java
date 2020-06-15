@@ -45,6 +45,7 @@ import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
 import java.util.function.Consumer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
@@ -82,14 +83,13 @@ public class CommonMode extends AbstractModule {
         }
     }
 
-    public static boolean isBatch(Properties properties) {
-        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")) == Mode.BATCH;
-    }
-
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
+
+        bind(BlockingQueue.class).to(getBlockingQueueClassInstance(
+                propertiesProvider.get("batchQueueType").orElse("java.util.concurrent.LinkedBlockingQueue"))).asEagerSingleton();
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
@@ -180,5 +180,13 @@ public class CommonMode extends AbstractModule {
             }
         }
         return routes;
+    }
+
+    private Class<? extends BlockingQueue<String>> getBlockingQueueClassInstance(String className) {
+        try {
+            return (Class<? extends BlockingQueue<String>>) Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
