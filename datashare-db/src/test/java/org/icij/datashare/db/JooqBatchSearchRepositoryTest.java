@@ -114,11 +114,6 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    @Test(expected = JooqBatchSearchRepository.BatchNotFoundException.class)
-    public void test_get_search_by_id_not_found() {
-        repository.get("uuid");
-    }
-
     @Test
     public void test_get_queued_searches_without_success_state() {
         repository.save(new BatchSearch("uuid", Project.project("prj"), "name1", "description1",

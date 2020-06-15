@@ -365,11 +365,4 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(String.class);
     }
-
-    public static OptionSpec<String> batchSearchQueueType(OptionParser parser) {
-        return parser.acceptsAll(
-                        asList("batchQueueType"), "Queue class for batch search queue")
-                        .withRequiredArg()
-                        .ofType(String.class);
-    }
 }

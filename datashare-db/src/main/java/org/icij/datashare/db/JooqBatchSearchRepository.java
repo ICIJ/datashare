@@ -128,10 +128,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public BatchSearch get(String id) {
-        Optional<BatchSearch> batchSearches = mergeBatchSearches(
+        List<BatchSearch> batchSearches = mergeBatchSearches(
                 createBatchSearchWithQueriesSelectStatement(using(dataSource, dialect)).where(BATCH_SEARCH.UUID.eq(id)).
-                        fetch().stream().map(this::createBatchSearchFrom).collect(toList())).stream().findFirst();
-        return batchSearches.orElseThrow(() -> new BatchNotFoundException(id));
+                        fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
+        return batchSearches.get(0);
     }
 
     @Override
@@ -291,12 +291,6 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public static class UnauthorizedUserException extends RuntimeException {
         public UnauthorizedUserException(String searchId, String owner, String actualUser) {
             super("user " + actualUser + " requested results for search " + searchId + " that belongs to user " + owner);
-        }
-    }
-
-    public static class BatchNotFoundException extends RuntimeException {
-        public BatchNotFoundException(String searchId) {
-            super("no batch search with id=" + searchId + " found in database");
         }
     }
 }

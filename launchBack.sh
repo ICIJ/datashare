@@ -1,9 +1,9 @@
 #!/bin/bash
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 VERSION=$(cat $DIR/pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
 CLASSPATH=$DIR/datashare-dist/target/datashare-dist-${VERSION}-all.jar
-JDWP_TRANSPORT_PORT=${JDWP_TRANSPORT_PORT:-8000}
 
 if [ -z "$JAVA_HOME" ]; then
   JAVA=java
@@ -17,7 +17,7 @@ export DS_DOCKER_FRONT_HOST="http://localhost:$(docker ps|grep 9090|sed 's/.*0.0
 
 mkdir -p $DIR/dist
 
-$JAVA -agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,suspend=n -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
+$JAVA -agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
  -Djavax.net.ssl.trustStorePassword=changeit \
  -Xmx4g -DPROD_MODE=true -cp "$DIR/dist/:${CLASSPATH}" org.icij.datashare.Main --cors '*' \
  --oauthAuthorizeUrl http://xemx:3001/oauth/authorize \

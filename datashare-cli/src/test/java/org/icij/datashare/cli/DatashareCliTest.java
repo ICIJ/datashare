@@ -50,10 +50,4 @@ public class DatashareCliTest {
     public void test_get_version() throws IOException {
         assertThat(cli.getVersion()).isEqualTo("7.0.2");
     }
-
-    @Test
-    public void test_batch_daemon() {
-        assertThat(cli.parseArguments(new String[] {""}).isBatchDaemon()).isFalse();
-        assertThat(cli.parseArguments(new String[] {"--mode=BATCH"}).isBatchDaemon()).isTrue();
-    }
 }

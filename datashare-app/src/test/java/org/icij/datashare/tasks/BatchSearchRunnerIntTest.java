@@ -17,7 +17,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.io.IOException;
-import java.util.Date;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -162,36 +161,6 @@ public class BatchSearchRunnerIntTest {
         ArgumentCaptor<SearchException> argument = ArgumentCaptor.forClass(SearchException.class);
         verify(repository).setState(eq(search.uuid), argument.capture());
         assertThat(argument.getValue().toString()).contains("Failed to parse query [AND mydoc]");
-    }
-
-    @Test
-    public void test_run_with_batchid() throws Exception {
-        Document mydoc = createDoc("docId1").with("mydoc").build();
-        indexer.add(TEST_INDEX, mydoc);
-        BatchSearch search = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("mydoc"), User.local());
-        when(repository.get(search.uuid)).thenReturn(search);
-
-        new BatchSearchRunner(indexer, repository, new PropertiesProvider(), local()).run(search.uuid);
-
-        verify(repository).saveResults(search.uuid, "mydoc", singletonList(mydoc));
-    }
-
-    @Test
-    public void test_run_with_batchid_batch_is_not_queued() throws IOException {
-        test_is_not_executed(BatchSearch.State.RUNNING);
-        test_is_not_executed(BatchSearch.State.FAILURE);
-        test_is_not_executed(BatchSearch.State.SUCCESS);
-    }
-
-    private void test_is_not_executed(BatchSearch.State state) throws IOException {
-        Document mydoc = createDoc("docId1").with("mydoc").build();
-        indexer.add(TEST_INDEX, mydoc);
-        BatchSearch search = new BatchSearch("uuid", project(TEST_INDEX), "name", "desc", asSet("mydoc"), new Date(), state, User.local());
-        when(repository.get(search.uuid)).thenReturn(search);
-
-        assertThat(new BatchSearchRunner(indexer, repository, new PropertiesProvider(), local()).run(search.uuid)).isEqualTo(0);
-
-        verify(repository, never()).saveResults(anyString(), any(), any());
     }
 
     @Before

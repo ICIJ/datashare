@@ -20,7 +20,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.*;
@@ -34,13 +33,11 @@ import static org.icij.datashare.text.Project.project;
 @Prefix("/api/batch")
 public class BatchSearchResource {
     private final BatchSearchRepository batchSearchRepository;
-    private final BlockingQueue<String> batchSearchQueue;
     private final PropertiesProvider propertiesProvider;
 
     @Inject
-    public BatchSearchResource(final BatchSearchRepository batchSearchRepository, BlockingQueue batchSearchQueue, PropertiesProvider propertiesProvider) {
+    public BatchSearchResource(final BatchSearchRepository batchSearchRepository, PropertiesProvider propertiesProvider) {
         this.batchSearchRepository = batchSearchRepository;
-        this.batchSearchQueue = batchSearchQueue;
         this.propertiesProvider = propertiesProvider;
     }
 
@@ -214,9 +211,8 @@ public class BatchSearchResource {
 
         BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, queries,
                 (User) context.currentUser(), published, fileTypes, paths, fuzziness,phraseMatches);
-        boolean isSaved = batchSearchRepository.save(batchSearch);
-        if (isSaved) batchSearchQueue.put(batchSearch.uuid);
-        return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
+        return batchSearchRepository.save(batchSearch) ?
+                new Payload("application/json", batchSearch.uuid, 200) : badRequest();
     }
 
     /**
