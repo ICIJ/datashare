@@ -30,6 +30,7 @@ import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
 import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
 import static org.icij.datashare.db.tables.DocumentUserRecommendation.DOCUMENT_USER_RECOMMENDATION;
+import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
@@ -153,7 +154,7 @@ public class JooqRepository implements Repository {
     @Override
     public Set<User> getRecommendations(Project project, List<String> documentIds) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.select(DOCUMENT_USER_RECOMMENDATION.USER_ID).from(DOCUMENT_USER_RECOMMENDATION).
+        return create.selectFrom(USER_INVENTORY.join(DOCUMENT_USER_RECOMMENDATION).on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))).
                 where(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)).
                 and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).
                 fetch().getValues(DOCUMENT_USER_RECOMMENDATION.USER_ID).stream().map(User::new).collect(toSet());
@@ -270,6 +271,11 @@ public class JooqRepository implements Repository {
                 values(project.name, project.sourcePath.toString(), project.allowFromMask).execute() > 0;
     }
 
+    boolean save(User user) {
+        return DSL.using(connectionProvider, dialect).insertInto(USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL, USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER).
+                values(user.id, user.email, user.name, user.provider).execute() > 0;
+    }
+
     // ---------------------------
     private Note createNoteFrom(NoteRecord noteRecord) {
         return noteRecord == null ? null: new Note(
@@ -310,4 +316,5 @@ public class JooqRepository implements Repository {
     private Tag createTagFrom(DocumentTagRecord record) {
         return new Tag(record.getLabel(), new User(record.getUserId()), new Date(record.getCreationDate().getTime()));
     }
+
 }

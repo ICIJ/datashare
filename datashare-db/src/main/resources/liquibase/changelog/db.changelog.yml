@@ -53,3 +53,6 @@ databaseChangeLog:
   - include:
       file: changes/017-rename_markread_to_recommendation.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/018-create_users.yml
+      relativeToChangelogFile: true

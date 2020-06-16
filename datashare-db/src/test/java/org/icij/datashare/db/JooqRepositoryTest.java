@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.omg.CORBA.Repository;
 
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
@@ -159,6 +160,17 @@ public class JooqRepositoryTest {
         assertThat(repository.untag(project("prj"), "doc_id", tag("tag1"), tag("tag2"))).isTrue();
         assertThat(repository.getDocuments(project("prj"), tag("tag1"))).isEmpty();
         assertThat(repository.untag(project("prj"), "doc_id", tag("tag1"))).isFalse();
+    }
+
+    @Test
+    public void test_get_recommendations_with_user_properties() {
+        final User userFoo = new User("foo" , "test", "foo@bar.org");
+        repository.save(userFoo);
+        repository.recommend(project("prj"), userFoo, asList("id4"));
+        final User recommendation = repository.getRecommendations(project("prj"), asList("id4")).iterator().next();
+        assertThat(recommendation.id).isEqualTo("foo");
+        assertThat(recommendation.name).isEqualTo("test");
+        assertThat(recommendation.email).isEqualTo("foo@bar.org");
     }
 
     @Test
