@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 29
+      author: promera
+      changes:
+         - createTable:
+            tableName: user_inventory
+            columns:
+                - column:
+                    name: id
+                    type: varchar(96)
+                    constraints:
+                        primaryKey: true
+                - column:
+                    name: email
+                    type: text
+                - column:
+                    name: name
+                    type: varchar(255)
+                - column:
+                    name: provider
+                    type: varchar(255)
