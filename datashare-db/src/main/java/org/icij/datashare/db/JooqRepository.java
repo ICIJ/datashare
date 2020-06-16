@@ -3,7 +3,6 @@ package org.icij.datashare.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
-import org.icij.datashare.db.tables.DocumentUserRecommendation;
 import org.icij.datashare.db.tables.records.*;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -25,11 +24,11 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
+import static org.icij.datashare.db.tables.DocumentUserRecommendation.DOCUMENT_USER_RECOMMENDATION;
 import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
 import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
 import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
-import static org.icij.datashare.db.tables.DocumentUserRecommendation.DOCUMENT_USER_RECOMMENDATION;
 import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
@@ -157,7 +156,7 @@ public class JooqRepository implements Repository {
         return create.selectFrom(USER_INVENTORY.join(DOCUMENT_USER_RECOMMENDATION).on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))).
                 where(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)).
                 and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).
-                fetch().getValues(DOCUMENT_USER_RECOMMENDATION.USER_ID).stream().map(User::new).collect(toSet());
+                fetch().stream().map(this::createUserFrom).collect(toSet());
     }
 
     @Override
@@ -277,6 +276,11 @@ public class JooqRepository implements Repository {
     }
 
     // ---------------------------
+    private User createUserFrom(Record record) {
+        UserInventoryRecord userRecord = record.into(USER_INVENTORY);
+        return new User(userRecord.getId(), userRecord.getName(), userRecord.getEmail(), userRecord.getProvider());
+    }
+
     private Note createNoteFrom(NoteRecord noteRecord) {
         return noteRecord == null ? null: new Note(
                 project(noteRecord.getProjectId()),
