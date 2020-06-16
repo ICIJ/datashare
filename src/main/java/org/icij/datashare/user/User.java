@@ -6,8 +6,24 @@ import java.util.Objects;
 
 public class User {
     public final String id;
+    public final String name;
+    public final String email;
+    public final String provider;
 
-    public User(final String id) { this.id = id;}
+    public User(final String id, String name, String email, String provider) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.provider = provider;
+    }
+
+    public User(final String id, String name, String email) {
+        this(id, name, email, "local");
+    }
+
+    public User(final String id) {
+        this(id, null, null, "local");
+    }
 
     public String queueName() { return "extract:queue_" + id;}
     @JsonIgnore
