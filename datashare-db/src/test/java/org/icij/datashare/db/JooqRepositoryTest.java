@@ -8,7 +8,6 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -131,7 +130,6 @@ public class JooqRepositoryTest {
         assertThat(repository.getStarredDocuments(project("prj"), user)).isEmpty();
     }
 
-    @Ignore
     @Test
     public void test_group_recommend_a_document_without_documents() {
         User user1 = new User("user1");

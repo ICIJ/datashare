@@ -153,7 +153,7 @@ public class JooqRepository implements Repository {
     @Override
     public Set<User> getRecommendations(Project project, List<String> documentIds) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.selectFrom(USER_INVENTORY.join(DOCUMENT_USER_RECOMMENDATION).on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))).
+        return create.selectFrom(DOCUMENT_USER_RECOMMENDATION.leftJoin(USER_INVENTORY).on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))).
                 where(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)).
                 and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).
                 fetch().stream().map(this::createUserFrom).collect(toSet());
@@ -278,6 +278,9 @@ public class JooqRepository implements Repository {
     // ---------------------------
     private User createUserFrom(Record record) {
         UserInventoryRecord userRecord = record.into(USER_INVENTORY);
+        if (userRecord.getId() == null) {
+            return new User(record.into(DOCUMENT_USER_RECOMMENDATION).getUserId());
+        }
         return new User(userRecord.getId(), userRecord.getName(), userRecord.getEmail(), userRecord.getProvider());
     }
 
