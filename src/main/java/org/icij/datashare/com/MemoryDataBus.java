@@ -50,6 +50,11 @@ public class MemoryDataBus implements DataBus {
         });
     }
 
+    @Override
+    public boolean getHealth() {
+        return true;
+    }
+
     private static class MessageListener implements Consumer<Message> {
         private final Consumer<Message> subscriber;
         private final LinkedHashSet<Channel> channels;

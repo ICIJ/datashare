@@ -8,6 +8,7 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.ion.IonException;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -22,6 +23,8 @@ public interface Indexer extends Closeable {
 
     boolean createIndex(String indexName) throws IOException;
     boolean deleteAll(String indexName) throws IOException;
+
+    boolean getHealth();
 
     void close() throws IOException;
 

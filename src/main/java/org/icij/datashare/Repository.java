@@ -46,5 +46,7 @@ public interface Repository {
 
     List<Note> getNotes(Project project);
 
+    boolean getHealth();
+
 
 }
