@@ -8,7 +8,9 @@ import org.icij.datashare.text.*;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.jooq.*;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -22,6 +24,7 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.icij.datashare.Entity.LOGGER;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
 import static org.icij.datashare.db.tables.DocumentUserRecommendation.DOCUMENT_USER_RECOMMENDATION;
@@ -322,6 +325,16 @@ public class JooqRepository implements Repository {
 
     private Tag createTagFrom(DocumentTagRecord record) {
         return new Tag(record.getLabel(), new User(record.getUserId()), new Date(record.getCreationDate().getTime()));
+    }
+
+    @Override
+    public boolean getHealth(){
+        try {
+            return DSL.using(connectionProvider, dialect).select().fetchOne().toString().contains("1");
+        } catch (DataAccessException ex){
+            LoggerFactory.getLogger(getClass()).error("Database Health error : ",ex);
+            return false;
+        }
     }
 
 }

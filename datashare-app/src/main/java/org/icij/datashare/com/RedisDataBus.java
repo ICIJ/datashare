@@ -9,6 +9,8 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.exceptions.JedisException;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -50,6 +52,16 @@ public class RedisDataBus implements Publisher, DataBus, Closeable {
     @Override
     public void unsubscribe(Consumer<Message> subscriber) {
         subscribers.remove(subscriber).unsubscribe();
+    }
+
+    @Override
+    public boolean getHealth() {
+        try (Jedis jedis = redis.getResource()) {
+            return jedis.info() != null;
+        } catch (JedisException je) {
+            logger.error("Redis Health Error : ",je);
+            return false;
+        }
     }
 
     @Override

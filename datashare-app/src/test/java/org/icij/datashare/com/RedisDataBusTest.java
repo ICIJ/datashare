@@ -50,6 +50,11 @@ public class RedisDataBusTest {
         assertThat(msgList.get(0)).isEqualTo(doc_id);
     }
 
+    @Test
+    public void test_databus_status(){
+        assertThat(dataBus.getHealth()).isTrue();
+    }
+
     @After
     public void tearDown() {
         dataBus.close();

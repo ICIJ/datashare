@@ -240,4 +240,9 @@ public class JooqRepositoryTest {
         assertThat(repository.getNotes(project("otherProject"))).isEmpty();
         assertThat(repository.getNotes(project("project"))).containsExactly(note1, note2);
     }
+
+    @Test
+    public void test_db_status(){
+        assertThat(repository.getHealth()).isTrue();
+    }
 }

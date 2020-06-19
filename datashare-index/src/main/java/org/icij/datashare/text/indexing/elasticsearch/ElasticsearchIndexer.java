@@ -86,6 +86,8 @@ public class ElasticsearchIndexer implements Indexer {
         LOGGER.info("Elasticsearch connections closed");
     }
 
+
+
     @Override
     public boolean bulkAdd(final String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException {
         BulkRequest bulkRequest = new BulkRequest();
@@ -324,6 +326,16 @@ public class ElasticsearchIndexer implements Indexer {
             return true;
         }
         return ((BooleanQuery)q).clauses().stream().anyMatch(b -> b.getOccur() != SHOULD || hasOperator(b.getQuery()));
+    }
+
+    @Override
+    public boolean getHealth() {
+        try {
+            return client.ping(RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            LOGGER.error("Index Health Error : ",e);
+            return false;
+        }
     }
 
     static class ElasticsearchSearcher implements Searcher {

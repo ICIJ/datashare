@@ -37,6 +37,7 @@ import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
+import org.icij.datashare.web.StatusResource;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.report.ReportMap;
 import org.slf4j.LoggerFactory;
@@ -146,6 +147,7 @@ public class CommonMode extends AbstractModule {
         routes.setIocAdapter(new GuiceAdapter(this))
                 .add(RootResource.class)
                 .add(SettingsResource.class)
+                .add(StatusResource.class)
                 .setExtensions(new Extensions() {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {

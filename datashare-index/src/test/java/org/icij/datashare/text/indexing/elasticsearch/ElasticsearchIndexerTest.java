@@ -373,5 +373,10 @@ public class ElasticsearchIndexerTest {
         assertThat(((Document)documents[0]).getContent()).isEmpty();
     }
 
+    @Test
+    public void test_es_index_status() throws IOException {
+        assertThat(indexer.getHealth()).isTrue();
+    }
+
     public ElasticsearchIndexerTest() throws UnknownHostException {}
 }
