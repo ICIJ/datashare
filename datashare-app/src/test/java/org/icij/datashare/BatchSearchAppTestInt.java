@@ -66,7 +66,19 @@ public class BatchSearchAppTestInt {
 
     @Test
     public void test_main_loop_unknown_batch_id() {
-        when(batchSearchRunner.run("test")).thenThrow(new JooqBatchSearchRepository.BatchNotFoundException("test"));
+        when(batchSearchRunner.run("test")).thenThrow(new JooqBatchSearchRepository.BatchNotFoundException("test JooqBatchSearch"));
+        BatchSearchApp app = new BatchSearchApp(batchSearchRunner, batchSearchQueue);
+        batchSearchQueue.add("test");
+        batchSearchQueue.add(BatchSearchApp.POISON);
+
+        app.run();
+
+        verify(batchSearchRunner).run("test");
+    }
+
+    @Test
+    public void test_main_loop_runtime_exception() {
+        when(batchSearchRunner.run("test")).thenThrow(new RuntimeException("test runtime"));
         BatchSearchApp app = new BatchSearchApp(batchSearchRunner, batchSearchQueue);
         batchSearchQueue.add("test");
         batchSearchQueue.add(BatchSearchApp.POISON);

@@ -49,7 +49,7 @@ public class BatchSearchApp {
         String batchId = null;
         while (! POISON.equals(batchId)) {
             try {
-                batchId = batchSearchQueue.poll(30, TimeUnit.SECONDS);
+                batchId = batchSearchQueue.poll(60, TimeUnit.SECONDS);
                 if (batchId != null && !POISON.equals(batchId)) {
                     batchSearchRunner.run(batchId);
                 }
@@ -57,6 +57,8 @@ public class BatchSearchApp {
                logger.warn("batch was not executed : {}", notFound.toString());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
+            } catch (RuntimeException rex) {
+                logger.error("error during main loop", rex);
             }
         }
     }
