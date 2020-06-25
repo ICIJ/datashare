@@ -35,7 +35,7 @@ public interface Indexer extends Closeable {
     <T extends Entity> T get(String indexName, String id);
     <T extends Entity> T get(String indexName, String id, String root);
 
-    String executeRawSearch(String indexName, String rawJson) throws IOException;
+    String executeRaw(String url, String rawJson) throws IOException;
 
     // from Repository
     boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
