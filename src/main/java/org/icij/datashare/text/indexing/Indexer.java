@@ -8,7 +8,6 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.ion.IonException;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -35,6 +34,8 @@ public interface Indexer extends Closeable {
 
     <T extends Entity> T get(String indexName, String id);
     <T extends Entity> T get(String indexName, String id, String root);
+
+    String executeRawSearch(String indexName, String rawJson) throws IOException;
 
     // from Repository
     boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
