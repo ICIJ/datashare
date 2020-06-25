@@ -11,23 +11,13 @@ import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
-public class BatchSearch {
-    public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
+public class BatchSearch extends BatchSearchSummary {
 
-    public final String uuid;
-    public final boolean published;
-    public final Project project;
-    public final String name;
-    public final String description;
     public final LinkedHashMap<String, Integer> queries; // LinkedHashMap keeps insert order
-    public final State state;
-    public final User user;
-    private final Date date;
     public final List<String> fileTypes;
     public final List<String> paths;
     public final int fuzziness;
     public final boolean phraseMatches;
-    public final int nbResults;
     public final String errorMessage;
 
     // batch search creation
@@ -64,17 +54,8 @@ public class BatchSearch {
     // retrieved from persistence
     public BatchSearch(String uuid, Project project, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, User user,
                        int nbResults, boolean published, List<String> fileTypes, List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage) {
-        assert date != null && uuid != null;
-        this.uuid = uuid;
-        this.project = project;
-        this.name = name;
-        this.user = user;
-        this.description = description;
+        super(uuid,project,name,description,queries.size(),date,state,user,nbResults,published);
         this.queries = queries;
-        this.date = date;
-        this.state = state;
-        this.nbResults = nbResults;
-        this.published = published;
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
         this.paths = unmodifiableList(ofNullable(paths).orElse(new ArrayList<>()));
         this.fuzziness = fuzziness;
@@ -90,6 +71,11 @@ public class BatchSearch {
         return queries.stream().collect(toMap(identity(), i -> 0,
                 (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); },
                 LinkedHashMap::new));
+    }
+
+    @Override
+    public int getNbQueries(){
+        return queries.size();
     }
 
     @Override
