@@ -70,7 +70,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_with_projects() {
+    public void test_get_record_filter_by_project() {
         BatchSearch batchSearch1 = new BatchSearch(Project.project("prj1"), "name1", "description1",
                 asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         BatchSearch batchSearch2 = new BatchSearch(Project.project("prj2"), "name2", "description2",
@@ -79,8 +79,8 @@ public class JooqBatchSearchRepositoryTest {
         repository.save(batchSearch1);
         repository.save(batchSearch2);
 
-        assertThat(repository.get(User.local(), asList("prj1"))).containsExactly(batchSearch1);
-        assertThat(repository.get(User.local(), asList("prj2"))).containsExactly(batchSearch2);
+        assertThat(repository.getRecord(User.local(), asList("prj1")).get(0).uuid).isEqualTo(batchSearch1.uuid);
+        assertThat(repository.getRecord(User.local(), asList("prj2")).get(0).uuid).isEqualTo(batchSearch2.uuid);
     }
 
     @Test
