@@ -5,7 +5,7 @@ import org.icij.datashare.user.User;
 
 import java.util.*;
 
-public class BatchSearchSummary {
+public class BatchSearchRecord {
 
     public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
     public final String uuid;
@@ -20,13 +20,13 @@ public class BatchSearchSummary {
     public final int nbResults;
 
     // for tests
-    public BatchSearchSummary(final Project project, final String name, final String description, final int nbQueries, Date date) {
+    public BatchSearchRecord(final Project project, final String name, final String description, final int nbQueries, Date date) {
         this(UUID.randomUUID().toString(), project, name, description, nbQueries, date, State.QUEUED, User.local(),
                 0, false);
     }
 
-    public BatchSearchSummary(String uuid, Project project, String name, String description, int nbQueries, Date date, State state, User user,
-                              int nbResults, boolean published){
+    public BatchSearchRecord(String uuid, Project project, String name, String description, int nbQueries, Date date, State state, User user,
+                             int nbResults, boolean published){
         assert date != null && uuid != null;
         this.uuid = uuid;
         this.published = published;
@@ -41,6 +41,8 @@ public class BatchSearchSummary {
 
     }
 
+    public Date getDate() { return date;}
+
     public int getNbQueries(){
         return nbQueries;
     }
@@ -54,7 +56,7 @@ public class BatchSearchSummary {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        BatchSearchSummary that = (BatchSearchSummary) o;
+        BatchSearchRecord that = (BatchSearchRecord) o;
         return uuid.equals(that.uuid);
     }
 

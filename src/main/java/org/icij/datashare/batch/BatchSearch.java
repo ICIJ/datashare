@@ -11,7 +11,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
-public class BatchSearch extends BatchSearchSummary {
+public class BatchSearch extends BatchSearchRecord {
 
     public final LinkedHashMap<String, Integer> queries; // LinkedHashMap keeps insert order
     public final List<String> fileTypes;
@@ -63,7 +63,6 @@ public class BatchSearch extends BatchSearchSummary {
         this.errorMessage = errorMessage;
     }
 
-    public Date getDate() { return date;}
     @JsonIgnore
     public List<String> getQueryList() {return new ArrayList<>(queries.keySet());}
 
