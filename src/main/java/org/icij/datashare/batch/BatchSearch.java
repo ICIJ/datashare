@@ -73,11 +73,6 @@ public class BatchSearch extends BatchSearchRecord {
     }
 
     @Override
-    public int getNbQueries(){
-        return queries.size();
-    }
-
-    @Override
     public String toString() {
         return "BatchSearch{" + uuid + " name='" + name + '\'' + " (" + state + ")}";
     }
