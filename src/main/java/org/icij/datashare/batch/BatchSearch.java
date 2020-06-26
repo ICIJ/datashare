@@ -76,18 +76,4 @@ public class BatchSearch extends BatchSearchRecord {
     public String toString() {
         return "BatchSearch{" + uuid + " name='" + name + '\'' + " (" + state + ")}";
     }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        BatchSearch that = (BatchSearch) o;
-        return uuid.equals(that.uuid) && name.equals(that.name) &&
-                queries.equals(that.queries);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, description, queries);
-    }
 }
