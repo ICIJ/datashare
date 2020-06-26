@@ -3,6 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import com.google.inject.Inject;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
+import org.apache.http.util.EntityUtils;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -24,6 +25,7 @@ import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -85,8 +87,6 @@ public class ElasticsearchIndexer implements Indexer {
         client.close();
         LOGGER.info("Elasticsearch connections closed");
     }
-
-
 
     @Override
     public boolean bulkAdd(final String indexName, Pipeline.Type nerType, List<NamedEntity> namedEntities, Document parent) throws IOException {
@@ -155,6 +155,14 @@ public class ElasticsearchIndexer implements Indexer {
                 setRefreshPolicy(esCfg.refreshPolicy));
     }
 
+    @Override
+    public String executeRaw(String url, String rawJson) throws IOException {
+        Request request = new Request("POST", url);
+        request.setJsonEntity(rawJson);
+        Response response = client.getLowLevelClient().performRequest(request);
+        return EntityUtils.toString(response.getEntity());
+    }
+
     private IndexRequest createIndexRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
         IndexRequest req = new IndexRequest(index, esCfg.indexType, id);
 
@@ -207,11 +215,6 @@ public class ElasticsearchIndexer implements Indexer {
         } catch (ClassNotFoundException e) {
             LOGGER.error("no entity for type " + type);
         }
-        return null;
-    }
-
-    @Override
-    public String executeRaw(String url, String rawJson) throws IOException {
         return null;
     }
 

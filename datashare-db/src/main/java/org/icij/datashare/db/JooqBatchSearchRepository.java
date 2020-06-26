@@ -1,6 +1,5 @@
 package org.icij.datashare.db;
 
-import com.google.gson.internal.$Gson$Preconditions;
 import org.icij.datashare.batch.*;
 import org.icij.datashare.batch.BatchSearchRecord.State;
 import org.icij.datashare.db.tables.records.BatchSearchQueryRecord;

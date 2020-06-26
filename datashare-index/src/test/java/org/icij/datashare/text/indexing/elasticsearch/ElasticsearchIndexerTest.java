@@ -374,6 +374,17 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_execute_raw_search() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "my content",
+                        Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(),
+                        INDEXED, new HashSet<Pipeline.Type>() {{ add(OPENNLP);}}, 432L);
+        indexer.add(TEST_INDEX, doc);
+
+        assertThat(indexer.executeRaw(TEST_INDEX + "/_search", "{\"query\":{\"match_all\":{}}}")).contains("my content");
+        assertThat(indexer.executeRaw(TEST_INDEX + "/_search", "{\"query\":{\"match\":{\"content\":\"foo\"}}}")).doesNotContain("my content");
+    }
+
+    @Test
     public void test_es_index_status() throws IOException {
         assertThat(indexer.getHealth()).isTrue();
     }
