@@ -21,8 +21,6 @@ public interface BatchSearchRepository extends Closeable {
     boolean delete(User user, String batchId);
 
     BatchSearch get(String id);
-    List<BatchSearch> get(User user);
-    List<BatchSearch> get(User user, List<String> projectsIds);
     List<BatchSearchRecord> getRecord(User user, List<String> projectsIds);
     List<BatchSearch> getQueued();
     List<SearchResult> getResults(User user, String batchSearchId);
