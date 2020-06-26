@@ -49,7 +49,7 @@ public class BenchBatchSearch {
 
         logger.info("reading batch searches");
         beginTime = System.currentTimeMillis();
-        repository.get(User.local());
+       // repository.get(User.local());
         endTime = System.currentTimeMillis();
         logger.info("done in {}ms", endTime - beginTime);
     }

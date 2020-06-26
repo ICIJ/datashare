@@ -45,28 +45,25 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_save_and_get_batch_search() {
-        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"), "name1", "description1",
+        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name1", "description1",
                 asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),
                 3,true);
-        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name2", "description2",
-                asSet("q3", "q4"), new Date(new Date().getTime() + 1000000000));
 
-        repository.save(batchSearch1);
-        repository.save(batchSearch2);
+        repository.save(batchSearch);
 
-        List<BatchSearch> batchSearches = repository.get(User.local());
+        BatchSearch batchSearchFromGet = repository.get(batchSearch.uuid);
 
-        assertThat(project(batchSearches, b -> b.name)).containsExactly("name2", "name1");
-        assertThat(project(batchSearches, b -> b.published)).containsExactly(false, true);
-        assertThat(project(batchSearches, b -> b.fileTypes)).containsExactly(emptyList(), asList("application/json", "image/jpeg"));
-        assertThat(project(batchSearches, b -> b.paths)).containsExactly(emptyList(), asList("/path/to/docs", "/path/to/pdfs"));
-        assertThat(project(batchSearches, b -> b.fuzziness)).containsExactly(0, 3);
-        assertThat(project(batchSearches, b -> b.description)).containsExactly("description2", "description1");
-        assertThat(project(batchSearches, b -> b.nbResults)).containsExactly(0, 0);
-        assertThat(project(batchSearches, b ->b.phraseMatches)).containsExactly(false,true);
-        assertThat(project(batchSearches, BatchSearch::getQueryList)).containsExactly(asList("q3", "q4"), asList("q1", "q2"));
+        assertThat(batchSearchFromGet.name).isEqualTo(batchSearch.name);
+        assertThat(batchSearchFromGet.published).isEqualTo(batchSearch.published);
+        assertThat(batchSearchFromGet.fileTypes).isEqualTo(batchSearch.fileTypes);
+        assertThat(batchSearchFromGet.paths).isEqualTo(batchSearch.paths);
+        assertThat(batchSearchFromGet.fuzziness).isEqualTo(batchSearch.fuzziness);;
+        assertThat(batchSearchFromGet.description).isEqualTo(batchSearch.description);
+        assertThat(batchSearchFromGet.nbResults).isEqualTo(batchSearch.nbResults);
+        assertThat(batchSearchFromGet.phraseMatches).isEqualTo(batchSearch.phraseMatches);
+        assertThat(batchSearchFromGet.queries).isEqualTo(batchSearch.queries);
 
-        assertThat(project(repository.get(new User("other")), b -> b.name)).containsExactly("name1");
+        assertThat(batchSearchFromGet.user).isEqualTo(User.local());
     }
 
     @Test
@@ -162,9 +159,9 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("q1", "q2"), new Date());
         repository.save(batchSearch);
 
-        assertThat(repository.get(User.local()).get(0).state).isEqualTo(State.QUEUED);
+        assertThat(repository.get(batchSearch.uuid).state).isEqualTo(State.QUEUED);
         assertThat(repository.setState(batchSearch.uuid, State.RUNNING)).isTrue();
-        assertThat(repository.get(User.local()).get(0).state).isEqualTo(State.RUNNING);
+        assertThat(repository.get(batchSearch.uuid).state).isEqualTo(State.RUNNING);
     }
 
     @Test
@@ -312,8 +309,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.deleteAll(User.local())).isTrue();
         assertThat(repository.deleteAll(User.local())).isFalse();
 
-        assertThat(repository.get(new User("foo"))).hasSize(1);
-        assertThat(repository.get(User.local())).hasSize(0);
+        assertThat(repository.get(batchSearch2.uuid)).isNotNull();
         assertThat(repository.getResults(User.local(), batchSearch1.uuid)).hasSize(0);
     }
 
@@ -327,7 +323,6 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.delete(User.local(), batchSearch1.uuid)).isTrue();
         assertThat(repository.delete(User.local(), batchSearch1.uuid)).isFalse();
 
-        assertThat(repository.get(User.local())).isEmpty();
         assertThat(repository.getResults(User.local(), batchSearch1.uuid)).hasSize(0);
     }
 
@@ -341,7 +336,7 @@ public class JooqBatchSearchRepositoryTest {
 
         assertThat(repository.delete(User.local(), batchSearch.uuid)).isFalse();
 
-        assertThat(repository.get(foo)).hasSize(1);
+        assertThat(repository.get(batchSearch.uuid)).isNotNull();
         assertThat(repository.getResults(foo, batchSearch.uuid)).hasSize(4);
     }
 
