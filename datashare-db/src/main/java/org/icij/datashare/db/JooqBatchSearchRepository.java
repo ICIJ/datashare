@@ -155,12 +155,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<BatchSearchRecord> getRecord(User user, List<String> projectsIds) {
-        return mergeBatchSearchRecords(
-                createBatchSearchRecordWithQueriesSelectStatement(DSL.using(dataSource,dialect))
+        return createBatchSearchRecordWithQueriesSelectStatement(DSL.using(dataSource,dialect))
                 .where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).
                         or(BATCH_SEARCH.PUBLISHED.greaterThan(0))))
-                .orderBy(BATCH_SEARCH.BATCH_DATE.desc(), BATCH_SEARCH_QUERY.QUERY_NUMBER).
-                fetch().stream().map(this::createBatchSearchRecordFrom).collect(toList()));
+                .orderBy(BATCH_SEARCH.BATCH_DATE.desc()).
+                fetch().stream().map(this::createBatchSearchRecordFrom).collect(toList());
     }
 
     @Override
@@ -226,16 +225,6 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
-    private List<BatchSearchRecord> mergeBatchSearchRecords(final List<BatchSearchRecord> flatBatchSearchSummaries) {
-        Map<String, List<BatchSearchRecord>> collect = flatBatchSearchSummaries.stream().collect(groupingBy(bss -> bss.uuid));
-        return collect.values().stream().map(batchSearchSummaries ->
-                new BatchSearchRecord(batchSearchSummaries.get(0).uuid, batchSearchSummaries.get(0).project, batchSearchSummaries.get(0).name, batchSearchSummaries.get(0).description,
-                        batchSearchSummaries.get(0).getNbQueries(),
-                        batchSearchSummaries.get(0).date,
-                        batchSearchSummaries.get(0).state, batchSearchSummaries.get(0).user, batchSearchSummaries.get(0).nbResults, batchSearchSummaries.get(0).published)).
-                sorted(comparing(BatchSearchRecord::getDate).reversed()).collect(toList());
-    }
-
     private SelectJoinStep<Record17<String, String, String, String, String, Timestamp, String, Integer, String, String, Integer, Integer, Integer, String, String, Integer, Integer>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
         return create.select(
@@ -259,7 +248,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 from(BATCH_SEARCH.join(BATCH_SEARCH_QUERY).on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_QUERY.SEARCH_UUID)));
     }
 
-    private SelectJoinStep<Record10<String, String, String, String, String, Timestamp, String, Integer, Integer, Integer>>
+    private SelectJoinStep<Record10<String, String, String, String, String, Timestamp, String, Integer, Integer, Object>>
     createBatchSearchRecordWithQueriesSelectStatement(DSLContext create) {
         return create.select(
                 BATCH_SEARCH.UUID,
@@ -271,8 +260,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 BATCH_SEARCH.STATE,
                 BATCH_SEARCH.PUBLISHED,
                 BATCH_SEARCH.BATCH_RESULTS,
-                BATCH_SEARCH_QUERY.QUERY_NUMBER).
-                from(BATCH_SEARCH.join(BATCH_SEARCH_QUERY).on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_QUERY.SEARCH_UUID)));
+                create.selectCount().from(BATCH_SEARCH_QUERY).where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(BATCH_SEARCH.UUID)).asField("nbQueries")).
+                from(BATCH_SEARCH);
     }
 
     private BatchSearch createBatchSearchFrom(final Record record) {
@@ -300,16 +289,18 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     private BatchSearchRecord createBatchSearchRecordFrom(final Record record) {
-        return new BatchSearchRecord(record.get(BATCH_SEARCH.UUID).trim(),
-                project(record.getValue(BATCH_SEARCH.PRJ_ID)),
-                record.getValue(BATCH_SEARCH.NAME),
-                record.getValue(BATCH_SEARCH.DESCRIPTION),
-                record.getValue(BATCH_SEARCH_QUERY.QUERY_NUMBER),
-                Date.from(record.get(BATCH_SEARCH.BATCH_DATE).toInstant()),
-                State.valueOf(record.get(BATCH_SEARCH.STATE)),
-                new User(record.get(BATCH_SEARCH.USER_ID)),
-                record.get(BATCH_SEARCH.BATCH_RESULTS),
-                record.get(BATCH_SEARCH.PUBLISHED) > 0);
+        Object nbQueries = record.getValue("nbQueries");
+        org.icij.datashare.db.tables.records.BatchSearchRecord batchSearch = record.into(BATCH_SEARCH);
+        return new BatchSearchRecord(batchSearch.getUuid(),
+                project(batchSearch.getPrjId()),
+                batchSearch.getName(),
+                batchSearch.getDescription(),
+                (int) nbQueries,
+                Date.from(batchSearch.getBatchDate().toInstant()),
+                State.valueOf(batchSearch.getState()),
+                new User(batchSearch.getUserId()),
+                batchSearch.getBatchResults(),
+                batchSearch.getPublished() > 0);
     }
 
     private SearchResult createSearchResult(final User actualUser, final Record record) {

@@ -81,8 +81,26 @@ public class JooqBatchSearchRepositoryTest {
 
         assertThat(repository.get(User.local(), asList("prj1"))).containsExactly(batchSearch1);
         assertThat(repository.get(User.local(), asList("prj2"))).containsExactly(batchSearch2);
-        assertThat(repository.getRecord(User.local(), asList("prj1"))).toString().contains(batchSearch1.uuid);
-        assertThat(repository.getRecord(User.local(), asList("prj2"))).toString().contains(batchSearch2.uuid);
+    }
+
+    @Test
+    public void test_get_records() {
+        BatchSearch batchSearch = new BatchSearch(Project.project("prj"),"name","description",asSet("q1", "q2"), User.local(),
+                true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+        repository.save(batchSearch);
+
+        List<BatchSearchRecord> batchSearchRecords = repository.getRecord(User.local(),asList("prj"));
+        assertThat(batchSearchRecords).hasSize(1);
+        BatchSearchRecord actual = batchSearchRecords.get(0);
+        assertThat(actual.getNbQueries()).isEqualTo(2);
+        assertThat(actual.name).isEqualTo(batchSearch.name);
+        assertThat(actual.description).isEqualTo(batchSearch.description);
+        assertThat(actual.project).isEqualTo(batchSearch.project);
+        assertThat(actual.user).isEqualTo(batchSearch.user);
+        assertThat(actual.published).isEqualTo(batchSearch.published);
+        assertThat(actual.date).isEqualTo(batchSearch.date);
+        assertThat(actual.state).isEqualTo(batchSearch.state);
+        assertThat(actual.nbResults).isEqualTo(batchSearch.nbResults);
     }
 
     @Test
