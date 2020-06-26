@@ -145,7 +145,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_batch_searches_json() {
-        when(batchSearchRepository.get(User.local(), singletonList("local-datashare"))).thenReturn(asList(
+        when(batchSearchRepository.getRecord(User.local(), singletonList("local-datashare"))).thenReturn(asList(
                 new BatchSearch(project("prj"), "name1", "description1", asSet("query 1", "query 2"), User.local()),
                 new BatchSearch(project("prj"), "name2", "description2", asSet("query 3", "query 4"), User.local())
         ));

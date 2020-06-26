@@ -9,6 +9,7 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.HashMapUser;
@@ -53,9 +54,9 @@ public class BatchSearchResource {
      * $(curl localhost:8080/api/batch/search )
      */
     @Get("/search")
-    public List<BatchSearch> getSearches(Context context) {
+    public List<BatchSearchRecord> getSearches(Context context) {
         HashMapUser user = (HashMapUser) context.currentUser();
-        return batchSearchRepository.get(user, user.getProjects());
+        return batchSearchRepository.getRecord(user, user.getProjects());
     }
 
     /**

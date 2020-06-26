@@ -1,10 +1,7 @@
 package org.icij.datashare.db;
 
-import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearch.State;
-import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.batch.SearchException;
-import org.icij.datashare.batch.SearchResult;
+import org.icij.datashare.batch.*;
+import org.icij.datashare.batch.BatchSearchRecord.State;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -84,6 +81,8 @@ public class JooqBatchSearchRepositoryTest {
 
         assertThat(repository.get(User.local(), asList("prj1"))).containsExactly(batchSearch1);
         assertThat(repository.get(User.local(), asList("prj2"))).containsExactly(batchSearch2);
+        assertThat(repository.getRecord(User.local(), asList("prj1"))).toString().contains(batchSearch1.uuid);
+        assertThat(repository.getRecord(User.local(), asList("prj2"))).toString().contains(batchSearch2.uuid);
     }
 
     @Test

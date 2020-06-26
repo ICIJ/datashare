@@ -211,6 +211,11 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public String executeRaw(String url, String rawJson) throws IOException {
+        return null;
+    }
+
+    @Override
     public boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException {
         return tagUntag(prj, documentId, rootDocument, createTagScript(tags));
     }
