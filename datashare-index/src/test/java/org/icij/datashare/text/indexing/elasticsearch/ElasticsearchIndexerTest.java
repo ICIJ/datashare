@@ -392,8 +392,8 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_execute_raw_with_options() throws Exception {
-        assertThat(indexer.executeRaw("OPTIONS", TEST_INDEX, "")).isEqualTo("PUT,HEAD,DELETE,GET");
-        assertThat(indexer.executeRaw("OPTIONS", TEST_INDEX, null)).isEqualTo("PUT,HEAD,DELETE,GET");
+        assertThat(indexer.executeRaw("OPTIONS", TEST_INDEX, "").split(",")).containsOnly("PUT","HEAD","DELETE","GET");
+        assertThat(indexer.executeRaw("OPTIONS", TEST_INDEX, null).split(",")).containsOnly("PUT","HEAD","DELETE","GET");
     }
 
     @Test
