@@ -1,73 +1,84 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.WebServer;
 import net.codestory.http.filters.basic.BasicAuthFilter;
-import net.codestory.http.misc.Env;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.mockito.Mock;
 
+import java.io.IOException;
 import java.util.HashMap;
 
-import static org.icij.datashare.web.IndexResource.getQueryAsString;
-import static org.mockito.Mockito.verify;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
-    private static WebServer mockElastic = new WebServer() {
-        @Override
-        protected Env createEnv() {
-            return Env.prod();
-        }
-    }.startOnRandomPort();
-    @Mock Indexer mockIndexer;
+    @ClassRule public static ElasticsearchRule esRule = new ElasticsearchRule(TEST_INDEX);
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(esRule.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
 
     @Test
     public void test_no_auth_get_forward_request_to_elastic() {
-        get("/api/index/search/local-datashare/_search/foo/bar").should().respond(200)
-                .contain("I am elastic GET")
-                .contain("uri=local-datashare/_search/foo/bar");
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(new PropertiesProvider(new HashMap<String, String>() {{
+            put("defaultUserName", "test");
+        }}))));
+        get("/api/index/search/test-datashare/_search").should().respond(200).contain("\"successful\":1");
+    }
+
+    @Test
+    public void test_no_auth_get_forward_request_to_elastic_if_granted_to_read_index() {
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(new PropertiesProvider(new HashMap<String, String>() {{
+            put("defaultUserName", "test");
+        }}))));
+        get("/api/index/search/unauthorized/_search").should().respond(401);
     }
     @Test
     public void test_no_auth_get_unauthorized_on_unknown_index() {
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(LocalUserFilter.class));
         get("/api/index/search/hacker/bar/baz").should().respond(401);
     }
     @Test
-    public void test_no_auth_post_forward_request_to_elastic_with_body() {
-        String body = "{\"body\": \"es\"}";
-        post("/api/index/search/local-datashare/_search", body).should().respond(200)
-                        .contain("I am elastic POST")
-                        .contain("uri=local-datashare/_search")
-                        .contain(body);
+    public void test_put_create_local_index_in_local_mode() {
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(LocalUserFilter.class));
+        put("/api/index/index_name").should().respond(201);
     }
     @Test
-    public void test_auth_forward_request_with_user_logged_on() {
-        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
-            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
+    public void test_no_auth_post_forward_request_to_elastic_with_body() {
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(new PropertiesProvider(new HashMap<String, String>() {{
+            put("defaultUserName", "test");
+        }}))));
+        post("/api/index/search/test-datashare/_search", "{}").should().respond(200).contain("\"successful\":1");
+    }
 
-        get("/api/index/search/cecile-datashare/_search/foo/bar?routing=baz").withPreemptiveAuthentication("cecile", "").should().respond(200)
-                .contain("uri=cecile-datashare/_search/foo/bar?routing=baz");
+    @Test
+    public void test_delete_should_return_method_not_allowed() {
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(LocalUserFilter.class));
+        delete("/api/index/search/foo/bar").should().respond(405);
+    }
+
+    @Test
+    public void test_auth_forward_request_with_user_logged_on() throws IOException {
+        indexer.add("cecile-datashare", DocumentBuilder.createDoc("1234567890abcdef").withRootId("rootId").build());
+        get("/api/index/search/cecile-datashare/_search?routing=rootId").withPreemptiveAuthentication("cecile", "").should().
+                respond(200).contain("1234567890abcdef");
 
         get("/api/index/search/hacker/foo/bar?routing=baz").withPreemptiveAuthentication("cecile", "").should().respond(401);
         post("/api/index/search/hacker/foo/bar").withPreemptiveAuthentication("cecile", "").should().respond(401);
     }
 
     @Test
-    public void test_auth_forward_request_with_user_logged_on_only_allow_search_and_count_on_post() {
-        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
-            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
-
+    public void test_auth_forward_request_with_user_logged_on_only_allow_search_and_count_on_post() throws IOException {
+        indexer.add("cecile-datashare", DocumentBuilder.createDoc("1234567890abcdef").build());
         post("/api/index/search/cecile-datashare/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
         post("/api/index/search/cecile-datashare/doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
         get("/api/index/search/cecile-datashare/doc/1234567890abcdef").withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/cecile-datashare/_search/scroll").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/_search/scroll", "{\"scroll_id\":\"DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAAAD4WYm9laVYtZndUQlNsdDcwakFMNjU1QQ\"}").withPreemptiveAuthentication("cecile", "").should().respond(500);
         post("/api/index/search/cecile-datashare/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
 
         post("/api/index/search/cecile-datashare/_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(401);
@@ -75,52 +86,29 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_auth_forward_request_for_scroll_requests() {
-        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
-            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
-
-        post("/api/index/search/_search/scroll?scroll_id=scroll_id").withPreemptiveAuthentication("cecile", "").should().respond(200);
-    }
-
-    @Test
-    public void test_delete_should_return_method_not_allowed() {
-        delete("/api/index/search/foo/bar").should().respond(405);
+        post("/api/index/search/_search/scroll?scroll_id=DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAAAD4WYm9laVYtZndUQlNsdDcwakFMNjU1QQ").withPreemptiveAuthentication("cecile", "").should().respond(500);
     }
 
     @Test
     public void test_put_should_return_method_not_allowed() {
-        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
-            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
-
         put("/api/index/search/cecile-datashare/_search").withPreemptiveAuthentication("cecile", "pass").should().respond(405);
     }
 
     @Test
-    public void test_put_create_local_index_in_local_mode() throws Exception {
-        put("/api/index/indexName").should().respond(200);
-        verify(mockIndexer).createIndex("indexName");
-    }
-
-    @Test
-    public void test_put_createIndex_calls_indexer() throws Exception {
-        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
-            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-        }}), mockIndexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
-        put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(200);
-        verify(mockIndexer).createIndex("cecile-datashare");
+    public void test_put_createIndex() {
+        put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(201);
     }
 
     @Before
     public void setUp() {
-        initMocks(this);
-        configure(routes -> routes.add(new IndexResource(new PropertiesProvider(new HashMap<String, String>() {{
-            put("elasticsearchAddress", "http://localhost:" + mockElastic.port());
-        }}), mockIndexer)).filter(new LocalUserFilter(new PropertiesProvider())));
-        mockElastic.configure(routes -> routes
-            .get("/:uri:", (context, uri) -> "I am elastic GET uri=" + uri + "?" + getQueryAsString(context.query()))
-            .post("/:uri:", (context, uri) -> "I am elastic POST uri=" + uri + " " + new String(context.request().contentAsBytes()))
-        );
+        configure(routes ->
+                routes.add(new IndexResource(indexer)).
+                filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        esRule.delete("cecile-datashare", "index_name");
     }
 }
 

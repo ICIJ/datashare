@@ -156,8 +156,8 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public String executeRaw(String url, String rawJson) throws IOException {
-        Request request = new Request("POST", url);
+    public String executeRaw(String method, String url, String rawJson) throws IOException {
+        Request request = new Request(method, url);
         request.setJsonEntity(rawJson);
         Response response = client.getLowLevelClient().performRequest(request);
         return EntityUtils.toString(response.getEntity());

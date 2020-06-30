@@ -380,8 +380,8 @@ public class ElasticsearchIndexerTest {
                         INDEXED, new HashSet<Pipeline.Type>() {{ add(OPENNLP);}}, 432L);
         indexer.add(TEST_INDEX, doc);
 
-        assertThat(indexer.executeRaw(TEST_INDEX + "/_search", "{\"query\":{\"match_all\":{}}}")).contains("my content");
-        assertThat(indexer.executeRaw(TEST_INDEX + "/_search", "{\"query\":{\"match\":{\"content\":\"foo\"}}}")).doesNotContain("my content");
+        assertThat(indexer.executeRaw("POST", TEST_INDEX + "/_search", "{\"query\":{\"match_all\":{}}}")).contains("my content");
+        assertThat(indexer.executeRaw("POST", TEST_INDEX + "/_search", "{\"query\":{\"match\":{\"content\":\"foo\"}}}")).doesNotContain("my content");
     }
 
     @Test

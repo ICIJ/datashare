@@ -6,17 +6,11 @@ import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import okhttp3.*;
-import okio.BufferedSink;
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.HashMapUser;
 import org.icij.datashare.text.indexing.Indexer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.join;
 import static java.util.stream.Collectors.toList;
@@ -26,16 +20,10 @@ import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfig
 
 @Prefix("/api/index")
 public class IndexResource {
-    private final String es_url;
     private final Indexer indexer;
-    private OkHttpClient http = new OkHttpClient.Builder().
-            readTimeout(60, TimeUnit.SECONDS).
-            writeTimeout(60, TimeUnit.SECONDS).build();
-    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Inject
-    public IndexResource(PropertiesProvider propertiesProvider, Indexer indexer) {
-        this.es_url = propertiesProvider.get("elasticsearchAddress").orElse("http://elasticsearch:9200");
+    public IndexResource(Indexer indexer) {
         this.indexer = indexer;
     }
 
@@ -80,16 +68,7 @@ public class IndexResource {
       */
     @Post("/search/:path:")
     public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
-        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).post(new RequestBody() {
-            @Override
-            public MediaType contentType() {
-                return MediaType.parse(request.contentType());
-            }
-            @Override
-            public void writeTo(BufferedSink bufferedSink) throws IOException {
-                bufferedSink.write(request.contentAsBytes());
-            }
-        }).build()).execute());
+        return createPayload(indexer.executeRaw("POST", checkPath(path, context), request.content()));
     }
 
     /**
@@ -112,12 +91,11 @@ public class IndexResource {
         byte[] getBody = context.request().contentAsBytes();
         if (getBody != null && getBody.length > 0) {
             // hack to remove when we will upgrade elasticsearch-py/ES to v7
-            url = es_url + "/" + path;
-            url += "?source_content_type=application%2Fjson&source=" + URLEncoder.encode(new String(getBody), "utf-8");
+            url = path + "?source_content_type=application%2Fjson&source=" + URLEncoder.encode(new String(getBody), "utf-8");
         } else {
-            url = getUrl(path, context);
+            url = checkPath(path, context);
         }
-        return createPayload(http.newCall(new Request.Builder().url(url).get().build()).execute());
+        return createPayload(indexer.executeRaw("GET", url, ""));
     }
 
     /**
@@ -128,7 +106,7 @@ public class IndexResource {
      */
     @Head("/search/:path:")
     public Payload esHead(final String path, Context context) throws IOException {
-        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).head().build()).execute());
+        return createPayload(indexer.executeRaw("HEAD", checkPath(path, context), ""));
     }
 
     /**
@@ -139,13 +117,13 @@ public class IndexResource {
      */
     @Options("/search/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
-        return createPayload(http.newCall(new Request.Builder().url(getUrl(path, context)).method("OPTIONS", null).build()).execute());
+        return createPayload(indexer.executeRaw("OPTIONS", checkPath(path, context), ""));
     }
 
-    private String getUrl(String path, Context context) {
+    private String checkPath(String path, Context context) {
         String[] pathParts = path.split("/");
         if ("_search".equals(pathParts[0]) && "scroll".equals(pathParts[1])) {
-            return getUrlString(context, es_url + "/" + path);
+            return getUrlString(context, path);
         }
         String index = pathParts[0];
         if (((HashMapUser)context.currentUser()).isGranted(index) &&
@@ -153,7 +131,7 @@ public class IndexResource {
                         "_search".equals(pathParts[1]) ||
                         "_count".equals(pathParts[1]) ||
                         (pathParts.length >=3 && DEFAULT_INDEX_TYPE.equals(pathParts[1]) && "_search".equals(pathParts[2])))) {
-            return getUrlString(context, es_url + "/" + path);
+            return getUrlString(context, path);
         }
         throw new UnauthorizedException();
     }
@@ -169,11 +147,7 @@ public class IndexResource {
         return join("&", query.keyValues().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(toList()));
     }
 
-    private Payload createPayload(Response esResponse) throws IOException {
-        String responseBody = esResponse.body().string();
-        if (!esResponse.isSuccessful()) {
-            logger.warn("Elasticsearch error response ({}): {}", esResponse.code(), responseBody);
-        }
-        return new Payload(esResponse.header("Content-Type"), responseBody, esResponse.code());
+    private Payload createPayload(String responseBody) {
+        return new Payload("application/json", responseBody);
     }
 }

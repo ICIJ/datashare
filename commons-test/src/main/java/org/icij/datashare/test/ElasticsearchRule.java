@@ -5,9 +5,7 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.*;
 import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
@@ -51,10 +49,18 @@ public class ElasticsearchRule extends ExternalResource {
     @Override
     protected void after() {
         try {
-            client.indices().delete(new DeleteIndexRequest(indexName));
+            client.indices().delete(new DeleteIndexRequest(indexName), RequestOptions.DEFAULT);
             client.close();
         } catch (IOException e) {
             printStackTrace(e);
+        }
+    }
+
+    public void delete(String... indices) throws IOException {
+        for (String index: indices) {
+            Request request = new Request("DELETE", index);
+            request.addParameter("ignore_unavailable", "true");
+            client.getLowLevelClient().performRequest(request);
         }
     }
 
