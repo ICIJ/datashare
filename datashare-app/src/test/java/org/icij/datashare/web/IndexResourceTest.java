@@ -61,7 +61,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(new PropertiesProvider(new HashMap<String, String>() {{
             put("defaultUserName", "test");
         }}))));
-        options("/api/index/search/test-datashare").should().respond(200).haveHeader("Access-Control-Allow-Methods", "HEAD, DELETE, GET");
+        options("/api/index/search/test-datashare").should().respond(200);
     }
 
     @Test
