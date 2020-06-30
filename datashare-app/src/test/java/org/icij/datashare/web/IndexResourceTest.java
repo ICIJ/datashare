@@ -57,6 +57,14 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_no_auth_options_forward_request_to_elastic() {
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(new PropertiesProvider(new HashMap<String, String>() {{
+            put("defaultUserName", "test");
+        }}))));
+        options("/api/index/search/test-datashare").should().respond(200).haveHeader("Access-Control-Allow-Methods", "HEAD, DELETE, GET");
+    }
+
+    @Test
     public void test_delete_should_return_method_not_allowed() {
         configure(routes -> routes.add(new IndexResource(indexer)).filter(LocalUserFilter.class));
         delete("/api/index/search/foo/bar").should().respond(405);

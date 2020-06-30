@@ -1,6 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import com.google.inject.Inject;
+import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
@@ -158,9 +159,15 @@ public class ElasticsearchIndexer implements Indexer {
     @Override
     public String executeRaw(String method, String url, String rawJson) throws IOException {
         Request request = new Request(method, url);
-        request.setJsonEntity(rawJson);
+        if (rawJson != null && !rawJson.isEmpty()) {
+            request.setJsonEntity(rawJson);
+        }
         Response response = client.getLowLevelClient().performRequest(request);
-        return EntityUtils.toString(response.getEntity());
+        if ("OPTIONS".equals(method)) {
+            return response.getHeader("Allow");
+        }
+        HttpEntity entity = response.getEntity();
+        return entity != null ? EntityUtils.toString(entity):null;
     }
 
     private IndexRequest createIndexRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {

@@ -385,6 +385,18 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_execute_raw_with_head() throws Exception {
+        assertThat(indexer.executeRaw("HEAD", TEST_INDEX, "")).isNull();
+        assertThat(indexer.executeRaw("HEAD", TEST_INDEX, null)).isNull();
+    }
+
+    @Test
+    public void test_execute_raw_with_options() throws Exception {
+        assertThat(indexer.executeRaw("OPTIONS", TEST_INDEX, "")).isEqualTo("PUT,HEAD,DELETE,GET");
+        assertThat(indexer.executeRaw("OPTIONS", TEST_INDEX, null)).isEqualTo("PUT,HEAD,DELETE,GET");
+    }
+
+    @Test
     public void test_es_index_status() throws IOException {
         assertThat(indexer.getHealth()).isTrue();
     }

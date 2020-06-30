@@ -52,6 +52,17 @@ public class IndexResource {
     }
 
     /**
+     * Head request useful for JS api (for example to test if an index exists)
+     *
+     * @param path
+     * @return 200
+     */
+    @Head("/search/:path:")
+    public Payload esHead(final String path) throws IOException {
+        return new Payload(indexer.executeRaw("HEAD", path, null));
+    }
+
+    /**
       * The search endpoint is just a proxy in front of Elasticsearch, everything sent is forwarded to Elasticsearch. DELETE method is not allowed.
       *
       * Path can be of the form :
@@ -99,17 +110,6 @@ public class IndexResource {
     }
 
     /**
-     * Head request useful for JS api (for example to test if an index exists)
-     *
-     * @param path
-     * @return 200
-     */
-    @Head("/search/:path:")
-    public Payload esHead(final String path, Context context) throws IOException {
-        return createPayload(indexer.executeRaw("HEAD", checkPath(path, context), ""));
-    }
-
-    /**
      * Prefligth option request
      *
      * @param path
@@ -117,7 +117,7 @@ public class IndexResource {
      */
     @Options("/search/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
-        return createPayload(indexer.executeRaw("OPTIONS", checkPath(path, context), ""));
+        return ok().withAllowMethods(indexer.executeRaw("OPTIONS", path, null).split(","));
     }
 
     private String checkPath(String path, Context context) {
