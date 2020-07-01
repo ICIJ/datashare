@@ -14,7 +14,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Prefix("/api/status")
+@Prefix("/api")
 public class StatusResource {
     Logger logger = LoggerFactory.getLogger(getClass());
     private PropertiesProvider propertiesProvider;
@@ -34,11 +34,17 @@ public class StatusResource {
     }
 
     /**
+     * Retrieve the status of databus connection, database connection, shared queues and index.
+     * Adding "format=openmetrics" parameter to the url will return the status witn openmetrics format.
      *
+     * @return the status of datashare elements
      *
-     * @return
+     * Example:
+     * $(curl localhost:8080/api/status)
+     *
+     * $(curl localhost:8080/api/status?format=openmetrics)
      */
-    @Get()
+    @Get("/status")
     public Payload getStatus(Context context) {
         boolean queueStatus = false;
         int queueSize = 0;
