@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -7,6 +8,7 @@ import org.icij.datashare.session.HashMapUser;
 
 import java.util.Map;
 
+@Singleton
 @Prefix("/api/users")
 public class UserResource {
     /**

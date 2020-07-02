@@ -2,6 +2,7 @@ package org.icij.datashare.web;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
@@ -43,6 +44,7 @@ import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
+@Singleton
 @Prefix("/api/task")
 public class TaskResource {
     private Logger logger = LoggerFactory.getLogger(getClass());

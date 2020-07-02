@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -13,6 +14,7 @@ import java.util.List;
 
 import static org.icij.datashare.text.Project.project;
 
+@Singleton
 @Prefix("/api")
 public class NoteResource {
     private final Repository repository;

@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.errors.ForbiddenException;
@@ -31,6 +32,7 @@ import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
 
+@Singleton
 @Prefix("/api")
 public class DocumentResource {
     private final Repository repository;

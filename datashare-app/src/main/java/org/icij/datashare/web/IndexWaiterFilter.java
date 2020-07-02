@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
@@ -17,6 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Warning the waiter could block the JVM if it has not pinged ES
  */
+@Singleton
 public class IndexWaiterFilter implements Filter {
     private Logger LOGGER = LoggerFactory.getLogger(getClass());
     private static int TIMEOUT_SECONDS = 45;

@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.Part;
 import net.codestory.http.annotations.*;
@@ -32,6 +33,7 @@ import static net.codestory.http.payload.Payload.*;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.Project.project;
 
+@Singleton
 @Prefix("/api/batch")
 public class BatchSearchResource {
     private final BatchSearchRepository batchSearchRepository;

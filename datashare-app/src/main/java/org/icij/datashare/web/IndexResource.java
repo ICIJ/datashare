@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
@@ -18,6 +19,7 @@ import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_INDEX_TYPE;
 
+@Singleton
 @Prefix("/api/index")
 public class IndexResource {
     private final Indexer indexer;

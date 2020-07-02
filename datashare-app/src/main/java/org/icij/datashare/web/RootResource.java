@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -23,13 +24,16 @@ import java.util.Properties;
 import static org.apache.commons.io.IOUtils.copy;
 import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR;
 
+@Singleton
 @Prefix("/")
 public class RootResource {
     public static final String INDEX_HTML = "index.html";
     private final PropertiesProvider propertiesProvider;
 
     @Inject
-    public RootResource(PropertiesProvider propertiesProvider) {this.propertiesProvider = propertiesProvider;}
+    public RootResource(PropertiesProvider propertiesProvider) {
+        this.propertiesProvider = propertiesProvider;
+    }
 
     /**
      * gets the root of the front-end app ie: ./app/index.html

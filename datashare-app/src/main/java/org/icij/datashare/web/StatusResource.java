@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -14,6 +15,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Singleton
 @Prefix("/api")
 public class StatusResource {
     Logger logger = LoggerFactory.getLogger(getClass());

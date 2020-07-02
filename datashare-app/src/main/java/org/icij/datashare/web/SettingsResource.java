@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Options;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 import static net.codestory.http.payload.Payload.ok;
 
+@Singleton
 @Prefix("/api/settings")
 public class SettingsResource {
     Logger logger = LoggerFactory.getLogger(getClass());

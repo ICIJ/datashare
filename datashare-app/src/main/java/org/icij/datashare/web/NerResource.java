@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
@@ -17,6 +18,7 @@ import java.util.Set;
 
 import static java.util.Collections.emptyList;
 
+@Singleton
 @Prefix("/api/ner")
 public class NerResource {
     private final PipelineRegistry pipelineRegistry;

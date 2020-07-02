@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Delete;
 import net.codestory.http.annotations.Get;
@@ -15,6 +16,7 @@ import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
 
+@Singleton
 @Prefix("/api/project")
 public class ProjectResource {
     private final Repository repository;

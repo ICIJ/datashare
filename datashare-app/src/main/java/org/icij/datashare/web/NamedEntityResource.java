@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Prefix;
@@ -17,6 +18,7 @@ import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
 
+@Singleton
 @Prefix("/api")
 public class NamedEntityResource {
     private final Indexer indexer;
