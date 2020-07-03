@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 30
+      author: bthomas
+      changes:
+         - createTable:
+            tableName: api_key
+            columns:
+                - column:
+                    name: id
+                    type: varchar(96)
+                    constraints:
+                        primaryKey: true
+                - column:
+                    name: user_id
+                    type: varchar(96)
+                    constraints:
+                        nullable:  false
+                        unique: true
+                - column:
+                    name: creation_date
+                    type: datetime
+                    constraints:
+                        nullable:  false

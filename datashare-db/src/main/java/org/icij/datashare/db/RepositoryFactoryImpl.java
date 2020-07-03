@@ -33,6 +33,9 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     public Repository createRepository() {
         return createRepository(JooqRepository::new);
     }
+    public JooqApiKeyRepository createApiKeyRepository() {
+        return createRepository(JooqApiKeyRepository::new);
+    }
 
     public JooqBatchSearchRepository createBatchSearchRepository() {
         return createRepository(JooqBatchSearchRepository::new);

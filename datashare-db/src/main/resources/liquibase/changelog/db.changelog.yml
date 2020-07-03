@@ -56,3 +56,6 @@ databaseChangeLog:
   - include:
       file: changes/018-create_users.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/019-create_apikey.yml
+      relativeToChangelogFile: true

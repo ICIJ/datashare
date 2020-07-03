@@ -19,7 +19,7 @@ public class DbSetupRule extends ExternalResource {
     private final String dataSourceUrl;
     private static final Operation DELETE_ALL = deleteAllFrom(
             "document", "named_entity", "document_user_star", "document_tag", "batch_search", "user_inventory",
-            "batch_search_query", "batch_search_result", "project", "note", "document_user_recommendation");
+            "batch_search_query", "batch_search_result", "project", "note", "document_user_recommendation","api_key");
 
     DbSetupRule(String dataSourceUrl) {
         this.dataSource = createDatasource(dataSourceUrl);
@@ -40,6 +40,10 @@ public class DbSetupRule extends ExternalResource {
 
     JooqRepository createRepository() {
         return new JooqRepository(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
+    }
+
+    public JooqApiKeyRepository createApiKeyRepository() {
+        return new JooqApiKeyRepository(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
     }
 
     private static DataSource createDatasource(final String jdbcUrl) {
