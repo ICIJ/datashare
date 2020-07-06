@@ -30,11 +30,12 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     @Mock DataBus dataBus;
     @Mock DocumentCollectionFactory documentCollectionFactory;
     @Mock Indexer indexer;
+    @Mock DocumentQueue queue;
 
     @Before
     public void setUp() {
         initMocks(this);
-        when(documentCollectionFactory.createQueue(any(),eq("health:queue"))).thenReturn(mock(DocumentQueue.class));
+        when(documentCollectionFactory.createQueue(any(),eq(new PropertiesProvider().get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue")))).thenReturn(mock(DocumentQueue.class));
         configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,dataBus,documentCollectionFactory)));
     }
 
@@ -93,16 +94,11 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_queue_with_guice_exception() {
-        when(documentCollectionFactory.createQueue(any(),eq("health:queue"))).thenThrow(new ProvisionException("test"));
-        get("/api/status").should().respond(200).contain("\"document_queue_status\":false");
-    }
-
-    @Test
     public void test_get_queue_with_io_exception() {
         DocumentQueue mockQueue = mock(DocumentQueue.class);
         when(mockQueue.size()).thenThrow(new RuntimeException("test"));
-        when(documentCollectionFactory.createQueue(any(),eq("health:queue"))).thenReturn(mockQueue);
+        when(documentCollectionFactory.createQueue(any(),eq(new PropertiesProvider().get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue")))).thenReturn(mockQueue);
+        configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,dataBus,documentCollectionFactory)));
         get("/api/status").should().respond(200).contain("\"document_queue_status\":false");
     }
 }

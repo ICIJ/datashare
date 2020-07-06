@@ -12,19 +12,20 @@ import org.icij.datashare.com.DataBus;
 import org.icij.datashare.openmetrics.StatusMapper;
 import org.icij.datashare.tasks.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
 @Prefix("/api")
+
 public class StatusResource {
     Logger logger = LoggerFactory.getLogger(getClass());
     private PropertiesProvider propertiesProvider;
     private final Repository repository;
     private final Indexer indexer;
     private final DataBus dataBus;
-    private DocumentCollectionFactory documentCollectionFactory;
-
+    private DocumentQueue queue;
 
     @Inject
     public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer, DataBus dataBus, DocumentCollectionFactory documentCollectionFactory) {
@@ -32,7 +33,7 @@ public class StatusResource {
         this.repository = repository;
         this.indexer = indexer;
         this.dataBus = dataBus;
-        this.documentCollectionFactory = documentCollectionFactory;
+        this.queue = documentCollectionFactory.createQueue(propertiesProvider, propertiesProvider.get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue"));
     }
 
     /**
@@ -51,7 +52,7 @@ public class StatusResource {
         boolean queueStatus = false;
         int queueSize = 0;
         try{
-            queueSize = documentCollectionFactory.createQueue(propertiesProvider, "health:queue").size();
+            queueSize = queue.size();
             queueStatus = true;
         } catch (RuntimeException ex){
             logger.error("Queue Health Error : ",ex);

@@ -124,6 +124,7 @@ public class CommonMode extends AbstractModule {
             LoggerFactory.getLogger(getClass()).info("plugin dir not found " + e.getMessage());
         }
         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
+        bind(StatusResource.class).asEagerSingleton();
     }
 
     public Properties properties() {
