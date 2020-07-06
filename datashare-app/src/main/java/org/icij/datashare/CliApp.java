@@ -11,11 +11,17 @@ import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.user.DatashareApiKey;
+import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.SecretKey;
+import java.io.IOException;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
 import java.util.Set;
 
@@ -24,6 +30,8 @@ import static java.lang.Boolean.parseBoolean;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
+import static org.icij.datashare.cli.DatashareCliOptions.API_KEY_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_USER_NAME;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 import static org.icij.datashare.user.User.nullUser;
 
@@ -32,7 +40,21 @@ class CliApp {
 
     static void start(Properties properties) throws Exception {
         Injector injector = createInjector(CommonMode.create(properties));
-        runTaskRunner(injector, properties);
+        if (properties.getProperty(API_KEY_OPT) != null) {
+            genApiKey(injector, properties);
+        } else {
+            runTaskRunner(injector, properties);
+        }
+    }
+
+    private static void genApiKey(Injector injector, Properties properties) throws NoSuchAlgorithmException, IOException {
+        ApiKeyRepository keyRepository = injector.getInstance(ApiKeyRepository.class);
+        SecretKey secretKey = DatashareApiKey.generateSecretKey();
+        String userName = properties.getProperty(DEFAULT_USER_NAME);
+        keyRepository.save(new DatashareApiKey(secretKey, new User(userName)));
+        logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}", userName, DatashareApiKey.getBase64Encoded(secretKey));
+
+        injector.getInstance(Indexer.class).close();
     }
 
     private static void runTaskRunner(Injector injector, Properties properties) throws Exception {

@@ -63,6 +63,7 @@ public class DatashareCli {
         DatashareCliOptions.dataSourceUrl(parser);
         DatashareCliOptions.rootHost(parser);
 
+        DatashareCliOptions.genApiKey(parser);
         DatashareCliOptions.sessionTtlSeconds(parser);
         DatashareCliOptions.protectedUriPrefix(parser);
         DatashareCliOptions.oauthSecret(parser);

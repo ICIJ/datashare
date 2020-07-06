@@ -28,9 +28,11 @@ public final class DatashareCliOptions {
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String ROOT_HOST = "rootHost";
     public static final String RESUME_OPT = "resume";
+    public static final String API_KEY_OPT = "apiKey";
     public static final String PARALLELISM = "parallelism";
     public static final String OPEN_LINK = "browserOpenLink";
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
+    public static final String DEFAULT_USER_NAME = "defaultUserName";
 
     static OptionSpec<String> stages(OptionParser parser) {
         return parser.acceptsAll(
@@ -51,7 +53,7 @@ public final class DatashareCliOptions {
 
     static OptionSpec<String> defaultUser(OptionParser parser) {
         return parser.acceptsAll(
-                asList("u", "defaultUserName"),
+                asList("u", DEFAULT_USER_NAME),
                 "Default local user name")
                 .withRequiredArg()
                 .ofType( String.class )
@@ -117,6 +119,10 @@ public final class DatashareCliOptions {
 
     static OptionSpecBuilder resume(OptionParser parser) {
         return parser.acceptsAll(asList(RESUME_OPT, "r"), "Resume pending operations");
+    }
+
+    static OptionSpecBuilder genApiKey(OptionParser parser) {
+        return parser.acceptsAll(asList(API_KEY_OPT, "k"), "Generate and store api key for user defaultUser (see opt)");
     }
 
     static OptionSpec<File> dataDir(OptionParser parser) {
