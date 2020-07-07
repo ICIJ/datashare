@@ -36,6 +36,11 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
                 where(API_KEY.USER_ID.eq(user.id)).fetchOne());
     }
 
+    public boolean delete(User user) {
+        return DSL.using(connectionProvider,dialect).deleteFrom(API_KEY)
+                .where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
+    }
+
     public boolean save(ApiKey apiKey) {
         return DSL.using(connectionProvider, dialect).insertInto(API_KEY).
                 values(apiKey.getId(), apiKey.getUser().id, new Timestamp((DatashareTime.getInstance().now().getTime()))).

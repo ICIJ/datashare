@@ -42,6 +42,15 @@ public class JooqApiKeyRepositoryTest {
     }
 
     @Test
+    public void test_delete_api_key_from_user() throws NoSuchAlgorithmException {
+        repository.save(new DatashareApiKey(User.local()));
+        assertThat(repository.get(User.local())).isNotNull();
+
+        assertThat(repository.delete(User.local())).isTrue();
+        assertThat(repository.get(User.local())).isNull();
+    }
+
+    @Test
     public void test_get_from_user() throws NoSuchAlgorithmException {
         DatashareApiKey expected = new DatashareApiKey(User.local());
         repository.save(expected);
