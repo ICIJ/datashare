@@ -7,7 +7,7 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.session.DatashareUser;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,7 +54,7 @@ public class RootResource {
         } else {
             content = new String(Files.readAllBytes(index), Charset.defaultCharset());
         }
-        List<String> projects = context.currentUser() == null ? new LinkedList<String>() : ((HashMapUser)context.currentUser()).getProjects();
+        List<String> projects = context.currentUser() == null ? new LinkedList<String>() : ((DatashareUser)context.currentUser()).getProjects();
         return propertiesProvider.get(PLUGINS_DIR).isPresent() ?
                 new PluginService().addPlugins(content, Paths.get(propertiesProvider.getProperties().getProperty(PLUGINS_DIR)),projects):
                 content;

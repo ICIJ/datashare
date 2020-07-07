@@ -37,7 +37,7 @@ public class ApiKeyFilterTest {
     public void test_adds_user_to_context() throws Exception {
         when(context.header("authorization")).thenReturn("session_id");
         when(apiKeyStore.getLogin("session_id")).thenReturn("user_id");
-        when(users.find("user_id")).thenReturn(new HashMapUser("user_id"));
+        when(users.find("user_id")).thenReturn(new DatashareUser("user_id"));
 
         Payload payload = apiKeyFilter.apply("url", context, nextFilter);
 

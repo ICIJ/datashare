@@ -8,7 +8,7 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 
-import static org.icij.datashare.session.HashMapUser.*;
+import static org.icij.datashare.session.DatashareUser.*;
 
 public class LocalUserFilter extends CookieAuthFilter {
     private final String userName;

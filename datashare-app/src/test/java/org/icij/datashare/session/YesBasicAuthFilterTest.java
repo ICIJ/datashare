@@ -24,7 +24,7 @@ public class YesBasicAuthFilterTest {
     private Payload next = Payload.ok();
     private PayloadSupplier nextFilter = () -> next;
     private Context context = mock(Context.class);
-    private ArgumentCaptor<HashMapUser> user = forClass(HashMapUser.class);
+    private ArgumentCaptor<DatashareUser> user = forClass(DatashareUser.class);
 
     @Before
     public void create_filter() {

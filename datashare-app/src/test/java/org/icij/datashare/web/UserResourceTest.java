@@ -4,7 +4,7 @@ import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Test;
 
-import static org.icij.datashare.session.HashMapUser.singleUser;
+import static org.icij.datashare.session.DatashareUser.singleUser;
 
 public class UserResourceTest extends AbstractProdWebServerTest {
     @Test

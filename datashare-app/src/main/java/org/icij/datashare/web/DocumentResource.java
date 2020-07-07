@@ -11,7 +11,7 @@ import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
 import org.icij.datashare.Repository;
-import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.FileExtension;
 import org.icij.datashare.text.Tag;
@@ -66,7 +66,7 @@ public class DocumentResource {
     public Payload getSourceFile(final String project, final String id,
                                  final String routing, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
-        if (((HashMapUser)context.currentUser()).isGranted(project) &&
+        if (((DatashareUser)context.currentUser()).isGranted(project) &&
                 isAllowed(repository.getProject(project), context.request().clientAddress())) {
             return routing == null ? getPayload(indexer.get(project, id), project, inline) : getPayload(indexer.get(project, id, routing),project, inline);
         }
@@ -86,8 +86,8 @@ public class DocumentResource {
      */
     @Post("/:project/documents/batchUpdate/star")
     public Result<Integer> groupStarProject(final String projectId, final List<String> docIds, Context context) {
-        Result<Integer> res = new Result(repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds));
-        return new Result<>(repository.star(project(projectId), (HashMapUser)context.currentUser(), docIds));
+        Result<Integer> res = new Result(repository.star(project(projectId), (DatashareUser)context.currentUser(), docIds));
+        return new Result<>(repository.star(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
     /**
@@ -104,7 +104,7 @@ public class DocumentResource {
      */
     @Post("/:project/documents/batchUpdate/unstar")
     public Result<Integer> groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
-        return new Result<>(repository.unstar(project(projectId), (HashMapUser)context.currentUser(), docIds));
+        return new Result<>(repository.unstar(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
     /**
@@ -118,7 +118,7 @@ public class DocumentResource {
      */
     @Get("/:project/documents/starred")
     public List<String> getProjectStarredDocuments(final String projectId, Context context) {
-        return repository.getStarredDocuments(project(projectId), (HashMapUser)context.currentUser());
+        return repository.getStarredDocuments(project(projectId), (DatashareUser)context.currentUser());
     }
 
     /**
@@ -258,7 +258,7 @@ public class DocumentResource {
      */
     @Get("/documents/starred")
     public List<Document> getStarredDocuments(Context context) {
-        return repository.getStarredDocuments((HashMapUser)context.currentUser());
+        return repository.getStarredDocuments((DatashareUser)context.currentUser());
     }
 
     /**
@@ -321,7 +321,7 @@ public class DocumentResource {
      */
     @Post("/:project/documents/batchUpdate/recommend")
     public Result<Integer> groupRecommend(final String projectId, final List<String> docIds, Context context) {
-        return new Result<>(repository.recommend(project(projectId), (HashMapUser)context.currentUser(), docIds));
+        return new Result<>(repository.recommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
     /**
@@ -338,7 +338,7 @@ public class DocumentResource {
      */
     @Post("/:project/documents/batchUpdate/unrecommend")
     public Result<Integer> groupUnrecommend(final String projectId, final List<String> docIds, Context context) {
-        return new Result<>(repository.unrecommend(project(projectId), (HashMapUser)context.currentUser(), docIds));
+        return new Result<>(repository.unrecommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
     private Payload getPayload(Document doc, String index, boolean inline) throws IOException {

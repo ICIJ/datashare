@@ -8,7 +8,7 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.errors.ForbiddenException;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
-import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.session.DatashareUser;
 
 import java.util.List;
 
@@ -57,7 +57,7 @@ public class NoteResource {
      */
     @Get("/:project/notes/:path:")
     public List<Note> getPathNotes(String project, String documentPath, Context context) {
-        HashMapUser user = (HashMapUser) context.currentUser();
+        DatashareUser user = (DatashareUser) context.currentUser();
         if (! user.isGranted(project)) {
             throw new ForbiddenException();
         }
@@ -78,7 +78,7 @@ public class NoteResource {
      */
     @Get("/:project/notes")
     public List<Note> getProjectNotes(String project, Context context) {
-        HashMapUser user = (HashMapUser) context.currentUser();
+        DatashareUser user = (DatashareUser) context.currentUser();
         if (! user.isGranted(project)) {
             throw new ForbiddenException();
         }

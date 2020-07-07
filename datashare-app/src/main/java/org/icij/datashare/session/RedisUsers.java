@@ -11,7 +11,7 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Transaction;
 
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.session.HashMapUser.fromJson;
+import static org.icij.datashare.session.DatashareUser.fromJson;
 
 public class RedisUsers implements Users {
     private final JedisPool redis;
@@ -25,7 +25,7 @@ public class RedisUsers implements Users {
 
     @Override
     public User find(String login, String password) {
-        HashMapUser user = getUser(login);
+        DatashareUser user = getUser(login);
         return user != null && user.get("password") != null && user.get("password").equals(Hasher.SHA_256.hash(password)) ? user: null;
     }
 
@@ -34,7 +34,7 @@ public class RedisUsers implements Users {
         return getUser(login);
     }
 
-    void createUser(HashMapUser user) {
+    void createUser(DatashareUser user) {
         try (Jedis jedis = redis.getResource()) {
             Transaction transaction = jedis.multi();
             transaction.set(user.login(), user.toJson());
@@ -43,7 +43,7 @@ public class RedisUsers implements Users {
         }
     }
 
-    HashMapUser getUser(String login) {
+    DatashareUser getUser(String login) {
         try (Jedis jedis = redis.getResource()) {
             return fromJson(jedis.get(login));
         }

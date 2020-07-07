@@ -1,7 +1,7 @@
 package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
-import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
@@ -38,7 +38,7 @@ public class NamedEntityResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_named_entity_in_prod_mode() {
-        configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("anne"))));
+        configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("anne"))));
         NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("anne-datashare", "my_id", "root_parent");
 

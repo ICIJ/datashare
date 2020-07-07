@@ -7,7 +7,7 @@ import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.IOException;
@@ -128,7 +128,7 @@ public class IndexResource {
             return getUrlString(context, path);
         }
         String index = pathParts[0];
-        if (((HashMapUser)context.currentUser()).isGranted(index) &&
+        if (((DatashareUser)context.currentUser()).isGranted(index) &&
                 ("GET".equalsIgnoreCase(context.method()) ||
                         "_search".equals(pathParts[1]) ||
                         "_count".equals(pathParts[1]) ||

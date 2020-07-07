@@ -16,8 +16,8 @@ import java.util.Properties;
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.session.HashMapUser.local;
-import static org.icij.datashare.session.HashMapUser.singleUser;
+import static org.icij.datashare.session.DatashareUser.local;
+import static org.icij.datashare.session.DatashareUser.singleUser;
 
 public class SettingsResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();

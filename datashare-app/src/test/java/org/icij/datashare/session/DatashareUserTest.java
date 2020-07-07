@@ -9,13 +9,13 @@ import java.util.LinkedList;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.session.HashMapUser.fromJson;
+import static org.icij.datashare.session.DatashareUser.fromJson;
 
-public class HashMapUserTest {
+public class DatashareUserTest {
     @Test
     public void test_stringify_arrays()  {
-        assertThat(fromJson("{\"key\":\"value\",\"array\":[]}").userMap).includes(entry("key", "value"), entry("array", new LinkedList<>()));
-        assertThat(fromJson("{\"key\":\"value\",\"array\":[\"item\"]}").userMap).includes(entry("array", Collections.singletonList("item")));
+        assertThat(fromJson("{\"key\":\"value\",\"array\":[]}").details).includes(entry("key", "value"), entry("array", new LinkedList<>()));
+        assertThat(fromJson("{\"key\":\"value\",\"array\":[\"item\"]}").details).includes(entry("array", Collections.singletonList("item")));
     }
 
     @Test
@@ -30,13 +30,13 @@ public class HashMapUserTest {
 
     @Test
     public void test_equals_with_user_subclass() {
-        assertThat(User.local()).isEqualTo(HashMapUser.local());
-        assertThat(HashMapUser.local()).isEqualTo(User.local());
+        assertThat(User.local()).isEqualTo(DatashareUser.local());
+        assertThat(DatashareUser.local()).isEqualTo(User.local());
     }
 
     @Test
     public void test_get_map_filters_password() {
-        assertThat(new HashMapUser(new HashMap<String, Object>() {{
+        assertThat(new DatashareUser(new HashMap<String, Object>() {{
             put("uid", "userid");
             put("password", "secret");
         }}).getMap()).excludes(entry("password", "secret"));
@@ -44,13 +44,13 @@ public class HashMapUserTest {
 
     @Test
     public void test_get_indices_for_local_user() {
-        assertThat(HashMapUser.local().getProjects()).containsExactly("local-datashare");
-        assertThat(HashMapUser.localUser("foo").getProjects()).containsExactly("foo-datashare");
+        assertThat(DatashareUser.local().getProjects()).containsExactly("local-datashare");
+        assertThat(DatashareUser.localUser("foo").getProjects()).containsExactly("foo-datashare");
     }
 
     @Test
     public void test_get_indices_for_external_user() {
-        assertThat(new HashMapUser(new HashMap<String, Object>() {{
+        assertThat(new DatashareUser(new HashMap<String, Object>() {{
             put("uid", "userid");
             put("datashare_projects", Collections.singletonList("external_index"));
         }}).getProjects()).containsExactly("external_index");

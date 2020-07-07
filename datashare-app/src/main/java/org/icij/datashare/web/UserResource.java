@@ -4,7 +4,7 @@ import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
-import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.session.DatashareUser;
 
 import java.util.Map;
 
@@ -21,6 +21,6 @@ public class UserResource {
      */
     @Get("/me")
     public Map<String, Object> getUser(Context context) {
-        return ((HashMapUser) context.currentUser()).getMap();
+        return ((DatashareUser) context.currentUser()).getMap();
     }
 }

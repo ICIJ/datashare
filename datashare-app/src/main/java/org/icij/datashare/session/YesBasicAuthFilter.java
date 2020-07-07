@@ -14,6 +14,6 @@ public class YesBasicAuthFilter extends BasicAuthFilter {
 
     private static class DummyUsers implements Users {
         @Override public User find(String login, String password) { return find(login);}
-        @Override public User find(String login) { return new HashMapUser(login);}
+        @Override public User find(String login) { return new DatashareUser(login);}
     }
 }

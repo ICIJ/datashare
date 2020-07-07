@@ -18,7 +18,7 @@ public class RedisUsersTest {
 
     @Test
     public void test_get_user_with_password() {
-        users.createUser(new HashMapUser(new HashMap<String, Object>(){{
+        users.createUser(new DatashareUser(new HashMap<String, Object>(){{
             put("uid", "test");
             put("password", Hasher.SHA_256.hash("test"));
         }}));
@@ -28,13 +28,13 @@ public class RedisUsersTest {
 
     @Test
     public void test_get_user_with_object() {
-        users.createUser(new HashMapUser(new HashMap<String, Object>(){{
+        users.createUser(new DatashareUser(new HashMap<String, Object>(){{
             put("uid", "test");
             put("password", Hasher.SHA_256.hash("test"));
             put("projects", asList("project_01", "project_02"));
             put("object", new HashMap<String, String>() {{ put("key", "value"); }});
         }}));
-        HashMapUser user = (HashMapUser) users.find("test", "test");
+        DatashareUser user = (DatashareUser) users.find("test", "test");
         assertThat((List<String>) user.get("projects")).hasSize(2);
         assertThat((HashMap<String, String>) user.get("object")).hasSize(1);
     }

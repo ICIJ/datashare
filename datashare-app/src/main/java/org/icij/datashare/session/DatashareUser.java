@@ -16,25 +16,25 @@ import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.collections4.map.UnmodifiableMap.unmodifiableMap;
 
-public class HashMapUser extends User implements net.codestory.http.security.User {
+public class DatashareUser extends User implements net.codestory.http.security.User {
     public static final String DATASHARE_PROJECTS_KEY = "datashare_projects";
-    final Map<String, Object> userMap;
+    final Map<String, Object> details;
 
-    public HashMapUser(final Map<String, Object> userMap) {
-        super((String) userMap.get("uid"));
-        this.userMap = unmodifiableMap(userMap);
+    public DatashareUser(final Map<String, Object> details) {
+        super((String) details.get("uid"));
+        this.details = unmodifiableMap(details);
     }
 
-    HashMapUser(final String login) {
+    DatashareUser(final String login) {
         this(new HashMap<String, Object>() {{ put("uid", login); }});
     }
 
-    static HashMapUser fromJson(String json) {
+    static DatashareUser fromJson(String json) {
         if (json == null) return null;
         HashMap<String, Object> hashMap;
         try {
             hashMap = new ObjectMapper().readValue(json, new TypeReference<HashMap<String, Object>>() {});
-            return new HashMapUser(hashMap);
+            return new DatashareUser(hashMap);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -42,37 +42,37 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
 
     public String toJson() {
         try {
-            return new ObjectMapper().writeValueAsString(this.userMap);
+            return new ObjectMapper().writeValueAsString(this.details);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
     public List<String> getProjects() {
-        return (List<String>) ofNullable(userMap.get(DATASHARE_PROJECTS_KEY)).orElse(new LinkedList<>());
+        return (List<String>) ofNullable(details.get(DATASHARE_PROJECTS_KEY)).orElse(new LinkedList<>());
     }
 
     public Map<String, Object> getMap() {
-        return userMap.entrySet().stream().
+        return details.entrySet().stream().
                 filter(k -> k.getValue() != null).
                 filter(k -> !k.getKey().equalsIgnoreCase("password")).
                 collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     @Override public String login() { return id; }
-    @Override public String name() { return (String) userMap.get("name"); }
+    @Override public String name() { return (String) details.get("name"); }
     @Override public String[] roles() { return new String[0]; }
-    public Object get(String key) { return userMap.get(key); }
-    public static HashMapUser local() { return localUser("local"); }
+    public Object get(String key) { return details.get(key); }
+    public static DatashareUser local() { return localUser("local"); }
 
-    public static HashMapUser localUser(String id) {
-        return new HashMapUser(new HashMap<String, Object>() {{ put("uid", id); put(DATASHARE_PROJECTS_KEY, singletonList(id + "-datashare"));}}) {
+    public static DatashareUser localUser(String id) {
+        return new DatashareUser(new HashMap<String, Object>() {{ put("uid", id); put(DATASHARE_PROJECTS_KEY, singletonList(id + "-datashare"));}}) {
             @Override public String[] roles() { return new String[] {"local"};}
         };
     }
 
     public static Users singleUser(String name) { return singleUser(localUser(name));}
-    public static Users singleUser(final HashMapUser user) {
+    public static Users singleUser(final DatashareUser user) {
         return new Users() {
             @Override public net.codestory.http.security.User find(String s, String s1) { return s.equals(user.id) ? user : null;}
             @Override public net.codestory.http.security.User find(String s) { return s.equals(user.id) ? user : null;}
@@ -80,9 +80,9 @@ public class HashMapUser extends User implements net.codestory.http.security.Use
     }
     public static Users users(String... logins) {
         return new Users() {
-            Map<String, HashMapUser> users = new HashMap<String, HashMapUser>() {{
+            Map<String, DatashareUser> users = new HashMap<String, DatashareUser>() {{
                 for (String login: logins) {
-                    put(login, new HashMapUser(login));
+                    put(login, new DatashareUser(login));
                 }
             }};
             @Override public net.codestory.http.security.User find(String s, String s1) { return users.get(s);}

@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutionException;
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.session.HashMapUser.fromJson;
+import static org.icij.datashare.session.DatashareUser.fromJson;
 
 @Singleton
 public class OAuth2CookieFilter extends CookieAuthFilter {
@@ -118,7 +118,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         service.signRequest(accessToken, request);
         final Response oauthApiResponse = service.execute(request);
 
-        HashMapUser user = fromJson(oauthApiResponse.getBody());
+        DatashareUser user = fromJson(oauthApiResponse.getBody());
         redisUsers().createUser(user);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(user, "/")));
     }

@@ -76,7 +76,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         datashare.configure(routes -> routes
                         .get("/protected", context -> format("hello %s uid=%s", context.currentUser().name(), context.currentUser().login()))
                         .filter((Filter) (uri, context, nextFilter) -> {
-                            context.setCurrentUser(new HashMapUser("foo"));
+                            context.setCurrentUser(new DatashareUser("foo"));
                             return nextFilter.get();
                         }).filter(oAuth2Filter));
 

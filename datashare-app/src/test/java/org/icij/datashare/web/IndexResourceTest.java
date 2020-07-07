@@ -2,7 +2,7 @@ package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
@@ -111,7 +111,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     public void setUp() {
         configure(routes ->
                 routes.add(new IndexResource(indexer)).
-                filter(new BasicAuthFilter("/", "icij", HashMapUser.singleUser("cecile"))));
+                filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
     }
 
     @After

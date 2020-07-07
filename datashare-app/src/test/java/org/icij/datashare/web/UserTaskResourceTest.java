@@ -7,7 +7,7 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.session.HashMapUser;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.indexing.Indexer;
@@ -76,7 +76,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 bind(PropertiesProvider.class).toInstance(propertiesProvider);
                 bind(PipelineRegistry.class).toInstance(mock(PipelineRegistry.class));
                 bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
-                bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", HashMapUser.users(userLogins)));
+                bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins)));
                 bind(TaskManager.class).toInstance(taskManager);
                 bind(TaskFactory.class).toInstance(mock(TaskFactory.class));
                 bind(Indexer.class).toInstance(mock(Indexer.class));
