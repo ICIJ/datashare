@@ -7,15 +7,14 @@ import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.extensions.Extensions;
-import net.codestory.http.filters.Filter;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.icij.datashare.cli.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.com.DataBus;
 import org.icij.datashare.com.MemoryDataBus;
 import org.icij.datashare.com.Publisher;
@@ -35,6 +34,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
 import org.icij.datashare.web.StatusResource;
@@ -140,6 +140,7 @@ public class CommonMode extends AbstractModule {
     void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
+        bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         repositoryFactory.initDatabase();
     }
@@ -152,12 +153,10 @@ public class CommonMode extends AbstractModule {
                 .setExtensions(new Extensions() {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
-                        defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-                        return defaultObjectMapper;
+                    defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+                    return defaultObjectMapper;
                     }
-                })
-                .filter(Filter.class);
-
+                });
         addModeConfiguration(routes);
         addExtensionConfiguration(routes);
 

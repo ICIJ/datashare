@@ -81,7 +81,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 bind(TaskFactory.class).toInstance(mock(TaskFactory.class));
                 bind(Indexer.class).toInstance(mock(Indexer.class));
             }
-            @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class);}
+            @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class).filter(Filter.class);}
         }.createWebConfiguration());
     }
 }

@@ -1,6 +1,5 @@
 package org.icij.datashare.mode;
 
-import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.*;
@@ -15,7 +14,6 @@ public class LocalMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-        bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
         bind(IndexWaiterFilter.class).asEagerSingleton();
         configurePersistence();
     }
@@ -32,6 +30,7 @@ public class LocalMode extends CommonMode {
                 add(ProjectResource.class).
                 add(NoteResource.class).
                 add(NerResource.class).
-                filter(IndexWaiterFilter.class);
+                filter(IndexWaiterFilter.class).
+                filter(LocalUserFilter.class);
     }
 }

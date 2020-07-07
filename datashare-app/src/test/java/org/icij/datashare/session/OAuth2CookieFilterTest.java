@@ -2,10 +2,11 @@ package org.icij.datashare.session;
 
 
 import net.codestory.http.WebServer;
+import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
-import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -70,7 +71,18 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         this.post("/protected").should().respond(401);
     }
 
-    
+    @Test
+    public void test_if_user_already_in_context_do_nothing() {
+        datashare.configure(routes -> routes
+                        .get("/protected", context -> format("hello %s uid=%s", context.currentUser().name(), context.currentUser().login()))
+                        .filter((Filter) (uri, context, nextFilter) -> {
+                            context.setCurrentUser(new HashMapUser("foo"));
+                            return nextFilter.get();
+                        }).filter(oAuth2Filter));
+
+        this.get("/protected").should().respond(200).contain("foo");
+    }
+
     /*
     #TODO to be fixed
     @Test
@@ -98,9 +110,13 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
                         (c, client_id, redirect_uri, response_type, state) -> format(
                                 "OAuth Authorize for client=%s redirect_uri=%s response_type=%s state=%s",
                                 client_id, redirect_uri, response_type, state)));
+    }
+
+    @Before
+    public void setUp() {
         datashare.configure(routes -> routes
-                .get("/", context -> format("hello %s uid=%s", context.currentUser().name(), context.currentUser().login()))
-                .filter(oAuth2Filter));
+                        .get("/", context -> format("hello %s uid=%s", context.currentUser().name(), context.currentUser().login()))
+                        .filter(oAuth2Filter));
     }
 
     private String getState(String content) {

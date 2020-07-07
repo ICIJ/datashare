@@ -1,6 +1,5 @@
 package org.icij.datashare.mode;
 
-import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.session.LocalUserFilter;
@@ -14,12 +13,11 @@ public class NerMode extends CommonMode {
 
     @Override
     protected void configure() {
-        bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
     }
 
     @Override
     protected Routes addModeConfiguration(Routes routes) {
-        return routes.add(NerResource.class);
+        return routes.add(NerResource.class).filter(LocalUserFilter.class);
     }
 }

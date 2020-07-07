@@ -8,6 +8,7 @@ import com.github.scribejava.core.model.Response;
 import com.github.scribejava.core.model.Verb;
 import com.github.scribejava.core.oauth.OAuth20Service;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
@@ -29,6 +30,7 @@ import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.session.HashMapUser.fromJson;
 
+@Singleton
 public class OAuth2CookieFilter extends CookieAuthFilter {
     private final DefaultApi20 defaultOauthApi;
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -85,6 +87,9 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
 
     @Override
     protected Payload otherUri(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
+        if (context.currentUser() != null) {
+            return nextFilter.get();
+        }
         String sessionId = readSessionIdInCookie(context);
         if(uri.equals("/") || uri.isEmpty()) {
             if (sessionId != null) {

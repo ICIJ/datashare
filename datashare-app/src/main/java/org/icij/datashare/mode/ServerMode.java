@@ -4,9 +4,7 @@ import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.Users;
-import org.icij.datashare.session.OAuth2CookieFilter;
-import org.icij.datashare.session.RedisSessionIdStore;
-import org.icij.datashare.session.RedisUsers;
+import org.icij.datashare.session.*;
 import org.icij.datashare.web.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +22,7 @@ public class ServerMode extends CommonMode {
         super.configure();
         bind(Users.class).to(RedisUsers.class);
         bind(SessionIdStore.class).to(RedisSessionIdStore.class);
+        bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
         String authFilterClassName = propertiesProvider.get("authFilter").orElse("");
         Class<? extends Filter> authFilterClass = OAuth2CookieFilter.class;
         if (!authFilterClassName.isEmpty()) {
@@ -34,7 +33,7 @@ public class ServerMode extends CommonMode {
                 logger.warn("\"{}\" auth filter class not found. Setting filter to {}", authFilterClassName, authFilterClass);
             }
         }
-        bind(Filter.class).to(authFilterClass).asEagerSingleton();
+        bind(Filter.class).to(authFilterClass);
         configurePersistence();
     }
 
@@ -49,6 +48,8 @@ public class ServerMode extends CommonMode {
                 add(NoteResource.class).
                 add(NerResource.class).
                 add(ProjectResource.class).
-                add(DocumentResource.class);
+                add(DocumentResource.class).
+                filter(ApiKeyFilter.class).
+                filter(Filter.class);
     }
 }

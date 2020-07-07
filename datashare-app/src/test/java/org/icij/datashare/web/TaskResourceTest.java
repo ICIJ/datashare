@@ -57,7 +57,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                             put("dataDir", "/default/data/dir");
                         }}));
                     }
-                    @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class);}
+                    @Override protected Routes addModeConfiguration(Routes routes) {
+                        return routes.add(TaskResource.class).filter(LocalUserFilter.class);}
                 }.createWebConfiguration());
         init(taskFactory);
     }
