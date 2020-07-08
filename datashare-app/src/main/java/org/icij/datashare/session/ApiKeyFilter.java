@@ -22,7 +22,7 @@ public class ApiKeyFilter implements Filter {
     private final String protectedUrlPrefix;
 
     @Inject
-    public ApiKeyFilter(Users users, ApiKeyStore apiKeyStore) {
+    public ApiKeyFilter(UsersWritable users, ApiKeyStore apiKeyStore) {
         this.users = users;
         this.apiKeyStore = apiKeyStore;
         protectedUrlPrefix = "/api";

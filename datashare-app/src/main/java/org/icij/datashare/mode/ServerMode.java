@@ -19,7 +19,7 @@ public class ServerMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-        bind(UsersWritable.class).to(UsersInRedis.class);
+        bind(UsersWritable.class).to(UsersInDb.class);
         bind(SessionIdStore.class).to(RedisSessionIdStore.class);
         bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
         String authFilterClassName = propertiesProvider.get("authFilter").orElse("");

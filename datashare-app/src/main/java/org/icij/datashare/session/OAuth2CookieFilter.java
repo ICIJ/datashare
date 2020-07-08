@@ -119,7 +119,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         final Response oauthApiResponse = service.execute(request);
 
         DatashareUser datashareUser = new DatashareUser(fromJson(oauthApiResponse.getBody(), "icij").details);
-        redisUsers().saveOrUpdate(datashareUser);
+        writableUsers().saveOrUpdate(datashareUser);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
     }
 
@@ -151,5 +151,5 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     @Override protected int expiry() { return oauthTtl;}
     @Override protected boolean redirectToLogin(String uri) { return false;}
 
-    private UsersInRedis redisUsers() { return (UsersInRedis) users;}
+    private UsersWritable writableUsers() { return (UsersWritable) users;}
 }
