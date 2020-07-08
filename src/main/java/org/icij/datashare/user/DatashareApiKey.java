@@ -1,28 +1,36 @@
 package org.icij.datashare.user;
 
+import org.icij.datashare.time.DatashareTime;
+
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Objects;
 
 public class DatashareApiKey implements ApiKey {
     public static final String ALGORITHM = "AES";
     final String hashedKey;
     final User user;
+    final Date creationDate;
 
     public DatashareApiKey(User user) throws NoSuchAlgorithmException {
         this(generateSecretKey(), user);
     }
 
     public DatashareApiKey(SecretKey secretKey, User user) {
-        this.user = user;
-        this.hashedKey = HASHER.hash(getBase64Encoded(secretKey));
+        this(HASHER.hash(getBase64Encoded(secretKey)), user);
     }
 
     public DatashareApiKey(String hashedKey, User user) {
+        this(hashedKey, user, DatashareTime.getInstance().now());
+    }
+
+    public DatashareApiKey(String hashedKey, User user, Date creationDate) {
         this.hashedKey = hashedKey;
         this.user = user;
+        this.creationDate = creationDate;
     }
 
     @Override
@@ -41,6 +49,7 @@ public class DatashareApiKey implements ApiKey {
     }
 
     @Override public User getUser() { return user;}
+    @Override public Date getCreationDate() { return creationDate;}
     @Override public String getId() { return hashedKey;}
 
     @Override
