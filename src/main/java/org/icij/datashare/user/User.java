@@ -1,6 +1,7 @@
 package org.icij.datashare.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonUtils;
 
 import java.util.*;
@@ -11,7 +12,7 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonUtils.deserialize;
 
-public class User {
+public class User implements Entity {
     public static final String LOCAL = "local";
     public static final String DATASHARE_PROJECTS_KEY = "datashare_projects";
     public final String id;
@@ -78,6 +79,7 @@ public class User {
             return getProjects().contains(index);
         }
 
+    @Override public String getId() { return id;}
     public String queueName() { return "extract:queue_" + id;}
     @JsonIgnore
     public String getPath() { return this.equals(local()) || isNull() ? "" : id;}
@@ -88,6 +90,7 @@ public class User {
     public static User local() { return localUser(LOCAL);}
     public static User localUser(String id) { return new User(new HashMap<String, Object>() {{ put("uid", id); put(DATASHARE_PROJECTS_KEY, singletonList(id + "-datashare"));}});}
     public static User nullUser() { return new User((String)null);}
+
     @Override
     public int hashCode() { return Objects.hash(id);}
 
