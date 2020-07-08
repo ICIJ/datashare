@@ -45,6 +45,7 @@ jobs:
             psql -h postgresql -U test test -c "CREATE DATABASE datashare;"
 
       - run: mvn validate
+      - run: mvn -pl commons-test -am install
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run: mvn -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true

@@ -161,6 +161,7 @@ elasticsearch instance with `elasticsearch` as hostname ; and a redis server nam
 
 ```
 mvn validate
+mvn -pl commons-test -am install
 mvn -pl datashare-db liquibase:update
 mvn test
 ```
