@@ -3,7 +3,6 @@ package org.icij.datashare.mode;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
-import net.codestory.http.security.Users;
 import org.icij.datashare.session.*;
 import org.icij.datashare.web.*;
 import org.slf4j.Logger;
@@ -20,7 +19,7 @@ public class ServerMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-        bind(Users.class).to(RedisUsers.class);
+        bind(UsersWritable.class).to(UsersInRedis.class);
         bind(SessionIdStore.class).to(RedisSessionIdStore.class);
         bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
         String authFilterClassName = propertiesProvider.get("authFilter").orElse("");

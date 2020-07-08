@@ -173,6 +173,50 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_save_get_user() {
+        final User expected = new User(new HashMap<String, Object>() {{
+            put("uid", "bar");
+            put("provider", "test");
+            put("name", "Bar Baz");
+            put("email", "bar@foo.com");
+            put("baz", "qux");
+        }});
+        assertThat(repository.save(expected)).isTrue();
+
+        User actual = repository.getUser("bar");
+        assertThat(actual).isEqualTo(expected);
+        assertThat(actual.name).isEqualTo(expected.name);
+        assertThat(actual.email).isEqualTo(expected.email);
+        assertThat(actual.provider).isEqualTo(expected.provider);
+        assertThat(actual.details).isEqualTo(expected.details);
+    }
+
+    @Test
+    public void test_save_or_update_user() {
+        final User fistSave = new User(new HashMap<String, Object>() {{
+            put("uid", "baz");
+            put("provider", "test");
+            put("name", "Bar Baz");
+            put("email", "baz@foo.com");
+        }});
+        repository.save(fistSave);
+        final User updatedUser = new User(new HashMap<String, Object>() {{
+            put("uid", "baz");
+            put("provider", "prov");
+            put("name", "Baz");
+            put("email", "baz@foo.fr");
+        }});
+        assertThat(repository.save(updatedUser)).isTrue();
+
+        User actual = repository.getUser("baz");
+        assertThat(actual).isEqualTo(updatedUser);
+        assertThat(actual.name).isEqualTo(updatedUser.name);
+        assertThat(actual.email).isEqualTo(updatedUser.email);
+        assertThat(actual.provider).isEqualTo(updatedUser.provider);
+        assertThat(actual.details).isEqualTo(updatedUser.details);
+    }
+
+    @Test
     public void test_group_tag_untag_documents() {
         assertThat(repository.tag(project("prj"), asList("doc_id1", "doc_id2"), tag("tag1"), tag("tag2"))).isTrue();
         assertThat(repository.tag(project("prj2"), "doc_id3", tag("tag1"))).isTrue();

@@ -1,0 +1,6 @@
+databaseChangeLog:
+  - changeSet:
+      id: 31
+      author: bthomas
+      sql:
+        - ALTER TABLE user_inventory ADD COLUMN details TEXT DEFAULT '{}'

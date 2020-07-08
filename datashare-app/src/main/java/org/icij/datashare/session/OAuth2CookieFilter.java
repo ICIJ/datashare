@@ -48,7 +48,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     private final String oauthClientSecret;
 
     @Inject
-    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, RedisUsers users, SessionIdStore sessionIdStore) {
+    public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore) {
         super(propertiesProvider.get("protectedUriPrefix").orElse("/"), users, sessionIdStore);
         this.oauthAuthorizeUrl = propertiesProvider.get("oauthAuthorizeUrl").orElse("http://localhost");
         this.oauthTokenUrl = propertiesProvider.get("oauthTokenUrl").orElse("http://localhost");
@@ -119,7 +119,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         final Response oauthApiResponse = service.execute(request);
 
         DatashareUser datashareUser = new DatashareUser(fromJson(oauthApiResponse.getBody(), "icij").details);
-        redisUsers().createUser(datashareUser);
+        redisUsers().saveOrUpdate(datashareUser);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
     }
 
@@ -151,5 +151,5 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     @Override protected int expiry() { return oauthTtl;}
     @Override protected boolean redirectToLogin(String uri) { return false;}
 
-    private RedisUsers redisUsers() { return (RedisUsers) users;}
+    private UsersInRedis redisUsers() { return (UsersInRedis) users;}
 }

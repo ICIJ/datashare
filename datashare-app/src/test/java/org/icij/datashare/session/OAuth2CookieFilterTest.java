@@ -32,14 +32,14 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         put("oauthCallbackPath", "/auth/callback");
     }});
     static OAuth2CookieFilter oAuth2Filter = new OAuth2CookieFilter(propertiesProvider,
-            new RedisUsers(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
+            new UsersInRedis(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
 
     @Test(expected = IllegalStateException.class)
     public void test_callback_url_should_not_start_with_login_url() {
         oAuth2Filter = new OAuth2CookieFilter(new PropertiesProvider(new HashMap<String, String>() {{
             put("oauthSigninPath", "/auth/login/");
             put("oauthCallbackPath", "/auth/login/callback");
-        }}), new RedisUsers(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
+        }}), new UsersInRedis(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
     }
 
     @Test

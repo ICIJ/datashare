@@ -18,7 +18,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
 
     @Inject
     public YesCookieAuthFilter(PropertiesProvider propertiesProvider) {
-        super(propertiesProvider.get("protectedUrPrefix").orElse("/"), new RedisUsers(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
+        super(propertiesProvider.get("protectedUrPrefix").orElse("/"), new UsersInRedis(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
         this.ttl = Integer.valueOf(propertiesProvider.get("sessionTtlSeconds").orElse("1"));
         this.project = propertiesProvider.get("defaultProject").orElse("local-datashare");
     }
@@ -39,7 +39,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
             put("uid", userName);
             put(DatashareUser.DATASHARE_PROJECTS_KEY, singletonList(project));
         }});
-        ((RedisUsers)users).createUser(user);
+        ((UsersInRedis)users).saveOrUpdate(user);
         return user;
     }
 

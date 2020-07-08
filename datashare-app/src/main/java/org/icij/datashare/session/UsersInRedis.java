@@ -2,56 +2,53 @@ package org.icij.datashare.session;
 
 import com.google.inject.Inject;
 import net.codestory.http.security.User;
-import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Transaction;
 
+import java.util.List;
+
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.user.User.fromJson;
 
-public class RedisUsers implements Users {
+public class UsersInRedis implements UsersWritable {
     private final JedisPool redis;
     private final Integer ttl;
 
     @Inject
-    public RedisUsers(PropertiesProvider propertiesProvider) {
+    public UsersInRedis(PropertiesProvider propertiesProvider) {
         redis = new JedisPool(new JedisPoolConfig(), propertiesProvider.getProperties().getProperty("messageBusAddress"));
         this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("1"));
     }
 
     @Override
-    public User find(String login, String password) {
-        DatashareUser user = getUser(login);
-        return user != null && user.get("password") != null && user.get("password").equals(Hasher.SHA_256.hash(password)) ? user: null;
-    }
-
-    @Override
     public User find(String login) {
-        return getUser(login);
-    }
-
-    void createUser(DatashareUser user) {
-        try (Jedis jedis = redis.getResource()) {
-            Transaction transaction = jedis.multi();
-            transaction.set(user.login(), user.toJson());
-            transaction.expire(user.login(), this.ttl);
-            transaction.exec();
-        }
-    }
-
-    DatashareUser getUser(String login) {
         try (Jedis jedis = redis.getResource()) {
             return new DatashareUser(fromJson(jedis.get(login), "icij").details);
         }
     }
 
+    @Override
+    public User find(String login, String password) {
+        return null;
+    }
+
     void removeUser(String login) {
         try (Jedis jedis = redis.getResource()) {
             jedis.del(login);
+        }
+    }
+
+    @Override
+    public boolean saveOrUpdate(User user) {
+        try (Jedis jedis = redis.getResource()) {
+            Transaction transaction = jedis.multi();
+            transaction.set(user.login(), ((DatashareUser)user).getJsonDetails());
+            transaction.expire(user.login(), this.ttl);
+            List<Object> exec = transaction.exec();
+            return exec.size() == 2;
         }
     }
 }

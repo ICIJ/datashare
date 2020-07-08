@@ -59,3 +59,6 @@ databaseChangeLog:
   - include:
       file: changes/019-create_apikey.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/020-adds-column-user-details.yml
+      relativeToChangelogFile: true

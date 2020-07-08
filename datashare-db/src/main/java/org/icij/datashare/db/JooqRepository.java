@@ -272,9 +272,31 @@ public class JooqRepository implements Repository {
                 values(project.name, project.sourcePath.toString(), project.allowFromMask).execute() > 0;
     }
 
-    boolean save(User user) {
-        return DSL.using(connectionProvider, dialect).insertInto(USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL, USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER).
-                values(user.id, user.email, user.name, user.provider).execute() > 0;
+    public boolean save(User user) {
+        return DSL.using(connectionProvider, dialect).insertInto(USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL,
+                USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER, USER_INVENTORY.DETAILS).
+                values(user.id, user.email, user.name, user.provider, user.getJsonDetails()).
+                onConflict(USER_INVENTORY.ID).
+                    doUpdate().
+                        set(USER_INVENTORY.EMAIL, user.email).
+                        set(USER_INVENTORY.DETAILS, user.getJsonDetails()).
+                        set(USER_INVENTORY.NAME, user.name).
+                        set(USER_INVENTORY.PROVIDER, user.provider).
+                execute() > 0;
+    }
+
+    public User getUser(String uid) {
+        return createUserFrom(DSL.using(connectionProvider, dialect).selectFrom(USER_INVENTORY).where(USER_INVENTORY.ID.eq(uid)).fetchOne());
+    }
+
+    @Override
+    public boolean getHealth(){
+        try {
+            return DSL.using(connectionProvider, dialect).select().fetchOne().toString().contains("1");
+        } catch (DataAccessException ex){
+            LoggerFactory.getLogger(getClass()).error("Database Health error : ",ex);
+            return false;
+        }
     }
 
     // ---------------------------
@@ -283,7 +305,7 @@ public class JooqRepository implements Repository {
         if (userRecord.getId() == null) {
             return new User(record.into(DOCUMENT_USER_RECOMMENDATION).getUserId());
         }
-        return new User(userRecord.getId(), userRecord.getName(), userRecord.getEmail(), userRecord.getProvider());
+        return new User(userRecord.getId(), userRecord.getName(), userRecord.getEmail(), userRecord.getProvider(), userRecord.getDetails());
     }
 
     private Note createNoteFrom(NoteRecord noteRecord) {
@@ -325,15 +347,4 @@ public class JooqRepository implements Repository {
     private Tag createTagFrom(DocumentTagRecord record) {
         return new Tag(record.getLabel(), new User(record.getUserId()), new Date(record.getCreationDate().getTime()));
     }
-
-    @Override
-    public boolean getHealth(){
-        try {
-            return DSL.using(connectionProvider, dialect).select().fetchOne().toString().contains("1");
-        } catch (DataAccessException ex){
-            LoggerFactory.getLogger(getClass()).error("Database Health error : ",ex);
-            return false;
-        }
-    }
-
 }
