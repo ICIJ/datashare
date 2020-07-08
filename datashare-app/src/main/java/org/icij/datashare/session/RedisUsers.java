@@ -11,7 +11,7 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Transaction;
 
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.session.DatashareUser.fromJson;
+import static org.icij.datashare.user.User.fromJson;
 
 public class RedisUsers implements Users {
     private final JedisPool redis;
@@ -45,7 +45,7 @@ public class RedisUsers implements Users {
 
     DatashareUser getUser(String login) {
         try (Jedis jedis = redis.getResource()) {
-            return fromJson(jedis.get(login));
+            return new DatashareUser(fromJson(jedis.get(login), "icij").details);
         }
     }
 

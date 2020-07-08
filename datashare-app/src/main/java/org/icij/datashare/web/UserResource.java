@@ -21,6 +21,6 @@ public class UserResource {
      */
     @Get("/me")
     public Map<String, Object> getUser(Context context) {
-        return ((DatashareUser) context.currentUser()).getMap();
+        return ((DatashareUser) context.currentUser()).getDetails();
     }
 }

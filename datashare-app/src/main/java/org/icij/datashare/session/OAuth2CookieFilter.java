@@ -118,9 +118,9 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         service.signRequest(accessToken, request);
         final Response oauthApiResponse = service.execute(request);
 
-        DatashareUser user = fromJson(oauthApiResponse.getBody());
-        redisUsers().createUser(user);
-        return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(user, "/")));
+        DatashareUser datashareUser = new DatashareUser(fromJson(oauthApiResponse.getBody(), "icij").details);
+        redisUsers().createUser(datashareUser);
+        return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
     }
 
     @Override
