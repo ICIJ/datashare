@@ -15,6 +15,8 @@ public class LocalMode extends CommonMode {
     protected void configure() {
         super.configure();
         bind(IndexWaiterFilter.class).asEagerSingleton();
+        bind(StatusResource.class).asEagerSingleton();
+
         configurePersistence();
     }
 

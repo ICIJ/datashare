@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 @Singleton
 @Prefix("/api")
-
 public class StatusResource {
     Logger logger = LoggerFactory.getLogger(getClass());
     private PropertiesProvider propertiesProvider;

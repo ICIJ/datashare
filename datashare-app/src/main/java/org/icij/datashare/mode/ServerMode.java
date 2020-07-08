@@ -33,6 +33,7 @@ public class ServerMode extends CommonMode {
             }
         }
         bind(Filter.class).to(authFilterClass);
+        bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
     }
 
