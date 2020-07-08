@@ -47,6 +47,7 @@ public class ServerMode extends CommonMode {
                 add(BatchSearchResource.class).
                 add(NoteResource.class).
                 add(NerResource.class).
+                add(ApiKeyResource.class).
                 add(ProjectResource.class).
                 add(DocumentResource.class).
                 filter(ApiKeyFilter.class).
