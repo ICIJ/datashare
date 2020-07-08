@@ -48,5 +48,6 @@ public interface Repository {
 
     boolean getHealth();
 
-
+    boolean save(User user);
+    User getUser(String userId);
 }

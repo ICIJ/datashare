@@ -1,9 +1,7 @@
 package org.icij.datashare.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.icij.datashare.json.JsonUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -11,6 +9,7 @@ import java.util.stream.Collectors;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.json.JsonUtils.deserialize;
 
 public class User {
     public static final String LOCAL = "local";
@@ -20,6 +19,14 @@ public class User {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
+
+    public User(final String id, String name, String email, String provider, String jsonDetails) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.provider = provider;
+        this.details = unmodifiableMap(deserialize(jsonDetails));
+    }
 
     public User(final String id, String name, String email, String provider, Map<String, Object> details) {
         this.id = id;
@@ -47,22 +54,9 @@ public class User {
 
     public static User fromJson(String json, String provider) {
         if (json == null) return null;
-        HashMap<String, Object> hashMap;
-        try {
-            hashMap = new ObjectMapper().readValue(json, new TypeReference<HashMap<String, Object>>() {});
-            hashMap.put("provider", provider);
-            return new User(hashMap);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public String toJson() {
-        try {
-            return new ObjectMapper().writeValueAsString(this.details);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        Map<String, Object> hashMap = deserialize(json);
+        hashMap.put("provider", provider);
+        return new User(hashMap);
     }
 
     public List<String> getProjects() {
@@ -76,11 +70,15 @@ public class User {
                 collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
+    public String getJsonDetails() {
+        return JsonUtils.serialize(getDetails());
+    }
+
     public boolean isGranted(String index) {
             return getProjects().contains(index);
         }
-    public String queueName() { return "extract:queue_" + id;}
 
+    public String queueName() { return "extract:queue_" + id;}
     @JsonIgnore
     public String getPath() { return this.equals(local()) || isNull() ? "" : id;}
     @JsonIgnore
@@ -92,6 +90,7 @@ public class User {
     public static User nullUser() { return new User((String)null);}
     @Override
     public int hashCode() { return Objects.hash(id);}
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

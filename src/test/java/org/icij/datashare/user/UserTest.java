@@ -62,4 +62,31 @@ public class UserTest {
             put("datashare_projects", Collections.singletonList("external_index"));
         }}).getProjects()).containsExactly("external_index");
     }
+
+    @Test
+    public void test_constructor_with_json_details() {
+        User user = new User("id", "name", "email", "provider", "{\"key1\": \"value1\", \"key2\": \"value2\"}");
+        assertThat(user.details).includes(entry("key1", "value1"), entry("key2", "value2"));
+    }
+
+    @Test
+    public void test_details_as_json() {
+        String jsonDetails = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
+        User user = new User("id", "name", "email", "provider", jsonDetails);
+        assertThat(user.getJsonDetails()).isEqualTo(jsonDetails);
+    }
+
+    @Test
+    public void test_values_in_map() throws Exception {
+        User user = new User(new HashMap<String, Object>() {{
+            put("uid", "foo");
+            put("name", "Foo Bar");
+            put("email", "foo@bar.com");
+            put("provider", "external");
+        }});
+        assertThat(user.id).isEqualTo("foo");
+        assertThat(user.name).isEqualTo("Foo Bar");
+        assertThat(user.email).isEqualTo("foo@bar.com");
+        assertThat(user.provider).isEqualTo("external");
+    }
 }
