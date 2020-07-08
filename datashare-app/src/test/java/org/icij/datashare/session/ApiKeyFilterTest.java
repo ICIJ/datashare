@@ -6,7 +6,6 @@ import net.codestory.http.NewCookie;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
-import net.codestory.http.security.Users;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -22,7 +21,7 @@ public class ApiKeyFilterTest {
     private final PayloadSupplier nextFilter = () -> next;
     private final Context context = mock(Context.class);
     private final ArgumentCaptor<User> user = forClass(User.class);
-    @Mock private Users users;
+    @Mock private UsersWritable users;
     @Mock private ApiKeyStore apiKeyStore;
     ApiKeyFilter apiKeyFilter;
 
