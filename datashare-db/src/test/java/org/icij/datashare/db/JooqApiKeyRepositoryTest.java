@@ -1,5 +1,7 @@
 package org.icij.datashare.db;
 
+import org.icij.datashare.test.DatashareTimeRule;
+import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.ApiKey;
 import org.icij.datashare.user.DatashareApiKey;
 import org.icij.datashare.user.User;
@@ -19,6 +21,7 @@ import static org.icij.datashare.user.DatashareApiKey.getBase64Encoded;
 @RunWith(Parameterized.class)
 public class JooqApiKeyRepositoryTest {
     @Rule public DbSetupRule dbRule;
+    @Rule public DatashareTimeRule time = new DatashareTimeRule("2020-07-08T12:13:14Z");
     private final JooqApiKeyRepository repository;
 
     @Test
@@ -37,8 +40,11 @@ public class JooqApiKeyRepositoryTest {
         DatashareApiKey apiKey1 = new DatashareApiKey(secretKey, User.local());
         repository.save(apiKey1);
 
+        DatashareTime.getInstance().addMilliseconds(12000);
         assertThat(repository.save(new DatashareApiKey(User.local()))).isTrue();
+
         assertThat(repository.get(getBase64Encoded(secretKey))).isNull();
+        assertThat(repository.get(User.local()).getCreationDate()).isEqualTo(time.now());
     }
 
     @Test

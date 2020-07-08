@@ -11,6 +11,7 @@ import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
 import java.sql.Timestamp;
+import java.util.Date;
 
 import static org.icij.datashare.db.tables.ApiKey.API_KEY;
 
@@ -43,14 +44,15 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
 
     public boolean save(ApiKey apiKey) {
         return DSL.using(connectionProvider, dialect).insertInto(API_KEY).
-                values(apiKey.getId(), apiKey.getUser().id, new Timestamp((DatashareTime.getInstance().now().getTime()))).
+                values(apiKey.getId(), apiKey.getUser().id, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
                 onConflict(API_KEY.USER_ID).doUpdate().
                     set(API_KEY.ID, apiKey.getId()).
+                    set(API_KEY.CREATION_DATE, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
                     where(API_KEY.USER_ID.eq(apiKey.getUser().id)).execute() > 0;
     }
 
     // ----------------
     private ApiKey createApiKey(ApiKeyRecord apiKeyRecord) {
-        return apiKeyRecord != null ? new DatashareApiKey(apiKeyRecord.getId(), new User(apiKeyRecord.getUserId())) : null;
+        return apiKeyRecord != null ? new DatashareApiKey(apiKeyRecord.getId(), new User(apiKeyRecord.getUserId()), Date.from(apiKeyRecord.getCreationDate().toInstant())) : null;
     }
 }
