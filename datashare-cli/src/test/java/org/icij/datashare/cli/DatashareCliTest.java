@@ -1,8 +1,6 @@
 package org.icij.datashare.cli;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
 import java.io.IOException;
 
@@ -11,7 +9,6 @@ import static org.fest.assertions.MapAssert.entry;
 
 public class DatashareCliTest {
     private DatashareCli cli = new DatashareCli();
-    @Rule public final ExpectedSystemExit exit = ExpectedSystemExit.none();
 
     @Test
     public void test_web_opt() {
