@@ -24,8 +24,8 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
         when(task.call()).thenReturn("privateKey");
         when(taskFactory.createGenApiKey(any())).thenReturn(task);
 
-        put("/api/key").should().respond(201).haveType("application/json").contain("privateKey");
-        put("/api/key").should().respond(201).haveType("application/json").contain("privateKey");
+        put("/api/key/create").should().respond(201).haveType("application/json").contain("privateKey");
+        put("/api/key/create").should().respond(201).haveType("application/json").contain("privateKey");
     }
 
     @Before

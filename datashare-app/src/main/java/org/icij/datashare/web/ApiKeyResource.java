@@ -27,10 +27,8 @@ public class ApiKeyResource {
      * @param context
      * @return 201 (created) or error
      * @throws Exception
-     * Example:
-     * $(curl -i -XPUT -H 'Content-Type: application/json' http://localhost:8080/api/key)
      */
-    @Put()
+    @Put("/create")
     public Payload createKey(Context context) throws Exception {
         return new Payload("application/json", new HashMap<String, String>() {{
             put("apiKey", taskFactory.createGenApiKey((User) context.currentUser()).call());
