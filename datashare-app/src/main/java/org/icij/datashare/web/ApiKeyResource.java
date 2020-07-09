@@ -23,7 +23,13 @@ public class ApiKeyResource {
 
     /**
      * Creates a new private key and saves its 384 hash into database for current user.
+     *
      * "/api/key" resource is available only in SERVER mode.
+     *
+     * Returns JSON like :
+     * ```
+     * {"apiKey":"SrcasvUmaAD6NsZ3+VmUkFFWVfRggIRNmWR5aHx7Kfc="}
+     * ```
      *
      * @param context
      * @return 201 (created) or error
