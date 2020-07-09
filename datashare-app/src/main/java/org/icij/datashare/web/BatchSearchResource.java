@@ -126,7 +126,7 @@ public class BatchSearchResource {
      * @return 204 or 404
      *
      * Example :
-     * $(curl -i -XDELETE localhost:8080/api/batch/search/f74432db-9ae8-401d-977c-5c44a124f2c8)
+     * $(curl -i -XDELETE localhost:8080/api/batch/search/unknown_id)
      *
      */
     @Delete("/search/:batchid")

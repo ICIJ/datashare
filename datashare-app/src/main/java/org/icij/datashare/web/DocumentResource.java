@@ -158,7 +158,7 @@ public class DocumentResource {
      * @return 201 if created else 200
      *
      * Example :
-     * $(curl localhost:8080/api/apigen-datashare/documents/tags/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f -d '[\"tag1\",\"tag2\"]'
+     * $(curl -XPUT -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/tags/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f -d '["tag1","tag2"]')
      */
     @Put("/:project/documents/tags/:docId?routing=:routing")
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
@@ -238,7 +238,7 @@ public class DocumentResource {
      * @param tags
      * @return 201 if untagged else 200
      *
-     * $(curl -i -XPUT localhost:8080/api/apigen-datashare/documents/untag/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
+     * $(curl -i -XPUT -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/untag/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f -d '["tag1"]')
      */
     @Put("/:project/documents/untag/:docId?routing=:routing")
     public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
@@ -317,7 +317,7 @@ public class DocumentResource {
      * @return 200 and the number of documents marked
      *
      * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/recommend -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
+     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/recommend -d '["7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"]')
      */
     @Post("/:project/documents/batchUpdate/recommend")
     public Result<Integer> groupRecommend(final String projectId, final List<String> docIds, Context context) {

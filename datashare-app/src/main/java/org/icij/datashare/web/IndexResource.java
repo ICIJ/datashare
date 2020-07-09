@@ -96,7 +96,7 @@ public class IndexResource {
      * @return 200 or http error from Elasticsearch
      *
      * Example :
-     *  $(curl -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/datashare/_search?q=type:NamedEntity)
+     *  $(curl -H 'Content-Type: application/json' 'http://dsenv:8080/api/index/search/apigen-datashare/_search?q=type:NamedEntity&size=1')
      */
     @Get("/search/:path:")
     public Payload esGet(final String path, Context context) throws IOException {

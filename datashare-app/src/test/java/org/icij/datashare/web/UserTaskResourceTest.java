@@ -34,6 +34,20 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_task_unknown_task() {
+        setupAppWith("foo");
+        get("/api/task/unknown").withPreemptiveAuthentication("foo", "qux").should().respond(404);
+    }
+
+    @Test
+    public void test_get_task() {
+        setupAppWith("foo");
+        TaskManager.MonitorableFutureTask<Void> t = taskManager.startTask(new TaskManager.MonitorableFutureTask(new DummyUserTask("foo"), String.class));
+        get("/api/task/" + t).withPreemptiveAuthentication("foo", "qux").should().respond(200).
+            contain(format("{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0}", t));
+    }
+
+    @Test
     public void test_task_list_in_server_mode() {
         setupAppWith("foo", "bar");
         TaskManager.MonitorableFutureTask<Void> t1 = taskManager.startTask(new TaskManager.MonitorableFutureTask(new DummyUserTask("foo"), String.class));

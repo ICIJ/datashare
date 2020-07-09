@@ -85,7 +85,9 @@ public class TaskResource {
      */
     @Get("/:name")
     public TaskResponse getTask(String id) {
-        return new TaskResponse(taskManager.getTask(id));
+        TaskManager.MonitorableFutureTask task = taskManager.getTask(id);
+        TaskResponse response = task == null ? null:new TaskResponse(task);
+        return notFoundIfNull(response);
     }
 
 
@@ -149,7 +151,8 @@ public class TaskResource {
      * @return 200 and the task created
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/home/dev/mydir)
+     * $(mkdir -p /tmp/apigen)
+     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/tmp/apigen -d '{}')
      */
     @Post("/batchUpdate/scan/:filePath:")
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
@@ -239,7 +242,7 @@ public class TaskResource {
      * @return 200 and the list of created tasks
      *
      * Example :
-     * $(curl -XPOST http://dsenv:8080/api/task/findNames/CORENLP)
+     * $(curl -XPOST http://dsenv:8080/api/task/findNames/CORENLP -d {})
      */
     @Post("/findNames/:pipeline")
     public List<TaskResponse> extractNlp(final String pipelineName, final OptionsWrapper optionsWrapper, Context context) {
