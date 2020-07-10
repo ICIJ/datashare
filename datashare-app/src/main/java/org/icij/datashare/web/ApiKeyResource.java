@@ -3,13 +3,14 @@ package org.icij.datashare.web;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.user.User;
 
 import java.util.HashMap;
+
+import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
 @Prefix("/api/key")
@@ -19,6 +20,16 @@ public class ApiKeyResource {
     @Inject
     public ApiKeyResource(TaskFactory taskFactory) {
         this.taskFactory = taskFactory;
+    }
+
+    /**
+     * Preflight for key creation.
+     *
+     * @return 200 with PUT
+     */
+    @Options("/create")
+    public Payload createKey() {
+        return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
     /**

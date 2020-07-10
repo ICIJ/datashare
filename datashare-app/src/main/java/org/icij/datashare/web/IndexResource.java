@@ -50,7 +50,7 @@ public class IndexResource {
      */
     @Options("/:index")
     public Payload createIndexPreflight(final String index) {
-        return ok().withAllowMethods("OPTION", "PUT");
+        return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
     /**
