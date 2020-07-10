@@ -27,7 +27,7 @@ public class DelApiKeyTask extends DefaultTask implements UserTask {
         if (result) {
             logger.info("key for user {} has been deleted", user.id);
         } else {
-            logger.info("key for user {} is nowhere to be found for delete", user.id);
+            logger.info("no key for user {}", user.id);
         }
         return result;
     }
