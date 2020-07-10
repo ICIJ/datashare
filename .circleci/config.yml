@@ -60,6 +60,12 @@ jobs:
   publish_doc:
     docker:
       - image: circleci/openjdk:8-stretch
+      - image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
+        environment:
+           - "discovery.type=single-node"
+           - "cluster.name=datashare"
+           - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+        name: elasticsearch
     working_directory: ~/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
