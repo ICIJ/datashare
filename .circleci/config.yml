@@ -103,6 +103,9 @@ jobs:
       - run:
           name: Push changes to the Wiki
           command: git -C ~/datashare-wiki push origin master
+      - run:
+          name: Kill datashare
+          command: killall java
 
   package_back:
     docker:
