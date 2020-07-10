@@ -99,10 +99,10 @@ jobs:
       - run:
           name: install apigen
           command: |
-              sudo apt-get update
-              sudo apt-get install -y python-pip3
-              sudo pip3 install fluent-http-apigen
-    - run:
+            sudo apt-get update
+            sudo apt-get install -y python-pip3
+            sudo pip3 install fluent-http-apigen
+      - run:
           name: run apigen
           command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > ~/datashare.wiki/Backend-›-API.md
       - run:
