@@ -83,6 +83,11 @@ jobs:
           fingerprints:
             - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
+          name: Configure Git identity
+          command: |
+            git config --global user.name $CIRCLE_USERNAME
+            git config --global user.email "engineering@icij.org"
+      - run:
           name: Checkout Datashare Wiki repository
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
@@ -112,9 +117,6 @@ jobs:
       - run:
           name: Push changes to the Wiki
           command: git -C ~/datashare-wiki push origin master
-      - run:
-          name: Kill datashare
-          command: killall java
 
   package_back:
     docker:
