@@ -14,6 +14,7 @@ public interface TaskFactory {
     NlpApp createNlpTask(User user, Pipeline pipeline);
     BatchSearchRunner createBatchSearchRunner(User user);
     GenApiKeyTask createGenApiKey(User user);
+    DelApiKeyTask deleteApiKey(User user);
     ScanIndexTask createScanIndexTask(User user, String reportName);
 
     ScanTask createScanTask(User user, String queueName, final Path path, Properties properties);

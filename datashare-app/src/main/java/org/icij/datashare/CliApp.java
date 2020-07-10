@@ -24,8 +24,7 @@ import static java.lang.Boolean.parseBoolean;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
-import static org.icij.datashare.cli.DatashareCliOptions.API_KEY_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_USER_NAME;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 import static org.icij.datashare.user.User.localUser;
 import static org.icij.datashare.user.User.nullUser;
@@ -60,6 +59,17 @@ class CliApp {
             String userName = properties.getProperty(DEFAULT_USER_NAME);
             String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
             logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}", userName, secretKey);
+            System.exit(0);
+        }
+
+        if (properties.getProperty(DEL_API_KEY_OPT) != null) {
+            String userName = properties.getProperty(DEFAULT_USER_NAME);
+            Boolean ret = taskFactory.deleteApiKey(localUser(userName)).call();
+            if (ret) {
+                logger.info("key for user {} has been deleted", userName);
+            } else {
+                logger.info("key for user {} is nowhere to be found for delete", userName);
+            }
             System.exit(0);
         }
 

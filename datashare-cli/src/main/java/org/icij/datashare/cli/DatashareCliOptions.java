@@ -29,6 +29,7 @@ public final class DatashareCliOptions {
     static final String ROOT_HOST = "rootHost";
     public static final String RESUME_OPT = "resume";
     public static final String API_KEY_OPT = "apiKey";
+    public static final String DEL_API_KEY_OPT = "deleteApiKey";
     public static final String PARALLELISM = "parallelism";
     public static final String OPEN_LINK = "browserOpenLink";
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
@@ -123,6 +124,10 @@ public final class DatashareCliOptions {
 
     static OptionSpecBuilder genApiKey(OptionParser parser) {
         return parser.acceptsAll(asList(API_KEY_OPT, "k"), "Generate and store api key for user defaultUser (see opt)");
+    }
+
+    static OptionSpecBuilder delApiKey(OptionParser parser) {
+        return parser.acceptsAll(singletonList(DEL_API_KEY_OPT), "Delete api key for user");
     }
 
     static OptionSpec<File> dataDir(OptionParser parser) {

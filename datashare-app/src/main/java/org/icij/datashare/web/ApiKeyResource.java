@@ -41,4 +41,19 @@ public class ApiKeyResource {
             put("apiKey", taskFactory.createGenApiKey((User) context.currentUser()).call());
         }},201);
     }
+
+    /**
+     * Deletes an apikey for current user.
+     * "/api/key" resource is available only in SERVER mode.
+     *
+     * @param context
+     * @return 201 (created) or error
+     * @throws Exception
+     */
+    @Put("/delete")
+    public Payload deleteKey(Context context) throws Exception {
+        return new Payload("application/json", new HashMap<String,Boolean>() {{
+            put("deleteApiKey", taskFactory.deleteApiKey((User)context.currentUser()).call());
+        }},201);
+    }
 }

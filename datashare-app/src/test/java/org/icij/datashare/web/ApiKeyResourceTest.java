@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -26,6 +27,15 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
 
         put("/api/key/create").should().respond(201).haveType("application/json").contain("privateKey");
         put("/api/key/create").should().respond(201).haveType("application/json").contain("privateKey");
+    }
+
+    @Test
+    public void test_delete_key() throws Exception {
+        DelApiKeyTask task = mock(DelApiKeyTask.class);
+        when(task.call()).thenReturn(true);
+        when(taskFactory.deleteApiKey(any())).thenReturn(task);
+
+        put("/api/key/delete").should().respond(201).haveType("application/json").contain("true");
     }
 
     @Before
