@@ -61,6 +61,8 @@ jobs:
     docker:
       - image: circleci/openjdk:8-stretch
     working_directory: ~/datashare
+    environment:
+      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
     steps:
       - checkout
       - restore_cache:
