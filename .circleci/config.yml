@@ -1,4 +1,10 @@
 version: 2.1
+
+parameters:
+  publish_backend_api:
+    type: boolean
+    default: false
+
 jobs:
   build_back:
     docker:
@@ -50,6 +56,37 @@ jobs:
           paths:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
+
+  publish_doc:
+    docker:
+      - image: circleci/openjdk:8-stretch
+    working_directory: ~/datashare
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+      - run:
+          name: Prepare SSH directory
+          command: |
+            mkdir -p ~/.ssh
+            chmod 700 ~/.ssh
+      - add_ssh_keys:
+          fingerprints:
+            - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
+      - run:
+          name: Checkout Fluent API gen repository
+          command: |
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            git clone git@github.com:ICIJ/fluent-http-apigen.git ~/apigen
+      - run:
+          name: Checkout Datashare Wiki repository
+          command: |
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            git clone git@github.com:ICIJ/datashare.wiki.git ~/datashare-wiki
+      - run:
+          name: make dist without frontend
+          command: mvn -pl datashare-dist package
 
   package_back:
     docker:
@@ -308,3 +345,8 @@ workflows:
                   only: /^[0-9.]*/
               branches:
                   ignore: /.*/
+
+  publish_doc_workflow:
+    when: << pipeline.parameters.publish_backend_api >>
+    jobs:
+      - publish_doc
