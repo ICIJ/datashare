@@ -293,6 +293,7 @@ jobs:
 workflows:
   version: 2
   build_workflow:
+    when: not << pipeline.parameters.publish_backend_api >>
     jobs:
       - build_back:
           filters:
