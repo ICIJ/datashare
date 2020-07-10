@@ -23,9 +23,6 @@ jobs:
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
 
-    dependencies:
-      override:
-
     steps:
       - checkout
 
