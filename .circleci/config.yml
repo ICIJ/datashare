@@ -77,11 +77,6 @@ jobs:
           fingerprints:
             - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
-          name: Checkout Fluent API gen repository
-          command: |
-            ssh-keyscan github.com >> ~/.ssh/known_hosts
-            git clone git@github.com:ICIJ/fluent-http-apigen.git ~/apigen
-      - run:
           name: Checkout Datashare Wiki repository
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
@@ -89,6 +84,25 @@ jobs:
       - run:
           name: make dist without frontend
           command: mvn -pl datashare-dist package
+      - run:
+          name: populate apigen index
+          command: ./doc/apigen/populate_apigen.sh
+      - run:
+          name: launch datashare apigen
+          command: ./doc/apigen/datashare_for_apigen.sh &
+      - run:
+          name: install apigen
+          command: sudo pip install fluent-http-apigen
+      - run:
+          name: run apigen
+          command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > ~/datashare.wiki/Backend-›-API.md
+      - run:
+          name: Add/Commit changes to the Wiki
+          command: |
+            git -C ~/datashare-wiki commit -am "Publish backend documentation [${CIRCLE_SHA1}]" || true
+      - run:
+          name: Push changes to the Wiki
+          command: git -C ~/datashare-wiki push origin master
 
   package_back:
     docker:
