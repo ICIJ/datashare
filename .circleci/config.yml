@@ -104,7 +104,7 @@ jobs:
             sudo pip3 install fluent-http-apigen
       - run:
           name: run apigen
-          command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > ~/datashare.wiki/Backend-›-API.md
+          command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > "../datashare.wiki/Backend-\342\200\272-API.md"
       - run:
           name: Add/Commit changes to the Wiki
           command: |
@@ -136,7 +136,7 @@ jobs:
           command: ln -s /tmp/datashare-client/dist /tmp/datashare/app
       - run:
           name: make dist including frontend
-          command: mvn -pl datashare-dist package
+          command: mvn -pl datashare-dist package > mvn.out
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
