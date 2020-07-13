@@ -59,13 +59,11 @@ public class ApiKeyResource {
      * "/api/key" resource is available only in SERVER mode.
      *
      * @param context
-     * @return 201 (created) or error
+     * @return 204 or 404 (if no key found)
      * @throws Exception
      */
-    @Put("/delete")
+    @Delete()
     public Payload deleteKey(Context context) throws Exception {
-        return new Payload("application/json", new HashMap<String,Boolean>() {{
-            put("deleteApiKey", taskFactory.deleteApiKey((User)context.currentUser()).call());
-        }},201);
+        return taskFactory.deleteApiKey((User)context.currentUser()).call() ? new Payload(204) : new Payload(404);
     }
 }

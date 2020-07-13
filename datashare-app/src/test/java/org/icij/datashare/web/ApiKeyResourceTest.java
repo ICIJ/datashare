@@ -35,7 +35,16 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
         when(task.call()).thenReturn(true);
         when(taskFactory.deleteApiKey(any())).thenReturn(task);
 
-        put("/api/key/delete").should().respond(201).haveType("application/json").contain("true");
+        delete("/api/key").should().respond(204);
+    }
+
+    @Test
+    public void test_delete_key_false() throws Exception {
+        DelApiKeyTask task = mock(DelApiKeyTask.class);
+        when(task.call()).thenReturn(false);
+        when(taskFactory.deleteApiKey(any())).thenReturn(task);
+
+        delete("/api/key").should().respond(404);
     }
 
     @Before
