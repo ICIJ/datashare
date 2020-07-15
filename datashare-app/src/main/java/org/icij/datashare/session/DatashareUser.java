@@ -22,8 +22,8 @@ public class DatashareUser extends User implements net.codestory.http.security.U
     public static Users singleUser(String name) { return singleUser(User.localUser(name));}
     public static Users singleUser(final User user) {
         return new Users() {
-            @Override public net.codestory.http.security.User find(String s, String s1) { return s.equals(user.id) ? new DatashareUser(user.details) : null;}
-            @Override public net.codestory.http.security.User find(String s) { return s.equals(user.id) ? new DatashareUser(user.details) : null;}
+            @Override public net.codestory.http.security.User find(String s, String s1) { return s.equals(user.id) ? new DatashareUser(user) : null;}
+            @Override public net.codestory.http.security.User find(String s) { return s.equals(user.id) ? new DatashareUser(user) : null;}
         };
     }
     public static Users users(String... logins) {
