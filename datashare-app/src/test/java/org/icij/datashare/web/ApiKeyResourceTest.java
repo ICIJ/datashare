@@ -33,7 +33,7 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     public void test_delete_key() throws Exception {
         DelApiKeyTask task = mock(DelApiKeyTask.class);
         when(task.call()).thenReturn(true);
-        when(taskFactory.deleteApiKey(any())).thenReturn(task);
+        when(taskFactory.createDelApiKey(any())).thenReturn(task);
 
         delete("/api/key").should().respond(204);
     }
@@ -42,7 +42,7 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     public void test_delete_key_false() throws Exception {
         DelApiKeyTask task = mock(DelApiKeyTask.class);
         when(task.call()).thenReturn(false);
-        when(taskFactory.deleteApiKey(any())).thenReturn(task);
+        when(taskFactory.createDelApiKey(any())).thenReturn(task);
 
         delete("/api/key").should().respond(404);
     }

@@ -217,6 +217,18 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_save_and_get_user_with_empty_details(){
+        User expected = new User("foo", "bar", "mail", "icij", new HashMap<>());
+        repository.save(expected);
+        User actual = repository.getUser("foo");
+        assertThat(actual).isEqualTo(User.localUser("foo"));
+        assertThat(actual.email).isEqualTo(expected.email);
+        assertThat(actual.provider).isEqualTo(expected.provider);
+        assertThat(actual.details).isEqualTo(expected.details);
+        assertThat(actual.name).isEqualTo(expected.name);
+    }
+
+    @Test
     public void test_group_tag_untag_documents() {
         assertThat(repository.tag(project("prj"), asList("doc_id1", "doc_id2"), tag("tag1"), tag("tag2"))).isTrue();
         assertThat(repository.tag(project("prj2"), "doc_id3", tag("tag1"))).isTrue();

@@ -64,7 +64,7 @@ class CliApp {
 
         if (properties.getProperty(DEL_API_KEY_OPT) != null) {
             String userName = properties.getProperty(DEFAULT_USER_NAME);
-            taskFactory.deleteApiKey(localUser(userName)).call();
+            taskFactory.createDelApiKey(localUser(userName)).call();
             System.exit(0);
         }
 

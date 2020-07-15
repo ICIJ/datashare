@@ -64,6 +64,6 @@ public class ApiKeyResource {
      */
     @Delete()
     public Payload deleteKey(Context context) throws Exception {
-        return taskFactory.deleteApiKey((User)context.currentUser()).call() ? new Payload(204) : new Payload(404);
+        return taskFactory.createDelApiKey((User)context.currentUser()).call() ? new Payload(204) : new Payload(404);
     }
 }

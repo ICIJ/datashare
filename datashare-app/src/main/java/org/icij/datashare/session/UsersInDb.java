@@ -16,7 +16,7 @@ public class UsersInDb implements UsersWritable {
 
     @Override
     public User find(String login) {
-        return new DatashareUser(userRepository.getUser(login).details);
+        return new DatashareUser(userRepository.getUser(login));
     }
 
     @Override

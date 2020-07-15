@@ -10,6 +10,10 @@ public class DatashareUser extends User implements net.codestory.http.security.U
     public DatashareUser(Map<String, Object> map) { super(map);}
     public DatashareUser(String id) { super(id);}
 
+    public DatashareUser(User user) {
+        super(user.id,user.name,user.email,user.provider,user.details);
+    }
+
     @Override public String login() { return id; }
     @Override public String name() { return (String) details.get("name"); }
     @Override public String[] roles() { return isLocal() ? new String[] {LOCAL}: new String[0]; }
