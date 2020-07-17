@@ -158,7 +158,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public String executeRaw(String method, String url, String rawJson) throws IOException {
-        Request request = new Request(method, url);
+        Request request = new Request(method, url.startsWith("/")? url: "/" + url);
         if (rawJson != null && !rawJson.isEmpty()) {
             request.setJsonEntity(rawJson);
         }

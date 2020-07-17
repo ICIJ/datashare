@@ -46,7 +46,7 @@ import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 public class ElasticsearchIndexerTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
 
     @After
     public void tearDown() throws Exception {
