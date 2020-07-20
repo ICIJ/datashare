@@ -24,6 +24,7 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
         this.dialect = dialect;
     }
 
+    @Override
     public ApiKey get(String base64Key) {
         return createApiKey(DSL.using(connectionProvider, dialect).
                 selectFrom(API_KEY).
@@ -37,11 +38,13 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
                 where(API_KEY.USER_ID.eq(user.id)).fetchOne());
     }
 
+    @Override
     public boolean delete(User user) {
         return DSL.using(connectionProvider,dialect).deleteFrom(API_KEY)
                 .where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
     }
 
+    @Override
     public boolean save(ApiKey apiKey) {
         return DSL.using(connectionProvider, dialect).insertInto(API_KEY).
                 values(apiKey.getId(), apiKey.getUser().id, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
