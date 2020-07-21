@@ -15,6 +15,7 @@ public interface TaskFactory {
     BatchSearchRunner createBatchSearchRunner(User user);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
+    GetApiKeyTask createGetApiKey(User user);
     ScanIndexTask createScanIndexTask(User user, String reportName);
 
     ScanTask createScanTask(User user, String queueName, final Path path, Properties properties);
