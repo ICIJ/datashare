@@ -5,15 +5,16 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
+import org.icij.datashare.tasks.GetApiKeyTask;
 import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ApiKeyResourceTest extends AbstractProdWebServerTest {
@@ -23,28 +24,37 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     public void test_generate_key() throws Exception {
         GenApiKeyTask task = mock(GenApiKeyTask.class);
         when(task.call()).thenReturn("privateKey");
-        when(taskFactory.createGenApiKey(any())).thenReturn(task);
+        when(taskFactory.createGenApiKey(User.local())).thenReturn(task);
 
-        put("/api/key/create").should().respond(201).haveType("application/json").contain("privateKey");
-        put("/api/key/create").should().respond(201).haveType("application/json").contain("privateKey");
+        put("/api/key/" + User.local().id).should().respond(201).haveType("application/json").contain("privateKey");
+        put("/api/key/" + User.local().id).should().respond(201).haveType("application/json").contain("privateKey");
+    }
+
+    @Test
+    public void test_get_key() throws Exception {
+        GetApiKeyTask task = mock(GetApiKeyTask.class);
+        when(task.call()).thenReturn("hashedKeyUser");
+        when(taskFactory.createGetApiKey(User.local())).thenReturn(task);
+
+        get("/api/key/" + User.local().id).should().respond(200).haveType("application/json").contain("hashedKeyUser");
     }
 
     @Test
     public void test_delete_key() throws Exception {
         DelApiKeyTask task = mock(DelApiKeyTask.class);
         when(task.call()).thenReturn(true);
-        when(taskFactory.createDelApiKey(any())).thenReturn(task);
+        when(taskFactory.createDelApiKey(User.local())).thenReturn(task);
 
-        delete("/api/key").should().respond(204);
+        delete("/api/key/" + User.local().id).should().respond(204);
     }
 
     @Test
     public void test_delete_key_false() throws Exception {
         DelApiKeyTask task = mock(DelApiKeyTask.class);
         when(task.call()).thenReturn(false);
-        when(taskFactory.createDelApiKey(any())).thenReturn(task);
+        when(taskFactory.createDelApiKey(User.local())).thenReturn(task);
 
-        delete("/api/key").should().respond(404);
+        delete("/api/key/" + User.local().id).should().respond(404);
     }
 
     @Before

@@ -27,8 +27,8 @@ public class ApiKeyResource {
      *
      * @return 200 with PUT
      */
-    @Options("/create")
-    public Payload createKey() {
+    @Options("/:userId")
+    public Payload createKey(String userId) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
@@ -42,28 +42,56 @@ public class ApiKeyResource {
      * {"apiKey":"SrcasvUmaAD6NsZ3+VmUkFFWVfRggIRNmWR5aHx7Kfc="}
      * ```
      *
-     * @param context
+     * @param userId
      * @return 201 (created) or error
      *
      * @throws Exception
      */
-    @Put("/create")
-    public Payload createKey(Context context) throws Exception {
+    @Put("/:userId")
+    public Payload createKey(String userId, Context context) throws Exception {
         return new Payload("application/json", new HashMap<String, String>() {{
-            put("apiKey", taskFactory.createGenApiKey((User) context.currentUser()).call());
+            put("apiKey", taskFactory.createGenApiKey(new User(userId)).call());
         }},201);
     }
 
     /**
-     * Deletes an apikey for current user.
+     * Get the private key for an existing user.
+     *
      * "/api/key" resource is available only in SERVER mode.
      *
-     * @param context
+     * @param userId
+     * @return 200 or error
+     *
+     * @throws Exception
+     */
+    @Get("/:userId")
+    public Payload getKey(String userId) throws Exception{
+        return new Payload("application/json", new HashMap<String, String>() {{
+            put("hashedKey", taskFactory.createGetApiKey(new User(userId)).call());
+        }},200);
+    }
+
+    /**
+     * Preflight for delete key.
+     *
+     * @return 200 DELETE
+     */
+    @Options("/:userId")
+    public Payload deleteKey(String userId) {
+        return ok().withAllowMethods("OPTIONS", "DELETE");
+    }
+
+    /**
+     * Deletes an apikey for current user.
+     *
+     * "/api/key" resource is available only in SERVER mode.
+     *
+     * @param userId
      * @return 204 or 404 (if no key found)
      * @throws Exception
      */
-    @Delete()
-    public Payload deleteKey(Context context) throws Exception {
-        return taskFactory.createDelApiKey((User)context.currentUser()).call() ? new Payload(204) : new Payload(404);
+    @Delete("/:userId")
+    public Payload deleteKey(String userId,Context context) throws Exception {
+        return taskFactory.createDelApiKey(new User(userId)).call() ? new Payload(204) : new Payload(404);
     }
 }
