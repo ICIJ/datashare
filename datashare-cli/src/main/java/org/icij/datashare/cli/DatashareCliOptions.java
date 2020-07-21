@@ -92,8 +92,7 @@ public final class DatashareCliOptions {
     static OptionSpec<String> pluginList(OptionParser parser) {
         return parser.acceptsAll(asList(PLUGIN_LIST_OPT), "Plugins list matching provided string")
                 .withRequiredArg()
-                .ofType(String.class)
-                .defaultsTo(".*");
+                .ofType(String.class);
     }
 
     public static OptionSpec<String> extensionsDir(OptionParser parser) {
