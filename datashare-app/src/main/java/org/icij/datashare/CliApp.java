@@ -55,15 +55,15 @@ class CliApp {
             }
         }
 
-        if (properties.getProperty(API_KEY_OPT) != null) {
-            String userName = properties.getProperty(DEFAULT_USER_NAME);
+        if (properties.getProperty(CRE_API_KEY_OPT) != null) {
+            String userName = properties.getProperty(CRE_API_KEY_OPT);
             String secretKey = taskFactory.createGenApiKey(localUser(userName)).call();
             logger.info("generated secret key for user {} (store it somewhere safe, datashare cannot retrieve it later): {}", userName, secretKey);
             System.exit(0);
         }
 
         if (properties.getProperty(DEL_API_KEY_OPT) != null) {
-            String userName = properties.getProperty(DEFAULT_USER_NAME);
+            String userName = properties.getProperty(DEL_API_KEY_OPT);
             taskFactory.createDelApiKey(localUser(userName)).call();
             System.exit(0);
         }

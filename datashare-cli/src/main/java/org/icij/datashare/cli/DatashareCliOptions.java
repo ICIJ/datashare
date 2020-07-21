@@ -28,7 +28,7 @@ public final class DatashareCliOptions {
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String ROOT_HOST = "rootHost";
     public static final String RESUME_OPT = "resume";
-    public static final String API_KEY_OPT = "apiKey";
+    public static final String CRE_API_KEY_OPT = "createApiKey";
     public static final String DEL_API_KEY_OPT = "deleteApiKey";
     public static final String PARALLELISM = "parallelism";
     public static final String OPEN_LINK = "browserOpenLink";
@@ -122,12 +122,16 @@ public final class DatashareCliOptions {
         return parser.acceptsAll(asList(RESUME_OPT, "r"), "Resume pending operations");
     }
 
-    static OptionSpecBuilder genApiKey(OptionParser parser) {
-        return parser.acceptsAll(asList(API_KEY_OPT, "k"), "Generate and store api key for user defaultUser (see opt)");
+    static OptionSpec<String> genApiKey(OptionParser parser) {
+        return parser.acceptsAll(asList(CRE_API_KEY_OPT, "k"), "Generate and store api key for user defaultUser (see opt)")
+                .withRequiredArg()
+                .ofType(String.class);
     }
 
-    static OptionSpecBuilder delApiKey(OptionParser parser) {
-        return parser.acceptsAll(singletonList(DEL_API_KEY_OPT), "Delete api key for user");
+    static OptionSpec<String> delApiKey(OptionParser parser) {
+        return parser.acceptsAll(singletonList(DEL_API_KEY_OPT), "Delete api key for user")
+                .withRequiredArg()
+                .ofType(String.class);
     }
 
     static OptionSpec<File> dataDir(OptionParser parser) {
