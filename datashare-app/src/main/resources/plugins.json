@@ -1,0 +1,34 @@
+{
+  "pluginList": [
+    {
+      "id": "datashare-plugin-site-alert",
+      "name": "Site Alert",
+      "description": "A plugin to display an alert banner on the Datashare demo instance.",
+      "url": "https://github.com/ICIJ/datashare-plugin-site-alert"
+    },
+    {
+      "id": "datashare-plugin-ga",
+      "name": "Google Analytics",
+      "description": "A Datashare Plugin to add Google Analytics tracking.",
+      "url": "https://github.com/ICIJ/datashare-plugin-ga"
+    },
+    {
+      "id": "datashare-plugin-text-paginator",
+      "name": "Text Paginator",
+      "description": "A Datashare Plugin to detect pages in text to display them nicely.",
+      "url": "https://github.com/ICIJ/datashare-plugin-text-paginator"
+    },
+    {
+      "id": "datashare-plugin-email-filter",
+      "name": "Email filter",
+      "description": "On Datashare, add a new filter about emails.",
+      "url": "https://github.com/ICIJ/datashare-plugin-email-filter"
+    },
+    {
+      "id": "datashare-plugin-sentence-case",
+      "name": "Sentence Case Button",
+      "description": "A Datashare Plugin to add a sentence case button to the extracted text view.",
+      "url": "https://github.com/ICIJ/datashare-plugin-sentence-case"
+    }
+  ]
+}

@@ -10,20 +10,28 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 public class PluginService {
     Logger logger = LoggerFactory.getLogger(getClass());
     public static final String PLUGINS_BASE_URL = "/plugins";
+    public static final String DEFAULT_PLUGIN_REGISTRY_FILENAME = "plugins.json";
+    private final PluginRegistry pluginRegistry;
+
+    public PluginService() throws IOException {
+        this.pluginRegistry = getPluginRegistry(DEFAULT_PLUGIN_REGISTRY_FILENAME);
+    }
 
     public String addPlugins(String stringContent, Path pluginsDir, List<String> userProjects) {
         File[] dirs = ofNullable(pluginsDir.toFile().listFiles(File::isDirectory)).
                 orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginsDir));
         String scriptsString = stream(dirs).
-                map(d -> projectFilter(d.toPath(),userProjects)).filter(Objects::nonNull).
+                map(d -> projectFilter(d.toPath(), userProjects)).filter(Objects::nonNull).
                 map(this::getPluginUrl).filter(Objects::nonNull).
                 map(s -> "<script src=\"" + s + "\"></script>").collect(joining());
         String cssString = stream(dirs).
@@ -50,19 +58,19 @@ public class PluginService {
         return null;
     }
 
-    Path projectFilter(Path pluginDir, List<String> projects){
+    Path projectFilter(Path pluginDir, List<String> projects) {
         try {
             Path packageJson = pluginDir.resolve("package.json");
             if (packageJson.toFile().isFile()) {
                 Map<String, Object> packageMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {});
                 if (packageMap.containsKey("private")) {
-                    if(!Boolean.parseBoolean((packageMap.get("private").toString()))){
+                    if (!Boolean.parseBoolean((packageMap.get("private").toString()))) {
                         return pluginDir;
                     }
-                    if(packageMap.containsKey("datashare")){
-                        LinkedHashMap datashareMap = (LinkedHashMap)packageMap.get("datashare");
+                    if (packageMap.containsKey("datashare")) {
+                        LinkedHashMap datashareMap = (LinkedHashMap) packageMap.get("datashare");
                         List<String> pluginProjects = ofNullable((List<String>) datashareMap.get("projects")).orElse(Collections.emptyList());
-                        return !Collections.disjoint(pluginProjects,projects)? pluginDir : null;
+                        return !Collections.disjoint(pluginProjects, projects) ? pluginDir : null;
                     }
                     return null;
                 }
@@ -92,9 +100,21 @@ public class PluginService {
         try {
             Map<String, Object> packageJsonMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {});
             String value = (String) packageJsonMap.get(property);
-            return value == null ? null: packageJson.getParent().resolve(value);
+            return value == null ? null : packageJson.getParent().resolve(value);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private PluginRegistry getPluginRegistry(String jsonFileName) throws IOException {
+        return new ObjectMapper().readValue(ClassLoader.getSystemResourceAsStream(jsonFileName), PluginRegistry.class);
+    }
+
+    public List<Plugin> list() { return list(".*");}
+
+    public List<Plugin> list(String patternString) {
+        return pluginRegistry.pluginList.stream().
+                filter(p -> Pattern.compile(patternString).matcher(p.id).matches()).
+                collect(toList());
     }
 }

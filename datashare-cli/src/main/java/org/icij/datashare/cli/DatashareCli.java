@@ -23,7 +23,9 @@ public class DatashareCli {
         AbstractOptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);
 
         DatashareCliOptions.settings(parser);
+
         DatashareCliOptions.pluginsDir(parser);
+        DatashareCliOptions.pluginList(parser);
         DatashareCliOptions.extensionsDir(parser);
         DatashareCliOptions.tcpListenPort(parser);
         DatashareCliOptions.mode(parser);

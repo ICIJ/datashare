@@ -15,6 +15,7 @@ import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Set;
@@ -33,8 +34,21 @@ class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
     static void start(Properties properties) throws Exception {
+        displayInfoWithoutIoc(properties);
         Injector injector = createInjector(CommonMode.create(properties));
         runTaskRunner(injector, properties);
+    }
+
+    private static void displayInfoWithoutIoc(Properties properties) throws IOException {
+        if (properties.getProperty(PLUGIN_LIST_OPT) != null) {
+            new PluginService().list(properties.getProperty(PLUGIN_LIST_OPT)).forEach(p -> {
+                System.out.println("plugin " + p.id);
+                System.out.println("\t" + p.name);
+                System.out.println("\t" + p.url);
+                System.out.println("\t" + p.description);
+            });
+            System.exit(0);
+        }
     }
 
     private static void runTaskRunner(Injector injector, Properties properties) throws Exception {

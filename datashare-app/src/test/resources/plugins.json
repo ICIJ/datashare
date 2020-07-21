@@ -1,0 +1,7 @@
+{
+  "pluginList": [
+    {"id":  "my-plugin-foo", "name": "Foo Plugin", "url":  "https://github.com/ICIJ/mypluginfoo/releases/my-plugin-foo.tgz", "description": "description for foo"},
+    {"id":  "my-plugin-bar", "name": "Bar Plugin", "url":  "https://github.com/ICIJ/mypluginbar/releases/my-plugin-bar.tgz", "description": "description for bar"},
+    {"id":  "my-plugin-baz", "name": "Baz Plugin", "url":  "https://github.com/ICIJ/mypluginbaz/releases/my-plugin-baz.tgz", "description": "description for baz"}
+  ]
+}

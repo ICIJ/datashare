@@ -30,6 +30,7 @@ public final class DatashareCliOptions {
     public static final String RESUME_OPT = "resume";
     public static final String GET_API_KEY_OPT = "apiKey";
     public static final String CRE_API_KEY_OPT = "createApiKey";
+    public static final String PLUGIN_LIST_OPT = "pluginList";
     public static final String DEL_API_KEY_OPT = "deleteApiKey";
     public static final String PARALLELISM = "parallelism";
     public static final String OPEN_LINK = "browserOpenLink";
@@ -86,6 +87,13 @@ public final class DatashareCliOptions {
                 asList("pluginsDir"), "Plugins directory")
                         .withRequiredArg()
                         .ofType(String.class);
+    }
+
+    static OptionSpec<String> pluginList(OptionParser parser) {
+        return parser.acceptsAll(asList(PLUGIN_LIST_OPT), "Plugins list matching provided string")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(".*");
     }
 
     public static OptionSpec<String> extensionsDir(OptionParser parser) {
