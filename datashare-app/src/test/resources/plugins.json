@@ -1,7 +1,7 @@
 {
   "pluginList": [
-    {"id":  "my-plugin-foo", "name": "Foo Plugin", "url":  "https://github.com/ICIJ/mypluginfoo/releases/my-plugin-foo.tgz", "description": "description for foo"},
-    {"id":  "my-plugin-bar", "name": "Bar Plugin", "url":  "https://github.com/ICIJ/mypluginbar/releases/my-plugin-bar.tgz", "description": "description for bar"},
-    {"id":  "my-plugin-baz", "name": "Baz Plugin", "url":  "https://github.com/ICIJ/mypluginbaz/releases/my-plugin-baz.tgz", "description": "description for baz"}
+    {"id":  "my-plugin-foo", "name": "Foo Plugin", "url":  "https://github.com/ICIJ/mypluginfoo/releases/my-plugin-foo.tgz", "version": "1.2.3", "description": "description for foo"},
+    {"id":  "my-plugin-bar", "name": "Bar Plugin", "url":  "https://github.com/ICIJ/mypluginbar/releases/my-plugin-bar.tgz", "version": "1.0.0", "description": "description for bar"},
+    {"id":  "my-plugin-baz", "name": "Baz Plugin", "url":  "https://github.com/ICIJ/mypluginbaz/releases/my-plugin-baz.tgz", "version": "1.0-alpha1", "description": "description for baz"}
   ]
 }

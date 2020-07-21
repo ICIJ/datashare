@@ -104,6 +104,7 @@ public class PluginServiceTest {
         assertThat(plugins.get(0).id).isEqualTo("my-plugin-foo");
         assertThat(plugins.get(0).description).isEqualTo("description for foo");
         assertThat(plugins.get(0).name).isEqualTo("Foo Plugin");
+        assertThat(plugins.get(0).version).isEqualTo("1.2.3");
         assertThat(plugins.get(0).url).isEqualTo(new URL("https://github.com/ICIJ/mypluginfoo/releases/my-plugin-foo.tgz"));
     }
 
