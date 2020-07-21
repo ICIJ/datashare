@@ -59,6 +59,11 @@ public class ApiKeyResource {
      *
      * "/api/key" resource is available only in SERVER mode.
      *
+     * Returns JSON like :
+     * ```
+     * {"hashedKey":"c3e7766f7605659f2b97f2a6f5bcf34611997fc31173931eefcea91df1b465ffe35c2b9b4b91e8bbe2eec3730ce2a74a"}
+     * ```
+     *
      * @param userId
      * @return 200 or error
      *
