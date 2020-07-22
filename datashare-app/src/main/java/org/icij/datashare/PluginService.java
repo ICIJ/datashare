@@ -73,32 +73,9 @@ public class PluginService {
                 collect(toSet());
     }
 
-    public void install(String pluginId) throws IOException, ArchiveException {
+    public void downloadAndInstall(String pluginId) throws IOException, ArchiveException {
         File tmpFile = download(pluginId);
-
-        logger.info("installing plugin from temp file {} into {}", tmpFile, pluginsDir);
-
-        InputStream is = new BufferedInputStream(new FileInputStream(tmpFile));
-        if (pluginRegistry.get(pluginId).getDeliverableUrl().getFile().endsWith("gz")) {
-            is = new BufferedInputStream(new GZIPInputStream(is));
-        }
-        try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
-            ArchiveEntry entry;
-            while ((entry = zippedArchiveInputStream.getNextEntry()) != null) {
-                final File outputFile = new File(pluginsDir.toFile(), entry.getName());
-                if (entry.isDirectory()) {
-                    if (!outputFile.exists()) {
-                        if (!outputFile.mkdirs()) {
-                            throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
-                        }
-                    }
-                } else {
-                    final OutputStream outputFileStream = new FileOutputStream(outputFile);
-                    IOUtils.copy(zippedArchiveInputStream, outputFileStream);
-                    outputFileStream.close();
-                }
-            }
-        }
+        install(pluginId, tmpFile);
     }
 
     String getPluginUrl(Path pluginDir) {
@@ -155,7 +132,7 @@ public class PluginService {
         return Paths.get(PLUGINS_BASE_URL).resolve(pluginDir.getParent().relativize(pluginMain));
     }
 
-    private File download(String pluginId) throws IOException {
+    File download(String pluginId) throws IOException {
         Plugin plugin = pluginRegistry.get(pluginId);
         ReadableByteChannel readableByteChannel = Channels.newChannel(plugin.getDeliverableUrl().openStream());
         File tmpFile = Files.createTempFile(null, null).toFile();
@@ -164,6 +141,33 @@ public class PluginService {
             fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
             return tmpFile;
         }
+    }
+
+    void install(String pluginId, File tmpFile) throws IOException, ArchiveException {
+        logger.info("installing plugin from temp file {} into {}", tmpFile, pluginsDir);
+
+        InputStream is = new BufferedInputStream(new FileInputStream(tmpFile));
+        if (pluginRegistry.get(pluginId).getDeliverableUrl().getFile().endsWith("gz")) {
+            is = new BufferedInputStream(new GZIPInputStream(is));
+        }
+        try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
+            ArchiveEntry entry;
+            while ((entry = zippedArchiveInputStream.getNextEntry()) != null) {
+                final File outputFile = new File(pluginsDir.toFile(), entry.getName());
+                if (entry.isDirectory()) {
+                    if (!outputFile.exists()) {
+                        if (!outputFile.mkdirs()) {
+                            throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+                        }
+                    }
+                } else {
+                    final OutputStream outputFileStream = new FileOutputStream(outputFile);
+                    IOUtils.copy(zippedArchiveInputStream, outputFileStream);
+                    outputFileStream.close();
+                }
+            }
+        }
+        tmpFile.delete();
     }
 
     private Path getPluginProperty(Path packageJson, String property) {

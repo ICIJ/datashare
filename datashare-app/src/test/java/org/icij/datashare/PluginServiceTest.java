@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -128,19 +129,24 @@ public class PluginServiceTest {
 
     @Test
     public void test_download_and_install_tgz_plugin() throws Exception {
-        new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
-                "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz")+ "\"}" +
-                "]}").getBytes())).install("my-plugin");
+        PluginService pluginService = new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+                "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
+                "]}").getBytes()));
+
+        File tmpFile = pluginService.download("my-plugin");
+        pluginService.install("my-plugin", tmpFile);
+
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
+        assertThat(tmpFile).doesNotExist();
     }
 
     @Test
     public void test_download_and_install_zip_plugin() throws Exception {
         new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.zip")+ "\"}" +
-                "]}").getBytes())).install("my-plugin");
+                "]}").getBytes())).downloadAndInstall("my-plugin");
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();

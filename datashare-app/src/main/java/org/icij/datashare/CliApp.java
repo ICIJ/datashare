@@ -51,7 +51,7 @@ class CliApp {
             System.exit(0);
         }
         if (properties.getProperty(PLUGIN_INSTALL_OPT) != null) {
-            new PluginService(new PropertiesProvider(properties)).install(properties.getProperty(PLUGIN_INSTALL_OPT));
+            new PluginService(new PropertiesProvider(properties)).downloadAndInstall(properties.getProperty(PLUGIN_INSTALL_OPT));
             System.exit(0);
         }
     }
