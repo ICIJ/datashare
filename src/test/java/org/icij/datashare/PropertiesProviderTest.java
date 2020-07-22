@@ -72,6 +72,19 @@ public class PropertiesProviderTest {
     }
 
     @Test
+    public void test_create_overridden_with() {
+        Properties properties = new Properties();
+        properties.setProperty("foo", "baz");
+        properties.setProperty("bar", "qux");
+
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+            put("bar", "pre");
+        }});
+        Properties overridden = propertiesProvider.createOverriddenWith(new HashMap(properties));
+        assertThat(overridden).includes(entry("foo","baz"),entry("bar","qux"));
+    }
+
+    @Test
     public void test_create_merged_properties() {
         Properties properties = new Properties();
         properties.setProperty("foo", "baz");
