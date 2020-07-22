@@ -15,7 +15,6 @@ import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +55,7 @@ public class RootResource {
         }
         List<String> projects = context.currentUser() == null ? new LinkedList<String>() : ((DatashareUser)context.currentUser()).getProjects();
         return propertiesProvider.get(PLUGINS_DIR).isPresent() ?
-                new PluginService().addPlugins(content, Paths.get(propertiesProvider.getProperties().getProperty(PLUGINS_DIR)),projects):
+                new PluginService(propertiesProvider).addPlugins(content, projects):
                 content;
     }
 

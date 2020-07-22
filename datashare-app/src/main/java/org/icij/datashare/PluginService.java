@@ -2,32 +2,52 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.*;
 
 public class PluginService {
+    private final Path pluginsDir;
     Logger logger = LoggerFactory.getLogger(getClass());
     public static final String PLUGINS_BASE_URL = "/plugins";
     public static final String DEFAULT_PLUGIN_REGISTRY_FILENAME = "plugins.json";
-    private final PluginRegistry pluginRegistry;
+    final PluginRegistry pluginRegistry;
 
     public PluginService() throws IOException {
-        this.pluginRegistry = getPluginRegistry(DEFAULT_PLUGIN_REGISTRY_FILENAME);
+       this(Paths.get(getCurrentDirPluginDirectory()));
     }
 
-    public String addPlugins(String stringContent, Path pluginsDir, List<String> userProjects) {
+    public PluginService(PropertiesProvider propertiesProvider) throws IOException {
+        this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse(getCurrentDirPluginDirectory())));
+    }
+
+    public PluginService(Path pluginsDir) throws IOException {
+        this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME));
+    }
+
+    PluginService(Path pluginsDir, InputStream inputStream) throws IOException {
+        this.pluginsDir = pluginsDir;
+        this.pluginRegistry = getPluginRegistry(inputStream);
+    }
+
+    public String addPlugins(String stringContent, List<String> userProjects) {
         File[] dirs = ofNullable(pluginsDir.toFile().listFiles(File::isDirectory)).
                 orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginsDir));
         String scriptsString = stream(dirs).
@@ -40,6 +60,40 @@ public class PluginService {
         return stringContent.
                 replace("</body>", scriptsString + "</body>").
                 replace("</head>", cssString + "</head>");
+    }
+
+    public Set<Plugin> list() { return list(".*");}
+
+    public Set<Plugin> list(String patternString) {
+        return pluginRegistry.get().stream().
+                filter(p -> Pattern.compile(patternString).matcher(p.id).matches()).
+                collect(toSet());
+    }
+
+    public void install(String pluginId) throws IOException {
+        File tmpFile = download(pluginId);
+
+        final InputStream is = new FileInputStream(tmpFile);
+        GZIPInputStream gzipInputStream = new GZIPInputStream(new BufferedInputStream(is));
+        final TarArchiveInputStream tarInputStream = new TarArchiveInputStream(gzipInputStream);
+        Path pluginRoot = pluginsDir.resolve(pluginId);
+        pluginRoot.toFile().mkdirs();
+        TarArchiveEntry entry;
+        while ((entry = (TarArchiveEntry)tarInputStream.getNextEntry()) != null) {
+            final File outputFile = new File(pluginsDir.toFile(), entry.getName());
+            if (entry.isDirectory()) {
+                if (!outputFile.exists()) {
+                    if (!outputFile.mkdirs()) {
+                        throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+                    }
+                }
+            } else {
+                final OutputStream outputFileStream = new FileOutputStream(outputFile);
+                IOUtils.copy(tarInputStream, outputFileStream);
+                outputFileStream.close();
+            }
+        }
+        tarInputStream.close();
     }
 
     String getPluginUrl(Path pluginDir) {
@@ -96,6 +150,16 @@ public class PluginService {
         return Paths.get(PLUGINS_BASE_URL).resolve(pluginDir.getParent().relativize(pluginMain));
     }
 
+    private File download(String pluginId) throws IOException {
+        Plugin plugin = pluginRegistry.get(pluginId);
+        ReadableByteChannel readableByteChannel = Channels.newChannel(plugin.getDeliverableUrl().openStream());
+        File tmpFile = Files.createTempFile(null, null).toFile();
+        FileOutputStream fileOutputStream = new FileOutputStream(tmpFile);
+        fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+        fileOutputStream.close();
+        return tmpFile;
+    }
+
     private Path getPluginProperty(Path packageJson, String property) {
         try {
             Map<String, Object> packageJsonMap = new ObjectMapper().readValue(packageJson.toFile(), new TypeReference<HashMap<String, Object>>() {});
@@ -106,15 +170,12 @@ public class PluginService {
         }
     }
 
-    private PluginRegistry getPluginRegistry(String jsonFileName) throws IOException {
-        return new ObjectMapper().readValue(ClassLoader.getSystemResourceAsStream(jsonFileName), PluginRegistry.class);
+    private PluginRegistry getPluginRegistry(InputStream pluginJsonContent) throws IOException {
+        return new ObjectMapper().readValue(pluginJsonContent, PluginRegistry.class);
     }
 
-    public List<Plugin> list() { return list(".*");}
-
-    public List<Plugin> list(String patternString) {
-        return pluginRegistry.pluginList.stream().
-                filter(p -> Pattern.compile(patternString).matcher(p.id).matches()).
-                collect(toList());
+    @NotNull
+    private static String getCurrentDirPluginDirectory() {
+        return "." + PLUGINS_BASE_URL;
     }
 }

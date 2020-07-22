@@ -27,6 +27,8 @@ public class Plugin {
         this.url = url;
     }
 
+    public String getId() {return id;}
+
     @Override
     public String toString() {
         return "Plugin id='" + id + '\'' + '\'' + ", version='" + version + '\'' + "url=" + url;

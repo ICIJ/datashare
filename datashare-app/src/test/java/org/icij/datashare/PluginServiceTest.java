@@ -5,13 +5,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toSet;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class PluginServiceTest {
@@ -98,14 +99,21 @@ public class PluginServiceTest {
 
     @Test
     public void test_list_plugins_from_plugins_json_file() throws Exception {
-        List<Plugin> plugins = new PluginService().list();
+        Set<Plugin> plugins = new PluginService().list();
 
         assertThat(plugins).hasSize(3);
-        assertThat(plugins.get(0).id).isEqualTo("my-plugin-foo");
-        assertThat(plugins.get(0).description).isEqualTo("description for foo");
-        assertThat(plugins.get(0).name).isEqualTo("Foo Plugin");
-        assertThat(plugins.get(0).version).isEqualTo("1.2.3");
-        assertThat(plugins.get(0).url).isEqualTo(new URL("https://github.com/ICIJ/mypluginfoo/releases/my-plugin-foo.tgz"));
+        assertThat(plugins.stream().map(Plugin::getId).collect(toSet()))
+                .containsOnly("my-plugin-foo", "my-plugin-baz", "my-plugin-bar");
+    }
+
+    @Test
+    public void test_plugin_properties() throws Exception {
+        Plugin plugin = new PluginService().list("my-plugin-foo").iterator().next();
+        assertThat(plugin.id).isEqualTo("my-plugin-foo");
+        assertThat(plugin.description).isEqualTo("description for foo");
+        assertThat(plugin.name).isEqualTo("Foo Plugin");
+        assertThat(plugin.version).isEqualTo("1.2.3");
+        assertThat(plugin.url.toString()).isEqualTo("https://github.com/ICIJ/mypluginfoo/releases/my-plugin-foo.tgz");
     }
 
     @Test
@@ -114,7 +122,17 @@ public class PluginServiceTest {
         assertThat(pluginService.list(".*")).hasSize(3);
         assertThat(pluginService.list(".*foo.*")).hasSize(1);
         assertThat(pluginService.list(".*baz.*")).hasSize(1);
-        assertThat(pluginService.list(".*baz.*").get(0).id).isEqualTo("my-plugin-baz");
+        assertThat(pluginService.list(".*baz.*").iterator().next().id).isEqualTo("my-plugin-baz");
         assertThat(pluginService.list(".*ba.*")).hasSize(2);
+    }
+
+    @Test
+    public void test_download_and_install_plugin() throws Exception {
+        new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+                "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz")+ "\"}" +
+                "]}").getBytes())).install("my-plugin");
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
     }
 }
