@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import com.google.inject.Injector;
+import org.apache.commons.compress.archivers.ArchiveException;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -39,7 +40,7 @@ class CliApp {
         runTaskRunner(injector, properties);
     }
 
-    private static void displayInfoWithoutIoc(Properties properties) throws IOException {
+    private static void displayInfoWithoutIoc(Properties properties) throws IOException, ArchiveException {
         if (properties.getProperty(PLUGIN_LIST_OPT) != null) {
             new PluginService().list(properties.getProperty(PLUGIN_LIST_OPT)).forEach(p -> {
                 System.out.println("plugin " + p.id);
@@ -47,6 +48,10 @@ class CliApp {
                 System.out.println("\t" + p.url);
                 System.out.println("\t" + p.description);
             });
+            System.exit(0);
+        }
+        if (properties.getProperty(PLUGIN_INSTALL_OPT) != null) {
+            new PluginService(new PropertiesProvider(properties)).install(properties.getProperty(PLUGIN_INSTALL_OPT));
             System.exit(0);
         }
     }
