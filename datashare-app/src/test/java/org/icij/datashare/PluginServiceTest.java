@@ -129,13 +129,18 @@ public class PluginServiceTest {
         assertThat(pluginService.list(".*ba.*")).hasSize(2);
     }
 
+    @Test(expected = PluginRegistry.UnknownPluginException.class)
+    public void test_download_unknown_plugin() throws Exception {
+        new PluginService(appFolder.getRoot().toPath()).downloadAndInstall("unknown-plugin");
+    }
+
     @Test
     public void test_download_and_install_tgz_plugin() throws Exception {
         PluginService pluginService = new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                 "]}").getBytes()));
 
-        File tmpFile = pluginService.download("my-plugin");
+        File tmpFile = pluginService.download(pluginService.pluginRegistry.get("my-plugin").getDeliverableUrl());
         pluginService.install(tmpFile);
 
         assertThat(getExtension(tmpFile.getPath())).isEqualTo("tgz");
@@ -144,11 +149,6 @@ public class PluginServiceTest {
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
         assertThat(tmpFile).doesNotExist();
-    }
-
-    @Test(expected = PluginRegistry.UnknownPluginException.class)
-    public void test_download_unknown_plugin() throws Exception {
-        new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": []}").getBytes())).download("unknown-plugin");
     }
 
     @Test
@@ -161,14 +161,24 @@ public class PluginServiceTest {
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
     }
 
+    @Test
+    public void download_and_install_from_url() throws Exception {
+        PluginService pluginService = new PluginService(appFolder.getRoot().toPath());
+        pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin.tgz"));
+
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
+    }
+
     @Test(expected = FileNotFoundException.class)
     public void test_install_bad_filename() throws Exception {
-        new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": []}").getBytes())).install(new File("not a file name"));
+        new PluginService(appFolder.getRoot().toPath()).install(new File("not a file name"));
     }
 
     @Test
     public void test_install_from_file() throws Exception {
-        PluginService pluginService = new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": []}").getBytes()));
+        PluginService pluginService = new PluginService(appFolder.getRoot().toPath());
         File pluginFile = new File(ClassLoader.getSystemResource("my-plugin.tgz").getPath());
         pluginService.install(pluginFile);
 

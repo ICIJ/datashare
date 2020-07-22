@@ -17,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Set;
@@ -51,12 +53,18 @@ class CliApp {
             });
             System.exit(0);
         }
-        if (properties.getProperty(PLUGIN_INSTALL_OPT) != null) {
+        String pluginIdOrUrlOrFile = properties.getProperty(PLUGIN_INSTALL_OPT);
+        if (pluginIdOrUrlOrFile != null) {
             PluginService pluginService = new PluginService(new PropertiesProvider(properties));
             try {
-                pluginService.downloadAndInstall(properties.getProperty(PLUGIN_INSTALL_OPT));
+                pluginService.downloadAndInstall(pluginIdOrUrlOrFile); // plugin with id
             } catch (PluginRegistry.UnknownPluginException not_a_plugin) {
-                pluginService.install(Paths.get(properties.getProperty(PLUGIN_INSTALL_OPT)).toFile());
+                try {
+                   URL pluginUrl = new URL(pluginIdOrUrlOrFile);
+                   pluginService.downloadAndInstall(pluginUrl); // from url
+                } catch (MalformedURLException not_url) {
+                    pluginService.install(Paths.get(pluginIdOrUrlOrFile).toFile()); // from file
+                }
             }
             System.exit(0);
         }

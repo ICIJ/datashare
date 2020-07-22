@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
@@ -77,7 +78,11 @@ public class PluginService {
     }
 
     public void downloadAndInstall(String pluginId) throws IOException, ArchiveException {
-        File pluginFile = download(pluginId);
+        downloadAndInstall(pluginRegistry.get(pluginId).getDeliverableUrl());
+    }
+
+    public void downloadAndInstall(URL pluginUrl) throws IOException, ArchiveException {
+        File pluginFile = download(pluginUrl);
         install(pluginFile);
     }
 
@@ -131,15 +136,11 @@ public class PluginService {
         return null;
     }
 
-    private Path relativeToPlugins(Path pluginDir, Path pluginMain) {
-        return Paths.get(PLUGINS_BASE_URL).resolve(pluginDir.getParent().relativize(pluginMain));
-    }
-
-    File download(String pluginId) throws IOException {
-        Plugin plugin = pluginRegistry.get(pluginId);
-        ReadableByteChannel readableByteChannel = Channels.newChannel(plugin.getDeliverableUrl().openStream());
-        File tmpFile = Files.createTempFile(TMP_PREFIX, "." + getExtension(plugin.getDeliverableUrl().toString())).toFile();
-        logger.info("downloading plugin {} deliverable {}", plugin.getId(), plugin.getDeliverableUrl());
+    @NotNull
+    File download(URL url) throws IOException {
+        ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+        File tmpFile = Files.createTempFile(TMP_PREFIX, "." + getExtension(url.toString())).toFile();
+        logger.info("downloading from url {}", url);
         try (FileOutputStream fileOutputStream = new FileOutputStream(tmpFile)) {
             fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
             return tmpFile;
@@ -171,6 +172,10 @@ public class PluginService {
             }
         }
         if (pluginFile.getName().startsWith(TMP_PREFIX)) pluginFile.delete();
+    }
+
+    private Path relativeToPlugins(Path pluginDir, Path pluginMain) {
+        return Paths.get(PLUGINS_BASE_URL).resolve(pluginDir.getParent().relativize(pluginMain));
     }
 
     private Path getPluginProperty(Path packageJson, String property) {
