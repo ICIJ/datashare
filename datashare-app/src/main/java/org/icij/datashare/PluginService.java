@@ -88,7 +88,9 @@ public class PluginService {
     }
 
     public void delete(String pluginId) throws IOException {
-        FileUtils.deleteDirectory(pluginsDir.resolve(pluginId).toFile());
+        Path pluginPath = pluginsDir.resolve(pluginId);
+        logger.info("removing plugin {}", pluginPath);
+        FileUtils.deleteDirectory(pluginPath.toFile());
     }
 
     String getPluginUrl(Path pluginDir) {

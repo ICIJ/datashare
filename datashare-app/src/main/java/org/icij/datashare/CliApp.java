@@ -43,31 +43,33 @@ class CliApp {
     }
 
     private static void displayInfoWithoutIoc(Properties properties) throws IOException, ArchiveException {
+        PluginService pluginService = new PluginService(new PropertiesProvider(properties));
         if (properties.getProperty(PLUGIN_LIST_OPT) != null) {
-            new PluginService().list(properties.getProperty(PLUGIN_LIST_OPT)).forEach(p -> {
+            pluginService.list(properties.getProperty(PLUGIN_LIST_OPT)).forEach(p -> {
                 System.out.println("plugin " + p.id);
                 System.out.println("\t" + p.name);
                 System.out.println("\t" + p.version);
                 System.out.println("\t" + p.url);
                 System.out.println("\t" + p.description);
             });
-            System.exit(0);
         }
         String pluginIdOrUrlOrFile = properties.getProperty(PLUGIN_INSTALL_OPT);
         if (pluginIdOrUrlOrFile != null) {
-            PluginService pluginService = new PluginService(new PropertiesProvider(properties));
             try {
                 pluginService.downloadAndInstall(pluginIdOrUrlOrFile); // plugin with id
             } catch (PluginRegistry.UnknownPluginException not_a_plugin) {
                 try {
-                   URL pluginUrl = new URL(pluginIdOrUrlOrFile);
-                   pluginService.downloadAndInstall(pluginUrl); // from url
+                    URL pluginUrl = new URL(pluginIdOrUrlOrFile);
+                    pluginService.downloadAndInstall(pluginUrl); // from url
                 } catch (MalformedURLException not_url) {
                     pluginService.install(Paths.get(pluginIdOrUrlOrFile).toFile()); // from file
                 }
             }
-            System.exit(0);
         }
+        if (properties.getProperty(PLUGIN_DELETE_OPT) != null) {
+            pluginService.delete(properties.getProperty(PLUGIN_DELETE_OPT));
+        }
+        System.exit(0);
     }
 
     private static void runTaskRunner(Injector injector, Properties properties) throws Exception {

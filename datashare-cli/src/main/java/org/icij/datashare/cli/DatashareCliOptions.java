@@ -32,6 +32,7 @@ public final class DatashareCliOptions {
     public static final String CRE_API_KEY_OPT = "createApiKey";
     public static final String PLUGIN_LIST_OPT = "pluginList";
     public static final String PLUGIN_INSTALL_OPT = "pluginInstall";
+    public static final String PLUGIN_DELETE_OPT = "pluginDelete";
     public static final String DEL_API_KEY_OPT = "deleteApiKey";
     public static final String PARALLELISM = "parallelism";
     public static final String OPEN_LINK = "browserOpenLink";
@@ -98,6 +99,12 @@ public final class DatashareCliOptions {
 
     static OptionSpec<String> pluginInstall(OptionParser parser) {
         return parser.acceptsAll(asList(PLUGIN_INSTALL_OPT), "Install plugin with either id or URL or file path (needs pluginsDir option)")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
+    static OptionSpec<String> pluginDelete(OptionParser parser) {
+        return parser.acceptsAll(asList(PLUGIN_DELETE_OPT), "Delete plugin with its id (needs pluginsDir option)")
                 .withRequiredArg()
                 .ofType(String.class);
     }
