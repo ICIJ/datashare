@@ -7,6 +7,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,6 +15,7 @@ import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.io.FilenameUtils.getExtension;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class PluginServiceTest {
@@ -134,12 +136,19 @@ public class PluginServiceTest {
                 "]}").getBytes()));
 
         File tmpFile = pluginService.download("my-plugin");
-        pluginService.install("my-plugin", tmpFile);
+        pluginService.install(tmpFile);
 
+        assertThat(getExtension(tmpFile.getPath())).isEqualTo("tgz");
+        assertThat(tmpFile.getName()).startsWith("tmp");
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
         assertThat(tmpFile).doesNotExist();
+    }
+
+    @Test(expected = PluginRegistry.UnknownPluginException.class)
+    public void test_download_unknown_plugin() throws Exception {
+        new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": []}").getBytes())).download("unknown-plugin");
     }
 
     @Test
@@ -150,5 +159,22 @@ public class PluginServiceTest {
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
+    }
+
+    @Test(expected = FileNotFoundException.class)
+    public void test_install_bad_filename() throws Exception {
+        new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": []}").getBytes())).install(new File("not a file name"));
+    }
+
+    @Test
+    public void test_install_from_file() throws Exception {
+        PluginService pluginService = new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": []}").getBytes()));
+        File pluginFile = new File(ClassLoader.getSystemResource("my-plugin.tgz").getPath());
+        pluginService.install(pluginFile);
+
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
+        assertThat(pluginFile).exists();
     }
 }

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.Optional.ofNullable;
+
 public class PluginRegistry {
     private final Map<String, Plugin> pluginMap;
 
@@ -17,6 +19,12 @@ public class PluginRegistry {
     }
 
     public Plugin get(String pluginId) {
-        return pluginMap.get(pluginId);
+        return ofNullable(pluginMap.get(pluginId)).orElseThrow(() -> new UnknownPluginException(pluginId));
+    }
+
+    static class UnknownPluginException extends NullPointerException {
+        public UnknownPluginException(String pluginId) {
+            super("cannot find plugin with id " + pluginId + " in the registry");
+        }
     }
 }

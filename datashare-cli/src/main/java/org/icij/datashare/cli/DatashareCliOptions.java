@@ -97,7 +97,7 @@ public final class DatashareCliOptions {
     }
 
     static OptionSpec<String> pluginInstall(OptionParser parser) {
-        return parser.acceptsAll(asList(PLUGIN_INSTALL_OPT), "Install plugin (needs pluginsDir option)")
+        return parser.acceptsAll(asList(PLUGIN_INSTALL_OPT), "Install plugin with either id or file path (needs pluginsDir option)")
                 .withRequiredArg()
                 .ofType(String.class);
     }
