@@ -76,14 +76,13 @@ public class PluginService {
     public void install(String pluginId) throws IOException, ArchiveException {
         File tmpFile = download(pluginId);
 
-        Path pluginRoot = pluginsDir.resolve(pluginId);
+        logger.info("installing plugin from temp file {} into {}", tmpFile, pluginsDir);
 
         InputStream is = new BufferedInputStream(new FileInputStream(tmpFile));
         if (pluginRegistry.get(pluginId).getDeliverableUrl().getFile().endsWith("gz")) {
             is = new BufferedInputStream(new GZIPInputStream(is));
         }
         try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
-            pluginRoot.toFile().mkdirs();
             ArchiveEntry entry;
             while ((entry = zippedArchiveInputStream.getNextEntry()) != null) {
                 final File outputFile = new File(pluginsDir.toFile(), entry.getName());
@@ -160,10 +159,11 @@ public class PluginService {
         Plugin plugin = pluginRegistry.get(pluginId);
         ReadableByteChannel readableByteChannel = Channels.newChannel(plugin.getDeliverableUrl().openStream());
         File tmpFile = Files.createTempFile(null, null).toFile();
-        FileOutputStream fileOutputStream = new FileOutputStream(tmpFile);
-        fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-        fileOutputStream.close();
-        return tmpFile;
+        logger.info("downloading plugin {} deliverable {}", plugin.getId(), plugin.getDeliverableUrl());
+        try (FileOutputStream fileOutputStream = new FileOutputStream(tmpFile)) {
+            fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+            return tmpFile;
+        }
     }
 
     private Path getPluginProperty(Path packageJson, String property) {
