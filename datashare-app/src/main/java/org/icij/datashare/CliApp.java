@@ -45,6 +45,7 @@ class CliApp {
             new PluginService().list(properties.getProperty(PLUGIN_LIST_OPT)).forEach(p -> {
                 System.out.println("plugin " + p.id);
                 System.out.println("\t" + p.name);
+                System.out.println("\t" + p.version);
                 System.out.println("\t" + p.url);
                 System.out.println("\t" + p.description);
             });
