@@ -133,7 +133,7 @@ public class TaskResource {
     @Post("/batchUpdate/index/:filePath:")
     public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) throws Exception {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
-        Properties properties = propertiesProvider.createMerged(optionsWrapper.asProperties());
+        Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         User user = (User) context.currentUser();
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
             String reportName = propertiesProvider.get(MAP_NAME_OPTION).orElse("extract:report");
