@@ -2,8 +2,10 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -21,7 +23,8 @@ import java.util.zip.GZIPInputStream;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.*;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toSet;
 
 public class PluginService {
     private final Path pluginsDir;
@@ -70,30 +73,33 @@ public class PluginService {
                 collect(toSet());
     }
 
-    public void install(String pluginId) throws IOException {
+    public void install(String pluginId) throws IOException, ArchiveException {
         File tmpFile = download(pluginId);
 
-        final InputStream is = new FileInputStream(tmpFile);
-        GZIPInputStream gzipInputStream = new GZIPInputStream(new BufferedInputStream(is));
-        final TarArchiveInputStream tarInputStream = new TarArchiveInputStream(gzipInputStream);
         Path pluginRoot = pluginsDir.resolve(pluginId);
-        pluginRoot.toFile().mkdirs();
-        TarArchiveEntry entry;
-        while ((entry = (TarArchiveEntry)tarInputStream.getNextEntry()) != null) {
-            final File outputFile = new File(pluginsDir.toFile(), entry.getName());
-            if (entry.isDirectory()) {
-                if (!outputFile.exists()) {
-                    if (!outputFile.mkdirs()) {
-                        throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+
+        InputStream is = new BufferedInputStream(new FileInputStream(tmpFile));
+        if (pluginRegistry.get(pluginId).getDeliverableUrl().getFile().endsWith("gz")) {
+            is = new BufferedInputStream(new GZIPInputStream(is));
+        }
+        try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
+            pluginRoot.toFile().mkdirs();
+            ArchiveEntry entry;
+            while ((entry = zippedArchiveInputStream.getNextEntry()) != null) {
+                final File outputFile = new File(pluginsDir.toFile(), entry.getName());
+                if (entry.isDirectory()) {
+                    if (!outputFile.exists()) {
+                        if (!outputFile.mkdirs()) {
+                            throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+                        }
                     }
+                } else {
+                    final OutputStream outputFileStream = new FileOutputStream(outputFile);
+                    IOUtils.copy(zippedArchiveInputStream, outputFileStream);
+                    outputFileStream.close();
                 }
-            } else {
-                final OutputStream outputFileStream = new FileOutputStream(outputFile);
-                IOUtils.copy(tarInputStream, outputFileStream);
-                outputFileStream.close();
             }
         }
-        tarInputStream.close();
     }
 
     String getPluginUrl(Path pluginDir) {
