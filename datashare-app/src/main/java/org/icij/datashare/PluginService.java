@@ -6,6 +6,7 @@ import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -84,6 +85,10 @@ public class PluginService {
     public void downloadAndInstall(URL pluginUrl) throws IOException, ArchiveException {
         File pluginFile = download(pluginUrl);
         install(pluginFile);
+    }
+
+    public void delete(String pluginId) throws IOException {
+        FileUtils.deleteDirectory(pluginsDir.resolve(pluginId).toFile());
     }
 
     String getPluginUrl(Path pluginDir) {

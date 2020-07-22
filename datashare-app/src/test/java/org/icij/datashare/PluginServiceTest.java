@@ -187,4 +187,13 @@ public class PluginServiceTest {
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
         assertThat(pluginFile).exists();
     }
+
+    @Test
+    public void test_delete_plugin_by_id() throws Exception {
+        PluginService pluginService = new PluginService(appFolder.getRoot().toPath());
+        pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin.tgz"));
+
+        pluginService.delete("my-plugin");
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
+    }
 }
