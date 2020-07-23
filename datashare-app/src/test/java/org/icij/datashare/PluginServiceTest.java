@@ -9,8 +9,10 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
@@ -190,10 +192,22 @@ public class PluginServiceTest {
 
     @Test
     public void test_delete_plugin_by_id() throws Exception {
-        PluginService pluginService = new PluginService(appFolder.getRoot().toPath());
+        PluginService pluginService = new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+                        "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
+                        "]}").getBytes()));
         pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin.tgz"));
 
         pluginService.delete("my-plugin");
+        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
+    }
+
+    @Test
+    public void test_delete_plugin_by_base_directory() throws Exception {
+        PluginService pluginService = new PluginService(appFolder.getRoot().toPath());
+        URL pluginUrl = ClassLoader.getSystemResource("my-plugin.tgz");
+        pluginService.downloadAndInstall(pluginUrl);
+
+        pluginService.delete(Paths.get("my-plugin"));
         assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
     }
 }

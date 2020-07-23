@@ -55,21 +55,6 @@ public class PluginService {
         this.pluginRegistry = getPluginRegistry(inputStream);
     }
 
-    public String addPlugins(String stringContent, List<String> userProjects) {
-        File[] dirs = ofNullable(pluginsDir.toFile().listFiles(File::isDirectory)).
-                orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginsDir));
-        String scriptsString = stream(dirs).
-                map(d -> projectFilter(d.toPath(), userProjects)).filter(Objects::nonNull).
-                map(this::getPluginUrl).filter(Objects::nonNull).
-                map(s -> "<script src=\"" + s + "\"></script>").collect(joining());
-        String cssString = stream(dirs).
-                map(d -> getCssPluginUrl(d.toPath())).filter(Objects::nonNull).
-                map(s -> "<link rel=\"stylesheet\" href=\"" + s + "\">").collect(joining());
-        return stringContent.
-                replace("</body>", scriptsString + "</body>").
-                replace("</head>", cssString + "</head>");
-    }
-
     public Set<Plugin> list() { return list(".*");}
 
     public Set<Plugin> list(String patternString) {
@@ -88,9 +73,28 @@ public class PluginService {
     }
 
     public void delete(String pluginId) throws IOException {
-        Path pluginPath = pluginsDir.resolve(pluginId);
-        logger.info("removing plugin {}", pluginPath);
-        FileUtils.deleteDirectory(pluginPath.toFile());
+        delete(pluginRegistry.get(pluginId).getBaseDirectory());
+    }
+
+    public void delete(Path pluginBaseDirectory) throws IOException {
+        Path pluginDirectory = pluginsDir.resolve(pluginBaseDirectory);
+        logger.info("removing plugin base directory {}", pluginDirectory);
+        FileUtils.deleteDirectory(pluginDirectory.toFile());
+    }
+
+    public String addPlugins(String stringContent, List<String> userProjects) {
+        File[] dirs = ofNullable(pluginsDir.toFile().listFiles(File::isDirectory)).
+                orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginsDir));
+        String scriptsString = stream(dirs).
+                map(d -> projectFilter(d.toPath(), userProjects)).filter(Objects::nonNull).
+                map(this::getPluginUrl).filter(Objects::nonNull).
+                map(s -> "<script src=\"" + s + "\"></script>").collect(joining());
+        String cssString = stream(dirs).
+                map(d -> getCssPluginUrl(d.toPath())).filter(Objects::nonNull).
+                map(s -> "<link rel=\"stylesheet\" href=\"" + s + "\">").collect(joining());
+        return stringContent.
+                replace("</body>", scriptsString + "</body>").
+                replace("</head>", cssString + "</head>");
     }
 
     String getPluginUrl(Path pluginDir) {

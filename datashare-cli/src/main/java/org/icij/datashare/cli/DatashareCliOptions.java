@@ -104,7 +104,7 @@ public final class DatashareCliOptions {
     }
 
     static OptionSpec<String> pluginDelete(OptionParser parser) {
-        return parser.acceptsAll(asList(PLUGIN_DELETE_OPT), "Delete plugin with its id (needs pluginsDir option)")
+        return parser.acceptsAll(asList(PLUGIN_DELETE_OPT), "Delete plugin with its id or base directory (needs pluginsDir option)")
                 .withRequiredArg()
                 .ofType(String.class);
     }

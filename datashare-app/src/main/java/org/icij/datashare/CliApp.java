@@ -67,7 +67,11 @@ class CliApp {
             }
         }
         if (properties.getProperty(PLUGIN_DELETE_OPT) != null) {
-            pluginService.delete(properties.getProperty(PLUGIN_DELETE_OPT));
+            try {
+                pluginService.delete(properties.getProperty(PLUGIN_DELETE_OPT)); // plugin with id
+            } catch (PluginRegistry.UnknownPluginException not_a_plugin) {
+                pluginService.delete(Paths.get(properties.getProperty(PLUGIN_DELETE_OPT))); // from base dir
+            }
         }
         System.exit(0);
     }

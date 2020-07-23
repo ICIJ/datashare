@@ -5,9 +5,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 public class Plugin {
+    Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
     public final String id;
     public final String name;
     public final String description;
@@ -29,6 +33,27 @@ public class Plugin {
 
     public String getId() {return id;}
 
+    public URL getDeliverableUrl() {
+        if (url.getHost().equals("github.com")) {
+            try {
+                return new URL(url.toString() + "/archive/" + version + ".tar.gz");
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return url;
+    }
+
+    public Path getBaseDirectory() {
+        if (url.getHost().equals("github.com")) {
+            if (versionBeginsWithV.matcher(version).matches()) {
+                return Paths.get(id + "-" + version.substring(1));
+            }
+            return Paths.get(id + "-" + version);
+        }
+        return Paths.get(id);
+    }
+
     @Override
     public String toString() {
         return "Plugin id='" + id + '\'' + '\'' + ", version='" + version + '\'' + "url=" + url;
@@ -46,16 +71,5 @@ public class Plugin {
     @Override
     public int hashCode() {
         return Objects.hash(id, version);
-    }
-
-    public URL getDeliverableUrl() {
-        if (url.getHost().startsWith("github.com")) {
-            try {
-                return new URL(url.toString() + "/archive/" + version + ".tar.gz");
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return url;
     }
 }
