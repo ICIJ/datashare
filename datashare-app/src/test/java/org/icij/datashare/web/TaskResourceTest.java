@@ -38,8 +38,8 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
-    private static TaskFactory taskFactory = mock(TaskFactory.class);
-    private static TaskManager taskManager= new TaskManager(new PropertiesProvider());
+    private static final TaskFactory taskFactory = mock(TaskFactory.class);
+    private static final TaskManager taskManager= new TaskManager(new PropertiesProvider());
 
     @Before
     public void setUp() {
