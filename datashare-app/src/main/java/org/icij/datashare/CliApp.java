@@ -52,6 +52,7 @@ class CliApp {
                 System.out.println("\t" + p.url);
                 System.out.println("\t" + p.description);
             });
+            System.exit(0);
         }
         String pluginIdOrUrlOrFile = properties.getProperty(PLUGIN_INSTALL_OPT);
         if (pluginIdOrUrlOrFile != null) {
@@ -65,6 +66,7 @@ class CliApp {
                     pluginService.install(Paths.get(pluginIdOrUrlOrFile).toFile()); // from file
                 }
             }
+            System.exit(0);
         }
         if (properties.getProperty(PLUGIN_DELETE_OPT) != null) {
             try {
@@ -72,8 +74,8 @@ class CliApp {
             } catch (PluginRegistry.UnknownPluginException not_a_plugin) {
                 pluginService.delete(Paths.get(properties.getProperty(PLUGIN_DELETE_OPT))); // from base dir
             }
+            System.exit(0);
         }
-        System.exit(0);
     }
 
     private static void runTaskRunner(Injector injector, Properties properties) throws Exception {
