@@ -60,7 +60,7 @@ public class SettingsResource {
      * Returns 403 if we are in SERVER mode
      *
      * The settings priority is basically
-     * DS_DOCKER_* variables > -c file > classpath:datashare.properties > command line. I.e. :
+     * DS_DOCKER_* variables > -s file > classpath:datashare.properties > command line. I.e. :
      *
      * - DS_DOCKER_* variables will be taken and override all keys (if any similar keys exist)
      * - if a file is given (w/ -c path/to/file) to the command line it will be read and used (it can be empty or not present)
