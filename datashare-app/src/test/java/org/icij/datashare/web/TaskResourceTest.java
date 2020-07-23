@@ -55,6 +55,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                         bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
                         bind(PropertiesProvider.class).toInstance(new PropertiesProvider(new HashMap<String, String>() {{
                             put("dataDir", "/default/data/dir");
+                            put("foo", "bar");
                         }}));
                     }
                     @Override protected Routes addModeConfiguration(Routes routes) {
@@ -111,6 +112,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         response.should().respond(200).haveType("application/json");
         verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get("/default/data/dir"), new PropertiesProvider(new HashMap<String, String>() {{
             put("dataDir", "/default/data/dir");
+            put("foo", "bar");
         }}).getProperties());
     }
 
@@ -127,18 +129,18 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String path = getClass().getResource("/docs/").getPath();
 
         RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1),
-                "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+                "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}");
 
         response.should().haveType("application/json");
         verify(taskFactory).createIndexTask(local(), "extract:queue", new PropertiesProvider(new HashMap<String, String>() {{
             put("dataDir", "/default/data/dir");
-            put("key1", "val1");
-            put("key2", "val2");
+            put("foo", "baz");
+            put("key", "val");
         }}).getProperties());
         verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get(path), new PropertiesProvider(new HashMap<String, String>() {{
             put("dataDir", "/default/data/dir");
-            put("key1", "val1");
-            put("key2", "val2");
+            put("foo", "baz");
+            put("key", "val");
         }}).getProperties());
     }
 
@@ -158,7 +160,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     public void test_scan_with_options() {
         String path = getClass().getResource("/docs/").getPath();
         RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1),
-                "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
+                "{\"options\":{\"key\":\"val\",\"foo\":\"qux\"}}");
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
@@ -166,8 +168,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
         verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get(path), new PropertiesProvider(new HashMap<String, String>() {{
-            put("key1", "val1");
-            put("key2", "val2");
+            put("key", "val");
+            put("foo", "qux");
             put("dataDir", "/default/data/dir");
         }}).getProperties());
         verify(taskFactory, never()).createIndexTask(any(User.class), anyString(), any(Properties.class));
@@ -188,13 +190,14 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         Properties properties = new Properties();
         properties.put("dataDir", "/default/data/dir");
         properties.put("waitForNlpApp", "false");
+        properties.put("foo", "bar");
         verify(taskFactory).createNlpTask(eq(local()), pipelineArgumentCaptor.capture(), eq(properties), any());
         assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.EMAIL);
     }
 
     @Test
     public void test_findNames_with_options_should_merge_with_property_provider() {
-        RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"waitForNlpApp\": false, \"key1\":\"val1\",\"key2\":\"val2\"}}");
+        RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"waitForNlpApp\": false, \"key\":\"val\",\"foo\":\"loo\"}}");
         response.should().haveType("application/json");
 
         verify(taskFactory).createResumeNlpTask(local(), singleton(Pipeline.Type.EMAIL));
@@ -202,7 +205,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ArgumentCaptor<Pipeline> pipelineCaptor = ArgumentCaptor.forClass(Pipeline.class);
         ArgumentCaptor<Properties> propertiesCaptor = ArgumentCaptor.forClass(Properties.class);
         verify(taskFactory).createNlpTask(eq(local()), pipelineCaptor.capture(), propertiesCaptor.capture(), any());
-        assertThat(propertiesCaptor.getValue()).includes(entry("key1", "val1"), entry("key2", "val2"));
+        assertThat(propertiesCaptor.getValue()).includes(entry("key", "val"), entry("foo", "loo"));
 
         assertThat(pipelineCaptor.getValue().getType()).isEqualTo(Pipeline.Type.EMAIL);
     }

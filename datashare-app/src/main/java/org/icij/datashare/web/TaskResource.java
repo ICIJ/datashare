@@ -158,7 +158,7 @@ public class TaskResource {
     public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
         Path path = IS_OS_WINDOWS ?  get(filePath):get(File.separator, filePath);
         return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
-                propertiesProvider.createMerged(optionsWrapper.asProperties()))));
+                propertiesProvider.createOverriddenWith(optionsWrapper.getOptions()))));
     }
 
     /**
@@ -246,7 +246,7 @@ public class TaskResource {
      */
     @Post("/findNames/:pipeline")
     public List<TaskResponse> extractNlp(final String pipelineName, final OptionsWrapper optionsWrapper, Context context) {
-        Properties mergedProps = propertiesProvider.createMerged(optionsWrapper.asProperties());
+        Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
 
         Pipeline pipeline = pipelineRegistry.get(Pipeline.Type.parse(pipelineName));
