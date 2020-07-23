@@ -23,13 +23,13 @@ public class ApiKeyResource {
     }
 
     /**
-     * Preflight for key creation.
+     * Preflight for key management.
      *
      * @return 200 with PUT
      */
     @Options("/:userId")
     public Payload createKey(String userId) {
-        return ok().withAllowMethods("OPTIONS", "PUT");
+        return ok().withAllowMethods("OPTIONS", "PUT", "DELETE");
     }
 
     /**
@@ -74,16 +74,6 @@ public class ApiKeyResource {
         return new Payload("application/json", new HashMap<String, String>() {{
             put("hashedKey", taskFactory.createGetApiKey(new User(userId)).call());
         }},200);
-    }
-
-    /**
-     * Preflight for delete key.
-     *
-     * @return 200 DELETE
-     */
-    @Options("/:userId")
-    public Payload deleteKey(String userId) {
-        return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
     /**

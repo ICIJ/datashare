@@ -101,7 +101,8 @@ jobs:
           command: ./doc/apigen/populate_apigen.sh
       - run:
           name: launch datashare apigen
-          command: ./doc/apigen/datashare_for_apigen.sh &
+          command: ./doc/apigen/datashare_for_apigen.sh
+          background: true
       - run:
           name: install apigen
           command: |
