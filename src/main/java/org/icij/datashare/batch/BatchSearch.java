@@ -18,7 +18,6 @@ public class BatchSearch extends BatchSearchRecord {
     public final List<String> paths;
     public final int fuzziness;
     public final boolean phraseMatches;
-    public final String errorMessage;
 
     // batch search creation
     public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user) {
@@ -54,13 +53,12 @@ public class BatchSearch extends BatchSearchRecord {
     // retrieved from persistence
     public BatchSearch(String uuid, Project project, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, User user,
                        int nbResults, boolean published, List<String> fileTypes, List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage) {
-        super(uuid,project,name,description,queries.size(),date,state,user,nbResults,published);
+        super(uuid,project,name,description,queries.size(),date,state,user,nbResults,published,errorMessage);
         this.queries = queries;
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
         this.paths = unmodifiableList(ofNullable(paths).orElse(new ArrayList<>()));
         this.fuzziness = fuzziness;
         this.phraseMatches=phraseMatches;
-        this.errorMessage = errorMessage;
     }
 
     @JsonIgnore

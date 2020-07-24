@@ -18,15 +18,16 @@ public class BatchSearchRecord {
     public final Date date;
     private final int nbQueries;
     public final int nbResults;
+    public final String errorMessage;
 
     // for tests
     public BatchSearchRecord(final Project project, final String name, final String description, final int nbQueries, Date date) {
         this(UUID.randomUUID().toString(), project, name, description, nbQueries, date, State.QUEUED, User.local(),
-                0, false);
+                0, false,"");
     }
 
     public BatchSearchRecord(String uuid, Project project, String name, String description, int nbQueries, Date date, State state, User user,
-                             int nbResults, boolean published){
+                             int nbResults, boolean published, String errorMessage){
         assert date != null && uuid != null;
         this.uuid = uuid;
         this.published = published;
@@ -38,7 +39,7 @@ public class BatchSearchRecord {
         this.nbResults = nbResults;
         this.nbQueries = nbQueries;
         this.state = state;
-
+        this.errorMessage = errorMessage;
     }
 
     public Date getDate() { return date;}
