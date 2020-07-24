@@ -226,7 +226,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 from(BATCH_SEARCH.join(BATCH_SEARCH_QUERY).on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_QUERY.SEARCH_UUID)));
     }
 
-    private SelectJoinStep<Record10<String, String, String, String, String, Timestamp, String, Integer, Integer, Object>>
+    private SelectJoinStep<Record11<String, String, String, String, String, Timestamp, String, Integer, Integer,String, Object>>
     createBatchSearchRecordWithQueriesSelectStatement(DSLContext create) {
         return create.select(
                 BATCH_SEARCH.UUID,
@@ -238,6 +238,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 BATCH_SEARCH.STATE,
                 BATCH_SEARCH.PUBLISHED,
                 BATCH_SEARCH.BATCH_RESULTS,
+                BATCH_SEARCH.ERROR_MESSAGE,
                 create.selectCount().from(BATCH_SEARCH_QUERY).where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(BATCH_SEARCH.UUID)).asField("nbQueries")).
                 from(BATCH_SEARCH);
     }
@@ -278,7 +279,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 State.valueOf(batchSearch.getState()),
                 new User(batchSearch.getUserId()),
                 batchSearch.getBatchResults(),
-                batchSearch.getPublished() > 0);
+                batchSearch.getPublished() > 0,
+                batchSearch.getErrorMessage());
     }
 
     private SearchResult createSearchResult(final User actualUser, final Record record) {

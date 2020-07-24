@@ -97,6 +97,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(actual.date).isEqualTo(batchSearch.date);
         assertThat(actual.state).isEqualTo(batchSearch.state);
         assertThat(actual.nbResults).isEqualTo(batchSearch.nbResults);
+        assertThat(actual.errorMessage).isEqualTo(batchSearch.errorMessage);
     }
 
     @Test
