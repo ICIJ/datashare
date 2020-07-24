@@ -20,9 +20,7 @@ public class PluginResource {
     }
 
     /**
-     * Gets the plugins set
-     *
-     * @return plugins set in JSON
+     * Gets the plugins set in JSON
      *
      * Example:
      * $(curl localhost:8080/api/plugins)
