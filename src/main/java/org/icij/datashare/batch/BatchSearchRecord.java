@@ -23,7 +23,7 @@ public class BatchSearchRecord {
     // for tests
     public BatchSearchRecord(final Project project, final String name, final String description, final int nbQueries, Date date) {
         this(UUID.randomUUID().toString(), project, name, description, nbQueries, date, State.QUEUED, User.local(),
-                0, false,"");
+                0, false,null);
     }
 
     public BatchSearchRecord(String uuid, Project project, String name, String description, int nbQueries, Date date, State state, User user,
