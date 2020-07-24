@@ -29,6 +29,7 @@ public class LocalMode extends CommonMode {
                 add(NamedEntityResource.class).
                 add(DocumentResource.class).
                 add(BatchSearchResource.class).
+                add(PluginResource.class).
                 add(ProjectResource.class).
                 add(NoteResource.class).
                 add(NerResource.class).

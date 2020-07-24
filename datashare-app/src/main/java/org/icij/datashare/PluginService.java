@@ -2,6 +2,8 @@ package org.icij.datashare;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
@@ -29,6 +31,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.commons.io.FilenameUtils.getExtension;
 
+@Singleton
 public class PluginService {
     final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String DEFAULT_PLUGIN_REGISTRY_FILENAME = "plugins.json";
@@ -38,19 +41,20 @@ public class PluginService {
     private final Path pluginsDir;
     final PluginRegistry pluginRegistry;
 
-    public PluginService() throws IOException {
+    public PluginService() {
        this(Paths.get(getCurrentDirPluginDirectory()));
     }
 
-    public PluginService(PropertiesProvider propertiesProvider) throws IOException {
+    @Inject
+    public PluginService(PropertiesProvider propertiesProvider) {
         this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse(getCurrentDirPluginDirectory())));
     }
 
-    public PluginService(Path pluginsDir) throws IOException {
+    public PluginService(Path pluginsDir) {
         this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME));
     }
 
-    PluginService(Path pluginsDir, InputStream inputStream) throws IOException {
+    PluginService(Path pluginsDir, InputStream inputStream) {
         this.pluginsDir = pluginsDir;
         this.pluginRegistry = getPluginRegistry(inputStream);
     }
@@ -199,8 +203,12 @@ public class PluginService {
         }
     }
 
-    private PluginRegistry getPluginRegistry(InputStream pluginJsonContent) throws IOException {
-        return new ObjectMapper().readValue(pluginJsonContent, PluginRegistry.class);
+    private PluginRegistry getPluginRegistry(InputStream pluginJsonContent) {
+        try {
+            return new ObjectMapper().readValue(pluginJsonContent, PluginRegistry.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @NotNull

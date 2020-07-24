@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.net.MalformedURLException;
@@ -11,6 +12,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class Plugin {
+    @JsonIgnore
     Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
     public final String id;
     public final String name;
