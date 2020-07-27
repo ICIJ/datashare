@@ -51,6 +51,9 @@ public class PluginResource {
      *
      * @throws IOException
      * @throws ArchiveException
+     *
+     * Example:
+     * $(curl -i -XPUT localhost:8080/api/plugins/install/datashare-plugin-site-alert)
      */
     @Put("/install/:pluginId")
     public Payload installPlugin(String pluginId) throws IOException, ArchiveException {
@@ -69,6 +72,9 @@ public class PluginResource {
      * @return 200 if the plugin is removed 404 if the plugin is not found by the provided id
      *
      * @throws IOException if there is a filesystem error
+     *
+     * Example:
+     * $(curl -i -XDELETE localhost:8080/api/plugins/remove/datashare-plugin-site-alert)
      */
     @Delete("/remove/:pluginId")
     public Payload removePlugin(String pluginId) throws IOException {
