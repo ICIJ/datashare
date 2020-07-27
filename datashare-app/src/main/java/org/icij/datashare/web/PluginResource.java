@@ -32,6 +32,7 @@ public class PluginResource {
      * Gets the plugins set in JSON
      *
      * If a request parameter "filter" is provided, the regular expression will be applied to the list.
+     *
      * see https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
      * for pattern syntax.
      *
