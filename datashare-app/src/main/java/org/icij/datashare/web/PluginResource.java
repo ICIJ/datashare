@@ -5,9 +5,14 @@ import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
+import net.codestory.http.annotations.Put;
+import net.codestory.http.payload.Payload;
+import org.apache.commons.compress.archivers.ArchiveException;
 import org.icij.datashare.Plugin;
+import org.icij.datashare.PluginRegistry;
 import org.icij.datashare.PluginService;
 
+import java.io.IOException;
 import java.util.Set;
 
 import static java.util.Optional.ofNullable;
@@ -35,5 +40,23 @@ public class PluginResource {
     @Get()
     public Set<Plugin> getPluginList(Context context) {
         return pluginService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
+    }
+
+    /**
+     * Download (if necessary) and install plugin specified by its id
+     *
+     * @param pluginId
+     * @return 200 if the plugin is installed 404 if the plugin is not found by the provided id
+     * @throws IOException
+     * @throws ArchiveException
+     */
+    @Put("install/:pluginId")
+    public Payload installPlugin(String pluginId) throws IOException, ArchiveException {
+        try {
+            pluginService.downloadAndInstall(pluginId);
+        } catch (PluginRegistry.UnknownPluginException unknownPluginException) {
+            return Payload.notFound();
+        }
+        return Payload.ok();
     }
 }

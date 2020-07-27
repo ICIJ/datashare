@@ -54,7 +54,7 @@ public class PluginService {
         this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME));
     }
 
-    PluginService(Path pluginsDir, InputStream inputStream) {
+    public PluginService(Path pluginsDir, InputStream inputStream) {
         this.pluginsDir = pluginsDir;
         this.pluginRegistry = getPluginRegistry(inputStream);
     }

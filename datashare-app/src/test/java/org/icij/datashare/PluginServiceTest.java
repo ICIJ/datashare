@@ -21,37 +21,37 @@ import static org.apache.commons.io.FilenameUtils.getExtension;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class PluginServiceTest {
-    @Rule public TemporaryFolder appFolder = new TemporaryFolder();
+    @Rule public TemporaryFolder pluginFolder = new TemporaryFolder();
 
     @Test
     public void test_get_plugin_url() throws Exception {
-        appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("index.js").toFile().createNewFile();
-        assertThat(new PluginService().getPluginUrl(appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin"))).
+        pluginFolder.newFolder("target_dir", "my_plugin").toPath().resolve("index.js").toFile().createNewFile();
+        assertThat(new PluginService().getPluginUrl(pluginFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin"))).
                 isEqualTo("/plugins/my_plugin/index.js");
     }
 
     @Test
     public void test_get_plugin_url_with_subdirectory() throws Exception {
-        appFolder.newFolder("target_dir", "my_plugin", "dist").toPath().resolve("main.js").toFile().createNewFile();
-        Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin").resolve("package.json");
+        pluginFolder.newFolder("target_dir", "my_plugin", "dist").toPath().resolve("main.js").toFile().createNewFile();
+        Path packageJson = pluginFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin").resolve("package.json");
         Files.write(packageJson, asList("{", "\"main\":\"dist/main.js\"", "}"));
 
-        assertThat(new PluginService().getPluginUrl(appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin"))).
+        assertThat(new PluginService().getPluginUrl(pluginFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin"))).
                 isEqualTo("/plugins/my_plugin/dist/main.js");
     }
 
     @Test
     public void test_project_filter_json_without_private() throws IOException {
-        appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
-        Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
+        pluginFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
+        Path packageJson = pluginFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"), asList("{", "\"main\":\"dist/main.js\"", "}"));
         assertThat(new PluginService().projectFilter(packageJson, asList("Toto", "Tata")).toString()).isEqualTo(packageJson.toString());
     }
 
     @Test
     public void test_project_filter_json_with_private_false() throws IOException {
-        appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
-        Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
+        pluginFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
+        Path packageJson = pluginFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"),asList(
                 "{",
                 "  \"private\": false",
@@ -62,8 +62,8 @@ public class PluginServiceTest {
 
     @Test
     public void test_project_filter_json_with_private_true_without_projects() throws IOException {
-        appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
-        Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
+        pluginFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
+        Path packageJson = pluginFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"),asList(
                 "{",
                 "  \"private\": true",
@@ -74,8 +74,8 @@ public class PluginServiceTest {
 
     @Test
     public void test_project_filter_json_with_private_true_with_projects_ok() throws IOException {
-        appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
-        Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
+        pluginFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
+        Path packageJson = pluginFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"),asList(
                 "{",
                 "  \"private\": true,",
@@ -89,8 +89,8 @@ public class PluginServiceTest {
 
     @Test
     public void test_project_filter_json_with_private_true_with_projects_nok() throws IOException {
-        appFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
-        Path packageJson = appFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
+        pluginFolder.newFolder("target_dir", "my_plugin").toPath().resolve("package.json").toFile().createNewFile();
+        Path packageJson = pluginFolder.getRoot().toPath().resolve("target_dir").resolve("my_plugin");
         Files.write(packageJson.resolve("package.json"),asList(
                 "{",
                 "  \"private\": true,",
@@ -133,12 +133,12 @@ public class PluginServiceTest {
 
     @Test(expected = PluginRegistry.UnknownPluginException.class)
     public void test_download_unknown_plugin() throws Exception {
-        new PluginService(appFolder.getRoot().toPath()).downloadAndInstall("unknown-plugin");
+        new PluginService(pluginFolder.getRoot().toPath()).downloadAndInstall("unknown-plugin");
     }
 
     @Test
     public void test_download_and_install_tgz_plugin() throws Exception {
-        PluginService pluginService = new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                 "]}").getBytes()));
 
@@ -147,67 +147,67 @@ public class PluginServiceTest {
 
         assertThat(getExtension(tmpFile.getPath())).isEqualTo("tgz");
         assertThat(tmpFile.getName()).startsWith("tmp");
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
         assertThat(tmpFile).doesNotExist();
     }
 
     @Test
     public void test_download_and_install_zip_plugin() throws Exception {
-        new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+        new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.zip")+ "\"}" +
                 "]}").getBytes())).downloadAndInstall("my-plugin");
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
     }
 
     @Test
     public void download_and_install_from_url() throws Exception {
-        PluginService pluginService = new PluginService(appFolder.getRoot().toPath());
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath());
         pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin.tgz"));
 
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
     }
 
     @Test(expected = FileNotFoundException.class)
     public void test_install_bad_filename() throws Exception {
-        new PluginService(appFolder.getRoot().toPath()).install(new File("not a file name"));
+        new PluginService(pluginFolder.getRoot().toPath()).install(new File("not a file name"));
     }
 
     @Test
     public void test_install_from_file() throws Exception {
-        PluginService pluginService = new PluginService(appFolder.getRoot().toPath());
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath());
         File pluginFile = new File(ClassLoader.getSystemResource("my-plugin.tgz").getPath());
         pluginService.install(pluginFile);
 
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("main.js").toFile()).exists();
         assertThat(pluginFile).exists();
     }
 
     @Test
     public void test_delete_plugin_by_id() throws Exception {
-        PluginService pluginService = new PluginService(appFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
                         "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                         "]}").getBytes()));
         pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin.tgz"));
 
         pluginService.delete("my-plugin");
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
     }
 
     @Test
     public void test_delete_plugin_by_base_directory() throws Exception {
-        PluginService pluginService = new PluginService(appFolder.getRoot().toPath());
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath());
         URL pluginUrl = ClassLoader.getSystemResource("my-plugin.tgz");
         pluginService.downloadAndInstall(pluginUrl);
 
         pluginService.delete(Paths.get("my-plugin"));
-        assertThat(appFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
     }
 }

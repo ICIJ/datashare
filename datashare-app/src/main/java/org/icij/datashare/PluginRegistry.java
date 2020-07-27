@@ -22,7 +22,7 @@ public class PluginRegistry {
         return ofNullable(pluginMap.get(pluginId)).orElseThrow(() -> new UnknownPluginException(pluginId));
     }
 
-    static class UnknownPluginException extends NullPointerException {
+    public static class UnknownPluginException extends NullPointerException {
         public UnknownPluginException(String pluginId) {
             super("cannot find plugin with id " + pluginId + " in the registry");
         }
