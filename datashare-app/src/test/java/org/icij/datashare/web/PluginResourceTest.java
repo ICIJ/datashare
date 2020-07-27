@@ -41,13 +41,23 @@ public class PluginResourceTest extends AbstractProdWebServerTest {
         put("/api/plugins/install/unknown_id").should().respond(404);
     }
 
+    @Test
+    public void test_remove_plugin() {
+        put("/api/plugins/install/my-plugin").should().respond(200);
+        delete("/api/plugins/remove/my-plugin").should().respond(200);
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
+    }
+
+    @Test
+    public void test_remove_unknown_plugin() {
+        delete("/api/plugins/remove/unknown_id").should().respond(404);
+    }
+
     @Before
     public void setUp() {
-        configure(routes -> {
-            routes.add(new PluginResource(new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
-            "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz")+ "\"}," +
-            "{\"id\":\"my-other-plugin\", \"url\": \"https://dummy.url\"}" +
-            "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider()));
-        });
+        configure(routes -> routes.add(new PluginResource(new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+        "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz")+ "\"}," +
+        "{\"id\":\"my-other-plugin\", \"url\": \"https://dummy.url\"}" +
+        "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider())));
     }
 }

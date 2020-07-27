@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
+import net.codestory.http.annotations.Delete;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
@@ -47,6 +48,7 @@ public class PluginResource {
      *
      * @param pluginId
      * @return 200 if the plugin is installed 404 if the plugin is not found by the provided id
+     *
      * @throws IOException
      * @throws ArchiveException
      */
@@ -54,6 +56,24 @@ public class PluginResource {
     public Payload installPlugin(String pluginId) throws IOException, ArchiveException {
         try {
             pluginService.downloadAndInstall(pluginId);
+        } catch (PluginRegistry.UnknownPluginException unknownPluginException) {
+            return Payload.notFound();
+        }
+        return Payload.ok();
+    }
+
+    /**
+     * Remove plugin specified by its id
+     *
+     * @param pluginId
+     * @return 200 if the plugin is removed 404 if the plugin is not found by the provided id
+     *
+     * @throws IOException if there is a filesystem error
+     */
+    @Delete("/remove/:pluginId")
+    public Payload removePlugin(String pluginId) throws IOException {
+        try {
+            pluginService.delete(pluginId);
         } catch (PluginRegistry.UnknownPluginException unknownPluginException) {
             return Payload.notFound();
         }
