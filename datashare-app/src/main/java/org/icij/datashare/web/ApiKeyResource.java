@@ -25,11 +25,11 @@ public class ApiKeyResource {
     /**
      * Preflight for key management.
      *
-     * @return 200 with PUT
+     * @return 200 with OPTIONS, GET, PUT and DELETE
      */
     @Options("/:userId")
     public Payload createKey(String userId) {
-        return ok().withAllowMethods("OPTIONS", "PUT", "DELETE");
+        return ok().withAllowMethods("OPTIONS", "GET", "PUT", "DELETE");
     }
 
     /**
