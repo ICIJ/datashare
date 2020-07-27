@@ -50,7 +50,7 @@ public class PluginResource {
      * @throws IOException
      * @throws ArchiveException
      */
-    @Put("install/:pluginId")
+    @Put("/install/:pluginId")
     public Payload installPlugin(String pluginId) throws IOException, ArchiveException {
         try {
             pluginService.downloadAndInstall(pluginId);
