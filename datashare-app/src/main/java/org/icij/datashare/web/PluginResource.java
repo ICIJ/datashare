@@ -52,19 +52,22 @@ public class PluginResource {
     }
 
     /**
-     * Download (if necessary) and install plugin specified by its id
+     * Download (if necessary) and install plugin specified by its id or url
      *
-     * @param pluginId
-     * @return 200 if the plugin is installed 404 if the plugin is not found by the provided id
+     * request parameter id or url must be present, else a
+     * @return  200 if the plugin is installed
+     *          404 if the plugin is not found by the provided id or url
+     *          400 if neither id nor url is provided
      *
      * @throws IOException
      * @throws ArchiveException
      *
      * Example:
-     * $(curl -i -XPUT localhost:8080/api/plugins/install/datashare-plugin-site-alert)
+     * $(curl -i -XPUT localhost:8080/api/plugins/install?id=datashare-plugin-site-alert)
      */
-    @Put("/install/:pluginId")
-    public Payload installPlugin(String pluginId) throws IOException, ArchiveException {
+    @Put("/install")
+    public Payload installPlugin(Context context) throws IOException, ArchiveException {
+        String pluginId = context.request().query().get("id");
         try {
             pluginService.downloadAndInstall(pluginId);
         } catch (PluginRegistry.UnknownPluginException unknownPluginException) {
@@ -87,9 +90,9 @@ public class PluginResource {
      * @throws IOException if there is a filesystem error
      *
      * Example:
-     * $(curl -i -XDELETE localhost:8080/api/plugins/remove/datashare-plugin-site-alert)
+     * $(curl -i -XDELETE localhost:8080/api/plugins/remove?id=datashare-plugin-site-alert)
      */
-    @Delete("/remove/:pluginId")
+    @Delete("/remove?id=:pluginId")
     public Payload removePlugin(String pluginId) throws IOException {
         try {
             pluginService.delete(pluginId);
