@@ -87,24 +87,24 @@ public class PluginResource {
         }
     }
 
-    @Options("/remove")
-    public Payload removePluginPreflight(String pluginId) {
+    @Options("/uninstall")
+    public Payload uninstallPluginPreflight(String pluginId) {
         return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
     /**
-     * Remove plugin specified by its id
+     * Uninstall plugin specified by its id
      *
      * @param pluginId
-     * @return 200 if the plugin is removed 404 if the plugin is not found by the provided id
+     * @return 200 if the plugin is uninstalled 404 if the plugin is not found by the provided id
      *
      * @throws IOException if there is a filesystem error
      *
      * Example:
-     * $(curl -i -XDELETE localhost:8080/api/plugins/remove?id=datashare-plugin-site-alert)
+     * $(curl -i -XDELETE localhost:8080/api/plugins/uninstall?id=datashare-plugin-site-alert)
      */
-    @Delete("/remove?id=:pluginId")
-    public Payload removePlugin(String pluginId) throws IOException {
+    @Delete("/uninstall?id=:pluginId")
+    public Payload uninstallPlugin(String pluginId) throws IOException {
         try {
             pluginService.delete(pluginId);
         } catch (PluginRegistry.UnknownPluginException unknownPluginException) {
