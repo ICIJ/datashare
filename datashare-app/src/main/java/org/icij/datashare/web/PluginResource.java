@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Delete;
 import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import static java.util.Optional.ofNullable;
+import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
 @Prefix("/api/plugins")
@@ -44,6 +46,11 @@ public class PluginResource {
         return pluginService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
     }
 
+    @Options("/install/:pluginId")
+    public Payload installPluginPreflight(String pluginId) {
+        return ok().withAllowMethods("OPTIONS", "PUT");
+    }
+
     /**
      * Download (if necessary) and install plugin specified by its id
      *
@@ -64,6 +71,11 @@ public class PluginResource {
             return Payload.notFound();
         }
         return Payload.ok();
+    }
+
+    @Options("/remove/:pluginId")
+    public Payload removePluginPreflight(String pluginId) {
+        return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
     /**
