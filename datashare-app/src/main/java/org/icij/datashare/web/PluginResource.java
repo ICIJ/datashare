@@ -15,6 +15,8 @@ import org.icij.datashare.PluginRegistry;
 import org.icij.datashare.PluginService;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Set;
 
 import static java.util.Optional.ofNullable;
@@ -67,13 +69,22 @@ public class PluginResource {
      */
     @Put("/install")
     public Payload installPlugin(Context context) throws IOException, ArchiveException {
-        String pluginId = context.request().query().get("id");
+        String pluginUrlString = context.request().query().get("url");
         try {
-            pluginService.downloadAndInstall(pluginId);
-        } catch (PluginRegistry.UnknownPluginException unknownPluginException) {
-            return Payload.notFound();
+            pluginService.downloadAndInstall(new URL(pluginUrlString));
+            return Payload.ok();
+        } catch (MalformedURLException not_url) {
+            String pluginId = context.request().query().get("id");
+            if (pluginId == null) {
+                return Payload.badRequest();
+            }
+            try {
+                pluginService.downloadAndInstall(pluginId);
+                return Payload.ok();
+            } catch (PluginRegistry.UnknownPluginException unknownPluginException) {
+                return Payload.notFound();
+            }
         }
-        return Payload.ok();
     }
 
     @Options("/remove/:pluginId")

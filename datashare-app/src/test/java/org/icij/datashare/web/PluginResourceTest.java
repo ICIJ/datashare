@@ -10,7 +10,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
 
+import static java.net.URLEncoder.encode;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class PluginResourceTest extends AbstractProdWebServerTest {
@@ -31,9 +33,20 @@ public class PluginResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_install_plugin() {
+    public void test_install_plugin_by_id() {
         put("/api/plugins/install?id=my-plugin").should().respond(200);
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
+    }
+
+    @Test
+    public void test_install_plugin_by_url() throws UnsupportedEncodingException {
+        put("/api/plugins/install?url=" + encode(ClassLoader.getSystemResource("my-plugin.tgz").toString(), "utf-8")).should().respond(200);
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
+    }
+
+    @Test
+    public void test_install_plugin_with_no_parameter() {
+        put("/api/plugins/install").should().respond(400);
     }
 
     @Test
