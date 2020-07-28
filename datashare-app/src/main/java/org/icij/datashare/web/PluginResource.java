@@ -48,7 +48,7 @@ public class PluginResource {
         return pluginService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
     }
 
-    @Options("/install/:pluginId")
+    @Options("/install")
     public Payload installPluginPreflight(String pluginId) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
@@ -87,7 +87,7 @@ public class PluginResource {
         }
     }
 
-    @Options("/remove/:pluginId")
+    @Options("/remove")
     public Payload removePluginPreflight(String pluginId) {
         return ok().withAllowMethods("OPTIONS", "DELETE");
     }
