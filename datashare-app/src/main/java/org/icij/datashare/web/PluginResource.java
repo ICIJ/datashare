@@ -48,8 +48,13 @@ public class PluginResource {
         return pluginService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
     }
 
+    /**
+     * Preflight request
+     *
+     * @return OPTIONS,PUT
+     */
     @Options("/install")
-    public Payload installPluginPreflight(String pluginId) {
+    public Payload installPluginPreflight() {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
@@ -87,10 +92,13 @@ public class PluginResource {
         }
     }
 
+    /**
+     * Preflight request
+     *
+     * @return OPTIONS,DELETE
+     */
     @Options("/uninstall")
-    public Payload uninstallPluginPreflight(String pluginId) {
-        return ok().withAllowMethods("OPTIONS", "DELETE");
-    }
+    public Payload uninstallPluginPreflight() { return ok().withAllowMethods("OPTIONS", "DELETE");}
 
     /**
      * Uninstall plugin specified by its id
