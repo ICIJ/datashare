@@ -61,10 +61,11 @@ public class PluginResource {
     /**
      * Download (if necessary) and install plugin specified by its id or url
      *
-     * request parameter id or url must be present, else a
+     * request parameter `id` or `url` must be present.
+     *
      * @return  200 if the plugin is installed
-     *          404 if the plugin is not found by the provided id or url
-     *          400 if neither id nor url is provided
+     * @return  404 if the plugin is not found by the provided id or url
+     * @return  400 if neither id nor url is provided
      *
      * @throws IOException
      * @throws ArchiveException
