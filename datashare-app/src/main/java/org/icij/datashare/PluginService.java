@@ -39,7 +39,7 @@ public class PluginService {
     public static final String TMP_PREFIX = "tmp";
 
     private final Path pluginsDir;
-    final PluginRegistry pluginRegistry;
+    final DeliverableRegistry<Plugin> deliverableRegistry;
 
     public PluginService() {
        this(Paths.get(getCurrentDirPluginDirectory()));
@@ -56,19 +56,19 @@ public class PluginService {
 
     public PluginService(Path pluginsDir, InputStream inputStream) {
         this.pluginsDir = pluginsDir;
-        this.pluginRegistry = getPluginRegistry(inputStream);
+        this.deliverableRegistry = getPluginRegistry(inputStream);
     }
 
     public Set<Plugin> list() { return list(".*");}
 
     public Set<Plugin> list(String patternString) {
-        return pluginRegistry.get().stream().
+        return deliverableRegistry.get().stream().
                 filter(p -> Pattern.compile(patternString).matcher(p.id).matches()).
                 collect(toSet());
     }
 
     public void downloadAndInstall(String pluginId) throws IOException, ArchiveException {
-        downloadAndInstall(pluginRegistry.get(pluginId).getDeliverableUrl());
+        downloadAndInstall(deliverableRegistry.get(pluginId).getDeliverableUrl());
     }
 
     public void downloadAndInstall(URL pluginUrl) throws IOException, ArchiveException {
@@ -77,7 +77,7 @@ public class PluginService {
     }
 
     public void delete(String pluginId) throws IOException {
-        delete(pluginRegistry.get(pluginId).getBaseDirectory());
+        delete(deliverableRegistry.get(pluginId).getBaseDirectory());
     }
 
     public void delete(Path pluginBaseDirectory) throws IOException {
@@ -203,9 +203,9 @@ public class PluginService {
         }
     }
 
-    private PluginRegistry getPluginRegistry(InputStream pluginJsonContent) {
+    private DeliverableRegistry<Plugin> getPluginRegistry(InputStream pluginJsonContent) {
         try {
-            return new ObjectMapper().readValue(pluginJsonContent, PluginRegistry.class);
+            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<DeliverableRegistry<Plugin>>() {});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

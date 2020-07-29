@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-public class Plugin {
+public class Plugin implements Entity {
     @JsonIgnore
     Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
     public final String id;

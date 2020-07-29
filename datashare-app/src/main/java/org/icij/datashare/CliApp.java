@@ -60,7 +60,7 @@ class CliApp {
         if (pluginIdOrUrlOrFile != null) {
             try {
                 pluginService.downloadAndInstall(pluginIdOrUrlOrFile); // plugin with id
-            } catch (PluginRegistry.UnknownPluginException not_a_plugin) {
+            } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
                 try {
                     URL pluginUrl = new URL(pluginIdOrUrlOrFile);
                     pluginService.downloadAndInstall(pluginUrl); // from url
@@ -73,7 +73,7 @@ class CliApp {
         if (properties.getProperty(PLUGIN_DELETE_OPT) != null) {
             try {
                 pluginService.delete(properties.getProperty(PLUGIN_DELETE_OPT)); // plugin with id
-            } catch (PluginRegistry.UnknownPluginException not_a_plugin) {
+            } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
                 pluginService.delete(Paths.get(properties.getProperty(PLUGIN_DELETE_OPT))); // from base dir
             }
             System.exit(0);

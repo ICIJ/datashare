@@ -11,7 +11,7 @@ import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.icij.datashare.Plugin;
-import org.icij.datashare.PluginRegistry;
+import org.icij.datashare.DeliverableRegistry;
 import org.icij.datashare.PluginService;
 
 import java.io.IOException;
@@ -87,7 +87,7 @@ public class PluginResource {
             try {
                 pluginService.downloadAndInstall(pluginId);
                 return Payload.ok();
-            } catch (PluginRegistry.UnknownPluginException unknownPluginException) {
+            } catch (DeliverableRegistry.UnknownDeliverableException unknownDeliverableException) {
                 return Payload.notFound();
             }
         }
@@ -116,7 +116,7 @@ public class PluginResource {
     public Payload uninstallPlugin(String pluginId) throws IOException {
         try {
             pluginService.delete(pluginId);
-        } catch (PluginRegistry.UnknownPluginException unknownPluginException) {
+        } catch (DeliverableRegistry.UnknownDeliverableException unknownDeliverableException) {
             return Payload.notFound();
         }
         return Payload.ok();

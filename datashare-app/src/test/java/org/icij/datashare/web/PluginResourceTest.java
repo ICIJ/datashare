@@ -68,7 +68,7 @@ public class PluginResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        configure(routes -> routes.add(new PluginResource(new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+        configure(routes -> routes.add(new PluginResource(new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
         "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz")+ "\"}," +
         "{\"id\":\"my-other-plugin\", \"url\": \"https://dummy.url\"}" +
         "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider())));

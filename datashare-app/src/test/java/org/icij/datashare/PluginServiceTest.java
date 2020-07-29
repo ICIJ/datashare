@@ -131,18 +131,18 @@ public class PluginServiceTest {
         assertThat(pluginService.list(".*ba.*")).hasSize(2);
     }
 
-    @Test(expected = PluginRegistry.UnknownPluginException.class)
+    @Test(expected = DeliverableRegistry.UnknownDeliverableException.class)
     public void test_download_unknown_plugin() throws Exception {
         new PluginService(pluginFolder.getRoot().toPath()).downloadAndInstall("unknown-plugin");
     }
 
     @Test
     public void test_download_and_install_tgz_plugin() throws Exception {
-        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                 "]}").getBytes()));
 
-        File tmpFile = pluginService.download(pluginService.pluginRegistry.get("my-plugin").getDeliverableUrl());
+        File tmpFile = pluginService.download(pluginService.deliverableRegistry.get("my-plugin").getDeliverableUrl());
         pluginService.install(tmpFile);
 
         assertThat(getExtension(tmpFile.getPath())).isEqualTo("tgz");
@@ -155,7 +155,7 @@ public class PluginServiceTest {
 
     @Test
     public void test_download_and_install_zip_plugin() throws Exception {
-        new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+        new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.zip")+ "\"}" +
                 "]}").getBytes())).downloadAndInstall("my-plugin");
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
@@ -192,7 +192,7 @@ public class PluginServiceTest {
 
     @Test
     public void test_delete_plugin_by_id() throws Exception {
-        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"pluginList\": [" +
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                         "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                         "]}").getBytes()));
         pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin.tgz"));
