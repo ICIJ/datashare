@@ -60,10 +60,12 @@ public class User implements Entity {
         return new User(hashMap);
     }
 
+    @JsonIgnore
     public List<String> getProjects() {
-        return (List<String>) ofNullable(details.get(DATASHARE_PROJECTS_KEY)).orElse(new LinkedList<>());
+            return (List<String>) ofNullable(details.get(DATASHARE_PROJECTS_KEY)).orElse(new LinkedList<>());
     }
 
+    @JsonIgnore
     public Map<String, Object> getDetails() {
         return details.entrySet().stream().
                 filter(k -> k.getValue() != null).
@@ -71,6 +73,7 @@ public class User implements Entity {
                 collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
+    @JsonIgnore
     public String getJsonDetails() {
         return JsonUtils.serialize(getDetails());
     }
