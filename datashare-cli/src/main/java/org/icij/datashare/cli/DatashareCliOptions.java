@@ -93,7 +93,7 @@ public final class DatashareCliOptions {
 
     static OptionSpec<String> pluginList(OptionParser parser) {
         return parser.acceptsAll(asList(PLUGIN_LIST_OPT), "Plugins list matching provided string")
-                .withRequiredArg()
+                .withOptionalArg()
                 .ofType(String.class);
     }
 

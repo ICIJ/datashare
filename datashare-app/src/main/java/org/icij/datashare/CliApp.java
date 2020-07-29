@@ -44,8 +44,10 @@ class CliApp {
 
     private static void displayInfoWithoutIoc(Properties properties) throws IOException, ArchiveException {
         PluginService pluginService = new PluginService(new PropertiesProvider(properties));
-        if (properties.getProperty(PLUGIN_LIST_OPT) != null) {
-            pluginService.list(properties.getProperty(PLUGIN_LIST_OPT)).forEach(p -> {
+        String listPattern = properties.getProperty(PLUGIN_LIST_OPT);
+        if (listPattern != null) {
+            listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
+            pluginService.list(listPattern).forEach(p -> {
                 System.out.println("plugin " + p.id);
                 System.out.println("\t" + p.name);
                 System.out.println("\t" + p.version);

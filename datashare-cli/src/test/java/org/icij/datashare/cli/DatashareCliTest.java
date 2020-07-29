@@ -44,6 +44,18 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_option_list_plugins() {
+        cli.parseArguments(new String[] {"--pluginList"});
+        assertThat(cli.properties).includes(entry("pluginList", "true"));
+
+        cli.parseArguments(new String[] {"--pluginList=.*"});
+        assertThat(cli.properties).includes(entry("pluginList", ".*"));
+
+        cli.parseArguments(new String[] {""});
+        assertThat(cli.properties).excludes(entry("pluginList", "unused"));
+    }
+
+    @Test
     public void test_get_version() throws IOException {
         assertThat(cli.getVersion()).isEqualTo("7.0.2");
     }
