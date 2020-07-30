@@ -54,6 +54,7 @@ public class BatchSearch extends BatchSearchRecord {
     public BatchSearch(String uuid, Project project, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, User user,
                        int nbResults, boolean published, List<String> fileTypes, List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage) {
         super(uuid,project,name,description,queries.size(),date,state,user,nbResults,published,errorMessage);
+        if (getNbQueries() == 0) throw new IllegalArgumentException("queries cannot be empty");
         this.queries = queries;
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
         this.paths = unmodifiableList(ofNullable(paths).orElse(new ArrayList<>()));
@@ -65,7 +66,7 @@ public class BatchSearch extends BatchSearchRecord {
     public List<String> getQueryList() {return new ArrayList<>(queries.keySet());}
 
     private static LinkedHashMap<String, Integer> toLinkedHashMap(LinkedHashSet<String> queries) {
-        return queries.stream().collect(toMap(identity(), i -> 0,
+        return ofNullable(queries).orElseThrow(() -> new IllegalArgumentException("queries cannot be null")).stream().collect(toMap(identity(), i -> 0,
                 (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); },
                 LinkedHashMap::new));
     }
