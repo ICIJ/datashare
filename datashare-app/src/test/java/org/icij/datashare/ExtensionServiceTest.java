@@ -53,6 +53,19 @@ public class ExtensionServiceTest {
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
     }
 
+    @Test
+    public void test_delete_extension_by_id() throws IOException {
+        JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension", SOURCE);
+        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                "{\"id\":\"my-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri() + "\"}" +
+                "]}").getBytes()));
+        extensionService.downloadAndInstall("my-extension");
+
+        extensionService.delete("my-extension");
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).doesNotExist();
+
+    }
+
     public static final String SOURCE = "package org.icij.datashare.mode;\n" +
             "\n" +
             "import net.codestory.http.annotations.Get;\n" +

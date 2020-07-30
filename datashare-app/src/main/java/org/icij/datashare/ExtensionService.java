@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,5 +86,11 @@ public class ExtensionService {
     @NotNull
     private static String getCurrentDirExtensionDirectory() {
         return "." + EXTENSION_BASE_URL;
+    }
+
+    public void delete(String extensionId) throws IOException {
+        File extension = extensionsDir.resolve(String.join(extensionId,".jar")).toFile();
+        logger.info("removing extension jar {}", extensionId);
+        extension.delete();
     }
 }
