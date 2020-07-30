@@ -89,7 +89,7 @@ public class ExtensionService {
     }
 
     public void delete(String extensionId) throws IOException {
-        File extension = extensionsDir.resolve(String.join(extensionId,".jar")).toFile();
+        File extension = extensionsDir.resolve(extensionId.concat(".jar")).toFile();
         logger.info("removing extension jar {}", extensionId);
         extension.delete();
     }
