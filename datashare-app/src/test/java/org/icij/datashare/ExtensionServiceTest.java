@@ -56,7 +56,9 @@ public class ExtensionServiceTest {
     @Test
     public void test_delete_extension_by_id() throws IOException {
         JarUtil.createJar(extensionFolder.getRoot().toPath(), "my-extension", SOURCE);
-        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
+        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                "{\"id\":\"my-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri() + "\"}" +
+                "]}").getBytes()));
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
         
         extensionService.delete("my-extension");

@@ -63,7 +63,7 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
 
     @Test
     public void test_uninstall_unknown_extension() {
-        delete("/api/extensions/uninstall?id=unknown_id").should().respond(200); //will change it later
+        delete("/api/extensions/uninstall?id=unknown_id").should().respond(404); //will change it later
     }
 
     @Before
