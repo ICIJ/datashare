@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.apache.commons.io.FileUtils;
+import org.apache.tika.io.FilenameUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,8 +90,8 @@ public class ExtensionService {
     }
 
     public void delete(String extensionId) throws IOException {
-        String id = extensionRegistry.get(extensionId).id;
-        File extension = extensionsDir.resolve(id.concat(".jar")).toFile();
+        URL url = extensionRegistry.get(extensionId).url;
+        File extension = extensionsDir.resolve(FilenameUtils.getName(url.getPath())).toFile();
         logger.info("removing extension jar {}", extensionId);
         extension.delete();
     }

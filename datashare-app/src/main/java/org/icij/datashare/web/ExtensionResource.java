@@ -60,10 +60,9 @@ public class ExtensionResource {
      * @return  400 if neither id nor url is provided
      *
      * @throws IOException
-     * @throws ArchiveException
      *
      * Example:
-     * $(curl -i -XPUT localhost:8080/api/extensions/install?id=datashare-extension-nlp-opennlp)
+     * $(curl -i -XPUT localhost:8080/api/extensions/install?id=https://github.com/ICIJ/datashare-extension-nlp-ixapipe/releases/download/7.0.0/datashare-nlp-ixapipe-7.0.0-jar-with-dependencies.jar)
      */
     @Put("/install")
     public Payload installExtension(Context context) throws IOException, ArchiveException {
@@ -102,7 +101,7 @@ public class ExtensionResource {
      * @throws IOException if there is a filesystem error
      *
      * Example:
-     * $(curl -i -XDELETE localhost:8080/api/extensions/uninstall?id=datashare-extension-nlp-opennlp)
+     * $(curl -i -XDELETE localhost:8080/api/extensions/uninstall?id=https://github.com/ICIJ/datashare-extension-nlp-ixapipe/releases/download/7.0.0/datashare-nlp-ixapipe-7.0.0-jar-with-dependencies.jar)
      */
     @Delete("/uninstall?id=:extensionId")
     public Payload uninstallExtension(String extensionId) throws IOException {
