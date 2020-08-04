@@ -32,6 +32,13 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
     }
 
     @Test
+    public void test_list_extension_with_regexp() {
+        get("/api/extensions?filter=.*other.*").
+                should().respond(200).contain("my-other-extension").
+                should().not().contain("my-plugin");
+    }
+
+    @Test
     public void test_install_extension_by_id(){
         put("/api/extensions/install?id=my-extension").should().respond(200);
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();

@@ -31,13 +31,18 @@ public class ExtensionResource {
     /**
      * Gets the extension set in JSON
      *
+     * If a request parameter "filter" is provided, the regular expression will be applied to the list.
+     *
+     * see https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
+     * for pattern syntax.
+     *
      * Example:
-     * $(curl localhost:8080/api/extensions)
+     * $(curl localhost:8080/api/extensions?filter=.*paginator)
      */
     @Get()
     public Set<Extension> getExtensionList(Context context)
     {
-        return extensionService.list();
+        return extensionService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
     }
 
     /**
