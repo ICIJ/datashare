@@ -58,7 +58,30 @@ public class BatchSearchResource {
     @Get("/search")
     public List<BatchSearchRecord> getSearches(Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
-        return batchSearchRepository.getRecord(user, user.getProjects());
+        return batchSearchRepository.getRecords(user, user.getProjects());
+    }
+
+    /**
+     * Retrieve the batch search list for the user issuing the request filter with the given criteria.
+     *
+     * It needs a Query json body with the parameters :
+     *      *
+     *      * - from : index offset of the first document to return (mandatory)
+     *      * - size : window size of the results (mandatory)
+     *      * - sort: field to sort (prj_id name user_id description state batch_date batch_results published) (default "batch_date")
+     *      * - order: "asc" or "desc" (default "asc")
+     *      *
+     *      * If from/size are not given their default values are 0, meaning that all the results are returned.
+     *
+     * @return 200 and the list of batch searches
+     *
+     * Example :
+     * $(curl localhost:8080/api/batch/search )
+     */
+    @Post("/search")
+    public List<BatchSearchRecord> getSearchesFiletered(BatchSearchRepository.WebQuery webQuery, Context context) {
+        DatashareUser user = (DatashareUser) context.currentUser();
+        return batchSearchRepository.getRecords(user, user.getProjects(), webQuery);
     }
 
     /**

@@ -132,11 +132,27 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
-    public List<BatchSearchRecord> getRecord(User user, List<String> projectsIds) {
+    public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds) {
         return createBatchSearchRecordWithQueriesSelectStatement(DSL.using(dataSource,dialect))
                 .where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).
                         or(BATCH_SEARCH.PUBLISHED.greaterThan(0))))
                 .orderBy(BATCH_SEARCH.BATCH_DATE.desc()).
+                fetch().stream().map(this::createBatchSearchRecordFrom).collect(toList());
+    }
+
+    @Override
+    public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
+        SelectConditionStep<Record11<String, String, String, String, String, Timestamp, String, Integer, Integer, String, Object>> query = createBatchSearchRecordWithQueriesSelectStatement(using(dataSource, dialect))
+                .where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).
+                        or(BATCH_SEARCH.PUBLISHED.greaterThan(0))));
+        if (webQuery.isSorted()) {
+            query.orderBy(field(webQuery.sort + " " + webQuery.order));
+        } else {
+            query.orderBy(field("batch_date desc"));
+        }
+        if (webQuery.size > 0) query.limit(webQuery.size);
+        if (webQuery.from > 0) query.offset(webQuery.from);
+        return query.orderBy(BATCH_SEARCH.BATCH_DATE.desc()).
                 fetch().stream().map(this::createBatchSearchRecordFrom).collect(toList());
     }
 

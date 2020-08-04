@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
@@ -145,7 +146,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_batch_searches_json() {
-        when(batchSearchRepository.getRecord(User.local(), singletonList("local-datashare"))).thenReturn(asList(
+        when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"))).thenReturn(asList(
                 new BatchSearch(project("prj"), "name1", "description1", asSet("query 1", "query 2"), User.local()),
                 new BatchSearch(project("prj"), "name2", "description2", asSet("query 3", "query 4"), User.local())
         ));
@@ -153,6 +154,25 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         get("/api/batch/search").should().respond(200).haveType("application/json").
                 contain("\"name\":\"name1\"").
                 contain("\"name\":\"name2\"");
+    }
+
+    @Test
+    public void test_get_batch_searches_records_json_paginated() {
+        List<BatchSearchRecord> batchSearches = IntStream.range(0, 10).mapToObj(i -> new BatchSearchRecord(project("prj"), "name" + i, "description" + i, 2, new Date())).collect(toList());
+        when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(2, 0))).thenReturn(batchSearches.subList(0, 2));
+        when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(3, 4))).thenReturn(batchSearches.subList(5, 8));
+
+        post("/api/batch/search", "{\"from\":0, \"size\":2}").should().respond(200).haveType("application/json").
+                contain("\"name\":\"name0\"").
+                contain("\"name\":\"name1\"").
+                should().not().contain("name2");
+
+        post("/api/batch/search", "{\"from\":4, \"size\":3}").should().respond(200).haveType("application/json").
+                contain("\"name\":\"name5\"").
+                contain("\"name\":\"name6\"").
+                contain("\"name\":\"name7\"").
+                should().not().contain("name8").
+                should().not().contain("name4");
     }
 
     @Test

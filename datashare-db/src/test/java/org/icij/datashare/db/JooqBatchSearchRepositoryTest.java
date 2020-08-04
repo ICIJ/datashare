@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -75,8 +76,8 @@ public class JooqBatchSearchRepositoryTest {
         repository.save(batchSearch1);
         repository.save(batchSearch2);
 
-        assertThat(repository.getRecord(User.local(), asList("prj1")).get(0).uuid).isEqualTo(batchSearch1.uuid);
-        assertThat(repository.getRecord(User.local(), asList("prj2")).get(0).uuid).isEqualTo(batchSearch2.uuid);
+        assertThat(repository.getRecords(User.local(), asList("prj1")).get(0).uuid).isEqualTo(batchSearch1.uuid);
+        assertThat(repository.getRecords(User.local(), asList("prj2")).get(0).uuid).isEqualTo(batchSearch2.uuid);
     }
 
     @Test
@@ -85,7 +86,7 @@ public class JooqBatchSearchRepositoryTest {
                 true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         repository.save(batchSearch);
 
-        List<BatchSearchRecord> batchSearchRecords = repository.getRecord(User.local(),asList("prj"));
+        List<BatchSearchRecord> batchSearchRecords = repository.getRecords(User.local(),asList("prj"));
         assertThat(batchSearchRecords).hasSize(1);
         BatchSearchRecord actual = batchSearchRecords.get(0);
         assertThat(actual.getNbQueries()).isEqualTo(2);
@@ -98,6 +99,21 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(actual.state).isEqualTo(batchSearch.state);
         assertThat(actual.nbResults).isEqualTo(batchSearch.nbResults);
         assertThat(actual.errorMessage).isEqualTo(batchSearch.errorMessage);
+    }
+
+    @Test
+    public void test_get_records_with_query() {
+        IntStream.range(0, 5).mapToObj(i -> new BatchSearch(Project.project("prj"), "name" + i, "description" + i, asSet("q1/" + i, "q2/" + i), User.local(),
+                true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"), 3, true)).forEach(bs -> repository.save(bs));
+
+        List<BatchSearchRecord> from0To2 = repository.getRecords(User.local(), asList("prj"), new BatchSearchRepository.WebQuery(2, 0));
+        assertThat(from0To2).hasSize(2);
+        assertThat(from0To2.get(0).name).isEqualTo("name4");
+        assertThat(from0To2.get(1).name).isEqualTo("name3");
+
+        List<BatchSearchRecord> from0To2OrderByName = repository.getRecords(User.local(), asList("prj"), new BatchSearchRepository.WebQuery(1, 1, "name", "asc", null));
+        assertThat(from0To2OrderByName).hasSize(1);
+        assertThat(from0To2OrderByName.get(0).name).isEqualTo("name1");
     }
 
     @Test
