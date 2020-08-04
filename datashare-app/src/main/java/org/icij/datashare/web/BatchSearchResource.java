@@ -76,7 +76,7 @@ public class BatchSearchResource {
      * @return 200 and the list of batch searches
      *
      * Example :
-     * $(curl localhost:8080/api/batch/search )
+     * $(curl -H 'Content-Type: application/json' localhost:8080/api/batch/search -d '{"from":0, "size": 2}')
      */
     @Post("/search")
     public List<BatchSearchRecord> getSearchesFiletered(BatchSearchRepository.WebQuery webQuery, Context context) {

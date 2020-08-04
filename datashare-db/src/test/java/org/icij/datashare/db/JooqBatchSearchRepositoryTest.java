@@ -107,11 +107,12 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_records_with_query() {
         IntStream.range(0, 5).mapToObj(i -> new BatchSearch(Project.project("prj"), "name" + i, "description" + i, asSet("q1/" + i, "q2/" + i), User.local(),
-                true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"), 3, true)).forEach(
-                        bs -> {
+                true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"), 3, true)).
+                forEach(bs -> {
                             repository.save(bs);
                             DatashareTime.getInstance().addMilliseconds(1000);
-                        });
+                        }
+                );
 
         List<BatchSearchRecord> from0To2 = repository.getRecords(User.local(), asList("prj"), new BatchSearchRepository.WebQuery(2, 0));
         assertThat(from0To2).hasSize(2);
