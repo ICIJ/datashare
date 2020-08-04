@@ -33,6 +33,9 @@ public final class DatashareCliOptions {
     public static final String PLUGIN_LIST_OPT = "pluginList";
     public static final String PLUGIN_INSTALL_OPT = "pluginInstall";
     public static final String PLUGIN_DELETE_OPT = "pluginDelete";
+    public static final String EXTENSION_LIST_OPT = "extensionList";
+    public static final String EXTENSION_INSTALL_OPT = "extensionInstall";
+    public static final String EXTENSION_DELETE_OPT = "extensionDelete";
     public static final String DEL_API_KEY_OPT = "deleteApiKey";
     public static final String PARALLELISM = "parallelism";
     public static final String OPEN_LINK = "browserOpenLink";
@@ -105,6 +108,24 @@ public final class DatashareCliOptions {
 
     static OptionSpec<String> pluginDelete(OptionParser parser) {
         return parser.acceptsAll(asList(PLUGIN_DELETE_OPT), "Delete plugin with its id or base directory (needs pluginsDir option)")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
+    static OptionSpec<String> extensionList(OptionParser parser) {
+        return parser.acceptsAll(asList(EXTENSION_LIST_OPT), "Extensions list matching provided string")
+                .withOptionalArg()
+                .ofType(String.class);
+    }
+
+    static OptionSpec<String> extensionInstall(OptionParser parser) {
+        return parser.acceptsAll(asList(EXTENSION_INSTALL_OPT), "Install extension with either id or URL or file path (needs extensionsDir option)")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
+    static OptionSpec<String> extensionDelete(OptionParser parser) {
+        return parser.acceptsAll(asList(EXTENSION_DELETE_OPT), "Delete extension with its id or base directory (needs extensionsDir option)")
                 .withRequiredArg()
                 .ofType(String.class);
     }

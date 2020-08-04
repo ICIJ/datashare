@@ -89,7 +89,7 @@ public class ExtensionService {
         return "." + EXTENSION_BASE_URL;
     }
 
-    public void delete(String extensionId) throws IOException {
+    public void delete(String extensionId){
         URL url = extensionRegistry.get(extensionId).url;
         File extension = extensionsDir.resolve(FilenameUtils.getName(url.getPath())).toFile();
         logger.info("removing extension jar {}", extensionId);

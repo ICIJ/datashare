@@ -29,6 +29,9 @@ public class DatashareCli {
         DatashareCliOptions.pluginInstall(parser);
         DatashareCliOptions.pluginDelete(parser);
         DatashareCliOptions.extensionsDir(parser);
+        DatashareCliOptions.extensionList(parser);
+        DatashareCliOptions.extensionInstall(parser);
+        DatashareCliOptions.extensionDelete(parser);
         DatashareCliOptions.tcpListenPort(parser);
         DatashareCliOptions.mode(parser);
         DatashareCliOptions.stages(parser);
