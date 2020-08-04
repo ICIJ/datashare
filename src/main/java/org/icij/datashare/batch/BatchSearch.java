@@ -2,6 +2,7 @@ package org.icij.datashare.batch;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 
 import java.util.*;
@@ -21,22 +22,22 @@ public class BatchSearch extends BatchSearchRecord {
 
     // batch search creation
     public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user,
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user,
                 0, false, null, null, 0,false, null);
     }
     public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, null, null, 0,false, null);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, null, null, 0,false, null);
     }
     public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,false, null);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,false, null);
     }
 
     public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness,boolean phraseMatches) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,phraseMatches, null);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,phraseMatches, null);
     }
 
     public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths,boolean phraseMatches) {
-        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), new Date(), State.QUEUED, user, 0, published, fileTypes, paths, 0,phraseMatches, null);
+        this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, paths, 0,phraseMatches, null);
     }
 
     public BatchSearch(String uuid, Project project, String name, String description, LinkedHashSet<String> queries, Date date, State state, User user) {
