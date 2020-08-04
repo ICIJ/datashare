@@ -2,8 +2,10 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.batch.*;
 import org.icij.datashare.batch.BatchSearchRecord.State;
+import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,6 +28,7 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 
 @RunWith(Parameterized.class)
 public class JooqBatchSearchRepositoryTest {
+    @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-08-04T10:20:30Z");
     @Rule
     public DbSetupRule dbRule;
     private BatchSearchRepository repository;
@@ -67,7 +70,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_record_filter_by_project() {
+    public void test_get_records_filter_by_project() {
         BatchSearch batchSearch1 = new BatchSearch(Project.project("prj1"), "name1", "description1",
                 asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         BatchSearch batchSearch2 = new BatchSearch(Project.project("prj2"), "name2", "description2",
@@ -104,7 +107,11 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_records_with_query() {
         IntStream.range(0, 5).mapToObj(i -> new BatchSearch(Project.project("prj"), "name" + i, "description" + i, asSet("q1/" + i, "q2/" + i), User.local(),
-                true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"), 3, true)).forEach(bs -> repository.save(bs));
+                true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"), 3, true)).forEach(
+                        bs -> {
+                            repository.save(bs);
+                            DatashareTime.getInstance().addMilliseconds(1000);
+                        });
 
         List<BatchSearchRecord> from0To2 = repository.getRecords(User.local(), asList("prj"), new BatchSearchRepository.WebQuery(2, 0));
         assertThat(from0To2).hasSize(2);
