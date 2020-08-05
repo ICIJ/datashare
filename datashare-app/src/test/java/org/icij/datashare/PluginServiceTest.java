@@ -142,8 +142,9 @@ public class PluginServiceTest {
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                 "]}").getBytes()));
 
-        File tmpFile = pluginService.download(pluginService.deliverableRegistry.get("my-plugin").getDeliverableUrl());
-        pluginService.install(tmpFile);
+        Plugin plugin = pluginService.deliverableRegistry.get("my-plugin");
+        File tmpFile = plugin.download();
+        plugin.install(tmpFile, pluginFolder.getRoot().toPath());
 
         assertThat(getExtension(tmpFile.getPath())).isEqualTo("tgz");
         assertThat(tmpFile.getName()).startsWith("tmp");
@@ -175,14 +176,13 @@ public class PluginServiceTest {
 
     @Test(expected = FileNotFoundException.class)
     public void test_install_bad_filename() throws Exception {
-        new PluginService(pluginFolder.getRoot().toPath()).install(new File("not a file name"));
+        new Plugin(null).install(new File("not a file name"), pluginFolder.getRoot().toPath());
     }
 
     @Test
     public void test_install_from_file() throws Exception {
-        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath());
         File pluginFile = new File(ClassLoader.getSystemResource("my-plugin.tgz").getPath());
-        pluginService.install(pluginFile);
+        new Plugin(null).install(pluginFile, pluginFolder.getRoot().toPath());
 
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();

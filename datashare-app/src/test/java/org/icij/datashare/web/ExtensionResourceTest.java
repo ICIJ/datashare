@@ -1,8 +1,6 @@
 package org.icij.datashare.web;
 
-import net.codestory.rest.FluentRestTest;
 import org.icij.datashare.ExtensionService;
-import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -16,8 +14,6 @@ import java.io.UnsupportedEncodingException;
 
 import static java.net.URLEncoder.encode;
 import static org.fest.assertions.Assertions.assertThat;
-
-import static org.junit.Assert.*;
 
 public class ExtensionResourceTest extends AbstractProdWebServerTest  {
 

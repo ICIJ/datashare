@@ -1,44 +1,37 @@
 package org.icij.datashare;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.io.IOUtils;
 
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 
-public class Plugin implements Entity {
+public class Plugin extends Extension {
     @JsonIgnore
     Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
-    public final String id;
-    public final String name;
-    public final String description;
-    public final URL url;
-    public final String version;
 
     @JsonCreator
-    public Plugin(@JsonProperty("id") String id,
-                  @JsonProperty("name") String name,
-                  @JsonProperty("version") String version,
-                  @JsonProperty("description") String description,
-                  @JsonProperty("url") URL url) {
-        this.id = id;
-        this.name = name;
-        this.version = version;
-        this.description = description;
-        this.url = url;
+        public Plugin(@JsonProperty("id") String id,
+                      @JsonProperty("name") String name,
+                      @JsonProperty("version") String version,
+                      @JsonProperty("description") String description,
+                      @JsonProperty("url") URL url){
+        super(id, name, version, description, url, Type.PLUGIN);
     }
 
-    public void displayInformation() {
-        System.out.println("plugin " + id);
-        System.out.println("\t" + name);
-        System.out.println("\t" + version);
-        System.out.println("\t" + url);
-        System.out.println("\t" + description);
+    public Plugin(URL url){
+        super(url);
+        this.type = Type.PLUGIN;
     }
 
     public String getId() {return id;}
@@ -64,22 +57,32 @@ public class Plugin implements Entity {
         return Paths.get(id);
     }
 
-    @Override
-    public String toString() {
-        return "Plugin id='" + id + '\'' + '\'' + ", version='" + version + '\'' + "url=" + url;
-    }
+    public void install(File extensionFile, Path extensionsDir) throws IOException {
+        logger.info("installing plugin from file {} into {}", extensionFile, extensionsDir);
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Plugin)) return false;
-        Plugin plugin = (Plugin) o;
-        return id.equals(plugin.id) &&
-                version.equals(plugin.version);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, version);
+        InputStream is = new BufferedInputStream(new FileInputStream(extensionFile));
+        if (extensionFile.getName().endsWith("gz")) {
+            is = new BufferedInputStream(new GZIPInputStream(is));
+        }
+        try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
+            ArchiveEntry entry;
+            while ((entry = zippedArchiveInputStream.getNextEntry()) != null) {
+                final File outputFile = new File(extensionsDir.toFile(), entry.getName());
+                if (entry.isDirectory()) {
+                    if (!outputFile.exists()) {
+                        if (!outputFile.mkdirs()) {
+                            throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
+                        }
+                    }
+                } else {
+                    final OutputStream outputFileStream = new FileOutputStream(outputFile);
+                    IOUtils.copy(zippedArchiveInputStream, outputFileStream);
+                    outputFileStream.close();
+                }
+            }
+        } catch (ArchiveException e) {
+            throw new RuntimeException(e);
+        }
+        if (extensionFile.getName().startsWith(Plugin.TMP_PREFIX)) extensionFile.delete();
     }
 }

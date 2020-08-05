@@ -4,52 +4,32 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toSet;
-import static org.apache.commons.io.FilenameUtils.getExtension;
 import static org.icij.datashare.cli.DatashareCliOptions.PLUGIN_DELETE_OPT;
 
 @Singleton
-public class PluginService {
-    final Logger logger = LoggerFactory.getLogger(getClass());
+public class PluginService extends DeliverableService<Plugin> {
     public static final String DEFAULT_PLUGIN_REGISTRY_FILENAME = "plugins.json";
     public static final String PLUGINS_BASE_URL = "/plugins";
-    public static final String TMP_PREFIX = "tmp";
 
-    private final Path pluginsDir;
-    final DeliverableRegistry<Plugin> deliverableRegistry;
-
-    public PluginService() {
-       this(Paths.get(getCurrentDirPluginDirectory()));
-    }
+    public PluginService() { this(Paths.get("." + PLUGINS_BASE_URL));}
 
     @Inject
     public PluginService(PropertiesProvider propertiesProvider) {
-        this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse(getCurrentDirPluginDirectory())));
+        this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse("." + PLUGINS_BASE_URL)));
     }
 
     public PluginService(Path pluginsDir) {
@@ -57,8 +37,7 @@ public class PluginService {
     }
 
     public PluginService(Path pluginsDir, InputStream inputStream) {
-        this.pluginsDir = pluginsDir;
-        this.deliverableRegistry = getPluginRegistry(inputStream);
+        super(pluginsDir, inputStream);
     }
 
     public void deleteFromCli(Properties properties) throws IOException {
@@ -69,7 +48,7 @@ public class PluginService {
         }
     }
 
-    public void downloadAndInstallFromCli(String pluginIdOrUrlOrFile) throws IOException, ArchiveException {
+    public void downloadAndInstallFromCli(String pluginIdOrUrlOrFile) throws IOException {
         try {
             downloadAndInstall(pluginIdOrUrlOrFile); // plugin with id
         } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
@@ -77,26 +56,21 @@ public class PluginService {
                 URL pluginUrl = new URL(pluginIdOrUrlOrFile);
                 downloadAndInstall(pluginUrl); // from url
             } catch (MalformedURLException not_url) {
-                install(Paths.get(pluginIdOrUrlOrFile).toFile()); // from file
+                new Plugin(null).install(Paths.get(pluginIdOrUrlOrFile).toFile(), extensionsDir); // from file
             }
         }
     }
 
-    public Set<Plugin> list() { return list(".*");}
+    @Override
+    Plugin newDeliverable(URL url) { return new Plugin(url);}
 
-    public Set<Plugin> list(String patternString) {
-        return deliverableRegistry.get().stream().
-                filter(p -> Pattern.compile(patternString).matcher(p.id).matches()).
-                collect(toSet());
-    }
-
-    public void downloadAndInstall(String pluginId) throws IOException, ArchiveException {
-        downloadAndInstall(deliverableRegistry.get(pluginId).getDeliverableUrl());
-    }
-
-    public void downloadAndInstall(URL pluginUrl) throws IOException, ArchiveException {
-        File pluginFile = download(pluginUrl);
-        install(pluginFile);
+    @Override
+    DeliverableRegistry<Plugin> getRegistry(InputStream pluginJsonContent) {
+        try {
+            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<DeliverableRegistry<Plugin>>() {});
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void delete(String pluginId) throws IOException {
@@ -104,14 +78,14 @@ public class PluginService {
     }
 
     public void delete(Path pluginBaseDirectory) throws IOException {
-        Path pluginDirectory = pluginsDir.resolve(pluginBaseDirectory);
+        Path pluginDirectory = extensionsDir.resolve(pluginBaseDirectory);
         logger.info("removing plugin base directory {}", pluginDirectory);
         FileUtils.deleteDirectory(pluginDirectory.toFile());
     }
 
     public String addPlugins(String stringContent, List<String> userProjects) {
-        File[] dirs = ofNullable(pluginsDir.toFile().listFiles(File::isDirectory)).
-                orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + pluginsDir));
+        File[] dirs = ofNullable(extensionsDir.toFile().listFiles(File::isDirectory)).
+                orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + extensionsDir));
         String scriptsString = stream(dirs).
                 map(d -> projectFilter(d.toPath(), userProjects)).filter(Objects::nonNull).
                 map(this::getPluginUrl).filter(Objects::nonNull).
@@ -174,44 +148,6 @@ public class PluginService {
         return null;
     }
 
-    @NotNull
-    File download(URL url) throws IOException {
-        ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
-        File tmpFile = Files.createTempFile(TMP_PREFIX, "." + getExtension(url.toString())).toFile();
-        logger.info("downloading from url {}", url);
-        try (FileOutputStream fileOutputStream = new FileOutputStream(tmpFile)) {
-            fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-            return tmpFile;
-        }
-    }
-
-    void install(File pluginFile) throws IOException, ArchiveException {
-        logger.info("installing plugin from file {} into {}", pluginFile, pluginsDir);
-
-        InputStream is = new BufferedInputStream(new FileInputStream(pluginFile));
-        if (pluginFile.getName().endsWith("gz")) {
-            is = new BufferedInputStream(new GZIPInputStream(is));
-        }
-        try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
-            ArchiveEntry entry;
-            while ((entry = zippedArchiveInputStream.getNextEntry()) != null) {
-                final File outputFile = new File(pluginsDir.toFile(), entry.getName());
-                if (entry.isDirectory()) {
-                    if (!outputFile.exists()) {
-                        if (!outputFile.mkdirs()) {
-                            throw new IllegalStateException(String.format("Couldn't create directory %s.", outputFile.getAbsolutePath()));
-                        }
-                    }
-                } else {
-                    final OutputStream outputFileStream = new FileOutputStream(outputFile);
-                    IOUtils.copy(zippedArchiveInputStream, outputFileStream);
-                    outputFileStream.close();
-                }
-            }
-        }
-        if (pluginFile.getName().startsWith(TMP_PREFIX)) pluginFile.delete();
-    }
-
     private Path relativeToPlugins(Path pluginDir, Path pluginMain) {
         return Paths.get(PLUGINS_BASE_URL).resolve(pluginDir.getParent().relativize(pluginMain));
     }
@@ -224,18 +160,5 @@ public class PluginService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private DeliverableRegistry<Plugin> getPluginRegistry(InputStream pluginJsonContent) {
-        try {
-            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<DeliverableRegistry<Plugin>>() {});
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @NotNull
-    private static String getCurrentDirPluginDirectory() {
-        return "." + PLUGINS_BASE_URL;
     }
 }

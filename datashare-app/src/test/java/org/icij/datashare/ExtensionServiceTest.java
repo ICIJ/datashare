@@ -60,7 +60,7 @@ public class ExtensionServiceTest {
                 "{\"id\":\"my-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri() + "\"}" +
                 "]}").getBytes()));
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
-        
+
         extensionService.delete("my-extension");
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).doesNotExist();
 

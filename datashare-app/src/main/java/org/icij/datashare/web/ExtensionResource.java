@@ -23,10 +23,10 @@ import static net.codestory.http.payload.Payload.ok;
 @Singleton
 @Prefix("/api/extensions")
 public class ExtensionResource {
-    private final ExtensionService extensionService;
+    private final DeliverableService deliverableService;
 
     @Inject
-    public ExtensionResource(ExtensionService extensionService) {this.extensionService = extensionService;}
+    public ExtensionResource(DeliverableService deliverableService) {this.deliverableService = deliverableService;}
 
     /**
      * Gets the extension set in JSON
@@ -42,7 +42,7 @@ public class ExtensionResource {
     @Get()
     public Set<Extension> getExtensionList(Context context)
     {
-        return extensionService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
+        return deliverableService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
     }
 
     /**
@@ -73,7 +73,7 @@ public class ExtensionResource {
     public Payload installExtension(Context context) throws IOException, ArchiveException {
         String extensionUrlString = context.request().query().get("url");
         try {
-            extensionService.downloadAndInstall(new URL(extensionUrlString));
+            deliverableService.downloadAndInstall(new URL(extensionUrlString));
             return Payload.ok();
         } catch (MalformedURLException not_url) {
             String extensionId = context.request().query().get("id");
@@ -81,7 +81,7 @@ public class ExtensionResource {
                 return Payload.badRequest();
             }
             try {
-                extensionService.downloadAndInstall(extensionId);
+                deliverableService.downloadAndInstall(extensionId);
                 return Payload.ok();
             } catch (DeliverableRegistry.UnknownDeliverableException unknownDeliverableException) {
                 return Payload.notFound();
@@ -111,7 +111,7 @@ public class ExtensionResource {
     @Delete("/uninstall?id=:extensionId")
     public Payload uninstallExtension(String extensionId) throws IOException {
         try {
-            extensionService.delete(extensionId);
+            deliverableService.delete(extensionId);
         } catch (DeliverableRegistry.UnknownDeliverableException unknownDeliverableException) {
             return Payload.notFound();
         }

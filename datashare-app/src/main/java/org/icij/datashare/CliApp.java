@@ -42,20 +42,20 @@ class CliApp {
     }
 
     private static void processExtensions(Properties properties) throws IOException {
-        ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
+        ExtensionService deliverableService = new ExtensionService(new PropertiesProvider(properties));
         String listPattern = properties.getProperty(EXTENSION_LIST_OPT);
         if (listPattern != null) {
             listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
-            extensionService.list(listPattern).forEach(Extension::displayInformation);
+            deliverableService.list(listPattern).forEach(Extension::displayInformation);
             System.exit(0);
         }
         String extensionIdOrUrlOrFile = properties.getProperty(EXTENSION_INSTALL_OPT);
         if(extensionIdOrUrlOrFile != null) {
-            extensionService.downloadAndInstallFromCli(extensionIdOrUrlOrFile);
+            deliverableService.downloadAndInstallFromCli(extensionIdOrUrlOrFile);
             System.exit(0);
         }
         if (properties.getProperty(EXTENSION_DELETE_OPT) != null) {
-            extensionService.delete(properties.getProperty(EXTENSION_DELETE_OPT));
+            deliverableService.delete(properties.getProperty(EXTENSION_DELETE_OPT));
             System.exit(0);
         }
     }
