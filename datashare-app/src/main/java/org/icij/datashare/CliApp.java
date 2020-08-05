@@ -17,8 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Set;
@@ -37,78 +35,46 @@ class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
     static void start(Properties properties) throws Exception {
-        displayInfoWithoutIoc(properties);
+        processPlugins(properties);
+        processExtensions(properties);
         Injector injector = createInjector(CommonMode.create(properties));
         runTaskRunner(injector, properties);
     }
 
-    private static void displayInfoWithoutIoc(Properties properties) throws IOException, ArchiveException {
-        PluginService pluginService = new PluginService(new PropertiesProvider(properties));
+    private static void processExtensions(Properties properties) throws IOException {
         ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
-        String listPattern = properties.getProperty(PLUGIN_LIST_OPT);
+        String listPattern = properties.getProperty(EXTENSION_LIST_OPT);
         if (listPattern != null) {
             listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
-            pluginService.list(listPattern).forEach(p -> {
-                System.out.println("plugin " + p.id);
-                System.out.println("\t" + p.name);
-                System.out.println("\t" + p.version);
-                System.out.println("\t" + p.url);
-                System.out.println("\t" + p.description);
-            });
-            System.exit(0);
-        }
-        String pluginIdOrUrlOrFile = properties.getProperty(PLUGIN_INSTALL_OPT);
-        if (pluginIdOrUrlOrFile != null) {
-            try {
-                pluginService.downloadAndInstall(pluginIdOrUrlOrFile); // plugin with id
-            } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
-                try {
-                    URL pluginUrl = new URL(pluginIdOrUrlOrFile);
-                    pluginService.downloadAndInstall(pluginUrl); // from url
-                } catch (MalformedURLException not_url) {
-                    pluginService.install(Paths.get(pluginIdOrUrlOrFile).toFile()); // from file
-                }
-            }
-            System.exit(0);
-        }
-        if (properties.getProperty(PLUGIN_DELETE_OPT) != null) {
-            try {
-                pluginService.delete(properties.getProperty(PLUGIN_DELETE_OPT)); // plugin with id
-            } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
-                pluginService.delete(Paths.get(properties.getProperty(PLUGIN_DELETE_OPT))); // from base dir
-            }
-            System.exit(0);
-        }
-
-        listPattern = properties.getProperty(EXTENSION_LIST_OPT);
-        if (listPattern != null) {
-            listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
-            extensionService.list(listPattern).forEach(p -> {
-                System.out.println("plugin " + p.id);
-                System.out.println("\t" + p.name);
-                System.out.println("\t" + p.version);
-                System.out.println("\t" + p.url);
-                System.out.println("\t" + p.description);
-                System.out.println("\t" + p.type);;
-            });
+            extensionService.list(listPattern).forEach(Extension::displayInformation);
             System.exit(0);
         }
         String extensionIdOrUrlOrFile = properties.getProperty(EXTENSION_INSTALL_OPT);
         if(extensionIdOrUrlOrFile != null) {
-            try {
-                extensionService.downloadAndInstall(extensionIdOrUrlOrFile); // extension with id
-            } catch (DeliverableRegistry.UnknownDeliverableException not_an_extension) {
-                    URL extensionUrl = new URL(extensionIdOrUrlOrFile);
-                    extensionService.downloadAndInstall(extensionUrl); // from url
-            }
+            extensionService.downloadAndInstallFromCli(extensionIdOrUrlOrFile);
             System.exit(0);
         }
         if (properties.getProperty(EXTENSION_DELETE_OPT) != null) {
-            try {
-                extensionService.delete(properties.getProperty(EXTENSION_DELETE_OPT)); // extension with id
-            } catch (DeliverableRegistry.UnknownDeliverableException ignored) {
+            extensionService.delete(properties.getProperty(EXTENSION_DELETE_OPT));
+            System.exit(0);
+        }
+    }
 
-            }
+    private static void processPlugins(Properties properties) throws IOException, ArchiveException {
+        PluginService pluginService = new PluginService(new PropertiesProvider(properties));
+        String listPattern = properties.getProperty(PLUGIN_LIST_OPT);
+        if (listPattern != null) {
+            listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
+            pluginService.list(listPattern).forEach(Plugin::displayInformation);
+            System.exit(0);
+        }
+        String pluginIdOrUrlOrFile = properties.getProperty(PLUGIN_INSTALL_OPT);
+        if (pluginIdOrUrlOrFile != null) {
+            pluginService.downloadAndInstallFromCli(pluginIdOrUrlOrFile);
+            System.exit(0);
+        }
+        if (properties.getProperty(PLUGIN_DELETE_OPT) != null) {
+            pluginService.deleteFromCli(properties);
             System.exit(0);
         }
     }

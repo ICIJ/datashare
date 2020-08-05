@@ -33,6 +33,14 @@ public class Plugin implements Entity {
         this.url = url;
     }
 
+    public void displayInformation() {
+        System.out.println("plugin " + id);
+        System.out.println("\t" + name);
+        System.out.println("\t" + version);
+        System.out.println("\t" + url);
+        System.out.println("\t" + description);
+    }
+
     public String getId() {return id;}
 
     public URL getDeliverableUrl() {

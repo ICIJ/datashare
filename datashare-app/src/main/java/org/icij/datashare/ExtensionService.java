@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.apache.commons.io.FileUtils;
 import org.apache.tika.io.FilenameUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -45,6 +44,15 @@ public class ExtensionService {
     public ExtensionService(Path extensionsDir, InputStream inputStream) {
         this.extensionsDir = extensionsDir;
         this.extensionRegistry = getExtensionRegistry(inputStream);
+    }
+
+    public void downloadAndInstallFromCli(String extensionIdOrUrlOrFile) throws IOException {
+        try {
+            downloadAndInstall(extensionIdOrUrlOrFile); // extension with id
+        } catch (DeliverableRegistry.UnknownDeliverableException not_an_extension) {
+                URL extensionUrl = new URL(extensionIdOrUrlOrFile);
+                downloadAndInstall(extensionUrl); // from url
+        }
     }
 
     public Set<Extension> list(String patternString) {

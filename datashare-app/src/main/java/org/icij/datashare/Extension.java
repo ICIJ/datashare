@@ -18,4 +18,9 @@ public class Extension extends Plugin {
         super(id, name, version, description, url);
         this.type = type;
     }
+
+    public void displayInformation() {
+        super.displayInformation();
+        System.out.println("\t" + type);
+    }
 }

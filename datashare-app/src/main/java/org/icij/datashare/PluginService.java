@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -30,6 +31,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.commons.io.FilenameUtils.getExtension;
+import static org.icij.datashare.cli.DatashareCliOptions.PLUGIN_DELETE_OPT;
 
 @Singleton
 public class PluginService {
@@ -57,6 +59,27 @@ public class PluginService {
     public PluginService(Path pluginsDir, InputStream inputStream) {
         this.pluginsDir = pluginsDir;
         this.deliverableRegistry = getPluginRegistry(inputStream);
+    }
+
+    public void deleteFromCli(Properties properties) throws IOException {
+        try {
+            delete(properties.getProperty(PLUGIN_DELETE_OPT)); // plugin with id
+        } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
+            delete(Paths.get(properties.getProperty(PLUGIN_DELETE_OPT))); // from base dir
+        }
+    }
+
+    public void downloadAndInstallFromCli(String pluginIdOrUrlOrFile) throws IOException, ArchiveException {
+        try {
+            downloadAndInstall(pluginIdOrUrlOrFile); // plugin with id
+        } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
+            try {
+                URL pluginUrl = new URL(pluginIdOrUrlOrFile);
+                downloadAndInstall(pluginUrl); // from url
+            } catch (MalformedURLException not_url) {
+                install(Paths.get(pluginIdOrUrlOrFile).toFile()); // from file
+            }
+        }
     }
 
     public Set<Plugin> list() { return list(".*");}
