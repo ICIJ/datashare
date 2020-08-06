@@ -4,12 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,7 +16,6 @@ import java.util.*;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
-import static org.icij.datashare.cli.DatashareCliOptions.PLUGIN_DELETE_OPT;
 
 @Singleton
 public class PluginService extends DeliverableService<Plugin> {
@@ -40,47 +37,16 @@ public class PluginService extends DeliverableService<Plugin> {
         super(pluginsDir, inputStream);
     }
 
-    public void deleteFromCli(Properties properties) throws IOException {
-        try {
-            delete(properties.getProperty(PLUGIN_DELETE_OPT)); // plugin with id
-        } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
-            delete(Paths.get(properties.getProperty(PLUGIN_DELETE_OPT))); // from base dir
-        }
-    }
-
-    public void downloadAndInstallFromCli(String pluginIdOrUrlOrFile) throws IOException {
-        try {
-            downloadAndInstall(pluginIdOrUrlOrFile); // plugin with id
-        } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
-            try {
-                URL pluginUrl = new URL(pluginIdOrUrlOrFile);
-                downloadAndInstall(pluginUrl); // from url
-            } catch (MalformedURLException not_url) {
-                new Plugin(null).install(Paths.get(pluginIdOrUrlOrFile).toFile(), extensionsDir); // from file
-            }
-        }
-    }
-
     @Override
     Plugin newDeliverable(URL url) { return new Plugin(url);}
 
     @Override
-    DeliverableRegistry<Plugin> getRegistry(InputStream pluginJsonContent) {
+    DeliverableRegistry<Plugin> createRegistry(InputStream pluginJsonContent) {
         try {
             return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<DeliverableRegistry<Plugin>>() {});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public void delete(String pluginId) throws IOException {
-        delete(deliverableRegistry.get(pluginId).getBaseDirectory());
-    }
-
-    public void delete(Path pluginBaseDirectory) throws IOException {
-        Path pluginDirectory = extensionsDir.resolve(pluginBaseDirectory);
-        logger.info("removing plugin base directory {}", pluginDirectory);
-        FileUtils.deleteDirectory(pluginDirectory.toFile());
     }
 
     public String addPlugins(String stringContent, List<String> userProjects) {

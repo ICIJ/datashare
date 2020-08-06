@@ -28,7 +28,7 @@ public class ExtensionService extends DeliverableService<Extension> {
     @Override Extension newDeliverable(URL url) { return new Extension(url);}
 
     @Override
-    DeliverableRegistry<Extension> getRegistry(InputStream pluginJsonContent) {
+    DeliverableRegistry<Extension> createRegistry(InputStream pluginJsonContent) {
         try {
             return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<DeliverableRegistry<Extension>>() {});
         } catch (IOException e) {

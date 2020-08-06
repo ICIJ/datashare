@@ -1,19 +1,23 @@
 package org.icij.datashare;
 
 import com.google.inject.Singleton;
-import org.apache.tika.io.FilenameUtils;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toSet;
+import static org.icij.datashare.cli.DatashareCliOptions.PLUGIN_DELETE_OPT;
 
 @Singleton
 public abstract class DeliverableService<T extends Deliverable> {
@@ -22,21 +26,33 @@ public abstract class DeliverableService<T extends Deliverable> {
     protected final DeliverableRegistry<T> deliverableRegistry;
 
     abstract T newDeliverable(URL url);
-    abstract DeliverableRegistry<T> getRegistry(InputStream pluginJsonContent);
+    abstract DeliverableRegistry<T> createRegistry(InputStream pluginJsonContent);
 
     public DeliverableService(Path extensionsDir, InputStream inputStream) {
         this.extensionsDir = extensionsDir;
-        this.deliverableRegistry = getRegistry(inputStream);
+        this.deliverableRegistry = createRegistry(inputStream);
     }
 
-    public void downloadAndInstallFromCli(String extensionIdOrUrlOrFile) throws IOException {
+    public void deleteFromCli(Properties properties) throws IOException {
         try {
-            downloadAndInstall(extensionIdOrUrlOrFile); // extension with id
-        } catch (DeliverableRegistry.UnknownDeliverableException not_an_extension) {
-                URL extensionUrl = new URL(extensionIdOrUrlOrFile);
-                downloadAndInstall(extensionUrl); // from url
+            delete(properties.getProperty(PLUGIN_DELETE_OPT)); // plugin with id
+        } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
+            delete(Paths.get(properties.getProperty(PLUGIN_DELETE_OPT))); // from base dir
         }
     }
+
+    public void downloadAndInstallFromCli(String pluginIdOrUrlOrFile) throws IOException {
+       try {
+           downloadAndInstall(pluginIdOrUrlOrFile); // plugin with id
+       } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
+           try {
+               URL pluginUrl = new URL(pluginIdOrUrlOrFile);
+               downloadAndInstall(pluginUrl); // from url
+           } catch (MalformedURLException not_url) {
+               newDeliverable(null).install(Paths.get(pluginIdOrUrlOrFile).toFile(), extensionsDir); // from file
+           }
+       }
+   }
 
     public Set<T> list(String patternString) {
         return deliverableRegistry.get().stream().
@@ -62,9 +78,12 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public void delete(String extensionId) throws IOException {
-        URL url = deliverableRegistry.get(extensionId).getUrl();
-        File extensionFile = extensionsDir.resolve(FilenameUtils.getName(url.getPath())).toFile();
-        logger.info("removing extension jar {}", extensionId);
-        extensionFile.delete();
+        deliverableRegistry.get(extensionId).delete(extensionsDir);
+    }
+
+    public void delete(Path pluginBaseDirectory) throws IOException {
+        Path pluginDirectory = extensionsDir.resolve(pluginBaseDirectory);
+        logger.info("removing plugin base directory {}", pluginDirectory);
+        FileUtils.deleteDirectory(pluginDirectory.toFile());
     }
 }

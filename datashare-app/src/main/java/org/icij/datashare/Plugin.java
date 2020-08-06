@@ -6,6 +6,7 @@ import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import java.io.*;
@@ -55,6 +56,12 @@ public class Plugin extends Extension {
             return Paths.get(id + "-" + version);
         }
         return Paths.get(id);
+    }
+
+    public void delete(Path pluginsDirectory) throws IOException {
+        Path pluginDirectory = pluginsDirectory.resolve(getBaseDirectory());
+        logger.info("removing plugin base directory {}", pluginDirectory);
+        FileUtils.deleteDirectory(pluginDirectory.toFile());
     }
 
     public void install(File extensionFile, Path extensionsDir) throws IOException {

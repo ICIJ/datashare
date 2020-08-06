@@ -53,15 +53,6 @@ public class Extension implements Deliverable {
         this.type = null;
     }
 
-    public void displayInformation() {
-        System.out.println("extension " + id);
-        System.out.println("\t" + name);
-        System.out.println("\t" + version);
-        System.out.println("\t" + url);
-        System.out.println("\t" + description);
-        System.out.println("\t" + type);
-    }
-
     @NotNull
     public File download() throws IOException {
         ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
@@ -78,8 +69,10 @@ public class Extension implements Deliverable {
     }
 
     @Override
-    public void delete() throws IOException {
-
+    public void delete(Path installDir) throws IOException {
+        Path extensionPath = installDir.resolve(getName(url.getFile()));
+        logger.info("removing extension {} jar {}", id, extensionPath);
+        extensionPath.toFile().delete();
     }
 
     @Override public URL getUrl() { return url;}
@@ -92,6 +85,15 @@ public class Extension implements Deliverable {
     @Override
     public String toString() {
         return "Extension id='" + id + '\'' + '\'' + ", version='" + version + '\'' + "url=" + url + '\'' + "type=" + type;
+    }
+
+    public void displayInformation() {
+        System.out.println("extension " + id);
+        System.out.println("\t" + name);
+        System.out.println("\t" + version);
+        System.out.println("\t" + url);
+        System.out.println("\t" + description);
+        System.out.println("\t" + type);
     }
 
     @Override
