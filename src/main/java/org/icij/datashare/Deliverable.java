@@ -9,5 +9,5 @@ public interface Deliverable extends Entity {
     URL getUrl();
     File download() throws IOException;
     void install(File deliverable, Path targetDir) throws IOException;
-    void delete() throws IOException;
+    void delete(Path installDir) throws IOException;
 }
