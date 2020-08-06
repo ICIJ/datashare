@@ -1,4 +1,5 @@
 package org.icij.datashare;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.NotNull;
@@ -13,13 +14,19 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import static org.apache.commons.io.FilenameUtils.getExtension;
-import static org.apache.commons.io.FilenameUtils.getName;
+import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.io.FilenameUtils.*;
 
 public class Extension implements Deliverable {
     enum Type {NLP, WEB,PLUGIN}
+    static Pattern endsWithVersion = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)$");
     public static final String TMP_PREFIX = "tmp";
     final Logger logger = LoggerFactory.getLogger(getClass());
     public final String id;
@@ -65,21 +72,39 @@ public class Extension implements Deliverable {
     }
 
     public void install(File extensionFile, Path extensionsDir) throws IOException {
-        Files.move(extensionFile.toPath(), extensionsDir.resolve(getName(url.getFile())));
+        List<File> previousVersionInstalled = getPreviousVersionInstalled(extensionsDir, getBaseName(getFileName()));
+        if (previousVersionInstalled.size() > 0) {
+            logger.info("removing previous versions {}", previousVersionInstalled);
+            previousVersionInstalled.forEach(File::delete);
+        }
+        Files.move(extensionFile.toPath(), extensionsDir.resolve(getFileName()));
+    }
+
+    static List<File> getPreviousVersionInstalled(Path extensionsDir, String baseName) {
+        File[] jars = ofNullable(extensionsDir.toFile().listFiles((file, s) -> s.endsWith(".jar"))).orElse(new File[0]);
+        return stream(jars).filter(f -> f.getName().startsWith(removeVersion(baseName)) && endsWithVersion.matcher(getBaseName(f.getName())).matches()).collect(Collectors.toList());
+    }
+
+    static String removeVersion(String baseName) {
+        Matcher matcher = endsWithVersion.matcher(baseName);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        return baseName;
     }
 
     @Override
     public void delete(Path installDir) throws IOException {
-        Path extensionPath = installDir.resolve(getName(url.getFile()));
+        Path extensionPath = installDir.resolve(getFileName());
         logger.info("removing extension {} jar {}", id, extensionPath);
         extensionPath.toFile().delete();
     }
 
     @Override public URL getUrl() { return url;}
 
-    @Override
-    public String getId() {
-        return this.id;
+    protected String getFileName() { return getName(url.getFile());}
+
+    @Override public String getId() { return this.id;
     }
 
     @Override

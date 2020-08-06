@@ -1,0 +1,31 @@
+package org.icij.datashare;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import static org.fest.assertions.Assertions.assertThat;
+
+public class ExtensionTest {
+    @Rule public TemporaryFolder dir = new TemporaryFolder();
+    @Test
+    public void test_remove_version() {
+        assertThat(Extension.removeVersion("my-extension")).isEqualTo("my-extension");
+        assertThat(Extension.removeVersion("extension")).isEqualTo("extension");
+        assertThat(Extension.removeVersion("extension.with.dot")).isEqualTo("extension.with.dot");
+        assertThat(Extension.removeVersion("my-extension-1.2.3")).isEqualTo("my-extension");
+        assertThat(Extension.removeVersion("extension.with.dot-1.0.0")).isEqualTo("extension.with.dot");
+    }
+
+    @Test
+    public void test_has_previous_version() throws Exception {
+        dir.newFile("extension-1.0.0.jar");
+        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension-0.1.0")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension-1.1.0")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension-1.1")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension")).hasSize(1);
+
+        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "other-extension")).isEmpty();
+        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension-other-1.2.3")).isEmpty();
+    }
+}

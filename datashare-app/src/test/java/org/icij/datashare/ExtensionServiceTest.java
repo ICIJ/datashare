@@ -54,6 +54,19 @@ public class ExtensionServiceTest {
     }
 
     @Test
+    public void test_delete_previous_extension_if_version_differs() throws Exception {
+        JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension-1.2.3", SOURCE);
+        JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension-1.2.4", SOURCE);
+        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
+
+        extensionService.downloadAndInstall(otherFolder.getRoot().toPath().resolve("my-extension-1.2.3.jar").toUri().toURL());
+        extensionService.downloadAndInstall(otherFolder.getRoot().toPath().resolve("my-extension-1.2.4.jar").toUri().toURL());
+
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.2.4.jar").toFile()).exists();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.2.3.jar").toFile()).doesNotExist();
+    }
+
+    @Test
     public void test_delete_extension_by_id() throws IOException {
         JarUtil.createJar(extensionFolder.getRoot().toPath(), "my-extension", SOURCE);
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
