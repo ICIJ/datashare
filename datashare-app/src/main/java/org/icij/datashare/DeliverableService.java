@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toSet;
-import static org.icij.datashare.cli.DatashareCliOptions.PLUGIN_DELETE_OPT;
 
 @Singleton
 public abstract class DeliverableService<T extends Deliverable> {
@@ -27,32 +26,35 @@ public abstract class DeliverableService<T extends Deliverable> {
 
     abstract T newDeliverable(URL url);
     abstract DeliverableRegistry<T> createRegistry(InputStream pluginJsonContent);
+    abstract String getDeleteOpt(Properties cliProperties);
+    abstract String getInstallOpt(Properties cliProperties);
+    abstract String getListOpt(Properties cliProperties);
 
     public DeliverableService(Path extensionsDir, InputStream inputStream) {
         this.extensionsDir = extensionsDir;
         this.deliverableRegistry = createRegistry(inputStream);
     }
 
-    public void deleteFromCli(Properties properties) throws IOException {
+    public void deleteFromCli(Properties cliProperties) throws IOException {
         try {
-            delete(properties.getProperty(PLUGIN_DELETE_OPT)); // plugin with id
+            delete(getDeleteOpt(cliProperties)); // plugin with id
         } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
-            delete(Paths.get(properties.getProperty(PLUGIN_DELETE_OPT))); // from base dir
+            delete(Paths.get(getDeleteOpt(cliProperties))); // from base dir
         }
     }
 
-    public void downloadAndInstallFromCli(String pluginIdOrUrlOrFile) throws IOException {
+    public void downloadAndInstallFromCli(Properties cliProperties) throws IOException {
        try {
-           downloadAndInstall(pluginIdOrUrlOrFile); // plugin with id
+           downloadAndInstall(getInstallOpt(cliProperties)); // plugin with id
        } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
            try {
-               URL pluginUrl = new URL(pluginIdOrUrlOrFile);
+               URL pluginUrl = new URL(getInstallOpt(cliProperties));
                downloadAndInstall(pluginUrl); // from url
            } catch (MalformedURLException not_url) {
-               newDeliverable(null).install(Paths.get(pluginIdOrUrlOrFile).toFile(), extensionsDir); // from file
+               newDeliverable(null).install(Paths.get(getInstallOpt(cliProperties)).toFile(), extensionsDir); // from file
            }
        }
-   }
+    }
 
     public Set<T> list(String patternString) {
         return deliverableRegistry.get().stream().

@@ -1,7 +1,6 @@
 package org.icij.datashare;
 
 import com.google.inject.Injector;
-import org.apache.commons.compress.archivers.ArchiveException;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -35,48 +34,23 @@ class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
     static void start(Properties properties) throws Exception {
-        processPlugins(properties);
-        processExtensions(properties);
+        process(new PluginService(new PropertiesProvider(properties)), properties);
+        process(new ExtensionService(new PropertiesProvider(properties)), properties);
         Injector injector = createInjector(CommonMode.create(properties));
         runTaskRunner(injector, properties);
     }
 
-    private static void processExtensions(Properties properties) throws IOException {
-        ExtensionService deliverableService = new ExtensionService(new PropertiesProvider(properties));
-        String listPattern = properties.getProperty(EXTENSION_LIST_OPT);
+    private static void process(DeliverableService<?> deliverableService, Properties properties) throws IOException {
+        String listPattern = deliverableService.getListOpt(properties);
         if (listPattern != null) {
             listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
-            deliverableService.list(listPattern).forEach(Extension::displayInformation);
-            System.exit(0);
-        }
-        String extensionIdOrUrlOrFile = properties.getProperty(EXTENSION_INSTALL_OPT);
-        if(extensionIdOrUrlOrFile != null) {
-            deliverableService.downloadAndInstallFromCli(extensionIdOrUrlOrFile);
-            System.exit(0);
-        }
-        if (properties.getProperty(EXTENSION_DELETE_OPT) != null) {
-            deliverableService.delete(properties.getProperty(EXTENSION_DELETE_OPT));
-            System.exit(0);
-        }
-    }
-
-    private static void processPlugins(Properties properties) throws IOException, ArchiveException {
-        PluginService pluginService = new PluginService(new PropertiesProvider(properties));
-        String listPattern = properties.getProperty(PLUGIN_LIST_OPT);
-        if (listPattern != null) {
-            listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
-            pluginService.list(listPattern).forEach(Plugin::displayInformation);
-            System.exit(0);
-        }
-        String pluginIdOrUrlOrFile = properties.getProperty(PLUGIN_INSTALL_OPT);
-        if (pluginIdOrUrlOrFile != null) {
-            pluginService.downloadAndInstallFromCli(pluginIdOrUrlOrFile);
-            System.exit(0);
-        }
-        if (properties.getProperty(PLUGIN_DELETE_OPT) != null) {
-            pluginService.deleteFromCli(properties);
-            System.exit(0);
-        }
+            deliverableService.list(listPattern).forEach(d -> ((Extension)d).displayInformation());
+        } else if(deliverableService.getInstallOpt(properties) != null) {
+            deliverableService.downloadAndInstallFromCli(properties);
+        } else if (deliverableService.getDeleteOpt(properties) != null) {
+            deliverableService.deleteFromCli(properties);
+        } else return;
+        System.exit(0);
     }
 
     private static void runTaskRunner(Injector injector, Properties properties) throws Exception {

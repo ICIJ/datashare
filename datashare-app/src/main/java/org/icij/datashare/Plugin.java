@@ -35,8 +35,6 @@ public class Plugin extends Extension {
         this.type = Type.PLUGIN;
     }
 
-    public String getId() {return id;}
-
     public URL getDeliverableUrl() {
         if (url.getHost().equals("github.com")) {
             try {

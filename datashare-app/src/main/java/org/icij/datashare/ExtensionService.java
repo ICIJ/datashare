@@ -9,6 +9,9 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Properties;
+
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 public class ExtensionService extends DeliverableService<Extension> {
     public static final String DEFAULT_EXTENSION_REGISTRY_FILENAME = "extensions.json";
@@ -19,10 +22,7 @@ public class ExtensionService extends DeliverableService<Extension> {
         this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse("." + EXTENSION_BASE_URL)));
     }
 
-    public ExtensionService(Path extensionsDir) {
-        this(extensionsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_EXTENSION_REGISTRY_FILENAME));
-    }
-
+    public ExtensionService(Path extensionsDir) { this(extensionsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_EXTENSION_REGISTRY_FILENAME));}
     public ExtensionService(Path extensionsDir, InputStream inputStream) { super(extensionsDir, inputStream);}
 
     @Override Extension newDeliverable(URL url) { return new Extension(url);}
@@ -35,4 +35,8 @@ public class ExtensionService extends DeliverableService<Extension> {
             throw new RuntimeException(e);
         }
     }
+
+    @Override String getDeleteOpt(Properties cliProperties) { return cliProperties.getProperty(EXTENSION_DELETE_OPT);}
+    @Override String getInstallOpt(Properties cliProperties) { return cliProperties.getProperty(EXTENSION_INSTALL_OPT);}
+    @Override String getListOpt(Properties cliProperties) { return cliProperties.getProperty(EXTENSION_LIST_OPT);}
 }

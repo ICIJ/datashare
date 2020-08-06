@@ -16,6 +16,7 @@ import java.util.*;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 @Singleton
 public class PluginService extends DeliverableService<Plugin> {
@@ -29,10 +30,7 @@ public class PluginService extends DeliverableService<Plugin> {
         this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse("." + PLUGINS_BASE_URL)));
     }
 
-    public PluginService(Path pluginsDir) {
-        this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME));
-    }
-
+    public PluginService(Path pluginsDir) { this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME));}
     public PluginService(Path pluginsDir, InputStream inputStream) {
         super(pluginsDir, inputStream);
     }
@@ -127,4 +125,7 @@ public class PluginService extends DeliverableService<Plugin> {
             throw new RuntimeException(e);
         }
     }
+    @Override String getDeleteOpt(Properties cliProperties) { return cliProperties.getProperty(PLUGIN_DELETE_OPT);}
+    @Override String getInstallOpt(Properties cliProperties) { return cliProperties.getProperty(PLUGIN_INSTALL_OPT);}
+    @Override String getListOpt(Properties cliProperties) { return cliProperties.getProperty(PLUGIN_LIST_OPT);}
 }
