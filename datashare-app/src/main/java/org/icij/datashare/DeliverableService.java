@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import com.google.inject.Singleton;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +17,6 @@ import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toSet;
 
-@Singleton
 public abstract class DeliverableService<T extends Deliverable> {
     final Logger logger = LoggerFactory.getLogger(getClass());
     protected final Path extensionsDir;

@@ -3,6 +3,7 @@ package org.icij.datashare;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,6 +14,7 @@ import java.util.Properties;
 
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
+@Singleton
 public class ExtensionService extends DeliverableService<Extension> {
     public static final String DEFAULT_EXTENSION_REGISTRY_FILENAME = "extensions.json";
     public static final String EXTENSION_BASE_URL = "/extensions";
