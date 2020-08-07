@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.nio.file.Files.copy;
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
@@ -91,8 +92,9 @@ public class Extension implements Deliverable {
             logger.info("removing previous versions {}", previousVersionInstalled);
             previousVersionInstalled.forEach(File::delete);
         }
-        logger.info("installing plugin from file {} into {}", extensionFile, extensionsDir);
-        Files.copy(extensionFile.toPath(), extensionsDir.resolve(getFileName()));
+        logger.info("installing extension from file {} into {}", extensionFile, extensionsDir);
+        copy(extensionFile.toPath(), extensionsDir.resolve(getFileName()));
+        if (isTemporaryFile(extensionFile)) extensionFile.delete();
     }
 
     @Override

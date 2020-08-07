@@ -1,11 +1,11 @@
 package org.icij.datashare;
 
-import org.icij.datashare.test.JarUtil;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
@@ -43,7 +43,7 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_install_an_extension_from_id() throws IOException {
-        JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension", SOURCE);
+        otherFolder.newFile("my-extension.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                        "{\"id\":\"my-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri() + "\"}" +
                        "]}").getBytes()));
@@ -54,8 +54,21 @@ public class ExtensionServiceTest {
     }
 
     @Test
+    public void test_download_and_install_extension_removes_temporary_file() throws Exception {
+        otherFolder.newFile("extension.jar");
+
+        Extension extension = new Extension(otherFolder.getRoot().toPath().resolve("extension.jar").toUri().toURL());
+        File tmpFile = extension.download();
+        extension.install(tmpFile, extensionFolder.getRoot().toPath());
+
+        assertThat(tmpFile.getName()).startsWith("tmp");
+        assertThat(tmpFile).doesNotExist();
+        assertThat(extensionFolder.getRoot().toPath().resolve("extension.jar").toFile()).exists();
+    }
+
+    @Test
     public void test_install_an_extension_from_url() throws IOException {
-        JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension", SOURCE);
+        otherFolder.newFile("my-extension.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
 
         extensionService.downloadAndInstall(otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri().toURL());
@@ -65,7 +78,7 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_install_an_extension_from_file() throws IOException {
-        JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension", SOURCE);
+        otherFolder.newFile("my-extension.jar");
 
         new Extension(otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri().toURL()).install(extensionFolder.getRoot().toPath());
 
@@ -74,8 +87,8 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_delete_previous_extension_if_version_differs() throws Exception {
-        JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension-1.2.3", SOURCE);
-        JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension-1.2.4", SOURCE);
+        otherFolder.newFile("my-extension-1.2.3.jar");
+        otherFolder.newFile("my-extension-1.2.4.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
 
         extensionService.downloadAndInstall(otherFolder.getRoot().toPath().resolve("my-extension-1.2.3.jar").toUri().toURL());
@@ -87,7 +100,7 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_delete_extension_by_id() throws IOException {
-        JarUtil.createJar(extensionFolder.getRoot().toPath(), "my-extension", SOURCE);
+        extensionFolder.newFile( "my-extension.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri() + "\"}" +
                 "]}").getBytes()));
@@ -97,16 +110,4 @@ public class ExtensionServiceTest {
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).doesNotExist();
 
     }
-
-    public static final String SOURCE = "package org.icij.datashare.mode;\n" +
-            "\n" +
-            "import net.codestory.http.annotations.Get;\n" +
-            "import net.codestory.http.annotations.Prefix;\n" +
-            "\n" +
-            "public class FooResource {\n" +
-            "    @Get(\"url\")\n" +
-            "    public String url() {\n" +
-            "        return \"hello from foo extension with %s\";\n" +
-            "    }\n" +
-            "}";
 }
