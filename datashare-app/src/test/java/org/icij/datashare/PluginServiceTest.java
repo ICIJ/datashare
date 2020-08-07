@@ -210,4 +210,29 @@ public class PluginServiceTest {
         pluginService.delete(Paths.get("my-plugin"));
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
     }
+
+    @Test
+    public void test_delete_previous_extension_if_version_differs_with_id() throws Exception {
+        pluginFolder.newFolder("my-plugin-1.0.0");
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                                        "{\"id\":\"my-plugin\", \"version\": \"1.1.0\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin-1.1.0.tgz") + "\"}" +
+                                        "]}").getBytes()));
+
+        pluginService.downloadAndInstall("my-plugin");
+
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-1.0.0").toFile()).doesNotExist();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-1.1.0").toFile()).exists();
+    }
+
+    @Test
+    public void test_delete_previous_extension_if_version_differs_with_url() throws Exception {
+        pluginFolder.newFolder("my-plugin-1.0.0");
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath());
+
+        pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin-1.1.0.tgz"));
+
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-1.0.0").toFile()).doesNotExist();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-1.1.0").toFile()).exists();
+    }
+
 }

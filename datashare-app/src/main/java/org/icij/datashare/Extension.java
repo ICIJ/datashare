@@ -87,7 +87,8 @@ public class Extension implements Deliverable {
 
     @Override
     public void install(File extensionFile, Path extensionsDir) throws IOException {
-        List<File> previousVersionInstalled = getPreviousVersionInstalled(extensionsDir, getBaseName(getFileName()));
+        File[] candidateFiles = ofNullable(extensionsDir.toFile().listFiles((file, s) -> s.endsWith(".jar"))).orElse(new File[0]);
+        List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getFileName()));
         if (previousVersionInstalled.size() > 0) {
             logger.info("removing previous versions {}", previousVersionInstalled);
             previousVersionInstalled.forEach(File::delete);
@@ -104,9 +105,8 @@ public class Extension implements Deliverable {
         extensionPath.toFile().delete();
     }
 
-    static List<File> getPreviousVersionInstalled(Path extensionsDir, String baseName) {
-        File[] jars = ofNullable(extensionsDir.toFile().listFiles((file, s) -> s.endsWith(".jar"))).orElse(new File[0]);
-        return stream(jars).filter(f -> f.getName().startsWith(removeVersion(baseName)) && endsWithVersion.matcher(getBaseName(f.getName())).matches()).collect(Collectors.toList());
+    static List<File> getPreviousVersionInstalled(File[] candidateFiles, String baseName) {
+        return stream(candidateFiles).filter(f -> f.getName().startsWith(removeVersion(baseName)) && endsWithVersion.matcher(getBaseName(f.getName())).matches()).collect(Collectors.toList());
     }
 
     static String removeVersion(String baseName) {

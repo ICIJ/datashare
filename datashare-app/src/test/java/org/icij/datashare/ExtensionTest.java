@@ -4,6 +4,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
+
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ExtensionTest {
@@ -25,13 +27,13 @@ public class ExtensionTest {
 
     @Test
     public void test_has_previous_version() throws Exception {
-        dir.newFile("extension-1.0.0.jar");
-        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension-0.1.0")).hasSize(1);
-        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension-1.1.0")).hasSize(1);
-        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension-1.1")).hasSize(1);
-        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension")).hasSize(1);
+        File[] files = new File[] {dir.newFile("extension-1.0.0.jar")};
+        assertThat(Extension.getPreviousVersionInstalled(files, "extension-0.1.0")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(files, "extension-1.1.0")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(files, "extension-1.1")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(files, "extension")).hasSize(1);
 
-        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "other-extension")).isEmpty();
-        assertThat(Extension.getPreviousVersionInstalled(dir.getRoot().toPath(), "extension-other-1.2.3")).isEmpty();
+        assertThat(Extension.getPreviousVersionInstalled(files, "other-extension")).isEmpty();
+        assertThat(Extension.getPreviousVersionInstalled(files, "extension-other-1.2.3")).isEmpty();
     }
 }

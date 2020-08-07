@@ -14,8 +14,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.io.FilenameUtils.getBaseName;
 
 public class Plugin extends Extension {
     @JsonIgnore
@@ -46,8 +50,13 @@ public class Plugin extends Extension {
     }
 
     @Override
-    public void install(File pluginFile, Path extensionsDir) throws IOException {
-        logger.info("installing plugin from file {} into {}", pluginFile, extensionsDir);
+    public void install(File pluginFile, Path pluginsDir) throws IOException {
+        File[] candidateFiles = ofNullable(pluginsDir.toFile().listFiles((file, s) -> file.isDirectory())).orElse(new File[0]);
+        List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getFileName()));
+        if (previousVersionInstalled.size() > 0) {
+            logger.info("removing previous versions {}", previousVersionInstalled);
+            for (File file : previousVersionInstalled) FileUtils.deleteDirectory(file); }
+        logger.info("installing plugin from file {} into {}", pluginFile, pluginsDir);
 
         InputStream is = new BufferedInputStream(new FileInputStream(pluginFile));
         if (pluginFile.getName().endsWith("gz")) {
@@ -56,7 +65,7 @@ public class Plugin extends Extension {
         try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
             ArchiveEntry entry;
             while ((entry = zippedArchiveInputStream.getNextEntry()) != null) {
-                final File outputFile = new File(extensionsDir.toFile(), entry.getName());
+                final File outputFile = new File(pluginsDir.toFile(), entry.getName());
                 if (entry.isDirectory()) {
                     if (!outputFile.exists()) {
                         if (!outputFile.mkdirs()) {
@@ -87,7 +96,7 @@ public class Plugin extends Extension {
     }
 
     public Path getBaseDirectory() {
-        if (url.getHost().equals("github.com")) {
+        if (url.getHost().equals("github.com") || endsWithVersion.matcher(getBaseName(getFileName())).matches()) {
             if (versionBeginsWithV.matcher(version).matches()) {
                 return Paths.get(id + "-" + version.substring(1));
             }

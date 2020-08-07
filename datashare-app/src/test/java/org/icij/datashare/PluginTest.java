@@ -3,7 +3,6 @@ package org.icij.datashare;
 import org.junit.Test;
 
 import java.net.URL;
-import java.nio.file.Path;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -26,8 +25,19 @@ public class PluginTest {
     @Test
     public void test_get_base_directory() throws Exception {
         Plugin plugin = new Plugin("id", "name", "1.0.0", "", new URL("https://normal/url/deliverable.tgz"));
-        Path baseDirectory = plugin.getBaseDirectory();
-        assertThat(baseDirectory.toString()).isEqualTo("id");
+        assertThat(plugin.getBaseDirectory().toString()).isEqualTo("id");
+    }
+
+    @Test
+    public void test_get_base_directory_with_version() throws Exception {
+        Plugin plugin = new Plugin("id", "name", "1.0.0", "", new URL("https://normal/url/deliverable-1.0.0.tgz"));
+        assertThat(plugin.getBaseDirectory().toString()).isEqualTo("id-1.0.0");
+    }
+
+    @Test
+    public void test_get_base_directory_with_version_starting_with_v() throws Exception {
+        Plugin plugin = new Plugin("id", "name", "v1.0.0", "", new URL("https://normal/url/deliverable-1.0.0.tgz"));
+        assertThat(plugin.getBaseDirectory().toString()).isEqualTo("id-1.0.0");
     }
 
     @Test
