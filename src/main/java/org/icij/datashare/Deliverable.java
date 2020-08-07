@@ -9,5 +9,6 @@ public interface Deliverable extends Entity {
     URL getUrl();
     File download() throws IOException;
     void install(File deliverable, Path targetDir) throws IOException;
+    void install(Path targetDir) throws IOException; // install from local : url is the filesystem file
     void delete(Path installDir) throws IOException;
 }
