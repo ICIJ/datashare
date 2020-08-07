@@ -176,13 +176,13 @@ public class PluginServiceTest {
 
     @Test(expected = FileNotFoundException.class)
     public void test_install_bad_filename() throws Exception {
-        new Plugin(null).install(new File("not a file name"), pluginFolder.getRoot().toPath());
+        new Plugin(new File("not a file name").toURI().toURL()).install(pluginFolder.getRoot().toPath());
     }
 
     @Test
     public void test_install_from_file() throws Exception {
         File pluginFile = new File(ClassLoader.getSystemResource("my-plugin.tgz").getPath());
-        new Plugin(null).install(pluginFile, pluginFolder.getRoot().toPath());
+        new Plugin(pluginFile.toURI().toURL()).install(pluginFolder.getRoot().toPath());
 
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).exists();
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").resolve("package.json").toFile()).exists();

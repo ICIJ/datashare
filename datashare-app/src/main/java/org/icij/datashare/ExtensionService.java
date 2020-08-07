@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
+import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 @Singleton
@@ -21,7 +22,7 @@ public class ExtensionService extends DeliverableService<Extension> {
 
     @Inject
     public ExtensionService(PropertiesProvider propertiesProvider) {
-        this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse("." + EXTENSION_BASE_URL)));
+        this(Paths.get(propertiesProvider.get(EXTENSIONS_DIR).orElse("." + EXTENSION_BASE_URL)));
     }
 
     public ExtensionService(Path extensionsDir) { this(extensionsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_EXTENSION_REGISTRY_FILENAME));}

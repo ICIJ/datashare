@@ -9,11 +9,13 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -21,11 +23,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
+import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.*;
 
 public class Extension implements Deliverable {
-    enum Type {NLP, WEB,PLUGIN}
+    enum Type {NLP, WEB, PLUGIN;}
     static Pattern endsWithVersion = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)$");
     public static final String TMP_PREFIX = "tmp";
     final Logger logger = LoggerFactory.getLogger(getClass());
@@ -35,7 +38,6 @@ public class Extension implements Deliverable {
     public final URL url;
     public final String version;
     public Type type;
-
     @JsonCreator
     public Extension(@JsonProperty("id") String id,
                   @JsonProperty("name") String name,
@@ -50,8 +52,8 @@ public class Extension implements Deliverable {
         this.url = url;
         this.type = type;
     }
-
     public Extension(URL url){
+        requireNonNull(url, "a plugin/extension cannot be created with a null URL");
         this.id = null;
         this.name = null;
         this.description = null;
@@ -60,6 +62,7 @@ public class Extension implements Deliverable {
         this.type = null;
     }
 
+    @Override
     public File download() throws IOException { return download(url);}
 
     @NotNull
@@ -73,13 +76,30 @@ public class Extension implements Deliverable {
         }
     }
 
+    public void install(Path extensionsDir) throws IOException {
+        try {
+            install(Paths.get(url.toURI()).toFile(), extensionsDir);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public void install(File extensionFile, Path extensionsDir) throws IOException {
         List<File> previousVersionInstalled = getPreviousVersionInstalled(extensionsDir, getBaseName(getFileName()));
         if (previousVersionInstalled.size() > 0) {
             logger.info("removing previous versions {}", previousVersionInstalled);
             previousVersionInstalled.forEach(File::delete);
         }
-        Files.move(extensionFile.toPath(), extensionsDir.resolve(getFileName()));
+        logger.info("installing plugin from file {} into {}", extensionFile, extensionsDir);
+        Files.copy(extensionFile.toPath(), extensionsDir.resolve(getFileName()));
+    }
+
+    @Override
+    public void delete(Path installDir) throws IOException {
+        Path extensionPath = installDir.resolve(getFileName());
+        logger.info("removing extension {} jar {}", id, extensionPath);
+        extensionPath.toFile().delete();
     }
 
     static List<File> getPreviousVersionInstalled(Path extensionsDir, String baseName) {
@@ -95,16 +115,9 @@ public class Extension implements Deliverable {
         return baseName;
     }
 
-    @Override
-    public void delete(Path installDir) throws IOException {
-        Path extensionPath = installDir.resolve(getFileName());
-        logger.info("removing extension {} jar {}", id, extensionPath);
-        extensionPath.toFile().delete();
-    }
-
     @Override public URL getUrl() { return url;}
-
     protected String getFileName() { return getName(url.getFile());}
+    protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
 
     @Override public String getId() { return this.id;
     }

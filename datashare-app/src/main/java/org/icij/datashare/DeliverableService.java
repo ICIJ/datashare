@@ -49,7 +49,7 @@ public abstract class DeliverableService<T extends Deliverable> {
                URL pluginUrl = new URL(getInstallOpt(cliProperties));
                downloadAndInstall(pluginUrl); // from url
            } catch (MalformedURLException not_url) {
-               newDeliverable(null).install(Paths.get(getInstallOpt(cliProperties)).toFile(), extensionsDir); // from file
+               newDeliverable(Paths.get(getInstallOpt(cliProperties)).toUri().toURL()).install(extensionsDir); // from file
            }
        }
     }

@@ -8,6 +8,12 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class ExtensionTest {
     @Rule public TemporaryFolder dir = new TemporaryFolder();
+
+    @Test(expected = NullPointerException.class)
+    public void test_cannot_create_extension_with_null_url() {
+        new Extension(null);
+    }
+
     @Test
     public void test_remove_version() {
         assertThat(Extension.removeVersion("my-extension")).isEqualTo("my-extension");

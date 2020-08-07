@@ -46,11 +46,11 @@ public class Plugin extends Extension {
     }
 
     @Override
-    public void install(File extensionFile, Path extensionsDir) throws IOException {
-        logger.info("installing plugin from file {} into {}", extensionFile, extensionsDir);
+    public void install(File pluginFile, Path extensionsDir) throws IOException {
+        logger.info("installing plugin from file {} into {}", pluginFile, extensionsDir);
 
-        InputStream is = new BufferedInputStream(new FileInputStream(extensionFile));
-        if (extensionFile.getName().endsWith("gz")) {
+        InputStream is = new BufferedInputStream(new FileInputStream(pluginFile));
+        if (pluginFile.getName().endsWith("gz")) {
             is = new BufferedInputStream(new GZIPInputStream(is));
         }
         try (ArchiveInputStream zippedArchiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(is)) {
@@ -72,7 +72,7 @@ public class Plugin extends Extension {
         } catch (ArchiveException e) {
             throw new RuntimeException(e);
         }
-        if (extensionFile.getName().startsWith(Plugin.TMP_PREFIX)) extensionFile.delete();
+        if (isTemporaryFile(pluginFile)) pluginFile.delete();
     }
 
     public URL getDeliverableUrl() {

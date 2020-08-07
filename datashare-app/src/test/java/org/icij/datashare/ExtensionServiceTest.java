@@ -7,11 +7,13 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.Extension.Type.WEB;
+import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR;
 
 public class ExtensionServiceTest {
     @Rule public TemporaryFolder extensionFolder = new TemporaryFolder();
@@ -32,6 +34,14 @@ public class ExtensionServiceTest {
     }
 
     @Test
+    public void test_extension_service_from_properties() {
+        ExtensionService extensionService = new ExtensionService(new PropertiesProvider(new HashMap<String, String>() {{
+            put(EXTENSIONS_DIR, extensionFolder.getRoot().getPath());
+        }}));
+        assertThat(extensionService.extensionsDir.toString()).isEqualTo(extensionFolder.getRoot().getPath());
+    }
+
+    @Test
     public void test_install_an_extension_from_id() throws IOException {
         JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension", SOURCE);
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
@@ -49,6 +59,15 @@ public class ExtensionServiceTest {
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
 
         extensionService.downloadAndInstall(otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri().toURL());
+
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
+    }
+
+    @Test
+    public void test_install_an_extension_from_file() throws IOException {
+        JarUtil.createJar(otherFolder.getRoot().toPath(), "my-extension", SOURCE);
+
+        new Extension(otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri().toURL()).install(extensionFolder.getRoot().toPath());
 
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
     }
