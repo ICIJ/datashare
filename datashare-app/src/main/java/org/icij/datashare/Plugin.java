@@ -22,11 +22,11 @@ public class Plugin extends Extension {
     Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
 
     @JsonCreator
-        public Plugin(@JsonProperty("id") String id,
-                      @JsonProperty("name") String name,
-                      @JsonProperty("version") String version,
-                      @JsonProperty("description") String description,
-                      @JsonProperty("url") URL url){
+    public Plugin(@JsonProperty("id") String id,
+                  @JsonProperty("name") String name,
+                  @JsonProperty("version") String version,
+                  @JsonProperty("description") String description,
+                  @JsonProperty("url") URL url){
         super(id, name, version, description, url, Type.PLUGIN);
     }
 
@@ -35,33 +35,17 @@ public class Plugin extends Extension {
         this.type = Type.PLUGIN;
     }
 
-    public URL getDeliverableUrl() {
-        if (url.getHost().equals("github.com")) {
-            try {
-                return new URL(url.toString() + "/archive/" + version + ".tar.gz");
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return url;
-    }
+    @Override
+    public File download() throws IOException { return download(getDeliverableUrl());}
 
-    public Path getBaseDirectory() {
-        if (url.getHost().equals("github.com")) {
-            if (versionBeginsWithV.matcher(version).matches()) {
-                return Paths.get(id + "-" + version.substring(1));
-            }
-            return Paths.get(id + "-" + version);
-        }
-        return Paths.get(id);
-    }
-
+    @Override
     public void delete(Path pluginsDirectory) throws IOException {
         Path pluginDirectory = pluginsDirectory.resolve(getBaseDirectory());
         logger.info("removing plugin base directory {}", pluginDirectory);
         FileUtils.deleteDirectory(pluginDirectory.toFile());
     }
 
+    @Override
     public void install(File extensionFile, Path extensionsDir) throws IOException {
         logger.info("installing plugin from file {} into {}", extensionFile, extensionsDir);
 
@@ -89,5 +73,26 @@ public class Plugin extends Extension {
             throw new RuntimeException(e);
         }
         if (extensionFile.getName().startsWith(Plugin.TMP_PREFIX)) extensionFile.delete();
+    }
+
+    public URL getDeliverableUrl() {
+        if (url.getHost().equals("github.com")) {
+            try {
+                return new URL(url.toString() + "/archive/" + version + ".tar.gz");
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return url;
+    }
+
+    public Path getBaseDirectory() {
+        if (url.getHost().equals("github.com")) {
+            if (versionBeginsWithV.matcher(version).matches()) {
+                return Paths.get(id + "-" + version.substring(1));
+            }
+            return Paths.get(id + "-" + version);
+        }
+        return Paths.get(id);
     }
 }

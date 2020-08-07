@@ -60,14 +60,16 @@ public class Extension implements Deliverable {
         this.type = null;
     }
 
+    public File download() throws IOException { return download(url);}
+
     @NotNull
-    public File download() throws IOException {
+    protected File download(URL url) throws IOException {
         ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
         File tmpFile = Files.createTempFile(TMP_PREFIX, "." + getExtension(url.toString())).toFile();
         logger.info("downloading from url {}", url);
         try (FileOutputStream fileOutputStream = new FileOutputStream(tmpFile)) {
-            fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-            return tmpFile;
+           fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+           return tmpFile;
         }
     }
 
