@@ -28,9 +28,7 @@ public class PluginResource {
     private final PluginService pluginService;
 
     @Inject
-    public PluginResource(PluginService pluginService) {
-        this.pluginService = pluginService;
-    }
+    public PluginResource(PluginService pluginService) { this.pluginService = pluginService; }
 
     /**
      * Gets the plugins set in JSON

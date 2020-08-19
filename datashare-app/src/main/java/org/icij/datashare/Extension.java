@@ -1,7 +1,11 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.icij.datashare.text.PathDeserializer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +34,10 @@ import static org.apache.commons.io.FilenameUtils.*;
 
 public class Extension implements Deliverable {
     enum Type {NLP, WEB, PLUGIN;}
+    @JsonIgnore
     static Pattern endsWithVersion = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)$");
     public static final String TMP_PREFIX = "tmp";
+    @JsonIgnore
     final Logger logger = LoggerFactory.getLogger(getClass());
     public final String id;
     public final String name;
