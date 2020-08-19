@@ -34,7 +34,6 @@ import static org.apache.commons.io.FilenameUtils.*;
 
 public class Extension implements Deliverable {
     enum Type {NLP, WEB, PLUGIN;}
-    @JsonIgnore
     static Pattern endsWithVersion = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)$");
     public static final String TMP_PREFIX = "tmp";
     @JsonIgnore
