@@ -81,7 +81,7 @@ public class IndexResource {
       */
     @Post("/search/:path:")
     public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
-        return createPayload(indexer.executeRaw("POST", checkPath(path, context), request.content()));
+        return createPayload(indexer.executeRaw("POST", checkPath(path, context), new String(request.contentAsBytes())));
     }
 
     /**
