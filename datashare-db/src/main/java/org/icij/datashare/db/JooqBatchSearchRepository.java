@@ -137,6 +137,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
+    public int getTotal(User user, List<String> projectsIds) {
+        return DSL.using(dataSource, dialect).selectCount().from(BATCH_SEARCH).
+                where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).
+                                or(BATCH_SEARCH.PUBLISHED.greaterThan(0)))).fetchOne(0, int.class);
+    }
+
+    @Override
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
         SelectConditionStep<Record11<String, String, String, String, String, Timestamp, String, Integer, Integer, String, Object>> query = createBatchSearchRecordWithQueriesSelectStatement(using(dataSource, dialect))
                 .where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).

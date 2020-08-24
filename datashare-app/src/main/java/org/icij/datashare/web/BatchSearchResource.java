@@ -79,9 +79,10 @@ public class BatchSearchResource {
      * $(curl -H 'Content-Type: application/json' localhost:8080/api/batch/search -d '{"from":0, "size": 2}')
      */
     @Post("/search")
-    public List<BatchSearchRecord> getSearchesFiletered(BatchSearchRepository.WebQuery webQuery, Context context) {
+    public BatchSearchResponse getSearchesFiletered(BatchSearchRepository.WebQuery webQuery, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
-        return batchSearchRepository.getRecords(user, user.getProjects(), webQuery);
+        return new BatchSearchResponse(batchSearchRepository.getRecords(user, user.getProjects(), webQuery),
+                batchSearchRepository.getTotal(user, user.getProjects()));
     }
 
     /**
@@ -346,5 +347,15 @@ public class BatchSearchResource {
                 throw new RuntimeException(e);
             }
         }).collect(Collectors.toList());
+    }
+
+    private static class BatchSearchResponse {
+        private final List<BatchSearchRecord> batchSearches;
+        private final int total;
+
+        public BatchSearchResponse(List<BatchSearchRecord> records, int total) {
+            batchSearches = records;
+            this.total = total;
+        }
     }
 }

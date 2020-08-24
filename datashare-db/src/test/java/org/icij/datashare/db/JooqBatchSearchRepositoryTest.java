@@ -84,6 +84,21 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_get_total_filter_by_project() {
+        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj1"), "name1", "description1",
+                        asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj2"), "name2", "description2",
+                asSet("q3", "q4"), User.local(), true);
+
+        repository.save(batchSearch1);
+        repository.save(batchSearch2);
+
+        assertThat(repository.getTotal(User.local(), asList("prj1", "prj2"))).isEqualTo(2);
+        assertThat(repository.getTotal(User.local(), asList("prj1"))).isEqualTo(1);
+        assertThat(repository.getTotal(User.local(), asList("prj3"))).isEqualTo(0);
+    }
+
+    @Test
     public void test_get_records() {
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"),"name","description",asSet("q1", "q2"), User.local(),
                 true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
