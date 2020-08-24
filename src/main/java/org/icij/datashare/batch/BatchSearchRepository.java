@@ -22,6 +22,7 @@ public interface BatchSearchRepository extends Closeable {
 
     BatchSearch get(String id);
     List<BatchSearchRecord> getRecords(User user, List<String> projectsIds);
+    int getTotal(User user, List<String> projectsIds);
     List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery);
     List<BatchSearch> getQueued();
     List<SearchResult> getResults(User user, String batchSearchId);
