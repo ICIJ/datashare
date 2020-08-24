@@ -62,7 +62,8 @@ public class BatchSearchResource {
     }
 
     /**
-     * Retrieve the batch search list for the user issuing the request filter with the given criteria.
+     * Retrieve the batch search list for the user issuing the request filter with the given criteria, and the total
+     * of batch searches matching the criteria.
      *
      * It needs a Query json body with the parameters :
      *
@@ -73,7 +74,7 @@ public class BatchSearchResource {
      *
      * If from/size are not given their default values are 0, meaning that all the results are returned.
      *
-     * @return 200 and the list of batch searches
+     * @return 200 and the list of batch searches with the total batch searches for the query
      *
      * Example :
      * $(curl -H 'Content-Type: application/json' localhost:8080/api/batch/search -d '{"from":0, "size": 2}')
