@@ -103,7 +103,7 @@ public class PluginServiceTest {
     }
 
     @Test
-    public void test_list_plugins_from_plugins_json_file() throws Exception {
+    public void test_list_plugins_from_plugins_json_file() {
         Set<Plugin> plugins = new PluginService().list();
 
         assertThat(plugins).hasSize(3);

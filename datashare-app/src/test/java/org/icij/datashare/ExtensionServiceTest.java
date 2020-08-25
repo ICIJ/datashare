@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -99,12 +100,40 @@ public class ExtensionServiceTest {
     }
 
     @Test
+    public void test_list_installed_extensions() throws Exception {
+        extensionFolder.newFile("extension-1.jar");
+        extensionFolder.newFile("extension-2.jar");
+
+        assertThat(new ExtensionService(extensionFolder.getRoot().toPath()).listInstalled().stream().map(File::toString).collect(Collectors.toSet())).
+                contains(extensionFolder.getRoot().toPath().resolve("extension-1.jar").toString(),
+                        extensionFolder.getRoot().toPath().resolve("extension-2.jar").toString());
+    }
+
+    @Test
+    public void test_list_installed_extensions_empty() {
+        assertThat(new ExtensionService(extensionFolder.getRoot().toPath()).listInstalled().stream().map(File::toString).collect(Collectors.toSet())).isEmpty();
+    }
+
+    @Test
+    public void test_list_merges_with_installed() throws IOException {
+        extensionFolder.newFile( "official-extension.jar");
+        extensionFolder.newFile( "custom-extension.jar");
+        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                "{\"id\":\"official-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension.jar").toUri() + "\"}" +
+                "]}").getBytes()));
+
+        Set<Extension> list = extensionService.list();
+        Iterator<Extension> extensionsIterator = list.iterator();
+        assertThat(extensionsIterator.next().isInstalled(extensionFolder.getRoot().toPath())).isTrue();
+        assertThat(extensionsIterator.next().isInstalled(extensionFolder.getRoot().toPath())).isTrue();
+    }
+
+    @Test
     public void test_delete_extension_by_id() throws IOException {
         extensionFolder.newFile( "my-extension.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri() + "\"}" +
                 "]}").getBytes()));
-        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
 
         extensionService.delete("my-extension");
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).doesNotExist();

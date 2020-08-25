@@ -1,6 +1,5 @@
 package org.icij.datashare;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
@@ -22,8 +21,7 @@ import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
 
 public class Plugin extends Extension {
-    @JsonIgnore
-    Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
+    private static final Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
 
     @JsonCreator
     public Plugin(@JsonProperty("id") String id,
@@ -34,17 +32,14 @@ public class Plugin extends Extension {
         super(id, name, version, description, url, Type.PLUGIN);
     }
 
-    public Plugin(URL url){
-        super(url);
-        this.type = Type.PLUGIN;
-    }
+    public Plugin(URL url){ super(url, Type.PLUGIN);}
 
     @Override
     public File download() throws IOException { return download(getDeliverableUrl());}
 
     @Override
     public void delete(Path pluginsDirectory) throws IOException {
-        Path pluginDirectory = pluginsDirectory.resolve(getBaseDirectory());
+        Path pluginDirectory = pluginsDirectory.resolve(getBasePath());
         logger.info("removing plugin base directory {}", pluginDirectory);
         FileUtils.deleteDirectory(pluginDirectory.toFile());
     }
@@ -95,7 +90,7 @@ public class Plugin extends Extension {
         return url;
     }
 
-    public Path getBaseDirectory() {
+    public Path getBasePath() {
         if (url.getHost().equals("github.com") || endsWithVersion.matcher(getBaseName(getFileName())).matches()) {
             if (versionBeginsWithV.matcher(version).matches()) {
                 return Paths.get(id + "-" + version.substring(1));

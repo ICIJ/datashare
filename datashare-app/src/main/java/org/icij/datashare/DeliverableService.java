@@ -11,10 +11,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
 
 public abstract class DeliverableService<T extends Deliverable> {
@@ -61,7 +65,23 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public Set<T> list() {
-        return deliverableRegistry.get();
+        return merge(deliverableRegistry.get(), listInstalled());
+    }
+
+    private Set<T> merge(Set<T> ts, Set<File> listInstalled) {
+        Set<T> result = new LinkedHashSet<>(ts);
+        result.addAll(listInstalled.stream().map(f -> {
+            try {
+                return newDeliverable(f.toURI().toURL());
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+        }).collect(toSet()));
+        return result;
+    }
+
+    public Set<File> listInstalled() {
+        return stream(ofNullable(extensionsDir.toFile().listFiles()).orElse(new File[]{})).collect(Collectors.toSet());
     }
 
     public void downloadAndInstall(String extensionId) throws IOException {

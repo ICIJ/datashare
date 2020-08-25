@@ -28,7 +28,7 @@ public class ExtensionService extends DeliverableService<Extension> {
     public ExtensionService(Path extensionsDir) { this(extensionsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_EXTENSION_REGISTRY_FILENAME));}
     public ExtensionService(Path extensionsDir, InputStream inputStream) { super(extensionsDir, inputStream);}
 
-    @Override Extension newDeliverable(URL url) { return new Extension(url);}
+    @Override Extension newDeliverable(URL url) { return new Extension(url, Extension.Type.UNKNOWN);}
 
     @Override
     DeliverableRegistry<Extension> createRegistry(InputStream pluginJsonContent) {

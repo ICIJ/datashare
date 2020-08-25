@@ -3,9 +3,7 @@ package org.icij.datashare;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.icij.datashare.text.PathDeserializer;
+import org.apache.commons.io.FilenameUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +31,10 @@ import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.*;
 
 public class Extension implements Deliverable {
-    enum Type {NLP, WEB, PLUGIN;}
+    enum Type {NLP, WEB, PLUGIN, UNKNOWN}
     static Pattern endsWithVersion = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)$");
     public static final String TMP_PREFIX = "tmp";
+    public static final String EXT_SUFFIX = "jar";
     @JsonIgnore
     final Logger logger = LoggerFactory.getLogger(getClass());
     public final String id;
@@ -43,7 +42,8 @@ public class Extension implements Deliverable {
     public final String description;
     public final URL url;
     public final String version;
-    public Type type;
+    public final Type type;
+
     @JsonCreator
     public Extension(@JsonProperty("id") String id,
                   @JsonProperty("name") String name,
@@ -51,21 +51,24 @@ public class Extension implements Deliverable {
                   @JsonProperty("description") String description,
                   @JsonProperty("url") URL url,
                   @JsonProperty("type") Type type){
-        this.id = id;
+        this.id = requireNonNull(id);
+        this.url = url;
         this.name = name;
         this.version = version;
         this.description = description;
-        this.url = url;
         this.type = type;
     }
-    public Extension(URL url){
-        requireNonNull(url, "a plugin/extension cannot be created with a null URL");
-        this.id = null;
-        this.name = null;
-        this.description = null;
-        this.version = null;
-        this.url = url;
-        this.type = null;
+
+    Extension(URL url, Type type) {
+        this(FilenameUtils.getBaseName(getName(url.getFile())), null, null, null,
+                requireNonNull(url, "a plugin/extension cannot be created with a null URL"), requireNonNull(type));
+    }
+
+    Extension(URL url) {this(url, Type.UNKNOWN);}
+
+    @Override
+    public boolean isInstalled(Path extensionsDir) {
+        return extensionsDir.resolve(getBasePath()).toFile().exists();
     }
 
     @Override
@@ -123,11 +126,11 @@ public class Extension implements Deliverable {
     }
 
     @Override public URL getUrl() { return url;}
+    @Override public String getId() { return this.id;}
+
+    protected Path getBasePath() {return Paths.get(getId() + "." + EXT_SUFFIX);}
     protected String getFileName() { return getName(url.getFile());}
     protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
-
-    @Override public String getId() { return this.id;
-    }
 
     @Override
     public String toString() {

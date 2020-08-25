@@ -5,6 +5,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -14,6 +16,13 @@ public class ExtensionTest {
     @Test(expected = NullPointerException.class)
     public void test_cannot_create_extension_with_null_url() {
         new Extension(null);
+    }
+
+    @Test
+    public void test_id_from_url() throws MalformedURLException {
+        assertThat(new Extension(new URL("http://foo.com/bar.jar")).id).isEqualTo("bar");
+        assertThat(new Extension(new URL("http://foo.com/baz")).id).isEqualTo("baz");
+        assertThat(new Extension(new URL("file:///tmp/foo")).id).isEqualTo("foo");
     }
 
     @Test
