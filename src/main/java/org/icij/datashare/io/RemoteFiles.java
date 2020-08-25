@@ -1,7 +1,7 @@
 package org.icij.datashare.io;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
@@ -25,7 +25,8 @@ import static java.nio.file.Paths.get;
 import static java.util.stream.Collectors.toMap;
 
 public class RemoteFiles {
-    private static final String S3_DATASHARE_BUCKET_NAME = "s3.datashare.icij.org";
+    private static final String S3_DATASHARE_BUCKET_NAME = "datashare-nlp";
+    private static final String S3_DATASHARE_ENDPOINT = "https://icij.org";
     private static final String S3_REGION = "us-east-1";
     private static final int READ_TIMEOUT_MS = 120 * 1000;
     private static final int CONNECTION_TIMEOUT_MS = 30 * 1000;
@@ -41,7 +42,8 @@ public class RemoteFiles {
         ClientConfiguration config = new ClientConfiguration();
         config.setConnectionTimeout(CONNECTION_TIMEOUT_MS);
         config.setSocketTimeout(READ_TIMEOUT_MS);
-        return new RemoteFiles(AmazonS3ClientBuilder.standard().withRegion(S3_REGION)
+        return new RemoteFiles(AmazonS3ClientBuilder.standard()
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(S3_DATASHARE_ENDPOINT, S3_REGION))
                 .withClientConfiguration(config).build(), S3_DATASHARE_BUCKET_NAME);
     }
 
@@ -49,9 +51,9 @@ public class RemoteFiles {
         ClientConfiguration config = new ClientConfiguration();
         config.setConnectionTimeout(CONNECTION_TIMEOUT_MS);
         config.setSocketTimeout(READ_TIMEOUT_MS);
-        return new RemoteFiles(AmazonS3ClientBuilder.standard().withRegion(S3_REGION)
-                .withClientConfiguration(config).withCredentials(DefaultAWSCredentialsProviderChain.getInstance()).
-                        build(), S3_DATASHARE_BUCKET_NAME);
+        return new RemoteFiles(AmazonS3ClientBuilder.standard()
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(S3_DATASHARE_ENDPOINT, S3_REGION))
+                .withClientConfiguration(config).build(), S3_DATASHARE_BUCKET_NAME);
     }
 
     public void upload(final File localFile, final String remoteKey) throws InterruptedException, FileNotFoundException {
