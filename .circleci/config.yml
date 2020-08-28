@@ -278,7 +278,7 @@ jobs:
           name: install dependencies
           command: |
             apt-get install -y nsis cpio jq imagemagick icnsutils
-            wget http://nsis.sourceforge.net/mediawiki/images/c/c9/Inetc.zip && unzip Inetc.zip && cp Plugins/x86-ansi/INetC.dll /usr/share/nsis/Plugins/
+            wget https://nsis.sourceforge.io/mediawiki/images/c/c9/Inetc.zip && unzip Inetc.zip && cp Plugins/x86-ansi/INetC.dll /usr/share/nsis/Plugins/
             wget https://github.com/hogliux/bomutils/archive/0.2.tar.gz && tar -zxf 0.2.tar.gz && cd bomutils-0.2 && make && make install
             wget https://github.com/downloads/mackyle/xar/xar-1.6.1.tar.gz && tar -zxf xar-1.6.1.tar.gz && cd xar-1.6.1 && ./configure && make && make install
             wget https://nsis.sourceforge.io/mediawiki/images/9/9d/Untgz.zip  && unzip Untgz.zip && cp untgz/untgz.dll /usr/share/nsis/Plugins/
