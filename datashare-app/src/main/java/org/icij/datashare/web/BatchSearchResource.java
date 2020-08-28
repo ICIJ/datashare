@@ -74,7 +74,7 @@ public class BatchSearchResource {
      *
      * If from/size are not given their default values are 0, meaning that all the results are returned.
      *
-     * @return 200 and the list of batch searches with the total batch searches for the query (see example for the JSON format)
+     * @return 200 and the list of batch searches with the total batch searches for the query. See example for the JSON format.
      *
      * Example :
      * $(curl -H 'Content-Type: application/json' localhost:8080/api/batch/search -d '{"from":0, "size": 2}')
