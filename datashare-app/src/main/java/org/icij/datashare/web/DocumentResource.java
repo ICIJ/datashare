@@ -280,7 +280,7 @@ public class DocumentResource {
     }
 
     /**
-     * Get all users who marked read a document with the count of recommended documents
+     * Get all users who recommended a document with the count of all recommended documents
      * for project and documents ids.
      *
      * @param projectId
