@@ -21,6 +21,7 @@ import java.util.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
@@ -138,8 +139,8 @@ public class JooqRepositoryTest {
         assertThat(repository.recommend(project("prj"), user1, asList("id1", "id2", "id3"))).isEqualTo(3);
         assertThat(repository.recommend(project("prj"), user2, asList("id1"))).isEqualTo(1);
 
-        assertThat(repository.getRecommendations(project("prj"),asList("id1","id2"))).contains(user1).contains(user2);
-        assertThat(repository.getRecommendations(project("prj"))).contains(user1).contains(user2);
+        assertThat(repository.getRecommendations(project("prj"),asList("id1","id2"))).includes(entry(user1, 2), entry(user2, 1));
+        assertThat(repository.getRecommendations(project("prj"))).includes(entry(user1, 3), entry(user2, 1));
         assertThat(repository.getRecommentationsBy(project("prj"),asList(user1,user2))).contains("id1").contains("id2").contains("id3");
 
         assertThat(repository.unrecommend(project("prj"), user1,asList("id1", "id2"))).isEqualTo(2);
@@ -162,14 +163,31 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_get_recommendations_with_user_properties() {
+    public void test_get_recommendations_filter_with_doc_list_and_with_user_properties() {
         final User userFoo = new User("foo" , "test", "foo@bar.org");
         repository.save(userFoo);
+
         repository.recommend(project("prj"), userFoo, asList("id4"));
-        final User recommendation = repository.getRecommendations(project("prj"), asList("id4")).iterator().next();
-        assertThat(recommendation.id).isEqualTo("foo");
-        assertThat(recommendation.name).isEqualTo("test");
-        assertThat(recommendation.email).isEqualTo("foo@bar.org");
+
+        final Map.Entry<User, Integer> recommendationEntry = repository.getRecommendations(project("prj"), asList("id4")).entrySet().iterator().next();
+        assertThat(recommendationEntry.getKey().id).isEqualTo("foo");
+        assertThat(recommendationEntry.getKey().name).isEqualTo("test");
+        assertThat(recommendationEntry.getKey().email).isEqualTo("foo@bar.org");
+        assertThat(recommendationEntry.getValue()).isEqualTo(1);
+    }
+
+     @Test
+    public void test_get_recommendations_with_user_properties() {
+        final User userBar = new User("bar" , "test", "bar@bar.org");
+        repository.save(userBar);
+
+        repository.recommend(project("prj"), userBar, asList("id5", "id6"));
+
+        final Map.Entry<User, Integer> recommendationEntry = repository.getRecommendations(project("prj")).entrySet().iterator().next();
+        assertThat(recommendationEntry.getKey().id).isEqualTo("bar");
+        assertThat(recommendationEntry.getKey().name).isEqualTo("test");
+        assertThat(recommendationEntry.getKey().email).isEqualTo("bar@bar.org");
+        assertThat(recommendationEntry.getValue()).isEqualTo(2);
     }
 
     @Test

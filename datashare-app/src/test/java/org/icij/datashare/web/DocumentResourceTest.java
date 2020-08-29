@@ -20,11 +20,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.AbstractMap;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static java.util.stream.Stream.of;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
@@ -130,19 +132,19 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_recommendation_users_of_documents() {
-        when(repository.getRecommendations(eq(project("prj")), eq(asList("docId1","docId2")))).thenReturn(Stream.of(new User("user1"), new User("user2")).collect(Collectors.toSet()));
+        when(repository.getRecommendations(eq(project("prj")), eq(asList("docId1","docId2")))).thenReturn(of(new AbstractMap.SimpleEntry<>(new User("user1"), 2), new AbstractMap.SimpleEntry<>(new User("user2"), 3)).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         get("/api/users/recommendationsby?project=prj&docIds=docId1,docId2").should().respond(200).contain("user1").contain("user2");
     }
 
     @Test
     public void test_get_recommendations_users() {
-        when(repository.getRecommendations(eq(project("prj")))).thenReturn(Stream.of(new User("user1"), new User("user2")).collect(Collectors.toSet()));
-        get("/api/users/recommendations?project=prj").should().respond(200).contain("user1").contain("user2");
+        when(repository.getRecommendations(eq(project("prj")))).thenReturn(of(new AbstractMap.SimpleEntry<>(new User("user3"), 3), new AbstractMap.SimpleEntry<>(new User("user4"), 4)).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        get("/api/users/recommendations?project=prj").should().respond(200).contain("user3").contain("user4");
     }
 
     @Test
     public void test_get_recommended_documents() {
-        when(repository.getRecommentationsBy(eq(project("prj")),eq(asList(new User("user1"), new User("user2"))))).thenReturn(Stream.of("doc1","doc2").collect(Collectors.toSet()));
+        when(repository.getRecommentationsBy(eq(project("prj")),eq(asList(new User("user1"), new User("user2"))))).thenReturn(of("doc1","doc2").collect(Collectors.toSet()));
         get("/api/prj/documents/recommendations?userids=user1,user2").should().respond(200).contain("doc1").contain("doc2");
     }
 

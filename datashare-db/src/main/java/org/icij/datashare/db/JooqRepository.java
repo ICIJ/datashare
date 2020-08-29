@@ -22,8 +22,7 @@ import java.util.stream.Collectors;
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.*;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
 import static org.icij.datashare.db.tables.DocumentUserRecommendation.DOCUMENT_USER_RECOMMENDATION;
@@ -153,20 +152,27 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public Set<User> getRecommendations(Project project, List<String> documentIds) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.selectFrom(DOCUMENT_USER_RECOMMENDATION.leftJoin(USER_INVENTORY).on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))).
-                where(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)).
-                and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).
-                fetch().stream().map(this::createUserFrom).collect(toSet());
+    public Map<User, Integer> getRecommendations(Project project, List<String> documentIds) {
+        return createMapFromSelect(
+                createSelectRecommendationLeftJoinInventory(using(connectionProvider, dialect), project).
+                        and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)));
     }
 
     @Override
-    public Set<User> getRecommendations(Project project) {
-        DSLContext create = DSL.using(connectionProvider,dialect);
-        return create.selectDistinct(DOCUMENT_USER_RECOMMENDATION.USER_ID).from(DOCUMENT_USER_RECOMMENDATION)
-                .where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).fetch()
-                .getValues(DOCUMENT_USER_RECOMMENDATION.USER_ID).stream().map(User::new).collect(toSet());
+    public Map<User, Integer> getRecommendations(Project project) {
+        return createMapFromSelect(createSelectRecommendationLeftJoinInventory(using(connectionProvider, dialect), project));
+    }
+
+    private Map<User, Integer> createMapFromSelect(SelectConditionStep<Record> select) {
+        return select.groupBy(DOCUMENT_USER_RECOMMENDATION.USER_ID, USER_INVENTORY.ID).
+                fetch().stream().map(r -> new AbstractMap.SimpleEntry<>(createUserFrom(r), r.get("count", Integer.class))).
+                collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private SelectConditionStep<Record> createSelectRecommendationLeftJoinInventory(DSLContext create, Project project) {
+        return create.select(DOCUMENT_USER_RECOMMENDATION.USER_ID, USER_INVENTORY.asterisk(), count()).from(DOCUMENT_USER_RECOMMENDATION.
+                leftJoin(USER_INVENTORY).on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))).
+                where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()));
     }
 
     @Override

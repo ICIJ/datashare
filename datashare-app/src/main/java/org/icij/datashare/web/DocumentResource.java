@@ -23,11 +23,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toSet;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
@@ -262,7 +264,9 @@ public class DocumentResource {
     }
 
     /**
-     * Retrieves the list of users who marked read a document for the given project id.
+     * Retrieves the list of users who recommended a document with the total count of recommended documents
+     * for the given project id
+     *
      *
      * @param projectId
      * @return 200
@@ -271,12 +275,14 @@ public class DocumentResource {
      * $(curl -i localhost:8080/api/users/recommendations?project=apigen-datashare)
      */
     @Get("/users/recommendations?project=:project")
-    public Set<User> getProjectRecommendations(final String projectId) {
-        return repository.getRecommendations(project(projectId));
+    public Set<UserAndCount> getProjectRecommendations(final String projectId) {
+        return repository.getRecommendations(project(projectId)).entrySet().stream().map(UserAndCount::new).collect(toSet());
     }
 
     /**
-     * Get all users who marked read a document
+     * Get all users who marked read a document with the count of recommended documents
+     * for project and documents ids.
+     *
      * @param projectId
      * @param comaSeparatedDocIds
      * @return 200 and the list of tags
@@ -285,8 +291,9 @@ public class DocumentResource {
      * $(curl  http://localhost:8080/api/users/recommendations?project=apigen-datashare&docIds=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
     @Get("/users/recommendationsby?project=:project&docIds=:coma_separated_docIds")
-    public Set<User> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds) {
-        return repository.getRecommendations(project(projectId),stream(comaSeparatedDocIds.split(",")).map(String::new).collect(Collectors.toList()));
+    public Set<UserAndCount> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds) {
+        return repository.getRecommendations(project(projectId),stream(comaSeparatedDocIds.split(",")).map(String::new).collect(Collectors.toList()))
+                .entrySet().stream().map(UserAndCount::new).collect(toSet());
     }
 
     /**
@@ -351,6 +358,7 @@ public class DocumentResource {
             return Payload.notFound();
         }
     }
+
     private static class BatchTagQuery {
         final List<String> tags;
         final List<String> docIds;
@@ -363,6 +371,15 @@ public class DocumentResource {
 
         Tag[] tagsAsArray(User user) {
             return tags.stream().map(label -> new Tag(label, user)).toArray(Tag[]::new);
+        }
+    }
+    private static class UserAndCount {
+        private final User user;
+        private final Integer count;
+
+        UserAndCount(Map.Entry<User, Integer> mapEntry) {
+            this.user = mapEntry.getKey();
+            this.count = mapEntry.getValue();
         }
     }
 }
