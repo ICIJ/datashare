@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +40,7 @@ public abstract class DeliverableService<T extends Deliverable> {
         try {
             delete(getDeleteOpt(cliProperties)); // plugin with id
         } catch (DeliverableRegistry.UnknownDeliverableException not_a_plugin) {
-            delete(Paths.get(getDeleteOpt(cliProperties))); // from base dir
+            newDeliverable(Paths.get(getDeleteOpt(cliProperties)).toUri().toURL()).delete(extensionsDir);
         }
     }
 
@@ -99,11 +98,5 @@ public abstract class DeliverableService<T extends Deliverable> {
 
     public void delete(String extensionId) throws IOException {
         deliverableRegistry.get(extensionId).delete(extensionsDir);
-    }
-
-    public void delete(Path pluginBaseDirectory) throws IOException {
-        Path pluginDirectory = extensionsDir.resolve(pluginBaseDirectory);
-        logger.info("removing plugin base directory {}", pluginDirectory);
-        FileUtils.deleteDirectory(pluginDirectory.toFile());
     }
 }

@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -138,5 +139,17 @@ public class ExtensionServiceTest {
         extensionService.delete("my-extension");
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).doesNotExist();
 
+    }
+
+    @Test
+    public void test_delete_extension_by_url() throws IOException {
+        extensionFolder.newFile( "my-extension.jar");
+        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
+        Properties properties = PropertiesProvider.fromMap(new HashMap<String, String>() {{
+            put("extensionDelete", extensionFolder.getRoot().toPath().resolve("my-extension.jar").toString());
+        }});
+
+        extensionService.deleteFromCli(properties);
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).doesNotExist();
     }
 }

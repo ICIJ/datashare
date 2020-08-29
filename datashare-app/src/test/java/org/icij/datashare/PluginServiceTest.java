@@ -12,7 +12,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Properties;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
@@ -206,8 +207,11 @@ public class PluginServiceTest {
         PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath());
         URL pluginUrl = ClassLoader.getSystemResource("my-plugin.tgz");
         pluginService.downloadAndInstall(pluginUrl);
+        Properties properties = PropertiesProvider.fromMap(new HashMap<String, String>() {{
+            put("pluginDelete", "my-plugin");
+        }});
 
-        pluginService.delete(Paths.get("my-plugin"));
+        pluginService.deleteFromCli(properties);
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
     }
 
