@@ -8,6 +8,7 @@ import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface Repository {
@@ -17,8 +18,8 @@ public interface Repository {
     void create(Document document);
 
     // user related
-    Set<User> getRecommendations(Project project);
-    Set<User> getRecommendations(Project project, List<String> documentIds);
+    Map<User, Integer> getRecommendations(Project project);
+    Map<User, Integer> getRecommendations(Project project, List<String> documentIds);
 
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
