@@ -68,7 +68,7 @@ public class Extension implements Deliverable {
 
     @Override
     public boolean isInstalled(Path extensionsDir) {
-        return extensionsDir.resolve(this.getFileName()).toFile().exists();
+        return extensionsDir.resolve(this.getUrlFileName()).toFile().exists();
     }
 
     @Override
@@ -96,19 +96,19 @@ public class Extension implements Deliverable {
     @Override
     public void install(File extensionFile, Path extensionsDir) throws IOException {
         File[] candidateFiles = ofNullable(extensionsDir.toFile().listFiles((file, s) -> s.endsWith(".jar"))).orElse(new File[0]);
-        List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getFileName()));
+        List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
         if (previousVersionInstalled.size() > 0) {
             logger.info("removing previous versions {}", previousVersionInstalled);
             previousVersionInstalled.forEach(File::delete);
         }
         logger.info("installing extension from file {} into {}", extensionFile, extensionsDir);
-        copy(extensionFile.toPath(), extensionsDir.resolve(getFileName()));
+        copy(extensionFile.toPath(), extensionsDir.resolve(getUrlFileName()));
         if (isTemporaryFile(extensionFile)) extensionFile.delete();
     }
 
     @Override
     public void delete(Path installDir) throws IOException {
-        Path extensionPath = installDir.resolve(getFileName());
+        Path extensionPath = installDir.resolve(getUrlFileName());
         logger.info("removing extension {} jar {}", id, extensionPath);
         extensionPath.toFile().delete();
     }
@@ -129,7 +129,7 @@ public class Extension implements Deliverable {
     @Override public String getId() { return this.id;}
 
     protected Path getBasePath() {return Paths.get(getId() + "." + EXT_SUFFIX);}
-    protected String getFileName() { return getName(url.getFile());}
+    public String getUrlFileName() { return getName(url.getFile());}
     protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
 
     @Override
@@ -138,7 +138,7 @@ public class Extension implements Deliverable {
     }
 
     public void displayInformation(Path extensionDir) {
-        System.out.println("extension " + id + (isInstalled(extensionDir)? " **INSTALLED**" : ""));
+        System.out.println(getClass().getSimpleName() + " " + id + (isInstalled(extensionDir)? " **INSTALLED**" : ""));
         System.out.println("\t" + name);
         System.out.println("\t" + version);
         System.out.println("\t" + url);

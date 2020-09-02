@@ -10,6 +10,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.io.FilenameUtils.getName;
 
 public abstract class DeliverableService<T extends Deliverable> {
     final Logger logger = LoggerFactory.getLogger(getClass());
@@ -58,18 +60,20 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public Set<T> list(String patternString) {
-        return deliverableRegistry.get().stream().
+        return merge(deliverableRegistry.get().stream().
                         filter(p -> Pattern.compile(patternString).matcher(p.getId()).matches()).
-                        collect(toSet());
+                        collect(toSet()),listInstalled());
     }
 
     public Set<T> list() {
         return merge(deliverableRegistry.get(), listInstalled());
     }
 
-    private Set<T> merge(Set<T> ts, Set<File> listInstalled) {
-        Set<T> result = new LinkedHashSet<>(ts);
-        result.addAll(listInstalled.stream().map(f -> {
+    private Set<T> merge(Set<T> registryDeliverables, Set<File> listInstalled) {
+        Set<T> result = new LinkedHashSet<>(registryDeliverables);
+        Set<File> installedDeliverables = new LinkedHashSet<>(listInstalled);
+        installedDeliverables.removeAll(registryDeliverables.stream().map((d -> extensionsDir.resolve(d.getUrlFileName()).toFile())).collect(toSet()));
+        result.addAll(installedDeliverables.stream().map(f -> {
             try {
                 return newDeliverable(f.toURI().toURL());
             } catch (MalformedURLException e) {
