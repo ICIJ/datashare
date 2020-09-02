@@ -2,6 +2,7 @@ package org.icij.datashare.db;
 
 
 import org.icij.datashare.Note;
+import org.icij.datashare.Repository;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
@@ -21,7 +22,6 @@ import java.util.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
@@ -139,8 +139,13 @@ public class JooqRepositoryTest {
         assertThat(repository.recommend(project("prj"), user1, asList("id1", "id2", "id3"))).isEqualTo(3);
         assertThat(repository.recommend(project("prj"), user2, asList("id1"))).isEqualTo(1);
 
-        assertThat(repository.getRecommendations(project("prj"),asList("id1","id2"))).includes(entry(user1, 2), entry(user2, 1));
-        assertThat(repository.getRecommendations(project("prj"))).includes(entry(user1, 3), entry(user2, 1));
+        Repository.AggregateList<User> recommendations = repository.getRecommendations(project("prj"), asList("id1", "id2", "id4"));
+        assertThat(recommendations.aggregates).contains(new Repository.Aggregate<>(user1, 2), new Repository.Aggregate<>(user2, 1));
+        assertThat(recommendations.totalCount).isEqualTo(2);
+
+        recommendations = repository.getRecommendations(project("prj"));
+        assertThat(recommendations.aggregates).contains(new Repository.Aggregate<>(user1, 3), new Repository.Aggregate<>(user2, 1));
+        assertThat(recommendations.totalCount).isEqualTo(3);
         assertThat(repository.getRecommentationsBy(project("prj"),asList(user1,user2))).contains("id1").contains("id2").contains("id3");
 
         assertThat(repository.unrecommend(project("prj"), user1,asList("id1", "id2"))).isEqualTo(2);
@@ -169,11 +174,11 @@ public class JooqRepositoryTest {
 
         repository.recommend(project("prj"), userFoo, asList("id4"));
 
-        final Map.Entry<User, Integer> recommendationEntry = repository.getRecommendations(project("prj"), asList("id4")).entrySet().iterator().next();
-        assertThat(recommendationEntry.getKey().id).isEqualTo("foo");
-        assertThat(recommendationEntry.getKey().name).isEqualTo("test");
-        assertThat(recommendationEntry.getKey().email).isEqualTo("foo@bar.org");
-        assertThat(recommendationEntry.getValue()).isEqualTo(1);
+        final Repository.Aggregate<User> recommendationEntry = repository.getRecommendations(project("prj"), asList("id4")).aggregates.iterator().next();
+        assertThat(recommendationEntry.item.id).isEqualTo("foo");
+        assertThat(recommendationEntry.item.name).isEqualTo("test");
+        assertThat(recommendationEntry.item.email).isEqualTo("foo@bar.org");
+        assertThat(recommendationEntry.count).isEqualTo(1);
     }
 
      @Test
@@ -183,11 +188,11 @@ public class JooqRepositoryTest {
 
         repository.recommend(project("prj"), userBar, asList("id5", "id6"));
 
-        final Map.Entry<User, Integer> recommendationEntry = repository.getRecommendations(project("prj")).entrySet().iterator().next();
-        assertThat(recommendationEntry.getKey().id).isEqualTo("bar");
-        assertThat(recommendationEntry.getKey().name).isEqualTo("test");
-        assertThat(recommendationEntry.getKey().email).isEqualTo("bar@bar.org");
-        assertThat(recommendationEntry.getValue()).isEqualTo(2);
+        final Repository.Aggregate<User> recommendationEntry = repository.getRecommendations(project("prj")).aggregates.iterator().next();
+        assertThat(recommendationEntry.item.id).isEqualTo("bar");
+        assertThat(recommendationEntry.item.name).isEqualTo("test");
+        assertThat(recommendationEntry.item.email).isEqualTo("bar@bar.org");
+        assertThat(recommendationEntry.count).isEqualTo(2);
     }
 
     @Test

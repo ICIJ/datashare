@@ -152,36 +152,32 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public Map<User, Integer> getRecommendations(Project project, List<String> documentIds) {
-        return createMapFromSelect(
-                createSelectRecommendationLeftJoinInventory(using(connectionProvider, dialect), project).
-                        and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)));
+    public AggregateList<User> getRecommendations(Project project, List<String> documentIds) {
+        DSLContext context = using(connectionProvider, dialect);
+        return new AggregateList<>(
+                createAggregateFromSelect(createSelectRecommendationLeftJoinInventory(context, project).and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds))),
+                selectCount(context, project).and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)).fetchOne(0, int.class)
+        );
     }
 
     @Override
-    public Map<User, Integer> getRecommendations(Project project) {
-        return createMapFromSelect(createSelectRecommendationLeftJoinInventory(using(connectionProvider, dialect), project));
-    }
-
-    private Map<User, Integer> createMapFromSelect(SelectConditionStep<Record> select) {
-        return select.groupBy(DOCUMENT_USER_RECOMMENDATION.USER_ID, USER_INVENTORY.ID).
-                fetch().stream().map(r -> new AbstractMap.SimpleEntry<>(createUserFrom(r), r.get("count", Integer.class))).
-                collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    private SelectConditionStep<Record> createSelectRecommendationLeftJoinInventory(DSLContext create, Project project) {
-        return create.select(DOCUMENT_USER_RECOMMENDATION.USER_ID, USER_INVENTORY.asterisk(), count()).from(DOCUMENT_USER_RECOMMENDATION.
-                leftJoin(USER_INVENTORY).on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))).
-                where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()));
+    public AggregateList<User> getRecommendations(Project project) {
+        try(DSLContext context = using(connectionProvider, dialect)) {
+            return new AggregateList<>(
+                    createAggregateFromSelect(createSelectRecommendationLeftJoinInventory(context, project)),
+                    selectCount(context, project).fetchOne(0, int.class)
+            );
+        }
     }
 
     @Override
     public Set<String> getRecommentationsBy(Project project, List<User> users){
-        DSLContext create = DSL.using(connectionProvider,dialect);
-        return create.select(DOCUMENT_USER_RECOMMENDATION.DOC_ID).from(DOCUMENT_USER_RECOMMENDATION)
-                .where(DOCUMENT_USER_RECOMMENDATION.USER_ID.in(users.stream().map(x -> x.id).collect(toList())))
-                .and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()))
-                .fetch().getValues(DOCUMENT_USER_RECOMMENDATION.DOC_ID).stream().collect(Collectors.toSet());
+        try(DSLContext create = DSL.using(connectionProvider,dialect)) {
+            return create.select(DOCUMENT_USER_RECOMMENDATION.DOC_ID).from(DOCUMENT_USER_RECOMMENDATION)
+                    .where(DOCUMENT_USER_RECOMMENDATION.USER_ID.in(users.stream().map(x -> x.id).collect(toList())))
+                    .and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()))
+                    .fetch().getValues(DOCUMENT_USER_RECOMMENDATION.DOC_ID).stream().collect(Collectors.toSet());
+        }
     }
 
     @Override
@@ -303,6 +299,24 @@ public class JooqRepository implements Repository {
             LoggerFactory.getLogger(getClass()).error("Database Health error : ",ex);
             return false;
         }
+    }
+
+    private SelectConditionStep<Record1<Integer>> selectCount(DSLContext context, Project project) {
+        return context.select(countDistinct(DOCUMENT_USER_RECOMMENDATION.DOC_ID))
+                .from(DOCUMENT_USER_RECOMMENDATION)
+                .where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()));
+    }
+
+    private List<Aggregate<User>> createAggregateFromSelect(SelectConditionStep<Record> select) {
+        return select.groupBy(DOCUMENT_USER_RECOMMENDATION.USER_ID, USER_INVENTORY.ID).
+                fetch().stream().map(r -> new Aggregate<>(createUserFrom(r), r.get("count", Integer.class))).
+                collect(toList());
+    }
+
+    private SelectConditionStep<Record> createSelectRecommendationLeftJoinInventory(DSLContext create, Project project) {
+        return create.select(DOCUMENT_USER_RECOMMENDATION.USER_ID, USER_INVENTORY.asterisk(), count()).from(DOCUMENT_USER_RECOMMENDATION.
+                leftJoin(USER_INVENTORY).on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))).
+                where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()));
     }
 
     // ---------------------------

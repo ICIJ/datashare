@@ -11,6 +11,7 @@ import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
 import org.icij.datashare.Repository;
+import org.icij.datashare.Repository.AggregateList;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.FileExtension;
@@ -23,13 +24,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toSet;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
@@ -275,8 +274,8 @@ public class DocumentResource {
      * $(curl -i localhost:8080/api/users/recommendations?project=apigen-datashare)
      */
     @Get("/users/recommendations?project=:project")
-    public Set<UserAndCount> getProjectRecommendations(final String projectId) {
-        return repository.getRecommendations(project(projectId)).entrySet().stream().map(UserAndCount::new).collect(toSet());
+    public AggregateList<User> getProjectRecommendations(final String projectId) {
+        return repository.getRecommendations(project(projectId));
     }
 
     /**
@@ -291,9 +290,8 @@ public class DocumentResource {
      * $(curl  http://localhost:8080/api/users/recommendations?project=apigen-datashare&docIds=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
      */
     @Get("/users/recommendationsby?project=:project&docIds=:coma_separated_docIds")
-    public Set<UserAndCount> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds) {
-        return repository.getRecommendations(project(projectId),stream(comaSeparatedDocIds.split(",")).map(String::new).collect(Collectors.toList()))
-                .entrySet().stream().map(UserAndCount::new).collect(toSet());
+    public AggregateList<User> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds) {
+        return repository.getRecommendations(project(projectId),stream(comaSeparatedDocIds.split(",")).map(String::new).collect(Collectors.toList()));
     }
 
     /**
@@ -371,15 +369,6 @@ public class DocumentResource {
 
         Tag[] tagsAsArray(User user) {
             return tags.stream().map(label -> new Tag(label, user)).toArray(Tag[]::new);
-        }
-    }
-    private static class UserAndCount {
-        private final User user;
-        private final Integer count;
-
-        UserAndCount(Map.Entry<User, Integer> mapEntry) {
-            this.user = mapEntry.getKey();
-            this.count = mapEntry.getValue();
         }
     }
 }

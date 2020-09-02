@@ -20,8 +20,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.AbstractMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -132,13 +130,13 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_recommendation_users_of_documents() {
-        when(repository.getRecommendations(eq(project("prj")), eq(asList("docId1","docId2")))).thenReturn(of(new AbstractMap.SimpleEntry<>(new User("user1"), 2), new AbstractMap.SimpleEntry<>(new User("user2"), 3)).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-        get("/api/users/recommendationsby?project=prj&docIds=docId1,docId2").should().respond(200).contain("user1").contain("user2");
+        when(repository.getRecommendations(eq(project("prj")), eq(asList("docId1","docId2")))).thenReturn(new Repository.AggregateList<>(of(new Repository.Aggregate<>(new User("user1"), 2), new Repository.Aggregate<>(new User("user2"), 3)).collect(Collectors.toList()), 10));
+        get("/api/users/recommendationsby?project=prj&docIds=docId1,docId2").should().respond(200).contain("user1").contain("user2").contain("\"totalCount\":10");
     }
 
     @Test
     public void test_get_recommendations_users() {
-        when(repository.getRecommendations(eq(project("prj")))).thenReturn(of(new AbstractMap.SimpleEntry<>(new User("user3"), 3), new AbstractMap.SimpleEntry<>(new User("user4"), 4)).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        when(repository.getRecommendations(eq(project("prj")))).thenReturn(new Repository.AggregateList<>(of(new Repository.Aggregate<>(new User("user3"), 3), new Repository.Aggregate<>(new User("user4"), 4)).collect(Collectors.toList()), 8));
         get("/api/users/recommendations?project=prj").should().respond(200).contain("user3").contain("user4");
     }
 
