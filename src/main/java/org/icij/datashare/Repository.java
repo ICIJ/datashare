@@ -7,9 +7,7 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public interface Repository {
     NamedEntity getNamedEntity(String id);
@@ -18,8 +16,8 @@ public interface Repository {
     void create(Document document);
 
     // user related
-    Map<User, Integer> getRecommendations(Project project);
-    Map<User, Integer> getRecommendations(Project project, List<String> documentIds);
+    AggregateList<User> getRecommendations(Project project);
+    AggregateList<User> getRecommendations(Project project, List<String> documentIds);
 
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
@@ -51,4 +49,35 @@ public interface Repository {
 
     boolean save(User user);
     User getUser(String userId);
+
+    class AggregateList<T> {
+        public final List<Aggregate<T>> aggregates;
+        public final int totalCount;
+
+        public AggregateList(List<Aggregate<T>> aggregates, int totalCount) {
+            this.aggregates = aggregates;
+            this.totalCount = totalCount;
+        }
+    }
+
+    class Aggregate<T> {
+        public final T item;
+        public final int count;
+
+        public Aggregate(T item, int count) {
+            this.item = item;
+            this.count = count;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Aggregate)) return false;
+            Aggregate<?> aggregate = (Aggregate<?>) o;
+            return count == aggregate.count &&
+                    Objects.equals(item, aggregate.item);
+        }
+        @Override public int hashCode() { return Objects.hash(item, count);}
+        @Override public String toString() { return item + "=" + count;}
+    }
 }
