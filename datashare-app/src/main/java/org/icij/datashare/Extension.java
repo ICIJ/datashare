@@ -149,10 +149,15 @@ public class Extension implements Deliverable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Plugin)) return false;
-        Plugin plugin = (Plugin) o;
-        return id.equals(plugin.id) &&
-                version.equals(plugin.version);
+        if (!(o instanceof Extension)) return false;
+        Extension extension = (Extension) o;
+        if(version == null || extension.version == null){
+            if(version == null && extension.version == null)
+                return id.equals(extension.id);
+            return false;
+        }
+        return id.equals(extension.id) &&
+                version.equals(extension.version);
     }
 
     @Override
