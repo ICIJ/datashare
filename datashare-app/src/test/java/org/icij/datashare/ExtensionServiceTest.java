@@ -111,6 +111,16 @@ public class ExtensionServiceTest {
     }
 
     @Test
+    public void test_list_installed_extensions_with_different_id_and_filename() throws Exception {
+        extensionFolder.newFile( "official-extension-version-jar-with-dependencies.jar");
+        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                "{\"id\":\"official-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension-version-jar-with-dependencies.jar").toUri() + "\"}" +
+                "]}").getBytes()));
+        Set<Extension> list = extensionService.list();
+        assertThat(list.iterator().next().isInstalled(extensionFolder.getRoot().toPath())).isTrue();
+    }
+
+    @Test
     public void test_list_installed_extensions_empty() {
         assertThat(new ExtensionService(extensionFolder.getRoot().toPath()).listInstalled().stream().map(File::toString).collect(Collectors.toSet())).isEmpty();
     }

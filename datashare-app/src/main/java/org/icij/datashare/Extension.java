@@ -68,7 +68,7 @@ public class Extension implements Deliverable {
 
     @Override
     public boolean isInstalled(Path extensionsDir) {
-        return extensionsDir.resolve(getBasePath()).toFile().exists();
+        return extensionsDir.resolve(this.getFileName()).toFile().exists();
     }
 
     @Override
@@ -137,8 +137,8 @@ public class Extension implements Deliverable {
         return "Extension id='" + id + '\'' + '\'' + ", version='" + version + '\'' + "url=" + url + '\'' + "type=" + type;
     }
 
-    public void displayInformation() {
-        System.out.println("extension " + id);
+    public void displayInformation(Path extensionDir) {
+        System.out.println("extension " + id + (isInstalled(extensionDir)? " **INSTALLED**" : ""));
         System.out.println("\t" + name);
         System.out.println("\t" + version);
         System.out.println("\t" + url);

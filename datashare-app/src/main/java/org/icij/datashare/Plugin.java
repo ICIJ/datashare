@@ -99,4 +99,9 @@ public class Plugin extends Extension {
         }
         return Paths.get(id);
     }
+
+    @Override
+    public boolean isInstalled(Path extensionsDir) {
+        return extensionsDir.resolve(getBasePath()).toFile().exists();
+    }
 }
