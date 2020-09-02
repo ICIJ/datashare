@@ -113,6 +113,16 @@ public class PluginServiceTest {
     }
 
     @Test
+    public void test_list_installed_plugins() throws IOException {
+        pluginFolder.newFolder("my-plugin");
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
+                "]}").getBytes()));
+        Set<Plugin> list = pluginService.list();
+        assertThat(list.iterator().next().isInstalled(pluginFolder.getRoot().toPath())).isTrue();
+    }
+
+    @Test
     public void test_plugin_properties() throws Exception {
         Plugin plugin = new PluginService().list("my-plugin-foo").iterator().next();
         assertThat(plugin.id).isEqualTo("my-plugin-foo");
