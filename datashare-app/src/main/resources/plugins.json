@@ -4,40 +4,40 @@
       "id": "datashare-plugin-site-alert",
       "name": "Site Alert",
       "description": "A plugin to display an alert banner.",
-      "url": "https://github.com/ICIJ/datashare-plugin-site-alert/releases/download/1.3.3/datashare-plugin-site-alert-1.3.3.tgz",
-      "version": "1.3.3",
+      "url": "https://github.com/ICIJ/datashare-plugin-site-alert/releases/download/1.3.4/datashare-plugin-site-alert-1.3.4.tgz",
+      "version": "1.3.4",
       "type":  "PLUGIN"
     },
     {
       "id": "datashare-plugin-ga",
       "name": "Google Analytics",
-      "description": "A Datashare Plugin to add Google Analytics tracking.",
-      "url": "https://github.com/ICIJ/datashare-plugin-ga",
-      "version": "v0.0.0",
+      "description": "A Datashare plugin to add Google Analytics tracking.",
+      "url": "https://github.com/ICIJ/datashare-plugin-ga/releases/download/0.0.3/datashare-plugin-ga-0.0.3.tgz",
+      "version": "0.0.3",
       "type":  "PLUGIN"
     },
     {
       "id": "datashare-plugin-text-paginator",
       "name": "Text Paginator",
-      "description": "A Datashare Plugin to detect pages in text to display them nicely.",
-      "url": "https://github.com/ICIJ/datashare-plugin-text-paginator",
-      "version": "v0.0.12",
+      "description": "A Datashare plugin to detect pages in text to display them nicely.",
+      "url": "https://github.com/ICIJ/datashare-plugin-text-paginator/releases/download/0.0.14/datashare-plugin-text-paginator-0.0.14.tgz",
+      "version": "0.0.14",
       "type":  "PLUGIN"
     },
     {
       "id": "datashare-plugin-email-filter",
       "name": "Email filter",
-      "description": "On Datashare, add a new filter about emails.",
-      "url": "https://github.com/ICIJ/datashare-plugin-email-filter",
-      "version": "",
+      "description": "A Datashare plugin to add a new filter about emails.",
+      "url": "https://github.com/ICIJ/datashare-plugin-email-filter/archive/1.0.0.tar.gz",
+      "version": "1.0.0",
       "type":  "PLUGIN"
     },
     {
       "id": "datashare-plugin-sentence-case",
-      "name": "Sentence Case Button",
-      "description": "A Datashare Plugin to add a sentence case button to the extracted text view.",
-      "url": "https://github.com/ICIJ/datashare-plugin-sentence-case",
-      "version": "v0.0.7",
+      "name": "Sentence Case",
+      "description": "A Datashare plugin to add a sentence case button to the extracted text view.",
+      "url": "https://github.com/ICIJ/datashare-plugin-sentence-case/releases/download/0.0.8/datashare-plugin-sentence-case-0.0.8.tgz",
+      "version": "0.0.8",
       "type":  "PLUGIN"
     }
   ]
