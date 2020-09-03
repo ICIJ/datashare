@@ -3,9 +3,9 @@
     {
       "id": "datashare-plugin-site-alert",
       "name": "Site Alert",
-      "description": "A plugin to display an alert banner on the Datashare demo instance.",
-      "url": "https://github.com/ICIJ/datashare-plugin-site-alert/releases/download/1.3.4/datashare-plugin-site-alert-1.3.4.tgz",
-      "version": "1.3.4",
+      "description": "A plugin to display an alert banner.",
+      "url": "https://github.com/ICIJ/datashare-plugin-site-alert/releases/download/1.3.3/datashare-plugin-site-alert-1.3.3.tgz",
+      "version": "1.3.3",
       "type":  "PLUGIN"
     },
     {
