@@ -126,10 +126,11 @@ public class Extension implements Deliverable {
     }
 
     @Override public URL getUrl() { return url;}
+
     @Override public String getId() { return this.id;}
 
-    protected Path getBasePath() {return Paths.get(getId() + "." + EXT_SUFFIX);}
-    public String getUrlFileName() { return getName(url.getFile());}
+    public Path getBasePath() {return Paths.get(getUrlFileName());}
+    protected String getUrlFileName() { return getName(url.getFile());}
     protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
 
     @Override

@@ -6,6 +6,7 @@ import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 
 import java.io.*;
@@ -16,8 +17,10 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
+import static org.apache.commons.io.FilenameUtils.getName;
 
 public class Plugin extends Extension {
     private static final Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
@@ -31,7 +34,10 @@ public class Plugin extends Extension {
         super(id, name, version, description, url, Type.PLUGIN);
     }
 
-    public Plugin(URL url){ super(url, Type.PLUGIN);}
+    public Plugin(URL url) {
+        this(url.getPath().toString().replaceFirst(".*/([^/?]+).*", "$1"), null, null, null,
+                requireNonNull(url, "a plugin/extension cannot be created with a null URL"));
+    }
 
     @Override
     public void delete(Path pluginsDirectory) throws IOException {
@@ -75,6 +81,7 @@ public class Plugin extends Extension {
         if (isTemporaryFile(pluginFile)) pluginFile.delete();
     }
 
+    @Override
     public Path getBasePath() {
         if (url.getHost().equals("github.com") || endsWithVersion.matcher(getBaseName(getUrlFileName())).matches()) {
             if (versionBeginsWithV.matcher(version).matches()) {
