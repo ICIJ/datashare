@@ -7,7 +7,7 @@ import java.nio.file.Path;
 
 public interface Deliverable extends Entity {
     URL getUrl();
-    String getUrlFileName();
+    Path getBasePath();
     File download() throws IOException;
     void install(File deliverable, Path targetDir) throws IOException;
     void install(Path targetDir) throws IOException; // install from local : url is the filesystem file

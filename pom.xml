@@ -31,6 +31,11 @@
             <email>julien.pierre.martin@gmail.com</email>
             <organization>ICIJ</organization>
         </developer>
+        <developer>
+            <name>Maxime Vanza Lutonda</name>
+            <email>mvanza@icij.org</email>
+            <organization>ICIJ</organization>
+        </developer>
     </developers>
 
     <scm>
