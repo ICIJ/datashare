@@ -9,7 +9,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,9 +32,6 @@ public class Plugin extends Extension {
     }
 
     public Plugin(URL url){ super(url, Type.PLUGIN);}
-
-    @Override
-    public File download() throws IOException { return download(getDeliverableUrl());}
 
     @Override
     public void delete(Path pluginsDirectory) throws IOException {
@@ -77,17 +73,6 @@ public class Plugin extends Extension {
             throw new RuntimeException(e);
         }
         if (isTemporaryFile(pluginFile)) pluginFile.delete();
-    }
-
-    public URL getDeliverableUrl() {
-        if (url.getHost().equals("github.com")) {
-            try {
-                return new URL(url.toString() + "/archive/" + version + ".tar.gz");
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return url;
     }
 
     public Path getBasePath() {
