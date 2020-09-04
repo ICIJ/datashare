@@ -115,7 +115,7 @@ public class PluginServiceTest {
     @Test
     public void test_list_installed_plugins() throws IOException {
         pluginFolder.newFolder("my-plugin");
-        pluginFolder.newFolder("my-custom-plugin");
+        pluginFolder.newFolder("datashare-plugin-site-toto-1.3.3");
         PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                 "]}").getBytes()));

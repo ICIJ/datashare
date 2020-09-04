@@ -1,4 +1,5 @@
 package org.icij.datashare;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -20,7 +21,6 @@ import java.util.zip.GZIPInputStream;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
-import static org.apache.commons.io.FilenameUtils.getName;
 
 public class Plugin extends Extension {
     private static final Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
@@ -34,9 +34,9 @@ public class Plugin extends Extension {
         super(id, name, version, description, url, Type.PLUGIN);
     }
 
-    public Plugin(URL url) {
-        this(url.getPath().toString().replaceFirst(".*/([^/?]+).*", "$1"), null, null, null,
-                requireNonNull(url, "a plugin/extension cannot be created with a null URL"));
+    Plugin(URL url) {
+        this(FilenameUtils.getName(requireNonNull(url,"a plugin cannot be created with a null URL").getFile().replaceFirst("/$",""))
+                , null,null,null,url);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class Plugin extends Extension {
         File[] candidateFiles = ofNullable(pluginsDir.toFile().listFiles((file, s) -> file.isDirectory())).orElse(new File[0]);
         List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
         if (previousVersionInstalled.size() > 0) {
-            logger.info("removing previous versions {}", previousVersionInstalled);
+            logger.info("removing previous ver<<<sions {}", previousVersionInstalled);
             for (File file : previousVersionInstalled) FileUtils.deleteDirectory(file); }
         logger.info("installing plugin from file {} into {}", pluginFile, pluginsDir);
 

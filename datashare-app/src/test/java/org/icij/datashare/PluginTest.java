@@ -6,8 +6,16 @@ import java.net.URL;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-
 public class PluginTest {
+    @Test
+    public void test_null_url_constructor() {
+        try {
+            new Plugin(null);
+        } catch (NullPointerException npe) {
+            assertThat(npe).hasMessage("a plugin cannot be created with a null URL");
+        }
+    }
+
     @Test
     public void test_get_base_directory() throws Exception {
         Plugin plugin = new Plugin("id", "name", "1.0.0", "", new URL("https://normal/url/deliverable.tgz"));

@@ -60,8 +60,8 @@ public class Extension implements Deliverable {
     }
 
     Extension(URL url, Type type) {
-        this(FilenameUtils.getBaseName(getName(url.getFile())), null, null, null,
-                requireNonNull(url, "a plugin/extension cannot be created with a null URL"), requireNonNull(type));
+        this(FilenameUtils.getBaseName((requireNonNull(url, "an extension cannot be created with a null URL").getFile())), null, null, null,
+                url, requireNonNull(type));
     }
 
     Extension(URL url) {this(url, Type.UNKNOWN);}

@@ -19,6 +19,15 @@ public class ExtensionTest {
     }
 
     @Test
+    public void test_null_url_constructor() {
+        try {
+            new Extension(null);
+        } catch (NullPointerException npe) {
+            assertThat(npe).hasMessage("an extension cannot be created with a null URL");
+        }
+    }
+
+    @Test
     public void test_id_from_url() throws MalformedURLException {
         assertThat(new Extension(new URL("http://foo.com/bar.jar")).id).isEqualTo("bar");
         assertThat(new Extension(new URL("http://foo.com/baz")).id).isEqualTo("baz");
