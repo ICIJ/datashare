@@ -130,7 +130,7 @@
                 <configuration>
                     <changeLogFile>src/main/resources/liquibase/changelog/db.changelog.yml</changeLogFile>
                     <driver>org.postgresql.Driver</driver>
-                    <url>jdbc:postgresql://postgresql/datashare</url>
+                    <url>jdbc:postgresql://postgres/datashare</url>
                     <username>test</username>
                     <password>test</password>
                     <promptOnNonLocalDatabase>false</promptOnNonLocalDatabase>
@@ -163,7 +163,7 @@
                             </generator>
                             <jdbc>
                                 <driver>org.postgresql.Driver</driver>
-                                <url>jdbc:postgresql://postgresql/datashare</url>
+                                <url>jdbc:postgresql://postgres/datashare</url>
                                 <user>test</user>
                                 <password>test</password>
                             </jdbc>

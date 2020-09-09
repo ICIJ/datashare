@@ -19,7 +19,7 @@ import static org.icij.datashare.text.Project.project;
 public class BenchDocument {
     static Logger logger = LoggerFactory.getLogger(BenchDocument.class);
     @Rule
-    public DbSetupRule dbRule = new DbSetupRule("jdbc:postgresql://postgresql/test?user=test&password=test");
+    public DbSetupRule dbRule = new DbSetupRule("jdbc:postgresql://postgres/test?user=test&password=test");
     private JooqRepository repository = new JooqRepository(dbRule.dataSource, SQLDialect.POSTGRES);
 
     @Test
