@@ -49,6 +49,14 @@ public class ApiKeyFilter implements Filter {
         return new Payload(UNAUTHORIZED);
     }
 
-    protected String readApiKeyInHeader(Context context) { return context.header("authorization");}
+    protected String readApiKeyInHeader(Context context) { return getToken(context.header("authorization"));}
+
+    private String getToken(String authorizationHeader) {
+        if (authorizationHeader == null) return null;
+        String[] typeAndCredential = authorizationHeader.split("\\s");
+        if (typeAndCredential.length != 2) return null;
+        return typeAndCredential[0].equalsIgnoreCase("bearer") ? typeAndCredential[1] : null;
+    }
+
     protected String dsCookieName() { return "_ds_session_id";}
 }

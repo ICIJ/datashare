@@ -34,7 +34,7 @@ public class ApiKeyFilterTest {
 
     @Test
     public void test_adds_user_to_context() throws Exception {
-        when(context.header("authorization")).thenReturn("session_id");
+        when(context.header("authorization")).thenReturn("Bearer session_id");
         when(apiKeyStore.getLogin("session_id")).thenReturn("user_id");
         when(users.find("user_id")).thenReturn(new DatashareUser("user_id"));
 
@@ -43,6 +43,24 @@ public class ApiKeyFilterTest {
         assertThat(payload).isSameAs(next);
         verify(context).setCurrentUser(user.capture());
         assertThat(user.getValue().login()).isEqualTo("user_id");
+    }
+
+    @Test
+    public void test_unauthorized_if_type_is_not_bearer() throws Exception {
+        when(context.header("authorization")).thenReturn("Basic session_id");
+
+        Payload payload = apiKeyFilter.apply("url", context, nextFilter);
+
+        assertThat(payload.code()).isEqualTo(401);
+    }
+
+    @Test
+    public void test_unauthorized_if_no_type() throws Exception {
+        when(context.header("authorization")).thenReturn("session_id");
+
+        Payload payload = apiKeyFilter.apply("url", context, nextFilter);
+
+        assertThat(payload.code()).isEqualTo(401);
     }
 
     @Test
