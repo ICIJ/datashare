@@ -60,7 +60,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     public void test_get_status_with_open_metrics_format() {
         when(dataBus.getHealth()).thenReturn(true);
         get("/api/status?format=openmetrics").should().respond(200).haveType("text/plain;version=0.0.4").contain("" +
-                "# HELP gauge The datashare resources\n" +
+                "# HELP datashare The datashare resources status\n" +
                 "# TYPE datashare gauge\n" +
                 "datashare{status=\"KO\" resource=\"database\"} 0 1593531060000\n" +
                 "datashare{status=\"KO\" resource=\"index\"} 0 1593531060000\n" +
@@ -76,7 +76,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
         }}),repository,indexer,dataBus,documentCollectionFactory)));
         when(dataBus.getHealth()).thenReturn(true);
         get("/api/status?format=openmetrics").should().respond(200).haveType("text/plain;version=0.0.4").contain("" +
-                "# HELP gauge The datashare resources\n" +
+                "# HELP datashare The datashare resources status\n" +
                 "# TYPE datashare gauge\n" +
                 "datashare{environment=\"platform\" status=\"KO\" resource=\"database\"} 0 1593531060000\n" +
                 "datashare{environment=\"platform\" status=\"KO\" resource=\"index\"} 0 1593531060000\n" +
