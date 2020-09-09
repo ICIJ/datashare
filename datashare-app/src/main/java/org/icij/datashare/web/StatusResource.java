@@ -59,7 +59,7 @@ public class StatusResource {
         Status status = new Status(repository.getHealth(), indexer.getHealth(), dataBus.getHealth(), queueStatus, queueSize);
         if ("openmetrics".equals(context.request().query().get("format"))) {
             return new Payload("text/plain;version=0.0.4",
-                    new StatusMapper("datashare_" + propertiesProvider.get("platform").orElse("null"), status).toString());
+                    new StatusMapper("datashare", status, propertiesProvider.get("platform").orElse(null)).toString());
         } else {
             return new Payload(status);
         }

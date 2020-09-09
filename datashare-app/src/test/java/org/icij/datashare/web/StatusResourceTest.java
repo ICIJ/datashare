@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import com.google.inject.ProvisionException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.com.DataBus;
@@ -62,12 +61,12 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
         when(dataBus.getHealth()).thenReturn(true);
         get("/api/status?format=openmetrics").should().respond(200).haveType("text/plain;version=0.0.4").contain("" +
                 "# HELP gauge The datashare resources\n" +
-                "# TYPE gauge datashare_null\n" +
-                "datashare_null{status=\"KO\" resource=\"database\"} 0 1593531060000\n" +
-                "datashare_null{status=\"KO\" resource=\"index\"} 0 1593531060000\n" +
-                "datashare_null{status=\"OK\" resource=\"databus\"} 1 1593531060000\n" +
-                "datashare_null{status=\"OK\" resource=\"document_queue_status\"} 1 1593531060000\n" +
-                "datashare_null{resource=\"document_queue_size\"} 0 1593531060000");
+                "# TYPE gauge datashare\n" +
+                "datashare{status=\"KO\" resource=\"database\"} 0 1593531060000\n" +
+                "datashare{status=\"KO\" resource=\"index\"} 0 1593531060000\n" +
+                "datashare{status=\"OK\" resource=\"databus\"} 1 1593531060000\n" +
+                "datashare{status=\"OK\" resource=\"document_queue_status\"} 1 1593531060000\n" +
+                "datashare{resource=\"document_queue_size\"} 0 1593531060000");
     }
 
     @Test
@@ -78,12 +77,12 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
         when(dataBus.getHealth()).thenReturn(true);
         get("/api/status?format=openmetrics").should().respond(200).haveType("text/plain;version=0.0.4").contain("" +
                 "# HELP gauge The datashare resources\n" +
-                "# TYPE gauge datashare_platform\n" +
-                "datashare_platform{status=\"KO\" resource=\"database\"} 0 1593531060000\n" +
-                "datashare_platform{status=\"KO\" resource=\"index\"} 0 1593531060000\n" +
-                "datashare_platform{status=\"OK\" resource=\"databus\"} 1 1593531060000\n" +
-                "datashare_platform{status=\"OK\" resource=\"document_queue_status\"} 1 1593531060000\n" +
-                "datashare_platform{resource=\"document_queue_size\"} 0 1593531060000");
+                "# TYPE gauge datashare\n" +
+                "datashare{environment=\"platform\" status=\"KO\" resource=\"database\"} 0 1593531060000\n" +
+                "datashare{environment=\"platform\" status=\"KO\" resource=\"index\"} 0 1593531060000\n" +
+                "datashare{environment=\"platform\" status=\"OK\" resource=\"databus\"} 1 1593531060000\n" +
+                "datashare{environment=\"platform\" status=\"OK\" resource=\"document_queue_status\"} 1 1593531060000\n" +
+                "datashare{environment=\"platform\" resource=\"document_queue_size\"} 0 1593531060000");
     }
 
     @Test

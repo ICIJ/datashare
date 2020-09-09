@@ -31,13 +31,22 @@ public class StatusMapperTest {
                 "metric_name{resource=\"field\"} 123 1593531060000\n");
     }
 
-        @Test
+    @Test
     public void test_to_string_one_Integer_field() {
         class IntStatus { Integer field = 456;}
         assertThat(new StatusMapper("metric_name", new IntStatus()).toString()).contains("" +
                 "# HELP gauge The datashare resources\n" +
                 "# TYPE gauge metric_name\n" +
                 "metric_name{resource=\"field\"} 456 1593531060000\n");
+    }
+
+    @Test
+    public void test_to_string_with_platform() {
+        class StringStatus { String field = "value";}
+        assertThat(new StatusMapper("metric_name", new StringStatus(), "platform").toString()).contains("" +
+                "# HELP gauge The datashare resources\n" +
+                "# TYPE gauge metric_name\n" +
+                "metric_name{environment=\"platform\" resource=\"field\"} Nan 1593531060000\n");
     }
 
     @Test
