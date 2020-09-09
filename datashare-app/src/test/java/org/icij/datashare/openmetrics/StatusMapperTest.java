@@ -46,7 +46,7 @@ public class StatusMapperTest {
         assertThat(new StatusMapper("metric_name", new StringStatus(), "platform").toString()).contains("" +
                 "# HELP datashare The datashare resources status\n" +
                 "# TYPE metric_name gauge\n" +
-                "metric_name{environment=\"platform\" resource=\"field\"} Nan 1593531060000\n");
+                "metric_name{environment=\"platform\",resource=\"field\"} Nan 1593531060000\n");
     }
 
     @Test
@@ -55,7 +55,7 @@ public class StatusMapperTest {
         assertThat(new StatusMapper("metric_name", new BooleanStatus()).toString()).contains("" +
                 "# HELP datashare The datashare resources status\n" +
                 "# TYPE metric_name gauge\n" +
-                "metric_name{status=\"OK\" resource=\"field\"} 1 1593531060000\n");
+                "metric_name{status=\"OK\",resource=\"field\"} 1 1593531060000\n");
     }
 
     @Test
@@ -64,7 +64,7 @@ public class StatusMapperTest {
         assertThat(new StatusMapper("metric_name", new BooleanStatus()).toString()).contains("" +
                 "# HELP datashare The datashare resources status\n" +
                 "# TYPE metric_name gauge\n" +
-                "metric_name{status=\"KO\" resource=\"field\"} 0 1593531060000\n");
+                "metric_name{status=\"KO\",resource=\"field\"} 0 1593531060000\n");
     }
 
     @Test
@@ -73,7 +73,7 @@ public class StatusMapperTest {
         assertThat(new StatusMapper("metric_name", new BooleanStatus()).toString()).contains("" +
                 "# HELP datashare The datashare resources status\n" +
                 "# TYPE metric_name gauge\n" +
-                "metric_name{status=\"OK\" resource=\"field1\"} 1 1593531060000\n" +
+                "metric_name{status=\"OK\",resource=\"field1\"} 1 1593531060000\n" +
                 "metric_name{resource=\"field2\"} 3 1593531060000\n");
     }
 

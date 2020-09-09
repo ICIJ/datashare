@@ -19,7 +19,7 @@ public class StatusMapper {
     public StatusMapper(String metricName, Object status, String environment) {
         this.metricName = metricName;
         this.status = status;
-        this.environment = environment == null?"": String.format("environment=\"%s\" ", environment);
+        this.environment = environment == null?"": String.format("environment=\"%s\",", environment);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class StatusMapper {
                     numberValue = "Nan";
                 } else if (boolean.class.equals(field.getType()) || Boolean.class.equals(field.getType())) {
                     numberValue = (Boolean) value ? 1 : 0;
-                    status = String.format("status=\"%s\" ", (Boolean) value ? "OK" : "KO");
+                    status = String.format("status=\"%s\",", (Boolean) value ? "OK" : "KO");
                 }
                 fieldLines.append(String.format("%s{%s%sresource=\"%s\"} %s %d\n", metricName, environment, status, field.getName(), numberValue, DatashareTime.getInstance().currentTimeMillis()));
             } catch (IllegalAccessException e) {
