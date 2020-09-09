@@ -44,8 +44,8 @@ jobs:
             wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install postgresql-client
-            echo "postgresql:5432:test:test:test" > ~/.pgpass && chmod 600 ~/.pgpass
-            psql -h postgresql -U test test -c "CREATE DATABASE datashare;"
+            echo "postgres:5432:test:test:test" > ~/.pgpass && chmod 600 ~/.pgpass
+            psql -h postgres -U test test -c "CREATE DATABASE datashare;"
 
       - run: mvn validate
       - run: mvn -pl commons-test -am install
