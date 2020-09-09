@@ -18,7 +18,7 @@ jobs:
       - image: redis:4.0.1-alpine
         name: redis
       - image: postgres:11.2
-        name: postgresql
+        name: postgres
         environment:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
