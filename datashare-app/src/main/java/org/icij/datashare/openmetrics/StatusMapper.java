@@ -25,7 +25,7 @@ public class StatusMapper {
     @Override
     public String toString() {
         if (status == null) return "";
-        String header = "# HELP gauge The datashare resources\n" + String.format("# TYPE gauge %s\n", metricName);
+        String header = "# HELP gauge The datashare resources\n" + String.format("# TYPE %s gauge\n", metricName);
         List<Field> declaredFields = Arrays.stream(this.status.getClass().getDeclaredFields()).filter(f -> !f.getName().startsWith("this")).collect(Collectors.toList());
 
         StringBuilder fieldLines = new StringBuilder();
