@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -28,19 +27,27 @@ public class ExtensionTest {
     }
 
     @Test
-    public void test_id_from_url() throws MalformedURLException {
+    public void test_id_from_simple_url() throws Exception {
         assertThat(new Extension(new URL("http://foo.com/bar.jar")).id).isEqualTo("bar");
+        assertThat(new Extension(new URL("http://foo.com/bar.jar")).version).isNull();
         assertThat(new Extension(new URL("http://foo.com/baz")).id).isEqualTo("baz");
         assertThat(new Extension(new URL("file:///tmp/foo")).id).isEqualTo("foo");
     }
 
     @Test
-    public void test_remove_version() {
-        assertThat(Extension.removeVersion("my-extension")).isEqualTo("my-extension");
-        assertThat(Extension.removeVersion("extension")).isEqualTo("extension");
-        assertThat(Extension.removeVersion("extension.with.dot")).isEqualTo("extension.with.dot");
-        assertThat(Extension.removeVersion("my-extension-1.2.3")).isEqualTo("my-extension");
-        assertThat(Extension.removeVersion("extension.with.dot-1.0.0")).isEqualTo("extension.with.dot");
+    public void test_id_from_url_with_version_number() throws Exception {
+        assertThat(new Extension(new URL("http://foo.com/bar-1.1.1.jar")).id).isEqualTo("bar");
+        assertThat(new Extension(new URL("http://foo.com/bar-1.1.1.jar")).version).isEqualTo("1.1.1");
+    }
+
+    @Test
+    public void test_remove_pattern() {
+        assertThat(Extension.removePattern(Extension.endsWithVersion,"my-extension")).isEqualTo("my-extension");
+        assertThat(Extension.removePattern(Extension.endsWithVersion,"my-extension-1.2.3")).isEqualTo("my-extension");
+        assertThat(Extension.removePattern(Extension.endsWithVersion,"extension.with.dot-1.0.0")).isEqualTo("extension.with.dot");
+        assertThat(Extension.removePattern(Extension.endsWithExtension,"my-extension")).isEqualTo("my-extension");
+        assertThat(Extension.removePattern(Extension.endsWithExtension,"extension.jar")).isEqualTo("extension");
+        assertThat(Extension.removePattern(Extension.endsWithExtension,"my-extension-1.2.3")).isEqualTo("my-extension-1.2.3");
     }
 
     @Test

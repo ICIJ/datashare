@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import org.junit.Test;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -14,6 +15,25 @@ public class PluginTest {
         } catch (NullPointerException npe) {
             assertThat(npe).hasMessage("a plugin cannot be created with a null URL");
         }
+    }
+
+    @Test
+    public void test_id_from_url() throws Exception {
+        assertThat(new Plugin(new URL("http://foo.com/bar")).id).isEqualTo("bar");
+        assertThat(new Plugin(new URL("http://foo.com/bar")).version).isNull();
+        assertThat(new Plugin(new URL("file:///tmp/foo")).id).isEqualTo("foo");
+    }
+
+    @Test
+    public void test_id_from_url_with_version_number() throws Exception {
+        assertThat(new Extension(new URL("http://foo.com/bar-1.1.1")).id).isEqualTo("bar");
+        assertThat(new Extension(new URL("http://foo.com/bar-1.1.1")).version).isEqualTo("1.1.1");
+    }
+
+    @Test
+    public void test_id_from_url_with_trailling_slash() throws Exception {
+        assertThat(new Extension(new URL("http://foo.com/bar/")).id).isEqualTo("bar");
+        assertThat(new Extension(new URL("http://foo.com/bar/")).version).isNull();
     }
 
     @Test

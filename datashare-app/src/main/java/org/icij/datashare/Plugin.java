@@ -35,8 +35,7 @@ public class Plugin extends Extension {
     }
 
     Plugin(URL url) {
-        this(FilenameUtils.getName(requireNonNull(url,"a plugin cannot be created with a null URL").getFile().replaceFirst("/$",""))
-                , null,null,null,url);
+        super(requireNonNull(url,"a plugin cannot be created with a null URL"),Type.PLUGIN);
     }
 
     @Override

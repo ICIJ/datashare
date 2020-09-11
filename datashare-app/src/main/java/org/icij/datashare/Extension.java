@@ -18,6 +18,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -33,6 +34,7 @@ import static org.apache.commons.io.FilenameUtils.*;
 public class Extension implements Deliverable {
     enum Type {NLP, WEB, PLUGIN, UNKNOWN}
     static Pattern endsWithVersion = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)$");
+    static Pattern endsWithExtension = Pattern.compile("(.*)(\\.[a-zA-Z]+$)");
     public static final String TMP_PREFIX = "tmp";
     public static final String EXT_SUFFIX = "jar";
     @JsonIgnore
@@ -60,8 +62,14 @@ public class Extension implements Deliverable {
     }
 
     Extension(URL url, Type type) {
-        this(FilenameUtils.getBaseName((requireNonNull(url, "an extension cannot be created with a null URL").getFile())), null, null, null,
-                url, requireNonNull(type));
+        //this(formatId(url), null, formatVersion(url), null, url, requireNonNull(type));
+        AbstractMap.SimpleEntry<String,String> res = extractIdVersion(requireNonNull(url, "an extension cannot be created with a null URL"));
+        this.id = res.getKey();
+        this.url = url;
+        this.version = res.getValue();
+        this.name = null;
+        this.description = null;
+        this.type = type;
     }
 
     Extension(URL url) {this(url, Type.UNKNOWN);}
@@ -114,15 +122,24 @@ public class Extension implements Deliverable {
     }
 
     static List<File> getPreviousVersionInstalled(File[] candidateFiles, String baseName) {
-        return stream(candidateFiles).filter(f -> f.getName().startsWith(removeVersion(baseName)) && endsWithVersion.matcher(getBaseName(f.getName())).matches()).collect(Collectors.toList());
+        return stream(candidateFiles).filter(f -> f.getName().startsWith(removePattern(endsWithVersion,baseName)) && endsWithVersion.matcher(getBaseName(f.getName())).matches()).collect(Collectors.toList());
     }
 
-    static String removeVersion(String baseName) {
+    static AbstractMap.SimpleEntry<String,String> extractIdVersion(URL url){
+        String baseName = removePattern(endsWithExtension,FilenameUtils.getName(url.getFile().replaceAll("/$","")));
         Matcher matcher = endsWithVersion.matcher(baseName);
+        if(matcher.matches()){
+            return new AbstractMap.SimpleEntry<>(matcher.group(1),matcher.group(2));
+        }
+        return new AbstractMap.SimpleEntry<>(baseName,null);
+    }
+
+    static String removePattern(Pattern pattern, String string) {
+        Matcher matcher = pattern.matcher(string);
         if (matcher.matches()) {
             return matcher.group(1);
         }
-        return baseName;
+        return string;
     }
 
     @Override public URL getUrl() { return url;}
