@@ -2,7 +2,6 @@ package org.icij.datashare;
 
 import org.junit.Test;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 
 import static org.fest.assertions.Assertions.assertThat;
