@@ -62,7 +62,6 @@ public class Extension implements Deliverable {
     }
 
     Extension(URL url, Type type) {
-        //this(formatId(url), null, formatVersion(url), null, url, requireNonNull(type));
         AbstractMap.SimpleEntry<String,String> res = extractIdVersion(requireNonNull(url, "an extension cannot be created with a null URL"));
         this.id = res.getKey();
         this.url = url;
