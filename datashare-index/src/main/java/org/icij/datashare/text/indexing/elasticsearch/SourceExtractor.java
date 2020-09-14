@@ -39,7 +39,7 @@ public class SourceExtractor {
                 // backward compatibility
                 Hasher hasher = Hasher.valueOf(document.getId().length());
                 embeddedExtractor = new EmbeddedDocumentMemoryExtractor(
-                        new CommonsDigester(20 * 1024 * 1024, hasher.toString().replace("-", "")), hasher.toString());
+                        new CommonsDigester(20 * 1024 * 1024, hasher.toString().replace("-", "")), hasher.toString(), false);
                 identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
             }
             TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
