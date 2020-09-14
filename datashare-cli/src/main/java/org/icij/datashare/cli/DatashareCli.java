@@ -43,7 +43,6 @@ public class DatashareCli {
         DatashareCliOptions.scrollSlices(parser);
         DatashareCliOptions.redisPoolSize(parser);
         DatashareCliOptions.elasticsearchDataPath(parser);
-        DatashareCliOptions.filterSet(parser);
         DatashareCliOptions.reportName(parser);
         DatashareCliOptions.parallelism(parser);
         DatashareCliOptions.fileParserParallelism(parser);

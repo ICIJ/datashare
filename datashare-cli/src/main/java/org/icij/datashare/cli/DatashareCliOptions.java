@@ -291,13 +291,6 @@ public final class DatashareCliOptions {
                 .ofType(String.class).defaultsTo("/home/datashare/es");
     }
 
-    public static OptionSpec<String> filterSet(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("filterSet"), "name of the set for queue filtering")
-                .withRequiredArg()
-                .ofType(String.class).defaultsTo("extract:filter");
-    }
-
     public static OptionSpec<String> reportName(OptionParser parser) {
         return parser.acceptsAll(
                 asList("reportName"), "name of the map for the report map (where index results are stored). " +
