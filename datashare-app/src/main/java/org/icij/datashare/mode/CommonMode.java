@@ -121,7 +121,7 @@ public class CommonMode extends AbstractModule {
         try {
             pipelineRegistry.load();
         } catch (FileNotFoundException e) {
-            LoggerFactory.getLogger(getClass()).info("plugin dir not found " + e.getMessage());
+            LoggerFactory.getLogger(getClass()).info("extensions dir not found " + e.getMessage());
         }
         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
     }
@@ -179,13 +179,13 @@ public class CommonMode extends AbstractModule {
     }
 
     Routes addExtensionConfiguration(Routes routes) {
-        String pluginsDir = propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
-        if (pluginsDir != null) {
+        String extensionsDir = propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
+        if (extensionsDir != null) {
             try {
-                new ExtensionLoader(Paths.get(pluginsDir)).load((Consumer<Class<?>>)routes::add,
+                new ExtensionLoader(Paths.get(extensionsDir)).load((Consumer<Class<?>>)routes::add,
                         c -> c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class));
             } catch (FileNotFoundException e) {
-                LoggerFactory.getLogger(getClass()).info("plugin dir not found", e);
+                LoggerFactory.getLogger(getClass()).info("extensions dir not found", e);
             }
         }
         return routes;
