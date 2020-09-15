@@ -28,14 +28,14 @@ public class PipelineRegistryTest {
 
     @Test
     public void test_load_pipeline_registry_one_extension() throws IOException {
-        createJar(folder.getRoot().toPath(), "plugin", new File("src/test/java/org/icij/datashare/text/nlp/test/TestPipeline.java"));
+        createJar(folder.getRoot().toPath(), "extension", new File("src/test/java/org/icij/datashare/text/nlp/test/TestPipeline.java"));
         pipelineRegistry.load();
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
     }
 
     @Test
     public void test_load_pipeline_registry_one_extension_with_interface() throws IOException {
-        createJar(folder.getRoot().toPath(), "plugin", new File("src/test/java/org/icij/datashare/text/nlp/test/TestPipeline.java"),
+        createJar(folder.getRoot().toPath(), "extension", new File("src/test/java/org/icij/datashare/text/nlp/test/TestPipeline.java"),
                 new File("src/main/java/org/icij/datashare/text/nlp/AbstractPipeline.java"));
         pipelineRegistry.load();
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
@@ -43,7 +43,7 @@ public class PipelineRegistryTest {
 
     @Test
     public void test_load_pipeline_registry_one_extension_with_unknown_class_from_classpath() throws IOException {
-        createJar(folder.getRoot().toPath(), "plugin", PLUGIN_PIPELINE_SOURCE);
+        createJar(folder.getRoot().toPath(), "extension", EXTENSION_PIPELINE_SOURCE);
         pipelineRegistry.load();
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
     }
@@ -61,7 +61,7 @@ public class PipelineRegistryTest {
     }
 
     @Test(expected = FileNotFoundException.class)
-    public void test_plugin_dir_not_found() throws Exception {
+    public void test_extension_dir_not_found() throws Exception {
         new PipelineRegistry(new PropertiesProvider(new HashMap<>())).load();
     }
 
@@ -72,7 +72,7 @@ public class PipelineRegistryTest {
         }}));
     }
 
-    String PLUGIN_PIPELINE_SOURCE = "package org.icij.datashare.text.nlp.test;\n" +
+    String EXTENSION_PIPELINE_SOURCE = "package org.icij.datashare.text.nlp.test;\n" +
             "\n" +
             "import org.icij.datashare.PropertiesProvider;\n" +
             "import org.icij.datashare.text.Document;\n" +
@@ -86,13 +86,13 @@ public class PipelineRegistryTest {
             "import java.util.List;\n" +
             "import java.util.Optional;\n" +
             "\n" +
-            "public class PluginPipeline implements Pipeline {\n" +
+            "public class ExtensionPipeline implements Pipeline {\n" +
             "    @Override\n" +
             "    public Type getType() {\n" +
             "        return Type.TEST;\n" +
             "    }\n" +
             "\n" +
-            "    public PluginPipeline(PropertiesProvider provider) {}\n" +
+            "    public ExtensionPipeline(PropertiesProvider provider) {}\n" +
             "    @Override\n" +
             "    public boolean initialize(Language language) throws InterruptedException {\n" +
             "        return false;\n" +
