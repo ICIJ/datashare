@@ -1,6 +1,7 @@
 package org.icij.datashare.mode;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
@@ -11,8 +12,7 @@ import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Repository;
+import org.icij.datashare.*;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.com.DataBus;
@@ -102,9 +102,9 @@ public class CommonMode extends AbstractModule {
             bind(DocumentCollectionFactory.class).to(MemoryDocumentCollectionFactory.class).asEagerSingleton();
         } else {
             install(new FactoryModuleBuilder().
-                implement(DocumentQueue.class, RedisUserDocumentQueue.class).
-                implement(ReportMap.class, RedisUserReportMap.class).
-                build(DocumentCollectionFactory.class));
+                    implement(DocumentQueue.class, RedisUserDocumentQueue.class).
+                    implement(ReportMap.class, RedisUserReportMap.class).
+                    build(DocumentCollectionFactory.class));
         }
         DataBus dataBus;
         if ("memory".equals(propertiesProvider.getProperties().get("busType"))) {
@@ -152,8 +152,16 @@ public class CommonMode extends AbstractModule {
                 .setExtensions(new Extensions() {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
-                    defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-                    return defaultObjectMapper;
+                        defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+                        String extensionsDir = provider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
+                        String pluginsDir = provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR);
+                        if(extensionsDir == null)
+                            extensionsDir = "";
+                        if(pluginsDir == null)
+                            pluginsDir = "";
+                        defaultObjectMapper.registerModule(new SimpleModule().addSerializer(Extension.class, new ExtensionSerializer(Paths.get(extensionsDir))));
+                        defaultObjectMapper.registerModule(new SimpleModule().addSerializer(Plugin.class, new ExtensionSerializer(Paths.get(pluginsDir))));
+                        return defaultObjectMapper;
                     }
                 });
         addModeConfiguration(routes);

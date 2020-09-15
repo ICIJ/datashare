@@ -62,7 +62,7 @@ public class Extension implements Deliverable {
     }
 
     Extension(URL url, Type type) {
-        AbstractMap.SimpleEntry<String,String> res = extractIdVersion(requireNonNull(url, "an extension cannot be created with a null URL"));
+        AbstractMap.SimpleEntry<String,String> res = extractIdVersion(requireNonNull(url, "an extension/plugin cannot be created with a null URL"));
         this.id = res.getKey();
         this.url = url;
         this.version = res.getValue();
@@ -146,7 +146,7 @@ public class Extension implements Deliverable {
     @Override public String getId() { return this.id;}
 
     public Path getBasePath() {return Paths.get(getUrlFileName());}
-    protected String getUrlFileName() { return getName(url.getFile());}
+    protected String getUrlFileName() { return getName(url.getFile().replaceAll("/$",""));}
     protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
 
     @Override

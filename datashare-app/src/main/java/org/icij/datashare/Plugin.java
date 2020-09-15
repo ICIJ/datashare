@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
 
@@ -34,7 +33,7 @@ public class Plugin extends Extension {
     }
 
     Plugin(URL url) {
-        super(requireNonNull(url,"a plugin cannot be created with a null URL"),Type.PLUGIN);
+        super(url,Type.PLUGIN);
     }
 
     @Override

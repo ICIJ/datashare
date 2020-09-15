@@ -13,6 +13,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
@@ -120,8 +121,10 @@ public class PluginServiceTest {
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                 "]}").getBytes()));
         Set<Plugin> list = pluginService.list();
+        Iterator<Plugin> pluginIterator = list.iterator();
         assertThat(list).hasSize(2);
-        assertThat(list.iterator().next().isInstalled(pluginFolder.getRoot().toPath())).isTrue();
+        assertThat(pluginIterator.next().isInstalled(pluginFolder.getRoot().toPath())).isTrue();
+        assertThat(pluginIterator.next().isInstalled(pluginFolder.getRoot().toPath())).isTrue();
     }
 
     @Test

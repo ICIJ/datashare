@@ -20,6 +20,8 @@ public class WebAppAcceptanceTest extends AbstractProdWebServerTest {
     public void setUp() throws Exception {
         configure(new LocalMode(new HashMap<String, String>() {{
             put("dataDir", WebAppAcceptanceTest.class.getResource("/data").getPath());
+            put("extensionsDir", WebAppAcceptanceTest.class.getResource("/extensions").getPath());
+            put("pluginsDir", WebAppAcceptanceTest.class.getResource("/plugins").getPath());
         }}).createWebConfiguration());
         waitForDatashare();
     }
@@ -44,6 +46,24 @@ public class WebAppAcceptanceTest extends AbstractProdWebServerTest {
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> map = mapper.readValue(response.content(), new TypeReference<Map<String, Object>>() {});
         assertThat(map.keySet()).contains("git.commit.id", "git.commit.id.abbrev");
+    }
+
+    @Test
+    public void test_get_extensions_list_installed() throws Exception {
+        get("/api/extensions").should().haveType("application/json").contain("\"installed\":true");
+    }
+
+    @Test
+    public void test_get_plugins_list_installed() throws Exception {
+        get("/api/plugins").should().haveType("application/json").contain("\"installed\":true");
+    }
+
+    @Test
+    public void test_get_extensions_plugins_without_directory() throws Exception {
+        configure(new LocalMode(new HashMap<String, String>() {{ }}).createWebConfiguration());
+        waitForDatashare();
+        get("/api/extensions").should().haveType("application/json").contain("\"installed\":false");
+        get("/api/plugins").should().haveType("application/json").contain("\"installed\":false");
     }
 
     private void waitForDatashare() throws Exception {

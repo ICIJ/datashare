@@ -10,7 +10,7 @@ import java.net.URL;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ExtensionTest {
-    @Rule public TemporaryFolder dir = new TemporaryFolder();
+    @Rule public TemporaryFolder extensionsDir = new TemporaryFolder();
 
     @Test(expected = NullPointerException.class)
     public void test_cannot_create_extension_with_null_url() {
@@ -22,7 +22,7 @@ public class ExtensionTest {
         try {
             new Extension(null);
         } catch (NullPointerException npe) {
-            assertThat(npe).hasMessage("an extension cannot be created with a null URL");
+            assertThat(npe).hasMessage("an extension/plugin cannot be created with a null URL");
         }
     }
 
@@ -41,18 +41,24 @@ public class ExtensionTest {
     }
 
     @Test
+    public void test_id_from_url_with_version_number_and_dots() throws Exception {
+        assertThat(new Extension(new URL("http://foo.com/bar.qux-1.1.1.jar")).id).isEqualTo("bar.qux");
+        assertThat(new Extension(new URL("http://foo.com/bar.qux-1.1.1.jar")).version).isEqualTo("1.1.1");
+    }
+
+    @Test
     public void test_remove_pattern() {
         assertThat(Extension.removePattern(Extension.endsWithVersion,"my-extension")).isEqualTo("my-extension");
         assertThat(Extension.removePattern(Extension.endsWithVersion,"my-extension-1.2.3")).isEqualTo("my-extension");
         assertThat(Extension.removePattern(Extension.endsWithVersion,"extension.with.dot-1.0.0")).isEqualTo("extension.with.dot");
         assertThat(Extension.removePattern(Extension.endsWithExtension,"my-extension")).isEqualTo("my-extension");
-        assertThat(Extension.removePattern(Extension.endsWithExtension,"extension.jar")).isEqualTo("extension");
+        assertThat(Extension.removePattern(Extension.endsWithExtension,"my-extension.jar")).isEqualTo("my-extension");
         assertThat(Extension.removePattern(Extension.endsWithExtension,"my-extension-1.2.3")).isEqualTo("my-extension-1.2.3");
     }
 
     @Test
     public void test_has_previous_version() throws Exception {
-        File[] files = new File[] {dir.newFile("extension-1.0.0.jar")};
+        File[] files = new File[] {extensionsDir.newFile("extension-1.0.0.jar")};
         assertThat(Extension.getPreviousVersionInstalled(files, "extension-0.1.0")).hasSize(1);
         assertThat(Extension.getPreviousVersionInstalled(files, "extension-1.1.0")).hasSize(1);
         assertThat(Extension.getPreviousVersionInstalled(files, "extension-1.1")).hasSize(1);

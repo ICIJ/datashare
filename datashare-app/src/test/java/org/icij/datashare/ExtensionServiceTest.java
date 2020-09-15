@@ -57,15 +57,15 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_download_and_install_extension_removes_temporary_file() throws Exception {
-        otherFolder.newFile("extension.jar");
+        otherFolder.newFile("my-extension.jar");
 
-        Extension extension = new Extension(otherFolder.getRoot().toPath().resolve("extension.jar").toUri().toURL());
+        Extension extension = new Extension(otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri().toURL());
         File tmpFile = extension.download();
         extension.install(tmpFile, extensionFolder.getRoot().toPath());
 
         assertThat(tmpFile.getName()).startsWith("tmp");
         assertThat(tmpFile).doesNotExist();
-        assertThat(extensionFolder.getRoot().toPath().resolve("extension.jar").toFile()).exists();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
     }
 
     @Test
@@ -127,10 +127,10 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_list_merges_with_installed() throws IOException {
-        extensionFolder.newFile( "official-extension.jar");
-        extensionFolder.newFile( "custom-extension.jar");
+        extensionFolder.newFile( "official-my-extension.jar");
+        extensionFolder.newFile( "custom-my-extension.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
-                "{\"id\":\"official-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension.jar").toUri() + "\"}" +
+                "{\"id\":\"official-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("official-my-extension.jar").toUri() + "\"}" +
                 "]}").getBytes()));
 
         Set<Extension> list = extensionService.list();
@@ -151,7 +151,7 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_delete_extension_by_id() throws IOException {
-        extensionFolder.newFile( "my-extension.jar");
+        extensionFolder.newFile("my-extension.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension.jar").toUri() + "\"}" +
                 "]}").getBytes()));
@@ -163,7 +163,7 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_delete_extension_by_url() throws IOException {
-        extensionFolder.newFile( "my-extension.jar");
+        extensionFolder.newFile("my-extension.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
         Properties properties = PropertiesProvider.fromMap(new HashMap<String, String>() {{
             put("extensionDelete", extensionFolder.getRoot().toPath().resolve("my-extension.jar").toString());
