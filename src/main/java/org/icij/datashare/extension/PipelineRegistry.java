@@ -16,12 +16,12 @@ import java.util.function.Consumer;
 
 public class PipelineRegistry {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
-    private final Path pluginDir;
+    private final Path extensionsDir;
     private final PropertiesProvider propertiesProvider;
     private final Map<Pipeline.Type, Pipeline> pipelines = new HashMap<>();
 
     public PipelineRegistry(PropertiesProvider propertiesProvider) {
-        this.pluginDir = Paths.get(propertiesProvider.get(PropertiesProvider.EXTENSIONS_DIR).orElse("./extensions"));
+        this.extensionsDir = Paths.get(propertiesProvider.get(PropertiesProvider.EXTENSIONS_DIR).orElse("./extensions"));
         this.propertiesProvider = propertiesProvider;
     }
 
@@ -51,7 +51,7 @@ public class PipelineRegistry {
     }
 
     public synchronized void load() throws FileNotFoundException {
-        new ExtensionLoader(pluginDir).load((Consumer<Class<? extends Pipeline>>) this::register, Pipeline.class::isAssignableFrom);
+        new ExtensionLoader(extensionsDir).load((Consumer<Class<? extends Pipeline>>) this::register, Pipeline.class::isAssignableFrom);
     }
 }
 
