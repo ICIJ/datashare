@@ -153,14 +153,13 @@ public class CommonMode extends AbstractModule {
                     @Override
                     public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
                         defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+
                         String extensionsDir = provider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
                         String pluginsDir = provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR);
-                        if(extensionsDir == null)
-                            extensionsDir = "";
-                        if(pluginsDir == null)
-                            pluginsDir = "";
-                        defaultObjectMapper.registerModule(new SimpleModule().addSerializer(Extension.class, new ExtensionSerializer(Paths.get(extensionsDir))));
-                        defaultObjectMapper.registerModule(new SimpleModule().addSerializer(Plugin.class, new ExtensionSerializer(Paths.get(pluginsDir))));
+                        SimpleModule extensionModule = new SimpleModule();
+                        extensionModule.addSerializer(Extension.class, new ExtensionSerializer(extensionsDir));
+                        extensionModule.addSerializer(Plugin.class, new ExtensionSerializer(pluginsDir));
+                        defaultObjectMapper.registerModule(extensionModule);
                         return defaultObjectMapper;
                     }
                 });

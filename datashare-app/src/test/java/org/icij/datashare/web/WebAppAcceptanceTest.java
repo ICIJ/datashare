@@ -60,7 +60,7 @@ public class WebAppAcceptanceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_extensions_plugins_without_directory() throws Exception {
-        configure(new LocalMode(new HashMap<String, String>() {{ }}).createWebConfiguration());
+        configure(new LocalMode(new HashMap<>()).createWebConfiguration());
         waitForDatashare();
         get("/api/extensions").should().haveType("application/json").contain("\"installed\":false");
         get("/api/plugins").should().haveType("application/json").contain("\"installed\":false");

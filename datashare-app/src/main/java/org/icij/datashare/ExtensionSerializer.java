@@ -6,12 +6,17 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class ExtensionSerializer extends JsonSerializer<Extension> {
     private Path extensionsDir;
 
     public ExtensionSerializer(Path extensionsDir) {
         this.extensionsDir = extensionsDir;
+    }
+
+    public ExtensionSerializer(String extensionsDirString) {
+        this.extensionsDir = extensionsDirString == null ? null:(Paths.get(extensionsDirString));
     }
 
     @Override
@@ -23,7 +28,10 @@ public class ExtensionSerializer extends JsonSerializer<Extension> {
         jsonGenerator.writeStringField("description",extension.description);
         jsonGenerator.writeStringField("url",extension.url.toString());
         jsonGenerator.writeStringField("type",extension.type.toString());
-        jsonGenerator.writeBooleanField("installed",extension.isInstalled(extensionsDir));
+        if(extensionsDir != null)
+            jsonGenerator.writeBooleanField("installed",extension.isInstalled(extensionsDir));
+        else
+            jsonGenerator.writeBooleanField("installed",false);
         jsonGenerator.writeEndObject();
     }
 }
