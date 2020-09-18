@@ -48,7 +48,7 @@ public class Plugin extends Extension {
         File[] candidateFiles = ofNullable(pluginsDir.toFile().listFiles((file, s) -> file.isDirectory())).orElse(new File[0]);
         List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
         if (previousVersionInstalled.size() > 0) {
-            logger.info("removing previous ver<<<sions {}", previousVersionInstalled);
+            logger.info("removing previous versions {}", previousVersionInstalled);
             for (File file : previousVersionInstalled) FileUtils.deleteDirectory(file); }
         logger.info("installing plugin from file {} into {}", pluginFile, pluginsDir);
 

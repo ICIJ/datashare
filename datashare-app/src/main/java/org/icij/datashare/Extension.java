@@ -1,7 +1,6 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.io.FilenameUtils;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,13 +32,11 @@ import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.*;
 
 public class Extension implements Deliverable {
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
     enum Type {NLP, WEB, PLUGIN, UNKNOWN}
     static Pattern endsWithVersion = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)$");
     static Pattern endsWithExtension = Pattern.compile("(.*)(\\.[a-zA-Z]+$)");
     public static final String TMP_PREFIX = "tmp";
-    public static final String EXT_SUFFIX = "jar";
-    @JsonIgnore
-    final Logger logger = LoggerFactory.getLogger(getClass());
     public final String id;
     public final String name;
     public final String description;
@@ -62,7 +60,7 @@ public class Extension implements Deliverable {
     }
 
     Extension(URL url, Type type) {
-        AbstractMap.SimpleEntry<String,String> res = extractIdVersion(requireNonNull(url, "an extension/plugin cannot be created with a null URL"));
+        Entry<String, String> res = extractIdVersion(requireNonNull(url, "an extension/plugin cannot be created with a null URL"));
         this.id = res.getKey();
         this.url = url;
         this.version = res.getValue();
@@ -124,7 +122,7 @@ public class Extension implements Deliverable {
         return stream(candidateFiles).filter(f -> f.getName().startsWith(removePattern(endsWithVersion,baseName)) && endsWithVersion.matcher(getBaseName(f.getName())).matches()).collect(Collectors.toList());
     }
 
-    static AbstractMap.SimpleEntry<String,String> extractIdVersion(URL url){
+    static Entry<String,String> extractIdVersion(URL url){
         String baseName = removePattern(endsWithExtension,FilenameUtils.getName(url.getFile().replaceAll("/$","")));
         Matcher matcher = endsWithVersion.matcher(baseName);
         if(matcher.matches()){
