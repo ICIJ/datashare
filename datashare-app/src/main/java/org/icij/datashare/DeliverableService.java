@@ -58,9 +58,9 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public Set<T> list(String patternString) {
-        return merge(deliverableRegistry.get().stream().
-                        filter(p -> Pattern.compile(patternString).matcher(p.getId()).matches()).
-                        collect(toSet()),listInstalled());
+        return merge(deliverableRegistry.get(),listInstalled()).stream().
+                filter(p -> Pattern.compile(patternString).matcher(p.getId()).find()).
+                collect(toSet());
     }
 
     public Set<T> list() {
