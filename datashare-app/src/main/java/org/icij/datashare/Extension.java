@@ -65,7 +65,7 @@ public class Extension implements Deliverable {
         this.id = res.getKey();
         this.url = url;
         this.version = res.getValue();
-        this.name = null;
+        this.name = res.getKey();
         this.description = null;
         this.type = type;
     }
