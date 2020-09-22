@@ -40,6 +40,7 @@ public class Extension implements Deliverable {
     public final String id;
     public final String name;
     public final String description;
+
     public final URL url;
     public final String version;
     public final Type type;
@@ -146,6 +147,8 @@ public class Extension implements Deliverable {
     public Path getBasePath() {return Paths.get(getUrlFileName());}
     protected String getUrlFileName() { return getName(url.getFile().replaceAll("/$",""));}
     protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
+
+    @Override public String getInfoForPattern() { return String.join("%s / %s / %s",id,name,description);}
 
     @Override
     public String toString() {

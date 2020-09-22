@@ -30,7 +30,20 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_get_extension() {
+        Set<Extension> extensions = new ExtensionService(extensionFolder.getRoot().toPath()).list("my-extension-baz");
+        assertThat(extensions).hasSize(1);
+        assertThat(extensions.iterator().next().type).isEqualTo(WEB);
+    }
+
+    @Test
+    public void test_get_extension_with_id_pattern() {
         Set<Extension> extensions = new ExtensionService(extensionFolder.getRoot().toPath()).list("my-extension-ba");
+        assertThat(extensions).hasSize(2);
+    }
+
+    @Test
+    public void test_get_extension_with_description_pattern() {
+        Set<Extension> extensions = new ExtensionService(extensionFolder.getRoot().toPath()).list("description for ba");
         assertThat(extensions).hasSize(2);
     }
 
