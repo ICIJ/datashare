@@ -29,7 +29,7 @@ public class ExtensionSerializerTest {
         extensionSerializer.serialize(extension, jsonGenerator, new ObjectMapper().getSerializerProvider());
         jsonGenerator.flush();
         assertThat(jsonWriter.toString()).isEqualTo(
-                format("{\"id\":\"extension\",\"name\":extension,\"version\":\"1.0.0\",\"description\":null,\"url\":\"%s\",\"type\":\"UNKNOWN\",\"installed\":true}",extensionPath));
+                format("{\"id\":\"extension\",\"name\":\"extension\",\"version\":\"1.0.0\",\"description\":null,\"url\":\"%s\",\"type\":\"UNKNOWN\",\"installed\":true}",extensionPath));
     }
 
     @Test
@@ -41,6 +41,6 @@ public class ExtensionSerializerTest {
         new ExtensionSerializer((Path)null).serialize(extension, jsonGenerator, new ObjectMapper().getSerializerProvider());
         jsonGenerator.flush();
         assertThat(jsonWriter.toString()).isEqualTo(
-                format("{\"id\":\"extension\",\"name\":extension,\"version\":\"1.0.0\",\"description\":null,\"url\":\"%s\",\"type\":\"UNKNOWN\",\"installed\":false}",extensionPath));
+                format("{\"id\":\"extension\",\"name\":\"extension\",\"version\":\"1.0.0\",\"description\":null,\"url\":\"%s\",\"type\":\"UNKNOWN\",\"installed\":false}",extensionPath));
     }
 }
