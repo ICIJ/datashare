@@ -40,8 +40,7 @@ public class ExtensionResource {
      * $(curl localhost:8080/api/extensions?filter=.*paginator)
      */
     @Get()
-    public Set<Extension> getExtensionList(Context context)
-    {
+    public Set<Extension> getExtensionList(Context context) {
         return extensionService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
     }
 

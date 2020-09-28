@@ -144,11 +144,14 @@ public class Extension implements Deliverable {
 
     @Override public String getId() { return this.id;}
 
-    public Path getBasePath() {return Paths.get(getUrlFileName());}
-    protected String getUrlFileName() { return getName(url.getFile().replaceAll("/$",""));}
-    protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
+    @Override public String getName() { return name; }
 
-    @Override public String getInfoForPattern() { return String.join("%s / %s / %s",id,name,description);}
+    @Override public String getDescription() { return description; }
+
+    public Path getBasePath() {return Paths.get(getUrlFileName());}
+
+    protected String getUrlFileName() { return FilenameUtils.getName(url.getFile().replaceAll("/$",""));}
+    protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
 
     @Override
     public String toString() {

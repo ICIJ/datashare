@@ -58,9 +58,7 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public Set<T> list(String patternString) {
-        return merge(deliverableRegistry.get(),listInstalled()).stream().
-                filter(p -> Pattern.compile(patternString,Pattern.CASE_INSENSITIVE).matcher(String.join("%s %s %s",p.getInfoForPattern())).find()).
-                collect(toSet());
+        return merge(deliverableRegistry.search(patternString),listInstalled(patternString));
     }
 
     public Set<T> list() {
@@ -82,7 +80,12 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public Set<File> listInstalled() {
-        return stream(ofNullable(extensionsDir.toFile().listFiles()).orElse(new File[]{})).collect(Collectors.toSet());
+        return listInstalled(".*");
+    }
+
+    public Set<File> listInstalled(String patternString) {
+        Pattern pattern = Pattern.compile(patternString,Pattern.CASE_INSENSITIVE);
+        return stream(ofNullable(extensionsDir.toFile().listFiles()).orElse(new File[]{})).filter(f -> pattern.matcher(f.getName()).find()).collect(Collectors.toSet());
     }
 
     public void downloadAndInstall(String extensionId) throws IOException {

@@ -72,8 +72,8 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
     @Before
     public void setUp() {
         configure(routes -> routes.add(new ExtensionResource(new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
-                "{\"id\":\"my-extension\", \"url\": \"" + ClassLoader.getSystemResource(("my-extension.jar")) + "\"}," +
-                "{\"id\":\"my-other-extension\", \"url\": \"https://dummy.url\"}" +
+                "{\"id\":\"my-extension\",\"name\":\"My extension\",\"description\":\"Description of my extension\",\"url\": \"" + ClassLoader.getSystemResource(("my-extension.jar")) + "\"}," +
+                "{\"id\":\"my-other-extension\",\"name\":\"My other extension\",\"description\":\"Description of other my extension\",\"url\": \"https://dummy.url\"}" +
                 "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider())));
     }
 }
