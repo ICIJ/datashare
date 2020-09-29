@@ -1,7 +1,6 @@
 package org.icij.datashare.mode;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
@@ -12,7 +11,8 @@ import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.icij.datashare.*;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Repository;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.com.DataBus;

@@ -29,7 +29,8 @@ import static java.nio.file.Files.copy;
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
-import static org.apache.commons.io.FilenameUtils.*;
+import static org.apache.commons.io.FilenameUtils.getBaseName;
+import static org.apache.commons.io.FilenameUtils.getExtension;
 
 public class Extension implements Deliverable {
     protected final Logger logger = LoggerFactory.getLogger(getClass());

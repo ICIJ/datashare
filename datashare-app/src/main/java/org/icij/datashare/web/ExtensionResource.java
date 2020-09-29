@@ -3,14 +3,12 @@ package org.icij.datashare.web;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Delete;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.compress.archivers.ArchiveException;
-import org.icij.datashare.*;
+import org.icij.datashare.DeliverablePackage;
+import org.icij.datashare.DeliverableRegistry;
+import org.icij.datashare.ExtensionService;
 
 import java.io.IOException;
 import java.net.MalformedURLException;

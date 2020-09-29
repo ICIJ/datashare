@@ -1,10 +1,5 @@
 package org.icij.datashare.web;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import net.codestory.http.extensions.Extensions;
-import net.codestory.http.misc.Env;
-import org.icij.datashare.Extension;
 import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.LocalUserFilter;

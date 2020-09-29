@@ -4,9 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.net.URL;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Objects;
 
 import static java.util.Optional.ofNullable;
