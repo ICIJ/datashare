@@ -38,9 +38,10 @@ public class ExtensionResource {
      *
      * Example:
      * $(curl localhost:8080/api/extensions?filter=.*paginator)
+     * @return
      */
     @Get()
-    public Set<Extension> getExtensionList(Context context) {
+    public Set<DeliverablePackage> getExtensionList(Context context) {
         return extensionService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
     }
 

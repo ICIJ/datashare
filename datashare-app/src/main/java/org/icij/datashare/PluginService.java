@@ -48,8 +48,8 @@ public class PluginService extends DeliverableService<Plugin> {
     }
 
     public String addPlugins(String stringContent, List<String> userProjects) {
-        File[] dirs = ofNullable(extensionsDir.toFile().listFiles(File::isDirectory)).
-                orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + extensionsDir));
+        File[] dirs = ofNullable(deliverablesDir.toFile().listFiles(File::isDirectory)).
+                orElseThrow(() -> new IllegalStateException("invalid path for plugins: " + deliverablesDir));
         String scriptsString = stream(dirs).
                 map(d -> projectFilter(d.toPath(), userProjects)).filter(Objects::nonNull).
                 map(this::getPluginUrl).filter(Objects::nonNull).

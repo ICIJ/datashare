@@ -44,7 +44,7 @@ class CliApp {
         String listPattern = deliverableService.getListOpt(properties);
         if (listPattern != null) {
             listPattern = listPattern.equalsIgnoreCase("true") ? ".*":listPattern;
-            deliverableService.list(listPattern).forEach(d -> ((Extension)d).displayInformation(deliverableService.extensionsDir));
+            deliverableService.list(listPattern).forEach(DeliverablePackage::displayInformation);
         } else if(deliverableService.getInstallOpt(properties) != null) {
             deliverableService.downloadAndInstallFromCli(properties);
         } else if (deliverableService.getDeleteOpt(properties) != null) {

@@ -1,5 +1,10 @@
 package org.icij.datashare.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import net.codestory.http.extensions.Extensions;
+import net.codestory.http.misc.Env;
+import org.icij.datashare.Extension;
 import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.LocalUserFilter;
@@ -10,6 +15,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import static java.net.URLEncoder.encode;
@@ -35,15 +41,23 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
     }
 
     @Test
+    public void test_list_extension_with_possible_extension_upgrade() throws IOException {
+        extensionFolder.getRoot().toPath().resolve("my-extension-1.0.0.jar").toFile().createNewFile();
+        get("/api/extensions").
+                should().contain("\"installed\":true").contain("\"installedVersion\":\"1.0.0\"").contain("\"version\":\"1.0.1\"")
+                        .contain("\"id\":\"my-extension\"").contain("\"type\":\"WEB\"").should().not().contain("\"version\":\"1.0.0\"");
+    }
+
+    @Test
     public void test_install_extension_by_id(){
         put("/api/extensions/install?id=my-extension").should().respond(200);
-        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
     }
 
     @Test
     public void test_install_extension_by_url() throws UnsupportedEncodingException {
-        put("/api/extensions/install?url=" + encode(ClassLoader.getSystemResource("my-extension.jar").toString(), "utf-8")).should().respond(200);
-        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
+        put("/api/extensions/install?url=" + encode(ClassLoader.getSystemResource("my-extension-1.0.1.jar").toString(), "utf-8")).should().respond(200);
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
     }
 
     @Test
@@ -59,9 +73,9 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
     @Test
     public void test_uninstall_extension() {
         put("/api/extensions/install?id=my-extension").should().respond(200);
-        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).exists();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
         delete("/api/extensions/uninstall?id=my-extension").should().respond(200);
-        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension.jar").toFile()).doesNotExist();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).doesNotExist();
     }
 
     @Test
@@ -72,7 +86,7 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
     @Before
     public void setUp() {
         configure(routes -> routes.add(new ExtensionResource(new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
-                "{\"id\":\"my-extension\",\"name\":\"My extension\",\"description\":\"Description of my extension\",\"url\": \"" + ClassLoader.getSystemResource(("my-extension.jar")) + "\"}," +
+                "{\"id\":\"my-extension\",\"name\":\"My extension\",\"description\":\"Description of my extension\",\"version\":\"1.0.1\",\"type\":\"WEB\",\"url\": \"" + ClassLoader.getSystemResource(("my-extension-1.0.1.jar")) + "\"}," +
                 "{\"id\":\"my-other-extension\",\"name\":\"My other extension\",\"description\":\"Description of other my extension\",\"url\": \"https://dummy.url\"}" +
                 "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider())));
     }

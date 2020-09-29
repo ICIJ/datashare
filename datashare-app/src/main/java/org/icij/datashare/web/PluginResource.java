@@ -10,7 +10,7 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.compress.archivers.ArchiveException;
-import org.icij.datashare.Plugin;
+import org.icij.datashare.DeliverablePackage;
 import org.icij.datashare.DeliverableRegistry;
 import org.icij.datashare.PluginService;
 
@@ -42,7 +42,7 @@ public class PluginResource {
      * $(curl localhost:8080/api/plugins?filter=.*paginator)
      */
     @Get()
-    public Set<Plugin> getPluginList(Context context) {
+    public Set<DeliverablePackage> getPluginList(Context context) {
         return pluginService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
     }
 

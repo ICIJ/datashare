@@ -106,10 +106,10 @@ public class PluginServiceTest {
 
     @Test
     public void test_list_plugins_from_plugins_json_file() {
-        Set<Plugin> plugins = new PluginService().list();
+        Set<DeliverablePackage> plugins = new PluginService().list();
 
         assertThat(plugins).hasSize(3);
-        assertThat(plugins.stream().map(Plugin::getId).collect(toSet()))
+        assertThat(plugins.stream().map(DeliverablePackage::getId).collect(toSet()))
                 .containsOnly("my-plugin-foo", "my-plugin-baz", "my-plugin-bar");
     }
 
@@ -120,21 +120,21 @@ public class PluginServiceTest {
         PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                 "]}").getBytes()));
-        Set<Plugin> list = pluginService.list();
-        Iterator<Plugin> pluginIterator = list.iterator();
+        Set<DeliverablePackage> list = pluginService.list();
+        Iterator<DeliverablePackage> pluginIterator = list.iterator();
         assertThat(list).hasSize(2);
-        assertThat(pluginIterator.next().isInstalled(pluginFolder.getRoot().toPath())).isTrue();
-        assertThat(pluginIterator.next().isInstalled(pluginFolder.getRoot().toPath())).isTrue();
+        assertThat(pluginIterator.next().isInstalled()).isTrue();
+        assertThat(pluginIterator.next().isInstalled()).isTrue();
     }
 
     @Test
     public void test_plugin_properties() throws Exception {
-        Plugin plugin = new PluginService().list("my-plugin-foo").iterator().next();
-        assertThat(plugin.id).isEqualTo("my-plugin-foo");
-        assertThat(plugin.description).isEqualTo("description for foo");
-        assertThat(plugin.name).isEqualTo("Foo Plugin");
-        assertThat(plugin.version).isEqualTo("1.2.3");
-        assertThat(plugin.url.toString()).isEqualTo("https://github.com/ICIJ/mypluginfoo/releases/my-plugin-foo.tgz");
+        DeliverablePackage plugin = new PluginService().list("my-plugin-foo").iterator().next();
+        assertThat(plugin.getId()).isEqualTo("my-plugin-foo");
+        assertThat(plugin.getDescription()).isEqualTo("description for foo");
+        assertThat(plugin.getName()).isEqualTo("Foo Plugin");
+        assertThat(plugin.getVersion()).isEqualTo("1.2.3");
+        assertThat(plugin.getUrl().toString()).isEqualTo("https://github.com/ICIJ/mypluginfoo/releases/my-plugin-foo.tgz");
     }
 
     @Test
@@ -143,7 +143,7 @@ public class PluginServiceTest {
         assertThat(pluginService.list(".*")).hasSize(3);
         assertThat(pluginService.list(".*foo.*")).hasSize(1);
         assertThat(pluginService.list(".*baz.*")).hasSize(1);
-        assertThat(pluginService.list(".*baz.*").iterator().next().id).isEqualTo("my-plugin-baz");
+        assertThat(pluginService.list(".*baz.*").iterator().next().getId()).isEqualTo("my-plugin-baz");
         assertThat(pluginService.list(".*ba.*")).hasSize(2);
     }
 

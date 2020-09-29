@@ -33,7 +33,6 @@ import static org.apache.commons.io.FilenameUtils.*;
 
 public class Extension implements Deliverable {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    enum Type {NLP, WEB, PLUGIN, UNKNOWN}
     static Pattern endsWithVersion = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)$");
     static Pattern endsWithExtension = Pattern.compile("(.*)(\\.[a-zA-Z]+$)");
     public static final String TMP_PREFIX = "tmp";
@@ -71,11 +70,6 @@ public class Extension implements Deliverable {
     }
 
     Extension(URL url) {this(url, Type.UNKNOWN);}
-
-    @Override
-    public boolean isInstalled(Path extensionsDir) {
-        return extensionsDir.resolve(this.getUrlFileName()).toFile().exists();
-    }
 
     @Override
     public File download() throws IOException { return download(url);}
@@ -148,6 +142,10 @@ public class Extension implements Deliverable {
 
     @Override public String getDescription() { return description; }
 
+    @Override public String getVersion() { return version; }
+
+    @Override public Type getType() { return type; }
+
     public Path getBasePath() {return Paths.get(getUrlFileName());}
 
     protected String getUrlFileName() { return FilenameUtils.getName(url.getFile().replaceAll("/$",""));}
@@ -158,14 +156,7 @@ public class Extension implements Deliverable {
         return "Extension id='" + id + '\'' + '\'' + ", version='" + version + '\'' + "url=" + url + '\'' + "type=" + type;
     }
 
-    public void displayInformation(Path extensionDir) {
-        System.out.println(getClass().getSimpleName() + " " + id + (isInstalled(extensionDir)? " **INSTALLED**" : ""));
-        System.out.println("\t" + name);
-        System.out.println("\t" + version);
-        System.out.println("\t" + url);
-        System.out.println("\t" + description);
-        System.out.println("\t" + type);
-    }
+
 
     @Override
     public boolean equals(Object o) {

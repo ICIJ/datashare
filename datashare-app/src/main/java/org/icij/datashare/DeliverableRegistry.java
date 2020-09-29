@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import static java.util.Optional.ofNullable;
 
 public class DeliverableRegistry<T extends Deliverable> {
-    private final Map<String, T> deliverableMap;
+    final Map<String, T> deliverableMap;
 
     public DeliverableRegistry(@JsonProperty("deliverableList") List<T> deliverableList) {
         this.deliverableMap = Collections.unmodifiableMap(deliverableList.stream().collect(Collectors.toMap(T::getId, p -> p)));
