@@ -37,6 +37,7 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
 
     @Test
     public void test_list_extension_with_possible_extension_upgrade() throws IOException {
+        extensionFolder.getRoot().toPath().resolve("my-extension-0.9.0.jar").toFile().createNewFile();
         extensionFolder.getRoot().toPath().resolve("my-extension-1.0.0.jar").toFile().createNewFile();
         get("/api/extensions").
                 should().contain("\"installed\":true").contain("\"installedVersion\":\"1.0.0\"").contain("\"version\":\"1.0.1\"")

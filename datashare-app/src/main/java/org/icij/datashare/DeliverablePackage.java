@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.jetbrains.annotations.NotNull;
 
 import java.net.URL;
 import java.nio.file.Path;
@@ -8,7 +9,7 @@ import java.util.Objects;
 
 import static java.util.Optional.ofNullable;
 
-public class DeliverablePackage {
+public class DeliverablePackage implements Comparable<DeliverablePackage>{
     @JsonIgnore
     private final Path deliverablesDir;
     @JsonIgnore
@@ -69,5 +70,10 @@ public class DeliverablePackage {
     public int hashCode() {
         return Objects.hash(deliverableFromRegistry == null ? null : deliverableFromRegistry.getId(),
                             installedDeliverable == null ? null : installedDeliverable.getId());
+    }
+
+    @Override
+    public int compareTo(@NotNull DeliverablePackage deliverablePackage) {
+        return installedDeliverable.getId().compareTo(deliverablePackage.installedDeliverable.getId());
     }
 }

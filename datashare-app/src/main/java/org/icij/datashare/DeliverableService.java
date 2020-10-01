@@ -10,8 +10,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -64,14 +63,14 @@ public abstract class DeliverableService<T extends Deliverable> {
         return merge(deliverableRegistry.get(), listInstalled());
     }
 
-    private Set<DeliverablePackage> merge(Set<T> registryDeliverables, Set<File> listInstalled) {
-        Set<DeliverablePackage> installedDeliverables = listInstalled.stream().map(f -> {
+    private SortedSet<DeliverablePackage> merge(Set<T> registryDeliverables, Set<File> listInstalled) {
+        SortedSet<DeliverablePackage> installedDeliverables = listInstalled.stream().sorted(Comparator.reverseOrder()).map(f -> {
             try {
                 return new DeliverablePackage(newDeliverable(f.toURI().toURL()), deliverablesDir, deliverableRegistry);
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
-        }).collect(toSet());
+        }).collect(Collectors.toCollection(TreeSet::new));
         installedDeliverables.addAll(registryDeliverables.stream().map(d -> new DeliverablePackage(d,deliverablesDir,deliverableRegistry)).collect(toSet()));
         return installedDeliverables;
     }

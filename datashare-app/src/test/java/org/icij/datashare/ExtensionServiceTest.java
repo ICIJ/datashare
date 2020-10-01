@@ -161,6 +161,17 @@ public class ExtensionServiceTest {
     }
 
     @Test
+    public void test_list_merges_with_two_differnt_version_installed() throws IOException {
+        extensionFolder.newFile( "official-extension-7.0.0.jar");
+        extensionFolder.newFile( "official-extension-7.0.1.jar");
+        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                "{\"id\":\"official-extension\",\"version\":\"7.1.0\",\"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension-7.1.0-with-dependencies.jar").toUri() + "\"}" +
+                "]}").getBytes()));
+        Set<DeliverablePackage> list = extensionService.list();
+        assertThat(list).hasSize(1);
+    }
+
+    @Test
     public void test_delete_extension_by_id() throws IOException {
         extensionFolder.newFile("my-extension-1.0.1.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
