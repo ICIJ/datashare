@@ -74,6 +74,12 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
 
     @Override
     public int compareTo(@NotNull DeliverablePackage deliverablePackage) {
+        if(reference().getId().equals(deliverablePackage.reference().getId())){
+            if (getVersion() != null && deliverablePackage.getVersion() != null){
+                return getVersion().compareTo(deliverablePackage.getVersion());
+            }
+            return 0;
+        }
        return reference().getId().compareTo(deliverablePackage.reference().getId());
     }
 }

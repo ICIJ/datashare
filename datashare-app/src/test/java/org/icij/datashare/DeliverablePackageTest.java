@@ -13,10 +13,18 @@ public class DeliverablePackageTest {
     public TemporaryFolder deliverableDir = new TemporaryFolder();
 
     @Test
-    public void test_compare_deliverables() throws IOException {
+    public void test_compare_deliverables_with_id() throws IOException {
         ExtensionService extensionService = new ExtensionService(deliverableDir.getRoot().toPath());
         DeliverablePackage deliverablePackageA = new DeliverablePackage(extensionService.newDeliverable(deliverableDir.newFile( "my-extension-A.jar").toURI().toURL()),deliverableDir.getRoot().toPath(),extensionService.deliverableRegistry);
         DeliverablePackage deliverablePackageB = new DeliverablePackage(extensionService.newDeliverable(deliverableDir.newFile( "my-extension-B.jar").toURI().toURL()),deliverableDir.getRoot().toPath(),extensionService.deliverableRegistry);
+        assertThat(deliverablePackageA.compareTo(deliverablePackageB)).isLessThan(0);
+    }
+
+    @Test
+    public void test_compare_deliverables_with_same_id_different_version() throws IOException {
+        ExtensionService extensionService = new ExtensionService(deliverableDir.getRoot().toPath());
+        DeliverablePackage deliverablePackageA = new DeliverablePackage(extensionService.newDeliverable(deliverableDir.newFile( "my-extension-1.jar").toURI().toURL()),deliverableDir.getRoot().toPath(),extensionService.deliverableRegistry);
+        DeliverablePackage deliverablePackageB = new DeliverablePackage(extensionService.newDeliverable(deliverableDir.newFile( "my-extension-2.jar").toURI().toURL()),deliverableDir.getRoot().toPath(),extensionService.deliverableRegistry);
         assertThat(deliverablePackageA.compareTo(deliverablePackageB)).isLessThan(0);
     }
 
