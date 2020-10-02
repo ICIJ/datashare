@@ -44,7 +44,7 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
     public URL getUrl(){return reference().getUrl();}
     public Deliverable.Type getType() {return reference().getType();}
     public String getVersion() {return reference().getVersion();}
-    public String getInstalledVersion() {return installedDeliverable == null ? null : installedDeliverable.getVersion();}
+    public String getInstalledVersion() {return isInstalled() ? installedDeliverable.getVersion() : null;}
 
     @Override
     public String toString() {
