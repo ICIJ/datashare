@@ -15,6 +15,9 @@ Datashare is still in beta. Please share your feedback by filling in this survey
 
 Datashare's user guide can be found here: https://icij.gitbook.io/datashare/
 
+## Follow new updates and features
+
+@ICIJorg (https://twitter.com/ICIJorg) publishes video tweets of new features with the hashtag #ICIJDatashare.
 
 ## Frontend
 
