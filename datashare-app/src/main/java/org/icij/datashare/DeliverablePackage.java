@@ -29,6 +29,8 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
 
     public Deliverable reference() {return ofNullable(deliverableFromRegistry).orElse(installedDeliverable);}
 
+    public Deliverable getInstalledDeliverable() {return installedDeliverable;}
+
     public void displayInformation() {
         System.out.println(reference().getClass().getSimpleName() + " " + reference().getId() + (isInstalled() ? " **INSTALLED** : " +  getInstalledVersion() : ""));
         System.out.println("\t" + reference().getName());

@@ -98,6 +98,7 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public void delete(String extensionId) throws IOException {
-        deliverableRegistry.get(extensionId).delete(deliverablesDir);
+        list().stream().filter(d -> d.reference().getId().equals(extensionId)
+                || d.reference().getUrl().getPath().equals(extensionId)).findFirst().get().getInstalledDeliverable().delete(deliverablesDir);
     }
 }

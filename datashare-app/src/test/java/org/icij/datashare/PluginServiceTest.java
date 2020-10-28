@@ -212,9 +212,12 @@ public class PluginServiceTest {
                         "{\"id\":\"my-plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz") + "\"}" +
                         "]}").getBytes()));
         pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin.tgz"));
+        Files.createDirectory(pluginFolder.getRoot().toPath().resolve("my-custom-plugin"));
 
         pluginService.delete("my-plugin");
+        pluginService.delete("my-custom-plugin");
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-custom-plugin").toFile()).doesNotExist();
     }
 
     @Test

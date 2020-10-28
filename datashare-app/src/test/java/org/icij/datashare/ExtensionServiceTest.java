@@ -174,13 +174,15 @@ public class ExtensionServiceTest {
     @Test
     public void test_delete_extension_by_id() throws IOException {
         extensionFolder.newFile("my-extension-1.0.1.jar");
+        extensionFolder.newFile("my-custom-extension-1.0.0.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toUri() + "\"}" +
                 "]}").getBytes()));
 
         extensionService.delete("my-extension");
+        extensionService.delete("my-custom-extension");
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).doesNotExist();
-
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-custom-extension-1.0.0.jar").toFile()).doesNotExist();
     }
 
     @Test
