@@ -126,7 +126,7 @@ public class ExtensionServiceTest {
     public void test_list_installed_extensions_with_different_id_and_filename() throws Exception {
         extensionFolder.newFile( "official-extension-version-jar-with-dependencies.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
-                "{\"id\":\"official-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension-version-jar-with-dependencies.jar").toUri() + "\"}" +
+                "{\"id\":\"official-extension\",\"type\":\"NLP\",\"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension-version-jar-with-dependencies.jar").toUri() + "\"}" +
                 "]}").getBytes()));
         Set<DeliverablePackage> list = extensionService.list();
         assertThat(list.iterator().next().isInstalled()).isTrue();
@@ -142,7 +142,7 @@ public class ExtensionServiceTest {
         extensionFolder.newFile( "official-my-extension-1.0.1.jar");
         extensionFolder.newFile( "custom-my-extension-1.0.1.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
-                "{\"id\":\"official-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("official-my-extension-1.0.1.jar").toUri() + "\"}" +
+                "{\"id\":\"official-extension\",\"type\":\"NLP\",\"url\": \"" + otherFolder.getRoot().toPath().resolve("official-my-extension-1.0.1.jar").toUri() + "\"}" +
                 "]}").getBytes()));
         Set<DeliverablePackage> list = extensionService.list();
         Iterator<DeliverablePackage> extensionsIterator = list.iterator();
@@ -154,7 +154,7 @@ public class ExtensionServiceTest {
     public void test_list_merges_with_possible_upgrade() throws IOException {
         extensionFolder.newFile( "official-extension-7.0.0.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
-                "{\"id\":\"official-extension\",\"version\":\"7.1.0\",\"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension-7.1.0-with-dependencies.jar").toUri() + "\"}" +
+                "{\"id\":\"official-extension\",\"version\":\"7.1.0\",\"type\":\"NLP\",\"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension-7.1.0-with-dependencies.jar").toUri() + "\"}" +
                 "]}").getBytes()));
         Set<DeliverablePackage> list = extensionService.list();
         assertThat(list).hasSize(1);
@@ -165,10 +165,22 @@ public class ExtensionServiceTest {
         extensionFolder.newFile( "official-extension-7.0.0.jar");
         extensionFolder.newFile( "official-extension-7.0.1.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
-                "{\"id\":\"official-extension\",\"version\":\"7.1.0\",\"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension-7.1.0-with-dependencies.jar").toUri() + "\"}" +
+                "{\"id\":\"official-extension\",\"version\":\"7.1.0\",\"type\":\"NLP\",\"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension-7.1.0-with-dependencies.jar").toUri() + "\"}" +
                 "]}").getBytes()));
         Set<DeliverablePackage> list = extensionService.list();
         assertThat(list).hasSize(1);
+    }
+
+    @Test
+    public void test_list_merges_by_url() throws IOException {
+        extensionFolder.newFile( "official-extension-7.1.0-with-dependencies.jar");
+        ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                "{\"id\":\"official-extension\",\"version\":\"7.1.0\",\"type\":\"NLP\",\"url\": \"" + otherFolder.getRoot().toPath().resolve("official-extension-7.1.0-with-dependencies.jar").toUri() + "\"}" +
+                "]}").getBytes()));
+        Set<DeliverablePackage> list = extensionService.list();
+        Iterator<DeliverablePackage> extensionsIterator = list.iterator();
+        assertThat(list).hasSize(1);
+        assertThat(extensionsIterator.next().getId()).isEqualTo("official-extension");
     }
 
     @Test
@@ -176,7 +188,7 @@ public class ExtensionServiceTest {
         extensionFolder.newFile("my-extension-1.0.1.jar");
         extensionFolder.newFile("my-custom-extension-1.0.0.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
-                "{\"id\":\"my-extension\", \"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toUri() + "\"}" +
+                "{\"id\":\"my-extension\",\"type\":\"NLP\",\"url\": \"" + otherFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toUri() + "\"}" +
                 "]}").getBytes()));
 
         extensionService.delete("my-extension");

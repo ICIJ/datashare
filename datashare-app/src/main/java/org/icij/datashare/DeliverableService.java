@@ -71,7 +71,10 @@ public abstract class DeliverableService<T extends Deliverable> {
                 throw new RuntimeException(e);
             }
         }).collect(Collectors.toCollection(TreeSet::new));
-        installedDeliverables.addAll(registryDeliverables.stream().map(d -> new DeliverablePackage(d,deliverablesDir,deliverableRegistry)).collect(toSet()));
+        Set<DeliverablePackage> registryDeliverablePackages = registryDeliverables.stream().map(d -> new DeliverablePackage(d, deliverablesDir, deliverableRegistry)).collect(toSet());
+        installedDeliverables.addAll(registryDeliverablePackages);
+        Set<Path> registryPaths = registryDeliverablePackages.stream().map(r -> r.reference().getBasePath()).collect(toSet());
+        installedDeliverables.removeAll(installedDeliverables.stream().filter(d -> d.getType().equals(Deliverable.Type.UNKNOWN)).filter(d -> registryPaths.contains(d.reference().getBasePath())).collect(toSet()));
         return installedDeliverables;
     }
 
