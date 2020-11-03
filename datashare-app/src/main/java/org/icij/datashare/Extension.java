@@ -34,13 +34,12 @@ import static org.apache.commons.io.FilenameUtils.getExtension;
 
 public class Extension implements Deliverable {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    static Pattern endsWithVersion = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)$");
+    static Pattern extensionFormat = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)(?<!-)([-\\w]*)?$"); //of form: id-1.2.3-suffix with negative lookbehind for suffix dash
     static Pattern endsWithExtension = Pattern.compile("(.*)(\\.[a-zA-Z]+$)");
     public static final String TMP_PREFIX = "tmp";
     public final String id;
     public final String name;
     public final String description;
-
     public final URL url;
     public final String version;
     public final Type type;
@@ -115,12 +114,12 @@ public class Extension implements Deliverable {
     }
 
     static List<File> getPreviousVersionInstalled(File[] candidateFiles, String baseName) {
-        return stream(candidateFiles).filter(f -> f.getName().startsWith(removePattern(endsWithVersion,baseName)) && endsWithVersion.matcher(getBaseName(f.getName())).matches()).collect(Collectors.toList());
+        return stream(candidateFiles).filter(f -> f.getName().startsWith(removePattern(extensionFormat,baseName)) && extensionFormat.matcher(getBaseName(f.getName())).matches()).collect(Collectors.toList());
     }
 
     static Entry<String,String> extractIdVersion(URL url){
         String baseName = removePattern(endsWithExtension,FilenameUtils.getName(url.getFile().replaceAll("/$","")));
-        Matcher matcher = endsWithVersion.matcher(baseName);
+        Matcher matcher = extensionFormat.matcher(baseName);
         if(matcher.matches()){
             return new AbstractMap.SimpleEntry<>(matcher.group(1),matcher.group(2));
         }
@@ -157,8 +156,6 @@ public class Extension implements Deliverable {
         return "Extension id='" + id + '\'' + '\'' + ", version='" + version + '\'' + "url=" + url + '\'' + "type=" + type;
     }
 
-
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -176,5 +173,11 @@ public class Extension implements Deliverable {
     @Override
     public int hashCode() {
         return Objects.hash(id, version);
+    }
+
+    @Override
+    public int compareTo(@NotNull Deliverable deliverable) {
+        int idCompare = this.id.compareTo(deliverable.getId());
+        return idCompare == 0 ? ofNullable(this.version).orElse("-1").compareTo(ofNullable(deliverable.getVersion()).orElse("-1")) : idCompare;
     }
 }

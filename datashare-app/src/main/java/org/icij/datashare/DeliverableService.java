@@ -10,11 +10,15 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Properties;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
+import static java.util.Comparator.reverseOrder;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
 
@@ -64,17 +68,15 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     private SortedSet<DeliverablePackage> merge(Set<T> registryDeliverables, Set<File> listInstalled) {
-        SortedSet<DeliverablePackage> installedDeliverables = listInstalled.stream().sorted(Comparator.reverseOrder()).map(f -> {
+        SortedSet<DeliverablePackage> installedDeliverables = listInstalled.stream().sorted(reverseOrder()).map(f -> { //reverseOrder() for having latest versions
             try {
-                return new DeliverablePackage(newDeliverable(f.toURI().toURL()), deliverablesDir, deliverableRegistry);
+                T installedDeliverable = newDeliverable(f.toURI().toURL());
+                return new DeliverablePackage(installedDeliverable, deliverablesDir, deliverableRegistry.deliverableMap.get(installedDeliverable.getId()));
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
         }).collect(Collectors.toCollection(TreeSet::new));
-        Set<DeliverablePackage> registryDeliverablePackages = registryDeliverables.stream().map(d -> new DeliverablePackage(d, deliverablesDir, deliverableRegistry)).collect(toSet());
-        installedDeliverables.addAll(registryDeliverablePackages);
-        Set<Path> registryPaths = registryDeliverablePackages.stream().map(r -> r.reference().getBasePath()).collect(toSet());
-        installedDeliverables.removeAll(installedDeliverables.stream().filter(d -> d.getType().equals(Deliverable.Type.UNKNOWN)).filter(d -> registryPaths.contains(d.reference().getBasePath())).collect(toSet()));
+        installedDeliverables.addAll(registryDeliverables.stream().map(d -> new DeliverablePackage(null, deliverablesDir, d)).collect(toSet()));
         return installedDeliverables;
     }
 

@@ -6,6 +6,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.net.URL;
+import java.util.AbstractMap.SimpleEntry;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -47,13 +48,53 @@ public class ExtensionTest {
     }
 
     @Test
-    public void test_remove_pattern() {
-        assertThat(Extension.removePattern(Extension.endsWithVersion,"my-extension")).isEqualTo("my-extension");
-        assertThat(Extension.removePattern(Extension.endsWithVersion,"my-extension-1.2.3")).isEqualTo("my-extension");
-        assertThat(Extension.removePattern(Extension.endsWithVersion,"extension.with.dot-1.0.0")).isEqualTo("extension.with.dot");
-        assertThat(Extension.removePattern(Extension.endsWithExtension,"my-extension")).isEqualTo("my-extension");
-        assertThat(Extension.removePattern(Extension.endsWithExtension,"my-extension.jar")).isEqualTo("my-extension");
-        assertThat(Extension.removePattern(Extension.endsWithExtension,"my-extension-1.2.3")).isEqualTo("my-extension-1.2.3");
+    public void test_compare_to_equals_without_versions() throws Exception {
+        Extension e1 = new Extension(new URL("http://foo.com/bar.jar"));
+        Extension e2 = new Extension(new URL("http://foo.com/bar.jar"));
+        assertThat(e1).isEqualTo(e2);
+        assertThat(e1.compareTo(e2)).isEqualTo(0);
+    }
+
+    @Test
+    public void test_compare_to_equals_with_version() throws Exception {
+        Extension e1 = new Extension(new URL("http://foo.com/bar-1.0.0.jar"));
+        Extension e2 = new Extension(new URL("http://foo.com/bar-1.0.0.jar"));
+        assertThat(e1).isEqualTo(e2);
+        assertThat(e1.compareTo(e2)).isEqualTo(0);
+    }
+
+    @Test
+    public void test_compare_to_equals_with_different_version() throws Exception {
+        Extension e1 = new Extension(new URL("http://foo.com/bar-1.0.0.jar"));
+        Extension e2 = new Extension(new URL("http://foo.com/bar-1.0.1.jar"));
+        assertThat(e1).isNotEqualTo(e2);
+        assertThat(e1.compareTo(e2)).isNegative();
+    }
+
+    @Test
+    public void test_compare_to_equals_with_different_id() throws Exception {
+        Extension e1 = new Extension(new URL("http://foo.com/bar.jar"));
+        Extension e2 = new Extension(new URL("http://foo.com/foo.jar"));
+        assertThat(e1).isNotEqualTo(e2);
+        assertThat(e1.compareTo(e2)).isNegative();
+    }
+
+    @Test
+    public void test_compare_to_equals_with_null_one_version() throws Exception {
+        Extension e1 = new Extension(new URL("http://foo.com/bar.jar"));
+        Extension e2 = new Extension(new URL("http://foo.com/bar-1.0.0.jar"));
+        assertThat(e1).isNotEqualTo(e2);
+        assertThat(e1.compareTo(e2)).isNegative();
+    }
+
+    @Test
+    public void test_extract_id_version() throws Exception {
+        assertThat(Extension.extractIdVersion(new URL("file:///my-extension"))).isEqualTo(new SimpleEntry<>("my-extension",null));
+        assertThat(Extension.extractIdVersion(new URL("file:///my-extension-1.2.3"))).isEqualTo(new SimpleEntry<>("my-extension","1.2.3"));
+        assertThat(Extension.extractIdVersion(new URL("file:///my.extension.with.dot-1.2.3"))).isEqualTo(new SimpleEntry<>("my.extension.with.dot","1.2.3"));
+        assertThat(Extension.extractIdVersion(new URL("file:///my-extension.jar"))).isEqualTo(new SimpleEntry<>("my-extension",null));
+        assertThat(Extension.extractIdVersion(new URL("file:///my-extension-1.2.3.jar"))).isEqualTo(new SimpleEntry<>("my-extension","1.2.3"));
+        assertThat(Extension.extractIdVersion(new URL("file:///my-extension-1.2.3-jar-with-dependencies.jar"))).isEqualTo(new SimpleEntry<>("my-extension","1.2.3"));
     }
 
     @Test

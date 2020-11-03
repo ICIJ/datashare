@@ -17,10 +17,13 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
     @JsonIgnore
     private final Deliverable installedDeliverable;
 
-    public <T extends Deliverable> DeliverablePackage(Deliverable installedDeliverable, Path deliverableDir, DeliverableRegistry<T> deliverableRegistry) {
+    public <T extends Deliverable> DeliverablePackage(Deliverable installedDeliverable, Path deliverableDir, Deliverable deliverableFromRegistry) {
+        if (installedDeliverable == null && deliverableFromRegistry == null) {
+            throw new IllegalStateException("cannot create deliverable package with both null deliverables");
+        }
         this.deliverablesDir = deliverableDir;
         this.installedDeliverable = installedDeliverable;
-        this.deliverableFromRegistry = deliverableRegistry.deliverableMap.get(installedDeliverable.getId());
+        this.deliverableFromRegistry = deliverableFromRegistry;
     }
 
     public boolean isInstalled() {
@@ -59,29 +62,18 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         DeliverablePackage that = (DeliverablePackage) o;
-        if (that.deliverableFromRegistry == null && this.deliverableFromRegistry ==  null) {
-            return this.installedDeliverable.getId().equals(that.installedDeliverable.getId());
-        }
-        if (that.deliverableFromRegistry != null && this.deliverableFromRegistry != null) {
-            return this.deliverableFromRegistry.getId().equals(that.deliverableFromRegistry.getId());
-        }
-        return false;
+        return compareTo(that) == 0;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(deliverableFromRegistry == null ? null : deliverableFromRegistry.getId(),
-                            installedDeliverable == null ? null : installedDeliverable.getId());
+        return Objects.hash(installedDeliverable);
     }
 
     @Override
     public int compareTo(@NotNull DeliverablePackage deliverablePackage) {
-        if(reference().getId().equals(deliverablePackage.reference().getId())){
-            if (getVersion() != null && deliverablePackage.getVersion() != null){
-                return getVersion().compareTo(deliverablePackage.getVersion());
-            }
-            return 0;
-        }
-       return reference().getId().compareTo(deliverablePackage.reference().getId());
+        Deliverable myDeliverable = ofNullable(installedDeliverable).orElse(deliverableFromRegistry);
+        Deliverable otherDeliverable = ofNullable(deliverablePackage.installedDeliverable).orElse(deliverablePackage.deliverableFromRegistry);
+        return myDeliverable.getId().compareTo(otherDeliverable.getId());
     }
 }

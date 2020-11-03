@@ -80,7 +80,7 @@ public class Plugin extends Extension {
 
     @Override
     public Path getBasePath() {
-        if (url.getHost().equals("github.com") || endsWithVersion.matcher(getBaseName(getUrlFileName())).matches()) {
+        if (url.getHost().equals("github.com") || extensionFormat.matcher(getBaseName(getUrlFileName())).matches()) {
             if (versionBeginsWithV.matcher(version).matches()) {
                 return Paths.get(id + "-" + version.substring(1));
             }
