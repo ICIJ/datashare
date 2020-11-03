@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 
-public interface Deliverable extends Entity {
+public interface Deliverable extends Entity, Comparable<Deliverable> {
     enum Type {NLP, WEB, PLUGIN, UNKNOWN}
     URL getUrl();
     Path getBasePath();
