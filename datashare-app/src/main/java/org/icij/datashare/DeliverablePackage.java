@@ -17,7 +17,7 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
     @JsonIgnore
     private final Deliverable installedDeliverable;
 
-    public <T extends Deliverable> DeliverablePackage(Deliverable installedDeliverable, Path deliverableDir, Deliverable deliverableFromRegistry) {
+    public DeliverablePackage(Deliverable installedDeliverable, Path deliverableDir, Deliverable deliverableFromRegistry) {
         if (installedDeliverable == null && deliverableFromRegistry == null) {
             throw new IllegalStateException("cannot create deliverable package with both null deliverables");
         }
