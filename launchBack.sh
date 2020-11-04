@@ -14,6 +14,7 @@ fi
 export DS_DOCKER_PREVIEW_HOST="http://localhost:5000"
 export DS_DOCKER_BACK_HOST="http://localhost:$(docker ps|grep 8080|sed 's/.*0.0.0.0:\(.*\)->8080.*/\1/g')"
 export DS_DOCKER_FRONT_HOST="http://localhost:$(docker ps|grep 9090|sed 's/.*0.0.0.0:\(.*\)->9090.*/\1/g')"
+export DS_DOCKER_USER_ADMIN="icij"
 
 mkdir -p $DIR/dist
 
