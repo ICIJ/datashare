@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATASHARE_HOME="${HOME}"/.local/share/datashare
-mkdir -p "${DATASHARE_HOME}"/dist "${DATASHARE_HOME}"/index "${DATASHARE_HOME}"/plugins
+mkdir -p "${DATASHARE_HOME}"/dist "${DATASHARE_HOME}"/index "${DATASHARE_HOME}"/plugins "${DATASHARE_HOME}"/extensions
 mkdir -p "${HOME}"/Datashare
 
 DATASHARE_JAR=/usr/share/java/datashare.jar
@@ -15,4 +15,5 @@ ${JAVA} -DPROD_MODE=true -Djava.system.class.loader=org.icij.datashare.DynamicCl
     --settings ./dist/datashare.conf --mode EMBEDDED \
     --browserOpenLink true \
     --pluginsDir "${DATASHARE_HOME}"/plugins \
+    --extensionsDir "${DATASHARE_HOME}"/extensions \
     --elasticsearchDataPath "${DATASHARE_HOME}"/index "$@"
