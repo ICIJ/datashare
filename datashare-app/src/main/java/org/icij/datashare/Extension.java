@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.io.FilenameUtils;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +34,7 @@ import static org.apache.commons.io.FilenameUtils.getBaseName;
 import static org.apache.commons.io.FilenameUtils.getExtension;
 
 public class Extension implements Deliverable {
+    @JsonIgnore
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     static Pattern extensionFormat = Pattern.compile("([a-zA-Z\\-.]*)-([0-9.]*)(?<!-)([-\\w]*)?$"); //of form: id-1.2.3-suffix with negative lookbehind for suffix dash
     static Pattern endsWithExtension = Pattern.compile("(.*)(\\.[a-zA-Z]+$)");
@@ -146,6 +148,7 @@ public class Extension implements Deliverable {
 
     @Override public Type getType() { return type; }
 
+    @JsonIgnore
     public Path getBasePath() {return Paths.get(getUrlFileName());}
 
     protected String getUrlFileName() { return FilenameUtils.getName(url.getFile().replaceAll("/$",""));}

@@ -160,7 +160,7 @@ public class ExtensionServiceTest {
                 "]}").getBytes()));
         Set<DeliverablePackage> list = extensionService.list();
         assertThat(list).hasSize(1);
-        assertThat(list.iterator().next().getInstalledVersion()).isEqualTo("7.0.1");
+        assertThat(list.iterator().next().getVersion()).isEqualTo("7.0.1");
     }
 
     @Test

@@ -54,14 +54,4 @@ public class DeliverablePackageTest {
         DeliverablePackage d = new DeliverablePackage(new Extension(deliverableDir.newFile( "my-extension.jar").toURI().toURL()),deliverableDir.getRoot().toPath(),null);
         assertThat(d.isInstalled()).isTrue();
     }
-
-    @Test
-    public void test_get_installed_version() throws IOException {
-        DeliverablePackage d = new DeliverablePackage(new Extension(deliverableDir.newFile( "my-extension-1.0.0.jar").toURI().toURL()),deliverableDir.getRoot().toPath(),null);
-        assertThat(d.getInstalledVersion()).isEqualTo("1.0.0");
-
-        deliverableDir.getRoot().toPath().resolve("my-extension-1.0.0.jar").toFile().delete();
-        assertThat(d.getInstalledVersion()).isNull();
-    }
-
 }

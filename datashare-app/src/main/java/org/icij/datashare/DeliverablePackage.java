@@ -13,9 +13,8 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
     @JsonIgnore
     private final Path deliverablesDir;
     @JsonIgnore
-    private final Deliverable deliverableFromRegistry;
-    @JsonIgnore
     private final Deliverable installedDeliverable;
+    private final Deliverable deliverableFromRegistry;
 
     public DeliverablePackage(Deliverable installedDeliverable, Path deliverableDir, Deliverable deliverableFromRegistry) {
         if (installedDeliverable == null && deliverableFromRegistry == null) {
@@ -30,17 +29,25 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
         return installedDeliverable != null && deliverablesDir.resolve(installedDeliverable.getBasePath()).toFile().exists();
     }
 
-    public Deliverable reference() {return ofNullable(deliverableFromRegistry).orElse(installedDeliverable);}
+    public Deliverable reference() {return ofNullable(installedDeliverable).orElse(deliverableFromRegistry);}
 
     public Deliverable getInstalledDeliverable() {return installedDeliverable;}
 
+    public Deliverable getDeliverableFromRegistry() {return deliverableFromRegistry;}
+
     public void displayInformation() {
-        System.out.println(reference().getClass().getSimpleName() + " " + reference().getId() + (isInstalled() ? " **INSTALLED** : " +  getInstalledVersion() : ""));
-        System.out.println("\t" + reference().getName());
-        System.out.println("\t" + reference().getVersion());
-        System.out.println("\t" + reference().getUrl());
-        System.out.println("\t" + reference().getDescription());
-        System.out.println("\t" + reference().getType());
+        Deliverable deliverable = ofNullable(deliverableFromRegistry).orElse(installedDeliverable);
+        System.out.println(deliverable.getClass().getSimpleName() + " " + deliverable.getId() + (isInstalled() ? " **INSTALLED** " : ""));
+        System.out.println("\t" + deliverable.getName());
+        System.out.println("\t" + deliverable.getDescription());
+        if (isInstalled()) {
+            System.out.println("\t" + installedDeliverable.getVersion());
+        }
+        if (deliverableFromRegistry != null) {
+            System.out.println("\t" + deliverableFromRegistry.getVersion() + " Candidate Version");
+        }
+        System.out.println("\t" + deliverable.getUrl());
+        System.out.println("\t" + deliverable.getType());
     }
 
     public String getId() {return reference().getId();}
@@ -49,7 +56,6 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
     public URL getUrl(){return reference().getUrl();}
     public Deliverable.Type getType() {return reference().getType();}
     public String getVersion() {return reference().getVersion();}
-    public String getInstalledVersion() {return isInstalled() ? installedDeliverable.getVersion() : null;}
 
     @Override
     public String toString() {
