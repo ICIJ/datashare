@@ -8,6 +8,7 @@ import java.nio.file.Path;
 public interface Deliverable extends Entity, Comparable<Deliverable> {
     enum Type {NLP, WEB, PLUGIN, UNKNOWN}
     URL getUrl();
+    URL getHomepage();
     Path getBasePath();
     String getName();
     String getDescription();
