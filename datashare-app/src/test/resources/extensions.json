@@ -1,7 +1,7 @@
 {
   "deliverableList": [
-    {"id":  "my-extension-foo", "type": "WEB", "name": "Foo extension", "url":  "https://github.com/ICIJ/myextensionfoo/releases/my-extension-foo.tgz", "version": "1.2.3", "description": "description for foo"},
-    {"id":  "my-extension-bar", "type": "NLP", "name": "Bar extension", "url":  "https://github.com/ICIJ/myextensionbar/releases/my-extension-bar.tgz", "version": "1.0.0", "description": "description for bar"},
-    {"id":  "my-extension-baz", "type": "WEB", "name": "Baz extension", "url":  "https://github.com/ICIJ/myextensionbaz/releases/my-extension-baz.tgz", "version": "1.0-alpha1", "description": "description for baz"}
+    {"id":  "my-extension-foo", "type": "WEB", "name": "Foo extension", "url":  "https://github.com/ICIJ/myextensionfoo/releases/my-extension-foo.tgz","homepage":  "https://github.com/ICIJ/myextensionfoo", "version": "1.2.3", "description": "description for foo"},
+    {"id":  "my-extension-bar", "type": "NLP", "name": "Bar extension", "url":  "https://github.com/ICIJ/myextensionbar/releases/my-extension-bar.tgz","homepage":  "https://github.com/ICIJ/myextensionbar", "version": "1.0.0", "description": "description for bar"},
+    {"id":  "my-extension-baz", "type": "WEB", "name": "Baz extension", "url":  "https://github.com/ICIJ/myextensionbaz/releases/my-extension-baz.tgz","homepage":  "https://github.com/ICIJ/myextensionbaz", "version": "1.0-alpha1", "description": "description for baz"}
   ]
 }

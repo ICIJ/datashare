@@ -5,6 +5,7 @@
       "name": "NLP Gate Pipeline",
       "description": "Extension to extract NER entities with Gate",
       "url": "https://github.com/ICIJ/datashare-extension-nlp-gate/releases/download/7.0.0/datashare-nlp-gate-7.0.0-jar-with-dependencies.jar",
+      "homepage": "https://github.com/ICIJ/datashare-extension-nlp-gate",
       "version": "7.0.0",
       "type": "NLP"
     },
@@ -13,6 +14,7 @@
       "name": "IXAPIPE Pipeline",
       "description": "Extension to extract NER entities with ixapipe",
       "url": "https://github.com/ICIJ/datashare-extension-nlp-ixapipe/releases/download/7.0.0/datashare-nlp-ixapipe-7.0.0-jar-with-dependencies.jar",
+      "homepage": "https://github.com/ICIJ/datashare-extension-nlp-ixapipe",
       "version": "7.0.0",
       "type": "NLP"
     },
@@ -21,6 +23,7 @@
       "name": "NLP Mitie Pipeline",
       "description": "Extension to extract NER entities with Mitie",
       "url": "https://github.com/ICIJ/datashare-extension-nlp-mitie/releases/download/7.0.0/datashare-nlp-mitie-7.0.0-jar-with-dependencies.jar",
+      "homepage": "https://github.com/ICIJ/datashare-extension-nlp-mitie",
       "version": "7.0.0",
       "type": "NLP"
     },
@@ -29,6 +32,7 @@
       "name": "OPENNLP Pipeline",
       "description": "Extension to extract NER entities with OPENNLP",
       "url": "https://github.com/ICIJ/datashare-extension-nlp-opennlp/releases/download/7.0.0/datashare-nlp-opennlp-7.0.0-jar-with-dependencies.jar",
+      "homepage": "https://github.com/ICIJ/datashare-extension-nlp-opennlp",
       "version": "7.0.0",
       "type": "NLP"
     }
