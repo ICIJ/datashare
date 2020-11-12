@@ -43,6 +43,7 @@ public class Extension implements Deliverable {
     public final String name;
     public final String description;
     public final URL url;
+    public final URL homepage;
     public final String version;
     public final Type type;
 
@@ -52,9 +53,11 @@ public class Extension implements Deliverable {
                   @JsonProperty("version") String version,
                   @JsonProperty("description") String description,
                   @JsonProperty("url") URL url,
+                  @JsonProperty("homepage") URL homepage,
                   @JsonProperty("type") Type type){
         this.id = requireNonNull(id);
         this.url = url;
+        this.homepage = homepage;
         this.name = name;
         this.version = version;
         this.description = description;
@@ -65,6 +68,7 @@ public class Extension implements Deliverable {
         Entry<String, String> res = extractIdVersion(requireNonNull(url, "an extension/plugin cannot be created with a null URL"));
         this.id = res.getKey();
         this.url = url;
+        this.homepage = null;
         this.version = res.getValue();
         this.name = res.getKey();
         this.description = null;
@@ -136,9 +140,11 @@ public class Extension implements Deliverable {
         return string;
     }
 
-    @Override public URL getUrl() { return url;}
+    @Override public URL getUrl() { return url; }
 
-    @Override public String getId() { return this.id;}
+    @Override public URL getHomepage() { return homepage; }
+
+    @Override public String getId() { return this.id; }
 
     @Override public String getName() { return name; }
 

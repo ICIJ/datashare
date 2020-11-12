@@ -28,8 +28,9 @@ public class Plugin extends Extension {
                   @JsonProperty("name") String name,
                   @JsonProperty("version") String version,
                   @JsonProperty("description") String description,
-                  @JsonProperty("url") URL url){
-        super(id, name, version, description, url, Type.PLUGIN);
+                  @JsonProperty("url") URL url,
+                  @JsonProperty("homepage") URL homepage){
+        super(id, name, version, description, url, homepage, Type.PLUGIN);
     }
 
     Plugin(URL url) {

@@ -45,6 +45,7 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
         }
         if (deliverableFromRegistry != null) {
             System.out.println("\t" + deliverableFromRegistry.getVersion() + " Candidate Version");
+            System.out.println("\t" + deliverableFromRegistry.getHomepage());
         }
         System.out.println("\t" + deliverable.getUrl());
         System.out.println("\t" + deliverable.getType());

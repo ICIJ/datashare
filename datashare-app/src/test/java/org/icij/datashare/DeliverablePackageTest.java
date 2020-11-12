@@ -32,7 +32,7 @@ public class DeliverablePackageTest {
     @Test
     public void test_compare_deliverables_to_equals_with_registry() throws IOException {
         DeliverableRegistry<Extension> deliverableRegistry = new DeliverableRegistry<>(Collections.singletonList(new Extension("my-extension",null,"1.0.0"
-                ,null, deliverableDir.getRoot().toPath().resolve("my-extension-1.0.0.jar").toUri().toURL(), Deliverable.Type.NLP)));
+                ,null, deliverableDir.getRoot().toPath().resolve("my-extension-1.0.0.jar").toUri().toURL(),deliverableDir.getRoot().toURI().toURL(), Deliverable.Type.NLP)));
         DeliverablePackage d1 = new DeliverablePackage(deliverableRegistry.get("my-extension"),deliverableDir.getRoot().toPath(), deliverableRegistry.get("my-extension"));
         DeliverablePackage d2 = new DeliverablePackage(new Extension(deliverableDir.newFile("my-extension-1.0.0.jar").toURI().toURL()),deliverableDir.getRoot().toPath(), null);
         assertThat(d1.equals(d2)).isTrue();
@@ -41,7 +41,8 @@ public class DeliverablePackageTest {
 
     @Test
     public void test_compare_deliverables_to_equals_with_null_installed_version() throws IOException {
-        Extension extensionFromRegistry = new Extension("my-extension", null, "1.0.0", null, deliverableDir.getRoot().toPath().resolve("my-extension-1.0.0.jar").toUri().toURL(), Deliverable.Type.NLP);
+        Extension extensionFromRegistry = new Extension("my-extension", null, "1.0.0", null
+                , deliverableDir.getRoot().toPath().resolve("my-extension-1.0.0.jar").toUri().toURL(), deliverableDir.getRoot().toURI().toURL(), Deliverable.Type.NLP);
         Extension installedExtension = new Extension(new URL("file:///my-extension-1.0.1.jar"));
         DeliverablePackage d1 = new DeliverablePackage(null,deliverableDir.getRoot().toPath(),extensionFromRegistry);
         DeliverablePackage d2 = new DeliverablePackage(installedExtension,deliverableDir.getRoot().toPath(),null);
