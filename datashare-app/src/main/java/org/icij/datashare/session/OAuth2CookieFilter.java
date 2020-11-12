@@ -105,6 +105,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     }
 
     protected Payload callback(Context context) throws IOException, ExecutionException, InterruptedException {
+        logger.info("callback called with {}={} {}={}", REQUEST_CODE_KEY, context.get(REQUEST_CODE_KEY), REQUEST_STATE_KEY, context.get(REQUEST_STATE_KEY));
         if (context.get(REQUEST_CODE_KEY) == null || context.get(REQUEST_STATE_KEY) == null || !"GET".equals(context.method()) ||
                 sessionIdStore.getLogin(context.get(REQUEST_STATE_KEY)) == null) {
             return Payload.badRequest();
@@ -112,12 +113,16 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         OAuth20Service service = new ServiceBuilder(oauthClientId).apiSecret(oauthClientSecret).
                 callback(getCallbackUrl(context)).
                 build(defaultOauthApi);
+
+        logger.info("getting a temporary access token from {} and code value", service);
         OAuth2AccessToken accessToken = service.getAccessToken(context.get(REQUEST_CODE_KEY));
 
         final OAuthRequest request = new OAuthRequest(Verb.GET, oauthApiUrl);
         service.signRequest(accessToken, request);
+        logger.info("sending access token request {}", request);
         final Response oauthApiResponse = service.execute(request);
 
+        logger.info("received access token response : {}", oauthApiResponse);
         DatashareUser datashareUser = new DatashareUser(fromJson(oauthApiResponse.getBody(), "icij").details);
         writableUsers().saveOrUpdate(datashareUser);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
