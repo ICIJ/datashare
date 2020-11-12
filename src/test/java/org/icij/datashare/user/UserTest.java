@@ -89,4 +89,20 @@ public class UserTest {
         assertThat(user.email).isEqualTo("foo@bar.com");
         assertThat(user.provider).isEqualTo("external");
     }
+
+    @Test
+    public void test_copy_constructor_with_null() {
+        assertThat(new User((User) null).isNull()).isTrue();
+    }
+
+    @Test
+    public void test_copy_constructor() {
+        User user = new User("id", "name", "email", "provider", "{}");
+        User copy = new User(user);
+        assertThat(copy.id).isEqualTo("id");
+        assertThat(copy.name).isEqualTo("name");
+        assertThat(copy.email).isEqualTo("email");
+        assertThat(copy.provider).isEqualTo("provider");
+        assertThat(copy.details).isEqualTo(new HashMap<>());
+    }
 }

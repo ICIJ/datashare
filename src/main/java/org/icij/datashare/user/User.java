@@ -53,6 +53,14 @@ public class User implements Entity {
         this((String)map.get("uid"), (String)map.get("name"), (String)map.get("email"), (String)map.getOrDefault("provider", LOCAL), map);
     }
 
+    public User(User user) {
+        this(ofNullable(user).orElse(nullUser()).id,
+                ofNullable(user).orElse(nullUser()).name,
+                ofNullable(user).orElse(nullUser()).email,
+                ofNullable(user).orElse(nullUser()).provider,
+                ofNullable(user).orElse(nullUser()).details);
+    }
+
     public static User fromJson(String json, String provider) {
         if (json == null) return null;
         Map<String, Object> hashMap = deserialize(json);
