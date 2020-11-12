@@ -114,15 +114,15 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
                 callback(getCallbackUrl(context)).
                 build(defaultOauthApi);
 
-        logger.info("getting a temporary access token from {} and code value", service);
+        logger.info("getting an access token from {} and code value", service);
         OAuth2AccessToken accessToken = service.getAccessToken(context.get(REQUEST_CODE_KEY));
 
         final OAuthRequest request = new OAuthRequest(Verb.GET, oauthApiUrl);
         service.signRequest(accessToken, request);
-        logger.info("sending access token request {}", request);
+        logger.info("sending request to user API signed with the token : {}", request);
         final Response oauthApiResponse = service.execute(request);
 
-        logger.info("received access token response : {}", oauthApiResponse);
+        logger.info("received response from user API : {}", oauthApiResponse.getCode());
         DatashareUser datashareUser = new DatashareUser(fromJson(oauthApiResponse.getBody(), "icij").details);
         writableUsers().saveOrUpdate(datashareUser);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
