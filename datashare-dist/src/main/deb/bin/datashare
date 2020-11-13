@@ -1,8 +1,7 @@
 #!/bin/bash
 
 DATASHARE_HOME="${HOME}"/.local/share/datashare
-mkdir -p "${DATASHARE_HOME}"/dist "${DATASHARE_HOME}"/index "${DATASHARE_HOME}"/plugins "${DATASHARE_HOME}"/extensions
-mkdir -p "${HOME}"/Datashare
+mkdir -p "${DATASHARE_HOME}"/dist "${DATASHARE_HOME}"/index "${DATASHARE_HOME}"/plugins "${DATASHARE_HOME}"/extensions "${HOME}"/Datashare
 
 DATASHARE_JAR=/usr/share/java/datashare.jar
 JAVA=${JAVA_HOME:-/usr}/bin/java
