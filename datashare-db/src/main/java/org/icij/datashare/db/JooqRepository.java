@@ -321,6 +321,7 @@ public class JooqRepository implements Repository {
 
     // ---------------------------
     private User createUserFrom(Record record) {
+        if (record == null) return null;
         UserInventoryRecord userRecord = record.into(USER_INVENTORY);
         if (userRecord.getId() == null) {
             return new User(record.into(DOCUMENT_USER_RECOMMENDATION).getUserId());

@@ -26,7 +26,7 @@ public class UsersInRedis implements UsersWritable {
     @Override
     public User find(String login) {
         try (Jedis jedis = redis.getResource()) {
-            return new DatashareUser(fromJson(jedis.get(login), "icij").details);
+            return new DatashareUser(fromJson(jedis.get(login), "icij"));
         }
     }
 

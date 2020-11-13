@@ -196,6 +196,11 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_get_unknown_user() {
+        assertThat(repository.getUser("unknown")).isNull();
+    }
+
+    @Test
     public void test_save_get_user() {
         final User expected = new User(new HashMap<String, Object>() {{
             put("uid", "bar");

@@ -11,7 +11,7 @@ public class DatashareUser extends User implements net.codestory.http.security.U
     public DatashareUser(String id) { super(id);}
 
     public DatashareUser(User user) {
-        super(user.id,user.name,user.email,user.provider,user.details);
+        super(user);
     }
 
     @Override public String login() { return id; }
