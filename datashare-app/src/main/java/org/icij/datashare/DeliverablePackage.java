@@ -33,8 +33,6 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
 
     public Deliverable getInstalledDeliverable() {return installedDeliverable;}
 
-    public Deliverable getDeliverableFromRegistry() {return deliverableFromRegistry;}
-
     public void displayInformation() {
         Deliverable deliverable = ofNullable(deliverableFromRegistry).orElse(installedDeliverable);
         System.out.println(deliverable.getClass().getSimpleName() + " " + deliverable.getId() + (isInstalled() ? " **INSTALLED** " : ""));
@@ -54,7 +52,6 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
     public String getId() {return reference().getId();}
     public String getName() {return reference().getName();}
     public String getDescription() {return reference().getDescription();}
-    public URL getUrl(){return reference().getUrl();}
     public Deliverable.Type getType() {return reference().getType();}
     public String getVersion() {return reference().getVersion();}
 
