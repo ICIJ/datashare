@@ -36,8 +36,7 @@ class CliApp {
     static void start(Properties properties) throws Exception {
         process(new PluginService(new PropertiesProvider(properties)), properties);
         process(new ExtensionService(new PropertiesProvider(properties)), properties);
-        Injector injector = createInjector(CommonMode.create(properties));
-        runTaskRunner(injector, properties);
+        runTaskRunner(createInjector(CommonMode.create(properties)), properties);
     }
 
     private static void process(DeliverableService<?> deliverableService, Properties properties) throws IOException {
@@ -69,6 +68,11 @@ class CliApp {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
             }
+        }
+
+        if (properties.getProperty(CREATE_INDEX_OPT) != null) {
+            indexer.createIndex(properties.getProperty(CREATE_INDEX_OPT));
+            System.exit(0);
         }
 
         if (properties.getProperty(CRE_API_KEY_OPT) != null) {

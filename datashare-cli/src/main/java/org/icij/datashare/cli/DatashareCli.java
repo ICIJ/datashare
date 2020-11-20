@@ -54,6 +54,7 @@ public class DatashareCli {
         DatashareCliOptions.batchSearchQueueType(parser);
 
         DatashareCliOptions.clusterName(parser);
+        DatashareCliOptions.createIndex(parser);
 
         DatashareCliOptions.defaultUser(parser);
         DatashareCliOptions.defaultProject(parser);
