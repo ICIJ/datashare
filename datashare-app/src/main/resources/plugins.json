@@ -31,9 +31,9 @@
       "id": "datashare-plugin-email-filter",
       "name": "Email filter",
       "description": "A Datashare plugin to add a new filter about emails.",
-      "url": "https://github.com/ICIJ/datashare-plugin-email-filter/archive/1.0.0.tar.gz",
+      "url": "https://github.com/ICIJ/datashare-plugin-email-filter/archive/1.0.1.tar.gz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-email-filter",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "type":  "PLUGIN"
     },
     {
