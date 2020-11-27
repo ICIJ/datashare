@@ -93,6 +93,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         return DSL.using(dataSource, dialect).update(BATCH_SEARCH).
                 set(BATCH_SEARCH.STATE, State.FAILURE.name()).
                 set(BATCH_SEARCH.ERROR_MESSAGE, error.toString()).
+                set(BATCH_SEARCH.ERROR_QUERY, error.query).
                 where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute() > 0;
     }
 
@@ -145,7 +146,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
-        SelectConditionStep<Record11<String, String, String, String, String, Timestamp, String, Integer, Integer, String, Object>> query = createBatchSearchRecordWithQueriesSelectStatement(using(dataSource, dialect))
+        SelectConditionStep<Record12<String, String, String, String, String, Timestamp, String, Integer, Integer, String, String, Object>> query = createBatchSearchRecordWithQueriesSelectStatement(using(dataSource, dialect))
                 .where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).
                         or(BATCH_SEARCH.PUBLISHED.greaterThan(0))));
         if (webQuery.isSorted()) {
@@ -218,11 +219,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         batchSearches.get(0).getDate(),
                         batchSearches.get(0).state, batchSearches.get(0).user, batchSearches.get(0).nbResults, batchSearches.get(0).published,
                         batchSearches.get(0).fileTypes, batchSearches.get(0).paths, batchSearches.get(0).fuzziness,
-                        batchSearches.get(0).phraseMatches, batchSearches.get(0).errorMessage)).
+                        batchSearches.get(0).phraseMatches, batchSearches.get(0).errorMessage, batchSearches.get(0).errorQuery)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
-    private SelectJoinStep<Record17<String, String, String, String, String, Timestamp, String, Integer, String, String, Integer, Integer, Integer, String, String, Integer, Integer>>
+    private SelectJoinStep<Record18<String, String, String, String, String, Timestamp, String, Integer, String, String, Integer, Integer, Integer, String, String, String, Integer, Integer>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
         return create.select(
                 BATCH_SEARCH.UUID,
@@ -239,13 +240,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 BATCH_SEARCH.PHRASE_MATCHES,
                 BATCH_SEARCH.BATCH_RESULTS,
                 BATCH_SEARCH.ERROR_MESSAGE,
+                BATCH_SEARCH.ERROR_QUERY,
                 BATCH_SEARCH_QUERY.QUERY,
                 BATCH_SEARCH_QUERY.QUERY_NUMBER,
                 BATCH_SEARCH_QUERY.QUERY_RESULTS).
                 from(BATCH_SEARCH.join(BATCH_SEARCH_QUERY).on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_QUERY.SEARCH_UUID)));
     }
 
-    private SelectJoinStep<Record11<String, String, String, String, String, Timestamp, String, Integer, Integer,String, Object>>
+    private SelectJoinStep<Record12<String, String, String, String, String, Timestamp, String, Integer, Integer, String, String, Object>>
     createBatchSearchRecordWithQueriesSelectStatement(DSLContext create) {
         return create.select(
                 BATCH_SEARCH.UUID,
@@ -258,6 +260,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 BATCH_SEARCH.PUBLISHED,
                 BATCH_SEARCH.BATCH_RESULTS,
                 BATCH_SEARCH.ERROR_MESSAGE,
+                BATCH_SEARCH.ERROR_QUERY,
                 create.selectCount().from(BATCH_SEARCH_QUERY).where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(BATCH_SEARCH.UUID)).asField("nbQueries")).
                 from(BATCH_SEARCH);
     }
@@ -283,7 +286,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 paths == null || paths.isEmpty()? null: asList(paths.split(LIST_SEPARATOR)),
                 record.get(BATCH_SEARCH.FUZZINESS),
                 phraseMatches,
-                record.get(BATCH_SEARCH.ERROR_MESSAGE));
+                record.get(BATCH_SEARCH.ERROR_MESSAGE),
+                record.get(BATCH_SEARCH.ERROR_QUERY));
     }
 
     private BatchSearchRecord createBatchSearchRecordFrom(final Record record) {
@@ -299,7 +303,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 new User(batchSearch.getUserId()),
                 batchSearch.getBatchResults(),
                 batchSearch.getPublished() > 0,
-                batchSearch.getErrorMessage());
+                batchSearch.getErrorMessage(),
+                batchSearch.getErrorQuery());
     }
 
     private SearchResult createSearchResult(final User actualUser, final Record record) {

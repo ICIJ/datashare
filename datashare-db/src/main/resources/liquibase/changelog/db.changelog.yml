@@ -62,3 +62,6 @@ databaseChangeLog:
   - include:
       file: changes/020-adds-column-user-details.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/021-adds-column-error-query.yml
+      relativeToChangelogFile: true

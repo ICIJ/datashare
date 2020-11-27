@@ -213,7 +213,7 @@ public class JooqBatchSearchRepositoryTest {
 
         assertThat(repository.get(User.local(), batchSearch.uuid).state).isEqualTo(State.FAILURE);
         assertThat(repository.get(User.local(), batchSearch.uuid).errorMessage).isEqualTo(error.toString());
-        assertThat(error.toString()).contains("root exception").contains("q1");
+        assertThat(repository.get(User.local(), batchSearch.uuid).errorQuery).isEqualTo("q1");
     }
 
     @Test
