@@ -7,10 +7,6 @@
 
 https://datashare.icij.org/
 
-## User survey
-
-Datashare is still in beta. Please share your feedback by filling in this survey: https://icij.typeform.com/to/eAPaBgPj
-
 ## Documentation
 
 Datashare's user guide can be found here: https://icij.gitbook.io/datashare/
