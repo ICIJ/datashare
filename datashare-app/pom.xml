@@ -17,7 +17,7 @@
         <dependency>
        	    <groupId>com.github.CodeStory</groupId>
        	    <artifactId>fluent-http</artifactId>
-       	    <version>6c8d07c</version>
+       	    <version>5aba37b</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -96,9 +96,9 @@
 
         <!--test dependencies-->
         <dependency>
-            <groupId>com.github.bamthomas</groupId>
+            <groupId>com.github.CodeStory</groupId>
             <artifactId>fluent-rest-test</artifactId>
-            <version>961ef20</version>
+            <version>0ecba04</version>
             <scope>test</scope>
         </dependency>
         <dependency>
