@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
@@ -63,6 +64,11 @@ public class DocumentTest {
         assertThat(Document.fromNerMask(1)).contains(CORENLP);
         assertThat(Document.fromNerMask(5)).contains(CORENLP, IXAPIPE);
         assertThat(Document.fromNerMask(31)).contains(CORENLP, GATENLP, IXAPIPE, MITIE, OPENNLP);
+    }
+
+    @Test
+    public void test_get_creation_date_without_metadata() {
+        assertThat(createDoc("name").with((Map<String, Object>)null).build().getCreationDate()).isNull();
     }
 
     @Test
