@@ -43,7 +43,7 @@
       "url": "https://github.com/ICIJ/datashare-extension-dataconnect/releases/download/0.0.2/datashare-extension-dataconnect-0.0.2-jar-with-dependencies.jar",
       "homepage": "https://github.com/ICIJ/datashare-extension-dataconnect",
       "version": "0.0.2",
-      "type": "EXTENSION"
+      "type": "UNKNOWN"
     }
   ]
 }
