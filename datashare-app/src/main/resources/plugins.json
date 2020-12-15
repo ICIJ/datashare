@@ -44,6 +44,15 @@
       "homepage": "https://github.com/ICIJ/datashare-plugin-sentence-case",
       "version": "0.0.8",
       "type":  "PLUGIN"
+    },
+    {
+      "id": "datashare-plugin-dataconnect",
+      "name": "Dataconnect",
+      "description": "A Datashare plugin to create Dataconnect, a bridge between Datashare and I-Hub.",
+      "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/archive/1.0.tar.gz",
+      "homepage": "https://github.com/ICIJ/datashare-plugin-dataconnect",
+      "version": "1.0",
+      "type":  "PLUGIN"
     }
   ]
 }

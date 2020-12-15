@@ -9,7 +9,7 @@
       "version": "7.0.0",
       "type": "NLP"
     },
-   {
+    {
       "id": "datashare-nlp-ixapipe",
       "name": "IXAPIPE Pipeline",
       "description": "Extension to extract NER entities with ixapipe",
@@ -18,7 +18,7 @@
       "version": "7.0.0",
       "type": "NLP"
     },
-   {
+    {
       "id": "datashare-nlp-mitie",
       "name": "NLP Mitie Pipeline",
       "description": "Extension to extract NER entities with Mitie",
@@ -27,7 +27,7 @@
       "version": "7.0.0",
       "type": "NLP"
     },
-   {
+    {
       "id": "datashare-nlp-opennlp",
       "name": "OPENNLP Pipeline",
       "description": "Extension to extract NER entities with OPENNLP",
@@ -35,6 +35,15 @@
       "homepage": "https://github.com/ICIJ/datashare-extension-nlp-opennlp",
       "version": "7.0.0",
       "type": "NLP"
+    },
+    {
+      "id": "datashare-extension-dataconnect",
+      "name": "Dataconnect",
+      "description": "A Datashare extension to create Dataconnect, a bridge between Datashare and I-Hub.",
+      "url": "https://github.com/ICIJ/datashare-extension-dataconnect/releases/download/0.0.2/datashare-extension-dataconnect-0.0.2-jar-with-dependencies.jar",
+      "homepage": "https://github.com/ICIJ/datashare-extension-dataconnect",
+      "version": "0.0.2",
+      "type": "EXTENSION"
     }
   ]
 }
