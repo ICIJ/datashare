@@ -156,11 +156,11 @@ jobs:
       - run:
           name: deploy datashare dist jar to github release
           command: |
-            upload_url=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare/releases" | jq -r '.upload_url')
+            upload_url=$(curl -X POST -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare/releases" | jq -r '.upload_url')
             upload_url="${upload_url%\{*}"
             echo "uploading asset to release url: $upload_url"
-            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}-all.jar&label=datashare-dist-${CIRCLE_TAG}-all.jar"
-            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-back.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.jar&label=datashare-dist-${CIRCLE_TAG}.jar"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}-all.jar&label=datashare-dist-${CIRCLE_TAG}-all.jar"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-back.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.jar&label=datashare-dist-${CIRCLE_TAG}.jar"
 
   build_front:
     docker:
@@ -194,7 +194,7 @@ jobs:
       - run:
           name: release client on GitHub
           command: |
-            upload_url=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
+            upload_url=$(curl -X POST -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
             echo $upload_url > /tmp/datashare-client/datashare-client.url
       - run:
           name: checkout tag
@@ -240,12 +240,12 @@ jobs:
             zip -r ../datashare-client-${CIRCLE_TAG}.zip .
             upload_url=$(cat /tmp/datashare/datashare-client.url | jq -r '.upload_url')
             if [ "$upload_url" = "null" ]; then
-              upload_url=$(curl -s "https://api.github.com/repos/ICIJ/datashare-client/releases/tags/${CIRCLE_TAG}" | jq -r '.upload_url')
+              upload_url=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/ICIJ/datashare-client/releases/tags/${CIRCLE_TAG}" | jq -r '.upload_url')
             fi
             upload_url="${upload_url%\{*}"
             echo "uploading asset to release url: $upload_url"
-            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/tmp/datashare/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
-            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-client-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-client-${CIRCLE_TAG}.tgz&label=datashare-client-${CIRCLE_TAG}.tgz"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/tmp/datashare/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-client-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-client-${CIRCLE_TAG}.tgz&label=datashare-client-${CIRCLE_TAG}.tgz"
 
   build_docker:
     docker:
@@ -316,9 +316,9 @@ jobs:
           command: |
             cd /tmp/datashare-installer
             ./deploy.sh ${CIRCLE_TAG}
-            upload_url=$(curl -s "https://api.github.com/repos/ICIJ/datashare-installer/releases/tags/${CIRCLE_TAG}" | jq -r '.upload_url')
+            upload_url=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/ICIJ/datashare-installer/releases/tags/${CIRCLE_TAG}" | jq -r '.upload_url')
             upload_url="${upload_url%\{*}"
-            curl -s -m 120 -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist_${CIRCLE_TAG}_all.deb" "$upload_url?name=datashare-dist_${CIRCLE_TAG}_all.deb&label=datashare-dist_${CIRCLE_TAG}_all.deb"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist_${CIRCLE_TAG}_all.deb" "$upload_url?name=datashare-dist_${CIRCLE_TAG}_all.deb&label=datashare-dist_${CIRCLE_TAG}_all.deb"
 
 workflows:
   version: 2
