@@ -76,7 +76,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <datashare-api.version>7.23.0</datashare-api.version>
+        <datashare-api.version>7.25.0</datashare-api.version>
 
         <datashare-cli.version>${project.version}</datashare-cli.version>
         <datashare-mitie.version>${project.version}</datashare-mitie.version>

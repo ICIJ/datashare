@@ -12,6 +12,7 @@ import org.jooq.impl.DSL;
 import javax.sql.DataSource;
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.IntStream;
@@ -70,10 +71,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
             InsertValuesStep9<BatchSearchResultRecord, String, String, Integer, String, String, String, Timestamp, String, Long> insertQuery =
                     inner.insertInto(BATCH_SEARCH_RESULT, BATCH_SEARCH_RESULT.SEARCH_UUID, BATCH_SEARCH_RESULT.QUERY, BATCH_SEARCH_RESULT.DOC_NB,
-                    BATCH_SEARCH_RESULT.DOC_ID, BATCH_SEARCH_RESULT.ROOT_ID, BATCH_SEARCH_RESULT.DOC_NAME, BATCH_SEARCH_RESULT.CREATION_DATE,
+                    BATCH_SEARCH_RESULT.DOC_ID, BATCH_SEARCH_RESULT.ROOT_ID, BATCH_SEARCH_RESULT.DOC_PATH, BATCH_SEARCH_RESULT.CREATION_DATE,
                     BATCH_SEARCH_RESULT.CONTENT_TYPE, BATCH_SEARCH_RESULT.CONTENT_LENGTH);
             IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
-                                documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().getFileName().toString(),
+                                documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
                                 documents.get(i).getCreationDate() == null ? (Timestamp) null:
                                         new Timestamp(documents.get(i).getCreationDate().getTime()),
                                 documents.get(i).getContentType(), documents.get(i).getContentLength()));
@@ -316,7 +317,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         return new SearchResult(record.get(BATCH_SEARCH_RESULT.QUERY),
                 record.get(BATCH_SEARCH_RESULT.DOC_ID),
                 record.getValue(BATCH_SEARCH_RESULT.ROOT_ID),
-                record.getValue(BATCH_SEARCH_RESULT.DOC_NAME),
+                Paths.get(record.getValue(BATCH_SEARCH_RESULT.DOC_PATH)),
                 creationDate == null ? null: new Date(creationDate.getTime()),
                 record.getValue(BATCH_SEARCH_RESULT.CONTENT_TYPE),
                 record.getValue(BATCH_SEARCH_RESULT.CONTENT_LENGTH),

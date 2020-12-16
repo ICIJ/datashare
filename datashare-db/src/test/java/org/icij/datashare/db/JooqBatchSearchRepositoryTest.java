@@ -9,9 +9,11 @@ import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -29,8 +31,8 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 @RunWith(Parameterized.class)
 public class JooqBatchSearchRepositoryTest {
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-08-04T10:20:30Z");
-    @Rule
-    public DbSetupRule dbRule;
+    @Rule public DbSetupRule dbRule;
+    @Rule public TemporaryFolder dataFolder = new TemporaryFolder();
     private BatchSearchRepository repository;
 
     @Parameterized.Parameters
@@ -218,6 +220,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_save_results() {
+        File txtFile = new File(dataFolder.getRoot(), "file.txt");
         BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("my query", "my other query"), User.local());
         repository.save(batchSearch);
 
@@ -228,9 +231,9 @@ public class JooqBatchSearchRepositoryTest {
         List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid);
         assertThat(results).hasSize(2);
         assertThat(results.get(0).documentId).isEqualTo("doc1");
-        assertThat(results.get(0).documentName).isEqualTo("doc1");
+        assertThat(results.get(0).documentPath.toString()).isEqualTo("/path/to/doc1");
         assertThat(results.get(1).documentId).isEqualTo("doc2");
-        assertThat(results.get(1).documentName).isEqualTo("doc2");
+        assertThat(results.get(1).documentPath.toString()).isEqualTo("/path/to/doc2");
     }
 
     @Test
@@ -302,14 +305,14 @@ public class JooqBatchSearchRepositoryTest {
                         resultFrom(createDoc("b").build(), 1, "q2"),
                         resultFrom(createDoc("d").build(), 2, "q2")
                 );
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_name", "asc", null))).
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_path", "asc", null))).
                 containsExactly(
                         resultFrom(createDoc("a").build(), 1, "q1"),
                         resultFrom(createDoc("b").build(), 1, "q2"),
                         resultFrom(createDoc("c").build(), 2, "q1"),
                         resultFrom(createDoc("d").build(), 2, "q2")
                 );
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_name", "desc", null))).
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_path", "desc", null))).
                 containsExactly(
                         resultFrom(createDoc("d").build(), 2, "q2"),
                         resultFrom(createDoc("c").build(), 2, "q1"),
@@ -417,7 +420,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {
-        return new SearchResult(queryName, doc.getId(), doc.getRootDocument(), doc.getPath().getFileName().toString(), doc.getCreationDate(), doc.getContentType(), doc.getContentLength(), docNb);
+        return new SearchResult(queryName, doc.getId(), doc.getRootDocument(), doc.getPath(), doc.getCreationDate(), doc.getContentType(), doc.getContentLength(), docNb);
     }
 
     private <T> List<T> project(List<BatchSearch> batchSearches, Function<BatchSearch, T> batchSearchListFunction) {

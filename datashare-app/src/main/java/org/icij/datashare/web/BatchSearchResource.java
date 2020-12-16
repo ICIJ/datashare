@@ -255,7 +255,7 @@ public class BatchSearchResource {
      * - from : index offset of the first document to return (mandatory)
      * - size : window size of the results (mandatory)
      * - queries: list of queries to be downloaded (default null)
-     * - sort: field to sort ("doc_nb", "doc_id", "root_id", "doc_name", "creation_date", "content_type", "content_length", "creation_date") (default "doc_nb")
+     * - sort: field to sort ("doc_nb", "doc_id", "root_id", "doc_path", "creation_date", "content_type", "content_length", "creation_date") (default "doc_nb")
      * - order: "asc" or "desc" (default "asc")
      *
      * If from/size are not given their default values are 0, meaning that all the results are returned.
@@ -293,9 +293,9 @@ public class BatchSearchResource {
                 append("\"").append(docUrl(url, batchSearch.project, result.documentId, result.rootId)).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").
                 append("\"").append(result.rootId).append("\"").append(",").
+                append("\"").append(result.documentPath).append("\"").append(",").
                 append("\"").append(result.contentType).append("\"").append(",").
                 append("\"").append(result.contentLength).append("\"").append(",").
-                append("\"").append(result.documentName).append("\"").append(",").
                 append("\"").append(result.creationDate).append("\"").append(",").
                 append("\"").append(result.documentNumber).append("\"").append("\n")
         );

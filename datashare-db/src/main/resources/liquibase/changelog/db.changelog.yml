@@ -65,3 +65,6 @@ databaseChangeLog:
   - include:
       file: changes/021-adds-column-error-query.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/022-batch-result-rename-column.yml
+      relativeToChangelogFile: true
