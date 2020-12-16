@@ -40,9 +40,9 @@
       "id": "datashare-extension-dataconnect",
       "name": "Dataconnect",
       "description": "A Datashare extension to create Dataconnect, a bridge between Datashare and I-Hub.",
-      "url": "https://github.com/ICIJ/datashare-extension-dataconnect/releases/download/0.0.3/datashare-extension-dataconnect-0.0.3-jar-with-dependencies.jar",
+      "url": "https://github.com/ICIJ/datashare-extension-dataconnect/releases/download/0.0.7/datashare-extension-dataconnect-0.0.7-jar-with-dependencies.jar",
       "homepage": "https://github.com/ICIJ/datashare-extension-dataconnect",
-      "version": "0.0.3",
+      "version": "0.0.7",
       "type": "WEB"
     }
   ]
