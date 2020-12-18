@@ -168,6 +168,23 @@ mvn -pl datashare-db liquibase:update
 mvn test
 ```
 
+## Keeping the development environment up to date
+
+It is important to keep `datashare` and `datashare-client` up to date by pulling from each repository's master branch. 
+
+To ensure that updates are registered, `make dist clean` must be run locally from each repository. 
+
+If dependencies have been updated on `datashare-client`, run `yarn` **before** `make dist clean`.
+
+If the database models have changed within `datashare`, run the following commands **before** `make dist clean`:
+
+```
+sh datashare-db/scr/reset_datashare_db.sh
+mvn -pl commons-test -am install
+mvn -pl datashare-db liquibase:update
+mvn test
+```
+
 ## License
 
 Datashare is released under the [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.en.html)
