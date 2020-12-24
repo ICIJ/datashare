@@ -2,8 +2,7 @@ package org.icij.datashare.mode;
 
 import com.google.inject.Injector;
 import net.codestory.http.filters.Filter;
-import org.icij.datashare.session.BasicAuthAdaptorFilter;
-import org.icij.datashare.session.OAuth2CookieFilter;
+import org.icij.datashare.session.*;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -32,5 +31,21 @@ public class ServerModeTest {
             put("authFilter", "org.icij.UnknownClass");
         }}));
         assertThat(injector.getInstance(Filter.class)).isInstanceOf(OAuth2CookieFilter.class);
+    }
+
+    @Test
+    public void test_server_mode_users_class() {
+        Injector injector = createInjector(new ServerMode(new HashMap<String, String>() {{
+            put("authUsersProvider", "org.icij.datashare.session.UsersInDb");
+        }}));
+        assertThat(injector.getInstance(UsersWritable.class)).isInstanceOf(UsersInDb.class);
+    }
+
+    @Test
+    public void test_server_bad_users_class_uses_default() {
+        Injector injector = createInjector(new ServerMode(new HashMap<String, String>() {{
+            put("authUsersProvider", "org.icij.UnknownClass");
+        }}));
+        assertThat(injector.getInstance(UsersWritable.class)).isInstanceOf(UsersInRedis.class);
     }
 }

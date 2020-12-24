@@ -3,6 +3,8 @@ package org.icij.datashare.session;
 import com.google.inject.Inject;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.json.JsonUtils;
+import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -32,7 +34,10 @@ public class UsersInRedis implements UsersWritable {
 
     @Override
     public User find(String login, String password) {
-        return null;
+        try (Jedis jedis = redis.getResource()) {
+            org.icij.datashare.user.User user = fromJson(jedis.get(login), "icij");
+            return user != null && Hasher.SHA_256.hash(password).equals(user.details.get("password")) ? new DatashareUser(user): null;
+        }
     }
 
     void removeUser(String login) {
@@ -45,7 +50,7 @@ public class UsersInRedis implements UsersWritable {
     public boolean saveOrUpdate(User user) {
         try (Jedis jedis = redis.getResource()) {
             Transaction transaction = jedis.multi();
-            transaction.set(user.login(), ((DatashareUser)user).getJsonDetails());
+            transaction.set(user.login(), JsonUtils.serialize(((DatashareUser)user).details));
             transaction.expire(user.login(), this.ttl);
             List<Object> exec = transaction.exec();
             return exec.size() == 2;

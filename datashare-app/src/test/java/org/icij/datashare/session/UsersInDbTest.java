@@ -1,6 +1,7 @@
 package org.icij.datashare.session;
 
 import org.icij.datashare.Repository;
+import org.icij.datashare.text.Hasher;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 
@@ -25,5 +26,35 @@ public class UsersInDbTest {
         assertThat(actual.email).isEqualTo(expected.email);
         assertThat(actual.details).isEqualTo(expected.details);
         assertThat(actual.provider).isEqualTo(expected.provider);
+    }
+
+    @Test
+    public void find_user_in_db_with_password() {
+        Repository repository = mock(Repository.class);
+        User expected = new User("foo", "bar", "mail", "icij", new HashMap<String, Object>() {{
+            put("password", Hasher.SHA_256.hash("bar"));
+        }});
+        when(repository.getUser("foo")).thenReturn(expected);
+        User actual = (User) new UsersInDb(repository).find("foo", "bar");
+        assertThat(actual.id).isEqualTo(expected.id);
+        assertThat(actual.name).isEqualTo(expected.name);
+        assertThat(actual.email).isEqualTo(expected.email);
+        assertThat(actual.details).isEqualTo(expected.details);
+        assertThat(actual.provider).isEqualTo(expected.provider);
+    }
+
+    @Test
+    public void find_user_in_db_with_null() {
+        assertThat(new UsersInDb(mock(Repository.class)).find("foo", "bar")).isNull();
+    }
+
+    @Test
+    public void find_user_in_db_with_bad_password() {
+        Repository repository = mock(Repository.class);
+        User expected = new User("foo", "bar", "mail", "icij", new HashMap<String, Object>() {{
+            put("password", "unused");
+        }});
+        when(repository.getUser("foo")).thenReturn(expected);
+        assertThat(new UsersInDb(repository).find("foo", "bad")).isNull();
     }
 }

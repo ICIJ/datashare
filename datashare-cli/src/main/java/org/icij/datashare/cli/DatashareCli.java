@@ -75,6 +75,7 @@ public class DatashareCli {
         DatashareCliOptions.getApiKey(parser);
         DatashareCliOptions.sessionTtlSeconds(parser);
         DatashareCliOptions.protectedUriPrefix(parser);
+        DatashareCliOptions.authUsersProvider(parser);
         DatashareCliOptions.oauthSecret(parser);
         DatashareCliOptions.oauthClient(parser);
         DatashareCliOptions.oauthApiUrl(parser);

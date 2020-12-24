@@ -19,7 +19,15 @@ public class ServerMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-        bind(UsersWritable.class).to(UsersInDb.class);
+        String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse("org.icij.datashare.session.UsersInRedis");
+        Class<? extends UsersWritable> authUsersProviderClass = UsersInRedis.class;
+        try {
+            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName);
+            logger.info("setting auth users provider to {}", authUsersProviderClass);
+        } catch (ClassNotFoundException e) {
+            logger.warn("\"{}\" auth users provider class not found. Setting provider to {}", authUsersProviderClassName, authUsersProviderClass);
+        }
+        bind(UsersWritable.class).to(authUsersProviderClass);
         bind(SessionIdStore.class).to(RedisSessionIdStore.class);
         bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
         String authFilterClassName = propertiesProvider.get("authFilter").orElse("");
@@ -52,7 +60,7 @@ public class ServerMode extends CommonMode {
                 add(ApiKeyResource.class).
                 add(ProjectResource.class).
                 add(DocumentResource.class).
-                filter(ApiKeyFilter.class).
+                //filter(ApiKeyFilter.class).
                 filter(Filter.class);
     }
 }

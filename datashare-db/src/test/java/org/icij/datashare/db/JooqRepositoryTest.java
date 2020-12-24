@@ -207,6 +207,7 @@ public class JooqRepositoryTest {
             put("provider", "test");
             put("name", "Bar Baz");
             put("email", "bar@foo.com");
+            put("password", "pass");
             put("baz", "qux");
         }});
         assertThat(repository.save(expected)).isTrue();
