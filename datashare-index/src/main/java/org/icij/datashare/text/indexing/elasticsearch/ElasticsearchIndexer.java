@@ -11,7 +11,6 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -34,7 +33,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.UpdateByQueryRequest;
-import org.elasticsearch.join.query.HasChildQueryBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
@@ -474,7 +472,6 @@ public class ElasticsearchIndexer implements Indexer {
             }
             this.boolQuery.must(new MatchAllQueryBuilder());
             this.boolQuery.must(new QueryStringQueryBuilder(queryString).defaultField("*"));
-            this.boolQuery.should(new HasChildQueryBuilder("NamedEntity", new QueryStringQueryBuilder(queryString).defaultField("mentionNorm"), ScoreMode.None));
             return this;
         }
 
