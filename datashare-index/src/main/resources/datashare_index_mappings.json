@@ -28,6 +28,9 @@
       "contentLength": {
         "type": "integer"
       },
+      "contentTextLength": {
+        "type": "integer"
+      },
       "contentEncoding": {
         "type": "keyword"
       },
@@ -69,8 +72,14 @@
         "type": "text",
         "index_options": "docs"
       },
+      "mentionTextLength": {
+        "type": "integer"
+      },
       "mentionNorm": {
         "type": "keyword"
+      },
+      "mentionNormTextLength": {
+        "type": "integer"
       },
       "category": {
         "type": "keyword"
