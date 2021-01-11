@@ -72,9 +72,6 @@
         "type": "text",
         "index_options": "docs"
       },
-      "mentionTextLength": {
-        "type": "integer"
-      },
       "mentionNorm": {
         "type": "keyword"
       },
