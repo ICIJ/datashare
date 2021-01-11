@@ -171,6 +171,7 @@ public final class NamedEntity implements Entity {
     public Category getCategory() { return category; }
     public String getDocumentId() { return documentId; }
     public String getRootDocument() { return rootDocument; }
+    public int getMentionNormTextLength() {return mentionNorm.length();}
     public long getOffset() { return offset; }
     public Pipeline.Type getExtractor() { return extractor; }
     public Language getExtractorLanguage() { return extractorLanguage; }

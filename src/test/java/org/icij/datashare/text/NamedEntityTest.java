@@ -16,6 +16,15 @@ public class NamedEntityTest {
                         "\"documentId\":\"docId\",\"rootDocument\":\"docId\",\"" +
                         "extractor\":\"CORENLP\",\"extractorLanguage\":\"ENGLISH\",\"isHidden\":false,\"mentionNorm\":\"mention\"," +
                         "\"id\":\"e679ebaefcb396f38ac099a2c1e95a7f3bded26ab4e1925f00767544e0d530fa7f18b922e137256e4b1222b0d66a6266\"," +
-                        "\"partsOfSpeech\":null}");
+                        "\"partsOfSpeech\":null,\"mentionNormTextLength\":7}");
+    }
+
+    @Test
+    public void test_serialize_contains_mention_norm_text_length() throws Exception {
+        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(NamedEntity.create(
+                NamedEntity.Category.PERSON, "猫", 123L, "docId",
+                Pipeline.Type.CORENLP, Language.JAPANESE)))
+                    .contains("\"mentionNormTextLength\":3")
+                    .contains("\"mentionNorm\":\"mao\"");
     }
 }

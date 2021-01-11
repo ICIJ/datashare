@@ -32,6 +32,11 @@ public class DocumentTest {
     }
 
     @Test
+    public void test_serialize_contains_content_text_length() throws Exception {
+        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build())).contains("\"contentTextLength\":7");
+    }
+
+    @Test
     public void test_json_deserialize_path_and_dirname_with_special_chars() throws Exception {
         String path = "/dir/to/docs/shared/foo/Data/2018-05/My Administrations/TGA_BAR/htmls/responses3/3#19221-Arrow CVC SET: 3-CORP 4FR X 8CM - Qux, blah, infusion, central portal|Pouet International Inc.html";
 

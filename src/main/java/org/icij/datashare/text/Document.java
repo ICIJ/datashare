@@ -133,6 +133,7 @@ public class Document implements Entity {
     public Project getProject() { return project;}
     public String getProjectId() { return project.getId();}
     public String getContent() { return content; }
+    public int getContentTextLength() { return content.length();}
     public Path getPath() { return path;}
     public Path getDirname() { return dirname;}
     public Date getExtractionDate() { return extractionDate;}
