@@ -11,6 +11,8 @@ public class ExtensionLoaderTest {
     @Test
     public void test_load_jars() throws Exception {
         Path extensionsDir = Paths.get(getClass().getResource("/extensions").toURI());
+        extensionsDir.resolve("executable.jar").toFile().setExecutable(true);
+
         assertThat(new ExtensionLoader(extensionsDir).getJars()).hasSize(1);
         assertThat(new ExtensionLoader(extensionsDir).getJars()).containsOnly(extensionsDir.resolve("executable.jar").toFile());
     }
