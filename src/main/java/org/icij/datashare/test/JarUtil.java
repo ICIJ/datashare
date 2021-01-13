@@ -48,6 +48,7 @@ public class JarUtil {
                  }
              });
          }
+         pathToJar.resolve(jarName + ".jar").toFile().setExecutable(true);
      }
 
      public static void createJar(Path pathToJar, String jarName, String... javaSources) throws IOException {

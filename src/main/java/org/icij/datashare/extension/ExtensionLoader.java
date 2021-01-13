@@ -4,10 +4,7 @@ import org.icij.datashare.DynamicClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -28,9 +25,8 @@ public class ExtensionLoader {
     }
 
     public synchronized <T> void load(Consumer<T> registerFunc, Predicate<Class<?>> predicate) throws FileNotFoundException {
-        File[] jars = ofNullable(extensionsDir.toFile().listFiles((file, s) -> s.endsWith(".jar"))).
-                orElseThrow(() -> new FileNotFoundException("invalid path for extensions: " + extensionsDir));
-        LOGGER.info("read directory {} and found jars: {}", extensionsDir, jars);
+        File[] jars = getJars();
+        LOGGER.info("read directory {} and found jars (executable): {}", extensionsDir, jars);
         DynamicClassLoader classLoader = (DynamicClassLoader) ClassLoader.getSystemClassLoader();
         for (File jar : jars) {
             try {
@@ -68,5 +64,10 @@ public class ExtensionLoader {
             }
         }
         return null;
+    }
+
+    File[] getJars() throws FileNotFoundException {
+        return ofNullable(extensionsDir.toFile().listFiles(file -> file.toString().endsWith(".jar") && file.canExecute())).
+                orElseThrow(() -> new FileNotFoundException("invalid path for extensions: " + extensionsDir));
     }
 }
