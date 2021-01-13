@@ -30,6 +30,7 @@ public class ExtensionLoader {
     public synchronized <T> void load(Consumer<T> registerFunc, Predicate<Class<?>> predicate) throws FileNotFoundException {
         File[] jars = ofNullable(extensionsDir.toFile().listFiles((file, s) -> s.endsWith(".jar"))).
                 orElseThrow(() -> new FileNotFoundException("invalid path for extensions: " + extensionsDir));
+        LOGGER.info("read directory {} and found jars: {}", extensionsDir, jars);
         DynamicClassLoader classLoader = (DynamicClassLoader) ClassLoader.getSystemClassLoader();
         for (File jar : jars) {
             try {
