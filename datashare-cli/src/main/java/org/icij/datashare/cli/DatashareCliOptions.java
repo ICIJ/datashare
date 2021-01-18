@@ -166,13 +166,13 @@ public final class DatashareCliOptions {
         return parser.acceptsAll(asList(RESUME_OPT, "r"), "Resume pending operations");
     }
 
-    static OptionSpec<String> genApiKey(OptionParser parser) {
+    static OptionSpec<String> createIndex(OptionParser parser) {
         return parser.acceptsAll(asList(CREATE_INDEX_OPT), "creates an index with the given name")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> createIndex(OptionParser parser) {
+    static OptionSpec<String> genApiKey(OptionParser parser) {
         return parser.acceptsAll(asList(CRE_API_KEY_OPT, "k"), "Generate and store api key for user defaultUser (see opt)")
                 .withRequiredArg()
                 .ofType(String.class);
