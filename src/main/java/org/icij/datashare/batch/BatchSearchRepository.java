@@ -37,6 +37,8 @@ public interface BatchSearchRepository extends Closeable {
         public static final String DEFAULT_SORT_FIELD = "doc_nb";
         public final String sort;
         public final String order;
+        public final String query;
+        public final String field;
         public final int from;
         public final int size;
         public final List<String> queries;
@@ -44,16 +46,19 @@ public interface BatchSearchRepository extends Closeable {
         @JsonCreator
         public WebQuery(@JsonProperty("size") int size, @JsonProperty("from") int from,
                         @JsonProperty("sort") String sort, @JsonProperty("order") String order,
+                        @JsonProperty("query") String query, @JsonProperty("field") String field,
                         @JsonProperty("queries") List<String> queries) {
             this.size = size;
             this.from = from;
             this.sort = sort == null ? DEFAULT_SORT_FIELD : sort;
+            this.query = query != null ? query.replaceAll("\\*", "%") : null;
+            this.field = field;
             this.order = sort == null ? "asc": order;
             this.queries = queries == null ? null: unmodifiableList(queries);
         }
 
-        public WebQuery(int size, int from) { this(size, from, null, null, null);}
-        public WebQuery() { this(0, 0, null, null, null);}
+        public WebQuery(int size, int from) { this(size, from, null, null, "*", "all", null);}
+        public WebQuery() { this(0, 0, null, null, "*", "all", null);}
 
         @Override
         public boolean equals(Object o) {
@@ -64,12 +69,14 @@ public interface BatchSearchRepository extends Closeable {
                     size == that.size &&
                     Objects.equals(sort, that.sort) &&
                     Objects.equals(order, that.order) &&
+                    Objects.equals(query,that.query) &&
+                    Objects.equals(field,that.field) &&
                     Objects.equals(queries, that.queries);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(sort, order, from, size, queries);
+            return Objects.hash(sort, order, query, field, from, size, queries);
         }
         public boolean hasFilteredQueries() { return queries !=null && !queries.isEmpty();}
         public boolean isSorted() { return !DEFAULT_SORT_FIELD.equals(this.sort);}
