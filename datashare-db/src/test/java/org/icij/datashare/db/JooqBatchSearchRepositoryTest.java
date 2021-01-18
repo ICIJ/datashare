@@ -119,7 +119,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_records_with_term_and_field() {
+    public void test_get_records_with_query_and_field() {
         BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"),"foo","baz",asSet("q1", "q2"), User.local(),
                 true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"),"bar","baz",asSet("q3", "q2"), User.local(),
@@ -128,7 +128,8 @@ public class JooqBatchSearchRepositoryTest {
         repository.save(batchSearch2);
         assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"*","all",null))).hasSize(2);
         assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"foo","all",null))).hasSize(1);
-        assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"ba*","description",null))).hasSize(2);
+        assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"oo","all",null))).hasSize(1);
+        assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"baz","description",null))).hasSize(2);
         assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"baz","name",null))).hasSize(0);
         assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"","all",null))).hasSize(2);
     }

@@ -149,12 +149,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
         SelectConditionStep<Record12<String, String, String, String, String, Timestamp, String, Integer, Integer, String, String, Object>> query = createBatchSearchRecordWithQueriesSelectStatement(using(dataSource, dialect))
                 .where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0))));
-        if(!webQuery.query.equals("") && !webQuery.query.equals("%")){
+        if(!webQuery.query.equals("") && !webQuery.query.equals("*")){
+            String searchQuery = String.format("%s%s%s","%",webQuery.query,"%");
             if(webQuery.field.equals("all")) {
-                query.and(BATCH_SEARCH.NAME.like(webQuery.query).or(BATCH_SEARCH.DESCRIPTION.like(webQuery.query)).or(BATCH_SEARCH.USER_ID.like(webQuery.query)));
+                query.and(BATCH_SEARCH.NAME.like(searchQuery).or(BATCH_SEARCH.DESCRIPTION.like(searchQuery)).or(BATCH_SEARCH.USER_ID.like(searchQuery)));
             }
             else {
-                query.and(getTableRecordFromWebQueryField(webQuery.field).like(webQuery.query));
+                query.and(getTableRecordFromWebQueryField(webQuery.field).like(searchQuery));
             }
         }
         if (webQuery.isSorted()) {
