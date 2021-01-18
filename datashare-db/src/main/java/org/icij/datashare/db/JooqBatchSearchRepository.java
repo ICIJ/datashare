@@ -148,8 +148,15 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     @Override
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
         SelectConditionStep<Record12<String, String, String, String, String, Timestamp, String, Integer, Integer, String, String, Object>> query = createBatchSearchRecordWithQueriesSelectStatement(using(dataSource, dialect))
-                .where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).
-                        or(BATCH_SEARCH.PUBLISHED.greaterThan(0))));
+                .where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0))));
+        if(!webQuery.query.equals("") && !webQuery.query.equals("%")){
+            if(webQuery.field.equals("all")) {
+                query.and(BATCH_SEARCH.NAME.like(webQuery.query).or(BATCH_SEARCH.DESCRIPTION.like(webQuery.query)).or(BATCH_SEARCH.USER_ID.like(webQuery.query)));
+            }
+            else {
+                query.and(getTableRecordFromWebQueryField(webQuery.field).like(webQuery.query));
+            }
+        }
         if (webQuery.isSorted()) {
             query.orderBy(field(webQuery.sort + " " + webQuery.order));
         } else {
@@ -271,7 +278,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         Integer nb_queries = query_results == null ? 0: query_results;
         String file_types = record.get(BATCH_SEARCH.FILE_TYPES);
         String paths = record.get(BATCH_SEARCH.PATHS);
-        boolean phraseMatches=record.get(BATCH_SEARCH.PHRASE_MATCHES)==0?false:true ;
+        boolean phraseMatches= record.get(BATCH_SEARCH.PHRASE_MATCHES) != 0;
         return new BatchSearch(record.get(BATCH_SEARCH.UUID).trim(),
                 project(record.getValue(BATCH_SEARCH.PRJ_ID)),
                 record.getValue(BATCH_SEARCH.NAME),
@@ -322,6 +329,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.getValue(BATCH_SEARCH_RESULT.CONTENT_TYPE),
                 record.getValue(BATCH_SEARCH_RESULT.CONTENT_LENGTH),
                 record.get(BATCH_SEARCH_RESULT.DOC_NB));
+    }
+
+    private TableField<org.icij.datashare.db.tables.records.BatchSearchRecord, String> getTableRecordFromWebQueryField(String field){
+        switch (field) {
+            case "description" : return BATCH_SEARCH.DESCRIPTION;
+            case "author" : return BATCH_SEARCH.USER_ID;
+            default: return BATCH_SEARCH.NAME;
+        }
     }
 
     @Override

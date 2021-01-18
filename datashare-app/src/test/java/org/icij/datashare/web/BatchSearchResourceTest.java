@@ -17,7 +17,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
@@ -119,7 +118,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
 
     @Test
-    public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() throws SQLException {
+    public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() {
         when(batchSearchRepository.save(any())).thenReturn(true);
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x").
@@ -164,13 +163,13 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(3, 4))).thenReturn(batchSearches.subList(5, 8));
         when(batchSearchRepository.getTotal(User.local(), singletonList("local-datashare"))).thenReturn(batchSearches.size());
 
-        post("/api/batch/search", "{\"from\":0, \"size\":2}").should().respond(200).haveType("application/json").
+        post("/api/batch/search", "{\"from\":0, \"size\":2, \"query\":\"*\", \"field\":\"all\"}").should().respond(200).haveType("application/json").
                 contain("\"name\":\"name0\"").
                 contain("\"name\":\"name1\"").
                 contain("\"total\":10").
                 should().not().contain("name2");
 
-        post("/api/batch/search", "{\"from\":4, \"size\":3}").should().respond(200).haveType("application/json").
+        post("/api/batch/search", "{\"from\":4, \"size\":3, \"query\":\"*\", \"field\":\"all\"}").should().respond(200).haveType("application/json").
                 contain("\"name\":\"name5\"").
                 contain("\"name\":\"name6\"").
                 contain("\"name\":\"name7\"").
@@ -186,7 +185,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 new SearchResult("q2", "docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), "content/type", 123L, 2)
         ));
 
-        post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0}").
+        post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\"}").
                 should().respond(200).haveType("application/json").
                 contain("\"documentId\":\"docId1\"").
                 contain("\"documentId\":\"docId2\"");
@@ -200,11 +199,11 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery(5, 0))).thenReturn(results.subList(0, 5));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery(2, 9))).thenReturn(results.subList(8, 10));
 
-        post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":5}").should().
+        post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":5, \"query\":\"*\", \"field\":\"all\"}").should().
                 contain("\"documentId\":\"docId0\"").
                 contain("\"documentId\":\"docId4\"").
                 should().not().contain("\"documentId\":\"docId5\"");
-        post("/api/batch/search/result/batchSearchId", "{\"from\":9, \"size\":2}").should().
+        post("/api/batch/search/result/batchSearchId", "{\"from\":9, \"size\":2, \"query\":\"*\", \"field\":\"all\"}").should().
                 contain("\"documentId\":\"docId8\"").
                 contain("\"documentId\":\"docId9\"").
                 not().contain("\"documentId\":\"docId7\"");
@@ -250,7 +249,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 thenThrow(new JooqBatchSearchRepository.UnauthorizedUserException("batchSearchId", "owner", "actual"));
 
         get("/api/batch/search/result/csv/batchSearchId").should().respond(401);
-        post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0}").should().respond(401);
+        post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\"}").should().respond(401);
     }
 
     @Test
