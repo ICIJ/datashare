@@ -51,7 +51,7 @@ public interface BatchSearchRepository extends Closeable {
             this.size = size;
             this.from = from;
             this.sort = sort == null ? DEFAULT_SORT_FIELD : sort;
-            this.query = query != null ? query.replaceAll("\\*", "%") : null;
+            this.query = query;
             this.field = field;
             this.order = sort == null ? "asc": order;
             this.queries = queries == null ? null: unmodifiableList(queries);
