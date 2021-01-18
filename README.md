@@ -172,11 +172,11 @@ mvn test
 
 It is important to keep `datashare` and `datashare-client` up to date by pulling from each repository's master branch. 
 
-To ensure that updates are registered, `make dist clean` must be run locally from each repository. 
+To ensure that updates are registered, `make clean dist` must be run locally from each repository. 
 
-If dependencies have been updated on `datashare-client`, run `yarn` **before** `make dist clean`.
+If dependencies have been updated on `datashare-client`, run `yarn` **before** `make clean dist`.
 
-If the database models have changed within `datashare`, run the following commands **before** `make dist clean`:
+If the database models have changed within `datashare`, run the following commands **before** `make clean dist`:
 
 ```
 sh datashare-db/scr/reset_datashare_db.sh
