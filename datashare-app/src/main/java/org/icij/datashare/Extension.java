@@ -110,6 +110,7 @@ public class Extension implements Deliverable {
         logger.info("installing extension from file {} into {}", extensionFile, extensionsDir);
         copy(extensionFile.toPath(), extensionsDir.resolve(getUrlFileName()));
         if (isTemporaryFile(extensionFile)) extensionFile.delete();
+        extensionsDir.resolve(getUrlFileName()).toFile().setExecutable(true);
     }
 
     @Override

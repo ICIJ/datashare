@@ -66,6 +66,7 @@ public class ExtensionServiceTest {
         extensionService.downloadAndInstall("my-extension");
 
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile().canExecute()).isTrue();
     }
 
     @Test
@@ -79,6 +80,7 @@ public class ExtensionServiceTest {
         assertThat(tmpFile.getName()).startsWith("tmp");
         assertThat(tmpFile).doesNotExist();
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile().canExecute()).isTrue();
     }
 
     @Test
@@ -89,6 +91,7 @@ public class ExtensionServiceTest {
         extensionService.downloadAndInstall(otherFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toUri().toURL());
 
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile().canExecute()).isTrue();
     }
 
     @Test
@@ -98,6 +101,7 @@ public class ExtensionServiceTest {
         new Extension(otherFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toUri().toURL()).install(extensionFolder.getRoot().toPath());
 
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
+        assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile().canExecute()).isTrue();
     }
 
     @Test
