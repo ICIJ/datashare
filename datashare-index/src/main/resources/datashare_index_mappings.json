@@ -1,5 +1,4 @@
 {
-  "_doc": {
     "properties": {
       "content": {
         "type": "text",
@@ -101,6 +100,5 @@
         "type": "boolean",
         "null_value": false
       }
-    }
   }
 }

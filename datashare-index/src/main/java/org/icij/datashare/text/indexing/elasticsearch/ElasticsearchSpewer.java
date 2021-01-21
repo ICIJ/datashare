@@ -79,15 +79,15 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     public void createIndex() {
-        ElasticsearchConfiguration.createIndex(client, indexName, DEFAULT_INDEX_TYPE);
+        ElasticsearchConfiguration.createIndex(client, indexName);
     }
 
     private IndexRequest prepareRequest(final TikaDocument document, final TikaDocument parent, TikaDocument root, final int level) throws IOException {
-        IndexRequest req = new IndexRequest(indexName, esCfg.indexType, document.getId());
+        IndexRequest req = new IndexRequest(indexName).id(document.getId());
         Map<String, Object> jsonDocument = getDocumentMap(document);
 
         if (parent == null && isDuplicate(document.getId())) {
-            IndexRequest indexRequest = new IndexRequest(indexName, esCfg.indexType, Entity.HASHER.hash(document.getPath()));
+            IndexRequest indexRequest = new IndexRequest(indexName).id(Entity.HASHER.hash(document.getPath()));
             indexRequest.source(getDuplicateMap(document));
             indexRequest.setRefreshPolicy(esCfg.refreshPolicy);
             return indexRequest;
@@ -105,7 +105,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     private boolean isDuplicate(String docId) throws IOException {
-        GetRequest getRequest = new GetRequest(indexName, esCfg.indexType, docId);
+        GetRequest getRequest = new GetRequest(indexName, docId);
         getRequest.fetchSourceContext(new FetchSourceContext(false));
         getRequest.storedFields("_none_");
         return client.exists(getRequest, RequestOptions.DEFAULT);

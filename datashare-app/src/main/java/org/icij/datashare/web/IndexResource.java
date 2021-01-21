@@ -17,7 +17,6 @@ import static java.lang.String.join;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_INDEX_TYPE;
 
 @Singleton
 @Prefix("/api/index")
@@ -132,7 +131,7 @@ public class IndexResource {
                 ("GET".equalsIgnoreCase(context.method()) ||
                         "_search".equals(pathParts[1]) ||
                         "_count".equals(pathParts[1]) ||
-                        (pathParts.length >=3 && DEFAULT_INDEX_TYPE.equals(pathParts[1]) && "_search".equals(pathParts[2])))) {
+                        (pathParts.length >=3 && "_search".equals(pathParts[2])))) {
             return getUrlString(context, path);
         }
         throw new UnauthorizedException();

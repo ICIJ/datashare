@@ -169,7 +169,7 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private IndexRequest createIndexRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
-        IndexRequest req = new IndexRequest(index, esCfg.indexType, id);
+        IndexRequest req = new IndexRequest(index).id(id);
 
         setJoinFields(json, type, parent, root);
         req = req.source(json);
@@ -295,7 +295,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public boolean createIndex(final String indexName) {
-        return ElasticsearchConfiguration.createIndex(client, indexName, esCfg.indexType);
+        return ElasticsearchConfiguration.createIndex(client, indexName);
     }
 
     @Override
