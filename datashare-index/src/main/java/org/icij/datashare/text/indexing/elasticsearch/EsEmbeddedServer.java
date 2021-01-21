@@ -12,6 +12,7 @@ import org.elasticsearch.transport.Netty4Plugin;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 
 import static java.util.Arrays.asList;
 /**
@@ -53,7 +54,11 @@ public class EsEmbeddedServer {
 
     private static class PluginConfigurableNode extends Node {
         public PluginConfigurableNode(Settings settings, Collection<Class<? extends Plugin>> classpathPlugins) {
-            super(InternalSettingsPreparer.prepareEnvironment(settings, null, null, () -> "datashare"), classpathPlugins, true);
+            super(InternalSettingsPreparer.prepareEnvironment(settings, new HashMap<>(), null, () -> "datashare"), classpathPlugins, true);
         }
+    }
+
+    public static void main(String[] args) {
+        new EsEmbeddedServer("datashare", "/home/dev/es", "/home/dev/es", "9200").start();
     }
 }
