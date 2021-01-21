@@ -9,7 +9,7 @@ jobs:
   build_back:
     docker:
       - image: circleci/openjdk:8-stretch
-      - image: docker.elastic.co/elasticsearch/elasticsearch:6.8.0
+      - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
           - "cluster.name=datashare"
@@ -61,7 +61,7 @@ jobs:
   publish_doc:
     docker:
       - image: circleci/openjdk:8-stretch
-      - image: docker.elastic.co/elasticsearch/elasticsearch:6.8.0
+      - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
            - "discovery.type=single-node"
            - "cluster.name=datashare"
@@ -165,7 +165,7 @@ jobs:
   build_front:
     docker:
       - image: circleci/node:10.15.2
-      - image: docker.elastic.co/elasticsearch/elasticsearch:6.8.0
+      - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
           - "cluster.name=datashare"
