@@ -84,8 +84,8 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     public void test_auth_forward_request_with_user_logged_on_only_allow_search_and_count_on_post() throws IOException {
         indexer.add("cecile-datashare", DocumentBuilder.createDoc("1234567890abcdef").build());
         post("/api/index/search/cecile-datashare/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
-        post("/api/index/search/cecile-datashare/doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
-        get("/api/index/search/cecile-datashare/doc/1234567890abcdef").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/cecile-datashare/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        get("/api/index/search/cecile-datashare/_doc/1234567890abcdef").withPreemptiveAuthentication("cecile", "").should().respond(200);
         post("/api/index/search/_search/scroll", "{\"scroll_id\":\"DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAAAD4WYm9laVYtZndUQlNsdDcwakFMNjU1QQ\"}").withPreemptiveAuthentication("cecile", "").should().respond(500);
         post("/api/index/search/cecile-datashare/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
 

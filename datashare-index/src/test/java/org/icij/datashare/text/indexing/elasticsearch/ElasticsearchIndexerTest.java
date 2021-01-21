@@ -4,6 +4,7 @@ import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 import org.icij.datashare.Entity;
@@ -84,7 +85,7 @@ public class ElasticsearchIndexerTest {
 
         assertThat(indexer.bulkAdd(TEST_INDEX, OPENNLP, emptyList(), doc)).isTrue();
 
-        GetResponse resp = es.client.get(new GetRequest(TEST_INDEX, "doc", doc.getId()));
+        GetResponse resp = es.client.get(new GetRequest(TEST_INDEX, doc.getId()), RequestOptions.DEFAULT);
         assertThat(resp.getSourceAsMap().get("status")).isEqualTo("DONE");
         assertThat((ArrayList<String>) resp.getSourceAsMap().get("nerTags")).containsExactly("OPENNLP");
     }
@@ -163,9 +164,9 @@ public class ElasticsearchIndexerTest {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content", Language.FRENCH,
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
         indexer.add(TEST_INDEX, doc);
-        UpdateRequest removeTagsRequest = new UpdateRequest(TEST_INDEX, "doc", doc.getId()).script(new Script(ScriptType.INLINE, "painless", "ctx._source.remove(\"tags\")", new HashMap<>()));
+        UpdateRequest removeTagsRequest = new UpdateRequest(TEST_INDEX, doc.getId()).script(new Script(ScriptType.INLINE, "painless", "ctx._source.remove(\"tags\")", new HashMap<>()));
         removeTagsRequest.setRefreshPolicy(IMMEDIATE);
-        es.client.update(removeTagsRequest);
+        es.client.update(removeTagsRequest, RequestOptions.DEFAULT);
 
         assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("tag"))).isTrue();
     }

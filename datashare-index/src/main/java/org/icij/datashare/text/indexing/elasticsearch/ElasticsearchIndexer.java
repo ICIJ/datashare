@@ -92,11 +92,11 @@ public class ElasticsearchIndexer implements Indexer {
         BulkRequest bulkRequest = new BulkRequest();
 
         String routing = ofNullable(parent.getRootDocument()).orElse(parent.getId());
-        bulkRequest.add(new UpdateRequest(indexName, esCfg.indexType, parent.getId()).doc(
+        bulkRequest.add(new UpdateRequest(indexName, parent.getId()).doc(
                 jsonBuilder().startObject()
                         .field("status", Document.Status.DONE)
                         .endObject()).routing(routing));
-        bulkRequest.add(new UpdateRequest(indexName, esCfg.indexType, parent.getId())
+        bulkRequest.add(new UpdateRequest(indexName, parent.getId())
                 .script(new Script(ScriptType.INLINE, "painless",
                         "if (!ctx._source.nerTags.contains(params.nerTag)) ctx._source.nerTags.add(params.nerTag);",
                         new HashMap<String, Object>() {{put("nerTag", nerType.toString());}})).routing(routing));
@@ -107,7 +107,7 @@ public class ElasticsearchIndexer implements Indexer {
         }
         bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
 
-        BulkResponse bulkResponse = client.bulk(bulkRequest);
+        BulkResponse bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
         if (bulkResponse.hasFailures()) {
             for (BulkItemResponse resp : bulkResponse.getItems()) {
                 if (resp.isFailed()) {
@@ -126,7 +126,7 @@ public class ElasticsearchIndexer implements Indexer {
                 forEach(bulkRequest::add);
         bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
 
-        BulkResponse bulkResponse = client.bulk(bulkRequest);
+        BulkResponse bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
         if (bulkResponse.hasFailures()) {
             for (BulkItemResponse resp : bulkResponse.getItems()) {
                 if (resp.isFailed()) {
@@ -143,7 +143,7 @@ public class ElasticsearchIndexer implements Indexer {
         String type = JsonObjectMapper.getType(obj);
         String id = obj.getId();
         client.index(createIndexRequest(indexName, type, id, getJson(obj), getParent(obj), getRoot(obj)).
-                setRefreshPolicy(esCfg.refreshPolicy));
+                setRefreshPolicy(esCfg.refreshPolicy), RequestOptions.DEFAULT);
     }
 
     @Override
@@ -151,7 +151,7 @@ public class ElasticsearchIndexer implements Indexer {
         String type = JsonObjectMapper.getType(obj);
         String id = obj.getId();
         client.update(createUpdateRequest(indexName, type, id, getJson(obj), getParent(obj), getRoot(obj)).
-                setRefreshPolicy(esCfg.refreshPolicy));
+                setRefreshPolicy(esCfg.refreshPolicy), RequestOptions.DEFAULT);
     }
 
     @Override
@@ -177,7 +177,7 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private UpdateRequest createUpdateRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
-        UpdateRequest req = new UpdateRequest(index, esCfg.indexType, id);
+        UpdateRequest req = new UpdateRequest(index, id);
 
         setJoinFields(json, type, parent, root);
         req = req.doc(json);
@@ -207,8 +207,8 @@ public class ElasticsearchIndexer implements Indexer {
     public <T extends Entity> T get(String indexName, String id, String root) {
         String type = null;
         try {
-            final GetRequest req = new GetRequest(indexName, esCfg.indexType, id).routing(root);
-            final GetResponse resp = client.get(req);
+            final GetRequest req = new GetRequest(indexName, id).routing(root);
+            final GetResponse resp = client.get(req, RequestOptions.DEFAULT);
             if (resp.isExists()) {
                 Map<String, Object> sourceAsMap = resp.getSourceAsMap();
                 type = (String) sourceAsMap.get(esCfg.docTypeField);
@@ -234,10 +234,10 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private boolean tagUntag(Project prj, String documentId, String rootDocument, Script untagScript) throws IOException {
-        UpdateRequest update = new UpdateRequest(prj.getId(), esCfg.indexType, documentId).routing(rootDocument);
+        UpdateRequest update = new UpdateRequest(prj.getId(), documentId).routing(rootDocument);
         update.script(untagScript);
         update.setRefreshPolicy(esCfg.refreshPolicy);
-        UpdateResponse updateResponse = client.update(update);
+        UpdateResponse updateResponse = client.update(update, RequestOptions.DEFAULT);
         return updateResponse.status() == RestStatus.OK && updateResponse.getResult() == DocWriteResponse.Result.UPDATED;
     }
 
@@ -300,8 +300,9 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public boolean deleteAll(String indexName) throws IOException {
-        Response response = client.getLowLevelClient().performRequest("POST", indexName + "/doc/_delete_by_query?refresh",
-                new HashMap<>(), new NStringEntity("{\"query\":{\"match_all\": {}}}", ContentType.APPLICATION_JSON));
+        Request post = new Request("POST", indexName + "/doc/_delete_by_query?refresh");
+        post.setEntity(new NStringEntity("{\"query\":{\"match_all\": {}}}", ContentType.APPLICATION_JSON));
+        Response response = client.getLowLevelClient().performRequest(post);
         return response.getStatusLine().getStatusCode() == RestStatus.OK.getStatus();
     }
 
@@ -381,8 +382,7 @@ public class ElasticsearchIndexer implements Indexer {
         public Stream<? extends Entity> execute() throws IOException {
             sourceBuilder.query(boolQuery);
             SearchRequest searchRequest = new SearchRequest(new String[]{indexName}, sourceBuilder);
-            searchRequest.types(config.indexType);
-            SearchResponse search = client.search(searchRequest);
+            SearchResponse search = client.search(searchRequest, RequestOptions.DEFAULT);
             return resultStream(this.cls, () -> search.getHits().iterator());
         }
 
@@ -400,12 +400,11 @@ public class ElasticsearchIndexer implements Indexer {
             SearchResponse search;
             if (scrollId == null) {
                 SearchRequest searchRequest = new SearchRequest(new String[]{indexName}, sourceBuilder).scroll(KEEP_ALIVE);
-                searchRequest.types(config.indexType);
-                search = client.search(searchRequest);
+                search = client.search(searchRequest, RequestOptions.DEFAULT);
                 scrollId = search.getScrollId();
-                totalHits = search.getHits().totalHits;
+                totalHits = search.getHits().getTotalHits().value;
             } else {
-                search = client.searchScroll(new SearchScrollRequest(scrollId).scroll(KEEP_ALIVE));
+                search = client.scroll(new SearchScrollRequest(scrollId).scroll(KEEP_ALIVE), RequestOptions.DEFAULT);
                 scrollId = search.getScrollId();
             }
             return resultStream(this.cls, () -> search.getHits().iterator());
@@ -512,7 +511,7 @@ public class ElasticsearchIndexer implements Indexer {
         public void clearScroll() throws IOException {
             ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
             clearScrollRequest.addScrollId(scrollId);
-            this.client.clearScroll(clearScrollRequest);
+            this.client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
             scrollId = null;
             totalHits = 0;
         }

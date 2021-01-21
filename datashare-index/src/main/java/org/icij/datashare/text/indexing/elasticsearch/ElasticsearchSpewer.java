@@ -62,7 +62,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     protected void writeDocument(TikaDocument doc, TikaDocument parent, TikaDocument root, int level) throws IOException {
         final IndexRequest req = prepareRequest(doc, parent, root, level);
         long before = currentTimeMillis();
-        IndexResponse indexResponse = client.index(req);
+        IndexResponse indexResponse = client.index(req, RequestOptions.DEFAULT);
         logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
                 shorten(indexResponse.getId(), 4), currentTimeMillis() - before, doc);
         synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads

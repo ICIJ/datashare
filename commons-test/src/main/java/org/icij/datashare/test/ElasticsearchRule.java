@@ -9,7 +9,6 @@ import org.elasticsearch.client.*;
 import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static jdk.nashorn.internal.runtime.Context.printStackTrace;
@@ -36,13 +35,13 @@ public class ElasticsearchRule extends ExternalResource {
     protected void before() throws Throwable {
         GetIndexRequest request = new GetIndexRequest();
         request.indices(indexName);
-        if (! client.indices().exists(request)) {
+        if (! client.indices().exists(request, RequestOptions.DEFAULT)) {
             CreateIndexRequest createReq = new CreateIndexRequest(indexName);
             byte[] settings = toByteArray(getClass().getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME));
             createReq.settings(new String(settings), JSON);
             byte[] mapping = toByteArray(getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
-            createReq.mapping("doc", new String(mapping), JSON);
-            client.indices().create(createReq);
+            createReq.mapping("_doc", new String(mapping), JSON);
+            client.indices().create(createReq, RequestOptions.DEFAULT);
         }
     }
 
@@ -65,14 +64,10 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     public void removeAll() throws IOException {
-        Response response = client.getLowLevelClient().performRequest(
-                "POST",
-                indexName + "/doc/_delete_by_query",
-                new HashMap<String, String>() {{
-                    put("conflicts", "proceed");
-                    put("refresh", "true");
-                }},
-                new NStringEntity("{\"query\": {\"match_all\": {}}}", ContentType.APPLICATION_JSON));
+        Request post = new Request("POST", indexName + "/_delete_by_query");
+        post.addParameter("refresh", "true");
+        post.setEntity(new NStringEntity("{\"query\": {\"match_all\": {}}}", ContentType.APPLICATION_JSON));
+        Response response = client.getLowLevelClient().performRequest(post);
         if (response.getStatusLine().getStatusCode() != 200) {
             throw new RuntimeException("error while executing delete by query status : " + response.getStatusLine().getStatusCode());
         }

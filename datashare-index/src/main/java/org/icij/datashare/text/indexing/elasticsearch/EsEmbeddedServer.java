@@ -53,9 +53,7 @@ public class EsEmbeddedServer {
 
     private static class PluginConfigurableNode extends Node {
         public PluginConfigurableNode(Settings settings, Collection<Class<? extends Plugin>> classpathPlugins) {
-            super(InternalSettingsPreparer.prepareEnvironment(settings, null), classpathPlugins, true);
+            super(InternalSettingsPreparer.prepareEnvironment(settings, null, null, () -> "datashare"), classpathPlugins, true);
         }
-        @Override
-        protected void registerDerivedNodeNameWithLogger(String s) {}
     }
 }

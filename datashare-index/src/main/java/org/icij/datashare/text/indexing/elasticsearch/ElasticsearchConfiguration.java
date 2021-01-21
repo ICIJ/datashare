@@ -3,6 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.support.WriteRequest;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.settings.Settings;
@@ -40,7 +41,7 @@ public class ElasticsearchConfiguration {
     static final String  ES_DUPLICATE_TYPE = "Duplicate";
     static final String  ES_CONTENT_FIELD = "content";
 
-    public static final String DEFAULT_INDEX_TYPE = "doc";
+    public static final String DEFAULT_INDEX_TYPE = "_doc";
     private static final String DEFAULT_INDEX_JOIN_FIELD = "join";
     static final String DEFAULT_PARENT_DOC_FIELD = "parentDocument";
 
@@ -68,8 +69,7 @@ public class ElasticsearchConfiguration {
         RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(create(indexAddress)).setRequestConfigCallback(
                 requestConfigBuilder -> requestConfigBuilder
                     .setConnectTimeout(5000)
-                    .setSocketTimeout(60000)).
-                setMaxRetryTimeoutMillis(50000)); // listener t/o cf https://github.com/ICIJ/datashare/issues/462
+                    .setSocketTimeout(60000)));
         String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
         return client;
     }
@@ -82,12 +82,12 @@ public class ElasticsearchConfiguration {
         GetIndexRequest request = new GetIndexRequest();
         request.indices(indexName);
         try {
-            if (!client.indices().exists(request)) {
+            if (!client.indices().exists(request, RequestOptions.DEFAULT)) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
                 CreateIndexRequest createReq = new CreateIndexRequest(indexName);
                 createReq.settings(getResourceContent(SETTINGS_RESOURCE_NAME), JSON);
                 createReq.mapping(indexType, getResourceContent(MAPPING_RESOURCE_NAME), JSON);
-                client.indices().create(createReq);
+                client.indices().create(createReq, RequestOptions.DEFAULT);
                 return true;
             }
         } catch (IOException e) {
