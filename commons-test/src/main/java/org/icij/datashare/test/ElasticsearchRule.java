@@ -2,9 +2,9 @@ package org.icij.datashare.test;
 
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.client.*;
 import org.junit.rules.ExternalResource;
 
@@ -33,14 +33,13 @@ public class ElasticsearchRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        GetIndexRequest request = new GetIndexRequest();
-        request.indices(indexName);
-        if (! client.indices().exists(request, RequestOptions.DEFAULT)) {
+        GetIndexRequest request = new GetIndexRequest(indexName);
+        if (!client.indices().exists(request, RequestOptions.DEFAULT)) {
             CreateIndexRequest createReq = new CreateIndexRequest(indexName);
             byte[] settings = toByteArray(getClass().getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME));
             createReq.settings(new String(settings), JSON);
             byte[] mapping = toByteArray(getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
-            createReq.mapping("_doc", new String(mapping), JSON);
+            createReq.mapping(new String(mapping), JSON);
             client.indices().create(createReq, RequestOptions.DEFAULT);
         }
     }
