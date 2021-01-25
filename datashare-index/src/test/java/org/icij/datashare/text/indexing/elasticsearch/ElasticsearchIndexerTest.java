@@ -20,7 +20,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.*;
@@ -401,6 +400,4 @@ public class ElasticsearchIndexerTest {
     public void test_es_index_status() throws IOException {
         assertThat(indexer.getHealth()).isTrue();
     }
-
-    public ElasticsearchIndexerTest() throws UnknownHostException {}
 }
