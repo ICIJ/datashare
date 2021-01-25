@@ -1,11 +1,12 @@
 package org.icij.datashare.test;
 
+import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
-import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.client.*;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
@@ -25,10 +26,12 @@ public class ElasticsearchRule extends ExternalResource {
     public ElasticsearchRule() {
         this(TEST_INDEX);
     }
-    public ElasticsearchRule(final String indexName) {
+    public ElasticsearchRule(final String indexName) { this(indexName, create("http://elasticsearch:9200"));}
+    public ElasticsearchRule(final HttpHost esHost) { this(TEST_INDEX, esHost);}
+    public ElasticsearchRule(final String indexName, HttpHost elasticHost) {
         this.indexName = indexName;
         System.setProperty("es.set.netty.runtime.available.processors", "false");
-        client = new RestHighLevelClient(RestClient.builder(create("http://elasticsearch:9200")));
+        client = new RestHighLevelClient(RestClient.builder(elasticHost));
     }
 
     @Override

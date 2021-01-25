@@ -22,7 +22,6 @@ public class ElasticsearchConfiguration {
     static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
     static final int INDEX_MAX_RESULT_WINDOW = 100000;
     static Logger LOGGER = LoggerFactory.getLogger(ElasticsearchConfiguration.class);
-    public static final String VERSION = "6.1.0";
 
     static protected final int DEFAULT_SEARCH_FROM = 0;
     static protected final int DEFAULT_SEARCH_SIZE = 10000;

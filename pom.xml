@@ -102,8 +102,8 @@
         <joptsimple.version>5.0.4</joptsimple.version>
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.1.7</logback.version>
-        <log4jtoslf4j.version>2.11.1</log4jtoslf4j.version>
-        <log4-over-slf4j.version>2.11.1</log4-over-slf4j.version>
+        <log4jtoslf4j.version>2.14.0</log4jtoslf4j.version>
+        <log4-over-slf4j.version>2.14.0</log4-over-slf4j.version>
         <junit.version>4.13.1</junit.version>
 
         <!-- Maven Plugins -->

@@ -57,8 +57,4 @@ public class EsEmbeddedServer {
             super(InternalSettingsPreparer.prepareEnvironment(settings, new HashMap<>(), null, () -> "datashare"), classpathPlugins, true);
         }
     }
-
-    public static void main(String[] args) {
-        new EsEmbeddedServer("datashare", "/home/dev/es", "/home/dev/es", "9200").start();
-    }
 }
