@@ -139,25 +139,19 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
-    public int getTotal(User user, List<String> projectsIds) {
-        return DSL.using(dataSource, dialect).selectCount().from(BATCH_SEARCH).
+    public int getTotal(User user, List<String> projectsIds, WebQuery webQuery) {
+        SelectConditionStep<Record1<Integer>> query = using(dataSource, dialect).selectCount().from(BATCH_SEARCH).
                 where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).
-                                or(BATCH_SEARCH.PUBLISHED.greaterThan(0)))).fetchOne(0, int.class);
+                        or(BATCH_SEARCH.PUBLISHED.greaterThan(0))));
+        addFilterToSelectCondition(webQuery, query);
+        return query.fetchOne(0, int.class);
     }
 
     @Override
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
         SelectConditionStep<Record12<String, String, String, String, String, Timestamp, String, Integer, Integer, String, String, Object>> query = createBatchSearchRecordWithQueriesSelectStatement(using(dataSource, dialect))
                 .where(BATCH_SEARCH.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0))));
-        if(!webQuery.query.equals("") && !webQuery.query.equals("*")){
-            String searchQuery = String.format("%s%s%s","%",webQuery.query,"%");
-            if(webQuery.field.equals("all")) {
-                query.and(BATCH_SEARCH.NAME.like(searchQuery).or(BATCH_SEARCH.DESCRIPTION.like(searchQuery)).or(BATCH_SEARCH.USER_ID.like(searchQuery)));
-            }
-            else {
-                query.and(getTableRecordFromWebQueryField(webQuery.field).like(searchQuery));
-            }
-        }
+        addFilterToSelectCondition(webQuery, query);
         if (webQuery.isSorted()) {
             query.orderBy(field(webQuery.sort + " " + webQuery.order));
         } else {
@@ -337,6 +331,18 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             case "description" : return BATCH_SEARCH.DESCRIPTION;
             case "author" : return BATCH_SEARCH.USER_ID;
             default: return BATCH_SEARCH.NAME;
+        }
+    }
+
+    private void addFilterToSelectCondition(WebQuery webQuery, SelectConditionStep<? extends Record> query) {
+        if(!webQuery.query.equals("") && !webQuery.query.equals("*")){
+            String searchQuery = String.format("%s%s%s","%", webQuery.query,"%");
+            if(webQuery.field.equals("all")) {
+                query.and(BATCH_SEARCH.NAME.like(searchQuery).or(BATCH_SEARCH.DESCRIPTION.like(searchQuery)).or(BATCH_SEARCH.USER_ID.like(searchQuery)));
+            }
+            else {
+                query.and(getTableRecordFromWebQueryField(webQuery.field).like(searchQuery));
+            }
         }
     }
 

@@ -9,8 +9,8 @@ import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.BatchSearchRecord;
+import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.DatashareUser;
@@ -83,7 +83,7 @@ public class BatchSearchResource {
     public BatchSearchResponse getSearchesFiletered(BatchSearchRepository.WebQuery webQuery, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         return new BatchSearchResponse(batchSearchRepository.getRecords(user, user.getProjects(), webQuery),
-                batchSearchRepository.getTotal(user, user.getProjects()));
+                batchSearchRepository.getTotal(user, user.getProjects(), webQuery));
     }
 
     /**

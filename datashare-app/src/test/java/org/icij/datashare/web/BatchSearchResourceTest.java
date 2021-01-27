@@ -161,7 +161,8 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         List<BatchSearchRecord> batchSearches = IntStream.range(0, 10).mapToObj(i -> new BatchSearchRecord(project("prj"), "name" + i, "description" + i, 2, new Date())).collect(toList());
         when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(2, 0))).thenReturn(batchSearches.subList(0, 2));
         when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(3, 4))).thenReturn(batchSearches.subList(5, 8));
-        when(batchSearchRepository.getTotal(User.local(), singletonList("local-datashare"))).thenReturn(batchSearches.size());
+        when(batchSearchRepository.getTotal(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(2,0))).thenReturn(batchSearches.size());
+        when(batchSearchRepository.getTotal(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(3,4))).thenReturn(batchSearches.size());
 
         post("/api/batch/search", "{\"from\":0, \"size\":2, \"query\":\"*\", \"field\":\"all\"}").should().respond(200).haveType("application/json").
                 contain("\"name\":\"name0\"").
