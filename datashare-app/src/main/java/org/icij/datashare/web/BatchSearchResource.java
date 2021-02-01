@@ -211,7 +211,7 @@ public class BatchSearchResource {
      *
      * `sed -i 's/$/^M/g' ~/multipart.txt`
      *
-     * TThen make a curl request with this file :
+     * Then make a curl request with this file :
      * ```
      * curl -i -XPOST localhost:8080/api/batch/search/prj -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
      * ```
@@ -242,6 +242,38 @@ public class BatchSearchResource {
 
         BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, queries,
                 (User) context.currentUser(), published, fileTypes, paths, fuzziness,phraseMatches);
+        boolean isSaved = batchSearchRepository.save(batchSearch);
+        if (isSaved) batchSearchQueue.put(batchSearch.uuid);
+        return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
+    }
+
+    /**
+     * preflight request
+     *
+     * @return 200 POST
+     */
+    @Options("/search/copy/:sourcebatchid")
+    public Payload optionsCopy(String sourceBatchId, Context context) {
+        return ok().withAllowMethods("OPTIONS", "POST");
+    }
+
+    /**
+     * Create a new batch search based on another one given its id.
+     *
+     * Returns 200 and new batch search id or 400
+     *
+     * @return 200 or 400
+     *
+     * Example :
+     * $(curl -i -XPOST localhost:8080/api/batch/search/copy/b7bee2d8-5ede-4c56-8b69-987629742146 -H 'Content-Type: application/json')
+     *
+     */
+    @Post("/search/copy/:sourcebatchid")
+    public Payload copySearch(String sourceBatchId, Context context) throws Exception {
+        BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
+        BatchSearch batchSearch = new BatchSearch(project(sourceBatchSearch.project.getId()), String.format("%s%s", "[RERUN] ",sourceBatchSearch.name),
+                sourceBatchSearch.description, new LinkedHashSet<>(sourceBatchSearch.queries.keySet()), (User) context.currentUser(), sourceBatchSearch.published, sourceBatchSearch.fileTypes,
+                sourceBatchSearch.paths, sourceBatchSearch.fuzziness, sourceBatchSearch.phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);
         if (isSaved) batchSearchQueue.put(batchSearch.uuid);
         return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();

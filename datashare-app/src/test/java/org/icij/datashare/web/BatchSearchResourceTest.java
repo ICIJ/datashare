@@ -116,6 +116,26 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         assertThat(iterator.hasNext()).isFalse();
     }
 
+    @Test
+    public void test_rerun_batch_search() {
+        BatchSearch sourceSearch = new BatchSearch(project("prj"), "name", "description1", asSet("query 1", "query 2"), User.local());
+        when(batchSearchRepository.get(User.local(), sourceSearch.uuid)).thenReturn(sourceSearch);
+        when(batchSearchRepository.save(any())).thenReturn(true);
+
+        post("/api/batch/search/copy/" + sourceSearch.uuid).should().respond(200).haveType("application/json");
+
+        ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
+        verify(batchSearchRepository).save(argument.capture());
+        assertThat(argument.getValue().uuid).isNotEqualTo(sourceSearch.uuid);
+        assertThat(argument.getValue().name).isEqualTo("[RERUN] " + sourceSearch.name);
+        assertThat(argument.getValue().fileTypes).isEqualTo(sourceSearch.fileTypes);
+        assertThat(argument.getValue().paths).isEqualTo(sourceSearch.paths);
+        assertThat(argument.getValue().fuzziness).isEqualTo(sourceSearch.fuzziness);
+        assertThat(argument.getValue().phraseMatches).isEqualTo(sourceSearch.phraseMatches);
+        assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
+        assertThat(argument.getValue().description).isEqualTo(sourceSearch.description);
+        assertThat(argument.getValue().queries).isEqualTo(sourceSearch.queries);
+    }
 
     @Test
     public void test_upload_batch_search_csv_less_that_2chars_queries_are_filtered() {
