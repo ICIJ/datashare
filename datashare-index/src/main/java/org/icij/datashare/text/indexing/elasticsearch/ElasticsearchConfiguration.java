@@ -1,10 +1,11 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.support.WriteRequest;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
@@ -21,14 +22,12 @@ public class ElasticsearchConfiguration {
     static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
     static final int INDEX_MAX_RESULT_WINDOW = 100000;
     static Logger LOGGER = LoggerFactory.getLogger(ElasticsearchConfiguration.class);
-    public static final String VERSION = "6.1.0";
 
     static protected final int DEFAULT_SEARCH_FROM = 0;
     static protected final int DEFAULT_SEARCH_SIZE = 10000;
     static protected final int DEFAULT_TIMEOUT_INSEC = 10;
 
     public static final String INDEX_ADDRESS_PROP = "elasticsearchAddress";
-    public static final String INDEX_TYPE_PROP = "indexType";
     public static final String INDEX_NAME_PROP = "indexName";
     public static final String INDEX_JOIN_FIELD_NAME_PROP = "indexJoinFieldName";
     public static final String INDEX_TYPE_FIELD_NAME_PROP = "indexTypeFieldName";
@@ -40,13 +39,11 @@ public class ElasticsearchConfiguration {
     static final String  ES_DUPLICATE_TYPE = "Duplicate";
     static final String  ES_CONTENT_FIELD = "content";
 
-    public static final String DEFAULT_INDEX_TYPE = "doc";
     private static final String DEFAULT_INDEX_JOIN_FIELD = "join";
     static final String DEFAULT_PARENT_DOC_FIELD = "parentDocument";
 
     private static final String DEFAULT_DOC_TYPE_FIELD = "type";
 
-    final String indexType;
     final String indexJoinField;
     final String docTypeField;
     WriteRequest.RefreshPolicy refreshPolicy = WriteRequest.RefreshPolicy.NONE;
@@ -55,7 +52,6 @@ public class ElasticsearchConfiguration {
     final int replicas = 1;
 
     ElasticsearchConfiguration(PropertiesProvider propertiesProvider) {
-        indexType = propertiesProvider.get(INDEX_TYPE_PROP).orElse(DEFAULT_INDEX_TYPE);
         indexJoinField = propertiesProvider.get(INDEX_JOIN_FIELD_NAME_PROP).orElse(DEFAULT_INDEX_JOIN_FIELD);
         docTypeField = propertiesProvider.get(INDEX_TYPE_FIELD_NAME_PROP).orElse(DEFAULT_DOC_TYPE_FIELD);
     }
@@ -68,26 +64,20 @@ public class ElasticsearchConfiguration {
         RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(create(indexAddress)).setRequestConfigCallback(
                 requestConfigBuilder -> requestConfigBuilder
                     .setConnectTimeout(5000)
-                    .setSocketTimeout(60000)).
-                setMaxRetryTimeoutMillis(50000)); // listener t/o cf https://github.com/ICIJ/datashare/issues/462
+                    .setSocketTimeout(60000)));
         String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
         return client;
     }
 
-    public static boolean createIndex(RestHighLevelClient client, String indexName, PropertiesProvider propertiesProvider) {
-        return createIndex(client, indexName, propertiesProvider.get(INDEX_TYPE_PROP).orElse(DEFAULT_INDEX_TYPE));
-    }
-
-    public static boolean createIndex(RestHighLevelClient client, String indexName, String indexType) {
-        GetIndexRequest request = new GetIndexRequest();
-        request.indices(indexName);
+    public static boolean createIndex(RestHighLevelClient client, String indexName) {
+        GetIndexRequest request = new GetIndexRequest(indexName);
         try {
-            if (!client.indices().exists(request)) {
+            if (!client.indices().exists(request, RequestOptions.DEFAULT)) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
                 CreateIndexRequest createReq = new CreateIndexRequest(indexName);
                 createReq.settings(getResourceContent(SETTINGS_RESOURCE_NAME), JSON);
-                createReq.mapping(indexType, getResourceContent(MAPPING_RESOURCE_NAME), JSON);
-                client.indices().create(createReq);
+                createReq.mapping(getResourceContent(MAPPING_RESOURCE_NAME), JSON);
+                client.indices().create(createReq, RequestOptions.DEFAULT);
                 return true;
             }
         } catch (IOException e) {
@@ -104,8 +94,7 @@ public class ElasticsearchConfiguration {
     @Override
     public String toString() {
         return "cfg{" +
-                "indexType='" + indexType + '\'' +
-                ", indexJoinField='" + indexJoinField + '\'' +
+                "indexJoinField='" + indexJoinField + '\'' +
                 ", docTypeField='" + docTypeField + '\'' +
                 ", shards=" + shards +
                 ", replicas=" + replicas +

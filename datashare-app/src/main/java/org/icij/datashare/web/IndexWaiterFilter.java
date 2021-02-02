@@ -5,6 +5,7 @@ import net.codestory.http.Context;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,7 @@ public class IndexWaiterFilter implements Filter {
         executor.submit(() -> {
             for (int i = 0; i < TIMEOUT_SECONDS; i++) {
                 try {
-                    if (client.ping()) {
+                    if (client.ping(RequestOptions.DEFAULT)) {
                         this.indexOk.set(true);
                         LOGGER.info("Ping elasticsearch succeeded");
                         break;

@@ -1,15 +1,15 @@
 package org.icij.datashare.test;
 
+import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.client.*;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static jdk.nashorn.internal.runtime.Context.printStackTrace;
@@ -26,23 +26,24 @@ public class ElasticsearchRule extends ExternalResource {
     public ElasticsearchRule() {
         this(TEST_INDEX);
     }
-    public ElasticsearchRule(final String indexName) {
+    public ElasticsearchRule(final String indexName) { this(indexName, create("http://elasticsearch:9200"));}
+    public ElasticsearchRule(final HttpHost esHost) { this(TEST_INDEX, esHost);}
+    public ElasticsearchRule(final String indexName, HttpHost elasticHost) {
         this.indexName = indexName;
         System.setProperty("es.set.netty.runtime.available.processors", "false");
-        client = new RestHighLevelClient(RestClient.builder(create("http://elasticsearch:9200")));
+        client = new RestHighLevelClient(RestClient.builder(elasticHost));
     }
 
     @Override
     protected void before() throws Throwable {
-        GetIndexRequest request = new GetIndexRequest();
-        request.indices(indexName);
-        if (! client.indices().exists(request)) {
+        GetIndexRequest request = new GetIndexRequest(indexName);
+        if (!client.indices().exists(request, RequestOptions.DEFAULT)) {
             CreateIndexRequest createReq = new CreateIndexRequest(indexName);
             byte[] settings = toByteArray(getClass().getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME));
             createReq.settings(new String(settings), JSON);
             byte[] mapping = toByteArray(getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
-            createReq.mapping("doc", new String(mapping), JSON);
-            client.indices().create(createReq);
+            createReq.mapping(new String(mapping), JSON);
+            client.indices().create(createReq, RequestOptions.DEFAULT);
         }
     }
 
@@ -65,14 +66,10 @@ public class ElasticsearchRule extends ExternalResource {
     }
 
     public void removeAll() throws IOException {
-        Response response = client.getLowLevelClient().performRequest(
-                "POST",
-                indexName + "/doc/_delete_by_query",
-                new HashMap<String, String>() {{
-                    put("conflicts", "proceed");
-                    put("refresh", "true");
-                }},
-                new NStringEntity("{\"query\": {\"match_all\": {}}}", ContentType.APPLICATION_JSON));
+        Request post = new Request("POST", indexName + "/_delete_by_query");
+        post.addParameter("refresh", "true");
+        post.setEntity(new NStringEntity("{\"query\": {\"match_all\": {}}}", ContentType.APPLICATION_JSON));
+        Response response = client.getLowLevelClient().performRequest(post);
         if (response.getStatusLine().getStatusCode() != 200) {
             throw new RuntimeException("error while executing delete by query status : " + response.getStatusLine().getStatusCode());
         }

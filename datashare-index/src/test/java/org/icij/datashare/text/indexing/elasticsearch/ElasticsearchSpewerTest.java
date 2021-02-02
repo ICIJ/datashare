@@ -6,6 +6,7 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.icij.datashare.PropertiesProvider;
@@ -68,7 +69,7 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertThat(documentFields.isExists()).isTrue();
         assertThat(documentFields.getId()).isEqualTo(document.getId());
         assertEquals(new HashMap<String, String>() {{
@@ -87,7 +88,7 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertThat(documentFields.getSourceAsMap()).includes(
                 entry("contentEncoding", "ISO-8859-1"),
                 entry("contentType", "text/plain"),
@@ -106,15 +107,15 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertTrue(documentFields.isExists());
 
         SearchRequest searchRequest = new SearchRequest();
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(QueryBuilders.multiMatchQuery("simple.tiff", "content"));
         searchRequest.source(searchSourceBuilder);
-        SearchResponse response = es.client.search(searchRequest);
-        assertThat(response.getHits().totalHits).isGreaterThan(0);
+        SearchResponse response = es.client.search(searchRequest, RequestOptions.DEFAULT);
+        assertThat(response.getHits().getTotalHits().value).isGreaterThan(0);
         //assertThat(response.getHits().getAt(0).getId()).endsWith("embedded.pdf");
 
         verify(publisher, times(2)).publish(eq(Channel.NLP), any(Message.class));
@@ -152,8 +153,8 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
         spewer.write(document2);
 
-        GetResponse actualDocument = es.client.get(new GetRequest(TEST_INDEX, "doc", document.getId()));
-        GetResponse actualDocument2 = es.client.get(new GetRequest(TEST_INDEX, "doc", new Duplicate(document2.getPath(), document.getId()).getId()));
+        GetResponse actualDocument = es.client.get(new GetRequest(TEST_INDEX, document.getId()),RequestOptions.DEFAULT);
+        GetResponse actualDocument2 = es.client.get(new GetRequest(TEST_INDEX, new Duplicate(document2.getPath(), document.getId()).getId()), RequestOptions.DEFAULT);
         assertThat(actualDocument.isExists()).isTrue();
         assertThat(actualDocument.getSourceAsMap()).includes(entry("type", "Document"));
         assertThat(actualDocument2.isExists()).isTrue();
