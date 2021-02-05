@@ -271,8 +271,9 @@ public class BatchSearchResource {
     @Post("/search/copy/:sourcebatchid")
     public Payload copySearch(String sourceBatchId, Context context) throws Exception {
         BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
-        BatchSearch batchSearch = new BatchSearch(project(sourceBatchSearch.project.getId()), String.format("%s%s", "[RERUN] ",sourceBatchSearch.name),
-                sourceBatchSearch.description, new LinkedHashSet<>(sourceBatchSearch.queries.keySet()), (User) context.currentUser(), sourceBatchSearch.published, sourceBatchSearch.fileTypes,
+        List<Part> parts = context.parts();
+        BatchSearch batchSearch = new BatchSearch(project(sourceBatchSearch.project.getId()), fieldValue("name", parts),
+                fieldValue("description", parts), new LinkedHashSet<>(sourceBatchSearch.queries.keySet()), (User) context.currentUser(), sourceBatchSearch.published, sourceBatchSearch.fileTypes,
                 sourceBatchSearch.paths, sourceBatchSearch.fuzziness, sourceBatchSearch.phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);
         if (isSaved) batchSearchQueue.put(batchSearch.uuid);
