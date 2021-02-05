@@ -260,13 +260,29 @@ public class BatchSearchResource {
     /**
      * Create a new batch search based on another one given its id.
      *
-     * Returns 200 and new batch search id or 400
+     * Returns 200 and new batch search id.
+     * The name is mandatory else it will return 400
      *
+     * With bash you can create a text file like :
+     * ```
+     * --BOUNDARY
+     * Content-Disposition: form-data; name="name"
+     *
+     * my batch search
+     * --BOUNDARY
+     * Content-Disposition: form-data; name="description"
+     * ```
+     * Then replace `\n` with `\r\n` with a sed like this:
+     *
+     * `sed -i 's/$/^M/g' ~/multipart.txt`
+     *
+     * Then make a curl request with this file :
+     * ```
+     * $(curl -i -XPOST localhost:8080/api/batch/search/copy/b7bee2d8-5ede-4c56-8b69-987629742146 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt)
+     * ```
+     * @param sourceBatchId
+     * @param context : the request body
      * @return 200 or 400
-     *
-     * Example :
-     * $(curl -i -XPOST localhost:8080/api/batch/search/copy/b7bee2d8-5ede-4c56-8b69-987629742146 -H 'Content-Type: application/json')
-     *
      */
     @Post("/search/copy/:sourcebatchid")
     public Payload copySearch(String sourceBatchId, Context context) throws Exception {
