@@ -349,6 +349,9 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_delete_by_query() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("docId", project("prj"), Paths.get("doc.txt"), "content",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 4324L);
+        indexer.add(TEST_INDEX, doc);
         indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", 2, "docId", CORENLP, Language.FRENCH));
         indexer.add(TEST_INDEX, create(PERSON, "John Doe", 12, "docId", CORENLP, Language.FRENCH));
 
