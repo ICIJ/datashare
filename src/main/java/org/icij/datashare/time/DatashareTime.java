@@ -1,7 +1,7 @@
 package org.icij.datashare.time;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.AccessControlException;
 import java.util.Date;
@@ -16,7 +16,7 @@ import java.util.Date;
  */
 public class DatashareTime implements Time {
 
-    private static final Log logger = LogFactory.getLog(DatashareTime.class);
+    private static final Logger logger = LoggerFactory.getLogger(DatashareTime.class);
     /** property key for "org.icij.datashare.time.class" */
     public static final String DATASHARE_TIME_CLASS_PROPERTY = "datashare.time";
     private static final Time defaultInstance;

@@ -26,12 +26,6 @@
             <organization>ICIJ</organization>
         </developer>
         <developer>
-            <name>Julien Martin</name>
-            <id>julm</id>
-            <email>julien.pierre.martin@gmail.com</email>
-            <organization>ICIJ</organization>
-        </developer>
-        <developer>
             <name>Maxime Vanza Lutonda</name>
             <email>mvanza@icij.org</email>
             <organization>ICIJ</organization>
@@ -111,6 +105,12 @@
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
             <version>1.11.327</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
