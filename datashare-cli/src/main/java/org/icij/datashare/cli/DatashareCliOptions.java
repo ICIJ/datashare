@@ -211,7 +211,7 @@ public final class DatashareCliOptions {
                 singletonList(MESSAGE_BUS_OPT),
                 "Message bus address")
                 .withRequiredArg()
-                .defaultsTo("redis");
+                .defaultsTo("redis://redis:6379");
     }
 
     public static OptionSpec<String> busType(OptionParser parser) {
