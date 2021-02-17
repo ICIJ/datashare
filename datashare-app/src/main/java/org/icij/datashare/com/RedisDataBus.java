@@ -7,9 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
-import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;
 
 import java.io.Closeable;
@@ -31,7 +29,7 @@ public class RedisDataBus implements Publisher, DataBus, Closeable {
 
     @Inject
     public RedisDataBus(PropertiesProvider propertiesProvider) {
-        this.redis = new JedisPool(new JedisPoolConfig(), propertiesProvider.get("messageBusAddress").orElse("redis"));
+        this.redis = new JedisPool(propertiesProvider.get("messageBusAddress").orElse("redis://redis:6379"));
     }
 
     @Override
