@@ -7,7 +7,6 @@ import org.icij.datashare.json.JsonUtils;
 import org.icij.datashare.text.Hasher;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Transaction;
 
 import java.util.List;
@@ -21,7 +20,7 @@ public class UsersInRedis implements UsersWritable {
 
     @Inject
     public UsersInRedis(PropertiesProvider propertiesProvider) {
-        redis = new JedisPool(new JedisPoolConfig(), propertiesProvider.getProperties().getProperty("messageBusAddress"));
+        redis = new JedisPool(propertiesProvider.get("messageBusAddress").orElse("redis://redis6379"));
         this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("1"));
     }
 

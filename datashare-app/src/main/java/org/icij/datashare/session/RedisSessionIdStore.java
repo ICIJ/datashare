@@ -5,7 +5,6 @@ import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Transaction;
 
 import static java.util.Optional.ofNullable;
@@ -16,7 +15,7 @@ public class RedisSessionIdStore implements SessionIdStore {
 
     @Inject
     public RedisSessionIdStore(PropertiesProvider propertiesProvider) {
-        this.redis = new JedisPool(new JedisPoolConfig(), propertiesProvider.getProperties().getProperty("messageBusAddress"));
+        this.redis = new JedisPool(propertiesProvider.get("messageBusAddress").orElse("redis://redis:6379"));
         this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("1"));
     }
 

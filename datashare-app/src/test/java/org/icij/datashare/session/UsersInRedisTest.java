@@ -13,7 +13,7 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class UsersInRedisTest {
     UsersInRedis users = new UsersInRedis(new PropertiesProvider(new HashMap<String, String>() {{
-        put("messageBusAddress", "redis");
+        put("messageBusAddress", "redis://redis:6379");
     }}));
 
     @Test

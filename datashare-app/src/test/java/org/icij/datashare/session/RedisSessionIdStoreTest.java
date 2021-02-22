@@ -9,7 +9,7 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class RedisSessionIdStoreTest {
     RedisSessionIdStore sessionIdStore = new RedisSessionIdStore(new PropertiesProvider(new HashMap<String, String>() {{
-        put("messageBusAddress", "redis");
+        put("messageBusAddress", "redis://redis:6379");
         put("sessionTtlSeconds", "1");
     }}));
 

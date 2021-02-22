@@ -34,7 +34,7 @@ public class YesCookieAuthFilterTest {
      public void test_adds_new_user_to_context() throws Exception {
         YesCookieAuthFilter filter = new YesCookieAuthFilter(new PropertiesProvider(new HashMap<String, String>() {{
             put("defaultProject", "demo");
-            put("messageBusAddress", "redis");
+            put("messageBusAddress", "redis://redis:6379");
         }}));
          Payload payload = filter.apply("url", context, nextFilter);
 
