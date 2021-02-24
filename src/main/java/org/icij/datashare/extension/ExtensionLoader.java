@@ -4,12 +4,14 @@ import org.icij.datashare.DynamicClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
-import java.util.InputMismatchException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
@@ -52,7 +54,8 @@ public class ExtensionLoader {
                 classname = classname.substring(0, classname.length() - 6);
                 if (!classname.contains("$") && !"module-info".equals(classname)) {
                     try {
-                        final Class<?> myLoadedClass = Class.forName(classname, true, ucl);
+                        LOGGER.warn("going to load class {}",classname);
+                        final Class<?> myLoadedClass = Class.forName(classname, false, ucl);
                         if (predicate.test(myLoadedClass) &&
                                 !myLoadedClass.isInterface() && !Modifier.isAbstract(myLoadedClass.getModifiers())) {
                             return myLoadedClass;
@@ -60,7 +63,6 @@ public class ExtensionLoader {
                     } catch (ClassNotFoundException|LinkageError e) {
                         LOGGER.warn("cannot load class {}: {}", classname, e);
                     }
-
                 }
             }
         }
