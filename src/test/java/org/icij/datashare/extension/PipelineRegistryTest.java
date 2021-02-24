@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.InputMismatchException;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.JarUtil.createJar;

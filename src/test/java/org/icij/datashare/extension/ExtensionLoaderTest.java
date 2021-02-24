@@ -1,6 +1,9 @@
 package org.icij.datashare.extension;
 
+import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -9,6 +12,8 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.JarUtil.createJar;
 
 public class ExtensionLoaderTest {
+    public @Rule TemporaryFolder folder = new TemporaryFolder();
+    
     @Test
     public void test_load_jars() throws Exception {
         Path extensionsDir = Paths.get(getClass().getResource("/extensions").toURI());
@@ -20,7 +25,7 @@ public class ExtensionLoaderTest {
 
     @Test(timeout = 5000)
     public void test_no_static_initializers() throws Exception {
-        Path extensionsDir = Paths.get(getClass().getResource("/extensions").toURI());
+        Path extensionsDir = folder.getRoot().toPath();
         createJar(extensionsDir,"extension",INFINITE_INITIALIZER_LOOP_SOURCE);
         extensionsDir.resolve("extension.jar").toFile().setExecutable(true);
 
