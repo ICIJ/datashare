@@ -1,6 +1,5 @@
 package org.icij.datashare.extension;
 
-import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -13,7 +12,7 @@ import static org.icij.datashare.test.JarUtil.createJar;
 
 public class ExtensionLoaderTest {
     public @Rule TemporaryFolder folder = new TemporaryFolder();
-    
+
     @Test
     public void test_load_jars() throws Exception {
         Path extensionsDir = Paths.get(getClass().getResource("/extensions").toURI());

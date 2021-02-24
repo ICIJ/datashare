@@ -54,7 +54,6 @@ public class ExtensionLoader {
                 classname = classname.substring(0, classname.length() - 6);
                 if (!classname.contains("$") && !"module-info".equals(classname)) {
                     try {
-                        LOGGER.warn("going to load class {}",classname);
                         final Class<?> myLoadedClass = Class.forName(classname, false, ucl);
                         if (predicate.test(myLoadedClass) &&
                                 !myLoadedClass.isInterface() && !Modifier.isAbstract(myLoadedClass.getModifiers())) {
