@@ -4,9 +4,9 @@
       "id": "datashare-nlp-gate",
       "name": "NLP Gate Pipeline",
       "description": "Extension to extract NER entities with Gate",
-      "url": "https://github.com/ICIJ/datashare-extension-nlp-gate/releases/download/7.0.0/datashare-nlp-gate-7.0.0-jar-with-dependencies.jar",
+      "url": "https://github.com/ICIJ/datashare-extension-nlp-gate/releases/download/8.0.0/datashare-nlp-gate-8.0.0-jar-with-dependencies.jar",
       "homepage": "https://github.com/ICIJ/datashare-extension-nlp-gate",
-      "version": "7.0.0",
+      "version": "8.0.0",
       "type": "NLP"
     },
     {
