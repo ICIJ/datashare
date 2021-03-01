@@ -1,4 +1,4 @@
-FROM openjdk:8-jre-alpine
+FROM adoptopenjdk/openjdk11:jre-11.0.9.1_1-alpine
 
 # install tesseract OCR and the 14 PDF standard fonts
 # cf https://pdfbox.apache.org/1.8/cookbook/workingwithfonts.html
