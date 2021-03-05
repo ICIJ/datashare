@@ -149,14 +149,14 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
   
  - `org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer`
  
-   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v6.1.0, *Apache Licence v2.0*
+   [Elasticsearch](https://www.elastic.co/products/elasticsearch) v7.9.1, *Apache Licence v2.0*
 
 
 
 ## Compilation / Build
 
 Requires 
-[JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html),
+[JDK 11](https://www.oracle.com/java/technologies/javase-jdk11-downloads.html),
 [Maven 3](http://maven.apache.org/download.cgi) and a running [PostgreSQL](https://www.postgresql.org/) database (hostname `postgres`) 
 with two databases `datashare` and `test` with write access for user `test` / password `test`. You'll need also a running
 elasticsearch instance with `elasticsearch` as hostname ; and a redis server named `redis` as well.
