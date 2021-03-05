@@ -120,22 +120,17 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public <T extends Entity> boolean bulkUpdate(String indexName, List<? extends Entity> entities) throws IOException {
+    public <T extends Entity> boolean bulkAdd(final String indexName, List<T> objs) throws IOException {
         BulkRequest bulkRequest = new BulkRequest();
-        entities.stream().map(e -> createUpdateRequest(indexName, getType(e), e.getId(), getJson(e), getParent(e), getRoot(e))).
-                forEach(bulkRequest::add);
-        bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
+        objs.stream().map(e -> createIndexRequest(indexName, getType(e), e.getId(), getJson(e), getParent(e), getRoot(e))).forEach(bulkRequest::add);
+        return executeBulk(bulkRequest);
+    }
 
-        BulkResponse bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
-        if (bulkResponse.hasFailures()) {
-            for (BulkItemResponse resp : bulkResponse.getItems()) {
-                if (resp.isFailed()) {
-                    LOGGER.error("bulk update failed : {}", resp.getFailureMessage());
-                }
-            }
-            return false;
-        }
-        return true;
+    @Override
+    public <T extends Entity> boolean bulkUpdate(String indexName, List<T> entities) throws IOException {
+        BulkRequest bulkRequest = new BulkRequest();
+        entities.stream().map(e -> createUpdateRequest(indexName, getType(e), e.getId(), getJson(e), getParent(e), getRoot(e))).forEach(bulkRequest::add);
+        return executeBulk(bulkRequest);
     }
 
     @Override
@@ -340,6 +335,20 @@ public class ElasticsearchIndexer implements Indexer {
             return true;
         }
         return ((BooleanQuery)q).clauses().stream().anyMatch(b -> b.getOccur() != SHOULD || hasOperator(b.getQuery()));
+    }
+
+    private boolean executeBulk(BulkRequest bulkRequest) throws IOException {
+        bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
+        BulkResponse bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+        if (bulkResponse.hasFailures()) {
+          for (BulkItemResponse resp : bulkResponse.getItems()) {
+              if (resp.isFailed()) {
+                  LOGGER.error("bulk request failed : {}", resp.getFailureMessage());
+              }
+          }
+          return false;
+        }
+        return true;
     }
 
     @Override

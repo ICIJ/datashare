@@ -34,6 +34,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Document.Status.DONE;
 import static org.icij.datashare.text.Document.Status.INDEXED;
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Language.FRENCH;
 import static org.icij.datashare.text.NamedEntity.Category.ORGANIZATION;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
@@ -61,6 +62,14 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_bulk_add() throws IOException {
+        assertThat(indexer.bulkAdd(TEST_INDEX, asList(createDoc("doc1").build(), createDoc("doc2").build()))).isTrue();
+
+        assertThat(((Document) indexer.get(TEST_INDEX, "doc1"))).isNotNull();
+        assertThat(((Document) indexer.get(TEST_INDEX, "doc2"))).isNotNull();
+    }
+
+    @Test
+    public void test_bulk_add_named_entities() throws IOException {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 4324L);
         indexer.add(TEST_INDEX, doc);
