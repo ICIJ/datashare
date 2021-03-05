@@ -10,6 +10,7 @@ import org.elasticsearch.client.indices.GetIndexRequest;
 import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static jdk.nashorn.internal.runtime.Context.printStackTrace;
@@ -39,9 +40,9 @@ public class ElasticsearchRule extends ExternalResource {
         GetIndexRequest request = new GetIndexRequest(indexName);
         if (!client.indices().exists(request, RequestOptions.DEFAULT)) {
             CreateIndexRequest createReq = new CreateIndexRequest(indexName);
-            byte[] settings = toByteArray(getClass().getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME));
+            byte[] settings = toByteArray(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(SETTINGS_RESOURCE_NAME)));
             createReq.settings(new String(settings), JSON);
-            byte[] mapping = toByteArray(getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME));
+            byte[] mapping = toByteArray(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(MAPPING_RESOURCE_NAME)));
             createReq.mapping(new String(mapping), JSON);
             client.indices().create(createReq, RequestOptions.DEFAULT);
         }

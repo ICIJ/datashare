@@ -150,7 +150,7 @@ public class ElasticsearchIndexerTest {
 
         List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).ofStatus(INDEXED).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
-        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).execute().collect(toList()).size()).isEqualTo(0);
+        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).execute().count()).isEqualTo(0);
     }
 
     @Test
@@ -233,13 +233,13 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), DONE, new HashSet<Pipeline.Type>() {{ add(CORENLP); add(OPENNLP);}}, 123L);
         indexer.add(TEST_INDEX,doc);
 
-        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).without(CORENLP).execute().collect(toList()).size()).isEqualTo(0);
-        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).without(CORENLP, OPENNLP).execute().collect(toList()).size()).isEqualTo(0);
+        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).without(CORENLP).execute().count()).isEqualTo(0);
+        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).without(CORENLP, OPENNLP).execute().count()).isEqualTo(0);
 
-        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).without(IXAPIPE).execute().collect(toList()).size()).isEqualTo(1);
-        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).with(CORENLP).execute().collect(toList()).size()).isEqualTo(1);
-        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).with(CORENLP, OPENNLP).execute().collect(toList()).size()).isEqualTo(1);
-        assertThat(indexer.search(TEST_INDEX,Document.class).ofStatus(DONE).with(CORENLP, IXAPIPE).execute().collect(toList()).size()).isEqualTo(1);
+        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).without(IXAPIPE).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).with(CORENLP).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).with(CORENLP, OPENNLP).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).with(CORENLP, IXAPIPE).execute().count()).isEqualTo(1);
     }
 
     @Test
@@ -248,7 +248,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 345L);
         indexer.add(TEST_INDEX,doc);
 
-        assertThat(indexer.search(TEST_INDEX,Document.class).without().execute().collect(toList()).size()).isEqualTo(1);
+        assertThat((int) indexer.search(TEST_INDEX, Document.class).without().execute().count()).isEqualTo(1);
     }
 
     @Test
@@ -409,7 +409,7 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
-    public void test_es_index_status() throws IOException {
+    public void test_es_index_status() {
         assertThat(indexer.getHealth()).isTrue();
     }
 }
