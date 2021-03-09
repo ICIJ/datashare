@@ -26,6 +26,7 @@ public class EsEmbeddedServer {
         Settings settings = Settings.builder()
                 .put("transport.type", "netty4")
                 .put("http.type", "netty4")
+                .put("indices.query.bool.max_clause_count", "16384")
                 .put("path.home", homePath)
                 .put("path.data", dataPath)
                 .put("http.port", httpPort)
