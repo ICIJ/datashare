@@ -58,9 +58,9 @@
       "id": "datashare-plugin-tour",
       "name": "Tour",
       "description": "A Datashare plugin to build a tour guide on it.",
-      "url": "https://github.com/ICIJ/datashare-plugin-tour/releases/download/0.0.6/datashare-plugin-tour-0.0.7.tgz",
+      "url": "https://github.com/ICIJ/datashare-plugin-tour/releases/download/0.0.9/datashare-plugin-tour-0.0.9.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-tour",
-      "version": "0.0.7",
+      "version": "0.0.9",
       "type": "PLUGIN"
     }
   ]
