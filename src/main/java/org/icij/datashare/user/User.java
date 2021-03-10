@@ -14,7 +14,7 @@ import static org.icij.datashare.json.JsonUtils.deserialize;
 
 public class User implements Entity {
     public static final String LOCAL = "local";
-    public static final String DATASHARE_PROJECTS_KEY = "datashare_projects";
+    public static final String DATASHARE_PROJECTS_KEY = "groups_by_applications.datashare";
     public final String id;
     public final String name;
     public final String email;
