@@ -59,7 +59,9 @@ public class UserTest {
     public void test_get_indices_for_external_user() {
         assertThat(new User(new HashMap<String, Object>() {{
             put("uid", "userid");
-            put("groups_by_applications.datashare", Collections.singletonList("external_index"));
+            put("groups_by_applications", new HashMap<String, Object>() {{
+                put("datashare", Collections.singletonList("external_index"));
+            }});
         }}).getProjects()).containsExactly("external_index");
     }
 

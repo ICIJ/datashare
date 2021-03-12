@@ -14,7 +14,8 @@ import static org.icij.datashare.json.JsonUtils.deserialize;
 
 public class User implements Entity {
     public static final String LOCAL = "local";
-    public static final String DATASHARE_PROJECTS_KEY = "groups_by_applications.datashare";
+    public static final String XEMX_APPLICATIONS_KEY = "groups_by_applications";
+    public static final String XEMX_DATASHARE_KEY = "datashare";
     public final String id;
     public final String name;
     public final String email;
@@ -70,7 +71,8 @@ public class User implements Entity {
 
     @JsonIgnore
     public List<String> getProjects() {
-            return (List<String>) ofNullable(details.get(DATASHARE_PROJECTS_KEY)).orElse(new LinkedList<>());
+        HashMap<String, Object> applications = (HashMap<String, Object>) ofNullable(details.get(XEMX_APPLICATIONS_KEY)).orElse(new HashMap<>());
+        return (List<String>) ofNullable(applications.get(XEMX_DATASHARE_KEY)).orElse(new LinkedList<>());
     }
 
     @JsonIgnore
@@ -99,7 +101,7 @@ public class User implements Entity {
     @JsonIgnore
     public boolean isLocal() { return LOCAL.equals(this.id);}
     public static User local() { return localUser(LOCAL);}
-    public static User localUser(String id) { return new User(new HashMap<String, Object>() {{ put("uid", id); put(DATASHARE_PROJECTS_KEY, singletonList(id + "-datashare"));}});}
+    public static User localUser(String id) { return new User(new HashMap<String, Object>() {{ put("uid", id); put(XEMX_APPLICATIONS_KEY, new HashMap<String, Object>() {{ put(XEMX_DATASHARE_KEY, singletonList(id + "-datashare"));}});}});}
     public static User nullUser() { return new User((String)null);}
 
     @Override
