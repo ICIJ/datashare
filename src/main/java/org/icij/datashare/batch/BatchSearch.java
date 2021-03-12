@@ -21,6 +21,10 @@ public class BatchSearch extends BatchSearchRecord {
     public final boolean phraseMatches;
 
     // batch search creation
+    public BatchSearch(final Project project, final String name, final String description, User user) {
+        this(UUID.randomUUID().toString(), project, name, description, new LinkedHashMap<>(), DatashareTime.getInstance().now(), State.QUEUED, user,
+                0, false, null, null, 0,false, null, null);
+    }
     public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user) {
         this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user,
                 0, false, null, null, 0,false, null, null);
@@ -38,6 +42,15 @@ public class BatchSearch extends BatchSearchRecord {
 
     public BatchSearch(final Project project, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths,boolean phraseMatches) {
         this(UUID.randomUUID().toString(), project, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, paths, 0,phraseMatches, null, null);
+    }
+
+    // copy constructor
+    public BatchSearch(final BatchSearch toCopy) {this(toCopy, new HashMap<>());}
+    public BatchSearch(final BatchSearch toCopy, final Map<String, String> overriddenParameters) {
+        this(UUID.randomUUID().toString(), Project.project(ofNullable(overriddenParameters.get("project")).orElse(toCopy.project.name)),
+                ofNullable(overriddenParameters.get("name")).orElse(toCopy.name),
+                ofNullable(overriddenParameters.get("description")).orElse(toCopy.description), toCopy.queries, DatashareTime.getNow(), State.QUEUED,
+                toCopy.user, 0, toCopy.published, toCopy.fileTypes, toCopy.paths, toCopy.fuzziness, toCopy.phraseMatches, null, null);
     }
 
     public BatchSearch(String uuid, Project project, String name, String description, LinkedHashSet<String> queries, Date date, State state, User user) {
