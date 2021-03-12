@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.Part;
 import net.codestory.http.annotations.*;
+import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
@@ -18,10 +19,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
@@ -258,42 +256,27 @@ public class BatchSearchResource {
     }
 
     /**
-     * Create a new batch search based on another one given its id.
+     * Create a new batch search based on a previous one given its id, and enqueue it for running
      *
-     * Returns 200 and new batch search id.
-     * The name is mandatory else it will return 400
+     * it returns 404 if the source BatchSearch object is not found in the repository.
      *
-     * With bash you can create a text file like :
-     * ```
-     * --BOUNDARY
-     * Content-Disposition: form-data; name="name"
+     * @param sourceBatchId: the id of BatchSearch to copy
+     * @param context : the context of request (containing body)
+     * @return 200 or 404
      *
-     * my batch search
-     * --BOUNDARY
-     * Content-Disposition: form-data; name="description"
-     * ```
-     * Then replace `\n` with `\r\n` with a sed like this:
-     *
-     * `sed -i 's/$/^M/g' ~/multipart.txt`
-     *
-     * Then make a curl request with this file :
-     * ```
-     * $(curl -i -XPOST localhost:8080/api/batch/search/copy/b7bee2d8-5ede-4c56-8b69-987629742146 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt)
-     * ```
-     * @param sourceBatchId
-     * @param context : the request body
-     * @return 200 or 400
+     * Example:
+     * $(curl localhost:8080/api/batch/search/copy/b7bee2d8-5ede-4c56-8b69-987629742146 -H 'Content-Type: application/json' -d "{\"name\": \"my new batch\", \"description\":\"desc\"}"
      */
     @Post("/search/copy/:sourcebatchid")
-    public Payload copySearch(String sourceBatchId, Context context) throws Exception {
+    public String copySearch(String sourceBatchId, Context context) throws Exception {
         BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
-        List<Part> parts = context.parts();
-        BatchSearch batchSearch = new BatchSearch(project(sourceBatchSearch.project.getId()), fieldValue("name", parts),
-                fieldValue("description", parts), new LinkedHashSet<>(sourceBatchSearch.queries.keySet()), (User) context.currentUser(), sourceBatchSearch.published, sourceBatchSearch.fileTypes,
-                sourceBatchSearch.paths, sourceBatchSearch.fuzziness, sourceBatchSearch.phraseMatches);
-        boolean isSaved = batchSearchRepository.save(batchSearch);
-        if (isSaved) batchSearchQueue.put(batchSearch.uuid);
-        return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
+        if (sourceBatchSearch == null) {
+            throw new NotFoundException();
+        }
+        BatchSearch copy = new BatchSearch(sourceBatchSearch, context.extract(HashMap.class));
+        boolean isSaved = batchSearchRepository.save(copy);
+        if (isSaved) batchSearchQueue.put(copy.uuid);
+        return copy.uuid;
     }
 
     /**

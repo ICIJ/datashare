@@ -18,6 +18,7 @@ import org.mockito.Mock;
 
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -37,7 +38,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
-    @Mock BlockingQueue<String> batchSearchQueue;
+    BlockingQueue<String> batchSearchQueue = new ArrayBlockingQueue<>(5);
 
     @Test
     public void test_upload_batch_search_csv_without_name_should_send_bad_request() {
@@ -67,7 +68,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 project("prj"), "nameValue", null,
                 asSet("query", "éèàç"), new Date(), BatchSearch.State.QUEUED, User.local());
         verify(batchSearchRepository).save(eq(expected));
-        verify(batchSearchQueue).put(expected.uuid);
+        assertThat(batchSearchQueue.take()).isEqualTo(expected.uuid);
     }
 
     @Test
@@ -117,28 +118,30 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_rerun_batch_search() {
+    public void test_rerun_batch_search_not_found() {
+        post("/api/batch/search/copy/bad_uuid", "{}").should().respond(404);
+    }
+
+    @Test
+    public void test_rerun_batch_search() throws InterruptedException {
         BatchSearch sourceSearch = new BatchSearch(project("prj"), "name", "description1", asSet("query 1", "query 2"), User.local());
         when(batchSearchRepository.get(User.local(), sourceSearch.uuid)).thenReturn(sourceSearch);
         when(batchSearchRepository.save(any())).thenReturn(true);
 
-        Response response = postRaw("/api/batch/search/copy/" + sourceSearch.uuid,  "multipart/form-data;boundary=AaB03x",
-                new MultipartContentBuilder("AaB03x")
-                        .addField("name","test")
-                        .addField("description","test description").build()).response();
+        post("/api/batch/search/copy/" + sourceSearch.uuid,
+                "{\"project\":\"prj\", \"name\": \"test\", \"description\": \"test description\"}").
+                should().respond(200);
 
-        assertThat(response.code()).isEqualTo(200);
         ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
         verify(batchSearchRepository).save(argument.capture());
-        assertThat(argument.getValue().uuid).isNotEqualTo(sourceSearch.uuid);
         assertThat(argument.getValue().name).isEqualTo("test");
         assertThat(argument.getValue().description).isEqualTo("test description");
-        assertThat(argument.getValue().fileTypes).isEqualTo(sourceSearch.fileTypes);
-        assertThat(argument.getValue().paths).isEqualTo(sourceSearch.paths);
-        assertThat(argument.getValue().fuzziness).isEqualTo(sourceSearch.fuzziness);
-        assertThat(argument.getValue().phraseMatches).isEqualTo(sourceSearch.phraseMatches);
-        assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
+        assertThat(argument.getValue().project.name).isEqualTo("prj");
         assertThat(argument.getValue().queries).isEqualTo(sourceSearch.queries);
+        assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
+
+        assertThat(argument.getValue().state).isEqualTo(BatchSearchRecord.State.QUEUED);
+        assertThat(batchSearchQueue.take()).isEqualTo(argument.getValue().uuid);
     }
 
     @Test
