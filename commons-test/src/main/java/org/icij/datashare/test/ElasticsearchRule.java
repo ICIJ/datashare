@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.Objects;
 
 import static com.google.common.io.ByteStreams.toByteArray;
-import static jdk.nashorn.internal.runtime.Context.printStackTrace;
 import static org.apache.http.HttpHost.create;
 import static org.elasticsearch.common.xcontent.XContentType.JSON;
 
@@ -54,7 +53,7 @@ public class ElasticsearchRule extends ExternalResource {
             client.indices().delete(new DeleteIndexRequest(indexName), RequestOptions.DEFAULT);
             client.close();
         } catch (IOException e) {
-            printStackTrace(e);
+            e.printStackTrace();
         }
     }
 
