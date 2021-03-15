@@ -9,3 +9,7 @@ logs/
 pom.xml.versionsBackup
 .gitsecret/keys/random_seed
 datashare-web/src/main/resources/secret.properties
+# VS Code
+.project
+.settings
+.classpath
