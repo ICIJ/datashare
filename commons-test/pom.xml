@@ -18,7 +18,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>datashare-api</artifactId>
-            <version>6.6.1</version>
+            <version>${datashare-api.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
