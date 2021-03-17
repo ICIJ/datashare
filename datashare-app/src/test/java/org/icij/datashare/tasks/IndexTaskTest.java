@@ -53,6 +53,6 @@ public class IndexTaskTest {
             put("redisAddress", "redis://redis:6379");
         }}).getProperties());
 
-        assertThat(indexTask.queue.contains(IndexTask.POISON)).isTrue();
+        assertThat(indexTask.queue).contains(IndexTask.POISON).hasSize(1);
     }
 }
