@@ -8,6 +8,7 @@ import org.mockito.Mockito;
 
 import java.util.HashMap;
 
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.user.User.nullUser;
 import static org.mockito.Mockito.mock;
@@ -43,5 +44,15 @@ public class IndexTaskTest {
         }}).getProperties());
 
         Mockito.verify(spewer).withIndex("foo");
+    }
+    @Test
+    public void test_index_queue_contains_poison_pill_without_scan_step_before() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+
+        IndexTask indexTask = new IndexTask(spewer, mock(Publisher.class), new MemoryDocumentCollectionFactory(), local(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
+            put("redisAddress", "redis://redis:6379");
+        }}).getProperties());
+
+        assertThat(indexTask.queue.contains(IndexTask.POISON)).isTrue();
     }
 }
