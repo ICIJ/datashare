@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.lang.Integer.parseInt;
 import static java.nio.file.Paths.get;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
@@ -98,6 +99,19 @@ public class ElasticsearchSpewerTest {
                 entry("path", path.toString()),
                 entry("dirname", path.getParent().toString())
         );
+    }
+
+    @Test
+    public void test_long_content_length() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("t-file.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+        document.setReader(reader);
+        document.getMetadata().set("Content-Length", "7862117376");
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(entry("contentLength", 7862117376L));
     }
 
     @Test

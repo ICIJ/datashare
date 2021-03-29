@@ -25,10 +25,10 @@
       }
     },
     "contentLength": {
-      "type": "integer"
+      "type": "long"
     },
     "contentTextLength": {
-      "type": "integer"
+      "type": "long"
     },
     "contentEncoding": {
       "type": "keyword"

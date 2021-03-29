@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import static java.lang.Integer.valueOf;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Paths.get;
 import static java.util.Optional.ofNullable;
@@ -126,7 +125,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
         jsonDocument.put("metadata", getMetadata(document));
         jsonDocument.put("contentType", ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0]);
-        jsonDocument.put("contentLength", valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")));
+        jsonDocument.put("contentLength", Long.valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")));
         jsonDocument.put("contentEncoding", ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN));
 
         String content = toString(document.getReader()).trim();
