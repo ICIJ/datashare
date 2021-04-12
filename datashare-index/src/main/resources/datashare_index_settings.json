@@ -4,8 +4,7 @@
   "analysis": {
     "analyzer": {
       "path_analyzer": {
-        "tokenizer": "path_tokenizer",
-        "filter": ["lowercase"]
+        "tokenizer": "path_tokenizer"
       }
     },
     "tokenizer": {
