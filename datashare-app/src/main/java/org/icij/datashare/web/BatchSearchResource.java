@@ -180,6 +180,7 @@ public class BatchSearchResource {
      * name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches
      *
      * No matter the order. The name and csv file are mandatory else it will return 400 (bad request)
+     * Csv file must have under 60 000 lines else it will return 413 (payload too large)
      * Queries with less than two characters are filtered
      *
      * To do so with bash you can create a text file like :
@@ -216,7 +217,7 @@ public class BatchSearchResource {
      * ```
      * @param projectId
      * @param context : the request body
-     * @return 200 or 400
+     * @return 200 or 400 or 413
      */
     @Post("/search/:project")
     public Payload search(String projectId, Context context) throws Exception {
