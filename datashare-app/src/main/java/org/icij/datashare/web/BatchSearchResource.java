@@ -37,6 +37,7 @@ public class BatchSearchResource {
     private final BatchSearchRepository batchSearchRepository;
     private final BlockingQueue<String> batchSearchQueue;
     private final PropertiesProvider propertiesProvider;
+    private final int MAX_BATCH_SIZE = 60000;
 
     @Inject
     public BatchSearchResource(final BatchSearchRepository batchSearchRepository, BlockingQueue batchSearchQueue, PropertiesProvider propertiesProvider) {
@@ -237,7 +238,8 @@ public class BatchSearchResource {
         boolean phraseMatches=phraseMatchesPart.isPresent()?parseBoolean(phraseMatchesPart.get().content()): FALSE;
         LinkedHashSet<String> queries = getQueries(csv)
                 .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : query.replaceAll("\"\"\"","\"")).collect(Collectors.toCollection(LinkedHashSet::new));
-
+        if(queries.size() >= MAX_BATCH_SIZE)
+            return new Payload(413);
         BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, queries,
                 (User) context.currentUser(), published, fileTypes, paths, fuzziness,phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);

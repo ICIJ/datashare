@@ -16,6 +16,9 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -54,6 +57,17 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x")
                         .addField("name","name").build()).should().respond(400);
+    }
+
+    @Test
+    public void test_upload_batch_search_csv_with_csvFile_with_60K_queries_should_send_request_too_large() throws IOException {
+        when(batchSearchRepository.save(any())).thenReturn(true);
+        Path csvFile = Paths.get(getClass().getResource("/test60Kqueries.csv").getPath());
+        Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
+                new MultipartContentBuilder("AaB03x")
+                        .addField("name","nameValue")
+                        .addFile(new FileUpload("csvFile").withContent(String.join("\r\n",Files.readAllLines(csvFile)))).build()).response();
+        assertThat(response.code()).isEqualTo(413);
     }
 
     @Test
