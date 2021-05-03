@@ -62,11 +62,12 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_upload_batch_search_csv_with_csvFile_with_60K_queries_should_send_request_too_large() throws IOException {
         when(batchSearchRepository.save(any())).thenReturn(true);
-        Path csvFile = Paths.get(getClass().getResource("/test60Kqueries.csv").getPath());
+        StringBuilder content = new StringBuilder();
+        IntStream.range(0,60000).boxed().collect(Collectors.toList()).forEach(i -> content.append("Test ").append(i).append("\r\n"));
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x")
                         .addField("name","nameValue")
-                        .addFile(new FileUpload("csvFile").withContent(String.join("\r\n",Files.readAllLines(csvFile)))).build()).response();
+                        .addFile(new FileUpload("csvFile").withContent(content.toString())).build()).response();
         assertThat(response.code()).isEqualTo(413);
     }
 
