@@ -172,12 +172,19 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
-    public List<BatchSearch> getQueued() {
-        return mergeBatchSearches(
-                createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
-                where(BATCH_SEARCH.STATE.eq(State.QUEUED.name())).
-                        orderBy(BATCH_SEARCH.BATCH_DATE.desc(), BATCH_SEARCH_QUERY.QUERY_NUMBER).
-                fetch().stream().map(this::createBatchSearchFrom).collect(toList()));
+    public boolean reset(String batchId) {
+        return DSL.using(dataSource, dialect).transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+            inner.update(BATCH_SEARCH).set(BATCH_SEARCH.STATE, State.QUEUED.name()).where(BATCH_SEARCH.UUID.eq(batchId)).execute();
+            return inner.deleteFrom(BATCH_SEARCH_RESULT).where(BATCH_SEARCH_RESULT.SEARCH_UUID.eq(batchId)).execute() > 0;
+        });
+    }
+
+    @Override
+    public List<String> getQueued() {
+        return  DSL.using(dataSource,dialect).select(BATCH_SEARCH.UUID).from(BATCH_SEARCH)
+                .where(BATCH_SEARCH.STATE.eq(State.QUEUED.name()))
+                .fetch(BATCH_SEARCH.UUID);
     }
 
     @Override

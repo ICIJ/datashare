@@ -164,6 +164,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_queued_searches_without_running_state() {
+
         repository.save(new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.RUNNING, User.local()));
 
@@ -429,6 +430,18 @@ public class JooqBatchSearchRepositoryTest {
                 asSet("q1", "q2"), new Date(), State.FAILURE, User.local()));
 
         assertThat(repository.publish(new User("unauthorized"), "uuid", true)).isFalse();
+    }
+
+    @Test
+    public void test_reset_batch_search() {
+        BatchSearch batchSearch = new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+                asSet("q1", "q2"), new Date(), State.RUNNING, User.local());
+        repository.save(batchSearch);
+        repository.saveResults(batchSearch.uuid, "query",asList(createDoc("doc1").build(),createDoc("doc2").build()));
+
+        assertThat(repository.reset(batchSearch.uuid)).isTrue();
+        assertThat(repository.get(batchSearch.uuid).state).isEqualTo(State.QUEUED);
+        assertThat(repository.getResults(User.local(), batchSearch.uuid)).hasSize(0);
     }
 
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {

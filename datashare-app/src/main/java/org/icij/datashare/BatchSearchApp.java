@@ -8,6 +8,7 @@ import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.misc.Signal;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -19,14 +20,19 @@ import static com.google.inject.Guice.createInjector;
 import static org.icij.datashare.user.User.nullUser;
 
 public class BatchSearchApp {
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final BatchSearchRunner batchSearchRunner;
     final BlockingQueue<String> batchSearchQueue;
     public static final String POISON = "poison";
+    private volatile String currentBatchId = null;
 
     public BatchSearchApp(BatchSearchRunner batchSearchRunner, BlockingQueue<String> batchSearchQueue) {
         this.batchSearchRunner = batchSearchRunner;
         this.batchSearchQueue = batchSearchQueue;
+        Signal.handle(new Signal("TERM"), signal -> {
+            batchSearchQueue.add(POISON);
+            batchSearchRunner.cancel();
+        });
     }
 
     public static BatchSearchApp create(Properties properties) {
@@ -46,21 +52,22 @@ public class BatchSearchApp {
 
     public void run() {
         logger.info("Datashare running in batch mode. Waiting batch from ds:batchsearch.queue ({})", batchSearchQueue.getClass());
-        String batchId = null;
-        while (! POISON.equals(batchId)) {
+        while (! POISON.equals(currentBatchId)) {
             try {
-                batchId = batchSearchQueue.poll(60, TimeUnit.SECONDS);
-                if (batchId != null && !POISON.equals(batchId)) {
-                    batchSearchRunner.run(batchId);
+                currentBatchId = null;
+                currentBatchId = batchSearchQueue.poll(60, TimeUnit.SECONDS);
+                if (currentBatchId != null && !POISON.equals(currentBatchId)) {
+                    batchSearchRunner.run(currentBatchId);
                 }
             } catch (JooqBatchSearchRepository.BatchNotFoundException notFound) {
-               logger.warn("batch was not executed : {}", notFound.toString());
+                logger.warn("batch was not executed : {}", notFound.toString());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (RuntimeException rex) {
                 logger.error("error during main loop", rex);
             }
         }
+        logger.info("exiting main loop");
     }
 
     private void close() throws IOException {

@@ -50,6 +50,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
     private final BatchSearchRepository repository;
     private int totalNbBatches = 0;
     private int totalProcessed = 0;
+    private volatile boolean cancelAsked = false;
 
     @Inject
     public BatchSearchRunner(Indexer indexer, BatchSearchRepository repository, PropertiesProvider propertiesProvider, @Assisted User user) {
@@ -61,21 +62,21 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
     @Override
     public Integer call() {
-        List<BatchSearch> batchSearches = repository.getQueued();
-        totalNbBatches = batchSearches.size();
-        logger.info("found {} queued batch searches", batchSearches.size());
+        List<String> batchSearchIds = repository.getQueued();
+        totalNbBatches = batchSearchIds.size();
+        logger.info("found {} queued batch searches", batchSearchIds.size());
         int totalResults = 0;
-        for (BatchSearch batchSearch : batchSearches) {
-            totalResults += run(batchSearch);
+        for (String batchSearchId : batchSearchIds) {
+            totalResults += run(batchSearchId);
             totalProcessed += 1;
         }
-        logger.info("done {} batch searches", batchSearches.size());
+        logger.info("done {} batch searches", batchSearchIds.size());
         return totalResults;
     }
 
     public int run(String batchSearchId) {
         BatchSearch batchSearch = repository.get(batchSearchId);
-        return batchSearch.state == State.QUEUED ? run(batchSearch): 0;
+        return batchSearch.state == State.QUEUED && !cancelAsked ? run(batchSearch): 0;
     }
 
     int run(BatchSearch batchSearch) {
@@ -100,6 +101,11 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
                 while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
+                    if (cancelAsked) {
+                        logger.info("cancelling batch search {}", batchSearch.uuid);
+                        repository.reset(batchSearch.uuid);
+                        return numberOfResults;
+                    }
                     repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
                     if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds*1000) {
                         DatashareTime.getInstance().sleep(throttleMs);
@@ -137,6 +143,11 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
     public void close() throws IOException {
         indexer.close();
+        logger.info("Closing db");
         repository.close();
+    }
+
+    public void cancel() {
+        cancelAsked = true;
     }
 }
