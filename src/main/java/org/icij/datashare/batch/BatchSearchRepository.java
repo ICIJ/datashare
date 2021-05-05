@@ -24,13 +24,15 @@ public interface BatchSearchRepository extends Closeable {
     List<BatchSearchRecord> getRecords(User user, List<String> projectsIds);
     int getTotal(User user, List<String> projectsIds, WebQuery webQuery);
     List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery);
-    List<BatchSearch> getQueued();
+    List<String> getQueued();
     List<SearchResult> getResults(User user, String batchSearchId);
     List<SearchResult> getResults(User user, String batchId, WebQuery webQuery);
 
     boolean publish(User user, String batchId, boolean published);
 
     BatchSearch get(User user, String batchId);
+
+    boolean reset(String batchId);
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     class WebQuery {
