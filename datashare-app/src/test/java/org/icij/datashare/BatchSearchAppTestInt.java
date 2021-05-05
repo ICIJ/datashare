@@ -60,11 +60,24 @@ public class BatchSearchAppTestInt {
     public void test_main_loop_with_batch_not_queued() {
         when(batchSearchRunner.run("batchSearch.uuid")).thenReturn(12);
         BatchSearchApp app = new BatchSearchApp(batchSearchRunner, batchSearchQueue);
+        batchSearchQueue.add("batchSearch.uuid");
+        batchSearchQueue.add(BatchSearchApp.POISON);
 
         app.run();
 
         verify(batchSearchRunner).run("batchSearch.uuid");
         verify(batchSearchRunner, never()).run(BatchSearchApp.POISON);
+    }
+
+    @Test
+    public void test_batch_search_runner_called_when_app_started() throws Exception {
+        when(batchSearchRunner.run("batchSearch.uuid")).thenReturn(12);
+        BatchSearchApp app = new BatchSearchApp(batchSearchRunner, batchSearchQueue);
+        batchSearchQueue.add(BatchSearchApp.POISON);
+
+        app.run();
+
+        verify(batchSearchRunner).call();
     }
 
     @Test

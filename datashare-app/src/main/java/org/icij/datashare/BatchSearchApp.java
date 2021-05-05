@@ -24,7 +24,6 @@ public class BatchSearchApp {
     private final BatchSearchRunner batchSearchRunner;
     final BlockingQueue<String> batchSearchQueue;
     public static final String POISON = "poison";
-    private volatile String currentBatchId = null;
 
     public BatchSearchApp(BatchSearchRunner batchSearchRunner, BlockingQueue<String> batchSearchQueue) {
         this.batchSearchRunner = batchSearchRunner;
@@ -52,9 +51,10 @@ public class BatchSearchApp {
 
     public void run() {
         logger.info("Datashare running in batch mode. Waiting batch from ds:batchsearch.queue ({})", batchSearchQueue.getClass());
+        batchSearchRunner.call();
+        String currentBatchId = null;
         while (! POISON.equals(currentBatchId)) {
             try {
-                currentBatchId = null;
                 currentBatchId = batchSearchQueue.poll(60, TimeUnit.SECONDS);
                 if (currentBatchId != null && !POISON.equals(currentBatchId)) {
                     batchSearchRunner.run(currentBatchId);
