@@ -116,18 +116,16 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                     docsToProcess = searcher.scroll().collect(toList());
                 }
             }
+            repository.setState(batchSearch.uuid, State.SUCCESS);
+            logger.info("done batch search {} with success", batchSearch.uuid);
         } catch (ElasticsearchStatusException esEx) {
             logger.error("elasticsearch exception when running batch " + batchSearch.uuid, esEx);
             repository.setState(batchSearch.uuid, new SearchException(query,
                     stream(esEx.getSuppressed()).filter(t -> t instanceof ResponseException).findFirst().orElse(esEx)));
-            return numberOfResults;
         } catch (Exception ex) {
             logger.error("error when running batch " + batchSearch.uuid, ex);
             repository.setState(batchSearch.uuid, new SearchException(query, ex));
-            return numberOfResults;
         }
-        repository.setState(batchSearch.uuid, State.SUCCESS);
-        logger.info("done batch search {} with success", batchSearch.uuid);
         return numberOfResults;
     }
 
