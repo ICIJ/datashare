@@ -101,11 +101,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
                 while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
-                    if (cancelAsked) {
-                        logger.info("cancelling batch search {}", batchSearch.uuid);
-                        repository.reset(batchSearch.uuid);
-                        return numberOfResults;
-                    }
+                    if (cancelAsked) throw new CancelException();
                     repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
                     if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds*1000) {
                         DatashareTime.getInstance().sleep(throttleMs);
@@ -118,6 +114,9 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
             }
             repository.setState(batchSearch.uuid, State.SUCCESS);
             logger.info("done batch search {} with success", batchSearch.uuid);
+        } catch (CancelException cancelEx) {
+            logger.info("cancelling batch search {}", batchSearch.uuid);
+            repository.reset(batchSearch.uuid);
         } catch (ElasticsearchStatusException esEx) {
             logger.error("elasticsearch exception when running batch " + batchSearch.uuid, esEx);
             repository.setState(batchSearch.uuid, new SearchException(query,
@@ -148,4 +147,6 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
     public void cancel() {
         cancelAsked = true;
     }
+
+    static class CancelException extends RuntimeException{}
 }
