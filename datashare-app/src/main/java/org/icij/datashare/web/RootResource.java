@@ -62,6 +62,8 @@ public class RootResource {
     /**
      * gets the public (i.e. without user's information) datashare settings parameters.
      *
+     * the endpoint is removing all fields that contain Address or Secret or Url or Key
+     *
      * @return 200
      *
      * Example :
@@ -69,7 +71,7 @@ public class RootResource {
      */
     @Get("settings")
     public Map<String, Object> getPublicSettings() {
-        return propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*", ".*Url.*");
+        return propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*", ".*Url.*", ".*Key.*");
     }
 
     /**

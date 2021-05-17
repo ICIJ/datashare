@@ -30,19 +30,6 @@ public class SettingsResource {
     }
 
     /**
-     * gets the private datashare settings with user's information
-     *
-     * @return 200 and the json settings
-     *
-     * Example :
-     * $(curl -i localhost:8080/api/settings)
-     */
-    @Get()
-    public Map<String, Object> getSettings(Context context) {
-        return provider.getFilteredProperties(".*Address.*", ".*Secret.*", ".*Url.*");
-    }
-
-    /**
      * Preflight for settings.
      *
      * @param context
