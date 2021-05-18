@@ -60,9 +60,10 @@ public class RootResource {
     }
 
     /**
-     * gets the public (i.e. without user's information) datashare settings parameters.
+     * Gets the public (i.e. without user's information) datashare settings parameters.
+     * These parameters are used for the client app for the init process.
      *
-     * the endpoint is removing all fields that contain Address or Secret or Url or Key
+     * The endpoint is removing all fields that contain Address or Secret or Url or Key
      *
      * @return 200
      *
