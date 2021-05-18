@@ -238,7 +238,7 @@ public class BatchSearchResource {
         Optional<Part> phraseMatchesPart = parts.stream().filter(p -> "phrase_matches".equals(p.name())).findAny();
         boolean phraseMatches=phraseMatchesPart.isPresent()?parseBoolean(phraseMatchesPart.get().content()): FALSE;
         LinkedHashSet<String> queries = getQueries(csv)
-                .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : query.replaceAll("\"\"\"","\"")).collect(Collectors.toCollection(LinkedHashSet::new));
+                .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : sanitizeDoubleQuotesInQuery(query)).collect(Collectors.toCollection(LinkedHashSet::new));
         if(queries.size() >= MAX_BATCH_SIZE)
             return new Payload(413);
         BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, queries,
@@ -385,7 +385,15 @@ public class BatchSearchResource {
         }).collect(Collectors.toList());
     }
 
+    private String sanitizeDoubleQuotesInQuery(String query) {
+        if (query.startsWith("\"") && query.endsWith("\"") && query.substring(1,query.length() - 1).contains("\"")) {
+            return sanitizeDoubleQuotesInQuery(query.substring(1,query.length() - 1));
+        }
+        return query.replaceAll("\"\"","\"");
+    }
+
     private static class BatchSearchResponse {
+
         private final List<BatchSearchRecord> batchSearches;
         private final int total;
 

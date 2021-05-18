@@ -17,8 +17,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -88,12 +86,22 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_upload_batch_search_csv_triple_double_quote_match_phrases_false() {
-        testTripleQuote(false, "\"query one\"");
+        testTripleQuote(false, "\"\"\"query one\"\"\"\n","\"query one\"");
     }
 
     @Test
     public void test_upload_batch_search_csv_triple_double_quote_match_phrases_true(){
-        testTripleQuote(true, "\"\"\"query one\"\"\"");
+        testTripleQuote(true, "\"\"\"query one\"\"\"\n","\"\"\"query one\"\"\"");
+    }
+
+    @Test
+    public void test_upload_batch_search_csv_double_quote_inside_query_match_phrases_false() {
+        testTripleQuote(false, "\"\"\"term one\"\" AND term two\"\n","\"term one\" AND term two");
+    }
+
+    @Test
+    public void test_upload_batch_search_csv_double_quote_inside_query_match_phrases_true() {
+        testTripleQuote(true, "\"\"\"term one\"\" AND term two\"\n","\"\"\"term one\"\" AND term two\"");
     }
 
     @Test
@@ -338,13 +346,13 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 contain("q1\nq2");
     }
 
-    private void testTripleQuote(Boolean phraseMatch, String tripleQuoteResult) {
+    private void testTripleQuote(Boolean phraseMatch, String query, String tripleQuoteResult) {
         when(batchSearchRepository.save(any())).thenReturn(true);
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",
                 new MultipartContentBuilder("AaB03x").
                         addField("name", "my batch search").
                         addFile(
-                                new FileUpload("csvFile").withFilename("search.csv").withContentType("text/csv").withContent("\"\"\"query one\"\"\"\n" +
+                                new FileUpload("csvFile").withFilename("search.csv").withContentType("text/csv").withContent(query +
                                         "\"query two\"\r\n" +
                                         "query three\r\n" +
                                         "query\" four\r\n")).
