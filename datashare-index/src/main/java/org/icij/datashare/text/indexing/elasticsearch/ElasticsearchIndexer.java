@@ -5,12 +5,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
-import org.apache.lucene.analysis.CharArraySet;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -62,7 +56,6 @@ import java.util.stream.StreamSupport;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.*;
 import static org.icij.datashare.json.JsonObjectMapper.*;
@@ -99,7 +92,9 @@ public class ElasticsearchIndexer implements Indexer {
         bulkRequest.add(new UpdateRequest(indexName, parent.getId())
                 .script(new Script(ScriptType.INLINE, "painless",
                         "if (!ctx._source.nerTags.contains(params.nerTag)) ctx._source.nerTags.add(params.nerTag);",
-                        new HashMap<String, Object>() {{put("nerTag", nerType.toString());}})).routing(routing));
+                        new HashMap<String, Object>() {{
+                            put("nerTag", nerType.toString());
+                        }})).routing(routing));
 
         for (Entity child : namedEntities) {
             bulkRequest.add(createIndexRequest(indexName, JsonObjectMapper.getType(child), child.getId(),
@@ -151,7 +146,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public String executeRaw(String method, String url, String rawJson) throws IOException {
-        Request request = new Request(method, url.startsWith("/")? url: "/" + url);
+        Request request = new Request(method, url.startsWith("/") ? url : "/" + url);
         if (rawJson != null && !rawJson.isEmpty()) {
             request.setJsonEntity(rawJson);
         }
@@ -160,7 +155,7 @@ public class ElasticsearchIndexer implements Indexer {
             return response.getHeader("Allow");
         }
         HttpEntity entity = response.getEntity();
-        return entity != null ? EntityUtils.toString(entity):null;
+        return entity != null ? EntityUtils.toString(entity) : null;
     }
 
     private IndexRequest createIndexRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
@@ -253,7 +248,7 @@ public class ElasticsearchIndexer implements Indexer {
         updateByQuery.setScript(untagScript);
         updateByQuery.setRefresh(esCfg.refreshPolicy.getValue().equals("true"));
         BulkByScrollResponse updateResponse = client.updateByQuery(updateByQuery, RequestOptions.DEFAULT);
-        return updateResponse.getBulkFailures().size() == 0 && updateResponse.getUpdated() > 0 ;
+        return updateResponse.getBulkFailures().size() == 0 && updateResponse.getUpdated() > 0;
     }
 
     private Script createTagScript(Tag[] tags) {
@@ -267,7 +262,9 @@ public class ElasticsearchIndexer implements Indexer {
                         "  }" +
                         "}" +
                         "if (updates == 0) ctx.op = 'noop';",
-                new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}});
+                new HashMap<String, Object>() {{
+                    put("tags", stream(tags).map(t -> t.label).collect(toList()));
+                }});
     }
 
     private Script createUntagScript(Tag[] tags) {
@@ -280,7 +277,9 @@ public class ElasticsearchIndexer implements Indexer {
                         "  }" +
                         "}" +
                         "if (updates == 0) ctx.op = 'noop';",
-                new HashMap<String, Object>() {{put("tags", stream(tags).map(t -> t.label).collect(toList()));}});
+                new HashMap<String, Object>() {{
+                    put("tags", stream(tags).map(t -> t.label).collect(toList()));
+                }});
     }
 
     @Override
@@ -318,35 +317,16 @@ public class ElasticsearchIndexer implements Indexer {
         return this;
     }
 
-    static boolean hasLuceneOperators(String query) throws ParseException {
-        String sanitizedQueryForLucene = query.replaceAll("\\^(?!\\d)", "\\^1");
-        org.apache.lucene.queryparser.classic.QueryParser parser =
-                new org.apache.lucene.queryparser.classic.QueryParser("",
-                        new StandardAnalyzer(new CharArraySet(0, false)));
-        parser.setAllowLeadingWildcard(true);
-
-        return hasOperator(parser.parse(sanitizedQueryForLucene));
-    }
-
-    private static boolean hasOperator(Query q) {
-        if (q instanceof TermQuery) {
-            return ! "".equals(((TermQuery)q).getTerm().field());
-        } else if (!(q instanceof BooleanQuery)) {
-            return true;
-        }
-        return ((BooleanQuery)q).clauses().stream().anyMatch(b -> b.getOccur() != SHOULD || hasOperator(b.getQuery()));
-    }
-
     private boolean executeBulk(BulkRequest bulkRequest) throws IOException {
         bulkRequest.setRefreshPolicy(esCfg.refreshPolicy);
         BulkResponse bulkResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
         if (bulkResponse.hasFailures()) {
-          for (BulkItemResponse resp : bulkResponse.getItems()) {
-              if (resp.isFailed()) {
-                  LOGGER.error("bulk request failed : {}", resp.getFailureMessage());
-              }
-          }
-          return false;
+            for (BulkItemResponse resp : bulkResponse.getItems()) {
+                if (resp.isFailed()) {
+                    LOGGER.error("bulk request failed : {}", resp.getFailureMessage());
+                }
+            }
+            return false;
         }
         return true;
     }
@@ -356,7 +336,7 @@ public class ElasticsearchIndexer implements Indexer {
         try {
             return client.ping(RequestOptions.DEFAULT);
         } catch (IOException e) {
-            LOGGER.error("Index Health Error : ",e);
+            LOGGER.error("Index Health Error : ", e);
             return false;
         }
     }
@@ -426,7 +406,7 @@ public class ElasticsearchIndexer implements Indexer {
         }
 
         public Searcher withoutSource(String... fields) {
-            this.sourceBuilder.fetchSource(new String[] {"*"}, fields);
+            this.sourceBuilder.fetchSource(new String[]{"*"}, fields);
             return this;
         }
 
@@ -459,24 +439,16 @@ public class ElasticsearchIndexer implements Indexer {
 
         @Override
         public Searcher with(String query) {
-            return with(query, 0,false);
+            return with(query, 0, false);
         }
 
         @Override
         public Searcher with(String query, int fuzziness, boolean phraseMatches) {
             String queryString = query;
-            try {
-                if (!hasLuceneOperators(query)) {
-                    if (phraseMatches) {
-                        queryString = "\"" + query + "\"" + (fuzziness == 0 ? "": "~" + fuzziness);
-                    } else if (fuzziness > 0) {
-                        queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
-                    }
-                } else if (fuzziness != 0 || phraseMatches) {
-                    LOGGER.info("detected lucene operators in \"{}\", fuzziness and phrase match won't be applied", query);
-                }
-            } catch (org.apache.lucene.queryparser.classic.ParseException e) {
-                LOGGER.warn("cannot parse query. Sending query as string query", e);
+            if (phraseMatches) {
+                queryString = "\"" + query + "\"" + (fuzziness == 0 ? "" : "~" + fuzziness);
+            } else if (fuzziness > 0) {
+                queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
             }
             this.boolQuery.must(new MatchAllQueryBuilder());
             this.boolQuery.must(new QueryStringQueryBuilder(queryString).defaultField("*"));
