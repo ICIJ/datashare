@@ -76,7 +76,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <datashare-api.version>7.35.0</datashare-api.version>
+        <datashare-api.version>7.35.2</datashare-api.version>
 
         <datashare-cli.version>${project.version}</datashare-cli.version>
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
@@ -89,7 +89,6 @@
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>7.9.1</elasticsearch.version>
         <lucene.version>8.6.2</lucene.version>
-        <jackson.version>2.10.2</jackson.version>
         <unidecode.version>0.0.7</unidecode.version>
         <joda-time.version>2.9.5</joda-time.version>
         <guava.version>29.0-jre</guava.version>
@@ -212,28 +211,6 @@
                 <artifactId>bcmail-jdk15on</artifactId>
                 <version>${bouncycastle.version}</version>
                 <scope>provided</scope>
-            </dependency>
-
-            <!-- Jackson -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.datatype</groupId>
-                <artifactId>jackson-datatype-jdk8</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-parameter-names</artifactId>
-                <version>${jackson.version}</version>
             </dependency>
 
             <!-- Guava/Guice -->
