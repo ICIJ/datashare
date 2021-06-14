@@ -15,6 +15,7 @@ import static java.util.Arrays.stream;
 
 
 public enum Hasher {
+    MD5     (16),
     SHA_1   (40),
     SHA_256 (64),
     SHA_384 (96),

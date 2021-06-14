@@ -13,6 +13,11 @@ public class HasherTest {
     private String text = "Hashing Test";
 
     @Test
+    public void test_hash_md5() {
+        assertThat(Hasher.MD5.hash(text)).isEqualTo("dfb174995e25625be6b5a885a0880198");
+    }
+
+    @Test
     public void test_hash_sha1() {
         assertThat(Hasher.SHA_1.hash(text)).isEqualTo("5cdf2e1c7e5be2f4f3a004ba7bc9caaa4bac79be");
     }

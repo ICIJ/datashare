@@ -9,6 +9,7 @@ import com.amazonaws.services.s3.transfer.MultipleFileUpload;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
+import org.icij.datashare.text.Hasher;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -90,14 +91,14 @@ public class RemoteFiles {
                 return false;
             }
             ObjectListing remoteS3Objects = s3Client.listObjects(bucket, remoteKey);
-            Map<String, Long> remoteObjectsMap = remoteS3Objects.getObjectSummaries().stream()
+            Map<String, String> remoteObjectsMap = remoteS3Objects.getObjectSummaries().stream()
                     .filter(os -> os.getSize() != 0) // because remote dirs are empty keys
-                    .collect(toMap(S3ObjectSummary::getKey, S3ObjectSummary::getSize));
+                    .collect(toMap(S3ObjectSummary::getKey, S3ObjectSummary::getETag)); // Etag is 128bits MD5 hashed from file
 
-            Map<String, Long> localFilesMap = walk(localDir.toPath(), FileVisitOption.FOLLOW_LINKS)
+            Map<String, String> localFilesMap = walk(localDir.toPath(), FileVisitOption.FOLLOW_LINKS)
                     .map(Path::toFile)
                     .filter(File::isFile)
-                    .collect(toMap(f -> getKeyFromFile(localFile, f), File::length));
+                    .collect(toMap(f -> getKeyFromFile(localFile, f), f -> Hasher.MD5.hash(f.toPath())));
 
             return localFilesMap.equals(remoteObjectsMap);
         } else {
