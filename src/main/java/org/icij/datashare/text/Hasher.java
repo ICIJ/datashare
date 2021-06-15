@@ -162,4 +162,14 @@ public enum Hasher {
     public static String shorten(final String s, final int l) {
         return s.substring(0, l) + "..." + s.substring(s.length() - l);
     }
+
+    public byte[] hash(byte[] buffer) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance(algorithm);
+            digest.update(buffer);
+            return digest.digest();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
 }

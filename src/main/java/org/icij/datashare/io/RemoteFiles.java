@@ -9,7 +9,6 @@ import com.amazonaws.services.s3.transfer.MultipleFileUpload;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
-import org.icij.datashare.text.Hasher;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -98,8 +97,7 @@ public class RemoteFiles {
             Map<String, String> localFilesMap = walk(localDir.toPath(), FileVisitOption.FOLLOW_LINKS)
                     .map(Path::toFile)
                     .filter(File::isFile)
-                    .collect(toMap(f -> getKeyFromFile(localFile, f), f -> Hasher.MD5.hash(f.toPath())));
-
+                    .collect(toMap(f -> getKeyFromFile(localFile, f), f -> AwsEtag.compute(f).toString()));
             return localFilesMap.equals(remoteObjectsMap);
         } else {
             ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
