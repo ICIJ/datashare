@@ -1,0 +1,84 @@
+databaseChangeLog:
+  - changeSet:
+      id: 34
+      author: mvanza
+      changes:
+        - createTable:
+            tableName: user_history
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: creation_date
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: modification_date
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: tinyint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+              - column:
+                  name: name
+                  type: varchar(96)
+              - column:
+                  name: uri
+                  type: text
+                  constraints:
+                    nullable: false
+
+
+        - createIndex:
+            indexName: user_history_project_id
+            tableName: user_history
+            columns:
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: user_history_user_id
+            tableName: user_history
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(96)
+
+        - createIndex:
+            indexName: user_history_creation_date
+            tableName: user_history
+            columns:
+              - column:
+                  name: creation_date
+                  type: datetime
+
+        - createIndex:
+            indexName: user_history_type
+            tableName: user_history
+            columns:
+              - column:
+                  name: type
+                  type: tinyint
+
+  - changeSet:
+      id: 35
+      author: mvanza
+      sql:
+        - CREATE UNIQUE INDEX idx_user_history_unique ON user_history (user_id, uri)

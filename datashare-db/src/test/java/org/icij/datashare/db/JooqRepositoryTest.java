@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
+import org.icij.datashare.UserEvent;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
@@ -22,6 +23,7 @@ import java.util.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
@@ -53,9 +55,9 @@ public class JooqRepositoryTest {
         Document document = new Document("id", project("prj"), Paths.get("/path/to/doc"), "content",
                 FRENCH, Charset.defaultCharset(),
                 "text/plain", new HashMap<String, Object>() {{
-                    put("key 1", "value 1");
-                    put("key 2", "value 2");
-                }},
+            put("key 1", "value 1");
+            put("key 2", "value 2");
+        }},
                 Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
 
         repository.create(document);
@@ -181,7 +183,7 @@ public class JooqRepositoryTest {
         assertThat(recommendationEntry.count).isEqualTo(1);
     }
 
-     @Test
+    @Test
     public void test_get_recommendations_with_user_properties() {
         final User userBar = new User("bar" , "test", "bar@bar.org");
         repository.save(userBar);
@@ -324,6 +326,38 @@ public class JooqRepositoryTest {
 
         assertThat(repository.getNotes(project("otherProject"))).isEmpty();
         assertThat(repository.getNotes(project("project"))).containsExactly(note1, note2);
+    }
+
+    @Test
+    public void test_get_empty_user_history() {
+        assertThat(repository.getUserEvents(User.local())).isEmpty();
+    }
+
+    @Test
+    public void test_add_get_document_to_user_history() {
+        User user = new User("userid");
+        User user2 = new User("userid2");
+        UserEvent userEvent = new UserEvent(user, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri());
+        UserEvent userEvent2 = new UserEvent(user2, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri());
+        UserEvent userEvent3 = new UserEvent(user, DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri());
+
+        assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
+        assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
+        assertThat(repository.addToHistory(project("project"), userEvent3)).isTrue();
+        assertThat(repository.getUserEvents(user)).containsExactly(userEvent,userEvent3);
+        assertThat(repository.getUserEvents(user2)).containsExactly(userEvent2);
+    }
+
+    @Test
+    public void test_updates() throws InterruptedException {
+        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
+        Thread.sleep(1000);
+        UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
+
+        assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
+        assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
+
+        assertThat(repository.getUserEvents(User.local())).containsExactly(userEvent);
     }
 
     @Test

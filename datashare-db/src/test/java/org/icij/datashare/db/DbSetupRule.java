@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 import com.ninja_squad.dbsetup.DbSetup;
 import com.ninja_squad.dbsetup.destination.DataSourceDestination;
 import com.ninja_squad.dbsetup.operation.Operation;
+import com.ninja_squad.dbsetup.operation.SqlOperation;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.junit.rules.ExternalResource;
@@ -11,6 +12,7 @@ import javax.sql.DataSource;
 import java.util.HashMap;
 
 import static com.ninja_squad.dbsetup.Operations.deleteAllFrom;
+import static com.ninja_squad.dbsetup.Operations.sql;
 import static com.ninja_squad.dbsetup.operation.CompositeOperation.sequenceOf;
 import static java.util.Optional.ofNullable;
 
@@ -19,7 +21,8 @@ public class DbSetupRule extends ExternalResource {
     private final String dataSourceUrl;
     private static final Operation DELETE_ALL = deleteAllFrom(
             "document", "named_entity", "document_user_star", "document_tag", "batch_search", "user_inventory",
-            "batch_search_query", "batch_search_result", "project", "note", "document_user_recommendation","api_key");
+            "batch_search_query", "batch_search_result", "project", "note", "document_user_recommendation","api_key","user_history");
+    private static final SqlOperation RESET_USER_HISTORY_ID_SEQ = sql("ALTER SEQUENCE user_history_id_seq RESTART WITH 1;");
 
     DbSetupRule(String dataSourceUrl) {
         this.dataSource = createDatasource(dataSourceUrl);
@@ -29,7 +32,7 @@ public class DbSetupRule extends ExternalResource {
     @Override
     protected void before() {
         new RepositoryFactoryImpl().initDatabase(dataSource);
-        Operation operation = sequenceOf(DELETE_ALL);
+        Operation operation = dataSourceUrl.contains("postgresql") ? sequenceOf(DELETE_ALL,RESET_USER_HISTORY_ID_SEQ) : sequenceOf(DELETE_ALL);
         DbSetup dbSetup = new DbSetup(new DataSourceDestination(dataSource), operation);
         dbSetup.launch();
     }

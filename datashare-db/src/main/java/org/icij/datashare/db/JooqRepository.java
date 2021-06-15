@@ -3,6 +3,7 @@ package org.icij.datashare.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
+import org.icij.datashare.UserEvent;
 import org.icij.datashare.db.tables.records.*;
 import org.icij.datashare.json.JsonUtils;
 import org.icij.datashare.text.*;
@@ -15,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
@@ -23,7 +26,9 @@ import java.util.stream.Collectors;
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.*;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+import static org.icij.datashare.UserEvent.Type.fromId;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
 import static org.icij.datashare.db.tables.DocumentUserRecommendation.DOCUMENT_USER_RECOMMENDATION;
@@ -31,6 +36,7 @@ import static org.icij.datashare.db.tables.DocumentUserStar.DOCUMENT_USER_STAR;
 import static org.icij.datashare.db.tables.NamedEntity.NAMED_ENTITY;
 import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
+import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
@@ -159,6 +165,25 @@ public class JooqRepository implements Repository {
                 createAggregateFromSelect(createSelectRecommendationLeftJoinInventory(context, project).and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds))),
                 selectCount(context, project).and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)).fetchOne(0, int.class)
         );
+    }
+
+    @Override
+    public boolean addToHistory(Project project, UserEvent userEvent) {
+        InsertValuesStep7<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String, String> query = using(connectionProvider, dialect).
+                insertInto(USER_HISTORY, USER_HISTORY.CREATION_DATE, USER_HISTORY.MODIFICATION_DATE,
+                        USER_HISTORY.USER_ID, USER_HISTORY.TYPE, USER_HISTORY.PRJ_ID, USER_HISTORY.NAME, USER_HISTORY.URI);
+        query.values(new Timestamp(userEvent.creationDate.getTime()), new Timestamp(userEvent.modificationDate.getTime()),
+                userEvent.user.id, userEvent.type.id, project.getId(), userEvent.name, userEvent.uri.toString()).returning(USER_HISTORY.ID);
+        return query.onConflict(USER_HISTORY.USER_ID, USER_HISTORY.URI)
+                .doUpdate()
+                    .set(USER_HISTORY.MODIFICATION_DATE, new Timestamp(userEvent.modificationDate.getTime()))
+                .execute() > 0;
+    }
+
+    @Override
+    public List<UserEvent> getUserEvents(User user) {
+        return DSL.using(connectionProvider, dialect).selectFrom(USER_HISTORY).
+                where(USER_HISTORY.USER_ID.eq(user.id)).stream().map(this::createUserEventFrom).collect(toList());
     }
 
     @Override
@@ -368,5 +393,21 @@ public class JooqRepository implements Repository {
 
     private Tag createTagFrom(DocumentTagRecord record) {
         return new Tag(record.getLabel(), new User(record.getUserId()), new Date(record.getCreationDate().getTime()));
+    }
+
+    private UserEvent createUserEventFrom(UserHistoryRecord record) {
+        if (record == null) {
+            return null;
+        } else {
+            UserEvent userEvent;
+            try {
+                userEvent = new UserEvent(record.getId(), new User(record.getUserId()), fromId(record.getType()),
+                        record.getName(), new URI(record.getUri()), new Date(record.getCreationDate().getTime()),
+                        new Date(record.getModificationDate().getTime()));
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+            return userEvent;
+        }
     }
 }
