@@ -18,6 +18,8 @@ public interface Repository {
     // user related
     AggregateList<User> getRecommendations(Project project);
     AggregateList<User> getRecommendations(Project project, List<String> documentIds);
+    boolean addToHistory(Project project, UserEvent userEvent);
+    List<UserEvent> getUserEvents(User user);
 
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
