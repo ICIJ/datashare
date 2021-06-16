@@ -16,6 +16,8 @@ import java.nio.file.Paths;
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.session.DatashareUser.singleUser;
+import static org.icij.datashare.text.Project.project;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -43,5 +45,13 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(repository.getUserEvents(User.local())).thenReturn(singletonList(userEvent));
 
         get("/api/users/me/history").should().contain(userEvent.uri.toString()).contain(User.local().id).respond(200);
+    }
+
+    @Test
+    public void test_put_user_event_to_history() {
+        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
+        when(repository.addToHistory(eq(project("prj")),eq(userEvent))).thenReturn(true);
+
+        put("/api/users/me/history", "{\"type\": \"DOCUMENT\", \"project\": \"prj\", \"uri\": \"doc_uri\"}").should().respond(200);
     }
 }

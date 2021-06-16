@@ -349,7 +349,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_updates() throws InterruptedException {
+    public void test_update_user_event() throws InterruptedException {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
         Thread.sleep(1000);
         UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
