@@ -70,23 +70,25 @@ public class UserResource {
      * @@return 200
      *
      * Example :
-     * $(curl -i -XPOST  -H "Content-Type: application/json"  localhost:8080/api/apigen-datashare/documents/batchUpdate/tag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
+     * $(curl -i -XPUT  -H "Content-Type: application/json"  localhost:8080/api/users/me/history -d '{"type": "SEARCH", "project": "apigen-datashare", "name": "foo AND bar", "uri": "?q=foo AND bar&from=0&size=100&sort=relevance&index=luxleaks&field=all&stamp=mfawpt"}')
      */
     @Put("/me/history")
     public Payload addToHistory(UserHistoryQuery query, Context context) throws IOException {
-        repository.addToHistory(query.project, new UserEvent((DatashareUser) context.currentUser(), query.type, "something", query.uri));
+        repository.addToHistory(query.project, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
         return Payload.ok();
     }
 
     private static class UserHistoryQuery {
         final Type type;
         final Project project;
+        final String name;
         final URI uri;
 
         @JsonCreator
-        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("project") String projectId, @JsonProperty("uri") String uri) {
+        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("name") String name, @JsonProperty("project") String projectId, @JsonProperty("uri") String uri) {
             this.type = Type.valueOf(type);
             this.project = project(projectId);
+            this.name = name;
             this.uri = URI.create(uri);
         }
     }
