@@ -105,6 +105,11 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_upload_batch_search_csv_one_double_quote_match_phrases_false() {
+        testTripleQuote(false, "\"term one\" AND \"term two\"\n","\"term one\" AND \"term two\"");
+    }
+
+    @Test
     public void test_upload_batch_search_csv_with_all_parameters()  {
         when(batchSearchRepository.save(any())).thenReturn(true);
         Response response = postRaw("/api/batch/search/prj", "multipart/form-data;boundary=AaB03x",

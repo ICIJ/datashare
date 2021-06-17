@@ -12,11 +12,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.net.URI;
-import java.nio.file.Paths;
 
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
-import static org.icij.datashare.UserEvent.Type.SEARCH;
 import static org.icij.datashare.session.DatashareUser.singleUser;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;

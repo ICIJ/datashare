@@ -386,10 +386,10 @@ public class BatchSearchResource {
     }
 
     private String sanitizeDoubleQuotesInQuery(String query) {
-        if (query.startsWith("\"") && query.endsWith("\"") && query.substring(1,query.length() - 1).contains("\"")) {
-            return sanitizeDoubleQuotesInQuery(query.substring(1,query.length() - 1));
+        if(query.contains("\"\"\"")) {
+            return query.substring(1, query.length() - 1).replaceAll("\"\"","\"");
         }
-        return query.replaceAll("\"\"","\"");
+        return query;
     }
 
     private static class BatchSearchResponse {
