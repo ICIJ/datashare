@@ -70,7 +70,7 @@ public class UserResource {
      * @@return 200
      *
      * Example :
-     * $(curl -i -XPUT  -H "Content-Type: application/json"  localhost:8080/api/users/me/history -d '{"type": "SEARCH", "project": "apigen-datashare", "name": "foo AND bar", "uri": "?q=foo AND bar&from=0&size=100&sort=relevance&index=luxleaks&field=all&stamp=mfawpt"}')
+     * $(curl -i -XPUT  -H "Content-Type: application/json"  localhost:8080/api/users/me/history -d '{"type": "SEARCH", "project": "apigen-datashare", "name": "foo AND bar", "uri": "?q=foo%20AND%20bar&from=0&size=100&sort=relevance&index=luxleaks&field=all&stamp=cotgpe"}')
      */
     @Put("/me/history")
     public Payload addToHistory(UserHistoryQuery query, Context context) throws IOException {
