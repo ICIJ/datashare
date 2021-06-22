@@ -23,7 +23,7 @@ import static org.mockito.Mockito.*;
 public class ResumeNlpTaskTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
 
     @After public void tearDown() throws IOException { es.removeAll();}
 
