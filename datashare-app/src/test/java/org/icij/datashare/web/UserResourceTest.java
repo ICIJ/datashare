@@ -54,4 +54,13 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
         put("/api/users/me/history", "{\"type\": \"SEARCH\", \"project\": \"prj\", \"name\": \"foo AND bar\", \"uri\": \"search_uri\"}").should().respond(200);
     }
+
+    @Test
+    public void test_delete_user_history_by_type() {
+        when(repository.deleteUserHistory(User.local(), DOCUMENT)).thenReturn(true).thenReturn(false);
+
+        delete("/api/users/me/history?type=search").should().respond(404);
+        delete("/api/users/me/history?type=document").should().respond(200);
+        delete("/api/users/me/history?type=document").should().respond(404);
+    }
 }

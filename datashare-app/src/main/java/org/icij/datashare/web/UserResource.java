@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
+import net.codestory.http.annotations.Delete;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
@@ -12,11 +13,8 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
-import org.icij.datashare.db.tables.UserHistory;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.text.Tag;
-import org.icij.datashare.user.User;
 
 import java.io.IOException;
 import java.net.URI;
@@ -67,7 +65,7 @@ public class UserResource {
      * It answers 200 when event is added or updated.
      *
      * @param query
-     * @@return 200
+     * @return 200
      *
      * Example :
      * $(curl -i -XPUT  -H "Content-Type: application/json"  localhost:8080/api/users/me/history -d '{"type": "SEARCH", "project": "apigen-datashare", "name": "foo AND bar", "uri": "?q=foo%20AND%20bar&from=0&size=100&sort=relevance&index=luxleaks&field=all&stamp=cotgpe"}')
@@ -76,6 +74,24 @@ public class UserResource {
     public Payload addToHistory(UserHistoryQuery query, Context context) throws IOException {
         repository.addToHistory(query.project, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
         return Payload.ok();
+    }
+
+    /**
+     * Delete user history by type.
+     *
+     * Returns 200 if rows have been removed and 404 if nothing has been done (i.e. not found).
+     *
+     * @param type
+     * @return 200 or 404
+     *
+     * Example :
+     * $(curl -i -XDELETE localhost:8080/api/users/me/history?type=search)
+     *
+     */
+    @Delete("/me/history?type=:type")
+    public Payload deleteUserHistory(String type, Context context) {
+        boolean isDeleted = repository.deleteUserHistory((DatashareUser) context.currentUser(), Type.valueOf(type.toUpperCase()));
+        return isDeleted ? Payload.ok() : Payload.notFound();
     }
 
     private static class UserHistoryQuery {

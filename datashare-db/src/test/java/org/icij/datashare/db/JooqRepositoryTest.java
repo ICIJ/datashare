@@ -24,6 +24,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
+import static org.icij.datashare.UserEvent.Type.SEARCH;
 import static org.icij.datashare.text.Language.*;
 import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.Project.project;
@@ -358,6 +359,19 @@ public class JooqRepositoryTest {
         assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
 
         assertThat(repository.getUserEvents(User.local())).containsExactly(userEvent);
+    }
+
+    @Test
+    public void test_delete_user_event_by_type() throws InterruptedException {
+        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
+        UserEvent userEvent2 = new UserEvent(User.local(), SEARCH, "search_name", Paths.get("search_uri").toUri());
+        repository.addToHistory(project("project"), userEvent);
+        repository.addToHistory(project("project"), userEvent2);
+
+        assertThat(repository.getUserEvents(User.local())).containsExactly(userEvent,userEvent2);
+        assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isTrue();
+        assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isFalse();
+        assertThat(repository.getUserEvents(User.local())).containsExactly(userEvent2);
     }
 
     @Test

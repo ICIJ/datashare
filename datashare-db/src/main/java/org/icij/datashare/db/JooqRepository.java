@@ -187,6 +187,12 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public boolean deleteUserHistory(User user, UserEvent.Type type) {
+        return DSL.using(connectionProvider, dialect).deleteFrom(USER_HISTORY).
+                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute() > 0;
+    }
+
+    @Override
     public AggregateList<User> getRecommendations(Project project) {
         try(DSLContext context = using(connectionProvider, dialect)) {
             return new AggregateList<>(
@@ -264,8 +270,9 @@ public class JooqRepository implements Repository {
             DSLContext inner = using(configuration);
             int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
             int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
-            int deleteMarkReadResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId)).execute();
-            return deleteStarResult + deleteTagResult + deleteMarkReadResult > 0;
+            int deleteUserRecommendationResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId)).execute();
+            int deleteUserHistoryResult = inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.PRJ_ID.eq(projectId)).execute();
+            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult + deleteUserHistoryResult > 0;
         });
     }
 
