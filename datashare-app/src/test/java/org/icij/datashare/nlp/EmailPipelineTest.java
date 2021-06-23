@@ -67,6 +67,18 @@ public class EmailPipelineTest {
     }
 
     @Test
+    public void test_emails_chunked_content() {
+        Document document = createDocument("this is a content with email@domain.com\n" +
+                "and another one : foo@bar.com\n" +
+                "and baz@qux.fr", "docId", Language.ENGLISH);
+        List<NamedEntity> annotations = pipeline.process(document, 20, 72);
+
+        assertThat(annotations).hasSize(1);
+        assertThat(annotations.get(0).getMention()).isEqualTo("baz@qux.fr");
+        assertThat(annotations.get(0).getOffset()).isEqualTo(74);
+    }
+
+    @Test
     public void test_acceptance() throws IOException {
         Path emailFile = Paths.get(getClass().getResource("/email.eml").getPath());
         String content = new String(Files.readAllBytes(emailFile));

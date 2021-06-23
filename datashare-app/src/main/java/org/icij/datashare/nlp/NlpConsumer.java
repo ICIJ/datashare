@@ -18,7 +18,9 @@ import java.util.concurrent.TimeUnit;
 import static org.icij.datashare.com.Message.Field.*;
 
 public class NlpConsumer implements DatashareListener {
+    private static final int DEFAULT_MAX_CONTENT_LENGTH = 1024 * 1024;
     private final Indexer indexer;
+    private final int maxContentLengthChars;
     private final BlockingQueue<Message> messageQueue;
     private final Pipeline nlpPipeline;
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -28,6 +30,14 @@ public class NlpConsumer implements DatashareListener {
         this.indexer = indexer;
         this.messageQueue = messageQueue;
         this.nlpPipeline = pipeline;
+        this.maxContentLengthChars = DEFAULT_MAX_CONTENT_LENGTH;
+    }
+
+    NlpConsumer(Pipeline pipeline, Indexer indexer, int maxContentLengthBytes) {
+        this.indexer = indexer;
+        this.messageQueue = null;
+        this.nlpPipeline = pipeline;
+        this.maxContentLengthChars = maxContentLengthBytes;
     }
 
     @Override
@@ -70,9 +80,25 @@ public class NlpConsumer implements DatashareListener {
             if (doc != null) {
                 logger.info("extracting {} entities for document {}", nlpPipeline.getType(), doc.getId());
                 if (nlpPipeline.initialize(doc.getLanguage())) {
-                    List<NamedEntity> namedEntities = nlpPipeline.process(doc);
-                    indexer.bulkAdd(projectName, nlpPipeline.getType(), namedEntities, doc);
-                    logger.info("added {} named entities to document {}", namedEntities.size(), doc.getId());
+                    int nbEntities = 0;
+                    if (doc.getContent().length() < this.maxContentLengthChars) {
+                        List<NamedEntity> namedEntities = nlpPipeline.process(doc);
+                        indexer.bulkAdd(projectName, nlpPipeline.getType(), namedEntities, doc);
+                        nbEntities = namedEntities.size();
+                    } else {
+                        int nbChunks = doc.getContent().length() / this.maxContentLengthChars + 1;
+                        logger.info("document is too large, extracting entities for {} document chunks", nbChunks);
+                        for (int chunkIndex = 0; chunkIndex < nbChunks; chunkIndex++) {
+                            List<NamedEntity> namedEntities = nlpPipeline.process(doc, maxContentLengthChars, chunkIndex * maxContentLengthChars);
+                            if (chunkIndex < nbChunks - 1) {
+                                indexer.bulkAdd(projectName, namedEntities);
+                            } else {
+                                indexer.bulkAdd(projectName, nlpPipeline.getType(), namedEntities, doc);
+                            }
+                            nbEntities += namedEntities.size();
+                        }
+                    }
+                    logger.info("added {} named entities to document {}", nbEntities, doc.getId());
                     nlpPipeline.terminate(doc.getLanguage());
                 }
             } else {

@@ -83,21 +83,25 @@ public class EmailPipeline extends AbstractPipeline {
 
     @Override
     public List<NamedEntity> process(Document doc) {
-        Annotations annotations = new Annotations(doc.getId(), getType(), doc.getLanguage());
-        Matcher matcher = pattern.matcher(doc.getContent());
+        return process(doc, doc.getContentTextLength(), 0);
+    }
+
+    @Override
+    public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) {
+        Matcher matcher = pattern.matcher(doc.getContent().substring(contentOffset, Math.min(contentLength + contentOffset, doc.getContentTextLength())));
+        List<NamedEntity> neList = new LinkedList<>();
         while (matcher.find()) {
             String email = matcher.group(0);
             int start = matcher.start();
-            annotations.add(NlpStage.NER, start, start + email.length(), NamedEntity.Category.EMAIL);
+            neList.add(NamedEntity.create(NamedEntity.Category.EMAIL, email, start + contentOffset, doc.getId(), doc.getRootDocument(), EMAIL, doc.getLanguage()));
         }
-        List<NamedEntity> neList = allFrom(doc.getContent(), annotations);
         if ("message/rfc822".equals(doc.getContentType())) {
             String metadataString = parsedEmailHeaders.stream().map(key -> doc.getMetadata().getOrDefault(key, "").toString()).collect(joining(" "));
             Matcher metaMatcher = pattern.matcher(metadataString);
             while (metaMatcher.find()) {
                 neList.add(NamedEntity.create(NamedEntity.Category.EMAIL, metaMatcher.group(0), -1,
-                                            doc.getId(), doc.getRootDocument(), EMAIL,
-                                            doc.getLanguage()));
+                        doc.getId(), doc.getRootDocument(), EMAIL,
+                        doc.getLanguage()));
             }
         }
         return neList;

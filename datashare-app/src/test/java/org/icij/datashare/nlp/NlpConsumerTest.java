@@ -4,13 +4,19 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
+import org.icij.datashare.user.DatashareApiKey;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
+import java.util.List;
+
 import static java.util.Collections.emptyList;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Language.ENGLISH;
+import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
@@ -24,7 +30,7 @@ public class NlpConsumerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        nlpListener = new NlpConsumer(pipeline, indexer,  null);
+        nlpListener = new NlpConsumer(pipeline, indexer, 32);
     }
 
     @Test
@@ -55,5 +61,19 @@ public class NlpConsumerTest {
 
         verify(pipeline).initialize(ENGLISH);
         verify(pipeline).process(doc);
+    }
+
+    @Test
+    public void test_on_message_process__chunked_doc_when_doc_is_large()  throws Exception  {
+        when(pipeline.initialize(any())).thenReturn(true);
+        Document doc = createDoc("huge_doc").with("0123456789abcdef0123456789abcdef+").build();
+        when(pipeline.process(doc)).thenReturn(emptyList());
+        when(indexer.get("projectName", doc.getId(), "routing")).thenReturn(doc);
+
+        nlpListener.findNamedEntities("projectName", doc.getId(), "routing");
+
+        verify(pipeline).initialize(ENGLISH);
+        verify(pipeline).process(doc, 32, 0);
+        verify(pipeline).process(doc, 32, 32);
     }
 }

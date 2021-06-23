@@ -68,6 +68,17 @@ public class ElasticsearchIndexerTest {
     }
 
     @Test
+    public void test_bulk_add_with_root_document() throws IOException {
+        Document root = createDoc("root").build();
+        assertThat(indexer.bulkAdd(TEST_INDEX, asList(createDoc("doc1").withRootId(root.getId()).build(), createDoc("doc2").withRootId(root.getId()).build()))).isTrue();
+
+        assertThat(((Document) indexer.get(TEST_INDEX, "doc1")).getRootDocument()).isEqualTo(root.getId());
+        assertThat(((Document) indexer.get(TEST_INDEX, "doc2")).getRootDocument()).isEqualTo(root.getId());
+        assertThat(es.client.get(new GetRequest(TEST_INDEX, "doc1"), RequestOptions.DEFAULT).getFields().get("_routing").getValues()).isEqualTo(asList(root.getId()));
+        assertThat(es.client.get(new GetRequest(TEST_INDEX, "doc1"), RequestOptions.DEFAULT).getFields().get("_routing").getValues()).isEqualTo(asList(root.getId()));
+    }
+
+    @Test
     public void test_bulk_add_named_entities() throws IOException {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 4324L);

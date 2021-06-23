@@ -10,6 +10,7 @@ import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Triple;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.function.ThrowingFunctions;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
@@ -23,10 +24,7 @@ import org.icij.datashare.text.nlp.corenlp.models.CoreNlpPipelineModels;
 import org.icij.datashare.text.nlp.corenlp.models.CoreNlpPosModels;
 
 import java.io.StringReader;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.text.NamedEntity.allFrom;
@@ -86,9 +84,14 @@ public final class CorenlpPipeline extends AbstractPipeline {
 
     @Override
     public List<NamedEntity> process(Document doc) throws InterruptedException {
+        return process(doc, doc.getContentTextLength(), 0);
+    }
+
+    @Override
+    public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) throws InterruptedException {
         // Is NER the unique target stage?
         if (singletonList(NER).equals(targetStages))
-            return allFrom(doc.getContent(), processNerClassifier(doc.getContent(), doc.getId(), doc.getLanguage()));
+            return processNerClassifier(doc, contentLength, contentOffset);
 
         // Is POS the unique target stage?
         if (singletonList(POS).equals(targetStages))
@@ -183,28 +186,29 @@ public final class CorenlpPipeline extends AbstractPipeline {
     /**
      * Named Entity Classifier (Conditional Random Fields) only
      *
-     * @param input    the string to annotator
-     * @param hash     the input hash code
-     * @param language the input language
+     * @param doc the document
      */
-    private Annotations processNerClassifier(String input, String hash, Language language) throws InterruptedException {
-        Annotations annotations = new Annotations(hash, getType(), language);
+    private List<NamedEntity> processNerClassifier(Document doc, int contentLength, int contentOffset) throws InterruptedException {
+        Annotations annotations = new Annotations(doc.getId(), doc.getRootDocument(), getType(), doc.getLanguage());
+        List<NamedEntity> neList = new LinkedList<>();
 
-        LOGGER.info("name-finding for " + language.toString());
+        LOGGER.info("name-finding for {} in document {} (offset {})", doc.getLanguage(), doc.getId(), contentOffset);
         // Recognize named entities from input
         final CoreNlpAnnotator<AbstractSequenceClassifier<CoreLabel>> abstractSequenceClassifierCoreNlpAnnotator;
-        abstractSequenceClassifierCoreNlpAnnotator = CoreNlpNerModels.getInstance().get(language);
-        List<Triple<String, Integer, Integer>> items = abstractSequenceClassifierCoreNlpAnnotator.annotator.classifyToCharacterOffsets(input);
+        abstractSequenceClassifierCoreNlpAnnotator = CoreNlpNerModels.getInstance().get(doc.getLanguage());
+        String chunk = doc.getContent().substring(contentOffset, Math.min(contentOffset + contentLength, doc.getContentTextLength()));
+        List<Triple<String, Integer, Integer>> items = abstractSequenceClassifierCoreNlpAnnotator.annotator.classifyToCharacterOffsets(chunk);
         // For each recognized named entity
         for (Triple<String, Integer, Integer> item : items) {
             // Triple: <category, begin, end>
             NamedEntity.Category category = NamedEntity.Category.parse(item.first());
             int begin = item.second();
             int end = item.third();
-            annotations.add(NER, begin, end, category);
+            String mention = ThrowingFunctions.removeNewLines.apply(chunk.substring(begin, end));
+            neList.add(NamedEntity.create(category, mention, begin + contentOffset, doc.getId(), doc.getRootDocument(), getType(), doc.getLanguage()));
         }
 
-        return annotations;
+        return neList;
     }
 
 
