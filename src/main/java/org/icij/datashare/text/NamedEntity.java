@@ -127,9 +127,10 @@ public final class NamedEntity implements Entity {
                 tag.getCategory(),
                 mention,
                 tag.getBegin(),
-                annotations.getDocumentId(),
-                annotations.getPipelineType(),
-                annotations.getLanguage()
+                annotations.documentId,
+                annotations.rootId,
+                annotations.pipelineType,
+                annotations.language
         );
     }
 

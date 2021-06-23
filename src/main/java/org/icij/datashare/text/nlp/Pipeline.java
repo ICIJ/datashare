@@ -102,6 +102,7 @@ public interface Pipeline {
     boolean initialize(Language language) throws InterruptedException;
 
     List<NamedEntity> process(Document doc) throws InterruptedException;
+    List<NamedEntity> process(Document doc, int contentLength, int contentOffset) throws InterruptedException;
 
     void terminate(Language language) throws InterruptedException ;
 

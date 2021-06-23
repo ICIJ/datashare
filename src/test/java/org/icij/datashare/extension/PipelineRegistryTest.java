@@ -100,7 +100,11 @@ public class PipelineRegistryTest {
             "    @Override\n" +
             "    public List<NamedEntity> process(Document doc) throws InterruptedException  {\n" +
             "        return null;\n" +
-            "    }" +
+            "    }\n" +
+            "    @Override\n" +
+            "    public List<NamedEntity> process(Document doc, int contentLength, int offset) throws InterruptedException  {\n" +
+            "        return null;\n" +
+            "    }\n" +
             "    @Override\n" +
             "    public void terminate(Language language) throws InterruptedException {\n" +
             "\n" +

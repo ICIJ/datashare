@@ -29,6 +29,11 @@ public class TestPipeline implements Pipeline {
     }
 
     @Override
+    public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) throws InterruptedException {
+        return null;
+    }
+
+    @Override
     public void terminate(Language language) throws InterruptedException {
 
     }
