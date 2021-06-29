@@ -5,10 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Delete;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
@@ -21,6 +18,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.project;
 
 @Singleton
@@ -44,6 +42,16 @@ public class UserResource {
     @Get("/me")
     public Map<String, Object> getUser(Context context) {
         return ((DatashareUser) context.currentUser()).getDetails();
+    }
+
+    /**
+     * Preflight for history.
+     *
+     * @return 200 with OPTIONS, GET, PUT and DELETE
+     */
+    @Options("/me/history")
+    public Payload createKey(String userId) {
+        return ok().withAllowMethods("OPTIONS", "GET", "PUT", "DELETE");
     }
 
     /**
