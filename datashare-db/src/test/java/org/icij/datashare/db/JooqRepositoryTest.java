@@ -338,22 +338,26 @@ public class JooqRepositoryTest {
     public void test_add_get_document_to_user_history() {
         User user = new User("userid");
         User user2 = new User("userid2");
-        UserEvent userEvent = new UserEvent(user, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri());
-        UserEvent userEvent2 = new UserEvent(user2, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri());
-        UserEvent userEvent3 = new UserEvent(user, DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri());
+        Date date1 = new Date(new Date().getTime());
+        Date date2 = new Date(new Date().getTime() + 100);
+
+        UserEvent userEvent = new UserEvent(user, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri(), date1, date1);
+        UserEvent userEvent2 = new UserEvent(user, DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri(), date2, date2);
+        UserEvent userEvent3 = new UserEvent(user2, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri());
 
         assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
         assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
         assertThat(repository.addToHistory(project("project"), userEvent3)).isTrue();
-        assertThat(repository.getUserEvents(user)).containsExactly(userEvent,userEvent3);
-        assertThat(repository.getUserEvents(user2)).containsExactly(userEvent2);
+        assertThat(repository.getUserEvents(user)).containsSequence(userEvent2,userEvent);
+        assertThat(repository.getUserEvents(user2)).containsExactly(userEvent3);
     }
 
     @Test
     public void test_update_user_event() throws InterruptedException {
-        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
-        Thread.sleep(1000);
-        UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
+        Date date1 = new Date(new Date().getTime());
+        Date date2 = new Date(new Date().getTime() + 100);
+        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri(), date1, date1);
+        UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri(), date2, date2);
 
         assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
         assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();

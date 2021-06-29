@@ -183,7 +183,7 @@ public class JooqRepository implements Repository {
     @Override
     public List<UserEvent> getUserEvents(User user) {
         return DSL.using(connectionProvider, dialect).selectFrom(USER_HISTORY).
-                where(USER_HISTORY.USER_ID.eq(user.id)).stream().map(this::createUserEventFrom).collect(toList());
+                where(USER_HISTORY.USER_ID.eq(user.id)).orderBy(USER_HISTORY.MODIFICATION_DATE.desc()).stream().map(this::createUserEventFrom).collect(toList());
     }
 
     @Override
