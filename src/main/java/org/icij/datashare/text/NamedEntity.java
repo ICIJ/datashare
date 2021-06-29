@@ -33,11 +33,14 @@ public final class NamedEntity implements Entity {
     private final String mentionNorm;
 
     @IndexId
+    @JsonIgnore
     private final String id;
     private final Category category;
     @IndexParent
+    @JsonIgnore
     private final String documentId;
     @IndexRoot
+    @JsonIgnore
     private final String rootDocument;
     private final long offset;
     private final Pipeline.Type extractor;
@@ -167,10 +170,13 @@ public final class NamedEntity implements Entity {
     }
 
     @Override
+    @JsonIgnore
     public String getId() { return id; }
     public String getMention() { return mention; }
     public Category getCategory() { return category; }
+    @JsonIgnore
     public String getDocumentId() { return documentId; }
+    @JsonIgnore
     public String getRootDocument() { return rootDocument; }
     public int getMentionNormTextLength() {return mentionNorm.length();}
     public long getOffset() { return offset; }

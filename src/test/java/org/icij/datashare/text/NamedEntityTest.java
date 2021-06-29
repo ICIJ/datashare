@@ -13,9 +13,7 @@ public class NamedEntityTest {
                 NamedEntity.Category.PERSON, "mention", 123L, "docId",
                 Pipeline.Type.CORENLP, Language.ENGLISH))).
                 isEqualTo("{\"category\":\"PERSON\",\"mention\":\"mention\",\"offset\":123," +
-                        "\"documentId\":\"docId\",\"rootDocument\":\"docId\",\"" +
-                        "extractor\":\"CORENLP\",\"extractorLanguage\":\"ENGLISH\",\"isHidden\":false,\"mentionNorm\":\"mention\"," +
-                        "\"id\":\"e679ebaefcb396f38ac099a2c1e95a7f3bded26ab4e1925f00767544e0d530fa7f18b922e137256e4b1222b0d66a6266\"," +
+                        "\"extractor\":\"CORENLP\",\"extractorLanguage\":\"ENGLISH\",\"isHidden\":false,\"mentionNorm\":\"mention\"," +
                         "\"partsOfSpeech\":null,\"mentionNormTextLength\":7}");
     }
 
