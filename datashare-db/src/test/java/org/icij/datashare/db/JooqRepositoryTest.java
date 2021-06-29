@@ -92,8 +92,8 @@ public class JooqRepositoryTest {
     @Test
     public void test_create_named_entity_list() {
         List<NamedEntity> namedEntities = Arrays.asList(
-                NamedEntity.create(PERSON, "mention 1", 123, "doc_id", CORENLP, GERMAN),
-                NamedEntity.create(PERSON, "mention 2", 321, "doc_id", CORENLP, ENGLISH));
+                NamedEntity.create(PERSON, "mention 1", asList(123L), "doc_id", "root", CORENLP, GERMAN),
+                NamedEntity.create(PERSON, "mention 2", asList(321L), "doc_id", "root", CORENLP, ENGLISH));
 
         repository.create(namedEntities);
 

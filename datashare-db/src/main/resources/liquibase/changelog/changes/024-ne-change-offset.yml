@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: 37
+      author: bthomas
+      changes:
+        - dropTable:
+            tableName: named_entity
+        - createTable:
+            tableName: named_entity
+            columns:
+              - column:
+                  name: id
+                  type: varchar(96)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: mention
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: offsets
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: extractor
+                  type: tinyint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: varchar(8)
+              - column:
+                  name: doc_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: root_id
+                  type: varchar(96)
+              - column:
+                  name: extractor_language
+                  type: char(2)
+              - column:
+                  name: hidden
+                  type: boolean
+
+        - createIndex:
+            indexName: named_entity_doc_id
+            tableName: named_entity
+            columns:
+              - column:
+                  name: doc_id
+                  type: varchar(96)

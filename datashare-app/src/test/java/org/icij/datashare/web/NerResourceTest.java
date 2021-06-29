@@ -64,7 +64,7 @@ public class NerResourceTest extends AbstractProdWebServerTest {
         Document doc = DocumentBuilder.createDoc("inline").with("This the 'foù' file content.").with(ENGLISH).build();
         final Annotations annotations = new Annotations("inline", CORENLP, ENGLISH);
         annotations.add(NlpStage.NER, 10, 13, NamedEntity.Category.PERSON);
-        doReturn(asList(NamedEntity.create(NamedEntity.Category.PERSON, "foù", 10, doc.getId(), CORENLP, ENGLISH))).when(pipeline).process(eq(doc));
+        doReturn(asList(NamedEntity.create(NamedEntity.Category.PERSON, "foù", asList(10L), doc.getId(), "root", CORENLP, ENGLISH))).when(pipeline).process(eq(doc));
 
         Response response = post("/api/ner/findNames/CORENLP", doc.getContent()).response();
 
@@ -75,7 +75,7 @@ public class NerResourceTest extends AbstractProdWebServerTest {
                 entry("mention", "foù"),
                 entry("extractor", "CORENLP"),
                 entry("mentionNorm", "fou"),
-                entry("offset", 10)
+                entry("offsets", asList(10))
         );
     }
 }

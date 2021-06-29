@@ -200,7 +200,6 @@ public class ElasticsearchIndexer implements Indexer {
                 Map<String, Object> sourceAsMap = resp.getSourceAsMap();
                 sourceAsMap.put("rootDocument", ofNullable(resp.getFields().get("_routing")).orElse(
                         new DocumentField("_routing", Collections.singletonList(id))).getValues().get(0));
-                sourceAsMap.put("id", id);
                 type = (String) sourceAsMap.get(esCfg.docTypeField);
                 Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
                 return JsonObjectMapper.getObject(id, sourceAsMap, tClass);
@@ -483,7 +482,7 @@ public class ElasticsearchIndexer implements Indexer {
         }
 
         @Override
-        public Searcher thatMatchesFieldValue(String name, String value) {
+        public Searcher thatMatchesFieldValue(String name, Object value) {
             this.boolQuery.must(matchQuery(name, value));
             return this;
         }

@@ -53,7 +53,7 @@ public class BenchDocument {
             List<NamedEntity> neList = new ArrayList<>();
             for (int neIdx = 0; neIdx < nbNes; neIdx++) {
                 NamedEntity ne = NamedEntity.create(
-                        NamedEntity.Category.PERSON, "Gael Giraud" + neIdx, 23, document.getId(),
+                        NamedEntity.Category.PERSON, "Gael Giraud" + neIdx, Arrays.asList(23L), document.getId(), "root",
                         Pipeline.Type.CORENLP, Language.FRENCH);
                 neIds.add(ne.getId());
                 neList.add(ne);

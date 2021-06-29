@@ -11,8 +11,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.stream.Stream;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Language.FRENCH;
@@ -31,7 +33,7 @@ public class NamedEntityResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_named_entity() {
-        NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
+        NamedEntity toBeReturned = create(PERSON, "mention", asList(123L), "docId", "root", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("index", "my_id", "root_parent");
         get("/api/index/namedEntities/my_id?routing=root_parent").should().respond(200).haveType("application/json");
     }
@@ -39,7 +41,7 @@ public class NamedEntityResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_named_entity_in_prod_mode() {
         configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("anne"))));
-        NamedEntity toBeReturned = create(PERSON, "mention", 123, "docId", CORENLP, FRENCH);
+        NamedEntity toBeReturned = create(PERSON, "mention", asList(123L), "docId", "root", CORENLP, FRENCH);
         doReturn(toBeReturned).when(indexer).get("anne-datashare", "my_id", "root_parent");
 
         get("/api/anne-datashare/namedEntities/my_id?routing=root_parent").withAuthentication("anne", "notused").
@@ -48,7 +50,7 @@ public class NamedEntityResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_hide_named_entity_when_success() throws IOException {
-        NamedEntity toBeHidden = create(PERSON, "to_update", 123, "docId", CORENLP, FRENCH);
+        NamedEntity toBeHidden = create(PERSON, "to_update", asList(123L), "docId", "root", CORENLP, FRENCH);
         assertThat(toBeHidden.isHidden()).isFalse();
         Indexer.Searcher searcher = mock(Indexer.Searcher.class);
         doReturn(Stream.of(toBeHidden)).when(searcher).execute();

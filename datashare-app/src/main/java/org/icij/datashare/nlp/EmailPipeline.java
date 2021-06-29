@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntitiesBuilder;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
@@ -89,22 +90,20 @@ public class EmailPipeline extends AbstractPipeline {
     @Override
     public List<NamedEntity> process(Document doc, int contentLength, int contentOffset) {
         Matcher matcher = pattern.matcher(doc.getContent().substring(contentOffset, Math.min(contentLength + contentOffset, doc.getContentTextLength())));
-        List<NamedEntity> neList = new LinkedList<>();
+        NamedEntitiesBuilder namedEntitiesBuilder = new NamedEntitiesBuilder(EMAIL, doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument());
         while (matcher.find()) {
             String email = matcher.group(0);
             int start = matcher.start();
-            neList.add(NamedEntity.create(NamedEntity.Category.EMAIL, email, start + contentOffset, doc.getId(), doc.getRootDocument(), EMAIL, doc.getLanguage()));
+            namedEntitiesBuilder.add(NamedEntity.Category.EMAIL, email, start + contentOffset);
         }
         if ("message/rfc822".equals(doc.getContentType())) {
             String metadataString = parsedEmailHeaders.stream().map(key -> doc.getMetadata().getOrDefault(key, "").toString()).collect(joining(" "));
             Matcher metaMatcher = pattern.matcher(metadataString);
             while (metaMatcher.find()) {
-                neList.add(NamedEntity.create(NamedEntity.Category.EMAIL, metaMatcher.group(0), -1,
-                        doc.getId(), doc.getRootDocument(), EMAIL,
-                        doc.getLanguage()));
+                namedEntitiesBuilder.add(NamedEntity.Category.EMAIL, metaMatcher.group(0), -1);
             }
         }
-        return neList;
+        return namedEntitiesBuilder.build();
     }
 
     public static String tikaRawHeader(String s) {

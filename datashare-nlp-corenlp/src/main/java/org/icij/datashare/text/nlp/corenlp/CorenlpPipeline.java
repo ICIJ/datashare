@@ -13,6 +13,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.function.ThrowingFunctions;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntitiesBuilder;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Annotations;
@@ -190,8 +191,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
      */
     private List<NamedEntity> processNerClassifier(Document doc, int contentLength, int contentOffset) throws InterruptedException {
         Annotations annotations = new Annotations(doc.getId(), doc.getRootDocument(), getType(), doc.getLanguage());
-        List<NamedEntity> neList = new LinkedList<>();
-
+        NamedEntitiesBuilder namedEntitiesBuilder = new NamedEntitiesBuilder(getType(), doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument());
         LOGGER.info("name-finding for {} in document {} (offset {})", doc.getLanguage(), doc.getId(), contentOffset);
         // Recognize named entities from input
         final CoreNlpAnnotator<AbstractSequenceClassifier<CoreLabel>> abstractSequenceClassifierCoreNlpAnnotator;
@@ -205,10 +205,10 @@ public final class CorenlpPipeline extends AbstractPipeline {
             int begin = item.second();
             int end = item.third();
             String mention = ThrowingFunctions.removeNewLines.apply(chunk.substring(begin, end));
-            neList.add(NamedEntity.create(category, mention, begin + contentOffset, doc.getId(), doc.getRootDocument(), getType(), doc.getLanguage()));
+            namedEntitiesBuilder.add(category, mention, begin + contentOffset);
         }
 
-        return neList;
+        return namedEntitiesBuilder.build();
     }
 
 

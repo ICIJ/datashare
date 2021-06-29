@@ -11,9 +11,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.nlp.EmailPipeline.*;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
@@ -38,7 +40,7 @@ public class EmailPipelineTest {
         List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
 
         assertThat(annotations).hasSize(1);
-        assertThat(annotations.get(0).getOffset()).isEqualTo(23);
+        assertThat(annotations.get(0).getOffsets()).containsExactly(23L);
         assertThat(annotations.get(0).getCategory()).isEqualTo(NamedEntity.Category.EMAIL);
         assertThat(annotations.get(0).getMention()).isEqualTo("email@domain.com");
     }
@@ -50,10 +52,9 @@ public class EmailPipelineTest {
                 "email@domain.com";
         List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
 
-        assertThat(annotations).hasSize(2);
-
-        NamedEntity nlpTag = annotations.get(1);
-        assertThat(nlpTag.getOffset()).isEqualTo(70);
+        assertThat(annotations).hasSize(1);
+        NamedEntity nlpTag = annotations.get(0);
+        assertThat(nlpTag.getOffsets()).containsExactly(23L, 70L);
         assertThat(nlpTag.getMention()).isEqualTo("email@domain.com");
     }
 
@@ -75,7 +76,7 @@ public class EmailPipelineTest {
 
         assertThat(annotations).hasSize(1);
         assertThat(annotations.get(0).getMention()).isEqualTo("baz@qux.fr");
-        assertThat(annotations.get(0).getOffset()).isEqualTo(74);
+        assertThat(annotations.get(0).getOffsets()).containsExactly(74L);
     }
 
     @Test
@@ -85,7 +86,8 @@ public class EmailPipelineTest {
 
         List<NamedEntity> annotations = pipeline.process(createDocument(content, "docId", Language.ENGLISH));
 
-        assertThat(annotations).hasSize(10);
+        assertThat(annotations).hasSize(3);
+        assertThat(annotations.get(0).getOffsets()).containsExactly(14L, 48L, 168L, 332L, 1283L, 1482L, 1544L, 1582L);
     }
 
     @Test
@@ -98,9 +100,9 @@ public class EmailPipelineTest {
         List<NamedEntity> namedEntities = pipeline.process(doc);
 
         assertThat(namedEntities).containsExactly(
-                        NamedEntity.create(EMAIL, "hello@world.com", 0, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "email2@domain.com", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "email1@domain.com", -1, "docid", Pipeline.Type.EMAIL, FRENCH)
+                        NamedEntity.create(EMAIL, "hello@world.com", asList(0L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "email2@domain.com", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "email1@domain.com", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH)
                         );
     }
 
@@ -130,22 +132,22 @@ public class EmailPipelineTest {
         List<NamedEntity> namedEntities = pipeline.process(doc);
 
         assertThat(namedEntities).containsExactly(
-                        NamedEntity.create(EMAIL, "replyto@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "alternate@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "resent-sender@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "cc@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "from@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "resent-cc@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "forhandling@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "resent-replyto@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "return@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "resent-to@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "followup@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "resent-bcc@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "subject@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "bcc@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "to@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH),
-                        NamedEntity.create(EMAIL, "resent-from@head.er", -1, "docid", Pipeline.Type.EMAIL, FRENCH)
+                        NamedEntity.create(EMAIL, "replyto@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "alternate@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "resent-sender@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "cc@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "from@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "resent-cc@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "forhandling@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "resent-replyto@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "return@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "resent-to@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "followup@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "resent-bcc@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "subject@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "bcc@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "to@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH),
+                        NamedEntity.create(EMAIL, "resent-from@head.er", asList(-1L), "docid", "root", Pipeline.Type.EMAIL, FRENCH)
                 );
     }
 }

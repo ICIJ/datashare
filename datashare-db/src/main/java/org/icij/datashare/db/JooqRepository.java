@@ -28,6 +28,7 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.icij.datashare.Entity.LOGGER;
 import static org.icij.datashare.UserEvent.Type.fromId;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
@@ -62,15 +63,21 @@ public class JooqRepository implements Repository {
     @Override
     public void create(List<NamedEntity> neList) {
         DSLContext create = DSL.using(connectionProvider, dialect);
-        InsertValuesStep9<NamedEntityRecord, String, String, Long, Short, String, String, String, String, Boolean>
+        InsertValuesStep9<NamedEntityRecord, String, String, String, Short, String, String, String, String, Boolean>
                 insertQuery = create.insertInto(NAMED_ENTITY,
-                NAMED_ENTITY.ID, NAMED_ENTITY.MENTION, NAMED_ENTITY.NE_OFFSET, NAMED_ENTITY.EXTRACTOR,
+                NAMED_ENTITY.ID, NAMED_ENTITY.MENTION, NAMED_ENTITY.OFFSETS, NAMED_ENTITY.EXTRACTOR,
                 NAMED_ENTITY.CATEGORY, NAMED_ENTITY.DOC_ID, NAMED_ENTITY.ROOT_ID,
                 NAMED_ENTITY.EXTRACTOR_LANGUAGE, NAMED_ENTITY.HIDDEN);
-        neList.forEach(ne -> insertQuery.values(
-                ne.getId(), ne.getMention(), ne.getOffset(), ne.getExtractor().code,
-                ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
-                ne.getExtractorLanguage().iso6391Code(), ne.isHidden()));
+        neList.forEach(ne -> {
+            try {
+                insertQuery.values(
+                        ne.getId(), ne.getMention(), MAPPER.writeValueAsString(ne.getOffsets()), ne.getExtractor().code,
+                        ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
+                        ne.getExtractorLanguage().iso6391Code(), ne.isHidden());
+            } catch (JsonProcessingException e) {
+                LOGGER.error("cannot serialize offsets {}", ne.getOffsets());
+            }
+        });
         insertQuery.execute();
     }
 
@@ -375,10 +382,14 @@ public class JooqRepository implements Repository {
     }
 
     private NamedEntity createFrom(NamedEntityRecord record) {
-        return NamedEntity.create(NamedEntity.Category.parse(record.getCategory()),
-                record.getMention(), record.getNeOffset(),
-                record.getDocId(), Pipeline.Type.fromCode(record.getExtractor()),
-                Language.parse(record.getExtractorLanguage()));
+        try {
+            return NamedEntity.create(NamedEntity.Category.parse(record.getCategory()),
+                    record.getMention(), MAPPER.readValue(record.getOffsets(), List.class),
+                    record.getDocId(), record.getRootId(), Pipeline.Type.fromCode(record.getExtractor()),
+                    Language.parse(record.getExtractorLanguage()));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Document createDocumentFrom(Record result) {
