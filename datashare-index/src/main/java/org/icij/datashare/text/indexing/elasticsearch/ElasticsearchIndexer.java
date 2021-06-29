@@ -23,6 +23,7 @@ import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
@@ -44,10 +45,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -161,7 +159,7 @@ public class ElasticsearchIndexer implements Indexer {
     private IndexRequest createIndexRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
         IndexRequest req = new IndexRequest(index).id(id);
 
-        setJoinFields(json, type, parent, root);
+        setJoinFields(json, type, parent);
         req = req.source(json);
         return (parent != null) ? req.routing(root) : req;
     }
@@ -169,15 +167,14 @@ public class ElasticsearchIndexer implements Indexer {
     private UpdateRequest createUpdateRequest(String index, String type, String id, Map<String, Object> json, String parent, String root) {
         UpdateRequest req = new UpdateRequest(index, id);
 
-        setJoinFields(json, type, parent, root);
+        setJoinFields(json, type, parent);
         req = req.doc(json);
         return (parent != null) ? req.routing(root) : req;
     }
 
-    private void setJoinFields(Map<String, Object> json, String type, String parent, String root) {
+    private void setJoinFields(Map<String, Object> json, String type, String parent) {
         json.put(esCfg.docTypeField, type);
         if (parent != null && type.equals("NamedEntity")) {
-            json.put("rootDocument", root);
             json.put(esCfg.indexJoinField, new HashMap<String, String>() {{
                 put("name", type);
                 put("parent", parent);
@@ -201,6 +198,9 @@ public class ElasticsearchIndexer implements Indexer {
             final GetResponse resp = client.get(req, RequestOptions.DEFAULT);
             if (resp.isExists()) {
                 Map<String, Object> sourceAsMap = resp.getSourceAsMap();
+                sourceAsMap.put("rootDocument", ofNullable(resp.getFields().get("_routing")).orElse(
+                        new DocumentField("_routing", Collections.singletonList(id))).getValues().get(0));
+                sourceAsMap.put("id", id);
                 type = (String) sourceAsMap.get(esCfg.docTypeField);
                 Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
                 return JsonObjectMapper.getObject(id, sourceAsMap, tClass);

@@ -234,7 +234,7 @@ public class ElasticsearchIndexerTest {
         indexer.add(TEST_INDEX, create(PERSON, "John Doe", 24, "doc2Id", CORENLP, Language.FRENCH));
 
         assertThat(indexer.search(TEST_INDEX, NamedEntity.class).thatMatchesFieldValue("mentionNorm", "john doe").execute().count()).isEqualTo(2);
-        assertThat(indexer.search(TEST_INDEX, NamedEntity.class).thatMatchesFieldValue("documentId", "doc2Id").execute().count()).isEqualTo(1);
+        assertThat(indexer.search(TEST_INDEX, NamedEntity.class).thatMatchesFieldValue("offset", "24").execute().count()).isEqualTo(1);
     }
 
     @Test
