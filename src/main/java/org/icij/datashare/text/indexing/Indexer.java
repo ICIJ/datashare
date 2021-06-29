@@ -60,7 +60,7 @@ public interface Indexer extends Closeable {
         Searcher with(Tag... tags);
         Searcher with(String query);
         Searcher with(String query, int fuzziness, boolean phraseMatches);
-        Searcher thatMatchesFieldValue(String key, String value);
+        Searcher thatMatchesFieldValue(String key, Object value);
         Searcher withFieldValues(String key, String... values);
         Searcher withPrefixQuery(String key, String... values);
     }

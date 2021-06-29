@@ -18,6 +18,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.min;
+import static java.util.Arrays.asList;
 import static org.icij.datashare.function.ThrowingFunctions.removePattFrom;
 import static org.icij.datashare.text.NamedEntity.Category.UNKNOWN;
 import static org.icij.datashare.text.nlp.NlpStage.NER;
@@ -29,7 +30,7 @@ import static org.icij.datashare.text.nlp.NlpStage.POS;
 public final class NamedEntity implements Entity {
     private static final long serialVersionUID = 1946532866377498L;
 
-    private String mention;
+    private final String mention;
     private final String mentionNorm;
 
     @IndexId
@@ -42,7 +43,7 @@ public final class NamedEntity implements Entity {
     @IndexRoot
     @JsonIgnore
     private final String rootDocument;
-    private final long offset;
+    private final List<Long> offsets = new LinkedList<>();
     private final Pipeline.Type extractor;
     private final Language extractorLanguage;
     private final String partsOfSpeech;
@@ -95,21 +96,12 @@ public final class NamedEntity implements Entity {
 
     public static NamedEntity create(Category cat,
                                      String mention,
-                                     long offset,
+                                     List<Long> offsets,
                                      String doc,
+                                     String rootDocument,
                                      Pipeline.Type extr,
                                      Language extrLang) {
-        return new NamedEntity(cat, mention, offset, doc, doc, extr, extrLang, false, null);
-    }
-
-    public static NamedEntity create(Category cat,
-                                     String mention,
-                                     int offset,
-                                     String doc,
-                                     String rootDoc,
-                                     Pipeline.Type extr,
-                                     Language extrLang) {
-        return new NamedEntity(cat, mention, offset, doc, rootDoc, extr, extrLang, false, null);
+        return new NamedEntity(cat, mention, offsets, doc, rootDocument, extr, extrLang, false, null);
     }
 
     public static List<NamedEntity> allFrom(String text, Annotations annotations) {
@@ -126,14 +118,8 @@ public final class NamedEntity implements Entity {
         if (posTagIndex > 0) {
             LOGGER.info(posTagIndex + ", " + posTags.get(posTagIndex));
         }
-        return NamedEntity.create(
-                tag.getCategory(),
-                mention,
-                tag.getBegin(),
-                annotations.documentId,
-                annotations.rootId,
-                annotations.pipelineType,
-                annotations.language
+        return NamedEntity.create(tag.getCategory(), mention, asList((long)tag.getBegin()),
+                annotations.documentId, annotations.rootId, annotations.pipelineType, annotations.language
         );
     }
 
@@ -141,7 +127,7 @@ public final class NamedEntity implements Entity {
     private NamedEntity(
                         @JsonProperty("category") Category category,
                         @JsonProperty("mention") String mention,
-                        @JsonProperty("offset") long offset,
+                        @JsonProperty("offsets") List<Long> offsets,
                         @JsonProperty("documentId") String documentId,
                         @JsonProperty("rootDocument") String rootDocument,
                         @JsonProperty("extractor") Pipeline.Type extractor,
@@ -154,7 +140,7 @@ public final class NamedEntity implements Entity {
         this.mentionNorm = normalize(mention);
         this.id = HASHER.hash( String.join("|",
                 documentId,
-                String.valueOf(offset),
+                String.valueOf(offsets),
                 extractor.toString(),
                 mentionNorm
         ));
@@ -162,7 +148,7 @@ public final class NamedEntity implements Entity {
         this.mention = mention;
         this.documentId = documentId;
         this.rootDocument = rootDocument;
-        this.offset = offset;
+        this.offsets.addAll(offsets);
         this.extractor = extractor;
         this.extractorLanguage = extractorLanguage;
         this.hidden = hidden;
@@ -179,7 +165,7 @@ public final class NamedEntity implements Entity {
     @JsonIgnore
     public String getRootDocument() { return rootDocument; }
     public int getMentionNormTextLength() {return mentionNorm.length();}
-    public long getOffset() { return offset; }
+    public List<Long> getOffsets() { return offsets; }
     public Pipeline.Type getExtractor() { return extractor; }
     public Language getExtractorLanguage() { return extractorLanguage; }
     @JsonGetter("isHidden")
@@ -194,7 +180,7 @@ public final class NamedEntity implements Entity {
                 "mention='" + mention + '\'' +
                 ", id='" + id + '\'' +
                 ", category=" + category +
-                ", offset=" + offset +
+                ", offsets=" + offsets +
                 '}';
     }
 
@@ -215,5 +201,4 @@ public final class NamedEntity implements Entity {
     public static String normalize(String unicoded) {
         return Unidecode.decode(unicoded).trim().replaceAll("(\\s+)", " ").toLowerCase();
     }
-
 }
