@@ -4,6 +4,7 @@ package org.icij.datashare.db;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
+import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
@@ -34,8 +35,8 @@ import static org.icij.datashare.user.User.nullUser;
 
 @RunWith(Parameterized.class)
 public class JooqRepositoryTest {
-    @Rule
-    public DbSetupRule dbRule;
+    @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-06-30T12:13:14Z");
+    @Rule public DbSetupRule dbRule;
     private JooqRepository repository;
 
     @Parameters
