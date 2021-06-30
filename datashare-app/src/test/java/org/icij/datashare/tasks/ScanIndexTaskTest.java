@@ -44,8 +44,8 @@ public class ScanIndexTaskTest {
 
         ReportMap actualReportMap = documentCollectionFactory.createMap(propertiesProvider, "test:report");
         assertThat(actualReportMap).includes(
-                entry(Paths.get("file:/path/to/id1"), new Report(ExtractionStatus.SUCCESS)),
-                entry(Paths.get("file:/path/to/id2"), new Report(ExtractionStatus.SUCCESS))
+                entry(Paths.get("/path/to/id1"), new Report(ExtractionStatus.SUCCESS)),
+                entry(Paths.get("/path/to/id2"), new Report(ExtractionStatus.SUCCESS))
         );
     }
 

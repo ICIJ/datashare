@@ -62,7 +62,7 @@ public class BatchSearchRunnerIntTest {
         BatchSearch searchKo = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("mydoc"), User.local(),false, null,
                 singletonList("/foo/bar"), 0);
         BatchSearch searchOk = new BatchSearch(project(TEST_INDEX), "name", "desc", asSet("mydoc"), User.local(),false, null,
-                singletonList("file:///path/to"), 0);
+                singletonList("/path/to"), 0);
         returnBatchSearches(asList(searchKo, searchOk));
 
         new BatchSearchRunner(indexer, repository, new PropertiesProvider(), local()).call();
