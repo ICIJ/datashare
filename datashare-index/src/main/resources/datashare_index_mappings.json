@@ -83,7 +83,7 @@
     "documentId": {
       "type": "keyword"
     },
-    "offset": {
+    "offsets": {
       "type": "integer"
     },
     "extractor": {
