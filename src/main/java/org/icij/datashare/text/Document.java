@@ -2,6 +2,7 @@ package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexRoot;
@@ -47,8 +48,10 @@ public class Document implements Entity {
     @JsonIgnore
     private final Project project;
     private final String id;
+    @JsonSerialize(using = PathSerializer.class)
     @JsonDeserialize(using = PathDeserializer.class)
     private final Path path;
+    @JsonSerialize(using = PathSerializer.class)
     @JsonDeserialize(using = PathDeserializer.class)
     private final Path dirname;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")

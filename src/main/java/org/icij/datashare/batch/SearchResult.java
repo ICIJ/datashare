@@ -3,7 +3,7 @@ package org.icij.datashare.batch;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.icij.datashare.PathSerializer;
+import org.icij.datashare.text.PathSerializer;
 
 import java.nio.file.Path;
 import java.util.Date;

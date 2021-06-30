@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.icij.datashare.text.PathDeserializer;
+import org.icij.datashare.text.PathSerializer;
 import org.icij.datashare.text.Project;
 
 import java.nio.file.Path;
