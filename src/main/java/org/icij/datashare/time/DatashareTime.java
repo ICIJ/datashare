@@ -11,8 +11,9 @@ import java.util.Date;
  * The class is given in the DATASHARE_TIME_CLASS_PROPERTY.
  *
  * @see #getInstance()
- *      <p>Every access to current time or current date shoud call this service,
- *      to be able to override its behaviour for test purpose.</p>
+ *
+ * <p>Every access to current time or current date shoud call this service,
+ * to be able to override its behaviour for test purpose.</p>
  */
 public class DatashareTime implements Time {
 
@@ -30,14 +31,15 @@ public class DatashareTime implements Time {
     /**
      * Singleton instance method.
      *
-     * DATASHARE_TIME_CLASS_PROPERTY is defined in the JVM, la m�thode retourne
-     * l'instance de la classe indiqu�e par la valeur de cette propri�t�.
+     * DATASHARE_TIME_CLASS_PROPERTY is defined in the JVM.
+     *
+     * this method returns an instance of the class provided in the property.
      *
      * @see #DATASHARE_TIME_CLASS_PROPERTY
-     *      <p>
-     *      if class cannot be loaded by class loader or no default constructor
-     *      is available, default time provider is returned.
-     *      </p>
+     * <p>
+     * if class cannot be loaded by class loader or no default constructor
+     * is available, default time provider is returned.
+     * </p>
      * @return <code>Time</code> datashare time provider
      */
     public static Time getInstance() {
