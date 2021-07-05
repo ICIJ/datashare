@@ -20,6 +20,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -33,6 +34,8 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
     private final Logger logger = LoggerFactory.getLogger(getClass());
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
+    volatile int docsToProcessSize = 0;
+    private final AtomicInteger numberOfResults = new AtomicInteger(0);
 
     private final ElasticsearchIndexer indexer;
     private final PropertiesProvider propertiesProvider;
@@ -48,7 +51,6 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
 
     @Override
     public Integer call() throws Exception {
-        int numberOfResults = 0;
         int throttleMs = parseInt(propertiesProvider.get(BATCH_SEARCH_THROTTLE).orElse("0"));
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
 
@@ -58,9 +60,10 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
                 with(batchDownload.queryString).withoutSource("content").limit(scrollSize);
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         if (docsToProcess.size() == 0) return 0;
+        docsToProcessSize = docsToProcess.size();
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()))) {
-            while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
+            while (docsToProcess.size() != 0 && numberOfResults.get() < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
                 for (Entity doc : docsToProcess) {
                     try (InputStream from = new SourceExtractor().getSource(batchDownload.project, (Document) doc)) {
                         zipOutputStream.putNextEntry(new ZipEntry(getEntryName((Document) doc)));
@@ -70,13 +73,13 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
                             zipOutputStream.write(buffer, 0, len);
                         }
                         zipOutputStream.closeEntry();
-                        numberOfResults += 1;
+                        numberOfResults.incrementAndGet();
                     }
                 }
                 docsToProcess = searcher.scroll().collect(toList());
             }
         }
-        return numberOfResults;
+        return numberOfResults.get();
     }
 
     @NotNull
@@ -86,11 +89,11 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
 
     @Override
     public double getProgressRate() {
-        return 0;
+        return docsToProcessSize == 0 ? 0 : (double) numberOfResults.get()/docsToProcessSize;
     }
 
     @Override
     public User getUser() {
-        return null;
+        return batchDownload.user;
     }
 }

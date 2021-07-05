@@ -90,6 +90,15 @@ public class BatchDownloadRunnerIntTest {
         assertThat(new ZipFile(archiveFile("archive.zip")).getEntry(doc2.toString().substring(1))).isNotNull();
     }
 
+    @Test
+    public void test_progress_rate() throws Exception {
+        indexFile("mydoc.txt", "content");
+        BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), createBatchDownload("archive.zip", "*"));
+        assertThat(batchDownloadRunner.getProgressRate()).isEqualTo(0);
+        batchDownloadRunner.call();
+        assertThat(batchDownloadRunner.getProgressRate()).isEqualTo(1);
+    }
+
     private File indexFile(String fileName, String content) throws IOException {
         String[] pathItems = fileName.split("/");
         File folder = pathItems.length > 1 ? fs.newFolder(Arrays.copyOf(pathItems, pathItems.length - 1)): fs.getRoot();
