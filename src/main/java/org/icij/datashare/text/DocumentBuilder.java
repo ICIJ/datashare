@@ -3,6 +3,7 @@ package org.icij.datashare.text;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -56,7 +57,7 @@ public class DocumentBuilder {
     public Document build() {
         return new Document(project("prj"), id, path, content, language, Charset.defaultCharset(),
                          mimeType, metadata, Document.Status.INDEXED,
-                        pipelines, new Date(), rootId, rootId, (short) 0, 123L);
+                        pipelines, new Date(), rootId, rootId, (short) 0, (long) content.getBytes(StandardCharsets.UTF_8).length);
     }
 
     public DocumentBuilder ofMimeType(String mimeType) {
