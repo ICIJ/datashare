@@ -10,8 +10,10 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.OptionsWrapper;
+import org.icij.datashare.tasks.BatchDownloadRunner;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
@@ -22,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,7 @@ import static net.codestory.http.payload.Payload.ok;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
+import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
 @Singleton
@@ -90,6 +94,27 @@ public class TaskResource {
         return notFoundIfNull(response);
     }
 
+    /**
+     * download files from a search query. Expected parameters are :
+     * * filename: string
+     * * project: string
+     * * queryString: string
+     *
+     * @param optionsWrapper wrapper for options json
+     *
+     * @return 200 and json task
+     *
+     * Example :
+     * $(curl -XPOST localhost:8080/api/task/batchUpdate/download -d '{"filename": "archive.zip", "project":"genapi-datashare", "queryString": "*" }')
+     */
+    @Post("/batchUpdate/download")
+    public TaskResponse batchDownload(final OptionsWrapper optionsWrapper, Context context) {
+        Map<String, String> options = optionsWrapper.getOptions();
+        BatchDownloadRunner downloadTask = taskFactory.createDownloadTask((User) context.currentUser(),
+                new BatchDownload(project(options.get("project")), get(propertiesProvider.get("downloadDir").orElse("/tmp"),
+                        options.get("filename")), options.get("queryString")));
+        return new TaskResponse(taskManager.startTask(downloadTask));
+    }
 
     /**
      * index files from the queue

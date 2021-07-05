@@ -39,13 +39,15 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
 
     private final ElasticsearchIndexer indexer;
     private final PropertiesProvider propertiesProvider;
+    private final User user;
     private final BatchDownload batchDownload;
 
     @Inject
     public BatchDownloadRunner(ElasticsearchIndexer indexer, PropertiesProvider propertiesProvider,
-                               @Assisted BatchDownload batchDownload) {
+                               @Assisted User user, @Assisted BatchDownload batchDownload) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
+        this.user = user;
         this.batchDownload = batchDownload;
     }
 
@@ -55,7 +57,7 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
 
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
-                batchDownload.user.getId(), batchDownload.project, throttleMs, scrollSize);
+                user.getId(), batchDownload.project, throttleMs, scrollSize);
         Indexer.Searcher searcher = indexer.search(batchDownload.project.getId(), Document.class).
                 with(batchDownload.queryString).withoutSource("content").limit(scrollSize);
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
@@ -92,8 +94,5 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
         return docsToProcessSize == 0 ? 0 : (double) numberOfResults.get()/docsToProcessSize;
     }
 
-    @Override
-    public User getUser() {
-        return batchDownload.user;
-    }
+    @Override public User getUser() { return user; }
 }

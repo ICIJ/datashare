@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.nlp.NlpApp;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -13,6 +14,7 @@ public interface TaskFactory {
     NlpApp createNlpTask(User user, Pipeline pipeline, Properties properties, Runnable subscribedCb);
     NlpApp createNlpTask(User user, Pipeline pipeline);
     BatchSearchRunner createBatchSearchRunner(User user);
+    BatchDownloadRunner createDownloadTask(User user, BatchDownload batchDownload);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);
