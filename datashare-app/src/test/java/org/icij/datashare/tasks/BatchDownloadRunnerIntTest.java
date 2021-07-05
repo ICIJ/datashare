@@ -17,9 +17,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.zip.ZipFile;
 
+import static org.apache.commons.io.FilenameUtils.getName;
+import static org.apache.commons.io.FilenameUtils.removeExtension;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
@@ -41,18 +44,62 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_one_result() throws Exception {
-        File file = fs.newFile("mydoc.txt");
         String content = "The quick brown fox jumps over the lazy dog";
-        Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
-        Document mydoc = createDoc("mydoc").with(content).with(file.toPath()).build();
-        indexer.add(TEST_INDEX, mydoc);
+        File file = indexFile("mydoc.txt", content);
 
         assertThat(new BatchDownloadRunner(indexer, createProvider(), createBatchDownload("archive.zip", "fox")).call()).isEqualTo(1);
 
         assertThat(archiveFile("archive.zip")).isFile();
-        assertThat(new ZipFile(archiveFile("archive.zip")).entries().hasMoreElements()).isTrue();
-        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry("mydoc.txt")).isNotNull();
-        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry("mydoc.txt").getSize()).isEqualTo(content.length());
+        assertThat(new ZipFile(archiveFile("archive.zip")).size()).isEqualTo(1);
+        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry(file.toString().substring(1))).isNotNull();
+        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry(file.toString().substring(1)).getSize()).isEqualTo(content.length());
+    }
+
+    @Test
+    public void test_two_results() throws Exception {
+        indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog");
+        indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
+
+        assertThat(new BatchDownloadRunner(indexer, createProvider(), createBatchDownload("archive.zip", "*")).call()).isEqualTo(2);
+
+        assertThat(archiveFile("archive.zip")).isFile();
+        assertThat(new ZipFile(archiveFile("archive.zip")).size()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_two_files_one_result() throws Exception {
+        indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog");
+        indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
+
+        assertThat(new BatchDownloadRunner(indexer, createProvider(), createBatchDownload("archive.zip", "juge")).call()).isEqualTo(1);
+
+        assertThat(archiveFile("archive.zip")).isFile();
+        assertThat(new ZipFile(archiveFile("archive.zip")).size()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_two_results_two_dirs() throws Exception {
+        File doc1 = indexFile("dir1/doc1.txt", "The quick brown fox jumps over the lazy dog");
+        File doc2 = indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
+
+        assertThat(new BatchDownloadRunner(indexer, createProvider(), createBatchDownload("archive.zip", "*")).call()).isEqualTo(2);
+
+        assertThat(archiveFile("archive.zip")).isFile();
+        assertThat(new ZipFile(archiveFile("archive.zip")).size()).isEqualTo(2);
+        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry(doc1.toString().substring(1))).isNotNull();
+        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry(doc2.toString().substring(1))).isNotNull();
+    }
+
+    private File indexFile(String fileName, String content) throws IOException {
+        String[] pathItems = fileName.split("/");
+        File folder = pathItems.length > 1 ? fs.newFolder(Arrays.copyOf(pathItems, pathItems.length - 1)): fs.getRoot();
+        File file = folder.toPath().resolve(pathItems[pathItems.length - 1]).toFile();
+        file.createNewFile();
+        Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
+        String docname = removeExtension(getName(fileName));
+        Document mydoc_id = createDoc(docname).with(content).with(file.toPath()).build();
+        indexer.add(TEST_INDEX, mydoc_id);
+        return file;
     }
 
     @NotNull

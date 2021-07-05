@@ -12,6 +12,7 @@ import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +63,7 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
             while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
                 for (Entity doc : docsToProcess) {
                     try (InputStream from = new SourceExtractor().getSource(batchDownload.project, (Document) doc)) {
-                        zipOutputStream.putNextEntry(new ZipEntry(((Document) doc).getName()));
+                        zipOutputStream.putNextEntry(new ZipEntry(getEntryName((Document) doc)));
                         byte[] buffer = new byte[4096];
                         int len;
                         while ((len = from.read(buffer)) > 0) {
@@ -76,6 +77,11 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
             }
         }
         return numberOfResults;
+    }
+
+    @NotNull
+    private String getEntryName(Document doc) {
+        return doc.getPath().isAbsolute() ? doc.getPath().toString().substring(1): doc.getPath().toString();
     }
 
     @Override
