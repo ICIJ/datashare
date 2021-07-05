@@ -47,9 +47,9 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 @Singleton
 @Prefix("/api/task")
 public class TaskResource {
-    private Logger logger = LoggerFactory.getLogger(getClass());
-    private TaskFactory taskFactory;
-    private TaskManager taskManager;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final TaskFactory taskFactory;
+    private final TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
     private final PipelineRegistry pipelineRegistry;
 
