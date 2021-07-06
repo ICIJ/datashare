@@ -105,7 +105,7 @@ public class TaskResource {
      * @return 200 and json task
      *
      * Example :
-     * $(curl -XPOST localhost:8080/api/task/batchUpdate/download -d '{"filename": "archive.zip", "project":"genapi-datashare", "queryString": "*" }')
+     * $(curl -XPOST -H 'Content-Type: application/json' localhost:8080/api/task/batchUpdate/download -d '{"options": {"filename": "archive.zip", "project":"genapi-datashare", "queryString": "*" }}')
      */
     @Post("/batchUpdate/download")
     public TaskResponse batchDownload(final OptionsWrapper optionsWrapper, Context context) {
