@@ -8,9 +8,7 @@ import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
 
 import static java.lang.Integer.valueOf;
@@ -50,6 +48,13 @@ public class TaskManager {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<V>(task) {
             @Override protected void done() { callback.run();}
         };
+        executor.submit(futureTask);
+        tasks.put(futureTask.toString(), futureTask);
+        return futureTask;
+    }
+
+    public <V> MonitorableFutureTask<V> startTask(final Callable<V> task, Map<String, Object> properties) {
+        MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<V>(task, properties);
         executor.submit(futureTask);
         tasks.put(futureTask.toString(), futureTask);
         return futureTask;
@@ -100,6 +105,8 @@ public class TaskManager {
 
     public static class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable, UserTask {
         private final Object runnableOrCallable;
+        public final Map<String, Object> properties = new HashMap<>();
+
         public MonitorableFutureTask(Callable<V> callable) {
             super(callable);
             runnableOrCallable = callable;
@@ -108,6 +115,12 @@ public class TaskManager {
         public MonitorableFutureTask(Runnable runnable, V result) {
             super(runnable, result);
             runnableOrCallable = runnable;
+        }
+
+        public MonitorableFutureTask(Callable<V> task, Map<String, Object> properties) {
+            super(task);
+            this.properties.putAll(properties);
+            runnableOrCallable = task;
         }
 
         private Monitorable getMonitorable(Object runnableOrCallable) {

@@ -1,16 +1,17 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.tasks.TaskManager;
 import org.junit.After;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 
 public class TaskManagerTest {
     private TaskManager taskManager= new TaskManager(new PropertiesProvider());
@@ -53,6 +54,12 @@ public class TaskManagerTest {
 
         assertThat(l.getCount()).isEqualTo(0);
         assertThat(taskManager.getTask(t1.toString()).get()).isEqualTo("task");
+    }
+
+    @Test
+    public void test_create_task_with_properties() {
+        TaskManager.MonitorableFutureTask<String> task = taskManager.startTask(() -> "task", new HashMap<String, Object>() {{ put("foo", "bar"); }});
+        assertThat(task.properties).includes(entry("foo", "bar"));
     }
 
     @After

@@ -12,7 +12,7 @@ import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.NlpApp;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.*;
-import org.icij.datashare.text.Project;
+import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -21,6 +21,7 @@ import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -42,6 +43,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
+    @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     private static final TaskFactory taskFactory = mock(TaskFactory.class);
     private static final TaskManager taskManager= new TaskManager(new PropertiesProvider());
 
@@ -221,11 +223,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_batch_download() {
-        RestAssert response = post("/api/task/batchUpdate/download", "{\"options\":{\"filename\": \"archive.zip\", " +
-                "\"project\":\"test-datashare\", \"queryString\": \"*\" }}");
+        post("/api/task/batchDownload", "{\"options\":{ \"project\":\"test-datashare\", \"query\": \"*\" }}").
+                should().haveType("application/json").
+                should().contain("properties").
+                should().contain("filename");
 
-        response.should().haveType("application/json");
-        verify(taskFactory).createDownloadTask(local(), new BatchDownload(project("test-datashare"), Paths.get("/tmp/archive.zip"), "*"));
+        verify(taskFactory).createDownloadTask(local(), new BatchDownload(project("test-datashare"), User.local(), "*"));
     }
 
     @Test

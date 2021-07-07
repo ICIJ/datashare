@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,7 +60,7 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
                 user.getId(), batchDownload.project, throttleMs, scrollSize);
         Indexer.Searcher searcher = indexer.search(batchDownload.project.getId(), Document.class).
-                with(batchDownload.queryString).withoutSource("content").limit(scrollSize);
+                with(batchDownload.query).withoutSource("content").limit(scrollSize);
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         if (docsToProcess.size() == 0) return 0;
         docsToProcessSize = docsToProcess.size();
@@ -81,6 +82,8 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
                 docsToProcess = searcher.scroll().collect(toList());
             }
         }
+        logger.info("created batch download file {} ({} bytes/{} entries) for user {}",
+                batchDownload.filename, Files.size(batchDownload.filename), numberOfResults, user.getId());
         return numberOfResults.get();
     }
 

@@ -25,10 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -105,15 +102,15 @@ public class TaskResource {
      * @return 200 and json task
      *
      * Example :
-     * $(curl -XPOST -H 'Content-Type: application/json' localhost:8080/api/task/batchUpdate/download -d '{"options": {"filename": "archive.zip", "project":"genapi-datashare", "queryString": "*" }}')
+     * $(curl -XPOST -H 'Content-Type: application/json' localhost:8080/api/task/batchDownload -d '{"options": {"project":"genapi-datashare", "query": "*" }}')
      */
-    @Post("/batchUpdate/download")
+    @Post("/batchDownload")
     public TaskResponse batchDownload(final OptionsWrapper optionsWrapper, Context context) {
         Map<String, String> options = optionsWrapper.getOptions();
-        BatchDownloadRunner downloadTask = taskFactory.createDownloadTask((User) context.currentUser(),
-                new BatchDownload(project(options.get("project")), get(propertiesProvider.get("downloadDir").orElse("/tmp"),
-                        options.get("filename")), options.get("queryString")));
-        return new TaskResponse(taskManager.startTask(downloadTask));
+        BatchDownload batchDownload = new BatchDownload(project(options.get("project")), (User) context.currentUser(),
+                options.get("query"), get(propertiesProvider.get("downloadDir").orElse("/tmp")));
+        BatchDownloadRunner downloadTask = taskFactory.createDownloadTask((User) context.currentUser(), batchDownload);
+        return new TaskResponse(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}}));
     }
 
     /**
@@ -303,6 +300,8 @@ public class TaskResource {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     static class TaskResponse {
+        private final Map<String, Object> properties;
+
         enum State {RUNNING, ERROR, DONE, CANCELLED}
         private final String name;
         private final State state;
@@ -326,6 +325,7 @@ public class TaskResource {
                 this.state = State.RUNNING;
                 progress = task.getProgressRate();
             }
+            this.properties = task.properties.isEmpty() ? null: task.properties;
         }
     }
 }

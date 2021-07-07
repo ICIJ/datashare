@@ -38,21 +38,23 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_empty_response() throws Exception {
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), createBatchDownload("archive.zip", "query")).call()).isEqualTo(0);
-        assertThat(archiveFile("archive.zip")).doesNotExist();
+        BatchDownload bd = createBatchDownload("query");
+        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(0);
+        assertThat(bd.filename.toFile()).doesNotExist();
     }
 
     @Test
     public void test_one_result() throws Exception {
         String content = "The quick brown fox jumps over the lazy dog";
         File file = indexFile("mydoc.txt", content);
+        BatchDownload bd = createBatchDownload("fox");
 
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), createBatchDownload("archive.zip", "fox")).call()).isEqualTo(1);
+        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(1);
 
-        assertThat(archiveFile("archive.zip")).isFile();
-        assertThat(new ZipFile(archiveFile("archive.zip")).size()).isEqualTo(1);
-        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry(file.toString().substring(1))).isNotNull();
-        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry(file.toString().substring(1)).getSize()).isEqualTo(content.length());
+        assertThat(bd.filename.toFile()).isFile();
+        assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
+        assertThat(new ZipFile(bd.filename.toFile()).getEntry(file.toString().substring(1))).isNotNull();
+        assertThat(new ZipFile(bd.filename.toFile()).getEntry(file.toString().substring(1)).getSize()).isEqualTo(content.length());
     }
 
     @Test
@@ -60,10 +62,11 @@ public class BatchDownloadRunnerIntTest {
         indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog");
         indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
 
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), createBatchDownload("archive.zip", "*")).call()).isEqualTo(2);
+        BatchDownload bd = createBatchDownload("*");
+        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(2);
 
-        assertThat(archiveFile("archive.zip")).isFile();
-        assertThat(new ZipFile(archiveFile("archive.zip")).size()).isEqualTo(2);
+        assertThat(bd.filename.toFile()).isFile();
+        assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);
     }
 
     @Test
@@ -71,10 +74,11 @@ public class BatchDownloadRunnerIntTest {
         indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog");
         indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
 
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), createBatchDownload("archive.zip", "juge")).call()).isEqualTo(1);
+        BatchDownload bd = createBatchDownload("juge");
+        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(1);
 
-        assertThat(archiveFile("archive.zip")).isFile();
-        assertThat(new ZipFile(archiveFile("archive.zip")).size()).isEqualTo(1);
+        assertThat(bd.filename.toFile()).isFile();
+        assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
     }
 
     @Test
@@ -82,18 +86,19 @@ public class BatchDownloadRunnerIntTest {
         File doc1 = indexFile("dir1/doc1.txt", "The quick brown fox jumps over the lazy dog");
         File doc2 = indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
 
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), createBatchDownload("archive.zip", "*")).call()).isEqualTo(2);
+        BatchDownload bd = createBatchDownload("*");
+        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(2);
 
-        assertThat(archiveFile("archive.zip")).isFile();
-        assertThat(new ZipFile(archiveFile("archive.zip")).size()).isEqualTo(2);
-        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry(doc1.toString().substring(1))).isNotNull();
-        assertThat(new ZipFile(archiveFile("archive.zip")).getEntry(doc2.toString().substring(1))).isNotNull();
+        assertThat(bd.filename.toFile()).isFile();
+        assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);
+        assertThat(new ZipFile(bd.filename.toFile()).getEntry(doc1.toString().substring(1))).isNotNull();
+        assertThat(new ZipFile(bd.filename.toFile()).getEntry(doc2.toString().substring(1))).isNotNull();
     }
 
     @Test
     public void test_progress_rate() throws Exception {
         indexFile("mydoc.txt", "content");
-        BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), local(), createBatchDownload("archive.zip", "*"));
+        BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), local(), createBatchDownload("*"));
         assertThat(batchDownloadRunner.getProgressRate()).isEqualTo(0);
         batchDownloadRunner.call();
         assertThat(batchDownloadRunner.getProgressRate()).isEqualTo(1);
@@ -112,13 +117,8 @@ public class BatchDownloadRunnerIntTest {
     }
 
     @NotNull
-    private BatchDownload createBatchDownload(String filename, String query) {
-        return new BatchDownload(project(TEST_INDEX), fs.getRoot().toPath().resolve(filename), query);
-    }
-
-    @NotNull
-    private File archiveFile(String archive) {
-        return fs.getRoot().toPath().resolve(archive).toFile();
+    private BatchDownload createBatchDownload(String query) {
+        return new BatchDownload(project(TEST_INDEX), local(), query, fs.getRoot().toPath());
     }
 
     @After
