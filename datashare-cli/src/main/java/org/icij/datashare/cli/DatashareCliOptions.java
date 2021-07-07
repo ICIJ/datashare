@@ -95,6 +95,13 @@ public final class DatashareCliOptions {
                         .ofType(String.class);
     }
 
+    static OptionSpec<String> downloadDir(OptionParser parser) {
+        return parser.acceptsAll(
+                asList("downloadDir"), "Downloads directory")
+                        .withRequiredArg()
+                        .ofType(String.class);
+    }
+
     static OptionSpec<String> pluginList(OptionParser parser) {
         return parser.acceptsAll(asList(PLUGIN_LIST_OPT), "Plugins list matching provided string")
                 .withOptionalArg()
