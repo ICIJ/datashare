@@ -93,6 +93,7 @@ public class TaskResource {
 
     /**
      * download files from a search query. Expected parameters are :
+     * 
      * * filename: string
      * * project: string
      * * queryString: string
