@@ -332,7 +332,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_get_empty_user_history() {
-        assertThat(repository.getUserEvents(User.local())).isEmpty();
+        assertThat(repository.getUserEvents(User.local(), SEARCH)).isEmpty();
     }
 
     @Test
@@ -349,8 +349,9 @@ public class JooqRepositoryTest {
         assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
         assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
         assertThat(repository.addToHistory(project("project"), userEvent3)).isTrue();
-        assertThat(repository.getUserEvents(user)).containsSequence(userEvent2,userEvent);
-        assertThat(repository.getUserEvents(user2)).containsExactly(userEvent3);
+        assertThat(repository.getUserEvents(user, DOCUMENT)).containsSequence(userEvent2,userEvent);
+        assertThat(repository.getUserEvents(user, SEARCH)).isEmpty();
+        assertThat(repository.getUserEvents(user2, DOCUMENT)).containsExactly(userEvent3);
     }
 
     @Test
@@ -363,7 +364,7 @@ public class JooqRepositoryTest {
         assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
         assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
 
-        assertThat(repository.getUserEvents(User.local())).containsExactly(userEvent);
+        assertThat(repository.getUserEvents(User.local(), DOCUMENT)).containsExactly(userEvent);
     }
 
     @Test
@@ -373,10 +374,11 @@ public class JooqRepositoryTest {
         repository.addToHistory(project("project"), userEvent);
         repository.addToHistory(project("project"), userEvent2);
 
-        assertThat(repository.getUserEvents(User.local())).containsExactly(userEvent,userEvent2);
+        assertThat(repository.getUserEvents(User.local(), DOCUMENT)).containsExactly(userEvent);
         assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isTrue();
         assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isFalse();
-        assertThat(repository.getUserEvents(User.local())).containsExactly(userEvent2);
+        assertThat(repository.getUserEvents(User.local(),DOCUMENT)).isEmpty();
+        assertThat(repository.getUserEvents(User.local(),SEARCH)).containsExactly(userEvent2);
     }
 
     @Test

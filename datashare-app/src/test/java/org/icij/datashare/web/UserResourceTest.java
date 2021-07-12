@@ -43,9 +43,9 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_user_history() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local())).thenReturn(singletonList(userEvent));
+        when(repository.getUserEvents(User.local(), DOCUMENT)).thenReturn(singletonList(userEvent));
 
-        get("/api/users/me/history").should().contain(userEvent.uri.toString()).contain(User.local().id).respond(200);
+        get("/api/users/me/history?type=document").should().contain(userEvent.uri.toString()).contain(User.local().id).respond(200);
     }
 
     @Test
