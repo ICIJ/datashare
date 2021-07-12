@@ -19,7 +19,7 @@ public interface Repository {
     AggregateList<User> getRecommendations(Project project);
     AggregateList<User> getRecommendations(Project project, List<String> documentIds);
     boolean addToHistory(Project project, UserEvent userEvent);
-    List<UserEvent> getUserEvents(User user);
+    List<UserEvent> getUserEvents(User user, UserEvent.Type type);
     boolean deleteUserHistory(User user, UserEvent.Type type);
 
     // project related
