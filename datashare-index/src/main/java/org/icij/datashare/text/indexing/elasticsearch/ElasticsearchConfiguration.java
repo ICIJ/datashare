@@ -1,8 +1,15 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
@@ -12,8 +19,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLDecoder;
 
 import static com.google.common.io.ByteStreams.toByteArray;
+import static java.lang.String.format;
 import static org.apache.http.HttpHost.create;
 import static org.elasticsearch.common.xcontent.XContentType.JSON;
 
@@ -58,15 +70,29 @@ public class ElasticsearchConfiguration {
 
     public static RestHighLevelClient createESClient(final PropertiesProvider propertiesProvider) {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
+        try {
+            URL indexUrl = new URL(propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS));
+            HttpHost httpHost = create(format("%s://%s:%d", indexUrl.getProtocol(), indexUrl.getHost(), indexUrl.getPort()));
 
-        String indexAddress = propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS);
+            RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback = httpClientBuilder -> httpClientBuilder;
+            if (indexUrl.getUserInfo() != null) {
+                String[] userInfo = indexUrl.getUserInfo().split(":");
+                LOGGER.info("using credentials from url (user={})", userInfo[0]);
+                final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userInfo[0], userInfo[1]));
 
-        RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(create(indexAddress)).setRequestConfigCallback(
-                requestConfigBuilder -> requestConfigBuilder
-                    .setConnectTimeout(5000)
-                    .setSocketTimeout(60000)));
-        String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
-        return client;
+                httpClientConfigCallback = httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+            }
+            RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(httpHost)
+                    .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
+                            .setConnectTimeout(5000)
+                            .setSocketTimeout(60000))
+                    .setHttpClientConfigCallback(httpClientConfigCallback));
+            String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
+            return client;
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static boolean createIndex(RestHighLevelClient client, String indexName) {

@@ -3,11 +3,18 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 
@@ -29,6 +36,17 @@ public class ElasticsearchConfigurationTest {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
         Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
+
+        assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
+    }
+
+    @Test
+    public void test_create_client_with_user_pass() throws Exception {
+        RestHighLevelClient esClient = ElasticsearchConfiguration.createESClient(new PropertiesProvider(new HashMap<String, String>() {{
+            put("elasticsearchAddress", "http://user:pass@elasticsearch:9200");
+        }}));
+
+        Response response = esClient.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }
