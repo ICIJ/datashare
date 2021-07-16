@@ -355,7 +355,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_update_user_event() throws InterruptedException {
+    public void test_update_user_event() {
         Date date1 = new Date(new Date().getTime());
         Date date2 = new Date(new Date().getTime() + 100);
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri(), date1, date1);
@@ -368,7 +368,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_delete_user_event_by_type() throws InterruptedException {
+    public void test_delete_user_event_by_type() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
         UserEvent userEvent2 = new UserEvent(User.local(), SEARCH, "search_name", Paths.get("search_uri").toUri());
         repository.addToHistory(project("project"), userEvent);
@@ -379,6 +379,18 @@ public class JooqRepositoryTest {
         assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isFalse();
         assertThat(repository.getUserEvents(User.local(),DOCUMENT)).isEmpty();
         assertThat(repository.getUserEvents(User.local(),SEARCH)).containsExactly(userEvent2);
+    }
+
+    @Test
+    public void test_delete_single_user_event_by_id() {
+        Date date = new Date(new Date().getTime());
+        repository.addToHistory(project("project"), new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri()));
+        repository.addToHistory(project("project"), new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri()));
+        List<UserEvent> userEvents = repository.getUserEvents(User.local(), DOCUMENT);
+
+        assertThat(repository.deleteUserEvent(User.local(), userEvents.get(1).id)).isTrue();
+        assertThat(repository.deleteUserEvent(User.local(), userEvents.get(1).id)).isFalse();
+        assertThat(repository.getUserEvents(User.local(),DOCUMENT)).containsExactly(userEvents.get(0));
     }
 
     @Test

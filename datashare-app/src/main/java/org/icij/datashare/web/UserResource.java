@@ -80,7 +80,7 @@ public class UserResource {
      * $(curl -i -XPUT  -H "Content-Type: application/json"  localhost:8080/api/users/me/history -d '{"type": "SEARCH", "project": "apigen-datashare", "name": "foo AND bar", "uri": "?q=foo%20AND%20bar&from=0&size=100&sort=relevance&index=luxleaks&field=all&stamp=cotgpe"}')
      */
     @Put("/me/history")
-    public Payload addToHistory(UserHistoryQuery query, Context context) throws IOException {
+    public Payload addToHistory(UserHistoryQuery query, Context context) {
         repository.addToHistory(query.project, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
         return Payload.ok();
     }
@@ -100,6 +100,24 @@ public class UserResource {
     @Delete("/me/history?type=:type")
     public Payload deleteUserHistory(String type, Context context) {
         boolean isDeleted = repository.deleteUserHistory((DatashareUser) context.currentUser(), Type.valueOf(type.toUpperCase()));
+        return isDeleted ? Payload.ok() : Payload.notFound();
+    }
+
+    /**
+     * Delete user event by id.
+     *
+     * Returns 200 if removed and 404 if nothing has been done (i.e. not found).
+     *
+     * @param eventId
+     * @return 200 or 404
+     *
+     * Example :
+     * $(curl -i -XDELETE localhost:8080/api/users/me/history/event?id=1)
+     *
+     */
+    @Delete("/me/history/event?id=:eventId")
+    public Payload deleteUserEvent(String eventId, Context context) {
+        boolean isDeleted = repository.deleteUserEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
         return isDeleted ? Payload.ok() : Payload.notFound();
     }
 

@@ -201,6 +201,12 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public boolean deleteUserEvent(User user, int eventId) {
+        return DSL.using(connectionProvider, dialect).deleteFrom(USER_HISTORY).
+                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute() > 0;
+    }
+
+    @Override
     public AggregateList<User> getRecommendations(Project project) {
         try(DSLContext context = using(connectionProvider, dialect)) {
             return new AggregateList<>(
