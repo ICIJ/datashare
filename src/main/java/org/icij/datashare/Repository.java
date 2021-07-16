@@ -21,6 +21,7 @@ public interface Repository {
     boolean addToHistory(Project project, UserEvent userEvent);
     List<UserEvent> getUserEvents(User user, UserEvent.Type type);
     boolean deleteUserHistory(User user, UserEvent.Type type);
+    boolean deleteUserEvent(User user, int eventId);
 
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
