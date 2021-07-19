@@ -50,7 +50,7 @@ public class UserResource {
      * @return 200 with OPTIONS, GET, PUT and DELETE
      */
     @Options("/me/history")
-    public Payload createKey(String userId) {
+    public Payload getUserHistory(String userId) {
         return ok().withAllowMethods("OPTIONS", "GET", "PUT", "DELETE");
     }
 
@@ -101,6 +101,16 @@ public class UserResource {
     public Payload deleteUserHistory(String type, Context context) {
         boolean isDeleted = repository.deleteUserHistory((DatashareUser) context.currentUser(), Type.valueOf(type.toUpperCase()));
         return isDeleted ? Payload.ok() : Payload.notFound();
+    }
+
+    /**
+     * Preflight for history.
+     *
+     * @return 200 with OPTIONS, DELETE
+     */
+    @Options("/me/history/event")
+    public Payload deleteUserEvent(String userId) {
+        return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
     /**
