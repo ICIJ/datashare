@@ -84,7 +84,7 @@ public class TaskResource {
      * Example :
      * $(curl localhost:8080/api/task/21148262)
      */
-    @Get("/:name")
+    @Get("/:id")
     public TaskResponse getTask(String id) {
         TaskManager.MonitorableFutureTask task = taskManager.getTask(id);
         TaskResponse response = task == null ? null:new TaskResponse(task);
