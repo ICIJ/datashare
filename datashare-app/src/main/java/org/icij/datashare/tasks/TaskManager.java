@@ -16,7 +16,7 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 
 public class TaskManager {
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final ConcurrentMap<String, MonitorableFutureTask> tasks = new ConcurrentHashMap<>();
 
@@ -34,16 +34,6 @@ public class TaskManager {
         return futureTask;
     }
 
-    public MonitorableFutureTask<Void> startTask(final Runnable task, final Runnable callback) {
-        MonitorableFutureTask<Void> futureTask = new MonitorableFutureTask<Void>(task, null) {
-            @Override protected void done() {
-                callback.run();
-            }
-        };
-        executor.submit(futureTask);
-        tasks.put(futureTask.toString(), futureTask);
-        return futureTask;
-    }
     public <V> MonitorableFutureTask<V> startTask(final Callable<V> task, final Runnable callback) {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<V>(task) {
             @Override protected void done() { callback.run();}

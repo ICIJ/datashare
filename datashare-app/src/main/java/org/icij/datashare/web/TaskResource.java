@@ -8,6 +8,8 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
+import net.codestory.http.errors.ForbiddenException;
+import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
@@ -19,6 +21,7 @@ import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
+import org.icij.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +37,7 @@ import static java.lang.Boolean.parseBoolean;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -86,9 +90,26 @@ public class TaskResource {
      */
     @Get("/:id")
     public TaskResponse getTask(String id) {
-        TaskManager.MonitorableFutureTask task = taskManager.getTask(id);
-        TaskResponse response = task == null ? null:new TaskResponse(task);
-        return notFoundIfNull(response);
+        return new TaskResponse(notFoundIfNull(taskManager.getTask(id)));
+    }
+
+    /**
+     * gets task result with its id
+     *
+     * @param id
+     * @return 200 and the result,
+     *         204 if there is no result
+     *         404 if the tasks doesn't exist
+     *         403 if the task is not belonging to current user
+     *
+     * Example :
+     * $(curl localhost:8080/api/task/21148262/result)
+     */
+    @Get("/:id/result")
+    public Payload getTaskResult(String id, Context context) throws ExecutionException, InterruptedException {
+        TaskManager.MonitorableFutureTask task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
+        Object result = task.get();
+        return result == null ? new Payload(204): new Payload(result);
     }
 
     /**
@@ -295,6 +316,11 @@ public class TaskResource {
                 logger.error("NlpApp has been interrupted", e);
             }
         }
+        return task;
+    }
+
+    private static TaskManager.MonitorableFutureTask forbiddenIfNotSameUser(Context context, TaskManager.MonitorableFutureTask task) {
+        if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
         return task;
     }
 

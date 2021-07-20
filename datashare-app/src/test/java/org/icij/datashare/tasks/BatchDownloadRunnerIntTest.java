@@ -39,7 +39,7 @@ public class BatchDownloadRunnerIntTest {
     @Test
     public void test_empty_response() throws Exception {
         BatchDownload bd = createBatchDownload("query");
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(0);
+        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
         assertThat(bd.filename.toFile()).doesNotExist();
     }
 
@@ -49,7 +49,7 @@ public class BatchDownloadRunnerIntTest {
         File file = indexFile("mydoc.txt", content);
         BatchDownload bd = createBatchDownload("fox");
 
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(1);
+        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
@@ -63,7 +63,7 @@ public class BatchDownloadRunnerIntTest {
         indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
 
         BatchDownload bd = createBatchDownload("*");
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(2);
+        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);
@@ -75,7 +75,7 @@ public class BatchDownloadRunnerIntTest {
         indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
 
         BatchDownload bd = createBatchDownload("juge");
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(1);
+        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
@@ -87,7 +87,7 @@ public class BatchDownloadRunnerIntTest {
         File doc2 = indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
 
         BatchDownload bd = createBatchDownload("*");
-        assertThat(new BatchDownloadRunner(indexer, createProvider(), local(), bd).call()).isEqualTo(2);
+        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);

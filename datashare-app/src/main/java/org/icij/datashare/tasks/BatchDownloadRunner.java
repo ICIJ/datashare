@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -31,7 +32,7 @@ import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_THROTTLE;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
 
-public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, UserTask {
+public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
@@ -53,7 +54,7 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
     }
 
     @Override
-    public Integer call() throws Exception {
+    public File call() throws Exception {
         int throttleMs = parseInt(propertiesProvider.get(BATCH_SEARCH_THROTTLE).orElse("0"));
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
 
@@ -62,7 +63,7 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
         Indexer.Searcher searcher = indexer.search(batchDownload.project.getId(), Document.class).
                 with(batchDownload.query).withoutSource("content").limit(scrollSize);
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
-        if (docsToProcess.size() == 0) return 0;
+        if (docsToProcess.size() == 0) return null;
         docsToProcessSize = docsToProcess.size();
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()))) {
@@ -84,18 +85,21 @@ public class BatchDownloadRunner  implements Callable<Integer>, Monitorable, Use
         }
         logger.info("created batch download file {} ({} bytes/{} entries) for user {}",
                 batchDownload.filename, Files.size(batchDownload.filename), numberOfResults, user.getId());
-        return numberOfResults.get();
+        return batchDownload.filename.toFile();
     }
 
     @NotNull
     private String getEntryName(Document doc) {
-        return doc.getPath().isAbsolute() ? doc.getPath().toString().substring(1): doc.getPath().toString();
+        return doc.getPath().isAbsolute() ? doc.getPath().toString().substring(1) : doc.getPath().toString();
     }
 
     @Override
     public double getProgressRate() {
-        return docsToProcessSize == 0 ? 0 : (double) numberOfResults.get()/docsToProcessSize;
+        return docsToProcessSize == 0 ? 0 : (double) numberOfResults.get() / docsToProcessSize;
     }
 
-    @Override public User getUser() { return user; }
+    @Override
+    public User getUser() {
+        return user;
+    }
 }
