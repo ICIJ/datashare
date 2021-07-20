@@ -228,7 +228,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().contain("properties").
                 should().contain("filename");
 
-        verify(taskFactory).createDownloadTask(local(), new BatchDownload(project("test-datashare"), User.local(), "*"));
+        verify(taskFactory).createDownloadTask(local(), new BatchDownload(project("test-datashare"), User.local(), "*", Paths.get("app", "tmp")));
     }
 
     @Test
@@ -290,7 +290,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     private HashMap<String, String> getDefaultProperties() {
         return new HashMap<String, String>() {{
             put("dataDir", "/default/data/dir");
-            put("downloadDir", "/tmp");
             put("foo", "bar");
         }};
     }

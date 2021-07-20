@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -109,6 +110,9 @@ public class TaskResource {
     public Payload getTaskResult(String id, Context context) throws ExecutionException, InterruptedException {
         TaskManager.MonitorableFutureTask task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
         Object result = task.get();
+        if (result instanceof File) {
+            result = Paths.get(context.env().appFolder()).relativize(((File) result).toPath());
+        }
         return result == null ? new Payload(204): new Payload(result);
     }
 
@@ -128,8 +132,9 @@ public class TaskResource {
     @Post("/batchDownload")
     public TaskResponse batchDownload(final OptionsWrapper optionsWrapper, Context context) {
         Map<String, String> options = optionsWrapper.getOptions();
-        BatchDownload batchDownload = new BatchDownload(project(options.get("project")), (User) context.currentUser(),
-                options.get("query"), get(propertiesProvider.get("downloadDir").orElse("/tmp")));
+        Path tmpPath = get(context.env().appFolder(), "tmp");
+        if (!tmpPath.toFile().exists()) tmpPath.toFile().mkdirs();
+        BatchDownload batchDownload = new BatchDownload(project(options.get("project")), (User) context.currentUser(), options.get("query"), tmpPath);
         BatchDownloadRunner downloadTask = taskFactory.createDownloadTask((User) context.currentUser(), batchDownload);
         return new TaskResponse(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}}));
     }

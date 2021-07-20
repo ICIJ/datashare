@@ -17,7 +17,9 @@ import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.Callable;
@@ -79,6 +81,16 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 should().respond(200).
                 should().haveType("application/json").
                 should().contain("42");
+    }
+
+    @Test
+    public void test_get_task_result_with_file_result__should_relativize_result_with_app_folder() {
+        setupAppWith("foo");
+        TaskManager.MonitorableFutureTask<File> t = taskManager.startTask(new DummyUserTask<>("foo", () -> Paths.get("app", "index.html").toFile()));
+        get("/api/task/" + t + "/result").withPreemptiveAuthentication("foo", "qux").
+                should().respond(200).
+                should().haveType("text/html;charset=UTF-8").
+                should().contain("datashare-client");
     }
 
     @Test
