@@ -13,6 +13,7 @@ public class BatchSearchApp {
     public static void start(Properties properties) throws Exception {
         Injector injector = createInjector(CommonMode.create(properties));
         BatchSearchLoop batchSearchLoop = injector.getInstance(TaskFactory.class).createBatchSearchLoop();
+        batchSearchLoop.requeueDatabaseBatches();
         batchSearchLoop.run();
         batchSearchLoop.close();
     }

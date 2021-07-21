@@ -1,12 +1,10 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.db.JooqBatchSearchRepository;
-import org.icij.datashare.text.indexing.Indexer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
@@ -23,19 +21,15 @@ import static java.util.Optional.ofNullable;
 public class BatchSearchLoop {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     final BlockingQueue<String> batchSearchQueue;
-    private final PropertiesProvider propertiesProvider;
     private final TaskFactory factory;
     final AtomicReference<BatchSearchRunner> currentBatchSearchRunner = new AtomicReference<>();
     public static final String POISON = "poison";
-    private final Indexer indexer;
     private final BatchSearchRepository repository;
 
     @Inject
-    public BatchSearchLoop(Indexer indexer, BatchSearchRepository batchSearchRepository, BlockingQueue<String> batchSearchQueue, PropertiesProvider propertiesProvider, TaskFactory factory) {
-        this.indexer = indexer;
+    public BatchSearchLoop(BatchSearchRepository batchSearchRepository, BlockingQueue<String> batchSearchQueue, TaskFactory factory) {
         this.repository = batchSearchRepository;
         this.batchSearchQueue = batchSearchQueue;
-        this.propertiesProvider = propertiesProvider;
         this.factory = factory;
         Signal.handle(new Signal("TERM"), signal -> {
             batchSearchQueue.add(POISON);
@@ -45,11 +39,6 @@ public class BatchSearchLoop {
 
     public void run() {
         logger.info("Datashare running in batch mode. Waiting batch from ds:batchsearch.queue ({})", batchSearchQueue.getClass());
-        try {
-            runEnqueued();
-        } catch (Exception e) {
-            logger.error("error while trying to run database queued batches", e);
-        }
         String currentBatchId = null;
         while (! POISON.equals(currentBatchId)) {
             try {
@@ -75,18 +64,14 @@ public class BatchSearchLoop {
         logger.info("exiting main loop");
     }
 
-    public Integer runEnqueued() throws Exception {
+    public Integer requeueDatabaseBatches() {
         List<String> batchSearchIds = repository.getQueued();
         logger.info("found {} queued batch searches in database", batchSearchIds.size());
-        int nbBatches = 0;
-        for (String batchSearchId : batchSearchIds) {
-            BatchSearch batchSearch = repository.get(batchSearchId);
-            factory.createBatchSearchRunner(batchSearch).call();
-            nbBatches += 1;
-        }
-        logger.info("done {} batch searches", batchSearchIds.size());
-        return nbBatches;
+        batchSearchQueue.addAll(batchSearchIds);
+        return batchSearchIds.size();
     }
+
+    public void enqueuePoison() {batchSearchQueue.add(POISON);}
 
     public void close() throws IOException {
         ofNullable(currentBatchSearchRunner.get()).ifPresent(batchSearchRunner -> {

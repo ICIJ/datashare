@@ -297,7 +297,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     private void init(TaskFactory taskFactory) {
         reset(taskFactory);
         when(taskFactory.createIndexTask(any(), any(), any())).thenReturn(mock(IndexTask.class));
-        when(taskFactory.createBatchSearchRunner(any())).thenReturn(mock(BatchSearchRunner.class));
+        when(taskFactory.createBatchSearchLoop()).thenReturn(mock(BatchSearchLoop.class));
         when(taskFactory.createScanTask(any(), any(), any(), any())).thenReturn(mock(ScanTask.class));
         when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(mock(DeduplicateTask.class));
         when(taskFactory.createDownloadTask(any(), any())).thenReturn(mock(BatchDownloadRunner.class));

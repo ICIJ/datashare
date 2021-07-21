@@ -9,25 +9,18 @@ import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.errors.ForbiddenException;
-import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.BatchSearchApp;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.OptionsWrapper;
-import org.icij.datashare.tasks.BatchDownloadRunner;
-import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.icij.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -39,7 +32,6 @@ import static java.lang.Boolean.parseBoolean;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -233,7 +225,12 @@ public class TaskResource {
      */
     @Post("/batchSearch")
     public TaskResponse runBatchSearches(Context context) {
-        return new TaskResponse(taskManager.startTask(() -> taskFactory.createBatchSearchLoop().runEnqueued()));
+        // TODO replace with call with batchId (in local mode there is only one batch run at a time)
+        BatchSearchLoop batchSearchLoop = taskFactory.createBatchSearchLoop();
+        batchSearchLoop.requeueDatabaseBatches();
+        batchSearchLoop.enqueuePoison();
+
+        return new TaskResponse(taskManager.startTask(batchSearchLoop::run));
     }
 
     /**

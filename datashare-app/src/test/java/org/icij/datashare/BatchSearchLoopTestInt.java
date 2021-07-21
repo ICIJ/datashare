@@ -2,7 +2,6 @@ package org.icij.datashare;
 
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.extract.RedisBlockingQueue;
 import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.TaskFactory;
@@ -14,8 +13,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import sun.misc.Signal;
 
-import java.util.HashMap;
-import java.util.Properties;
 import java.util.concurrent.*;
 
 import static java.util.Arrays.asList;
@@ -34,9 +31,9 @@ public class BatchSearchLoopTestInt {
 
     @Test
     public void test_main_loop() throws Exception {
-        BatchSearchLoop app = new BatchSearchLoop(mock(Indexer.class), repository, batchSearchQueue, new PropertiesProvider(), factory);
+        BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
         batchSearchQueue.add("batchSearch.uuid");
-        batchSearchQueue.add(BatchSearchLoop.POISON);
+        app.enqueuePoison();
 
         app.run();
 
@@ -44,12 +41,12 @@ public class BatchSearchLoopTestInt {
     }
 
     @Test
-    public void test_queued_batch_searches_are_run_when_app_started() throws Exception {
+    public void test_queued_batch_search_requeueing() throws Exception {
         when(repository.getQueued()).thenReturn(asList("uuid1", "uuid2"));
-        when(repository.get(anyString())).thenReturn(mock(BatchSearch.class));
-        BatchSearchLoop app = new BatchSearchLoop(mock(Indexer.class), repository, batchSearchQueue, new PropertiesProvider(), factory);
-        batchSearchQueue.add(BatchSearchLoop.POISON);
+        BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
 
+        assertThat(app.requeueDatabaseBatches()).isEqualTo(2);
+        app.enqueuePoison();
         app.run();
 
         verify(batchSearchRunner, times(2)).call();
@@ -57,7 +54,7 @@ public class BatchSearchLoopTestInt {
 
     @Test
     public void test_main_loop_exit_with_sigterm_when_empty_batch() throws InterruptedException {
-        BatchSearchLoop app = new BatchSearchLoop(mock(Indexer.class), repository, batchSearchQueue, new PropertiesProvider(), factory);
+        BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
 
         executor.submit(app::run);
         Signal term = new Signal("TERM");
@@ -71,7 +68,7 @@ public class BatchSearchLoopTestInt {
     public void test_main_loop_exit_with_sigterm_when_running_batch() throws InterruptedException {
         SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100);
         when(factory.createBatchSearchRunner(any())).thenReturn(batchSearchRunner);
-        BatchSearchLoop app = new BatchSearchLoop(mock(Indexer.class), repository, batchSearchQueue, new PropertiesProvider(), factory);
+        BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
         batchSearchQueue.add("batchSearch.uuid");
         executor.submit(app::run);
         waitQueueToBeEmpty();
@@ -87,9 +84,9 @@ public class BatchSearchLoopTestInt {
     @Test
     public void test_main_loop_exception() throws Exception {
         when(batchSearchRunner.call()).thenThrow(new Exception("test runtime"));
-        BatchSearchLoop app = new BatchSearchLoop(mock(Indexer.class), repository, batchSearchQueue, new PropertiesProvider(), factory);
+        BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
         batchSearchQueue.add("test");
-        batchSearchQueue.add(BatchSearchLoop.POISON);
+        app.enqueuePoison();
 
         app.run();
 
