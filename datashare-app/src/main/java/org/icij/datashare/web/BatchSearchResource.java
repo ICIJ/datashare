@@ -40,7 +40,7 @@ public class BatchSearchResource {
     private final int MAX_BATCH_SIZE = 60000;
 
     @Inject
-    public BatchSearchResource(final BatchSearchRepository batchSearchRepository, BlockingQueue batchSearchQueue, PropertiesProvider propertiesProvider) {
+    public BatchSearchResource(final BatchSearchRepository batchSearchRepository, BlockingQueue<String> batchSearchQueue, PropertiesProvider propertiesProvider) {
         this.batchSearchRepository = batchSearchRepository;
         this.batchSearchQueue = batchSearchQueue;
         this.propertiesProvider = propertiesProvider;

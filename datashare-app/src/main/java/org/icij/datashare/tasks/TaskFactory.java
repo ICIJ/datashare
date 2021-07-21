@@ -2,11 +2,14 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.function.TerFunction;
 import org.icij.datashare.nlp.NlpApp;
+import org.icij.datashare.text.Document;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -15,7 +18,7 @@ public interface TaskFactory {
     NlpApp createNlpTask(User user, Pipeline pipeline, Properties properties, Runnable subscribedCb);
     NlpApp createNlpTask(User user, Pipeline pipeline);
     BatchSearchLoop createBatchSearchLoop();
-    BatchSearchRunner createBatchSearchRunner(BatchSearch batchSearch);
+    BatchSearchRunner createBatchSearchRunner(BatchSearch batchSearch, TerFunction<String, String, List<Document>, Boolean> resultConsumer);
     BatchDownloadRunner createDownloadTask(User user, BatchDownload batchDownload);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
