@@ -2,6 +2,7 @@ package org.icij.datashare.mode;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
+import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
@@ -89,7 +90,7 @@ public class CommonMode extends AbstractModule {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
 
-        bind(BlockingQueue.class).to(getBlockingQueueClassInstance(
+        bind(new TypeLiteral<BlockingQueue<String>>(){}).to(getBlockingQueueClassInstance(
                 propertiesProvider.get("batchQueueType").orElse("java.util.concurrent.LinkedBlockingQueue"))).asEagerSingleton();
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);

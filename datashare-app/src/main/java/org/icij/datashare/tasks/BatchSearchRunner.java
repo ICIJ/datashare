@@ -6,6 +6,7 @@ import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord.State;
 
@@ -46,40 +47,21 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
-    private final User user;
+    private final BatchSearch batchSearch;
     private final BatchSearchRepository repository;
-    private int totalNbBatches = 0;
     private int totalProcessed = 0;
     private volatile boolean cancelAsked = false;
 
     @Inject
-    public BatchSearchRunner(Indexer indexer, BatchSearchRepository repository, PropertiesProvider propertiesProvider, @Assisted User user) {
+    public BatchSearchRunner(Indexer indexer, BatchSearchRepository repository, PropertiesProvider propertiesProvider, @Assisted BatchSearch batchSearch) {
         this.indexer = indexer;
         this.repository = repository;
         this.propertiesProvider = propertiesProvider;
-        this.user = user;
+        this.batchSearch = batchSearch;
     }
 
     @Override
-    public Integer call() {
-        List<String> batchSearchIds = repository.getQueued();
-        totalNbBatches = batchSearchIds.size();
-        logger.info("found {} queued batch searches", batchSearchIds.size());
-        int totalResults = 0;
-        for (String batchSearchId : batchSearchIds) {
-            totalResults += run(batchSearchId);
-            totalProcessed += 1;
-        }
-        logger.info("done {} batch searches", batchSearchIds.size());
-        return totalResults;
-    }
-
-    public int run(String batchSearchId) {
-        BatchSearch batchSearch = repository.get(batchSearchId);
-        return batchSearch.state == State.QUEUED && !cancelAsked ? run(batchSearch): 0;
-    }
-
-    int run(BatchSearch batchSearch) {
+    public Integer call() throws Exception {
         int numberOfResults = 0;
         int throttleMs = parseInt(propertiesProvider.get(BATCH_SEARCH_THROTTLE).orElse("0"));
         int maxTimeSeconds = parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME).orElse("100000"));
@@ -111,6 +93,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                     numberOfResults += docsToProcess.size();
                     docsToProcess = searcher.scroll().collect(toList());
                 }
+                totalProcessed += 1;
             }
             repository.setState(batchSearch.uuid, State.SUCCESS);
             logger.info("done batch search {} with success", batchSearch.uuid);
@@ -130,12 +113,12 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
     @Override
     public double getProgressRate() {
-        return totalProcessed == 0 && totalNbBatches == 0 ? 0 : (double) totalProcessed/totalNbBatches;
+        return (double) totalProcessed/batchSearch.queries.size();
     }
 
     @Override
     public User getUser() {
-        return user;
+        return batchSearch.user;
     }
 
     public void close() throws IOException {
@@ -144,9 +127,6 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         repository.close();
     }
 
-    public void cancel() {
-        cancelAsked = true;
-    }
-
+    public void cancel() { cancelAsked = true; }
     static class CancelException extends RuntimeException{}
 }

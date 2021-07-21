@@ -11,6 +11,7 @@ import net.codestory.http.annotations.Put;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.BatchSearchApp;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -232,7 +233,7 @@ public class TaskResource {
      */
     @Post("/batchSearch")
     public TaskResponse runBatchSearches(Context context) {
-        return new TaskResponse(taskManager.startTask(taskFactory.createBatchSearchRunner((User)context.currentUser())));
+        return new TaskResponse(taskManager.startTask(() -> taskFactory.createBatchSearchLoop().runEnqueued()));
     }
 
     /**

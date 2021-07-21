@@ -123,7 +123,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/batchSearch", "{}");
 
         response.should().respond(200).haveType("application/json");
-        verify(taskFactory).createBatchSearchRunner(local());
+        verify(taskFactory).createBatchSearchLoop();
     }
 
     @Test
