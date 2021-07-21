@@ -10,6 +10,7 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
+import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -27,6 +28,7 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.nio.file.Paths.get;
@@ -62,15 +64,21 @@ public class TaskResource {
 
     /**
      * gets all the user tasks
+     * a filter can be added with a pattern contained in the task name.
      *
      * @return 200 and the list of tasks
      *
      * Example :
-     * $(curl localhost:8080/api/task/all)
+     * $(curl localhost:8080/api/task/all?filter=BatchDownloadRunner)
      */
     @Get("/all")
     public List<TaskResponse> tasks(Context context) {
-        return taskManager.getTasks().stream().filter(t -> context.currentUser().equals(t.getUser())).map(TaskResponse::new).collect(toList());
+        Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
+        return taskManager.getTasks().stream().
+                filter(t -> context.currentUser().equals(t.getUser())).
+                filter(t -> pattern.matcher(t.toString()).matches()).
+                map(TaskResponse::new).
+                collect(toList());
     }
 
     /**
