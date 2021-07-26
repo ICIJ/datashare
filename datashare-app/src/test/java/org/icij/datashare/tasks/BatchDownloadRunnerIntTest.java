@@ -1,11 +1,20 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
+import org.icij.extract.document.DigestIdentifier;
+import org.icij.extract.document.DocumentFactory;
+import org.icij.extract.document.TikaDocument;
+import org.icij.extract.extractor.Extractor;
+import org.icij.extract.extractor.UpdatableDigester;
+import org.icij.spewer.FieldNames;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -15,20 +24,25 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.zip.ZipFile;
 
+import static java.nio.file.Paths.get;
 import static org.apache.commons.io.FilenameUtils.getName;
 import static org.apache.commons.io.FilenameUtils.removeExtension;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
+import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
+import static org.mockito.Mockito.mock;
 
 public class BatchDownloadRunnerIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
@@ -104,6 +118,38 @@ public class BatchDownloadRunnerIntTest {
         assertThat(batchDownloadRunner.getProgressRate()).isEqualTo(1);
     }
 
+    @Test
+    public void test_embedded_doc_should_not_interrupt_zip_creation() throws Exception {
+        File file = indexEmbeddedFile(TEST_INDEX);
+
+        BatchDownload batchDownload = createBatchDownload("*");
+        new BatchDownloadRunner(indexer, createProvider(), local(), batchDownload).call();
+
+        assertThat(new ZipFile(batchDownload.filename.toFile()).size()).isEqualTo(1);
+        assertThat(new ZipFile(batchDownload.filename.toFile()).getEntry(file.toString().substring(1))).isNotNull();
+    }
+
+    @Test
+    public void test_embedded_doc_with_not_found_embedded_should_not_interrupt_zip_creation() throws Exception {
+        indexEmbeddedFile("bad_project_name");
+
+        BatchDownload batchDownload = createBatchDownload("*");
+        new BatchDownloadRunner(indexer, createProvider(), local(), batchDownload).call();
+
+        assertThat(new ZipFile(batchDownload.filename.toFile()).size()).isEqualTo(1);
+    }
+
+    private File indexEmbeddedFile(String project) throws IOException {
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Extractor extractor = new Extractor(new DocumentFactory().withIdentifier(new DigestIdentifier("SHA-384", Charset.defaultCharset())));
+        extractor.setDigester(new UpdatableDigester(project, Entity.HASHER.toString()));
+        TikaDocument document = extractor.extract(path);
+        ElasticsearchSpewer elasticsearchSpewer = new ElasticsearchSpewer(es.client, l -> ENGLISH,
+                new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");
+        elasticsearchSpewer.write(document);
+        return path.toFile();
+    }
+
     private File indexFile(String fileName, String content) throws IOException {
         String[] pathItems = fileName.split("/");
         File folder = pathItems.length > 1 ? fs.newFolder(Arrays.copyOf(pathItems, pathItems.length - 1)): fs.getRoot();
@@ -111,8 +157,8 @@ public class BatchDownloadRunnerIntTest {
         file.createNewFile();
         Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
         String docname = removeExtension(getName(fileName));
-        Document mydoc_id = createDoc(docname).with(content).with(file.toPath()).build();
-        indexer.add(TEST_INDEX, mydoc_id);
+        Document my_doc = createDoc(docname).with(content).with(file.toPath()).build();
+        indexer.add(TEST_INDEX, my_doc);
         return file;
     }
 

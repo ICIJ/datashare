@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.apache.commons.lang3.ObjectUtils;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
@@ -9,9 +10,12 @@ import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.datashare.text.indexing.elasticsearch.ExtractException;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
+import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
+import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor.ContentNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 
 import static java.lang.Integer.min;
@@ -78,6 +83,8 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                         }
                         zipOutputStream.closeEntry();
                         numberOfResults.incrementAndGet();
+                    } catch (ExtractException|ZipException|ContentNotFoundException zex) {
+                        logger.warn("exception during extract/zip. skipping entry for doc " + doc.getId(), zex);
                     }
                 }
                 docsToProcess = searcher.scroll().collect(toList());
