@@ -90,6 +90,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         get("/api/task/" + t + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
                 should().haveType("text/html;charset=UTF-8").
+                should().haveHeader("Content-Disposition", "attachment;filename=\"index.html\"").
                 should().contain("datashare-client");
     }
 

@@ -113,6 +113,7 @@ public class TaskResource {
         Object result = task.get();
         if (result instanceof File) {
             result = Paths.get(context.env().appFolder()).relativize(((File) result).toPath());
+            return new Payload(result).withHeader("Content-Disposition", "attachment;filename=\"" + ((Path) result).getFileName() + "\"");
         }
         return result == null ? new Payload(204): new Payload(result);
     }
