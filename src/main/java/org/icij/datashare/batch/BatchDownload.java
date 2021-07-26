@@ -2,12 +2,15 @@ package org.icij.datashare.batch;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.PathDeserializer;
 import org.icij.datashare.text.PathSerializer;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
@@ -29,11 +32,18 @@ public class BatchDownload {
         this(project, user, query, Paths.get(System.getProperty("java.io.tmpdir")));
     }
 
-    public BatchDownload(final Project project, User user, String query, Path downloadDir) {
+    public BatchDownload(final Project project, User user, String query, Path downloadDir)  {
         this.project = ofNullable(project).orElseThrow(() -> new IllegalArgumentException("project cannot be null or empty"));
         this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
         User nonNullUser = ofNullable(user).orElseThrow(() -> new IllegalArgumentException("user cannot be null or empty"));
         this.filename = downloadDir.resolve(createFilename(project, nonNullUser));
+        if (isJsonQuery()) {
+            try {
+                JsonObjectMapper.MAPPER.readTree(query.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) { // should be a JsonParseException
+                throw new IllegalArgumentException(e);
+            }
+        }
     }
 
     @Override
@@ -52,5 +62,9 @@ public class BatchDownload {
     private static Path createFilename(Project project, User user) {
         String format = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
         return Paths.get(format("archive_%s_%s_%s.zip", project.name, user.getId(), format));
+    }
+
+    public boolean isJsonQuery() {
+        return query.trim().startsWith("{") && query.trim().endsWith("}");
     }
 }
