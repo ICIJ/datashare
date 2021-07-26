@@ -2,7 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import org.apache.commons.lang3.ObjectUtils;
+import org.elasticsearch.index.query.WrapperQueryBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
@@ -14,7 +14,6 @@ import org.icij.datashare.text.indexing.elasticsearch.ExtractException;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
-import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
 import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor.ContentNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -65,8 +64,12 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
 
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
                 user.getId(), batchDownload.project, throttleMs, scrollSize);
-        Indexer.Searcher searcher = indexer.search(batchDownload.project.getId(), Document.class).
-                with(batchDownload.query).withoutSource("content").limit(scrollSize);
+        Indexer.Searcher searcher = indexer.search(batchDownload.project.getId(), Document.class).withoutSource("content").limit(scrollSize);
+        if (batchDownload.isJsonQuery()) {
+            searcher.with(batchDownload.queryAsJson());
+        } else {
+            searcher.with(batchDownload.query);
+        }
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         if (docsToProcess.size() == 0) return null;
         docsToProcessSize = docsToProcess.size();

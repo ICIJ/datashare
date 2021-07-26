@@ -72,6 +72,18 @@ public class BatchDownloadRunnerIntTest {
     }
 
     @Test
+    public void test_one_result_with_json_query() throws Exception {
+        String content = "The quick brown fox jumps over the lazy dog";
+        indexFile("mydoc.txt", content);
+        BatchDownload bd = createBatchDownload("{\"match_all\":{}}");
+
+        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
+
+        assertThat(bd.filename.toFile()).isFile();
+        assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
+    }
+
+    @Test
     public void test_two_results() throws Exception {
         indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog");
         indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume");

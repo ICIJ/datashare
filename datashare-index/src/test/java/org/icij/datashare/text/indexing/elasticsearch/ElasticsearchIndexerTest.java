@@ -9,6 +9,7 @@ import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -161,6 +163,17 @@ public class ElasticsearchIndexerTest {
         List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).ofStatus(INDEXED).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
         assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).execute().count()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_search_with_json_query() throws IOException {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
+        indexer.add(TEST_INDEX, doc);
+
+        List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).
+                with(JsonObjectMapper.MAPPER.readTree("{\"match_all\": {}}")).execute().collect(toList());
+        assertThat(lst.size()).isEqualTo(1);
     }
 
     @Test

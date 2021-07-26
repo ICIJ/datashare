@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
@@ -439,6 +440,12 @@ public class ElasticsearchIndexer implements Indexer {
         @Override
         public Searcher with(String query) {
             return with(query, 0, false);
+        }
+
+        @Override
+        public Searcher with(JsonNode jsonQuery) {
+            this.boolQuery.must(new WrapperQueryBuilder(jsonQuery.toString()));
+            return this;
         }
 
         @Override
