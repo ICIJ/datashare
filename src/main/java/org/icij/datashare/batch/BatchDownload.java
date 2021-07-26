@@ -1,5 +1,6 @@
 package org.icij.datashare.batch;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -27,6 +28,7 @@ public class BatchDownload {
     @JsonDeserialize(using = PathDeserializer.class)
     public final Path filename;
     public final String query;
+    private final JsonNode jsonNode;
 
     public BatchDownload(final Project project, User user, String query) {
         this(project, user, query, Paths.get(System.getProperty("java.io.tmpdir")));
@@ -39,10 +41,12 @@ public class BatchDownload {
         this.filename = downloadDir.resolve(createFilename(project, nonNullUser));
         if (isJsonQuery()) {
             try {
-                JsonObjectMapper.MAPPER.readTree(query.getBytes(StandardCharsets.UTF_8));
+                jsonNode = JsonObjectMapper.MAPPER.readTree(query.getBytes(StandardCharsets.UTF_8));
             } catch (IOException e) { // should be a JsonParseException
                 throw new IllegalArgumentException(e);
             }
+        } else {
+            jsonNode = null;
         }
     }
 
@@ -66,5 +70,9 @@ public class BatchDownload {
 
     public boolean isJsonQuery() {
         return query.trim().startsWith("{") && query.trim().endsWith("}");
+    }
+
+    public JsonNode queryAsJson() {
+        return ofNullable(jsonNode).orElseThrow(() -> new IllegalStateException("cannot get JSON node from query string"));
     }
 }

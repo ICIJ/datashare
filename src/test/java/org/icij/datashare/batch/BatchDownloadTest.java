@@ -58,5 +58,18 @@ public class BatchDownloadTest {
         assertThat(new BatchDownload(project("prj"), User.local(), "{\"test\": 42}").isJsonQuery()).isTrue();
     }
 
+    @Test
+    public void test_as_json() {
+        String query = "{\"foo\":\"bar\"}";
+        BatchDownload batchDownload = new BatchDownload(project("prj"), local(), query);
+        assertThat(batchDownload.queryAsJson().toString()).isEqualTo(query);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void test_as_json_with_not_string_query() {
+        BatchDownload batchDownload = new BatchDownload(project("prj"), local(), "query");
+        batchDownload.queryAsJson();
+    }
+
     @Before public void setUp() { DatashareTime.setMockTime(true); }
     @After public void tearDown() { DatashareTime.setMockTime(false); }}

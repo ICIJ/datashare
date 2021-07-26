@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
@@ -59,6 +60,7 @@ public interface Indexer extends Closeable {
         long totalHits();
         Searcher with(Tag... tags);
         Searcher with(String query);
+        Searcher with(JsonNode jsonQuery);
         Searcher with(String query, int fuzziness, boolean phraseMatches);
         Searcher thatMatchesFieldValue(String key, Object value);
         Searcher withFieldValues(String key, String... values);
