@@ -31,6 +31,8 @@ public class BatchDownload {
     @JsonDeserialize(using = PathDeserializer.class)
     public final Path filename;
     public final String query;
+    public final User user;
+
     @JsonIgnore
     private final JsonNode jsonNode;
 
@@ -41,8 +43,8 @@ public class BatchDownload {
     public BatchDownload(final Project project, User user, String query, Path downloadDir)  {
         this.project = ofNullable(project).orElseThrow(() -> new IllegalArgumentException("project cannot be null or empty"));
         this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
-        User nonNullUser = ofNullable(user).orElseThrow(() -> new IllegalArgumentException("user cannot be null or empty"));
-        this.filename = downloadDir.resolve(createFilename(project, nonNullUser));
+        this.user = ofNullable(user).orElseThrow(() -> new IllegalArgumentException("user cannot be null or empty"));
+        this.filename = downloadDir.resolve(createFilename(project, user));
         if (isJsonQuery()) {
             try {
                 jsonNode = JsonObjectMapper.MAPPER.readTree(query.getBytes(StandardCharsets.UTF_8));
@@ -52,19 +54,6 @@ public class BatchDownload {
         } else {
             jsonNode = null;
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        BatchDownload that = (BatchDownload) o;
-        return Objects.equals(project, that.project) && Objects.equals(filename, that.filename) && Objects.equals(query, that.query);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(project, filename, query);
     }
 
     public static Path createFilename(Project project, User user) {
@@ -78,5 +67,20 @@ public class BatchDownload {
 
     public JsonNode queryAsJson() {
         return ofNullable(jsonNode).orElseThrow(() -> new IllegalStateException("cannot get JSON node from query string"));
+    }
+
+    @Override
+    public String toString() { return "BatchDownload{filename=" + filename + '}'; }
+    @Override
+    public int hashCode() {
+        return Objects.hash(filename, query);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BatchDownload that = (BatchDownload) o;
+        return Objects.equals(filename, that.filename) && Objects.equals(query, that.query);
     }
 }
