@@ -1,5 +1,6 @@
 package org.icij.datashare.batch;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -28,6 +29,7 @@ public class BatchDownload {
     @JsonDeserialize(using = PathDeserializer.class)
     public final Path filename;
     public final String query;
+    @JsonIgnore
     private final JsonNode jsonNode;
 
     public BatchDownload(final Project project, User user, String query) {
