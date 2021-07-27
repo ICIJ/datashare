@@ -142,8 +142,7 @@ public class TaskResource {
         Path tmpPath = get(context.env().appFolder(), "tmp");
         if (!tmpPath.toFile().exists()) tmpPath.toFile().mkdirs();
         String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
-        BatchDownload batchDownload = new BatchDownload(project((String) options.get("project")),
-                (User) context.currentUser(), query, tmpPath);
+        BatchDownload batchDownload = new BatchDownload(project((String) options.get("project")), (User) context.currentUser(), query, tmpPath);
         BatchDownloadRunner downloadTask = taskFactory.createDownloadTask((User) context.currentUser(), batchDownload);
         return new TaskResponse(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}}));
     }

@@ -12,6 +12,13 @@ import java.util.Date;
 
 public class DatashareTimeRule extends ExternalResource {
 	public final Date now;
+
+	/**
+	 * creates a mockdate with now set to current moment
+	 */
+	public DatashareTimeRule() {
+		this.now = new Date();
+	}
 	/**
 	 * @param now in iso8601 yyyy-MM-ddTHH:mm:ssZ
 	 */
