@@ -232,6 +232,16 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_batch_download_json_query() {
+        post("/api/task/batchDownload", "{\"options\":{ \"project\":\"test-datashare\", \"query\": {\"match_all\":{}} }}").
+                should().haveType("application/json").
+                should().contain("properties").
+                should().contain("filename");
+
+        verify(taskFactory).createDownloadTask(local(), new BatchDownload(project("test-datashare"), User.local(), "{\"match_all\":{}}", Paths.get("app", "tmp")));
+    }
+
+    @Test
     public void test_clean_tasks() {
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());

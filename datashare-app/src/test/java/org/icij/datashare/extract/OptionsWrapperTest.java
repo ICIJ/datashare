@@ -12,12 +12,12 @@ public class OptionsWrapperTest {
 
     @Test
     public void test_empty_options_serialization() throws Exception {
-        assertThat(mapper.writeValueAsString(new OptionsWrapper())).contains("{\"options\":{}}");
+        assertThat(mapper.writeValueAsString(new OptionsWrapper<String>())).contains("{\"options\":{}}");
     }
 
     @Test
     public void test_options_serialization() throws Exception {
-        OptionsWrapper options = new OptionsWrapper(new HashMap<String, String>() {{
+        OptionsWrapper<String> options = new OptionsWrapper<>(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }});

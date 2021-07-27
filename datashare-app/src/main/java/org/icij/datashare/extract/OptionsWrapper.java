@@ -6,20 +6,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-public class OptionsWrapper {
-    private final Map<String, String> options;
+public class OptionsWrapper<V> {
+    private final Map<String, V> options;
 
     public OptionsWrapper() {
         options = new HashMap<>();
     }
 
-    public OptionsWrapper(final Map<String, String> options) {
+    public OptionsWrapper(final Map<String, V> options) {
         this.options = options;
     }
 
-    public Map<String, String> getOptions() { return options;}
+    public Map<String, V> getOptions() { return options;}
 
-    public Options<String> asOptions() { return Options.from(options); }
+    public Options<String> asOptions() {
+        return Options.from(asProperties());
+    }
 
     public Properties asProperties() {
         Properties properties = new Properties();

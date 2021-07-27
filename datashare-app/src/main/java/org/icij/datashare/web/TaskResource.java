@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
@@ -15,6 +16,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.OptionsWrapper;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -122,7 +124,10 @@ public class TaskResource {
      * download files from a search query. Expected parameters are :
      *
      * * project: string
-     * * query: string
+     * * query: string or elasticsearch JSON query
+     *
+     * if the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part)
+     * @see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query
      *
      * @param optionsWrapper wrapper for options json
      *
@@ -132,11 +137,13 @@ public class TaskResource {
      * $(curl -XPOST -H 'Content-Type: application/json' localhost:8080/api/task/batchDownload -d '{"options": {"project":"genapi-datashare", "query": "*" }}')
      */
     @Post("/batchDownload")
-    public TaskResponse batchDownload(final OptionsWrapper optionsWrapper, Context context) {
-        Map<String, String> options = optionsWrapper.getOptions();
+    public TaskResponse batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws JsonProcessingException {
+        Map<String, Object> options = optionsWrapper.getOptions();
         Path tmpPath = get(context.env().appFolder(), "tmp");
         if (!tmpPath.toFile().exists()) tmpPath.toFile().mkdirs();
-        BatchDownload batchDownload = new BatchDownload(project(options.get("project")), (User) context.currentUser(), options.get("query"), tmpPath);
+        String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
+        BatchDownload batchDownload = new BatchDownload(project((String) options.get("project")),
+                (User) context.currentUser(), query, tmpPath);
         BatchDownloadRunner downloadTask = taskFactory.createDownloadTask((User) context.currentUser(), batchDownload);
         return new TaskResponse(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}}));
     }
@@ -151,7 +158,7 @@ public class TaskResource {
      * $(curl -XPOST localhost:8080/api/task/batchUpdate/index -d '{}')
      */
     @Post("/batchUpdate/index")
-    public TaskResponse indexQueue(final OptionsWrapper optionsWrapper, Context context) {
+    public TaskResponse indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) {
         IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(),
                 propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), optionsWrapper.asProperties());
         return new TaskResponse(taskManager.startTask(indexTask));
@@ -167,7 +174,7 @@ public class TaskResource {
      * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/file -d '{}')
      */
     @Post("/batchUpdate/index/file")
-    public List<TaskResponse> indexDefault(final OptionsWrapper optionsWrapper, Context context) throws Exception {
+    public List<TaskResponse> indexDefault(final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
         return indexFile(propertiesProvider.get("dataDir").orElse("/home/datashare/data"), optionsWrapper, context);
     }
 
@@ -181,7 +188,7 @@ public class TaskResource {
      * Example $(curl -XPOST localhost:8080/api/task/batchUpdate/index/home/dev/myfile.txt)
      */
     @Post("/batchUpdate/index/:filePath:")
-    public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) throws Exception {
+    public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
         TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
         Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         User user = (User) context.currentUser();
@@ -205,7 +212,7 @@ public class TaskResource {
      * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/tmp/apigen -d '{}')
      */
     @Post("/batchUpdate/scan/:filePath:")
-    public TaskResponse scanFile(final String filePath, final OptionsWrapper optionsWrapper, Context context) {
+    public TaskResponse scanFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
         Path path = IS_OS_WINDOWS ?  get(filePath):get(File.separator, filePath);
         return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
                 propertiesProvider.createOverriddenWith(optionsWrapper.getOptions()))));
@@ -300,7 +307,7 @@ public class TaskResource {
      * $(curl -XPOST http://dsenv:8080/api/task/findNames/CORENLP -d {})
      */
     @Post("/findNames/:pipeline")
-    public List<TaskResponse> extractNlp(final String pipelineName, final OptionsWrapper optionsWrapper, Context context) {
+    public List<TaskResponse> extractNlp(final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
 
