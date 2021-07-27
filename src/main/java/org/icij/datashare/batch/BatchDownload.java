@@ -24,6 +24,8 @@ import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
 import static java.util.Optional.ofNullable;
 
 public class BatchDownload {
+    public static final String ZIP_FORMAT = "archive_%s_%s_%s.zip";
+
     public final Project project;
     @JsonSerialize(using = PathSerializer.class)
     @JsonDeserialize(using = PathDeserializer.class)
@@ -65,9 +67,9 @@ public class BatchDownload {
         return Objects.hash(project, filename, query);
     }
 
-    private static Path createFilename(Project project, User user) {
-        String format = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
-        return Paths.get(format("archive_%s_%s_%s.zip", project.name, user.getId(), format));
+    public static Path createFilename(Project project, User user) {
+        String strTime = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
+        return Paths.get(format(ZIP_FORMAT, project.name, user.getId(), strTime));
     }
 
     public boolean isJsonQuery() {
