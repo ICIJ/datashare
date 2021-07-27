@@ -44,15 +44,13 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
 
     private final ElasticsearchIndexer indexer;
     private final PropertiesProvider propertiesProvider;
-    private final User user;
     private final BatchDownload batchDownload;
 
     @Inject
     public BatchDownloadRunner(ElasticsearchIndexer indexer, PropertiesProvider propertiesProvider,
-                               @Assisted User user, @Assisted BatchDownload batchDownload) {
+                               @Assisted BatchDownload batchDownload) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
-        this.user = user;
         this.batchDownload = batchDownload;
     }
 
@@ -62,7 +60,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
 
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
-                user.getId(), batchDownload.project, throttleMs, scrollSize);
+                batchDownload.user.getId(), batchDownload.project, throttleMs, scrollSize);
         Indexer.Searcher searcher = indexer.search(batchDownload.project.getId(), Document.class).withoutSource("content").limit(scrollSize);
         if (batchDownload.isJsonQuery()) {
             searcher.with(batchDownload.queryAsJson());
@@ -93,7 +91,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
             }
         }
         logger.info("created batch download file {} ({} bytes/{} entries) for user {}",
-                batchDownload.filename, Files.size(batchDownload.filename), numberOfResults, user.getId());
+                batchDownload.filename, Files.size(batchDownload.filename), numberOfResults, batchDownload.user.getId());
         return batchDownload.filename.toFile();
     }
 
@@ -109,6 +107,6 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
 
     @Override
     public User getUser() {
-        return user;
+        return batchDownload.user;
     }
 }

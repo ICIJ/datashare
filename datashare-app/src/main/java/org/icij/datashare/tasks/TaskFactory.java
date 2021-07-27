@@ -19,7 +19,7 @@ public interface TaskFactory {
     NlpApp createNlpTask(User user, Pipeline pipeline);
     BatchSearchLoop createBatchSearchLoop();
     BatchSearchRunner createBatchSearchRunner(BatchSearch batchSearch, TerFunction<String, String, List<Document>, Boolean> resultConsumer);
-    BatchDownloadRunner createDownloadTask(User user, BatchDownload batchDownload);
+    BatchDownloadRunner createDownloadRunner(BatchDownload batchDownload);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);

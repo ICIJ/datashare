@@ -1,5 +1,7 @@
-package org.icij.datashare;
+package org.icij.datashare.tasks;
 
+import org.icij.datashare.CollectionUtils;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
@@ -30,7 +32,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchLoopTestInt {
     BlockingQueue<String> batchSearchQueue = new LinkedBlockingQueue<>();
-    BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "desc",CollectionUtils.asSet("query") , local());
+    BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "desc", CollectionUtils.asSet("query") , local());
     @Mock BatchSearchRunner batchSearchRunner;
     @Mock TaskFactory factory;
     @Mock BatchSearchRepository repository;

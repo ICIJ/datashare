@@ -53,7 +53,7 @@ public class BatchDownloadRunnerIntTest {
     @Test
     public void test_empty_response() throws Exception {
         BatchDownload bd = createBatchDownload("query");
-        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
+        new BatchDownloadRunner(indexer, createProvider(), bd).call();
         assertThat(bd.filename.toFile()).doesNotExist();
     }
 
@@ -63,7 +63,7 @@ public class BatchDownloadRunnerIntTest {
         File file = indexFile("mydoc.txt", content);
         BatchDownload bd = createBatchDownload("fox");
 
-        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
+        new BatchDownloadRunner(indexer, createProvider(), bd).call();
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
@@ -77,7 +77,7 @@ public class BatchDownloadRunnerIntTest {
         indexFile("mydoc.txt", content);
         BatchDownload bd = createBatchDownload("{\"match_all\":{}}");
 
-        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
+        new BatchDownloadRunner(indexer, createProvider(), bd).call();
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
@@ -89,7 +89,7 @@ public class BatchDownloadRunnerIntTest {
         indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
 
         BatchDownload bd = createBatchDownload("*");
-        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
+        new BatchDownloadRunner(indexer, createProvider(), bd).call();
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);
@@ -101,7 +101,7 @@ public class BatchDownloadRunnerIntTest {
         indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
 
         BatchDownload bd = createBatchDownload("juge");
-        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
+        new BatchDownloadRunner(indexer, createProvider(), bd).call();
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
@@ -113,7 +113,7 @@ public class BatchDownloadRunnerIntTest {
         File doc2 = indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume");
 
         BatchDownload bd = createBatchDownload("*");
-        new BatchDownloadRunner(indexer, createProvider(), local(), bd).call();
+        new BatchDownloadRunner(indexer, createProvider(), bd).call();
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);
@@ -124,7 +124,7 @@ public class BatchDownloadRunnerIntTest {
     @Test
     public void test_progress_rate() throws Exception {
         indexFile("mydoc.txt", "content");
-        BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), local(), createBatchDownload("*"));
+        BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), createBatchDownload("*"));
         assertThat(batchDownloadRunner.getProgressRate()).isEqualTo(0);
         batchDownloadRunner.call();
         assertThat(batchDownloadRunner.getProgressRate()).isEqualTo(1);
@@ -135,7 +135,7 @@ public class BatchDownloadRunnerIntTest {
         File file = indexEmbeddedFile(TEST_INDEX);
 
         BatchDownload batchDownload = createBatchDownload("*");
-        new BatchDownloadRunner(indexer, createProvider(), local(), batchDownload).call();
+        new BatchDownloadRunner(indexer, createProvider(), batchDownload).call();
 
         assertThat(new ZipFile(batchDownload.filename.toFile()).size()).isEqualTo(1);
         assertThat(new ZipFile(batchDownload.filename.toFile()).getEntry(file.toString().substring(1))).isNotNull();
@@ -146,7 +146,7 @@ public class BatchDownloadRunnerIntTest {
         indexEmbeddedFile("bad_project_name");
 
         BatchDownload batchDownload = createBatchDownload("*");
-        new BatchDownloadRunner(indexer, createProvider(), local(), batchDownload).call();
+        new BatchDownloadRunner(indexer, createProvider(), batchDownload).call();
 
         assertThat(new ZipFile(batchDownload.filename.toFile()).size()).isEqualTo(1);
     }
