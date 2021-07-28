@@ -37,7 +37,7 @@ databaseChangeLog:
                   type: varchar(96)
               - column:
                   name: name
-                  type: varchar(96)
+                  type: text
               - column:
                   name: uri
                   type: text
