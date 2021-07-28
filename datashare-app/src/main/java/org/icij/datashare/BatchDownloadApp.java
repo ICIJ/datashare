@@ -10,12 +10,11 @@ import java.util.Properties;
 
 import static com.google.inject.Guice.createInjector;
 
-public class BatchSearchApp {
+public class BatchDownloadApp {
     public static void start(Properties properties) throws Exception {
         Injector injector = createInjector(CommonMode.create(properties));
-        BatchSearchLoop batchSearchLoop = injector.getInstance(TaskFactory.class).createBatchSearchLoop();
-        batchSearchLoop.requeueDatabaseBatches();
-        batchSearchLoop.run();
-        batchSearchLoop.close();
+        BatchDownloadLoop batchDownloadLoop = injector.getInstance(TaskFactory.class).createBatchDownloadLoop();
+        batchDownloadLoop.run();
+        batchDownloadLoop.close();
     }
 }

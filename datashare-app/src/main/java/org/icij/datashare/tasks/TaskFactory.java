@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.BatchDownloadApp;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.function.TerFunction;
@@ -18,14 +19,16 @@ public interface TaskFactory {
     NlpApp createNlpTask(User user, Pipeline pipeline, Properties properties, Runnable subscribedCb);
     NlpApp createNlpTask(User user, Pipeline pipeline);
     BatchSearchLoop createBatchSearchLoop();
+    BatchDownloadLoop createBatchDownloadLoop();
     BatchSearchRunner createBatchSearchRunner(BatchSearch batchSearch, TerFunction<String, String, List<Document>, Boolean> resultConsumer);
     BatchDownloadRunner createDownloadRunner(BatchDownload batchDownload);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);
-    ScanIndexTask createScanIndexTask(User user, String reportName);
 
+    ScanIndexTask createScanIndexTask(User user, String reportName);
     ScanTask createScanTask(User user, String queueName, final Path path, Properties properties);
     IndexTask createIndexTask(final User user, String queueName, final Properties properties);
+
     DeduplicateTask createDeduplicateTask(User user, String queueName);
 }

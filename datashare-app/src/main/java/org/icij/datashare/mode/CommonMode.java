@@ -14,6 +14,7 @@ import net.codestory.http.routes.Routes;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.com.DataBus;
@@ -44,6 +45,8 @@ import org.icij.extract.report.ReportMap;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
@@ -78,7 +81,8 @@ public class CommonMode extends AbstractModule {
             case SERVER:
                 return new ServerMode(properties);
             case CLI:
-            case BATCH:
+            case BATCH_SEARCH:
+            case BATCH_DOWNLOAD:
                 return new CliMode(properties);
             default:
                 throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
@@ -90,8 +94,11 @@ public class CommonMode extends AbstractModule {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
 
-        bind(new TypeLiteral<BlockingQueue<String>>(){}).to(getBlockingQueueClassInstance(
-                propertiesProvider.get("batchQueueType").orElse("java.util.concurrent.LinkedBlockingQueue"))).asEagerSingleton();
+        String batchQueueType = propertiesProvider.get("batchQueueType").orElse("org.icij.datashare.extract.MemoryBlockingQueue");
+        bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(
+                getBlockingQueue(propertiesProvider, batchQueueType, "ds:batchsearch:queue"));
+        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(
+                getBlockingQueue(propertiesProvider, batchQueueType, "ds:batchdownload:queue"));
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
@@ -184,10 +191,12 @@ public class CommonMode extends AbstractModule {
         return routes;
     }
 
-    private Class<? extends BlockingQueue<String>> getBlockingQueueClassInstance(String className) {
+    private <T> BlockingQueue<T> getBlockingQueue(PropertiesProvider propertiesProvider, String className, String queueName) {
         try {
-            return (Class<? extends BlockingQueue<String>>) Class.forName(className);
-        } catch (ClassNotFoundException e) {
+            Class<? extends BlockingQueue<T>> aClass = (Class<? extends BlockingQueue<T>>) Class.forName(className);
+            Constructor<? extends BlockingQueue<T>> constructor = aClass.getConstructor(PropertiesProvider.class, String.class);
+            return constructor.newInstance(propertiesProvider, queueName);
+        } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
     }

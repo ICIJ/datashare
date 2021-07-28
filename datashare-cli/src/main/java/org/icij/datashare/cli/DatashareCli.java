@@ -145,8 +145,8 @@ public class DatashareCli {
         return versions.getProperty("git.build.version");
     }
 
-    public boolean isBatchDaemon() {
-        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")) == Mode.BATCH;
+    public Mode mode() {
+        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode"));
     }
 
     public boolean isWebServer() {

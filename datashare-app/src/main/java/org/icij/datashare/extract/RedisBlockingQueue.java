@@ -1,6 +1,7 @@
 package org.icij.datashare.extract;
 
 import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -12,12 +13,16 @@ import org.redisson.command.CommandSyncService;
 
 import java.io.Closeable;
 
-public class RedisBlockingQueue extends RedissonBlockingQueue<String> implements Closeable {
+public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements Closeable {
     private final RedissonClient redissonClient;
 
     @Inject
+    public RedisBlockingQueue(PropertiesProvider propertiesProvider, @Assisted String queueName) {
+        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), queueName);
+    }
+
     public RedisBlockingQueue(PropertiesProvider propertiesProvider) {
-        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), "ds:batchsearch:queue");
+        this(propertiesProvider, "ds:batchsearch:queue");
     }
 
     public RedisBlockingQueue(RedissonClient redissonClient, String queueName) {

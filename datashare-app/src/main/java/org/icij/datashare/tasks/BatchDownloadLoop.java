@@ -6,6 +6,8 @@ import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -40,5 +42,11 @@ public class BatchDownloadLoop {
 
     public void enqueuePoison() {
         batchDownloadQueue.add(POISON);
+    }
+
+    public void close() throws IOException {
+        if (batchDownloadQueue instanceof Closeable) {
+            ((Closeable) batchDownloadQueue).close();
+        }
     }
 }
