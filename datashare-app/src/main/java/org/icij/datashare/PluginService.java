@@ -67,12 +67,12 @@ public class PluginService extends DeliverableService<Plugin> {
         if (packageJson.toFile().isFile()) {
             Path pluginMain = getPluginProperty(packageJson, "main");
             if (pluginMain == null) return null;
-            logger.info("detected plugin <{}> with package.json", pluginDir.getParent().relativize(pluginDir));
+            logger.debug("detected plugin <{}> with package.json", pluginDir.getParent().relativize(pluginDir));
             return relativeToPlugins(pluginDir, pluginMain).toString();
         }
         Path indexJs = pluginDir.resolve("index.js");
         if (indexJs.toFile().isFile()) {
-            logger.info("detected plugin <{}> with index.js", pluginDir.getParent().relativize(pluginDir));
+            logger.debug("detected plugin <{}> with index.js", pluginDir.getParent().relativize(pluginDir));
             return relativeToPlugins(pluginDir, indexJs).toString();
         }
         return null;
@@ -106,7 +106,7 @@ public class PluginService extends DeliverableService<Plugin> {
         if (packageJson.toFile().isFile()) {
             Path pluginMain = getPluginProperty(packageJson, "style");
             if (pluginMain == null) return null;
-            logger.info("detected css plugin <{}> with package.json", pluginDir.getParent().relativize(pluginDir));
+            logger.debug("detected css plugin <{}> with package.json", pluginDir.getParent().relativize(pluginDir));
             return relativeToPlugins(pluginDir, pluginMain).toString();
         }
         return null;
