@@ -14,7 +14,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
 public class TaskManagerTest {
-    private TaskManager taskManager= new TaskManager(new PropertiesProvider());
+    private final TaskManager taskManager= new TaskManager(new PropertiesProvider());
 
     @Test
     public void test_run_task() throws Exception {
@@ -58,7 +58,7 @@ public class TaskManagerTest {
 
     @Test
     public void test_create_task_with_properties() {
-        TaskManager.MonitorableFutureTask<String> task = taskManager.startTask(() -> "task", new HashMap<String, Object>() {{ put("foo", "bar"); }});
+        MonitorableFutureTask<String> task = taskManager.startTask(() -> "task", new HashMap<String, Object>() {{ put("foo", "bar"); }});
         assertThat(task.properties).includes(entry("foo", "bar"));
     }
 

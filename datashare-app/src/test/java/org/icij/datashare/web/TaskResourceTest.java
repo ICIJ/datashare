@@ -255,7 +255,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_task() {
-        TaskManager.MonitorableFutureTask<String> dummyTask = taskManager.startTask(() -> {
+        MonitorableFutureTask<String> dummyTask = taskManager.startTask(() -> {
             Thread.sleep(10000);
             return "ok";
         });
@@ -272,11 +272,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_all() {
-        TaskManager.MonitorableFutureTask<String> t1 = taskManager.startTask(() -> {
+        MonitorableFutureTask<String> t1 = taskManager.startTask(() -> {
             Thread.sleep(10000);
             return "ok";
         });
-        TaskManager.MonitorableFutureTask<String> t2 = taskManager.startTask(() -> {
+        MonitorableFutureTask<String> t2 = taskManager.startTask(() -> {
             Thread.sleep(10000);
             return "ok";
         });

@@ -6,6 +6,7 @@ import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.MonitorableFutureTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.Document;
@@ -105,7 +106,7 @@ class CliApp {
         }
 
         if (pipeline.has(DatashareCli.Stage.SCANIDX)) {
-            TaskManager.MonitorableFutureTask<Long> longMonitorableFutureTask = taskManager.startTask(taskFactory.createScanIndexTask(nullUser(), ofNullable(properties.getProperty(MAP_NAME_OPTION)).orElse("extract:report")));
+            MonitorableFutureTask<Long> longMonitorableFutureTask = taskManager.startTask(taskFactory.createScanIndexTask(nullUser(), ofNullable(properties.getProperty(MAP_NAME_OPTION)).orElse("extract:report")));
             logger.info("scanned {}", longMonitorableFutureTask.get());
         }
 

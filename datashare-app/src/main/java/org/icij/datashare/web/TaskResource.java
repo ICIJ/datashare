@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -27,7 +26,6 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
@@ -74,12 +72,12 @@ public class TaskResource {
      * $(curl localhost:8080/api/task/all?filter=BatchDownloadRunner)
      */
     @Get("/all")
-    public List<TaskResponse> tasks(Context context) {
+    public List<TaskView<?>> tasks(Context context) {
         Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
         return taskManager.getTasks().stream().
                 filter(t -> context.currentUser().equals(t.getUser())).
                 filter(t -> pattern.matcher(t.toString()).matches()).
-                map(TaskResponse::new).
+                map(TaskView::new).
                 collect(toList());
     }
 
@@ -93,8 +91,8 @@ public class TaskResource {
      * $(curl localhost:8080/api/task/21148262)
      */
     @Get("/:id")
-    public TaskResponse getTask(String id) {
-        return new TaskResponse(notFoundIfNull(taskManager.getTask(id)));
+    public TaskView<?> getTask(String id) {
+        return new TaskView<>(notFoundIfNull(taskManager.getTask(id)));
     }
 
     /**
@@ -111,7 +109,7 @@ public class TaskResource {
      */
     @Get("/:id/result")
     public Payload getTaskResult(String id, Context context) throws ExecutionException, InterruptedException {
-        TaskManager.MonitorableFutureTask task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
+        MonitorableFutureTask<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
         Object result = task.get();
         if (result instanceof File) {
             result = Paths.get(context.env().appFolder()).relativize(((File) result).toPath());
@@ -137,14 +135,14 @@ public class TaskResource {
      * $(curl -XPOST -H 'Content-Type: application/json' localhost:8080/api/task/batchDownload -d '{"options": {"project":"genapi-datashare", "query": "*" }}')
      */
     @Post("/batchDownload")
-    public TaskResponse batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws JsonProcessingException {
+    public TaskView<File> batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws JsonProcessingException {
         Map<String, Object> options = optionsWrapper.getOptions();
         Path tmpPath = get(context.env().appFolder(), "tmp");
         if (!tmpPath.toFile().exists()) tmpPath.toFile().mkdirs();
         String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
         BatchDownload batchDownload = new BatchDownload(project((String) options.get("project")), (User) context.currentUser(), query, tmpPath);
         BatchDownloadRunner downloadTask = taskFactory.createDownloadRunner(batchDownload);
-        return new TaskResponse(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}}));
+        return new TaskView<>(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}}));
     }
 
     /**
@@ -157,10 +155,10 @@ public class TaskResource {
      * $(curl -XPOST localhost:8080/api/task/batchUpdate/index -d '{}')
      */
     @Post("/batchUpdate/index")
-    public TaskResponse indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) {
+    public TaskView<Long> indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) {
         IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(),
                 propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), optionsWrapper.asProperties());
-        return new TaskResponse(taskManager.startTask(indexTask));
+        return new TaskView<>(taskManager.startTask(indexTask));
     }
 
     /**
@@ -173,7 +171,7 @@ public class TaskResource {
      * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/file -d '{}')
      */
     @Post("/batchUpdate/index/file")
-    public List<TaskResponse> indexDefault(final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
+    public List<TaskView<Long>> indexDefault(final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
         return indexFile(propertiesProvider.get("dataDir").orElse("/home/datashare/data"), optionsWrapper, context);
     }
 
@@ -187,8 +185,8 @@ public class TaskResource {
      * Example $(curl -XPOST localhost:8080/api/task/batchUpdate/index/home/dev/myfile.txt)
      */
     @Post("/batchUpdate/index/:filePath:")
-    public List<TaskResponse> indexFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
-        TaskResponse scanResponse = scanFile(filePath, optionsWrapper, context);
+    public List<TaskView<Long>> indexFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
+        TaskView<Long> scanResponse = scanFile(filePath, optionsWrapper, context);
         Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         User user = (User) context.currentUser();
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
@@ -196,7 +194,7 @@ public class TaskResource {
             taskFactory.createScanIndexTask(user, reportName).call();
             properties.put(MAP_NAME_OPTION, reportName);
         }
-        return asList(scanResponse, new TaskResponse(taskManager.startTask(taskFactory.createIndexTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), properties))));
+        return asList(scanResponse, new TaskView<>(taskManager.startTask(taskFactory.createIndexTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), properties))));
     }
 
     /**
@@ -211,9 +209,9 @@ public class TaskResource {
      * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/tmp/apigen -d '{}')
      */
     @Post("/batchUpdate/scan/:filePath:")
-    public TaskResponse scanFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
+    public TaskView<Long> scanFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
         Path path = IS_OS_WINDOWS ?  get(filePath):get(File.separator, filePath);
-        return new TaskResponse(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
+        return new TaskView<>(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
                 propertiesProvider.createOverriddenWith(optionsWrapper.getOptions()))));
     }
 
@@ -226,8 +224,8 @@ public class TaskResource {
      * $(curl -XPOST -d '{}' http://dsenv:8080/api/task/clean/
      */
     @Post("/clean")
-    public List<TaskResponse> cleanDoneTasks() {
-        return taskManager.cleanDoneTasks().stream().map(TaskResponse::new).collect(toList());
+    public List<TaskView<?>> cleanDoneTasks() {
+        return taskManager.cleanDoneTasks().stream().map(TaskView::new).collect(toList());
     }
 
     /**
@@ -239,13 +237,13 @@ public class TaskResource {
      * $(curl -XPOST localhost:8080/api/task/batchSearch)
      */
     @Post("/batchSearch")
-    public TaskResponse runBatchSearches(Context context) {
+    public TaskView<?> runBatchSearches(Context context) {
         // TODO replace with call with batchId (in local mode there is only one batch run at a time)
         BatchSearchLoop batchSearchLoop = taskFactory.createBatchSearchLoop();
         batchSearchLoop.requeueDatabaseBatches();
         batchSearchLoop.enqueuePoison();
 
-        return new TaskResponse(taskManager.startTask(batchSearchLoop::run));
+        return new TaskView<>(taskManager.startTask(batchSearchLoop::run));
     }
 
     /**
@@ -278,7 +276,7 @@ public class TaskResource {
         return taskManager.getTasks().stream().
                 filter(t -> context.currentUser().equals(t.getUser())).
                 filter(t -> !t.isDone()).collect(
-                        toMap(TaskManager.MonitorableFutureTask::toString, t -> taskManager.stopTask(t.toString())));
+                        toMap(MonitorableFutureTask::toString, t -> taskManager.stopTask(t.toString())));
     }
 
     @net.codestory.http.annotations.Options("/stopAll")
@@ -306,25 +304,25 @@ public class TaskResource {
      * $(curl -XPOST http://dsenv:8080/api/task/findNames/CORENLP -d {})
      */
     @Post("/findNames/:pipeline")
-    public List<TaskResponse> extractNlp(final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
+    public List<TaskView<?>> extractNlp(final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
 
         Pipeline pipeline = pipelineRegistry.get(Pipeline.Type.parse(pipelineName));
 
-        TaskManager.MonitorableFutureTask<Void> nlpTask = createNlpApp(context, mergedProps, pipeline);
+        MonitorableFutureTask<Void> nlpTask = createNlpApp(context, mergedProps, pipeline);
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            TaskManager.MonitorableFutureTask<Long> resumeNlpTask = taskManager.startTask(
+            MonitorableFutureTask<Long> resumeNlpTask = taskManager.startTask(
                     taskFactory.createResumeNlpTask((User) context.currentUser(),
                             new HashSet<Pipeline.Type>() {{add(Pipeline.Type.parse(pipelineName));}}));
-            return asList(new TaskResponse(resumeNlpTask), new TaskResponse(nlpTask));
+            return asList(new TaskView<>(resumeNlpTask), new TaskView<>(nlpTask));
         }
-        return singletonList(new TaskResponse(nlpTask));
+        return singletonList(new TaskView<>(nlpTask));
     }
 
-    private TaskManager.MonitorableFutureTask<Void> createNlpApp(Context context, Properties mergedProps, Pipeline pipeline) {
+    private MonitorableFutureTask<Void> createNlpApp(Context context, Properties mergedProps, Pipeline pipeline) {
         CountDownLatch latch = new CountDownLatch(1);
-        TaskManager.MonitorableFutureTask<Void> task = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), pipeline, mergedProps, latch::countDown));
+        MonitorableFutureTask<Void> task = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), pipeline, mergedProps, latch::countDown));
         if (parseBoolean(mergedProps.getProperty("waitForNlpApp", "true"))) {
             try {
                 logger.info("waiting for NlpApp {} to listen...", pipeline);
@@ -337,39 +335,8 @@ public class TaskResource {
         return task;
     }
 
-    private static TaskManager.MonitorableFutureTask forbiddenIfNotSameUser(Context context, TaskManager.MonitorableFutureTask task) {
+    private static <V> MonitorableFutureTask<V> forbiddenIfNotSameUser(Context context, MonitorableFutureTask<V> task) {
         if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
         return task;
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    static class TaskResponse {
-        private final Map<String, Object> properties;
-
-        enum State {RUNNING, ERROR, DONE, CANCELLED}
-        private final String name;
-        private final State state;
-        private final double progress;
-
-        TaskResponse(TaskManager.MonitorableFutureTask task) {
-            this.name = task.toString();
-            State state;
-            if (task.isDone()) {
-                try {
-                    task.get();
-                    state = State.DONE;
-                } catch (CancellationException cex) {
-                    state = State.CANCELLED;
-                } catch (ExecutionException|InterruptedException e) {
-                    state = State.ERROR;
-                }
-                progress = 1;
-                this.state = task.isCancelled() ? State.CANCELLED : state;
-            } else {
-                this.state = State.RUNNING;
-                progress = task.getProgressRate();
-            }
-            this.properties = task.properties.isEmpty() ? null: task.properties;
-        }
     }
 }
