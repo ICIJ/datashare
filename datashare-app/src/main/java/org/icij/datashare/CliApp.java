@@ -8,7 +8,7 @@ import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.MonitorableFutureTask;
 import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -54,7 +54,7 @@ class CliApp {
     }
 
     private static void runTaskRunner(Injector injector, Properties properties) throws Exception {
-        TaskManager taskManager = injector.getInstance(TaskManager.class);
+        TaskManagerMemory taskManager = injector.getInstance(TaskManagerMemory.class);
         TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
 
         Set<Pipeline.Type> nlpPipelines = parseAll(properties.getProperty(DatashareCliOptions.NLP_PIPELINES_OPT));

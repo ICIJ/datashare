@@ -10,7 +10,7 @@ import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.tasks.MonitorableFutureTask;
 import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
@@ -19,9 +19,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.InputStream;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
@@ -31,12 +29,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
 
 public class UserTaskResourceTest extends AbstractProdWebServerTest {
-    private TaskManager taskManager;
+    private TaskManagerMemory taskManager;
 
     @After
     public void tearDown() {
         taskManager.waitTasksToBeDone(1, SECONDS);
-        taskManager.cleanDoneTasks();
+        taskManager.clearDoneTasks();
     }
 
     @Test
@@ -145,7 +143,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
 
     private void setupAppWith(String... userLogins) {
         final PropertiesProvider propertiesProvider = new PropertiesProvider();
-        taskManager = new TaskManager(propertiesProvider);
+        taskManager = new TaskManagerMemory(propertiesProvider);
         configure(new CommonMode(new Properties()) {
             @Override
             protected void configure() {
@@ -153,7 +151,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 bind(PipelineRegistry.class).toInstance(mock(PipelineRegistry.class));
                 bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
                 bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins)));
-                bind(TaskManager.class).toInstance(taskManager);
+                bind(TaskManagerMemory.class).toInstance(taskManager);
                 bind(TaskFactory.class).toInstance(mock(TaskFactory.class));
                 bind(Indexer.class).toInstance(mock(Indexer.class));
             }

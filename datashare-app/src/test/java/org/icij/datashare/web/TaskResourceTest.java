@@ -45,7 +45,7 @@ import static org.mockito.Mockito.*;
 public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     private static final TaskFactory taskFactory = mock(TaskFactory.class);
-    private static final TaskManager taskManager= new TaskManager(new PropertiesProvider());
+    private static final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider());
 
     @Before
     public void setUp() {
@@ -57,7 +57,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                         bind(TaskFactory.class).toInstance(taskFactory);
                         bind(Indexer.class).toInstance(mock(Indexer.class));
                         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
-                        bind(TaskManager.class).toInstance(taskManager);
+                        bind(TaskManagerMemory.class).toInstance(taskManager);
                         bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
                         bind(PropertiesProvider.class).toInstance(new PropertiesProvider(getDefaultProperties()));
                     }
@@ -70,7 +70,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @After
     public void tearDown() {
         taskManager.waitTasksToBeDone(1, SECONDS);
-        taskManager.cleanDoneTasks();
+        taskManager.clearDoneTasks();
     }
 
     @Test
@@ -261,7 +261,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         });
         put("/api/task/stop/" + dummyTask).should().respond(200).contain("true");
 
-        assertThat(taskManager.getTask(dummyTask.toString()).isCancelled()).isTrue();
+        assertThat(taskManager.get(dummyTask.toString()).state).isEqualTo(TaskView.State.CANCELLED);
         get("/api/task/all").should().respond(200).contain("\"state\":\"CANCELLED\"");
     }
 
@@ -284,8 +284,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 contain(t1.toString() + "\":true").
                 contain(t2.toString() + "\":true");
 
-        assertThat(taskManager.getTask(t1.toString()).isCancelled()).isTrue();
-        assertThat(taskManager.getTask(t2.toString()).isCancelled()).isTrue();
+        assertThat(taskManager.get(t1.toString()).state).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.get(t2.toString()).state).isEqualTo(TaskView.State.CANCELLED);
     }
 
     @Test

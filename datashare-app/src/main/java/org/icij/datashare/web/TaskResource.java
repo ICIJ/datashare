@@ -50,12 +50,12 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 public class TaskResource {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final TaskFactory taskFactory;
-    private final TaskManager taskManager;
+    private final TaskManagerMemory taskManager;
     private final PropertiesProvider propertiesProvider;
     private final PipelineRegistry pipelineRegistry;
 
     @Inject
-    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
+    public TaskResource(final TaskFactory taskFactory, final TaskManagerMemory taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
@@ -92,7 +92,7 @@ public class TaskResource {
      */
     @Get("/:id")
     public TaskView<?> getTask(String id) {
-        return new TaskView<>(notFoundIfNull(taskManager.getTask(id)));
+        return notFoundIfNull(taskManager.get(id));
     }
 
     /**
@@ -109,8 +109,8 @@ public class TaskResource {
      */
     @Get("/:id/result")
     public Payload getTaskResult(String id, Context context) throws ExecutionException, InterruptedException {
-        MonitorableFutureTask<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
-        Object result = task.get();
+        TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.get(id)));
+        Object result = task.getResult();
         if (result instanceof File) {
             result = Paths.get(context.env().appFolder()).relativize(((File) result).toPath());
             return new Payload(result).withHeader("Content-Disposition", "attachment;filename=\"" + ((Path) result).getFileName() + "\"");
@@ -225,7 +225,7 @@ public class TaskResource {
      */
     @Post("/clean")
     public List<TaskView<?>> cleanDoneTasks() {
-        return taskManager.cleanDoneTasks().stream().map(TaskView::new).collect(toList());
+        return new ArrayList<>(taskManager.clearDoneTasks());
     }
 
     /**
@@ -254,7 +254,7 @@ public class TaskResource {
      */
     @Put("/stop/:taskId:")
     public boolean stopTask(final String taskId) {
-        return taskManager.stopTask(notFoundIfNull(taskManager.getTask(taskId)).toString());
+        return taskManager.stopTask(notFoundIfNull(taskManager.get(taskId)).name);
     }
 
     @net.codestory.http.annotations.Options("/stop/:taskName:")
@@ -335,7 +335,7 @@ public class TaskResource {
         return task;
     }
 
-    private static <V> MonitorableFutureTask<V> forbiddenIfNotSameUser(Context context, MonitorableFutureTask<V> task) {
+    private static <V> TaskView<V> forbiddenIfNotSameUser(Context context, TaskView<V> task) {
         if (!task.getUser().equals(context.currentUser())) throw new ForbiddenException();
         return task;
     }

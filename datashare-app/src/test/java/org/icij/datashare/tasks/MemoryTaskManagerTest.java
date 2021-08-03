@@ -8,23 +8,25 @@ import java.util.HashMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
-public class TaskManagerTest {
-    private final TaskManager taskManager= new TaskManager(new PropertiesProvider());
+public class MemoryTaskManagerTest {
+    private final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider());
 
     @Test
-    public void test_run_task() throws Exception {
+    public void test_run_task() {
         FutureTask<String> t = taskManager.startTask(() -> "run");
-        assertThat(taskManager.getTask(t.toString()).get()).isEqualTo("run");
-        assertThat(taskManager.getTask(t.toString()).isDone()).isTrue();
+        taskManager.waitTasksToBeDone(100, TimeUnit.MILLISECONDS);
+        assertThat(taskManager.get(t.toString()).getResult()).isEqualTo("run");
+        assertThat(taskManager.get(t.toString()).state).isEqualTo(TaskView.State.DONE);
     }
 
-    @Test(expected = CancellationException.class)
-    public void test_stop_task() throws Exception {
+    @Test
+    public void test_stop_task() {
         FutureTask<String> t = taskManager.startTask(() -> {
             try {
                 Thread.sleep(10000);
@@ -33,9 +35,8 @@ public class TaskManagerTest {
             }
             return "run";});
         taskManager.stopTask(t.toString());
-        assertThat(taskManager.getTask(t.toString()).isCancelled()).isTrue();
-        assertThat(taskManager.getTask(t.toString()).isDone()).isTrue();
-        taskManager.getTask(t.toString()).get(); // throws expected CancellationException
+        assertThat(taskManager.get(t.toString()).state).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.get(t.toString()).getResult()).isNull();
     }
 
     @Test
@@ -53,7 +54,7 @@ public class TaskManagerTest {
         l.await(1, SECONDS);
 
         assertThat(l.getCount()).isEqualTo(0);
-        assertThat(taskManager.getTask(t1.toString()).get()).isEqualTo("task");
+        assertThat(taskManager.get(t1.toString()).getResult()).isEqualTo("task");
     }
 
     @Test

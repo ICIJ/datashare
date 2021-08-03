@@ -1,6 +1,8 @@
 package org.icij.datashare.tasks;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.icij.datashare.user.User;
 
 import java.util.Map;
 import java.util.concurrent.CancellationException;
@@ -9,15 +11,17 @@ import java.util.concurrent.ExecutionException;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> {
     private final Map<String, Object> properties;
-
-    enum State {RUNNING, ERROR, DONE, CANCELLED}
-    private final String name;
-    private final State state;
-    private final double progress;
+    public enum State {RUNNING, ERROR, DONE, CANCELLED}
+    public final String name;
+    public final State state;
+    public final double progress;
+    @JsonIgnore
+    public final User user;
     private V result;
 
     public TaskView(MonitorableFutureTask<V> task) {
         this.name = task.toString();
+        this.user = task.getUser();
         State taskState;
         if (task.isDone()) {
             try {
@@ -43,4 +47,5 @@ public class TaskView<V> {
     public V getResult() {
         return result;
     }
+    public User getUser() { return user;}
 }

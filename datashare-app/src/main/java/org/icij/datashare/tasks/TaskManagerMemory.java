@@ -15,13 +15,13 @@ import static java.lang.Integer.parseInt;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 
-public class TaskManager {
+public class TaskManagerMemory implements TaskRepository {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final ConcurrentMap<String, MonitorableFutureTask<?>> tasks = new ConcurrentHashMap<>();
 
     @Inject
-    public TaskManager(final PropertiesProvider provider) {
+    public TaskManagerMemory(final PropertiesProvider provider) {
         Optional<String> parallelism = provider.get("parallelism");
         executor = parallelism.map(s -> newFixedThreadPool(parseInt(s))).
                    orElseGet( () -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
@@ -57,8 +57,8 @@ public class TaskManager {
         return futureTask;
     }
 
-    public MonitorableFutureTask<?> getTask(final String taskName) {
-        return tasks.get(taskName);
+    public TaskView<?> get(final String taskName) {
+        return tasks.get(taskName) == null ? null : new TaskView<>(tasks.get(taskName));
     }
 
     public List<Runnable> shutdownNow() {
@@ -84,12 +84,17 @@ public class TaskManager {
         }).collect(toList());
     }
 
-    public List<MonitorableFutureTask<?>> cleanDoneTasks() {
-        return getTasks().stream().filter(FutureTask::isDone).map(t -> tasks.remove(t.toString())).collect(toList());
+    public List<TaskView<?>> clearDoneTasks() {
+        return getTasks().stream().filter(FutureTask::isDone).map(t -> tasks.remove(t.toString())).map(TaskView::new).collect(toList());
     }
 
     public boolean stopTask(String taskName) {
         logger.info("cancelling task {}", taskName);
-        return getTask(taskName).cancel(true);
+        return tasks.get(taskName).cancel(true);
+    }
+
+    @Override
+    public <V> boolean save(TaskView<V> task) {
+        throw new IllegalStateException("save not implemented in " + getClass());
     }
 }
