@@ -1,6 +1,8 @@
 package org.icij.datashare.user;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonUtils;
 
@@ -30,7 +32,10 @@ public class User implements Entity {
         this.details = unmodifiableMap(deserialize(jsonDetails));
     }
 
-    public User(final String id, String name, String email, String provider, Map<String, Object> details) {
+    @JsonCreator
+    public User(@JsonProperty("id") final String id, @JsonProperty("name") String name,
+                @JsonProperty("email") String email, @JsonProperty("provider") String provider,
+                @JsonProperty("details") Map<String, Object> details) {
         this.id = id;
         this.name = name;
         this.email = email;
