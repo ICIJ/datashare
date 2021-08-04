@@ -5,17 +5,17 @@ import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 import static java.lang.Integer.parseInt;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 
-public class TaskManagerMemory implements TaskRepository {
+public class TaskManagerMemory implements TaskManager {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final ConcurrentMap<String, MonitorableFutureTask<?>> tasks = new ConcurrentHashMap<>();
@@ -27,6 +27,7 @@ public class TaskManagerMemory implements TaskRepository {
                    orElseGet( () -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
     }
 
+    @Override
     public MonitorableFutureTask<Void> startTask(final Runnable task) {
         MonitorableFutureTask<Void> futureTask = new MonitorableFutureTask<>(task, null);
         executor.submit(futureTask);
@@ -34,6 +35,7 @@ public class TaskManagerMemory implements TaskRepository {
         return futureTask;
     }
 
+    @Override
     public <V> MonitorableFutureTask<V> startTask(final Callable<V> task, final Runnable callback) {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<V>(task) {
             @Override protected void done() { callback.run();}
@@ -43,6 +45,7 @@ public class TaskManagerMemory implements TaskRepository {
         return futureTask;
     }
 
+    @Override
     public <V> MonitorableFutureTask<V> startTask(final Callable<V> task, Map<String, Object> properties) {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<V>(task, properties);
         executor.submit(futureTask);
@@ -50,6 +53,7 @@ public class TaskManagerMemory implements TaskRepository {
         return futureTask;
     }
 
+    @Override
     public <V> MonitorableFutureTask<V> startTask(final Callable<V> task) {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task);
         executor.submit(futureTask);
@@ -61,6 +65,11 @@ public class TaskManagerMemory implements TaskRepository {
         return tasks.get(taskName) == null ? null : new TaskView<>(tasks.get(taskName));
     }
 
+    @Override
+    public List<TaskView<?>> get() {
+        return tasks.values().stream().map(TaskView::new).collect(Collectors.toList());
+    }
+
     public List<Runnable> shutdownNow() {
         return executor.shutdownNow();
     }
@@ -70,12 +79,8 @@ public class TaskManagerMemory implements TaskRepository {
         return executor.awaitTermination(timeout, timeUnit);
     }
 
-    public Collection<MonitorableFutureTask<?>> getTasks() {
-        return tasks.values();
-    }
-
     public List<MonitorableFutureTask<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
-        return getTasks().stream().peek(monitorableFutureTask -> {
+        return tasks.values().stream().peek(monitorableFutureTask -> {
             try {
                 monitorableFutureTask.get(timeout, timeUnit);
             } catch (InterruptedException|ExecutionException|TimeoutException|CancellationException e) {
@@ -85,7 +90,7 @@ public class TaskManagerMemory implements TaskRepository {
     }
 
     public List<TaskView<?>> clearDoneTasks() {
-        return getTasks().stream().filter(FutureTask::isDone).map(t -> tasks.remove(t.toString())).map(TaskView::new).collect(toList());
+        return tasks.values().stream().filter(FutureTask::isDone).map(t -> tasks.remove(t.toString())).map(TaskView::new).collect(toList());
     }
 
     public boolean stopTask(String taskName) {
@@ -94,7 +99,7 @@ public class TaskManagerMemory implements TaskRepository {
     }
 
     @Override
-    public <V> boolean save(TaskView<V> task) {
+    public <V> void save(TaskView<V> task) {
         throw new IllegalStateException("save not implemented in " + getClass());
     }
 }

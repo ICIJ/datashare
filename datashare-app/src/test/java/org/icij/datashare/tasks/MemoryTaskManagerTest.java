@@ -5,7 +5,6 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -41,10 +40,10 @@ public class MemoryTaskManagerTest {
 
     @Test
     public void test_get_tasks() {
-        FutureTask<String> t1 = taskManager.startTask(() -> "task 1");
-        FutureTask<String> t2 = taskManager.startTask(() -> "task 2");
+        MonitorableFutureTask<String> t1 = taskManager.startTask(() -> "task 1");
+        MonitorableFutureTask<String> t2 = taskManager.startTask(() -> "task 2");
 
-        assertThat(taskManager.getTasks()).contains(t1, t2);
+        assertThat(taskManager.get()).hasSize(2);
     }
 
     @Test

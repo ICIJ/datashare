@@ -1,7 +1,9 @@
 package org.icij.datashare.tasks;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.user.User;
 
 import java.util.Map;
@@ -15,7 +17,6 @@ public class TaskView<V> {
     public final String name;
     public final State state;
     public final double progress;
-    @JsonIgnore
     public final User user;
     private V result;
 
@@ -42,6 +43,21 @@ public class TaskView<V> {
             progress = task.getProgressRate();
         }
         this.properties = task.properties.isEmpty() ? null: task.properties;
+    }
+
+    @JsonCreator
+    private TaskView(@JsonProperty("name") String name,
+                     @JsonProperty("state") State state,
+                     @JsonProperty("progress") double progress,
+                     @JsonProperty("user") User user,
+                     @JsonProperty("result") V result,
+                     @JsonProperty("properties") Map<String, Object> properties) {
+        this.name = name;
+        this.state = state;
+        this.progress = progress;
+        this.user = user;
+        this.result = result;
+        this.properties = properties;
     }
 
     public V getResult() {
