@@ -30,7 +30,6 @@ import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.mockito.Mockito.mock;
 
-@Ignore
 public class UserTaskResourceTest extends AbstractProdWebServerTest {
     private TaskManagerMemory taskManager;
 
@@ -51,7 +50,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith("foo");
         MonitorableFutureTask<Void> t = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("foo")));
         get("/api/task/" + t).withPreemptiveAuthentication("foo", "qux").should().respond(200).
-            contain(format("{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0}", t));
+            contain(format("{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}", t));
     }
 
     @Test
@@ -102,8 +101,8 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         MonitorableFutureTask<Void> t1 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("foo")));
         MonitorableFutureTask<Void> t2 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
 
-        get("/api/task/all").withPreemptiveAuthentication("foo", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0}]", t1.toString()));
-        get("/api/task/all").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0}]", t2.toString()));
+        get("/api/task/all").withPreemptiveAuthentication("foo", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t1));
+        get("/api/task/all").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2));
     }
 
     @Test
@@ -111,7 +110,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith("bar");
         MonitorableFutureTask<Void> t2 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
 
-        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0}]", t2.toString()));
+        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2));
         get("/api/task/all?filter=foo").withPreemptiveAuthentication("bar", "qux").should().contain("[]");
     }
 

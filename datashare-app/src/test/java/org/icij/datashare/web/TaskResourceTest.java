@@ -39,7 +39,6 @@ import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
-@Ignore
 public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     private static final TaskFactory taskFactory = mock(TaskFactory.class);

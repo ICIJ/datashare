@@ -50,12 +50,12 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 public class TaskResource {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final TaskFactory taskFactory;
-    private final TaskManager taskManager;
+    private final TaskManagerMemory taskManager;
     private final PropertiesProvider propertiesProvider;
     private final PipelineRegistry pipelineRegistry;
 
     @Inject
-    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
+    public TaskResource(final TaskFactory taskFactory, final TaskManagerMemory taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
@@ -76,7 +76,7 @@ public class TaskResource {
         Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
         return taskManager.get().stream().
                 filter(t -> context.currentUser().equals(t.getUser())).
-                filter(t -> pattern.matcher(t.toString()).matches()).
+                filter(t -> pattern.matcher(t.name).matches()).
                 collect(toList());
     }
 
@@ -275,7 +275,7 @@ public class TaskResource {
         return taskManager.get().stream().
                 filter(t -> context.currentUser().equals(t.getUser())).
                 filter(t -> t.state == TaskView.State.RUNNING).collect(
-                        toMap(t -> t.name, t -> taskManager.stopTask(t.toString())));
+                        toMap(t -> t.name, t -> taskManager.stopTask(t.name)));
     }
 
     @net.codestory.http.annotations.Options("/stopAll")
