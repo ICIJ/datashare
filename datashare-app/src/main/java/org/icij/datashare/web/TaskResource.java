@@ -50,12 +50,12 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 public class TaskResource {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final TaskFactory taskFactory;
-    private final TaskManagerMemory taskManager;
+    private final TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
     private final PipelineRegistry pipelineRegistry;
 
     @Inject
-    public TaskResource(final TaskFactory taskFactory, final TaskManagerMemory taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
+    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;

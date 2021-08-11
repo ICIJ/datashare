@@ -17,7 +17,6 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -152,9 +151,8 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 bind(PropertiesProvider.class).toInstance(propertiesProvider);
                 bind(PipelineRegistry.class).toInstance(mock(PipelineRegistry.class));
                 bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
-                bind(TaskManager.class).toInstance(new TaskManagerMemory(new PropertiesProvider()));
+                bind(TaskManager.class).toInstance(taskManager);
                 bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins)));
-                bind(TaskManagerMemory.class).toInstance(taskManager);
                 bind(TaskFactory.class).toInstance(mock(TaskFactory.class));
                 bind(Indexer.class).toInstance(mock(Indexer.class));
             }

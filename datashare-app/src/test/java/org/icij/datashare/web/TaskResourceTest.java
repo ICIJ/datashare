@@ -53,9 +53,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                     protected void configure() {
                         bind(TaskFactory.class).toInstance(taskFactory);
                         bind(Indexer.class).toInstance(mock(Indexer.class));
-                        bind(TaskManager.class).toInstance(new TaskManagerMemory(new PropertiesProvider()));
+                        bind(TaskManager.class).toInstance(taskManager);
                         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
-                        bind(TaskManagerMemory.class).toInstance(taskManager);
                         bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
                         bind(PropertiesProvider.class).toInstance(new PropertiesProvider(getDefaultProperties()));
                     }
