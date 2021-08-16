@@ -13,6 +13,7 @@ import org.redisson.client.protocol.Decoder;
 import org.redisson.client.protocol.Encoder;
 import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.command.CommandSyncService;
+import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import java.nio.charset.Charset;
 import java.util.List;
@@ -28,7 +29,7 @@ public class TaskManagerRedis implements TaskManager {
 
     public TaskManagerRedis(PropertiesProvider propertiesProvider) {
         RedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
-        CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager());
+        CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, "ds:task:manager", redissonClient, null, null);
     }
 
