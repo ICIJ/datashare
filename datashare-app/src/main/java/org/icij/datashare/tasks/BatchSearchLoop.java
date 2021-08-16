@@ -24,7 +24,7 @@ public class BatchSearchLoop {
     final BlockingQueue<String> batchSearchQueue;
     private final TaskFactory factory;
     final AtomicReference<BatchSearchRunner> currentBatchSearchRunner = new AtomicReference<>();
-    public static final String POISON = "poison";
+    private static final String POISON = "poison";
     private final BatchSearchRepository repository;
 
     @Inject
