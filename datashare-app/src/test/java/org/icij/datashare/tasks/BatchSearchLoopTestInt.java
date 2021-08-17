@@ -11,6 +11,7 @@ import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.time.DatashareTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -79,6 +80,28 @@ public class BatchSearchLoopTestInt {
     }
 
     @Test
+    public void test_main_loop_exit_with_sigterm_and_wait_for_cancellation_to_terminate() throws InterruptedException {
+        DatashareTime.setMockTime(true);
+        Date beforeTest = DatashareTime.getInstance().now();
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100, countDownLatch);
+        when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
+        batchSearchQueue.add(batchSearch.uuid);
+        BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
+
+        executor.submit(app::run);
+        countDownLatch.await();
+        Signal term = new Signal("TERM");
+        Signal.raise(term);
+        executor.shutdown();
+
+        assertThat(executor.awaitTermination(1,TimeUnit.SECONDS)).isTrue();
+        assertThat(DatashareTime.getInstance().now().getTime() - beforeTest.getTime()).isEqualTo(100);
+        assertThat(batchSearchQueue).containsOnly(batchSearch.uuid);
+        verify(repository).reset(batchSearch.uuid);
+    }
+
+    @Test
     public void test_run_batch_search_failure() throws Exception {
         when(factory.createBatchSearchRunner(any(), any())).thenThrow(new SearchException("query", new RuntimeException()));
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
@@ -144,6 +167,7 @@ public class BatchSearchLoopTestInt {
     public void tearDown() throws InterruptedException {
         executor.shutdownNow();
         executor.awaitTermination(2, TimeUnit.SECONDS);
+        DatashareTime.setMockTime(false);
     }
 
     public void waitQueueToBeEmpty() throws InterruptedException {
@@ -158,18 +182,26 @@ public class BatchSearchLoopTestInt {
 
     private static class SleepingBatchSearchRunner extends BatchSearchRunner {
         private final int sleepingMilliseconds;
+        private CountDownLatch countDownLatch;
         private volatile boolean cancelledCalled;
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds) {
+            this(sleepingMilliseconds, new CountDownLatch(1));
+        }
+
+        public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch) {
             super(mock(Indexer.class), new PropertiesProvider(), mock(BatchSearch.class), (a, b, c) -> true);
             this.sleepingMilliseconds = sleepingMilliseconds;
+            this.countDownLatch = countDownLatch;
         }
 
         @Override
         public Integer call() {
+            countDownLatch.countDown();
             while(!cancelledCalled) {
                 try {
-                    Thread.sleep(sleepingMilliseconds);
+                    Thread.sleep(sleepingMilliseconds); // Make sure that we wait this before mocktime.sleep()
+                    DatashareTime.getInstance().sleep(sleepingMilliseconds);
                 } catch (InterruptedException e) {
                     // nothing we throw a cancel later
                 }

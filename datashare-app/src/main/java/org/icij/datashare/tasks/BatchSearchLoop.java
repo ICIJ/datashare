@@ -27,8 +27,9 @@ public class BatchSearchLoop {
     final AtomicReference<BatchSearchRunner> currentBatchSearchRunner = new AtomicReference<>();
     private static final String POISON = "poison";
     private final BatchSearchRepository repository;
-    private final CountDownLatch waitForMainLoopCalled;
+    private final CountDownLatch waitForMainLoopCalled; // for tests only
     private volatile boolean exitAsked = false;
+    private volatile boolean isPolling = false;
     private volatile Thread loopThread;
 
     @Inject
@@ -44,6 +45,13 @@ public class BatchSearchLoop {
         Signal.handle(new Signal("TERM"), signal -> {
             exitAsked = true;
             ofNullable(currentBatchSearchRunner.get()).ifPresent(BatchSearchRunner::cancel);
+            try {
+                if (!isPolling) {
+                    loopThread.join();
+                }
+            } catch (InterruptedException e) {
+                logger.warn("LoopThead has been interrupted, check batchsearch state");
+            }
             ofNullable(loopThread).ifPresent(Thread::interrupt); // for interrupting poll
         });
     }
@@ -55,7 +63,9 @@ public class BatchSearchLoop {
         loopThread = Thread.currentThread();
         while (!POISON.equals(currentBatchId) && !exitAsked) {
             try {
+                isPolling = true;
                 currentBatchId = batchSearchQueue.poll(60, TimeUnit.SECONDS);
+                isPolling = false;
                 if (currentBatchId != null && !POISON.equals(currentBatchId)) {
                     BatchSearch batchSearch = repository.get(currentBatchId);
                     if (batchSearch.state == BatchSearchRecord.State.QUEUED) {
