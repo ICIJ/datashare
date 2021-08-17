@@ -457,7 +457,7 @@ public class ElasticsearchIndexer implements Indexer {
                 queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
             }
             this.boolQuery.must(new MatchAllQueryBuilder());
-            this.boolQuery.must(new QueryStringQueryBuilder(queryString).defaultField("*"));
+            this.boolQuery.must(new QueryStringQueryBuilder(queryString));
             return this;
         }
 
