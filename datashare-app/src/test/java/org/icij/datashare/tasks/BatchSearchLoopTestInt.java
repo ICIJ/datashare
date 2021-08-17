@@ -13,6 +13,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import sun.misc.Signal;
@@ -31,7 +32,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 
 public class BatchSearchLoopTestInt {
-    BlockingQueue<String> batchSearchQueue = new LinkedBlockingQueue<>();
+    BlockingQueue<String> batchSearchQueue;
     BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "desc", CollectionUtils.asSet("query") , local());
     @Mock BatchSearchRunner batchSearchRunner;
     @Mock TaskFactory factory;
@@ -64,15 +65,17 @@ public class BatchSearchLoopTestInt {
     }
 
     @Test
-    public void test_main_loop_exit_with_sigterm_when_empty_batch() throws InterruptedException {
-        BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
+    public void test_main_loop_exit_with_sigterm_when_empty_batch_queue() throws InterruptedException {
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory, countDownLatch);
 
         executor.submit(app::run);
+        countDownLatch.await();
         Signal term = new Signal("TERM");
         Signal.raise(term);
         executor.shutdown();
 
-        assertThat(executor.awaitTermination(2,TimeUnit.SECONDS)).isTrue();
+        assertThat(executor.awaitTermination(1,TimeUnit.SECONDS)).isTrue();
     }
 
     @Test
@@ -88,6 +91,28 @@ public class BatchSearchLoopTestInt {
         verify(repository).setState(eq(batchSearch.uuid), any(SearchException.class));
     }
 
+    @Test
+    public void test_main_loop_exit_with_sigterm_and_queued_batches() throws InterruptedException {
+        SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100);
+        when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
+        BatchSearch bs1 = new BatchSearch(Project.project("prj"), "name1", "desc", CollectionUtils.asSet("query1") , local());
+        BatchSearch bs2 = new BatchSearch(Project.project("prj"), "name2", "desc", CollectionUtils.asSet("query2") , local());
+        BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
+        batchSearchQueue.add(bs1.uuid);
+        batchSearchQueue.add(bs2.uuid);
+        when(repository.get(bs1.uuid)).thenReturn(bs1);
+        when(repository.get(bs2.uuid)).thenReturn(bs2);
+
+        executor.submit(app::run);
+        waitQueueToHaveSize(1);
+        Signal term = new Signal("TERM");
+        Signal.raise(term);
+        executor.shutdown();
+        assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(batchSearchQueue).excludes("poison");
+        assertThat(batchSearchQueue).containsOnly(bs1.uuid, bs2.uuid);
+    }
 
     @Test
     public void test_main_loop_exit_with_sigterm_when_running_batch() throws InterruptedException {
@@ -112,6 +137,7 @@ public class BatchSearchLoopTestInt {
         initMocks(this);
         when(repository.get(anyString())).thenReturn(batchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
+        batchSearchQueue = new LinkedBlockingQueue<>();
     }
 
     @After
@@ -121,7 +147,11 @@ public class BatchSearchLoopTestInt {
     }
 
     public void waitQueueToBeEmpty() throws InterruptedException {
-        while (! batchSearchQueue.isEmpty()) {
+        waitQueueToHaveSize(0);
+    }
+
+    public void waitQueueToHaveSize(int size) throws InterruptedException {
+        while (batchSearchQueue.size() != size) {
             Thread.sleep(100);
         }
     }
@@ -141,7 +171,7 @@ public class BatchSearchLoopTestInt {
                 try {
                     Thread.sleep(sleepingMilliseconds);
                 } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    // nothing we throw a cancel later
                 }
             }
             throw new BatchSearchRunner.CancelException();

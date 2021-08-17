@@ -14,6 +14,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -26,22 +27,33 @@ public class BatchSearchLoop {
     final AtomicReference<BatchSearchRunner> currentBatchSearchRunner = new AtomicReference<>();
     private static final String POISON = "poison";
     private final BatchSearchRepository repository;
+    private final CountDownLatch waitForMainLoopCalled;
+    private volatile boolean exitAsked = false;
+    private volatile Thread loopThread;
 
     @Inject
     public BatchSearchLoop(BatchSearchRepository batchSearchRepository, BlockingQueue<String> batchSearchQueue, TaskFactory factory) {
-        this.repository = batchSearchRepository;
+        this(batchSearchRepository, batchSearchQueue, factory, new CountDownLatch(1));
+    }
+
+    public BatchSearchLoop(BatchSearchRepository repository, BlockingQueue<String> batchSearchQueue, TaskFactory factory, CountDownLatch countDownLatch) {
+        this.repository = repository;
         this.batchSearchQueue = batchSearchQueue;
         this.factory = factory;
+        this.waitForMainLoopCalled = countDownLatch;
         Signal.handle(new Signal("TERM"), signal -> {
-            batchSearchQueue.add(POISON);
+            exitAsked = true;
             ofNullable(currentBatchSearchRunner.get()).ifPresent(BatchSearchRunner::cancel);
+            ofNullable(loopThread).ifPresent(Thread::interrupt); // for interrupting poll
         });
     }
 
     public void run() {
         logger.info("Datashare running in batch mode. Waiting batch from ds:batchsearch.queue ({})", batchSearchQueue.getClass());
         String currentBatchId = null;
-        while (! POISON.equals(currentBatchId)) {
+        waitForMainLoopCalled.countDown();
+        loopThread = Thread.currentThread();
+        while (!POISON.equals(currentBatchId) && !exitAsked) {
             try {
                 currentBatchId = batchSearchQueue.poll(60, TimeUnit.SECONDS);
                 if (currentBatchId != null && !POISON.equals(currentBatchId)) {
@@ -56,10 +68,11 @@ public class BatchSearchLoop {
                         logger.warn("batch search {} not ran because in state {}", batchSearch.uuid, batchSearch.state);
                     }
                 }
-            } catch(JooqBatchSearchRepository.BatchNotFoundException notFound) {
+            } catch (JooqBatchSearchRepository.BatchNotFoundException notFound) {
                 logger.warn("batch was not executed : {}", notFound.toString());
             } catch (BatchSearchRunner.CancelException cancelEx) {
                 logger.info("cancelling batch search {}", currentBatchId);
+                batchSearchQueue.offer(currentBatchId);
                 repository.reset(currentBatchId);
             } catch (SearchException sex) {
                 logger.error("exception while running batch " + currentBatchId, sex);
@@ -78,7 +91,9 @@ public class BatchSearchLoop {
         return batchSearchIds.size();
     }
 
-    public void enqueuePoison() {batchSearchQueue.add(POISON);}
+    public void enqueuePoison() {
+        batchSearchQueue.add(POISON);
+    }
 
     public void close() throws IOException {
         if (batchSearchQueue instanceof Closeable) {
