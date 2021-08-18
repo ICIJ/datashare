@@ -151,7 +151,7 @@ public class BatchSearchLoopTestInt {
         executor.shutdown();
 
         assertThat(executor.awaitTermination(2,TimeUnit.SECONDS)).isTrue();
-        assertThat(batchSearchRunner.cancelledCalled).isTrue();
+        assertThat(batchSearchRunner.cancelAsked).isTrue();
         verify(repository).reset(batchSearch.uuid);
     }
 
@@ -182,8 +182,7 @@ public class BatchSearchLoopTestInt {
 
     private static class SleepingBatchSearchRunner extends BatchSearchRunner {
         private final int sleepingMilliseconds;
-        private CountDownLatch countDownLatch;
-        private volatile boolean cancelledCalled;
+        private final CountDownLatch countDownLatch;
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds) {
             this(sleepingMilliseconds, new CountDownLatch(1));
@@ -198,7 +197,8 @@ public class BatchSearchLoopTestInt {
         @Override
         public Integer call() {
             countDownLatch.countDown();
-            while(!cancelledCalled) {
+            callThread = Thread.currentThread();
+            while(!cancelAsked) {
                 try {
                     Thread.sleep(sleepingMilliseconds); // Make sure that we wait this before mocktime.sleep()
                     DatashareTime.getInstance().sleep(sleepingMilliseconds);
@@ -207,11 +207,6 @@ public class BatchSearchLoopTestInt {
                 }
             }
             throw new BatchSearchRunner.CancelException();
-        }
-
-        @Override
-        public void cancel() {
-            this.cancelledCalled = true;
         }
     }
 }

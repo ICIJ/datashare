@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -115,17 +116,16 @@ public class BatchSearchRunnerTest {
 
     @Test
     public void test_cancel_current_batch_search() throws Exception {
-        DatashareTime.setMockTime(false);
+        CountDownLatch countDownLatch = new CountDownLatch(1);
         BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         Document[] documents = {createDoc("doc").build()};
         firstSearchWillReturn(1,documents);
-        BatchSearchRunner batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
-            put(BATCH_SEARCH_THROTTLE, "10000");
-        }}), batchSearch, resultConsumer);
+        BatchSearchRunner batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), batchSearch, resultConsumer, countDownLatch);
 
         executor.submit(batchSearchRunner);
-        batchSearchRunner.cancel();
         executor.shutdown();
+        countDownLatch.await();
+        batchSearchRunner.cancel();
 
         assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
     }
