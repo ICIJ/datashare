@@ -25,6 +25,8 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -45,13 +47,14 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private final ElasticsearchIndexer indexer;
     private final PropertiesProvider propertiesProvider;
     private final BatchDownload batchDownload;
+    private final Function<TaskView<File>, Void> updateCallback;
 
     @Inject
-    public BatchDownloadRunner(ElasticsearchIndexer indexer, PropertiesProvider propertiesProvider,
-                               @Assisted BatchDownload batchDownload) {
+    public BatchDownloadRunner(ElasticsearchIndexer indexer, PropertiesProvider propertiesProvider, @Assisted BatchDownload batchDownload, @Assisted Function<TaskView<File>, Void> updateCallback) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
         this.batchDownload = batchDownload;
+        this.updateCallback = updateCallback;
     }
 
     @Override
@@ -83,6 +86,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                         }
                         zipOutputStream.closeEntry();
                         numberOfResults.incrementAndGet();
+                        updateCallback.apply(new TaskView<>(new MonitorableFutureTask<>(this)));
                     } catch (ExtractException|ZipException|ContentNotFoundException zex) {
                         logger.warn("exception during extract/zip. skipping entry for doc " + doc.getId(), zex);
                     }

@@ -224,8 +224,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().haveType("application/json").
                 should().contain("properties").
                 should().contain("filename");
-
-        verify(taskFactory).createDownloadRunner(new BatchDownload(project("test-datashare"), local(), "*", Paths.get("app", "tmp")));
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(project("test-datashare"), local(), "*", Paths.get("app", "tmp"))), any());
     }
 
     @Test
@@ -235,7 +234,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().contain("properties").
                 should().contain("filename");
 
-        verify(taskFactory).createDownloadRunner(new BatchDownload(project("test-datashare"), local(), "{\"match_all\":{}}", Paths.get("app", "tmp")));
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(project("test-datashare"), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"))), any());
     }
 
     @Test
@@ -307,7 +306,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createBatchSearchLoop()).thenReturn(mock(BatchSearchLoop.class));
         when(taskFactory.createScanTask(any(), any(), any(), any())).thenReturn(mock(ScanTask.class));
         when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(mock(DeduplicateTask.class));
-        when(taskFactory.createDownloadRunner(any())).thenReturn(mock(BatchDownloadRunner.class));
+        when(taskFactory.createDownloadRunner(any(), any())).thenReturn(mock(BatchDownloadRunner.class));
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));
         when(taskFactory.createResumeNlpTask(any(), eq(singleton(Pipeline.Type.EMAIL)))).thenReturn(mock(ResumeNlpTask.class));
         when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(NlpApp.class));

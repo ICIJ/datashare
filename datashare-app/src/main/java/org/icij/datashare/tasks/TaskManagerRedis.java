@@ -34,8 +34,9 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V> void save(TaskView<V> task) {
+    public <V> Void save(TaskView<V> task) {
         tasks.put(task.name, task);
+        return null;
     }
 
     @Override

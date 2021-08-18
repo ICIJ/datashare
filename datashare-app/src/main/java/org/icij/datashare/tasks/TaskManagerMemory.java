@@ -99,7 +99,7 @@ public class TaskManagerMemory implements TaskManager {
     }
 
     @Override
-    public <V> void save(TaskView<V> task) {
+    public <V> Void save(TaskView<V> task) {
         throw new IllegalStateException("save not implemented in " + getClass());
     }
 }

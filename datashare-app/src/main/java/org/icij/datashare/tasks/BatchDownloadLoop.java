@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -18,11 +19,13 @@ public class BatchDownloadLoop {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final BlockingQueue<BatchDownload> batchDownloadQueue;
     private final TaskFactory factory;
+    private final TaskManager manager;
 
     @Inject
-    public BatchDownloadLoop(BlockingQueue<BatchDownload> batchDownloadQueue, TaskFactory factory) {
+    public BatchDownloadLoop(BlockingQueue<BatchDownload> batchDownloadQueue, TaskFactory factory, TaskManager manager) {
         this.batchDownloadQueue = batchDownloadQueue;
         this.factory = factory;
+        this.manager = manager;
     }
 
     public void run() {
@@ -32,7 +35,9 @@ public class BatchDownloadLoop {
             try {
                 currentBatch = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
                 if (!POISON.equals(currentBatch)) {
-                    factory.createDownloadRunner(currentBatch).call();
+                    MonitorableFutureTask<File> fileMonitorableFutureTask = new MonitorableFutureTask<>(factory.createDownloadRunner(currentBatch, manager::save));
+                    fileMonitorableFutureTask.run();
+                    manager.save(new TaskView<>(fileMonitorableFutureTask));
                 }
             } catch (Exception ex) {
                 logger.error("error in loop", ex);

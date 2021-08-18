@@ -9,10 +9,12 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 
 public interface TaskFactory {
     ResumeNlpTask createResumeNlpTask(final User user, Set<Pipeline.Type> pipelines);
@@ -21,7 +23,7 @@ public interface TaskFactory {
     BatchSearchLoop createBatchSearchLoop();
     BatchDownloadLoop createBatchDownloadLoop();
     BatchSearchRunner createBatchSearchRunner(BatchSearch batchSearch, TerFunction<String, String, List<Document>, Boolean> resultConsumer);
-    BatchDownloadRunner createDownloadRunner(BatchDownload batchDownload);
+    BatchDownloadRunner createDownloadRunner(BatchDownload batchDownload, Function<TaskView<File>, Void> updateCallback);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);
