@@ -31,7 +31,6 @@ import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.DocumentCollectionFactory;
 import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
 import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -81,9 +80,11 @@ public class CommonMode extends AbstractModule {
             case SERVER:
                 return new ServerMode(properties);
             case CLI:
-            case BATCH_SEARCH:
-            case BATCH_DOWNLOAD:
                 return new CliMode(properties);
+            case BATCH_SEARCH:
+                return new BatchSearchMode(properties);
+            case BATCH_DOWNLOAD:
+                return new BatchDownloadMode(properties);
             default:
                 throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
         }
@@ -103,7 +104,6 @@ public class CommonMode extends AbstractModule {
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
-        bind(TaskManagerMemory.class).toInstance(new TaskManagerMemory(propertiesProvider));
         install(new FactoryModuleBuilder().build(TaskFactory.class));
 
         if ("memory".equals(propertiesProvider.getProperties().get("queueType"))) {
