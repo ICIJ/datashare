@@ -104,6 +104,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                     numberOfResults += docsToProcess.size();
                     docsToProcess = searcher.scroll().collect(toList());
                 }
+                searcher.clearScroll();
                 totalProcessed += 1;
             }
         } catch (ElasticsearchStatusException esEx) {
