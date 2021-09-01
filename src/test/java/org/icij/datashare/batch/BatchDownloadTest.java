@@ -1,5 +1,6 @@
 package org.icij.datashare.batch;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.junit.After;
@@ -69,6 +70,17 @@ public class BatchDownloadTest {
     public void test_as_json_with_not_string_query() {
         BatchDownload batchDownload = new BatchDownload(project("prj"), local(), "query");
         batchDownload.queryAsJson();
+    }
+
+    @Test
+    public void test_serialize_deserialize() throws Exception {
+        DatashareTime.getInstance().setMockDate("2021-07-07T14:53:47Z");
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        String json = objectMapper.writeValueAsString(new BatchDownload(project("prj"), local(), "query"));
+        assertThat(json).contains("\"filename\":\"file:///tmp/archive_prj_local_2021-07-07T14:53:47Z%5BGMT%5D.zip\"");
+
+        assertThat(objectMapper.readValue(json, BatchDownload.class)).isNotNull();
     }
 
     @Before public void setUp() { DatashareTime.setMockTime(true); }

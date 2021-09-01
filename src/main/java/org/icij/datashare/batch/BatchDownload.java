@@ -1,12 +1,10 @@
 package org.icij.datashare.batch;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.text.PathDeserializer;
-import org.icij.datashare.text.PathSerializer;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -27,8 +25,6 @@ public class BatchDownload {
     public static final String ZIP_FORMAT = "archive_%s_%s_%s.zip";
 
     public final Project project;
-    @JsonSerialize(using = PathSerializer.class)
-    @JsonDeserialize(using = PathDeserializer.class)
     public final Path filename;
     public final String query;
     public final User user;
@@ -40,11 +36,15 @@ public class BatchDownload {
         this(project, user, query, Paths.get(System.getProperty("java.io.tmpdir")));
     }
 
-    public BatchDownload(final Project project, User user, String query, Path downloadDir)  {
-        this.project = ofNullable(project).orElseThrow(() -> new IllegalArgumentException("project cannot be null or empty"));
+    @JsonCreator
+    private BatchDownload(@JsonProperty("project") final Project project,
+                         @JsonProperty("filename") Path filename,
+                         @JsonProperty("query") String query,
+                         @JsonProperty("user") User user) {
+        this.project = project;
+        this.user = user;
         this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
-        this.user = ofNullable(user).orElseThrow(() -> new IllegalArgumentException("user cannot be null or empty"));
-        this.filename = downloadDir.resolve(createFilename(project, user));
+        this.filename = filename;
         if (isJsonQuery()) {
             try {
                 jsonNode = JsonObjectMapper.MAPPER.readTree(query.getBytes(StandardCharsets.UTF_8));
@@ -56,11 +56,18 @@ public class BatchDownload {
         }
     }
 
-    public static Path createFilename(Project project, User user) {
-        String strTime = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
-        return Paths.get(format(ZIP_FORMAT, project.name, user.getId(), strTime));
+    public BatchDownload(final Project project, User user, String query, Path downloadDir)  {
+        this(project, downloadDir.resolve(createFilename(project, user)), query, user);
     }
 
+    public static Path createFilename(Project project, User user) {
+        Project nonNullProject = ofNullable(project).orElseThrow(() -> new IllegalArgumentException("project cannot be null or empty"));
+        User nonNullUser = ofNullable(user).orElseThrow(() -> new IllegalArgumentException("user cannot be null or empty"));
+        String strTime = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
+        return Paths.get(format(ZIP_FORMAT, nonNullProject.name, nonNullUser.getId(), strTime));
+    }
+
+    @JsonIgnore
     public boolean isJsonQuery() {
         return query.trim().startsWith("{") && query.trim().endsWith("}");
     }
