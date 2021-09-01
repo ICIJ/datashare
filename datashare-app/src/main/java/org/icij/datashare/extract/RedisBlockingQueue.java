@@ -9,6 +9,7 @@ import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
+import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
@@ -27,7 +28,7 @@ public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements C
     }
 
     public RedisBlockingQueue(RedissonClient redissonClient, String queueName) {
-        super(new StringCodec(), new CommandSyncService(((Redisson)redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient)), queueName, redissonClient);
+        super(new JsonJacksonCodec(), new CommandSyncService(((Redisson)redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient)), queueName, redissonClient);
         this.redissonClient = redissonClient;
     }
 
