@@ -1,6 +1,5 @@
 package org.icij.datashare.json;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -57,13 +56,9 @@ public class JsonObjectMapper {
         String json;
         try {
             json = MAPPER.writeValueAsString(obj);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-        try {
             return MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>(){});
         } catch (IOException e) {
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
