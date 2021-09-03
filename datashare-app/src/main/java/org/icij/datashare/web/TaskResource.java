@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.annotations.Put;
@@ -115,6 +116,11 @@ public class TaskResource {
             return new Payload(result).withHeader("Content-Disposition", "attachment;filename=\"" + ((Path) result).getFileName() + "\"");
         }
         return result == null ? new Payload(204): new Payload(result);
+    }
+
+    @Options("/batchDownload")
+    public Payload batchDownloadPreflight(final Context context) {
+        return ok().withAllowMethods("OPTIONS", "POST");
     }
 
     /**
@@ -256,7 +262,7 @@ public class TaskResource {
         return taskManager.stopTask(notFoundIfNull(taskManager.get(taskId)).name);
     }
 
-    @net.codestory.http.annotations.Options("/stop/:taskName:")
+    @Options("/stop/:taskName:")
     public Payload stopTaskPreflight(final String taskName) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
@@ -278,7 +284,7 @@ public class TaskResource {
                         toMap(t -> t.name, t -> taskManager.stopTask(t.name)));
     }
 
-    @net.codestory.http.annotations.Options("/stopAll")
+    @Options("/stopAll")
     public Payload stopAllTasksPreflight() {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
