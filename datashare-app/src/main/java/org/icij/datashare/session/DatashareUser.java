@@ -1,5 +1,7 @@
 package org.icij.datashare.session;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import net.codestory.http.security.Users;
 import org.icij.datashare.user.User;
 
@@ -10,7 +12,8 @@ public class DatashareUser extends User implements net.codestory.http.security.U
     public DatashareUser(Map<String, Object> map) { super(map);}
     public DatashareUser(String id) { super(id);}
 
-    public DatashareUser(User user) {
+    @JsonCreator
+    public DatashareUser(@JsonProperty("user") User user) {
         super(user);
     }
 
