@@ -17,7 +17,8 @@ public class BatchDownloadMode extends CommonMode {
     protected void configure() {
         super.configure();
 
-        bind(TaskManager.class).toInstance(new TaskManagerRedis(propertiesProvider));
+        String batchQueueType = propertiesProvider.get("batchQueueType").orElse("org.icij.datashare.extract.MemoryBlockingQueue");
+        bind(TaskManager.class).toInstance(new TaskManagerRedis(propertiesProvider, getBlockingQueue(propertiesProvider, batchQueueType, "ds:batchdownload:queue")));
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());

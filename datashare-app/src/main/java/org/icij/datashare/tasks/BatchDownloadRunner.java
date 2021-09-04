@@ -8,7 +8,6 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ExtractException;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
@@ -25,7 +24,6 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
@@ -44,13 +42,13 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     volatile int docsToProcessSize = 0;
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
 
-    private final ElasticsearchIndexer indexer;
+    private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
     private final BatchDownload batchDownload;
     private final Function<TaskView<File>, Void> updateCallback;
 
     @Inject
-    public BatchDownloadRunner(ElasticsearchIndexer indexer, PropertiesProvider propertiesProvider, @Assisted BatchDownload batchDownload, @Assisted Function<TaskView<File>, Void> updateCallback) {
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted BatchDownload batchDownload, @Assisted Function<TaskView<File>, Void> updateCallback) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
         this.batchDownload = batchDownload;

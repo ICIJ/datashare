@@ -8,7 +8,6 @@ import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.session.*;
 import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskManagerRedis;
 import org.icij.datashare.web.*;
 import org.slf4j.Logger;
@@ -25,8 +24,9 @@ public class ServerMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-        bind(TaskManager.class).toInstance(new TaskManagerRedis(propertiesProvider));
         String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse("org.icij.datashare.session.UsersInRedis");
+        String batchQueueType = propertiesProvider.get("batchQueueType").orElse("org.icij.datashare.extract.MemoryBlockingQueue");
+        bind(TaskManager.class).toInstance(new TaskManagerRedis(propertiesProvider, getBlockingQueue(propertiesProvider, batchQueueType, "ds:batchdownload:queue")));
         Class<? extends UsersWritable> authUsersProviderClass = UsersInRedis.class;
         try {
             authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName);

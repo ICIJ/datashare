@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.BatchDownloadApp;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.function.TerFunction;

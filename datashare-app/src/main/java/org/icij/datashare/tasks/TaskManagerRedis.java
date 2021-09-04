@@ -1,8 +1,10 @@
 package org.icij.datashare.tasks;
 
+import com.google.inject.assistedinject.Assisted;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -15,9 +17,11 @@ import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
+import javax.inject.Inject;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -26,11 +30,17 @@ import static org.elasticsearch.painless.api.Augmentation.asList;
 
 public class TaskManagerRedis implements TaskManager {
     private final RedissonMap<String, TaskView<?>> tasks;
+    private final BlockingQueue<BatchDownload> batchDownloadQueue;
 
-    public TaskManagerRedis(PropertiesProvider propertiesProvider) {
+    public TaskManagerRedis(PropertiesProvider propertiesProvider, String queueName,@Assisted BlockingQueue<BatchDownload> batchDownloadQueue) {
         RedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
-        this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, "ds:task:manager", redissonClient, null, null);
+        this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, queueName, redissonClient, null, null);
+        this.batchDownloadQueue = batchDownloadQueue;
+    }
+
+    public TaskManagerRedis(PropertiesProvider propertiesProvider, BlockingQueue<BatchDownload> batchDownloadQueue) {
+        this(propertiesProvider, "ds:task:manager", batchDownloadQueue);
     }
 
     @Override
@@ -56,7 +66,12 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override public MonitorableFutureTask<Void> startTask(Runnable task) { throw new IllegalStateException("not implemented"); }
     @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
-    @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task, Map<String, Object> properties) { throw new IllegalStateException("not implemented"); }
+    @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task, Map<String, Object> properties) {
+        MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task, properties);
+        save(new TaskView<>(futureTask));
+        batchDownloadQueue.add((BatchDownload) properties.get("batchDownload"));
+        return futureTask;
+    }
     @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task) { throw new IllegalStateException("not implemented"); }
     @Override public boolean stopTask(String taskName) { throw new IllegalStateException("not implemented"); }
     @Override public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException { throw new IllegalStateException("not implemented"); }

@@ -34,7 +34,7 @@ public class BatchDownloadLoop {
         while (!POISON.equals(currentBatch)) {
             try {
                 currentBatch = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
-                if (!POISON.equals(currentBatch)) {
+                if (!POISON.equals(currentBatch) && currentBatch != null) {
                     MonitorableFutureTask<File> fileMonitorableFutureTask = new MonitorableFutureTask<>(factory.createDownloadRunner(currentBatch, manager::save));
                     fileMonitorableFutureTask.run();
                     manager.save(new TaskView<>(fileMonitorableFutureTask));

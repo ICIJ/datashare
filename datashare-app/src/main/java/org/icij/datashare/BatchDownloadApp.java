@@ -3,7 +3,6 @@ package org.icij.datashare;
 import com.google.inject.Injector;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchDownloadLoop;
-import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
 
 import java.util.Properties;

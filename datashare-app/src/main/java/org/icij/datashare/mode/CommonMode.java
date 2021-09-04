@@ -192,7 +192,7 @@ public class CommonMode extends AbstractModule {
         return routes;
     }
 
-    private <T> BlockingQueue<T> getBlockingQueue(PropertiesProvider propertiesProvider, String className, String queueName) {
+    protected  <T> BlockingQueue<T> getBlockingQueue(PropertiesProvider propertiesProvider, String className, String queueName) {
         try {
             Class<? extends BlockingQueue<T>> aClass = (Class<? extends BlockingQueue<T>>) Class.forName(className);
             Constructor<? extends BlockingQueue<T>> constructor = aClass.getConstructor(PropertiesProvider.class, String.class);
