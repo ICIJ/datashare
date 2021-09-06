@@ -5,7 +5,6 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 
