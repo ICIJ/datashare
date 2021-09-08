@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.util.Objects;
+import java.util.UUID;
 
 import static java.lang.String.format;
 import static java.time.ZonedDateTime.from;
@@ -24,6 +25,7 @@ import static java.util.Optional.ofNullable;
 public class BatchDownload {
     public static final String ZIP_FORMAT = "archive_%s_%s_%s.zip";
 
+    public final String uuid;
     public final Project project;
     public final Path filename;
     public final String query;
@@ -36,11 +38,17 @@ public class BatchDownload {
         this(project, user, query, Paths.get(System.getProperty("java.io.tmpdir")));
     }
 
+    public BatchDownload(final Project project, User user, String query, Path downloadDir)  {
+        this(UUID.randomUUID().toString(), project, downloadDir.resolve(createFilename(project, user)), query, user);
+    }
+
     @JsonCreator
-    private BatchDownload(@JsonProperty("project") final Project project,
+    private BatchDownload(@JsonProperty("uuid") final String uuid,
+                          @JsonProperty("project") final Project project,
                          @JsonProperty("filename") Path filename,
                          @JsonProperty("query") String query,
                          @JsonProperty("user") User user) {
+        this.uuid = uuid;
         this.project = project;
         this.user = user;
         this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
@@ -54,10 +62,6 @@ public class BatchDownload {
         } else {
             jsonNode = null;
         }
-    }
-
-    public BatchDownload(final Project project, User user, String query, Path downloadDir)  {
-        this(project, downloadDir.resolve(createFilename(project, user)), query, user);
     }
 
     public static Path createFilename(Project project, User user) {
