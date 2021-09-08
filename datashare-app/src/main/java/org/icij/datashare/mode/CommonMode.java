@@ -140,7 +140,12 @@ public class CommonMode extends AbstractModule {
     }
 
     public Configuration createWebConfiguration() {
-        return routes -> addModeConfiguration(defaultRoutes(routes, propertiesProvider));
+        return routes -> addModeConfiguration(defaultRoutes(addCors(routes), propertiesProvider));
+    }
+
+    private Routes addCors(Routes addModeConfiguration) {
+        addModeConfiguration.filter(new CorsFilter("*"));
+        return addModeConfiguration;
     }
 
     protected Routes addModeConfiguration(final Routes routes) {return routes;}
@@ -172,10 +177,6 @@ public class CommonMode extends AbstractModule {
             routes.bind(PLUGINS_BASE_URL, Paths.get(provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR)).toFile());
         }
 
-        String cors = provider.get("cors").orElse("no-cors");
-        if (!cors.equals("no-cors")) {
-            routes.filter(new CorsFilter(cors));
-        }
         return routes;
     }
 

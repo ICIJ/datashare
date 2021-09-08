@@ -25,7 +25,6 @@ public class DatashareCli {
         DatashareCliOptions.settings(parser);
 
         DatashareCliOptions.pluginsDir(parser);
-        DatashareCliOptions.downloadDir(parser);
         DatashareCliOptions.pluginList(parser);
         DatashareCliOptions.pluginInstall(parser);
         DatashareCliOptions.pluginDelete(parser);
