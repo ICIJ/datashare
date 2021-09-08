@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,6 +74,8 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         docsToProcessSize = docsToProcess.size();
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()))) {
+            HashMap<String, Object> taskProperties = new HashMap<>();
+            taskProperties.put("batchDownload", batchDownload);
             while (docsToProcess.size() != 0 && numberOfResults.get() < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
                 for (Entity doc : docsToProcess) {
                     try (InputStream from = new SourceExtractor().getSource(batchDownload.project, (Document) doc)) {
@@ -84,7 +87,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                         }
                         zipOutputStream.closeEntry();
                         numberOfResults.incrementAndGet();
-                        updateCallback.apply(new TaskView<>(new MonitorableFutureTask<>(this)));
+                        updateCallback.apply(new TaskView<>(new MonitorableFutureTask<>(this, taskProperties)));
                     } catch (ExtractException|ZipException|ContentNotFoundException zex) {
                         logger.warn("exception during extract/zip. skipping entry for doc " + doc.getId(), zex);
                     }
