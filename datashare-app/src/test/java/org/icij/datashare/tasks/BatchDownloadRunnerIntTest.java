@@ -156,6 +156,15 @@ public class BatchDownloadRunnerIntTest {
         assertThat(new ZipFile(batchDownload.filename.toFile()).size()).isEqualTo(1);
     }
 
+    @Test
+    public void test_to_string_contains_batch_download_uuid() {
+        BatchDownload batchDownload = createBatchDownload("*");
+        BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), batchDownload, updateCallback);
+
+        assertThat(batchDownloadRunner.toString()).startsWith("org.icij.datashare.tasks.BatchDownloadRunner@");
+        assertThat(batchDownloadRunner.toString()).contains(batchDownload.uuid);
+    }
+
     private File indexEmbeddedFile(String project) throws IOException {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         Extractor extractor = new Extractor(new DocumentFactory().withIdentifier(new DigestIdentifier("SHA-384", Charset.defaultCharset())));

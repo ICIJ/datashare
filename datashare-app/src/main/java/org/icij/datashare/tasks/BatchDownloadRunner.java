@@ -111,4 +111,9 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     public User getUser() {
         return batchDownload.user;
     }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + "@" + batchDownload.uuid;
+    }
 }
