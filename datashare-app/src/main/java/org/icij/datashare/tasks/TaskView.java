@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutionException;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> {
-    private final Map<String, Object> properties;
+    final Map<String, Object> properties;
     public enum State {RUNNING, ERROR, DONE, CANCELLED;}
     public final String name;
     public final User user;

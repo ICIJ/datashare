@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -34,8 +35,13 @@ public class BatchDownloadLoop {
         while (!POISON.equals(currentBatch)) {
             try {
                 currentBatch = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
+
+                HashMap<String, Object> taskProperties = new HashMap<>();
+                taskProperties.put("batchDownload", currentBatch);
+
                 if (!POISON.equals(currentBatch) && currentBatch != null) {
-                    MonitorableFutureTask<File> fileMonitorableFutureTask = new MonitorableFutureTask<>(factory.createDownloadRunner(currentBatch, manager::save));
+                    MonitorableFutureTask<File> fileMonitorableFutureTask = new MonitorableFutureTask<>(
+                            factory.createDownloadRunner(currentBatch, manager::save), taskProperties);
                     fileMonitorableFutureTask.run();
                     manager.save(new TaskView<>(fileMonitorableFutureTask));
                 }
