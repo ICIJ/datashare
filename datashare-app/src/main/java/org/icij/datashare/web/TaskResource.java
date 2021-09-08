@@ -147,7 +147,7 @@ public class TaskResource {
         String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
         BatchDownload batchDownload = new BatchDownload(project((String) options.get("project")), (User) context.currentUser(), query, tmpPath);
         BatchDownloadRunner downloadTask = taskFactory.createDownloadRunner(batchDownload, v -> null);
-        return new TaskView<>(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}}));
+        return taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}});
     }
 
     /**
@@ -163,7 +163,7 @@ public class TaskResource {
     public TaskView<Long> indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) {
         IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(),
                 propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), optionsWrapper.asProperties());
-        return new TaskView<>(taskManager.startTask(indexTask));
+        return taskManager.startTask(indexTask);
     }
 
     /**
@@ -199,7 +199,7 @@ public class TaskResource {
             taskFactory.createScanIndexTask(user, reportName).call();
             properties.put(MAP_NAME_OPTION, reportName);
         }
-        return asList(scanResponse, new TaskView<>(taskManager.startTask(taskFactory.createIndexTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), properties))));
+        return asList(scanResponse, taskManager.startTask(taskFactory.createIndexTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), properties)));
     }
 
     /**
@@ -216,8 +216,8 @@ public class TaskResource {
     @Post("/batchUpdate/scan/:filePath:")
     public TaskView<Long> scanFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
         Path path = IS_OS_WINDOWS ?  get(filePath):get(File.separator, filePath);
-        return new TaskView<>(taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
-                propertiesProvider.createOverriddenWith(optionsWrapper.getOptions()))));
+        return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
+                propertiesProvider.createOverriddenWith(optionsWrapper.getOptions())));
     }
 
     /**
@@ -230,7 +230,7 @@ public class TaskResource {
      */
     @Post("/clean")
     public List<TaskView<?>> cleanDoneTasks() {
-        return new ArrayList<>(taskManager.clearDoneTasks());
+        return taskManager.clearDoneTasks();
     }
 
     /**
@@ -248,7 +248,7 @@ public class TaskResource {
         batchSearchLoop.requeueDatabaseBatches();
         batchSearchLoop.enqueuePoison();
 
-        return new TaskView<>(taskManager.startTask(batchSearchLoop::run));
+        return taskManager.startTask(batchSearchLoop::run);
     }
 
     /**
@@ -278,10 +278,11 @@ public class TaskResource {
      */
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) {
-        return taskManager.get().stream().
+        Map<String, Boolean> collect = taskManager.get().stream().
                 filter(t -> context.currentUser().equals(t.getUser())).
-                filter(t -> t.state == TaskView.State.RUNNING).collect(
-                        toMap(t -> t.name, t -> taskManager.stopTask(t.name)));
+                filter(t -> t.getState() == TaskView.State.RUNNING).collect(
+                toMap(t -> t.name, t -> taskManager.stopTask(t.name)));
+        return collect;
     }
 
     @Options("/stopAll")
@@ -315,19 +316,19 @@ public class TaskResource {
 
         Pipeline pipeline = pipelineRegistry.get(Pipeline.Type.parse(pipelineName));
 
-        MonitorableFutureTask<Void> nlpTask = createNlpApp(context, mergedProps, pipeline);
+        TaskView<Void> nlpTask = createNlpApp(context, mergedProps, pipeline);
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            MonitorableFutureTask<Long> resumeNlpTask = taskManager.startTask(
+            TaskView<Long> resumeNlpTask = taskManager.startTask(
                     taskFactory.createResumeNlpTask((User) context.currentUser(),
                             new HashSet<Pipeline.Type>() {{add(Pipeline.Type.parse(pipelineName));}}));
-            return asList(new TaskView<>(resumeNlpTask), new TaskView<>(nlpTask));
+            return asList(resumeNlpTask, nlpTask);
         }
-        return singletonList(new TaskView<>(nlpTask));
+        return singletonList(nlpTask);
     }
 
-    private MonitorableFutureTask<Void> createNlpApp(Context context, Properties mergedProps, Pipeline pipeline) {
+    private TaskView<Void> createNlpApp(Context context, Properties mergedProps, Pipeline pipeline) {
         CountDownLatch latch = new CountDownLatch(1);
-        MonitorableFutureTask<Void> task = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), pipeline, mergedProps, latch::countDown));
+        TaskView<Void> taskView = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), pipeline, mergedProps, latch::countDown));
         if (parseBoolean(mergedProps.getProperty("waitForNlpApp", "true"))) {
             try {
                 logger.info("waiting for NlpApp {} to listen...", pipeline);
@@ -337,7 +338,7 @@ public class TaskResource {
                 logger.error("NlpApp has been interrupted", e);
             }
         }
-        return task;
+        return taskView;
     }
 
     private static <V> TaskView<V> forbiddenIfNotSameUser(Context context, TaskView<V> task) {

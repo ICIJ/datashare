@@ -76,7 +76,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.name).collect(toList());
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
     }
@@ -87,7 +87,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.name).collect(toList());
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
 
@@ -100,7 +100,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.name).collect(toList());
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
     }
@@ -158,7 +158,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.name).collect(toList());
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
         HashMap<String, String> defaultProperties = getDefaultProperties();
@@ -174,7 +174,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         response.should().haveType("application/json");
 
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.name).collect(toList());
         assertThat(taskNames.size()).isEqualTo(2);
         verify(taskFactory).createResumeNlpTask(local(), singleton(Pipeline.Type.EMAIL));
 
@@ -240,7 +240,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_clean_tasks() {
         post("/api/task/batchUpdate/index/file/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{}").response();
-        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(Object::toString).collect(toList());
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.name).collect(toList());
 
         ShouldChain responseBody = post("/api/task/clean", "{}").should().haveType("application/json");
 
@@ -251,13 +251,13 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_task() {
-        MonitorableFutureTask<String> dummyTask = taskManager.startTask(() -> {
+        TaskView<String> dummyTask = taskManager.startTask(() -> {
             Thread.sleep(10000);
             return "ok";
         });
-        put("/api/task/stop/" + dummyTask).should().respond(200).contain("true");
+        put("/api/task/stop/" + dummyTask.name).should().respond(200).contain("true");
 
-        assertThat(taskManager.get(dummyTask.toString()).state).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.get(dummyTask.name).getState()).isEqualTo(TaskView.State.CANCELLED);
         get("/api/task/all").should().respond(200).contain("\"state\":\"CANCELLED\"");
     }
 
@@ -268,20 +268,20 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_all() {
-        MonitorableFutureTask<String> t1 = taskManager.startTask(() -> {
+        TaskView<String> t1 = taskManager.startTask(() -> {
             Thread.sleep(10000);
             return "ok";
         });
-        MonitorableFutureTask<String> t2 = taskManager.startTask(() -> {
+        TaskView<String> t2 = taskManager.startTask(() -> {
             Thread.sleep(10000);
             return "ok";
         });
         put("/api/task/stopAll").should().respond(200).
-                contain(t1.toString() + "\":true").
-                contain(t2.toString() + "\":true");
+                contain(t1.name + "\":true").
+                contain(t2.name + "\":true");
 
-        assertThat(taskManager.get(t1.toString()).state).isEqualTo(TaskView.State.CANCELLED);
-        assertThat(taskManager.get(t2.toString()).state).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.get(t1.name).getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.get(t2.name).getState()).isEqualTo(TaskView.State.CANCELLED);
     }
 
     @Test
@@ -290,6 +290,17 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         taskManager.waitTasksToBeDone(1, SECONDS);
 
         put("/api/task/stopAll").should().respond(200).contain("{}");
+    }
+
+    @Test
+    public void test_clear_done_tasks() {
+        taskManager.startTask(() -> "ok");
+        taskManager.waitTasksToBeDone(1, SECONDS);
+
+        put("/api/task/stopAll").should().respond(200).contain("{}");
+
+        assertThat(taskManager.clearDoneTasks()).hasSize(1);
+        assertThat(taskManager.get()).hasSize(0);
     }
 
     @NotNull

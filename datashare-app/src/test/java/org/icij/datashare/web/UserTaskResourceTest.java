@@ -8,10 +8,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.tasks.MonitorableFutureTask;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.tasks.TaskManagerMemory;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
@@ -45,39 +42,39 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_task() {
+    public void test_get_task() throws Exception {
         setupAppWith("foo");
-        MonitorableFutureTask<Void> t = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("foo")));
-        get("/api/task/" + t).withPreemptiveAuthentication("foo", "qux").should().respond(200).
-            contain(format("{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}", t));
+        TaskView<String> t = taskManager.startTask(new DummyUserTask<>("foo"));
+        get("/api/task/" + t.name).withPreemptiveAuthentication("foo", "qux").should().respond(200).
+            contain(format("{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}", t.name));
     }
 
     @Test
     public void test_get_task_result_forbidden() {
         setupAppWith("bar", "foo");
-        MonitorableFutureTask<Void> t = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
-        get("/api/task/" + t + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(403);
+        TaskView<Void> t = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
+        get("/api/task/" + t.name + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(403);
     }
 
     @Test
     public void test_get_task_result_unknown_task() {
         setupAppWith("foo");
-        MonitorableFutureTask<Void> t = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
+        TaskView<Void> t = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
         get("/api/task/unknown/result").withPreemptiveAuthentication("foo", "qux").should().respond(404);
     }
 
     @Test
     public void test_get_task_result_with_no_result() {
         setupAppWith("foo");
-        MonitorableFutureTask<Void> t = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("foo")));
-        get("/api/task/" + t + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(204);
+        TaskView<Void> t = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("foo")));
+        get("/api/task/" + t.name + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(204);
     }
 
     @Test
     public void test_get_task_result_with_int_result() {
         setupAppWith("foo");
-        MonitorableFutureTask<Integer> t = taskManager.startTask(new DummyUserTask<>("foo", () -> 42));
-        get("/api/task/" + t + "/result").withPreemptiveAuthentication("foo", "qux").
+        TaskView<Integer> t = taskManager.startTask(new DummyUserTask<>("foo", () -> 42));
+        get("/api/task/" + t.name + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
                 should().haveType("application/json").
                 should().contain("42");
@@ -86,8 +83,8 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_task_result_with_file_result__should_relativize_result_with_app_folder() {
         setupAppWith("foo");
-        MonitorableFutureTask<File> t = taskManager.startTask(new DummyUserTask<>("foo", () -> Paths.get("app", "index.html").toFile()));
-        get("/api/task/" + t + "/result").withPreemptiveAuthentication("foo", "qux").
+        TaskView<File> t = taskManager.startTask(new DummyUserTask<>("foo", () -> Paths.get("app", "index.html").toFile()));
+        get("/api/task/" + t.name + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
                 should().haveType("text/html;charset=UTF-8").
                 should().haveHeader("Content-Disposition", "attachment;filename=\"index.html\"").
@@ -97,30 +94,30 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_task_list_in_server_mode() {
         setupAppWith("foo", "bar");
-        MonitorableFutureTask<Void> t1 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("foo")));
-        MonitorableFutureTask<Void> t2 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
+        TaskView<Void> t1 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("foo")));
+        TaskView<Void> t2 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
 
-        get("/api/task/all").withPreemptiveAuthentication("foo", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t1));
-        get("/api/task/all").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2));
+        get("/api/task/all").withPreemptiveAuthentication("foo", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t1.name));
+        get("/api/task/all").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.name));
     }
 
     @Test
     public void test_task_list_with_filter() {
         setupAppWith("bar");
-        MonitorableFutureTask<Void> t2 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
+        TaskView<Void> t2 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("bar")));
 
-        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2));
+        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.name));
         get("/api/task/all?filter=foo").withPreemptiveAuthentication("bar", "qux").should().contain("[]");
     }
 
     @Test
     public void test_stop_all_in_server_mode() {
         setupAppWith("foo", "bar");
-        MonitorableFutureTask<Void> t1 = taskManager.startTask(new MonitorableFutureTask<>(new SleepingUserTask("foo")));
-        MonitorableFutureTask<Void> t2 = taskManager.startTask(new MonitorableFutureTask<>(new SleepingUserTask("bar")));
+        TaskView<Void> t1 = taskManager.startTask(new MonitorableFutureTask<>(new SleepingUserTask("foo")));
+        TaskView<Void> t2 = taskManager.startTask(new MonitorableFutureTask<>(new SleepingUserTask("bar")));
 
-        put("/api/task/stopAll").withPreemptiveAuthentication("foo", "pass").should().not().contain(t2.toString());
-        put("/api/task/stopAll").withPreemptiveAuthentication("bar", "pass").should().not().contain(t1.toString());
+        put("/api/task/stopAll").withPreemptiveAuthentication("foo", "pass").should().not().contain(t2.name);
+        put("/api/task/stopAll").withPreemptiveAuthentication("bar", "pass").should().not().contain(t1.name);
     }
 
     static class DummyUserTask<V> implements UserTask, Callable<V> {

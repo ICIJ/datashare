@@ -61,18 +61,19 @@ public class TaskManagerRedis implements TaskManager {
 
     @Override
     public List<TaskView<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(f -> f.state != TaskView.State.RUNNING).map(t -> tasks.remove(t.toString())).collect(toList());
+        return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.toString())).collect(toList());
     }
 
-    @Override public MonitorableFutureTask<Void> startTask(Runnable task) { throw new IllegalStateException("not implemented"); }
-    @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
-    @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task, Map<String, Object> properties) {
+    @Override public TaskView<Void> startTask(Runnable task) { throw new IllegalStateException("not implemented"); }
+    @Override public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
+    @Override public <V> TaskView<V> startTask(Callable<V> task, Map<String, Object> properties) {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task, properties);
-        save(new TaskView<>(futureTask));
+        TaskView<V> taskView = new TaskView<>(futureTask);
+        save(taskView);
         batchDownloadQueue.add((BatchDownload) properties.get("batchDownload"));
-        return futureTask;
+        return taskView;
     }
-    @Override public <V> MonitorableFutureTask<V> startTask(Callable<V> task) { throw new IllegalStateException("not implemented"); }
+    @Override public <V> TaskView<V> startTask(Callable<V> task) { throw new IllegalStateException("not implemented"); }
     @Override public boolean stopTask(String taskName) { throw new IllegalStateException("not implemented"); }
     @Override public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException { throw new IllegalStateException("not implemented"); }
 
