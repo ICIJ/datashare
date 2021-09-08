@@ -17,6 +17,9 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.Callable;
@@ -89,6 +92,15 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 should().haveType("text/html;charset=UTF-8").
                 should().haveHeader("Content-Disposition", "attachment;filename=\"index.html\"").
                 should().contain("datashare-client");
+    }
+
+    @Test
+    public void test_get_task_result_with_file_result_and_absolute_path__should_relativize_result_with_app_folder() throws Exception {
+        setupAppWith("foo");
+        File indexHtml = new File(ClassLoader.getSystemResource("app/index.html").toURI());
+        TaskView<File> t = taskManager.startTask(new DummyUserTask<>("foo", () -> indexHtml));
+
+        get("/api/task/" + t.name + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(200);
     }
 
     @Test

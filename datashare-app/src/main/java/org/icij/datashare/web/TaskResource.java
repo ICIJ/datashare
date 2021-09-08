@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -108,12 +109,15 @@ public class TaskResource {
      * $(curl localhost:8080/api/task/21148262/result)
      */
     @Get("/:id/result")
-    public Payload getTaskResult(String id, Context context) throws ExecutionException, InterruptedException {
+    public Payload getTaskResult(String id, Context context) throws URISyntaxException {
         TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.get(id)));
         Object result = task.getResult();
         if (result instanceof File) {
-            result = Paths.get(context.env().appFolder()).relativize(((File) result).toPath());
-            return new Payload(result).withHeader("Content-Disposition", "attachment;filename=\"" + ((Path) result).getFileName() + "\"");
+            final Path appPath = ((File) result).isAbsolute() ?
+                    get(ClassLoader.getSystemResource(context.env().appFolder()).toURI()):
+                    get(context.env().appFolder());
+            Path resultPath = appPath.relativize(((File) result).toPath());
+            return new Payload(resultPath).withHeader("Content-Disposition", "attachment;filename=\"" + resultPath.getFileName() + "\"");
         }
         return result == null ? new Payload(204): new Payload(result);
     }
