@@ -9,6 +9,7 @@ import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.MonitorableFutureTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManagerMemory;
+import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -106,8 +107,8 @@ class CliApp {
         }
 
         if (pipeline.has(DatashareCli.Stage.SCANIDX)) {
-            MonitorableFutureTask<Long> longMonitorableFutureTask = taskManager.startTask(taskFactory.createScanIndexTask(nullUser(), ofNullable(properties.getProperty(MAP_NAME_OPTION)).orElse("extract:report")));
-            logger.info("scanned {}", longMonitorableFutureTask.get());
+            TaskView<Long> taskView = taskManager.startTask(taskFactory.createScanIndexTask(nullUser(), ofNullable(properties.getProperty(MAP_NAME_OPTION)).orElse("extract:report")));
+            logger.info("scanned {}", taskView.getResult(true));
         }
 
         if (pipeline.has(DatashareCli.Stage.SCAN) && !resume(properties)) {

@@ -1,9 +1,9 @@
 package org.icij.datashare.tasks;
 
-import junit.framework.TestCase;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.user.User;
 import org.junit.Before;
+import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -19,7 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class BatchDownloadLoopTest extends TestCase {
+public class BatchDownloadLoopTest {
     private final BlockingQueue<BatchDownload> batchDownloadQueue = new LinkedBlockingQueue<>();
     @Mock BatchDownloadRunner batchRunner;
     @Mock TaskFactory factory;
@@ -27,6 +27,7 @@ public class BatchDownloadLoopTest extends TestCase {
     @Captor
     private ArgumentCaptor<TaskView<File>> argCaptor;
 
+    @Test
     public void test_loop() throws Exception {
         BatchDownloadLoop app = new BatchDownloadLoop(batchDownloadQueue, factory, manager);
         batchDownloadQueue.add(new BatchDownload(project("prj"), User.local(), "query"));
@@ -36,7 +37,7 @@ public class BatchDownloadLoopTest extends TestCase {
 
         verify(batchRunner).call();
         verify(manager).save(argCaptor.capture());
-        assertThat(argCaptor.getValue().state).isEqualTo(TaskView.State.DONE);
+        assertThat(argCaptor.getValue().getState()).isEqualTo(TaskView.State.DONE);
     }
 
     @Before

@@ -13,55 +13,81 @@ import java.util.concurrent.ExecutionException;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> {
     private final Map<String, Object> properties;
-    public enum State {RUNNING, ERROR, DONE, CANCELLED}
+    public enum State {RUNNING, ERROR, DONE, CANCELLED;}
     public final String name;
-    public final State state;
-    public final double progress;
     public final User user;
-    private V result;
-
+    private volatile State state;
+    private volatile double progress;
+    private volatile V result;
+    @JsonIgnore
+    final MonitorableFutureTask<V> task;
     public TaskView(MonitorableFutureTask<V> task) {
         this.name = task.toString();
         this.user = task.getUser();
-        State taskState;
+        this.properties = task.properties.isEmpty() ? null: task.properties;
+        this.task = task;
         if (task.isDone()) {
-            try {
-                result = task.get();
-                taskState = State.DONE;
-            } catch (CancellationException cex) {
-                taskState = State.CANCELLED;
-                result = null;
-            } catch (ExecutionException |InterruptedException e) {
-                taskState = State.ERROR;
-                result = null;
-            }
-            progress = 1;
-            state = task.isCancelled() ? State.CANCELLED : taskState;
+            this.result = getResult();
         } else {
             result = null;
             state = State.RUNNING;
             progress = task.getProgressRate();
         }
-        this.properties = task.properties.isEmpty() ? null: task.properties;
     }
-
     @JsonCreator
-    private TaskView(@JsonProperty("name") String name,
-                     @JsonProperty("state") State state,
-                     @JsonProperty("progress") double progress,
-                     @JsonProperty("user") User user,
-                     @JsonProperty("result") V result,
-                     @JsonProperty("properties") Map<String, Object> properties) {
+    TaskView(@JsonProperty("name") String name,
+             @JsonProperty("state") State state,
+             @JsonProperty("progress") double progress,
+             @JsonProperty("user") User user,
+             @JsonProperty("result") V result,
+             @JsonProperty("properties") Map<String, Object> properties) {
         this.name = name;
         this.state = state;
         this.progress = progress;
         this.user = user;
         this.result = result;
         this.properties = properties;
+        this.task = null;
     }
 
     public V getResult() {
-        return result;
+        return getResult(false);
     }
+
+    public V getResult(boolean sync) {
+        if (task != null && (task.isDone() || sync)) {
+            try {
+                progress = 1;
+                state = State.DONE;
+                return task.get();
+            } catch (CancellationException cex) {
+                state = State.CANCELLED;
+                return null;
+            } catch (ExecutionException | InterruptedException e) {
+                state = State.ERROR;
+                return null;
+            }
+        } else {
+            return result;
+        }
+    }
+
+    public double getProgress() {
+        if (task != null) {
+            return task.isDone() ? 1 : task.getProgressRate();
+        }
+        return progress;
+    }
+
+    public State getState() {
+        if (task != null) {
+            if (!task.isDone()) {
+                return State.RUNNING;
+            }
+            getResult();
+        }
+        return state;
+    }
+
     public User getUser() { return user;}
 }

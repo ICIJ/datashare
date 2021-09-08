@@ -36,7 +36,7 @@ public class TaskManagerRedisTest {
     }
 
     @Test
-    public void test_update_tasks() throws Exception {
+    public void test_update_tasks() {
         MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "run");
         TaskView<String> task = new TaskView<>(futureTask);
         taskManager.save(task);
@@ -44,7 +44,7 @@ public class TaskManagerRedisTest {
         futureTask.run();
 
         taskManager.save(new TaskView<>(futureTask));
-        assertThat(taskManager.get(task.name).state).isEqualTo(TaskView.State.DONE);
+        assertThat(taskManager.get(task.name).getState()).isEqualTo(TaskView.State.DONE);
     }
 
     @Test
