@@ -4,11 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Post;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.lang3.StringUtils;
@@ -26,10 +22,8 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 import static java.lang.Boolean.parseBoolean;
@@ -114,7 +108,7 @@ public class TaskResource {
         Object result = task.getResult();
         if (result instanceof File) {
             final Path appPath = ((File) result).isAbsolute() ?
-                    get(ClassLoader.getSystemResource(context.env().appFolder()).toURI()):
+                    get(System.getProperty("user.dir")).resolve(context.env().appFolder()): // bypass when appfolder is in jar file
                     get(context.env().appFolder());
             Path resultPath = appPath.relativize(((File) result).toPath());
             return new Payload(resultPath).withHeader("Content-Disposition", "attachment;filename=\"" + resultPath.getFileName() + "\"");
