@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.user.User;
 import org.junit.Before;
@@ -9,14 +10,16 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchDownloadLoopTest {
@@ -29,7 +32,13 @@ public class BatchDownloadLoopTest {
 
     @Test
     public void test_loop() throws Exception {
-        BatchDownloadLoop app = new BatchDownloadLoop(batchDownloadQueue, factory, manager);
+        BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
+        BatchDownloadLoop app = new BatchDownloadLoop(new PropertiesProvider(), batchDownloadQueue, factory, manager) {
+            @Override
+            public BatchDownloadCleaner createDownloadCleaner(Path downloadDir, int ttlHour) {
+                return batchDownloadCleaner;
+            }
+        };
         batchDownloadQueue.add(new BatchDownload(project("prj"), User.local(), "query"));
         app.enqueuePoison();
 
@@ -37,7 +46,26 @@ public class BatchDownloadLoopTest {
 
         verify(batchRunner).call();
         verify(manager).save(argCaptor.capture());
+        verify(batchDownloadCleaner, times(2)).run();
         assertThat(argCaptor.getValue().getState()).isEqualTo(TaskView.State.DONE);
+    }
+
+    @Test
+    public void test_ttl_property() {
+        BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+            put(BATCH_DOWNLOAD_ZIP_TTL, "15");
+        }});
+        BatchDownloadLoop app = new BatchDownloadLoop(propertiesProvider, batchDownloadQueue, factory, manager) {
+            @Override
+            public BatchDownloadCleaner createDownloadCleaner(Path downloadDir, int ttlHour) {
+                assertThat(ttlHour).isEqualTo(15);
+                return batchDownloadCleaner;
+            }
+        };
+        app.enqueuePoison();
+
+        app.run();
     }
 
     @Before

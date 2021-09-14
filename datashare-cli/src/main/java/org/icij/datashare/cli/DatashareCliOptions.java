@@ -23,6 +23,7 @@ public final class DatashareCliOptions {
     public static final String NLP_PIPELINES_OPT = "nlpPipelines";
     public static final String BATCH_SEARCH_THROTTLE = "batchSearchThrottleMilliseconds";
     public static final String BATCH_SEARCH_MAX_TIME = "batchSearchMaxTimeSeconds";
+    public static final String BATCH_DOWNLOAD_ZIP_TTL = "batchDownloadTimeToLive";
     public static final String SCROLL_SIZE = "scrollSize";
 
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
@@ -442,5 +443,12 @@ public final class DatashareCliOptions {
                         asList("batchQueueType"), "Queue class for batch search queue")
                         .withRequiredArg()
                         .ofType(String.class);
+    }
+
+    public static OptionSpec<Integer> batchDownloadTimeToLive(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList(BATCH_DOWNLOAD_ZIP_TTL), "Time to live in hour for batch download zip files (Default : 24)")
+                .withRequiredArg()
+                .ofType(Integer.class);
     }
 }

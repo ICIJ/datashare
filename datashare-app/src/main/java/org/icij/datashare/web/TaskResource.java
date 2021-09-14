@@ -108,7 +108,7 @@ public class TaskResource {
         Object result = task.getResult();
         if (result instanceof File) {
             final Path appPath = ((File) result).isAbsolute() ?
-                    get(System.getProperty("user.dir")).resolve(context.env().appFolder()): // bypass when appfolder is in jar file
+                    get(System.getProperty("user.dir")).resolve(context.env().appFolder()):
                     get(context.env().appFolder());
             Path resultPath = appPath.relativize(((File) result).toPath());
             return new Payload(resultPath).withHeader("Content-Disposition", "attachment;filename=\"" + resultPath.getFileName() + "\"");

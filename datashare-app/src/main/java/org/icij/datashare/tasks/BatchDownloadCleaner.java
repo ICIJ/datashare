@@ -17,11 +17,11 @@ public class BatchDownloadCleaner implements Runnable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Pattern filePattern = compile(BatchDownload.ZIP_FORMAT.replace("%s", "[a-z0-9\\.:Z\\-\\[GMT\\]]+"));
     private final Path downloadDir;
-    private final int delaySeconds;
+    private final int ttlHour;
 
-    public BatchDownloadCleaner(Path downloadDir, int delaySeconds) {
+    public BatchDownloadCleaner(Path downloadDir, int ttlHour) {
         this.downloadDir = downloadDir;
-        this.delaySeconds = delaySeconds;
+        this.ttlHour = ttlHour;
     }
 
     @Override
@@ -29,7 +29,7 @@ public class BatchDownloadCleaner implements Runnable {
         logger.info("deleting temporary zip files from {}", downloadDir);
         stream(requireNonNull(downloadDir.toFile().listFiles()))
                 .filter(f -> filePattern.matcher(f.getName()).matches())
-                .filter(f -> DatashareTime.getInstance().currentTimeMillis() - f.lastModified() >= delaySeconds * 1000L)
+                .filter(f -> DatashareTime.getInstance().currentTimeMillis() - f.lastModified() >= ttlHour * 1000L * 60 * 60)
                 .forEach(File::delete);
     }
 }

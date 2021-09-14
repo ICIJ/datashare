@@ -39,13 +39,13 @@ public class BatchDownloadCleanerTest {
     @Test
     public void test_remove_zip_file_with_correct_patterns_after_a_given_delay() throws IOException {
         File file = downloadDir.newFile(createFilename(project("prj"), User.local()).toString());
-        BatchDownloadCleaner batchDownloadCleaner = new BatchDownloadCleaner(downloadDir.getRoot().toPath(), 10);
+        BatchDownloadCleaner batchDownloadCleaner = new BatchDownloadCleaner(downloadDir.getRoot().toPath(), 1);
         DatashareTime.getInstance().addMilliseconds(100); // same reason as previous test
 
         batchDownloadCleaner.run();
         Assertions.assertThat(file).exists();
 
-        DatashareTime.getInstance().addMilliseconds(10_000);
+        DatashareTime.getInstance().addMilliseconds(1000 * 60 * 60);
         batchDownloadCleaner.run();
         Assertions.assertThat(file).doesNotExist();
     }

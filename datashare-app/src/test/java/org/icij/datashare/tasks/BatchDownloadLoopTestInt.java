@@ -22,7 +22,7 @@ public class BatchDownloadLoopTestInt {
     public void test_batch_download_task_view_properties() {
         TaskFactory factory = mock(TaskFactory.class);
         when(factory.createDownloadRunner(any(), any())).thenReturn(mock(BatchDownloadRunner.class));
-        BatchDownloadLoop batchDownloadLoop = new BatchDownloadLoop(batchDownloadQueue, factory, taskManager);
+        BatchDownloadLoop batchDownloadLoop = new BatchDownloadLoop(new PropertiesProvider(), batchDownloadQueue, factory, taskManager);
 
         batchDownloadQueue.add(new BatchDownload(Project.project("prj"), User.local(), "foo"));
         batchDownloadLoop.enqueuePoison();
