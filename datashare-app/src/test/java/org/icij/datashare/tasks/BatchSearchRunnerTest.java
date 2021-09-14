@@ -3,16 +3,12 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearchRecord;
-import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.function.TerFunction;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,12 +27,10 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_THROTTLE;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
 import static org.icij.datashare.tasks.BatchSearchRunner.MAX_BATCH_RESULT_SIZE;
 import static org.icij.datashare.tasks.BatchSearchRunner.MAX_SCROLL_SIZE;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
@@ -92,7 +86,7 @@ public class BatchSearchRunnerTest {
         Date beforeBatch  = timeRule.now;
 
         new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
-            put(BATCH_SEARCH_THROTTLE, "1000");
+            put(BATCH_THROTTLE, "1000");
         }}), batchSearch, resultConsumer).call();
 
         assertThat(timeRule.now().getTime() - beforeBatch.getTime()).isEqualTo(1000);
@@ -106,7 +100,7 @@ public class BatchSearchRunnerTest {
         Date beforeBatch  = timeRule.now;
 
         SearchException searchException = assertThrows(SearchException.class, () -> new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
-            put(BATCH_SEARCH_THROTTLE, "1000");
+            put(BATCH_THROTTLE, "1000");
             put(BATCH_SEARCH_MAX_TIME, "1");
         }}), batchSearch, resultConsumer).call());
 

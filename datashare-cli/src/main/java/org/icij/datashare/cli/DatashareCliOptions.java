@@ -21,7 +21,7 @@ public final class DatashareCliOptions {
     public static final String STAGES_OPT = "stages";
     public static final String DATA_DIR_OPT = "dataDir";
     public static final String NLP_PIPELINES_OPT = "nlpPipelines";
-    public static final String BATCH_SEARCH_THROTTLE = "batchSearchThrottleMilliseconds";
+    public static final String BATCH_THROTTLE = "batchThrottleMilliseconds";
     public static final String BATCH_SEARCH_MAX_TIME = "batchSearchMaxTimeSeconds";
     public static final String BATCH_DOWNLOAD_ZIP_TTL = "batchDownloadTimeToLive";
     public static final String SCROLL_SIZE = "scrollSize";
@@ -264,9 +264,9 @@ public final class DatashareCliOptions {
                          .ofType(Integer.class);
     }
 
-    public static OptionSpec<Integer> batchSearchThrottle(OptionParser parser) {
+    public static OptionSpec<Integer> batchThrottle(OptionParser parser) {
          return parser.acceptsAll(
-                         asList(BATCH_SEARCH_THROTTLE), "Throttle for batch search in milliseconds")
+                         asList(BATCH_THROTTLE), "Throttle for batch in milliseconds")
                          .withRequiredArg()
                          .ofType(Integer.class);
     }

@@ -50,7 +50,7 @@ public class DatashareCli {
         DatashareCliOptions.followSymlinks(parser);
         DatashareCliOptions.enableBrowserOpenLink(parser);
         DatashareCliOptions.batchSearchMaxTime(parser);
-        DatashareCliOptions.batchSearchThrottle(parser);
+        DatashareCliOptions.batchThrottle(parser);
         DatashareCliOptions.batchSearchQueueType(parser);
         DatashareCliOptions.batchDownloadTimeToLive(parser);
 

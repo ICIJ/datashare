@@ -33,7 +33,7 @@ import java.util.zip.ZipOutputStream;
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_THROTTLE;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
 
 public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTask {
@@ -58,7 +58,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
 
     @Override
     public File call() throws Exception {
-        int throttleMs = parseInt(propertiesProvider.get(BATCH_SEARCH_THROTTLE).orElse("0"));
+        int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE).orElse("0"));
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
 
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
