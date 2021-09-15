@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
+import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.monitoring.Monitorable;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -40,7 +42,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private final Logger logger = LoggerFactory.getLogger(getClass());
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
-    volatile int docsToProcessSize = 0;
+    volatile long docsToProcessSize = 0;
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
 
     private final Indexer indexer;
@@ -61,6 +63,8 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE).orElse("0"));
         int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
+        long maxZipSizeBytes = HumanReadableSize.parse(propertiesProvider.get(BATCH_DOWNLOAD_MAX_SIZE).orElse("100M"));
+        long zippedFilesSize = 0;
 
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
                 batchDownload.user.getId(), batchDownload.project, throttleMs, scrollSize);
@@ -72,7 +76,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         }
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         if (docsToProcess.size() == 0) return null;
-        docsToProcessSize = docsToProcess.size();
+        docsToProcessSize = searcher.totalHits();
         if (docsToProcessSize > maxResultSize) {
             logger.warn("number of results for batch download > {} for {}/{} (nb zip entries will be limited)",
                     maxResultSize, batchDownload.uuid, batchDownload.user);
@@ -81,7 +85,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()))) {
             HashMap<String, Object> taskProperties = new HashMap<>();
             taskProperties.put("batchDownload", batchDownload);
-            while (docsToProcess.size() != 0 && numberOfResults.get() < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
+            while (docsToProcess.size() != 0 && numberOfResults.get() <= maxResultSize - scrollSize && zippedFilesSize < maxZipSizeBytes) {
                 for (Entity doc : docsToProcess) {
                     try (InputStream from = new SourceExtractor().getSource(batchDownload.project, (Document) doc)) {
                         zipOutputStream.putNextEntry(new ZipEntry(getEntryName((Document) doc)));
@@ -89,6 +93,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                         int len;
                         while ((len = from.read(buffer)) > 0) {
                             zipOutputStream.write(buffer, 0, len);
+                            zippedFilesSize += len;
                         }
                         zipOutputStream.closeEntry();
                         numberOfResults.incrementAndGet();

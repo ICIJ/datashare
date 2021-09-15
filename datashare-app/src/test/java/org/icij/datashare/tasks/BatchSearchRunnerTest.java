@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.SearchException;
@@ -13,9 +12,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.stubbing.OngoingStubbing;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +21,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -44,6 +40,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchRunnerTest {
     @Mock Indexer indexer;
+    MockSearch mockSearch;
     @Mock TerFunction<String, String, List<Document>, Boolean> resultConsumer;
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
     private final ExecutorService executor = Executors.newFixedThreadPool(1);
@@ -51,7 +48,7 @@ public class BatchSearchRunnerTest {
     @Test
     public void test_run_batch_search() throws Exception {
         Document[] documents = {createDoc("doc1").build(), createDoc("doc2").build()};
-        firstSearchWillReturn(1, documents);
+        mockSearch.willReturn(1, documents);
         BatchSearch search = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
 
         assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), search, resultConsumer).call()).isEqualTo(2);
@@ -62,7 +59,7 @@ public class BatchSearchRunnerTest {
     @Test(expected = RuntimeException.class)
     public void test_run_batch_search_failure() throws Exception {
         Document[] documents = {createDoc("doc").build()};
-        firstSearchWillReturn(1, documents);
+        mockSearch.willReturn(1, documents);
         BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
 
         when(resultConsumer.apply(anyString(), any(), anyList())).thenThrow(new RuntimeException());
@@ -73,7 +70,7 @@ public class BatchSearchRunnerTest {
     @Test
     public void test_run_batch_search_truncate_to_60k_max_results() throws Exception {
         Document[] documents = IntStream.range(0, MAX_SCROLL_SIZE).mapToObj(i -> createDoc("doc" + i).build()).toArray(Document[]::new);
-        firstSearchWillReturn(MAX_BATCH_RESULT_SIZE/MAX_SCROLL_SIZE + 1, documents);
+        mockSearch.willReturn(MAX_BATCH_RESULT_SIZE/MAX_SCROLL_SIZE + 1, documents);
         BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asSet("query"), new Date(), BatchSearch.State.QUEUED, local());
 
         assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), batchSearch, resultConsumer).call()).isLessThan(60000);
@@ -81,7 +78,7 @@ public class BatchSearchRunnerTest {
 
     @Test
     public void test_run_batch_search_with_throttle() throws Exception {
-        firstSearchWillReturn(1, createDoc("doc").build());
+        mockSearch.willReturn(1, createDoc("doc").build());
         BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         Date beforeBatch  = timeRule.now;
 
@@ -94,7 +91,7 @@ public class BatchSearchRunnerTest {
 
     @Test
     public void test_run_batch_search_with_throttle_should_not_last_more_than_max_time() throws Exception {
-        firstSearchWillReturn(5, createDoc("doc").build());
+        mockSearch.willReturn(5, createDoc("doc").build());
         BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1",
                 asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         Date beforeBatch  = timeRule.now;
@@ -113,7 +110,7 @@ public class BatchSearchRunnerTest {
         CountDownLatch countDownLatch = new CountDownLatch(1);
         BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         Document[] documents = {createDoc("doc").build()};
-        firstSearchWillReturn(1,documents);
+        mockSearch.willReturn(1,documents);
         BatchSearchRunner batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), batchSearch, resultConsumer, countDownLatch);
 
         executor.submit(batchSearchRunner);
@@ -124,22 +121,6 @@ public class BatchSearchRunnerTest {
         assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
     }
 
-    private void firstSearchWillReturn(int nbOfScrolls, Document... documents) throws IOException {
-        Indexer.Searcher searcher = mock(Indexer.Searcher.class);
-        OngoingStubbing<? extends Stream<? extends Entity>> ongoingStubbing = when(searcher.scroll());
-        for (int i = 0 ; i<nbOfScrolls; i++) {
-            ongoingStubbing = ongoingStubbing.thenAnswer(a -> Stream.of(documents));
-        }
-        ongoingStubbing.thenAnswer(a -> Stream.empty());
-        when(searcher.with(any(),anyInt(),anyBoolean())).thenReturn(searcher);
-        when(searcher.withoutSource(any())).thenReturn(searcher);
-        when(searcher.withFieldValues(anyString())).thenReturn(searcher);
-        when(searcher.withPrefixQuery(anyString())).thenReturn(searcher);
-        when(searcher.limit(anyInt())).thenReturn(searcher);
-        when(searcher.totalHits()).thenReturn((long) documents.length).thenReturn(0L);
-        when(indexer.search("test-datashare", Document.class)).thenReturn(searcher);
-    }
-
     @Before
-    public void setUp() { initMocks(this);}
+    public void setUp() { initMocks(this); mockSearch = new MockSearch(indexer);}
 }

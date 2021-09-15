@@ -26,7 +26,7 @@ public final class DatashareCliOptions {
     public static final String BATCH_DOWNLOAD_ZIP_TTL = "batchDownloadTimeToLive";
     public static final String SCROLL_SIZE = "scrollSize";
     public static final String BATCH_DOWNLOAD_MAX_NB_FILES = "batchDownloadMaxNbFiles";
-    public static final String BATCH_DOWNLOAD_MAX_SIZE = "batchDownloadMaxZipSize";
+    public static final String BATCH_DOWNLOAD_MAX_SIZE = "batchDownloadMaxSize";
 
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String ROOT_HOST = "rootHost";
@@ -461,10 +461,10 @@ public final class DatashareCliOptions {
                 .ofType(Integer.class);
     }
 
-    public static OptionSpec<Long> batchDownloadMaxSize(OptionParser parser) {
+    public static OptionSpec<String> batchDownloadMaxSize(OptionParser parser) {
         return parser.acceptsAll(
-                singletonList(BATCH_DOWNLOAD_MAX_SIZE), "Maximum zip size that can be downloaded in MB (Default : 100)")
+                singletonList(BATCH_DOWNLOAD_MAX_SIZE), "Maximum total files size that can be zipped. Human readable suffix K/M/G for KB/MB/GB (Default 100M)")
                 .withRequiredArg()
-                .ofType(Long.class);
+                .ofType(String.class);
     }
 }
