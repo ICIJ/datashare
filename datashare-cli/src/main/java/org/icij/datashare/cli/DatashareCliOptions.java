@@ -25,6 +25,8 @@ public final class DatashareCliOptions {
     public static final String BATCH_SEARCH_MAX_TIME = "batchSearchMaxTimeSeconds";
     public static final String BATCH_DOWNLOAD_ZIP_TTL = "batchDownloadTimeToLive";
     public static final String SCROLL_SIZE = "scrollSize";
+    public static final String BATCH_DOWNLOAD_MAX_NB_FILES = "batchDownloadMaxNbFiles";
+    public static final String BATCH_DOWNLOAD_MAX_SIZE = "batchDownloadMaxZipSize";
 
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String ROOT_HOST = "rootHost";
@@ -447,8 +449,22 @@ public final class DatashareCliOptions {
 
     public static OptionSpec<Integer> batchDownloadTimeToLive(OptionParser parser) {
         return parser.acceptsAll(
-                singletonList(BATCH_DOWNLOAD_ZIP_TTL), "Time to live in hour for batch download zip files (Default : 24)")
+                singletonList(BATCH_DOWNLOAD_ZIP_TTL), "Time to live in hour for batch download zip files (Default 24)")
                 .withRequiredArg()
                 .ofType(Integer.class);
+    }
+
+    public static OptionSpec<Integer> batchDownloadMaxNbFiles(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList(BATCH_DOWNLOAD_MAX_NB_FILES), "Maximum file number that can be archived in a zip (Default 10,000)")
+                .withRequiredArg()
+                .ofType(Integer.class);
+    }
+
+    public static OptionSpec<Long> batchDownloadMaxSize(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList(BATCH_DOWNLOAD_MAX_SIZE), "Maximum zip size that can be downloaded in MB (Default : 100)")
+                .withRequiredArg()
+                .ofType(Long.class);
     }
 }

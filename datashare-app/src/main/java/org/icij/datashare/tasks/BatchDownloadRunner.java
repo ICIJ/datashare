@@ -32,9 +32,9 @@ import java.util.zip.ZipOutputStream;
 
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
+import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -59,6 +59,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     @Override
     public File call() throws Exception {
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE).orElse("0"));
+        int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
 
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
@@ -72,6 +73,10 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         if (docsToProcess.size() == 0) return null;
         docsToProcessSize = docsToProcess.size();
+        if (docsToProcessSize > maxResultSize) {
+            logger.warn("number of results for batch download > {} for {}/{} (nb zip entries will be limited)",
+                    maxResultSize, batchDownload.uuid, batchDownload.user);
+        }
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()))) {
             HashMap<String, Object> taskProperties = new HashMap<>();

@@ -53,6 +53,8 @@ public class DatashareCli {
         DatashareCliOptions.batchThrottle(parser);
         DatashareCliOptions.batchSearchQueueType(parser);
         DatashareCliOptions.batchDownloadTimeToLive(parser);
+        DatashareCliOptions.batchDownloadMaxNbFiles(parser);
+        DatashareCliOptions.batchDownloadMaxSize(parser);
 
         DatashareCliOptions.clusterName(parser);
         DatashareCliOptions.createIndex(parser);
