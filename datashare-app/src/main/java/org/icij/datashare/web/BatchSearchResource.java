@@ -79,9 +79,9 @@ public class BatchSearchResource {
      * $(curl -H 'Content-Type: application/json' localhost:8080/api/batch/search -d '{"from":0, "size": 2}')
      */
     @Post("/search")
-    public BatchSearchResponse getSearchesFiletered(BatchSearchRepository.WebQuery webQuery, Context context) {
+    public WebResponse<BatchSearchRecord> getSearchesFiletered(BatchSearchRepository.WebQuery webQuery, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
-        return new BatchSearchResponse(batchSearchRepository.getRecords(user, user.getProjects(), webQuery),
+        return new WebResponse<>(batchSearchRepository.getRecords(user, user.getProjects(), webQuery),
                 batchSearchRepository.getTotal(user, user.getProjects(), webQuery));
     }
 
@@ -390,16 +390,5 @@ public class BatchSearchResource {
             return query.substring(1, query.length() - 1).replaceAll("\"\"","\"");
         }
         return query;
-    }
-
-    private static class BatchSearchResponse {
-
-        private final List<BatchSearchRecord> batchSearches;
-        private final int total;
-
-        public BatchSearchResponse(List<BatchSearchRecord> records, int total) {
-            batchSearches = records;
-            this.total = total;
-        }
     }
 }
