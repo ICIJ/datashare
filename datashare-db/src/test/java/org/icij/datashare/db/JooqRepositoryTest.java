@@ -332,7 +332,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_get_empty_user_history() {
-        assertThat(repository.getUserEvents(User.local(), SEARCH)).isEmpty();
+        assertThat(repository.getUserEvents(User.local(), SEARCH, 0, 10)).isEmpty();
     }
 
     @Test
@@ -349,9 +349,12 @@ public class JooqRepositoryTest {
         assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
         assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
         assertThat(repository.addToHistory(project("project"), userEvent3)).isTrue();
-        assertThat(repository.getUserEvents(user, DOCUMENT)).containsSequence(userEvent2,userEvent);
-        assertThat(repository.getUserEvents(user, SEARCH)).isEmpty();
-        assertThat(repository.getUserEvents(user2, DOCUMENT)).containsExactly(userEvent3);
+        assertThat(repository.getUserEvents(user, DOCUMENT, 0, 10)).containsSequence(userEvent2,userEvent);
+        assertThat(repository.getTotalUserEvents(user, DOCUMENT)).isEqualTo(2);
+        assertThat(repository.getUserEvents(user, DOCUMENT, 0, 1)).containsExactly(userEvent2);
+        assertThat(repository.getUserEvents(user2, DOCUMENT, 0, 10)).containsExactly(userEvent3);
+        assertThat(repository.getTotalUserEvents(user2, DOCUMENT)).isEqualTo(1);
+        assertThat(repository.getUserEvents(user, SEARCH, 0, 10)).isEmpty();
     }
 
     @Test
@@ -364,7 +367,7 @@ public class JooqRepositoryTest {
         assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
         assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
 
-        assertThat(repository.getUserEvents(User.local(), DOCUMENT)).containsExactly(userEvent);
+        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10)).containsExactly(userEvent);
     }
 
     @Test
@@ -374,11 +377,11 @@ public class JooqRepositoryTest {
         repository.addToHistory(project("project"), userEvent);
         repository.addToHistory(project("project"), userEvent2);
 
-        assertThat(repository.getUserEvents(User.local(), DOCUMENT)).containsExactly(userEvent);
+        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10)).containsExactly(userEvent);
         assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isTrue();
         assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isFalse();
-        assertThat(repository.getUserEvents(User.local(),DOCUMENT)).isEmpty();
-        assertThat(repository.getUserEvents(User.local(),SEARCH)).containsExactly(userEvent2);
+        assertThat(repository.getTotalUserEvents(User.local(),DOCUMENT)).isEqualTo(0);
+        assertThat(repository.getUserEvents(User.local(),SEARCH, 0, 10)).containsExactly(userEvent2);
     }
 
     @Test
@@ -386,11 +389,11 @@ public class JooqRepositoryTest {
         Date date = new Date(new Date().getTime());
         repository.addToHistory(project("project"), new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri()));
         repository.addToHistory(project("project"), new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri()));
-        List<UserEvent> userEvents = repository.getUserEvents(User.local(), DOCUMENT);
+        List<UserEvent> userEvents = repository.getUserEvents(User.local(), DOCUMENT, 0, 10);
 
         assertThat(repository.deleteUserEvent(User.local(), userEvents.get(1).id)).isTrue();
         assertThat(repository.deleteUserEvent(User.local(), userEvents.get(1).id)).isFalse();
-        assertThat(repository.getUserEvents(User.local(),DOCUMENT)).containsExactly(userEvents.get(0));
+        assertThat(repository.getUserEvents(User.local(),DOCUMENT, 0, 10)).containsExactly(userEvents.get(0));
     }
 
     @Test

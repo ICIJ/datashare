@@ -188,10 +188,17 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<UserEvent> getUserEvents(User user, UserEvent.Type type) {
+    public List<UserEvent> getUserEvents(User user, UserEvent.Type type, int from, int size) {
         return DSL.using(connectionProvider, dialect).selectFrom(USER_HISTORY).
                 where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
-                .orderBy(USER_HISTORY.MODIFICATION_DATE.desc()).stream().map(this::createUserEventFrom).collect(toList());
+                .orderBy(USER_HISTORY.MODIFICATION_DATE.desc()).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
+    }
+
+    @Override
+    public int getTotalUserEvents(User user, UserEvent.Type type) {
+        SelectConditionStep<Record1<Integer>> query = using(connectionProvider, dialect).selectCount().from(USER_HISTORY).
+                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id));
+        return query.fetchOne(0, int.class);
     }
 
     @Override

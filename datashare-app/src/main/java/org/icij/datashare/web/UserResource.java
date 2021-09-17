@@ -58,14 +58,19 @@ public class UserResource {
      * Gets the user's history by type
      *
      * @param type
-     * @return 200 and the user's list of events
+     * @param from
+     * @param size
+     * @return 200, the user's list of events and the total number of events
      *
      * Example :
-     * $(curl -i localhost:8080/api/users/me/history?type=document)
+     * $(curl -i localhost:8080/api/users/me/history?type=document&from=0&size=10)
      */
-    @Get("/me/history?type=:type")
-    public List<UserEvent> getUserHistory(String type, Context context) {
-        return repository.getUserEvents((DatashareUser) context.currentUser(), Type.valueOf(type.toUpperCase()));
+    @Get("/me/history?type=:type&from=:from&size=:size")
+    public WebResponse<UserEvent> getUserHistory(String type, int from, int size, Context context) {
+        DatashareUser user = (DatashareUser) context.currentUser();
+        Type eventType = Type.valueOf(type.toUpperCase());
+        return new WebResponse<>(repository.getUserEvents(user, eventType, from, size),
+                repository.getTotalUserEvents(user, eventType));
     }
 
     /**
