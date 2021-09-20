@@ -118,7 +118,7 @@ public class TaskResource {
 
     @Options("/batchDownload")
     public Payload batchDownloadPreflight(final Context context) {
-        return ok().withAllowMethods("OPTIONS", "POST");
+        return ok().withAllowMethods("OPTIONS", "POST").withAllowHeaders("Content-Type");
     }
 
     /**
