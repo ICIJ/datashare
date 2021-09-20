@@ -75,7 +75,10 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
             searcher.with(batchDownload.query);
         }
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
-        if (docsToProcess.size() == 0) return null;
+        if (docsToProcess.size() == 0) {
+            logger.warn("no results for batchDownload {}", batchDownload.uuid);
+            return null;
+        }
         docsToProcessSize = searcher.totalHits();
         if (docsToProcessSize > maxResultSize) {
             logger.warn("number of results for batch download > {} for {}/{} (nb zip entries will be limited)",
