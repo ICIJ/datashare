@@ -50,6 +50,7 @@ public interface Indexer extends Closeable {
         Stream<? extends Entity> execute() throws IOException;
         Stream<? extends Entity> scroll() throws IOException;
         Stream<? extends Entity> scroll(int numSlice, int nbSlices) throws IOException;
+        Searcher set(JsonNode jsonQuery);
         Searcher withSource(String... fields);
         Searcher withoutSource(String... fields);
         Searcher withSource(boolean source);
@@ -60,7 +61,6 @@ public interface Indexer extends Closeable {
         long totalHits();
         Searcher with(Tag... tags);
         Searcher with(String query);
-        Searcher with(JsonNode jsonQuery);
         Searcher with(String query, int fuzziness, boolean phraseMatches);
         Searcher thatMatchesFieldValue(String key, Object value);
         Searcher withFieldValues(String key, String... values);
