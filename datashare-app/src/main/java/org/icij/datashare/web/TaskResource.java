@@ -103,17 +103,17 @@ public class TaskResource {
      * $(curl localhost:8080/api/task/21148262/result)
      */
     @Get("/:id/result")
-    public Payload getTaskResult(String id, Context context) throws URISyntaxException {
+    public Payload getTaskResult(String id, Context context) {
         TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.get(id)));
         Object result = task.getResult();
         if (result instanceof File) {
             final Path appPath = ((File) result).isAbsolute() ?
-                    get(System.getProperty("user.dir")).resolve(context.env().appFolder()):
+                    get(System.getProperty("user.dir")).resolve(context.env().appFolder()) :
                     get(context.env().appFolder());
             Path resultPath = appPath.relativize(((File) result).toPath());
             return new Payload(resultPath).withHeader("Content-Disposition", "attachment;filename=\"" + resultPath.getFileName() + "\"");
         }
-        return result == null ? new Payload(204): new Payload(result);
+        return result == null ? new Payload(204) : new Payload(result);
     }
 
     @Options("/batchDownload")

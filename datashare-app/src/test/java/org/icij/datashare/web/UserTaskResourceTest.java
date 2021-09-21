@@ -104,6 +104,15 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_task_result_when_task_threw_exception__should_show_error() throws Exception {
+        setupAppWith("foo");
+        TaskView<File> t = taskManager.startTask(new DummyUserTask<>("foo", () -> {throw new RuntimeException("error blah");}));
+
+        get("/api/task/" + t.name + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(204);
+        get("/api/task/" + t.name).withPreemptiveAuthentication("foo", "qux").should().contain("error blah");
+    }
+
+    @Test
     public void test_task_list_in_server_mode() {
         setupAppWith("foo", "bar");
         TaskView<Void> t1 = taskManager.startTask(new MonitorableFutureTask<>(new DummyUserTask<String>("foo")));

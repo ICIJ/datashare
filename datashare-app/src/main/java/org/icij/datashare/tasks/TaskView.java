@@ -16,6 +16,7 @@ public class TaskView<V> {
     public enum State {RUNNING, ERROR, DONE, CANCELLED;}
     public final String name;
     public final User user;
+    private volatile Exception error;
     private volatile State state;
     private volatile double progress;
     private volatile V result;
@@ -65,6 +66,7 @@ public class TaskView<V> {
                 return null;
             } catch (ExecutionException | InterruptedException e) {
                 state = State.ERROR;
+                error = e;
                 return null;
             }
         } else {
