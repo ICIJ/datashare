@@ -5,8 +5,11 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.WrapperQueryBuilder;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -171,8 +174,9 @@ public class ElasticsearchIndexerTest {
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
         indexer.add(TEST_INDEX, doc);
 
+        String query = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"*\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
         List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).
-                with(JsonObjectMapper.MAPPER.readTree("{\"match_all\": {}}")).execute().collect(toList());
+                set(JsonObjectMapper.MAPPER.readTree(query)).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
     }
 

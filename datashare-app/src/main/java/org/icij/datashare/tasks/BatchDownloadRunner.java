@@ -70,7 +70,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                 batchDownload.user.getId(), batchDownload.project, throttleMs, scrollSize);
         Indexer.Searcher searcher = indexer.search(batchDownload.project.getId(), Document.class).withoutSource("content").limit(scrollSize);
         if (batchDownload.isJsonQuery()) {
-            searcher.with(batchDownload.queryAsJson());
+            searcher.set(batchDownload.queryAsJson());
         } else {
             searcher.with(batchDownload.query);
         }
