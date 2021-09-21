@@ -1,6 +1,6 @@
 package org.icij.datashare.cli;
 
-import joptsimple.AbstractOptionSpec;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -18,9 +18,31 @@ public class DatashareCli {
     public Properties properties;
 
     public DatashareCli parseArguments(String[] args) {
+        OptionParser parser = createParser();
+
+        OptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
+        OptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);
+        try {
+            OptionSet options = parser.parse(args);
+            if (options.has(helpOpt)) {
+                printHelp(parser);
+                System.exit(0);
+            }
+            if (options.has(versionOpt)) {
+                System.out.println(getVersion());
+                System.exit(0);
+            }
+            properties = asProperties(options, null);
+        } catch (Exception e) {
+            LOGGER.error("Failed to parse arguments.", e);
+            printHelp(parser);
+            System.exit(1);
+        }
+        return this;
+    }
+
+    OptionParser createParser() {
         OptionParser parser = new OptionParser();
-        AbstractOptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
-        AbstractOptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);
 
         DatashareCliOptions.settings(parser);
 
@@ -86,27 +108,10 @@ public class DatashareCli {
         DatashareCliOptions.oauthTokenUrl(parser);
         DatashareCliOptions.authFilter(parser);
         DatashareCliOptions.oauthCallbackPath(parser);
-
-        try {
-            OptionSet options = parser.parse(args);
-            if (options.has(helpOpt)) {
-                printHelp(parser);
-                System.exit(0);
-            }
-            if (options.has(versionOpt)) {
-                System.out.println(getVersion());
-                System.exit(0);
-            }
-            properties = asProperties(options, null);
-        } catch (Exception e) {
-            LOGGER.error("Failed to parse arguments.", e);
-            printHelp(parser);
-            System.exit(1);
-        }
-        return this;
+        return parser;
     }
 
-    private Properties asProperties(OptionSet options, String prefix) {
+    Properties asProperties(OptionSet options, String prefix) {
         Properties properties = new Properties();
         for (Map.Entry<OptionSpec<?>, List<?>> entry : options.asMap().entrySet()) {
             OptionSpec<?> spec = entry.getKey();

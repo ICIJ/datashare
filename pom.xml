@@ -98,7 +98,7 @@
         <jna.version>4.2.2</jna.version>
         <bouncycastle.version>1.54</bouncycastle.version>
         <httpcomponents.version>4.5.2</httpcomponents.version>
-        <joptsimple.version>5.0.4</joptsimple.version>
+        <joptsimple.version>6.0-alpha-3</joptsimple.version>
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.2.0</logback.version>
         <log4jtoslf4j.version>2.14.0</log4jtoslf4j.version>

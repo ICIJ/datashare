@@ -1,8 +1,11 @@
 package org.icij.datashare.cli;
 
+import joptsimple.OptionException;
+import joptsimple.OptionSet;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -58,5 +61,19 @@ public class DatashareCliTest {
     @Test
     public void test_get_version() throws IOException {
         assertThat(cli.getVersion()).isEqualTo("7.0.2");
+    }
+
+    @Test
+    public void test_max_batch_download_size() {
+        cli.parseArguments(new String[] {"--batchDownloadMaxSize", "123"});
+        assertThat(cli.properties).includes(entry("batchDownloadMaxSize", "123"));
+
+        cli.parseArguments(new String[] {"--batchDownloadMaxSize", "123G"});
+        assertThat(cli.properties).includes(entry("batchDownloadMaxSize", "123G"));
+    }
+
+    @Test(expected = OptionException.class)
+    public void test_max_batch_download_size_illegal_value() {
+        cli.asProperties(cli.createParser().parse("--batchDownloadMaxSize", "123A"), null);
     }
 }

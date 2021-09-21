@@ -1,15 +1,14 @@
 package org.icij.datashare.cli;
 
-import joptsimple.AbstractOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
-import joptsimple.OptionSpecBuilder;
 
 import java.io.File;
 import java.util.Arrays;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static joptsimple.util.RegexMatcher.regex;
 
 
 public final class DatashareCliOptions {
@@ -46,16 +45,16 @@ public final class DatashareCliOptions {
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
     public static final String DEFAULT_USER_NAME = "defaultUserName";
 
-    static OptionSpec<String> stages(OptionParser parser) {
-        return parser.acceptsAll(
-                asList(STAGES_OPT),
+    static void stages(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(STAGES_OPT),
                 "Stages to be run. WARN that DEDUPLICATE stages are not streamable like the others. They should be run alone.")
                 .withRequiredArg()
                 .ofType( String.class );
     }
 
-    static OptionSpec<Mode> mode(OptionParser parser) {
-        return parser.acceptsAll(
+    static void mode(OptionParser parser) {
+        parser.acceptsAll(
                 asList("mode", "m"),
                 "Datashare run mode " + Arrays.toString(Mode.values()))
                 .withRequiredArg()
@@ -63,8 +62,8 @@ public final class DatashareCliOptions {
                 .defaultsTo(Mode.LOCAL);
     }
 
-    static OptionSpec<String> defaultUser(OptionParser parser) {
-        return parser.acceptsAll(
+    static void defaultUser(OptionParser parser) {
+        parser.acceptsAll(
                 asList("u", DEFAULT_USER_NAME),
                 "Default local user name")
                 .withRequiredArg()
@@ -72,129 +71,129 @@ public final class DatashareCliOptions {
                 .defaultsTo("local");
     }
 
-    static OptionSpecBuilder followSymlinks(OptionParser parser) {
-        return parser.acceptsAll(singletonList("followSymlinks"), "Follow symlinks (default false)");
+    static void followSymlinks(OptionParser parser) {
+        parser.acceptsAll(singletonList("followSymlinks"), "Follow symlinks (default false)");
     }
 
-    static OptionSpec<String> cors(OptionParser parser) {
-        return parser.acceptsAll(
+    static void cors(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList("cors"), "CORS headers (needs the web option)")
                         .withRequiredArg()
                         .ofType(String.class)
                         .defaultsTo("no-cors");
     }
 
-    static OptionSpec<String> settings (OptionParser parser) {
-        return parser.acceptsAll(
+    static void settings (OptionParser parser) {
+        parser.acceptsAll(
                 asList("s", "settings"), "Property settings file")
                         .withRequiredArg()
                         .ofType(String.class);
     }
 
-    static OptionSpec<String> pluginsDir(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("pluginsDir"), "Plugins directory")
+    static void pluginsDir(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("pluginsDir"), "Plugins directory")
                         .withRequiredArg()
                         .ofType(String.class);
     }
 
-    static OptionSpec<String> pluginList(OptionParser parser) {
-        return parser.acceptsAll(asList(PLUGIN_LIST_OPT), "Plugins list matching provided string")
+    static void pluginList(OptionParser parser) {
+        parser.acceptsAll(singletonList(PLUGIN_LIST_OPT), "Plugins list matching provided string")
                 .withOptionalArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> pluginInstall(OptionParser parser) {
-        return parser.acceptsAll(asList(PLUGIN_INSTALL_OPT), "Install plugin with either id or URL or file path (needs pluginsDir option)")
+    static void pluginInstall(OptionParser parser) {
+        parser.acceptsAll(singletonList(PLUGIN_INSTALL_OPT), "Install plugin with either id or URL or file path (needs pluginsDir option)")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> pluginDelete(OptionParser parser) {
-        return parser.acceptsAll(asList(PLUGIN_DELETE_OPT), "Delete plugin with its id or base directory (needs pluginsDir option)")
+    static void pluginDelete(OptionParser parser) {
+        parser.acceptsAll(singletonList(PLUGIN_DELETE_OPT), "Delete plugin with its id or base directory (needs pluginsDir option)")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> extensionList(OptionParser parser) {
-        return parser.acceptsAll(asList(EXTENSION_LIST_OPT), "Extensions list matching provided string")
+    static void extensionList(OptionParser parser) {
+        parser.acceptsAll(singletonList(EXTENSION_LIST_OPT), "Extensions list matching provided string")
                 .withOptionalArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> extensionInstall(OptionParser parser) {
-        return parser.acceptsAll(asList(EXTENSION_INSTALL_OPT), "Install extension with either id or URL or file path (needs extensionsDir option)")
+    static void extensionInstall(OptionParser parser) {
+        parser.acceptsAll(singletonList(EXTENSION_INSTALL_OPT), "Install extension with either id or URL or file path (needs extensionsDir option)")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> extensionDelete(OptionParser parser) {
-        return parser.acceptsAll(asList(EXTENSION_DELETE_OPT), "Delete extension with its id or base directory (needs extensionsDir option)")
+    static void extensionDelete(OptionParser parser) {
+        parser.acceptsAll(singletonList(EXTENSION_DELETE_OPT), "Delete extension with its id or base directory (needs extensionsDir option)")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    public static OptionSpec<String> extensionsDir(OptionParser parser) {
-        return parser.acceptsAll(
-                        asList("extensionsDir"), "Extensions directory (backend)")
+    public static void extensionsDir(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("extensionsDir"), "Extensions directory (backend)")
                                 .withRequiredArg()
                                 .ofType(String.class);
     }
 
-    static OptionSpec<Integer> tcpListenPort(OptionParser parser) {
-        return parser.acceptsAll(
+    static void tcpListenPort(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList("tcpListenPort"), "Port used by the HTTP server")
                         .withRequiredArg()
                         .ofType(Integer.class)
                         .defaultsTo(8080);
     }
 
-    static OptionSpec<Integer> sessionTtlSeconds(OptionParser parser) {
-        return parser.acceptsAll(
+    static void sessionTtlSeconds(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList("sessionTtlSeconds"), "Time to live for a HTTP session in seconds")
                         .withRequiredArg()
                         .ofType(Integer.class)
                         .defaultsTo(43200);
     }
 
-    static OptionSpec<String> protectedUriPrefix(OptionParser parser) {
-        return parser.acceptsAll(
+    static void protectedUriPrefix(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList("protectedUriPrefix"), "Protected URI prefix")
                         .withRequiredArg()
                         .ofType(String.class)
                         .defaultsTo("/api/");
     }
 
-    static OptionSpecBuilder resume(OptionParser parser) {
-        return parser.acceptsAll(asList(RESUME_OPT, "r"), "Resume pending operations");
+    static void resume(OptionParser parser) {
+        parser.acceptsAll(asList(RESUME_OPT, "r"), "Resume pending operations");
     }
 
-    static OptionSpec<String> createIndex(OptionParser parser) {
-        return parser.acceptsAll(asList(CREATE_INDEX_OPT), "creates an index with the given name")
+    static void createIndex(OptionParser parser) {
+        parser.acceptsAll(singletonList(CREATE_INDEX_OPT), "creates an index with the given name")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> genApiKey(OptionParser parser) {
-        return parser.acceptsAll(asList(CRE_API_KEY_OPT, "k"), "Generate and store api key for user defaultUser (see opt)")
+    static void genApiKey(OptionParser parser) {
+        parser.acceptsAll(asList(CRE_API_KEY_OPT, "k"), "Generate and store api key for user defaultUser (see opt)")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> getApiKey(OptionParser parser) {
-        return parser.acceptsAll(asList(GET_API_KEY_OPT), "Return existing api key for user")
+    static void getApiKey(OptionParser parser) {
+        parser.acceptsAll(singletonList(GET_API_KEY_OPT), "existing api key for user")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> delApiKey(OptionParser parser) {
-        return parser.acceptsAll(singletonList(DEL_API_KEY_OPT), "Delete api key for user")
+    static void delApiKey(OptionParser parser) {
+        parser.acceptsAll(singletonList(DEL_API_KEY_OPT), "Delete api key for user")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<File> dataDir(OptionParser parser) {
-        return parser.acceptsAll(
+    static void dataDir(OptionParser parser) {
+        parser.acceptsAll(
                 asList(DATA_DIR_OPT, "d"),
                 "Document source files directory" )
                 .withRequiredArg()
@@ -202,47 +201,47 @@ public final class DatashareCliOptions {
                 .defaultsTo(new File("/home/datashare/data"));
     }
 
-    static OptionSpec<String> rootHost(OptionParser parser) {
-            return parser.acceptsAll(
+    static void rootHost(OptionParser parser) {
+            parser.acceptsAll(
                     singletonList(ROOT_HOST),
                     "Datashare host for urls")
                     .withRequiredArg();
         }
 
-    static OptionSpec<String> messageBusAddress(OptionParser parser) {
-        return parser.acceptsAll(
+    static void messageBusAddress(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList(MESSAGE_BUS_OPT),
                 "Message bus address")
                 .withRequiredArg()
                 .defaultsTo("redis://redis:6379");
     }
 
-    public static OptionSpec<String> busType(OptionParser parser) {
-        return parser.acceptsAll(
+    public static void busType(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList("busType"),
                 "Backend data bus type. Values can be \"memory\" or \"redis\"")
                 .withRequiredArg()
                 .defaultsTo("redis");
     }
 
-    static OptionSpec<String> redisAddress(OptionParser parser) {
-            return parser.acceptsAll(
+    static void redisAddress(OptionParser parser) {
+            parser.acceptsAll(
                     singletonList("redisAddress"),
                     "Redis queue address")
                     .withRequiredArg()
                     .defaultsTo("redis://redis:6379");
         }
 
-    static OptionSpec<String> queueType(OptionParser parser) {
-            return parser.acceptsAll(
+    static void queueType(OptionParser parser) {
+            parser.acceptsAll(
                     singletonList("queueType"),
                     "Backend queues and sets type. Values can be \"memory\" or \"redis\"")
                     .withRequiredArg()
                     .defaultsTo("redis");
         }
 
-    static OptionSpec<Integer> fileParserParallelism(OptionParser parser) {
-        return parser.acceptsAll(
+    static void fileParserParallelism(OptionParser parser) {
+        parser.acceptsAll(
                 asList("pp", "parserParallelism"),
                 "Number of file parser threads.")
                 .withRequiredArg()
@@ -250,8 +249,8 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_PARSER_PARALLELISM);
     }
 
-    static OptionSpec<Integer> nlpParallelism(OptionParser parser) {
-        return parser.acceptsAll(
+    static void nlpParallelism(OptionParser parser) {
+        parser.acceptsAll(
                 asList("np", NLP_PARALLELISM_OPT),
                 "Number of NLP extraction threads per pipeline.")
                 .withRequiredArg()
@@ -259,212 +258,212 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_NLP_PARALLELISM);
     }
 
-    public static OptionSpec<Integer> batchSearchMaxTime(OptionParser parser) {
-         return parser.acceptsAll(
-                         asList(BATCH_SEARCH_MAX_TIME), "Max time for batch search in seconds")
+    public static void batchSearchMaxTime(OptionParser parser) {
+         parser.acceptsAll(
+                 singletonList(BATCH_SEARCH_MAX_TIME), "Max time for batch search in seconds")
                          .withRequiredArg()
                          .ofType(Integer.class);
     }
 
-    public static OptionSpec<Integer> batchThrottle(OptionParser parser) {
-         return parser.acceptsAll(
-                         asList(BATCH_THROTTLE), "Throttle for batch in milliseconds")
+    public static void batchThrottle(OptionParser parser) {
+         parser.acceptsAll(
+                 singletonList(BATCH_THROTTLE), "Throttle for batch in milliseconds")
                          .withRequiredArg()
                          .ofType(Integer.class);
     }
 
-    public static OptionSpec<Integer> scrollSize(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("scrollSize"), "Scroll size used for elasticsearch scrolls (SCANIDX task)")
+    public static void scrollSize(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("scrollSize"), "Scroll size used for elasticsearch scrolls (SCANIDX task)")
                 .withRequiredArg()
                 .ofType(Integer.class).defaultsTo(1000);
     }
 
-     public static OptionSpec<Integer> scrollSlices(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("scrollSlices"), "Scroll slice max number used for elasticsearch scrolls (SCANIDX task)")
+     public static void scrollSlices(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("scrollSlices"), "Scroll slice max number used for elasticsearch scrolls (SCANIDX task)")
                 .withRequiredArg()
                 .ofType(Integer.class).defaultsTo(1);
     }
 
-     public static OptionSpec<Integer> redisPoolSize(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("redisPoolSize"), "Redis pool size used for each redis collection")
+     public static void redisPoolSize(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("redisPoolSize"), "Redis pool size used for each redis collection")
                 .withRequiredArg()
                 .ofType(Integer.class).defaultsTo(1);
     }
 
-    public static OptionSpec<String> elasticsearchDataPath(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("elasticsearchDataPath"), "Data path used for embedded Elasticsearch")
+    public static void elasticsearchDataPath(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("elasticsearchDataPath"), "Data path used for embedded Elasticsearch")
                 .withRequiredArg()
                 .ofType(String.class).defaultsTo("/home/datashare/es");
     }
 
-    public static OptionSpec<String> reportName(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("reportName"), "name of the map for the report map (where index results are stored). " +
+    public static void reportName(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("reportName"), "name of the map for the report map (where index results are stored). " +
                         "No report records are saved if not provided")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<Boolean> enableBrowserOpenLink(OptionParser parser) {
-        return parser.acceptsAll(
+    static void enableBrowserOpenLink(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList(OPEN_LINK),
                 "try to open link in the default browser").
                 withRequiredArg().ofType(Boolean.class).defaultsTo(false);
     }
 
-    static OptionSpec<Boolean> enableOcr(OptionParser parser) {
-        return parser.acceptsAll(
+    static void enableOcr(OptionParser parser) {
+        parser.acceptsAll(
                 asList("ocr", "o"),
                 "Run optical character recognition at file parsing time. " +
                         "(Tesseract must be installed beforehand).").
                 withRequiredArg().ofType(Boolean.class).defaultsTo(true);
     }
 
-    static OptionSpec<String> nlpPipelines(OptionParser parser) {
-        return parser.acceptsAll(
+    static void nlpPipelines(OptionParser parser) {
+        parser.acceptsAll(
                 asList(NLP_PIPELINES_OPT, "nlpp"),
                 "NLP pipelines to be run.")
                 .withRequiredArg()
                 .withValuesSeparatedBy(ARG_VALS_SEP);
     }
 
-    static OptionSpec<Integer> parallelism(OptionParser parser) {
-        return parser.acceptsAll(
-                asList(PARALLELISM),
+    static void parallelism(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(PARALLELISM),
                 "Number of threads allocated for task management.")
                 .withRequiredArg()
                 .ofType( Integer.class )
                 .defaultsTo(DEFAULT_PARALLELISM);
     }
 
-    static OptionSpec<String> esHost(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("elasticsearchAddress"), "Elasticsearch host address")
+    static void esHost(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("elasticsearchAddress"), "Elasticsearch host address")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("http://elasticsearch:9200");
     }
 
-    static OptionSpec<String> dataSourceUrl(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("dataSourceUrl"), "Datasource URL")
+    static void dataSourceUrl(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("dataSourceUrl"), "Datasource URL")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared");
     }
 
-    static OptionSpec<String> defaultProject(OptionParser parser) {
-        return parser.acceptsAll(
+    static void defaultProject(OptionParser parser) {
+        parser.acceptsAll(
                 asList("defaultProject", "p"), "Default project name")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("local-datashare");
     }
 
-    static OptionSpec<String> clusterName(OptionParser parser) {
-        return parser.acceptsAll(
+    static void clusterName(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList("clusterName"), "Cluster name")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("datashare");
     }
 
-    static OptionSpec<String> queueName(OptionParser parser) {
-        return parser.acceptsAll(
+    static void queueName(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList("queueName"), "Redis queue name")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("extract:queue");
     }
 
-    static AbstractOptionSpec<Void> help(OptionParser parser) {
+    static OptionSpec<Void> help(OptionParser parser) {
         return parser.acceptsAll(asList("help", "h", "?")).forHelp();
     }
 
-    static AbstractOptionSpec<Void> version(OptionParser parser) {
+    static OptionSpec<Void> version(OptionParser parser) {
         return parser.acceptsAll(asList("version", "v"));
     }
 
-    static OptionSpec<String> authUsersProvider(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("authUsersProvider"), "Server mode auth users provider class")
+    static void authUsersProvider(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("authUsersProvider"), "Server mode auth users provider class")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> authFilter(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("authFilter"), "Server mode auth filter class")
+    static void authFilter(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("authFilter"), "Server mode auth filter class")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    static OptionSpec<String> oauthSecret(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("oauthClientSecret"), "OAuth2 client secret key")
+    static void oauthSecret(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("oauthClientSecret"), "OAuth2 client secret key")
                 .withRequiredArg()
                 .ofType(String.class);
     }
-    static OptionSpec<String> oauthClient(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("oauthClientId"), "OAuth2 client id")
+    static void oauthClient(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("oauthClientId"), "OAuth2 client id")
                 .withRequiredArg()
                 .ofType(String.class);
     }
-    static OptionSpec<String> oauthAuthorizeUrl(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("oauthAuthorizeUrl"), "OAuth2 authorize url")
+    static void oauthAuthorizeUrl(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("oauthAuthorizeUrl"), "OAuth2 authorize url")
                 .withRequiredArg()
                 .ofType(String.class);
     }
-    static OptionSpec<String> oauthTokenUrl(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("oauthTokenUrl"), "OAuth2 token url")
+    static void oauthTokenUrl(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("oauthTokenUrl"), "OAuth2 token url")
                 .withRequiredArg()
                 .ofType(String.class);
     }
-    static OptionSpec<String> oauthApiUrl(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("oauthApiUrl"), "OAuth2 api url")
+    static void oauthApiUrl(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("oauthApiUrl"), "OAuth2 api url")
                 .withRequiredArg()
                 .ofType(String.class);
     }
-    static OptionSpec<String> oauthCallbackPath(OptionParser parser) {
-        return parser.acceptsAll(
-                asList("oauthCallbackPath"), "OAuth2 callback path (in datashare)")
+    static void oauthCallbackPath(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("oauthCallbackPath"), "OAuth2 callback path (in datashare)")
                 .withRequiredArg()
                 .ofType(String.class);
     }
 
-    public static OptionSpec<String> batchSearchQueueType(OptionParser parser) {
-        return parser.acceptsAll(
-                        asList("batchQueueType"), "Queue class for batch search queue")
+    public static void batchSearchQueueType(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("batchQueueType"), "Queue class for batch search queue")
                         .withRequiredArg()
                         .ofType(String.class);
     }
 
-    public static OptionSpec<Integer> batchDownloadTimeToLive(OptionParser parser) {
-        return parser.acceptsAll(
+    public static void batchDownloadTimeToLive(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList(BATCH_DOWNLOAD_ZIP_TTL), "Time to live in hour for batch download zip files (Default 24)")
                 .withRequiredArg()
                 .ofType(Integer.class);
     }
 
-    public static OptionSpec<Integer> batchDownloadMaxNbFiles(OptionParser parser) {
-        return parser.acceptsAll(
+    public static void batchDownloadMaxNbFiles(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList(BATCH_DOWNLOAD_MAX_NB_FILES), "Maximum file number that can be archived in a zip (Default 10,000)")
                 .withRequiredArg()
                 .ofType(Integer.class);
     }
 
-    public static OptionSpec<String> batchDownloadMaxSize(OptionParser parser) {
-        return parser.acceptsAll(
+    public static void batchDownloadMaxSize(OptionParser parser) {
+        parser.acceptsAll(
                 singletonList(BATCH_DOWNLOAD_MAX_SIZE), "Maximum total files size that can be zipped. Human readable suffix K/M/G for KB/MB/GB (Default 100M)")
                 .withRequiredArg()
-                .ofType(String.class);
+                .withValuesConvertedBy(regex("[0-9]+[KMG]?"));
     }
 }
