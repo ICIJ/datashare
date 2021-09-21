@@ -88,8 +88,9 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()))) {
             HashMap<String, Object> taskProperties = new HashMap<>();
             taskProperties.put("batchDownload", batchDownload);
-            while (docsToProcess.size() != 0 && numberOfResults.get() <= maxResultSize - scrollSize && zippedFilesSize < maxZipSizeBytes) {
-                for (Entity doc : docsToProcess) {
+            while (docsToProcess.size() != 0) {
+                for (int i = 0; i < docsToProcess.size() && numberOfResults.get() < maxResultSize && zippedFilesSize <= maxZipSizeBytes; i++) {
+                    Entity doc = docsToProcess.get(i);
                     try (InputStream from = new SourceExtractor().getSource(batchDownload.project, (Document) doc)) {
                         zipOutputStream.putNextEntry(new ZipEntry(getEntryName((Document) doc)));
                         byte[] buffer = new byte[4096];
