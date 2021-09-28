@@ -10,18 +10,17 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
 
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
 
-public class WebAppAcceptanceTest extends AbstractProdWebServerTest {
+public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() throws Exception {
         configure(new LocalMode(new HashMap<String, String>() {{
-            put("dataDir", WebAppAcceptanceTest.class.getResource("/data").getPath());
-            put("extensionsDir", WebAppAcceptanceTest.class.getResource("/extensions").getPath());
-            put("pluginsDir", WebAppAcceptanceTest.class.getResource("/plugins").getPath());
+            put("dataDir", WebLocalAcceptanceTest.class.getResource("/data").getPath());
+            put("extensionsDir", WebLocalAcceptanceTest.class.getResource("/extensions").getPath());
+            put("pluginsDir", WebLocalAcceptanceTest.class.getResource("/plugins").getPath());
         }}).createWebConfiguration());
         waitForDatashare();
     }
@@ -64,15 +63,5 @@ public class WebAppAcceptanceTest extends AbstractProdWebServerTest {
         waitForDatashare();
         get("/api/extensions").should().haveType("application/json").contain("\"installed\":false");
         get("/api/plugins").should().haveType("application/json").contain("\"installed\":false");
-    }
-
-    private void waitForDatashare() throws Exception {
-        for(int nbTries = 10; nbTries > 0 ; nbTries--) {
-            if (get("/settings").response().contentType().contains("application/json")) {
-                return;
-            }
-            Thread.sleep(500); // ms
-        }
-        throw new TimeoutException("Connection to Datashare failed (maybe linked to Elasticsearch)");
     }
 }

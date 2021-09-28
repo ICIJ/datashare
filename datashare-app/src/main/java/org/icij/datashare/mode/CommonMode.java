@@ -140,7 +140,7 @@ public class CommonMode extends AbstractModule {
     }
 
     public Configuration createWebConfiguration() {
-        return routes -> addModeConfiguration(defaultRoutes(routes, propertiesProvider));
+        return routes -> addModeConfiguration(defaultRoutes(addCors(routes, propertiesProvider), propertiesProvider));
     }
 
     protected Routes addModeConfiguration(final Routes routes) {return routes;}
@@ -171,11 +171,6 @@ public class CommonMode extends AbstractModule {
         if (provider.get(PropertiesProvider.PLUGINS_DIR).orElse(null) != null) {
             routes.bind(PLUGINS_BASE_URL, Paths.get(provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR)).toFile());
         }
-
-        String cors = provider.get("cors").orElse("no-cors");
-        if (!cors.equals("no-cors")) {
-            routes.filter(new CorsFilter(cors));
-        }
         return routes;
     }
 
@@ -200,5 +195,13 @@ public class CommonMode extends AbstractModule {
         } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Routes addCors(Routes routes, PropertiesProvider provider) {
+        String cors = provider.get("cors").orElse("no-cors");
+        if (!cors.equals("no-cors")) {
+            routes.filter(new CorsFilter(cors));
+        }
+        return routes;
     }
 }

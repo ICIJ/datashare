@@ -19,6 +19,8 @@ import net.codestory.http.Configuration;
 import net.codestory.rest.FluentRestTest;
 import org.junit.ClassRule;
 
+import java.util.concurrent.TimeoutException;
+
 public abstract class AbstractProdWebServerTest implements FluentRestTest {
   @ClassRule
   public static ProdWebServerRule server = new ProdWebServerRule();
@@ -30,5 +32,15 @@ public abstract class AbstractProdWebServerTest implements FluentRestTest {
 
   protected void configure(Configuration configuration) {
     server.configure(configuration);
+  }
+
+  protected void waitForDatashare() throws Exception {
+      for(int nbTries = 10; nbTries > 0 ; nbTries--) {
+          if (get("/settings").response().contentType().contains("application/json")) {
+              return;
+          }
+          Thread.sleep(500); // ms
+      }
+      throw new TimeoutException("Connection to Datashare failed (maybe linked to Elasticsearch)");
   }
 }
