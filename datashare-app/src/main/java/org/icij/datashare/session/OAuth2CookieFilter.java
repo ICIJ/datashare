@@ -139,8 +139,8 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     }
 
     private String getCallbackUrl(Context context) {
-        return context.request().isSecure() ? "https://" : "http://"
-                + context.request().header("Host") + this.oauthCallbackPath;
+        String host = ofNullable(context.request().header("x-forwarded-host")).orElse(context.request().header("Host"));
+        return context.request().isSecure() ? "https://" : "http://" + host + this.oauthCallbackPath;
     }
 
     protected String createState() {

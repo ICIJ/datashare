@@ -53,6 +53,16 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     }
 
     @Test
+    public void test_redirect_to_authorization_server_with_x_forwarded_host() {
+        this.get("/auth/signin").withHeader("x-forwarded-host", "localhost:9009")
+                .should().contain("OAuth Authorize")
+                .should().contain("client=12345")
+                .should().contain("redirect_uri=http://localhost:9009/auth/callback")
+                .should().contain("response_type=code")
+                .should().contain("state=");
+    }
+
+    @Test
     public void test_callback_should_return_bad_request_with_bad_args() {
         this.get("/auth/callback").should().respond(400);
         this.get("/auth/callback?code=1234").should().respond(400);
