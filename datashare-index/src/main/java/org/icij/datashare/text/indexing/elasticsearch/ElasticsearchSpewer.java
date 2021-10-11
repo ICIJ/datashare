@@ -9,6 +9,7 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.icij.datashare.Entity;
+import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
@@ -44,6 +45,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final ElasticsearchConfiguration esCfg;
     private final Publisher publisher;
     private final LanguageGuesser languageGuesser;
+    private final int maxContentLength;
     private String indexName;
 
     @Inject
@@ -54,6 +56,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         this.languageGuesser = languageGuesser;
         this.publisher = publisher;
         this.esCfg = new ElasticsearchConfiguration(propertiesProvider);
+        this.maxContentLength = getMaxContentLength(propertiesProvider);
         logger.info("spewer defined with {}", esCfg);
     }
 
@@ -128,7 +131,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("contentLength", Long.valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")));
         jsonDocument.put("contentEncoding", ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN));
 
-        String content = toString(document.getReader()).trim();
+        String content = maxContentLength == -1 ? toString(document.getReader()).trim(): toString(document.getReader()).substring(0, maxContentLength).trim();
         jsonDocument.put("language", languageGuesser.guess(content));
         jsonDocument.put(ES_CONTENT_FIELD, content);
         return jsonDocument;
@@ -147,5 +150,9 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     public ElasticsearchSpewer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
         this.esCfg.withRefresh(refreshPolicy);
         return this;
+    }
+
+    int getMaxContentLength(PropertiesProvider propertiesProvider) {
+        return (int) Math.min(HumanReadableSize.parse(propertiesProvider.get("maxContentLength").orElse("-1")), Integer.MAX_VALUE);
     }
 }

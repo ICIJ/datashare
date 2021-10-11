@@ -9,6 +9,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
 import org.icij.datashare.com.Message;
@@ -172,6 +173,30 @@ public class ElasticsearchSpewerTest {
         assertThat(actualDocument.getSourceAsMap()).includes(entry("type", "Document"));
         assertThat(actualDocument2.isExists()).isTrue();
         assertThat(actualDocument2.getSourceAsMap()).includes(entry("type", "Duplicate"));
+    }
+
+    @Test
+    public void test_truncated_content() throws Exception {
+        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(es.client,
+                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<String, String>() {{
+                    put("maxContentLength", "20");
+        }})).withRefresh(IMMEDIATE).withIndex("test-datashare");
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("fake-file.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content should be truncated".getBytes()));
+        document.setReader(reader);
+
+        limitedContentSpewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(entry("content", "this content should"));
+    }
+
+    @Test
+    public void test_get_max_content_length_is_limited_to_2G() {
+        assertThat(spewer.getMaxContentLength(new PropertiesProvider(new HashMap<String, String>() {{ put("maxContentLength", "20");}})))
+                .isEqualTo(20);
+        assertThat((long)spewer.getMaxContentLength(new PropertiesProvider(new HashMap<String, String>() {{ put("maxContentLength", "2G");}})))
+                .isEqualTo(HumanReadableSize.parse("2G")-1); // Integer.MAX_VALUE
     }
 
     private Map<String, Object> convert(Metadata metadata) {

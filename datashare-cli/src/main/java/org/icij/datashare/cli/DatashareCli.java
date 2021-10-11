@@ -78,6 +78,8 @@ public class DatashareCli {
         DatashareCliOptions.batchDownloadMaxNbFiles(parser);
         DatashareCliOptions.batchDownloadMaxSize(parser);
 
+        DatashareCliOptions.maxContentLength(parser);
+
         DatashareCliOptions.clusterName(parser);
         DatashareCliOptions.createIndex(parser);
 

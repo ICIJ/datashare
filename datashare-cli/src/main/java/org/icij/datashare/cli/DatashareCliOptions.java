@@ -466,4 +466,12 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .withValuesConvertedBy(regex("[0-9]+[KMG]?"));
     }
+
+    public static void maxContentLength(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("maxContentLength"), "Maximum length (in bytes) of extracted text that could be indexed " +
+                        "(-1 means no limit and value should be less or equal than 2G). Human readable suffix K/M/G for KB/MB/GB (Default -1)")
+                .withRequiredArg()
+                .withValuesConvertedBy(regex("[0-9]+[KMG]?"));
+    }
 }
