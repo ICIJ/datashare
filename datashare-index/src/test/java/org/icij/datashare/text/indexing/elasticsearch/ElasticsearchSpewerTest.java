@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.nio.file.Paths.get;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -55,12 +56,10 @@ import static org.mockito.Mockito.verify;
 public class ElasticsearchSpewerTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private Publisher publisher = Mockito.mock(Publisher.class);
+    private final Publisher publisher = Mockito.mock(Publisher.class);
 
-    private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
+    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
             text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");
-
-    public ElasticsearchSpewerTest() throws IOException {}
 
     @Test
     public void test_simple_write() throws Exception {
@@ -84,7 +83,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_metadata() throws Exception {
-        Path path = get(getClass().getResource("/docs/a/b/c/doc.txt").getPath());
+        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
         TikaDocument document = new Extractor().extract(path);
 
         spewer.write(document);
@@ -116,7 +115,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_embedded_document() throws Exception {
-        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
         final TikaDocument document = new Extractor().extract(path);
 
         spewer.write(document);
@@ -143,9 +142,9 @@ public class ElasticsearchSpewerTest {
         Extractor extractor = new Extractor(tikaFactory);
         extractor.setDigester(new UpdatableDigester("project", Document.HASHER.toString()));
 
-        final TikaDocument extractDocument = extractor.extract(get(getClass().getResource("/docs/embedded_doc.eml").getPath()));
+        final TikaDocument extractDocument = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()));
 
-        Document document = new Document(Project.project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()),
+        Document document = new Document(Project.project("project"), get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()),
                 "This is a document to be parsed by datashare.",
                 Language.FRENCH, Charset.defaultCharset(), "text/plain", convert(extractDocument.getMetadata()),
                 Document.Status.INDEXED, 45L);
@@ -161,8 +160,8 @@ public class ElasticsearchSpewerTest {
         Extractor extractor = new Extractor(tikaFactory);
         extractor.setDigester(new UpdatableDigester("project", Document.HASHER.toString()));
 
-        final TikaDocument document = extractor.extract(get(getClass().getResource("/docs/doc.txt").getPath()));
-        final TikaDocument document2 = extractor.extract(get(getClass().getResource("/docs/doc-duplicate.txt").getPath()));
+        final TikaDocument document = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
+        final TikaDocument document2 = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc-duplicate.txt")).getPath()));
 
         spewer.write(document);
         spewer.write(document2);
