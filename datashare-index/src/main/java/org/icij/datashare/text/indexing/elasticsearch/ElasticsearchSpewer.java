@@ -131,7 +131,11 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("contentLength", Long.valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")));
         jsonDocument.put("contentEncoding", ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN));
 
-        String content = maxContentLength == -1 ? toString(document.getReader()).trim(): toString(document.getReader()).substring(0, maxContentLength).trim();
+        String content = toString(document.getReader()).trim();
+        if (maxContentLength != -1 && content.length() > maxContentLength) {
+            logger.warn("document id {} extracted text will be truncated to {} bytes", document.getId(), maxContentLength);
+            content = content.substring(0, maxContentLength).trim();
+        }
         jsonDocument.put("language", languageGuesser.guess(content));
         jsonDocument.put(ES_CONTENT_FIELD, content);
         return jsonDocument;

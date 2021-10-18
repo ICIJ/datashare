@@ -192,6 +192,22 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
+    public void test_truncated_content_if_document_is_smaller_than_limit() throws Exception {
+        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(es.client,
+                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<String, String>() {{
+                    put("maxContentLength", "20");
+        }})).withRefresh(IMMEDIATE).withIndex("test-datashare");
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("ok-file.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content is ok".getBytes()));
+        document.setReader(reader);
+
+        limitedContentSpewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(entry("content", "this content is ok"));
+    }
+
+    @Test
     public void test_get_max_content_length_is_limited_to_2G() {
         assertThat(spewer.getMaxContentLength(new PropertiesProvider(new HashMap<String, String>() {{ put("maxContentLength", "20");}})))
                 .isEqualTo(20);
