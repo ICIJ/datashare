@@ -10,7 +10,9 @@ import redis.clients.jedis.Jedis;
 
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -33,6 +35,24 @@ public class TaskManagerRedisTest {
 
         assertThat(taskManager.get()).hasSize(1);
         assertThat(taskManager.get(task.name).name).isEqualTo(task.name);
+    }
+
+    @Test
+    public void test_save_failing_task_subtype_throwable() throws Exception {
+        MonitorableFutureTask<String> test_exception = new MonitorableFutureTask<>(() -> {
+            RuntimeException runtimeException = new RuntimeException("test exception");
+            runtimeException.addSuppressed(new RuntimeException("suppressed"));
+            throw runtimeException;
+        });
+        try {
+            test_exception.run();
+            test_exception.get();
+        } catch (ExecutionException rex) {
+            taskManager.save(new TaskView<>(test_exception));
+        }
+        List<TaskView<?>> actual = taskManager.get();
+        assertThat(actual).hasSize(1);
+        assertThat(actual.get(0).getState()).isEqualTo(TaskView.State.ERROR);
     }
 
     @Test
