@@ -1,5 +1,8 @@
 package org.icij.datashare.tasks;
 
+import org.elasticsearch.ElasticsearchCorruptionException;
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.Document;
@@ -26,6 +29,9 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchDownloadRunnerTest {
@@ -56,6 +62,12 @@ public class BatchDownloadRunnerTest {
         }}), new BatchDownload(project("test-datashare"), User.local(), "query"), updater).call();
 
         assertThat(new ZipFile(zip).size()).isEqualTo(3);
+    }
+
+    @Test(expected = ElasticsearchStatusException.class)
+    public void test_elasticsearch_status_exception__should_be_sent() throws Exception {
+        mockSearch.willThrow(new ElasticsearchStatusException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
+        new BatchDownloadRunner(indexer, new PropertiesProvider(), new BatchDownload(project("test-datashare"), User.local(), "query"), updater).call();
     }
 
     private Path createFile(int index) {

@@ -1,5 +1,7 @@
 package org.icij.datashare.tasks;
 
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.user.User;
@@ -66,6 +68,26 @@ public class BatchDownloadLoopTest {
         app.enqueuePoison();
 
         app.run();
+    }
+
+    @Test
+    public void test_elasticsearch_exception__should_not_be_serialized() throws Exception {
+        when(batchRunner.call()).thenThrow(new ElasticsearchStatusException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
+        BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
+        BatchDownloadLoop app = new BatchDownloadLoop(new PropertiesProvider(), batchDownloadQueue, factory, manager) {
+            @Override
+            public BatchDownloadCleaner createDownloadCleaner(Path downloadDir, int ttlHour) {
+                return batchDownloadCleaner;
+            }
+        };
+        batchDownloadQueue.add(new BatchDownload(project("prj"), User.local(), "query"));
+        app.enqueuePoison();
+
+        app.run();
+
+        verify(manager).save(argCaptor.capture());
+        assertThat(argCaptor.getValue().getState()).isEqualTo(TaskView.State.ERROR);
+        assertThat(argCaptor.getValue().error.getClass()).isNotEqualTo(ElasticsearchStatusException.class);
     }
 
     @Before

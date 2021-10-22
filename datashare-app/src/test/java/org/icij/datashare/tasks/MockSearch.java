@@ -21,6 +21,12 @@ class MockSearch {
         this.mockIndexer = mockIndexer;
     }
 
+    void willThrow(Exception expectedClassException) throws IOException {
+        Indexer.Searcher searcher = mock(Indexer.Searcher.class);
+        when(searcher.scroll()).thenThrow(expectedClassException);
+        prepareSearcher(0, searcher);
+    }
+
     void willReturn(int nbOfScrolls, Document... documents) throws IOException {
         Indexer.Searcher searcher = mock(Indexer.Searcher.class);
         OngoingStubbing<? extends Stream<? extends Entity>> ongoingStubbing = when(searcher.scroll());
@@ -28,12 +34,16 @@ class MockSearch {
             ongoingStubbing = ongoingStubbing.thenAnswer(a -> Stream.of(documents));
         }
         ongoingStubbing.thenAnswer(a -> Stream.empty());
-        when(searcher.with(any(),anyInt(),anyBoolean())).thenReturn(searcher);
+        prepareSearcher(documents.length, searcher);
+    }
+
+    private void prepareSearcher(long length, Indexer.Searcher searcher) {
+        when(searcher.with(any(), anyInt(), anyBoolean())).thenReturn(searcher);
         when(searcher.withoutSource(any())).thenReturn(searcher);
         when(searcher.withFieldValues(anyString())).thenReturn(searcher);
         when(searcher.withPrefixQuery(anyString())).thenReturn(searcher);
         when(searcher.limit(anyInt())).thenReturn(searcher);
-        when(searcher.totalHits()).thenReturn((long) documents.length).thenReturn(0L);
+        when(searcher.totalHits()).thenReturn(length).thenReturn(0L);
         when(mockIndexer.search("test-datashare", Document.class)).thenReturn(searcher);
     }
 }
