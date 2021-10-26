@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import org.elasticsearch.ElasticsearchCorruptionException;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.PropertiesProvider;
@@ -29,9 +28,6 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchDownloadRunnerTest {

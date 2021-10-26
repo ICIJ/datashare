@@ -18,16 +18,13 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
@@ -39,7 +36,7 @@ import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTask {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
     volatile long docsToProcessSize = 0;
@@ -85,25 +82,17 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                     maxResultSize, batchDownload.uuid, batchDownload.user);
         }
 
-        try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()))) {
+        try (Zipper zipper = new Zipper(propertiesProvider, batchDownload)) {
             HashMap<String, Object> taskProperties = new HashMap<>();
             taskProperties.put("batchDownload", batchDownload);
             while (docsToProcess.size() != 0) {
                 for (int i = 0; i < docsToProcess.size() && numberOfResults.get() < maxResultSize && zippedFilesSize <= maxZipSizeBytes; i++) {
                     Entity doc = docsToProcess.get(i);
-                    try (InputStream from = new SourceExtractor().getSource(batchDownload.project, (Document) doc)) {
-                        zipOutputStream.putNextEntry(new ZipEntry(getEntryName((Document) doc)));
-                        byte[] buffer = new byte[4096];
-                        int len;
-                        while ((len = from.read(buffer)) > 0) {
-                            zipOutputStream.write(buffer, 0, len);
-                            zippedFilesSize += len;
-                        }
-                        zipOutputStream.closeEntry();
+                    int addedBytes = zipper.add((Document) doc);
+                    if (addedBytes > 0) {
+                        zippedFilesSize += addedBytes;
                         numberOfResults.incrementAndGet();
                         updateCallback.apply(new TaskView<>(new MonitorableFutureTask<>(this, taskProperties)));
-                    } catch (ExtractException|ZipException|ContentNotFoundException zex) {
-                        logger.warn("exception during extract/zip. skipping entry for doc " + doc.getId(), zex);
                     }
                 }
                 docsToProcess = searcher.scroll().collect(toList());
@@ -112,11 +101,6 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         logger.info("created batch download file {} ({} bytes/{} entries) for user {}",
                 batchDownload.filename, Files.size(batchDownload.filename), numberOfResults, batchDownload.user.getId());
         return batchDownload.filename.toFile();
-    }
-
-    @NotNull
-    private String getEntryName(Document doc) {
-        return doc.getPath().isAbsolute() ? doc.getPath().toString().substring(1) : doc.getPath().toString();
     }
 
     @Override
@@ -132,5 +116,45 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     @Override
     public String toString() {
         return getClass().getName() + "@" + batchDownload.uuid;
+    }
+
+    private static class Zipper implements AutoCloseable {
+        private final PropertiesProvider propertiesProvider;
+        private final BatchDownload batchDownload;
+        private final ZipOutputStream zipOutputStream;
+
+        public Zipper(PropertiesProvider propertiesProvider, BatchDownload batchDownload) throws FileNotFoundException {
+            this.propertiesProvider = propertiesProvider;
+            this.batchDownload = batchDownload;
+            zipOutputStream = new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()));
+        }
+
+        public int add(Document doc) throws IOException {
+            try (InputStream from = new SourceExtractor().getSource(batchDownload.project, doc)) {
+                int zippedSize = 0;
+                zipOutputStream.putNextEntry(new ZipEntry(getEntryName(doc)));
+                byte[] buffer = new byte[4096];
+                int len;
+                while ((len = from.read(buffer)) > 0) {
+                    zipOutputStream.write(buffer, 0, len);
+                    zippedSize += len;
+                }
+                zipOutputStream.closeEntry();
+                return zippedSize;
+            } catch (ExtractException|ZipException|ContentNotFoundException zex) {
+                logger.warn("exception during extract/zip. skipping entry for doc " + doc.getId(), zex);
+                return 0;
+            }
+        }
+
+        @NotNull
+        private String getEntryName(Document doc) {
+            return doc.getPath().isAbsolute() ? doc.getPath().toString().substring(1) : doc.getPath().toString();
+        }
+
+        @Override
+        public void close() throws Exception {
+            zipOutputStream.close();
+        }
     }
 }
