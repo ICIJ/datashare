@@ -1,6 +1,5 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import com.amazonaws.util.StringInputStream;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import org.apache.http.HttpEntity;
@@ -26,7 +25,6 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.document.DocumentField;
-import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
@@ -47,9 +45,7 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;

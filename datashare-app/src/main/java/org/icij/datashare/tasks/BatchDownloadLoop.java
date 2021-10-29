@@ -1,11 +1,8 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
-import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
-import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
@@ -20,7 +17,6 @@ import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Arrays.stream;
 import static org.icij.datashare.text.Project.project;
 
 public class BatchDownloadLoop {
