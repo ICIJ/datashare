@@ -10,10 +10,10 @@ import java.util.concurrent.Executors;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class TaskViewTest {
-    private Executor executor = Executors.newSingleThreadExecutor();
+    private final Executor executor = Executors.newSingleThreadExecutor();
 
     @Test
-    public void test_get_result_sync_when_task_is_done() throws Exception {
+    public void test_get_result_sync_when_task_is_done() {
         MonitorableFutureTask<String> task = new MonitorableFutureTask<>(() -> "run");
         task.run();
         TaskView<String> taskView = new TaskView<>(task);
@@ -24,7 +24,7 @@ public class TaskViewTest {
     }
 
     @Test
-    public void test_get_result_sync_when_task_is_running() throws Exception {
+    public void test_get_result_sync_when_task_is_running() {
         MonitorableFutureTask<String> task = new MonitorableFutureTask<>(() -> {
             Thread.sleep(100);
             return "run";
@@ -40,7 +40,7 @@ public class TaskViewTest {
     }
 
     @Test
-    public void test_get_result_sync_when_task_is_not_local() throws Exception{
+    public void test_get_result_sync_when_task_is_not_local() {
         TaskView<Object> taskView = new TaskView<>("task", TaskView.State.DONE, 1, User.local(), null, new HashMap<>());
         assertThat(taskView.getResult()).isNull();
         assertThat(taskView.getState()).isEqualTo(TaskView.State.DONE);
@@ -48,7 +48,7 @@ public class TaskViewTest {
     }
 
     @Test
-    public void test_get_result_sync_when_task_is_not_local_and_result_is_not_null() throws Exception{
+    public void test_get_result_sync_when_task_is_not_local_and_result_is_not_null() {
         TaskView<Object> taskView = new TaskView<>("task", TaskView.State.DONE, 1, User.local(), "run", new HashMap<>());
         assertThat(taskView.getResult()).isEqualTo("run");
     }

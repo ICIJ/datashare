@@ -4,16 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.client.ResponseException;
-import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.user.User;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-
-import static java.util.Arrays.stream;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> {
@@ -24,7 +20,7 @@ public class TaskView<V> {
     public final String name;
 
     public final User user;
-    volatile Exception error;
+    volatile String error;
     private volatile State state;
     private volatile double progress;
     private volatile V result;
@@ -73,11 +69,8 @@ public class TaskView<V> {
                 state = State.CANCELLED;
                 return null;
             } catch (ExecutionException | InterruptedException e) {
-                if (e.getCause() instanceof ElasticsearchStatusException) { // can't be deserialized by jackson
-                    error = new SearchException("unknown", stream(e.getSuppressed()).filter(t -> t instanceof ResponseException).findFirst().orElse(e));
-                } else {
-                    error = e;
-                }
+                LoggerFactory.getLogger(getClass()).error(String.format("Task failed for user %s :", getUser()), e);
+                error = e.getCause().toString();
                 state = State.ERROR;
                 return null;
             }
