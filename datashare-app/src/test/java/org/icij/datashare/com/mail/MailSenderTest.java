@@ -12,8 +12,10 @@ import javax.mail.SendFailedException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
 import static org.junit.Assert.assertEquals;
@@ -22,14 +24,14 @@ import static org.junit.Assert.fail;
 public class MailSenderTest {
 
 	private Wiser fakeSmtpServer;
-	private static final int portSmtpDeTest = 2500;
+	private static final int testSmtpPort = 2500;
 	private MailSender sender;
 
 	@Before public void setUp() {
 		fakeSmtpServer = new Wiser();
-		fakeSmtpServer.setPort(portSmtpDeTest);
+		fakeSmtpServer.setPort(testSmtpPort);
 		fakeSmtpServer.start();
-		sender = new MailSender(portSmtpDeTest, "localhost");
+		sender = new MailSender("localhost", testSmtpPort);
 	}
 
 	@After public void tearDown() throws InterruptedException {
@@ -48,7 +50,7 @@ public class MailSenderTest {
 	}
 
 	@Test public void sendMailWithCC() throws Exception {
-		Mail mail = new Mail("from", new ArrayList<String>(), Arrays.asList("recipient@fake.net"), "subject", "body");
+		Mail mail = new Mail("from", new ArrayList<String>(), singletonList("recipient@fake.net"), "subject", "body");
 
 		sender.send(mail);
 
@@ -59,7 +61,7 @@ public class MailSenderTest {
 		assertEquals(mail.toString(), receivedMail.toString());
 	}
 
-	@Test public void send_mail_without_dest_throws_exception() throws Exception {
+	@Test public void send_mail_without_dest_throws_exception() {
 		try {
 			sender.send(new Mail("from", null, null, "subject", "body"));
 			fail("Cannot send mail without recipient");

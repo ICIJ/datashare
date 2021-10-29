@@ -4,6 +4,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Arrays;
 
 import static java.util.Arrays.asList;
@@ -458,6 +459,20 @@ public final class DatashareCliOptions {
                 singletonList(BATCH_DOWNLOAD_MAX_NB_FILES), "Maximum file number that can be archived in a zip (Default 10,000)")
                 .withRequiredArg()
                 .ofType(Integer.class);
+    }
+
+    public static void batchDownloadEncrypt(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("batchDownloadEncrypt"), "Whether Batch download zip files are encrypted or not. SmtpUrl should be set to send the password. (default false)")
+                .withRequiredArg()
+                .ofType(Boolean.class);
+    }
+
+    public static void smtpUrl(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("smtpUrl"), "Smtp url to allow datashare to send emails (ex: smtp://localhost:25)")
+                .withRequiredArg()
+                .ofType(URI.class);
     }
 
     public static void batchDownloadMaxSize(OptionParser parser) {

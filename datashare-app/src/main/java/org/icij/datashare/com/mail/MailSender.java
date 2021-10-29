@@ -1,5 +1,6 @@
 package org.icij.datashare.com.mail;
 
+import java.net.URI;
 import java.util.Properties;
 
 
@@ -19,16 +20,17 @@ import static javax.mail.Message.RecipientType.TO;
 
 
 public class MailSender {
-
     protected final Log logger = LogFactory.getLog(this.getClass());
     
     public final int port;
     public final String host;
 
-    public MailSender(int host, String port) {
-        this.port = host;
-        this.host = port;
+    public MailSender(String host, int port) {
+        this.host = host;
+        this.port = port;
     }
+
+    public MailSender(URI uri) { this(uri.getHost(), uri.getPort()); }
 
     public void send(Mail donneesEmail) throws MailException {
         try {
@@ -44,16 +46,13 @@ public class MailSender {
     }
 
     private Message createMessage(Mail donneesEmail) throws MessagingException, AddressException {
-        Message message = new SMTPMessage(getMailSession(port, host));
+        Message message = new SMTPMessage(getMailSession(host, port));
         logger.info("MimeMessage: host = " + host + " - port = " + port);
 
         message.setHeader("X-Mailer", "msgsend");
         message.setSentDate(new java.util.Date());
 
         message.setFrom(new InternetAddress(donneesEmail.from));
-        logger.info("donneesEmail.listeDestinatairesFrom = " + donneesEmail.from);
-        logger.info("donneesEmail.listeDestinatairesTo = "   + donneesEmail.toRecipientList);
-        logger.info("donneesEmail.listeDestinatairesCc = "   + donneesEmail.ccRecipientList);
         if (donneesEmail.toRecipientList != null) {
             for (String to : donneesEmail.toRecipientList) {
                 message.addRecipient(TO, new InternetAddress(to));
@@ -69,7 +68,7 @@ public class MailSender {
         return message;
     }
 
-    private synchronized static Session getMailSession(int portTransportMail, String hostTransportMail) {
+    private synchronized static Session getMailSession(String hostTransportMail, int portTransportMail) {
         Properties properties = new Properties();
         properties.setProperty("mail.smtp.class", "com.sun.mail.smtp.SMTPTransport");
         properties.setProperty("mail.smtp.port", String.valueOf(portTransportMail));

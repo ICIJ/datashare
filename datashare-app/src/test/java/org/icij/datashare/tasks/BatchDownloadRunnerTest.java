@@ -57,7 +57,7 @@ public class BatchDownloadRunnerTest {
             put(SCROLL_SIZE, "3");
         }}), new BatchDownload(project("test-datashare"), User.local(), "query"), updater).call();
 
-        assertThat(new ZipFile(zip).size()).isEqualTo(3);
+        assertThat(new ZipFile(zip).size()).isEqualTo(4);
     }
 
     @Test(expected = ElasticsearchStatusException.class)
