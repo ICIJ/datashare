@@ -26,7 +26,7 @@ public class BatchDownloadCleaner implements Runnable {
 
     @Override
     public void run() {
-        logger.info("deleting temporary zip files from {}", downloadDir);
+        logger.debug("deleting temporary zip files from {}", downloadDir);
         stream(requireNonNull(downloadDir.toFile().listFiles()))
                 .filter(f -> filePattern.matcher(f.getName()).matches())
                 .filter(f -> DatashareTime.getInstance().currentTimeMillis() - f.lastModified() >= ttlHour * 1000L * 60 * 60)
