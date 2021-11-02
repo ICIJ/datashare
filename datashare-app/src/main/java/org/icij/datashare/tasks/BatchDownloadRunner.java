@@ -215,7 +215,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         public void close() throws Exception {
             zipOutputStream.close();
             try {
-                passwordSender.send(new Mail("engineering@icij.org", batchDownload.user.email, String.format("[datashare] zip %s", batchDownload.filename),
+                passwordSender.send(new Mail("engineering@icij.org", batchDownload.user.email, String.format("[datashare] %s", batchDownload.filename.getFileName()),
                         "Your password to open the zip file is " + password));
             } catch (MailException mex) {
                 logger.error("failed to send mail password" , mex);

@@ -44,6 +44,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
         verify(mailSender).send(mailCaptor.capture());
         assertThat(mailCaptor.getValue().from).isEqualTo("engineering@icij.org");
         assertThat(mailCaptor.getValue().toRecipientList).containsExactly("foo@bar.com");
+        assertThat(mailCaptor.getValue().subject).isEqualTo("[datashare] " + batchDownload.filename.getFileName());
     }
 
     @NotNull
