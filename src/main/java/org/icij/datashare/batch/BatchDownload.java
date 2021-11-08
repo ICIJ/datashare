@@ -23,7 +23,7 @@ import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
 import static java.util.Optional.ofNullable;
 
 public class BatchDownload {
-    public static final String ZIP_FORMAT = "archive_%s_%s_%s.zip";
+    public static final String ZIP_FORMAT = "archive_%s_%s.zip";
 
     public final String uuid;
     public final Project project;
@@ -39,7 +39,7 @@ public class BatchDownload {
     }
 
     public BatchDownload(final Project project, User user, String query, Path downloadDir)  {
-        this(UUID.randomUUID().toString(), project, downloadDir.resolve(createFilename(project, user)), query, user);
+        this(UUID.randomUUID().toString(), project, downloadDir.resolve(createFilename(user)), query, user);
     }
 
     @JsonCreator
@@ -64,11 +64,10 @@ public class BatchDownload {
         }
     }
 
-    public static Path createFilename(Project project, User user) {
-        Project nonNullProject = ofNullable(project).orElseThrow(() -> new IllegalArgumentException("project cannot be null or empty"));
+    public static Path createFilename(User user) {
         User nonNullUser = ofNullable(user).orElseThrow(() -> new IllegalArgumentException("user cannot be null or empty"));
         String strTime = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
-        return Paths.get(format(ZIP_FORMAT, nonNullProject.name, nonNullUser.getId(), strTime));
+        return Paths.get(format(ZIP_FORMAT, nonNullUser.getId(), strTime));
     }
 
     @JsonIgnore

@@ -15,11 +15,6 @@ import static org.icij.datashare.user.User.local;
 
 public class BatchDownloadTest {
     @Test(expected = IllegalArgumentException.class)
-    public void test_constructor_null_project() {
-        new BatchDownload(null, local(), "query");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
     public void test_constructor_null_user() {
         new BatchDownload(project("prj"),null, "query");
     }
@@ -37,7 +32,7 @@ public class BatchDownloadTest {
 
         assertThat(batchDownload.project).isEqualTo(project("prj"));
         assertThat(batchDownload.query).isEqualTo("foo");
-        assertThat(batchDownload.filename.toString()).isEqualTo("/tmp/archive_prj_local_2021-07-07T14:53:47Z[GMT].zip");
+        assertThat(batchDownload.filename.toString()).isEqualTo("/tmp/archive_local_2021-07-07T14:53:47Z[GMT].zip");
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -50,7 +45,7 @@ public class BatchDownloadTest {
         DatashareTime.getInstance().setMockDate("2021-07-07T14:15:16Z");
 
         assertThat(new BatchDownload(project("prj"), local(), "foo", Paths.get("/bar")).filename.toString()).
-                isEqualTo("/bar/archive_prj_local_2021-07-07T14:15:16Z[GMT].zip");
+                isEqualTo("/bar/archive_local_2021-07-07T14:15:16Z[GMT].zip");
     }
 
     @Test
@@ -78,7 +73,7 @@ public class BatchDownloadTest {
         ObjectMapper objectMapper = new ObjectMapper();
 
         String json = objectMapper.writeValueAsString(new BatchDownload(project("prj"), local(), "query"));
-        assertThat(json).contains("\"filename\":\"file:///tmp/archive_prj_local_2021-07-07T14:53:47Z%5BGMT%5D.zip\"");
+        assertThat(json).contains("\"filename\":\"file:///tmp/archive_local_2021-07-07T14:53:47Z%5BGMT%5D.zip\"");
 
         assertThat(objectMapper.readValue(json, BatchDownload.class)).isNotNull();
     }
