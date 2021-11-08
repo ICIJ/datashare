@@ -27,7 +27,7 @@ public class BatchDownloadCleanerTest {
 
     @Test
     public void test_remove_zip_file_with_correct_patterns() throws IOException {
-        File file = downloadDir.newFile(createFilename(project("prj"), User.local()).toString());
+        File file = downloadDir.newFile(createFilename(User.local()).toString());
         // we must advance the delay between time fixed by the time rule and file creation date ~60ms
         DatashareTime.getInstance().addMilliseconds(100);
 
@@ -38,7 +38,7 @@ public class BatchDownloadCleanerTest {
 
     @Test
     public void test_remove_zip_file_with_correct_patterns_after_a_given_delay() throws IOException {
-        File file = downloadDir.newFile(createFilename(project("prj"), User.local()).toString());
+        File file = downloadDir.newFile(createFilename(User.local()).toString());
         BatchDownloadCleaner batchDownloadCleaner = new BatchDownloadCleaner(downloadDir.getRoot().toPath(), 1);
         DatashareTime.getInstance().addMilliseconds(100); // same reason as previous test
 
