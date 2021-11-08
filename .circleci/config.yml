@@ -49,6 +49,7 @@ jobs:
       - run:
           name: deploy datashare-api jar to maven central
           command: mvn -s .circleci/maven-release-settings.xml deploy -Dmaven.test.skip=true
+              timeout: 1200
 
 workflows:
   version: 2
