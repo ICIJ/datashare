@@ -44,7 +44,7 @@ public class BatchDownloadTest {
     public void test_batch_download_constructor_with_downloadDir() {
         DatashareTime.getInstance().setMockDate("2021-07-07T14:15:16Z");
 
-        assertThat(new BatchDownload(project("prj"), local(), "foo", Paths.get("/bar")).filename.toString()).
+        assertThat(new BatchDownload(project("prj"), local(), "foo", Paths.get("/bar"), false).filename.toString()).
                 isEqualTo("/bar/archive_local_2021-07-07T14:15:16Z[GMT].zip");
     }
 
