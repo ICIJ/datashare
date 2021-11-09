@@ -65,6 +65,15 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_source_file_without_metadata() throws Exception {
+        File txtFile = new File(temp.getRoot(), "/my/path/to/file.ods");
+        write(txtFile, "content");
+        indexFile("local-datashare", "id_ods", txtFile.toPath(), "application/vnd.oasis.opendocument.spreadsheet", null);
+
+        get("/api/local-datashare/documents/src/id_ods?filter_metadata=true").should().succeed();
+    }
+
+    @Test
     public void test_get_source_file_with_content_type_inline() throws Exception {
         File img = new File(temp.getRoot(), "/my/path/to/image.jpg");
         write(img, "content");

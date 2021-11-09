@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.payload.Payload.ok;
@@ -63,13 +64,13 @@ public class DocumentResource {
      *
      * $(curl -i http://localhost:8080/api/apigen-datashare/documents/src/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f
      */
-    @Get("/:project/documents/src/:id?routing=:routing")
+    @Get("/:project/documents/src/:id?routing=:routing&filter_metadata=:filter_metadata")
     public Payload getSourceFile(final String project, final String id,
-                                 final String routing, final Context context) throws IOException {
+                                 final String routing, final String filterMetadata, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
         if (((DatashareUser)context.currentUser()).isGranted(project) &&
                 isAllowed(repository.getProject(project), context.request().clientAddress())) {
-            return routing == null ? getPayload(indexer.get(project, id), project, inline) : getPayload(indexer.get(project, id, routing),project, inline);
+            return routing == null ? getPayload(indexer.get(project, id), project, inline, parseBoolean(filterMetadata)) : getPayload(indexer.get(project, id, routing),project, inline, parseBoolean(filterMetadata));
         }
         throw new ForbiddenException();
     }
@@ -346,8 +347,8 @@ public class DocumentResource {
         return new Result<>(repository.unrecommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
-    private Payload getPayload(Document doc, String index, boolean inline) throws IOException {
-        try (InputStream from = new SourceExtractor().getSource(project(index), doc)) {
+    private Payload getPayload(Document doc, String index, boolean inline, boolean filterMetadata) throws IOException {
+        try (InputStream from = new SourceExtractor(filterMetadata).getSource(project(index), doc)) {
             String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
             Payload payload = new Payload(contentType, InputStreams.readBytes(from));
             String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
