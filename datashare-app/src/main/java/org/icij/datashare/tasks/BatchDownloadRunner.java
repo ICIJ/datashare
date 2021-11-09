@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.zip.ZipException;
 
-import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
@@ -121,7 +120,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     }
 
     private Zipper createZipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider, Function<URI, MailSender> mailSenderSupplier) throws URISyntaxException, IOException {
-        return parseBoolean(propertiesProvider.get("batchDownloadEncrypt").orElse("false")) ?
+        return batchDownload.encrypted ?
                 new ZipperWithPassword(batchDownload, mailSenderSupplier.apply(new URI(propertiesProvider.get("smtpUrl").orElse("smtp://localhost:25")))):
                 new Zipper(batchDownload);
     }

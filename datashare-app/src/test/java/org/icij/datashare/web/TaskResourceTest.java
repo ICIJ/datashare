@@ -224,7 +224,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().haveType("application/json").
                 should().contain("properties").
                 should().contain("filename");
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(project("test-datashare"), local(), "*", Paths.get("app", "tmp"))), any());
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(project("test-datashare"), local(), "*", Paths.get("app", "tmp"), false)), any());
     }
 
     @Test
@@ -234,7 +234,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().contain("properties").
                 should().contain("filename");
 
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(project("test-datashare"), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"))), any());
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(project("test-datashare"), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"), false)), any());
     }
 
     @Test

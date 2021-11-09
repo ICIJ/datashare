@@ -149,7 +149,7 @@ public class BatchDownloadRunnerIntTest {
 
     @NotNull
     private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(project(TEST_INDEX), local(), query, fs.getRoot().toPath());
+        return new BatchDownload(project(TEST_INDEX), local(), query, fs.getRoot().toPath(), false);
     }
 
     @Before

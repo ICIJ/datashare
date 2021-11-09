@@ -49,7 +49,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
 
     @NotNull
     private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(project(TEST_INDEX), new User("foo", "bar", "foo@bar.com"), query, fs.getRoot().toPath());
+        return new BatchDownload(project(TEST_INDEX), new User("foo", "bar", "foo@bar.com"), query, fs.getRoot().toPath(), true);
     }
 
     @Before
@@ -62,7 +62,6 @@ public class BatchDownloadRunnerEncryptedIntTest {
     private PropertiesProvider createProvider() {
         return new PropertiesProvider(new HashMap<String, String>() {{
             put("downloadFolder", fs.getRoot().toString());
-            put("batchDownloadEncrypt", "true");
         }});
     }
 }
