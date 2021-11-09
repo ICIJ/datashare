@@ -44,6 +44,20 @@ public class SourceExtractorTest {
     }
 
     @Test
+    public void test_get_source_for_doc_and_pdf_with_without_metadata() throws IOException {
+        Document document = new Document(project("project"), get(getClass().getResource("/docs/office_document.doc").getPath()), null,
+                Language.ENGLISH, Charset.defaultCharset(), "application/msword", new HashMap<>(),
+                Document.Status.INDEXED, 0L);
+
+        InputStream inputStreamWithMetadata = new SourceExtractor(false).getSource(document);
+        InputStream inputStreamWithoutMetadata = new SourceExtractor(true).getSource(document);
+        assertThat(inputStreamWithMetadata).isNotNull();
+        assertThat(inputStreamWithoutMetadata).isNotNull();
+        assertThat(getBytes(inputStreamWithMetadata).length).isEqualTo(9216);
+        assertThat(getBytes(inputStreamWithoutMetadata).length).isNotEqualTo(9216);
+    }
+
+    @Test
     public void test_get_source_for_embedded_doc() throws Exception {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
             put("idDigestMethod", Document.HASHER.toString());
@@ -65,6 +79,28 @@ public class SourceExtractorTest {
         InputStream source = new SourceExtractor().getSource(project(TEST_INDEX), attachedPdf);
         assertThat(source).isNotNull();
         assertThat(getBytes(source)).hasSize(49779);
+    }
+
+    @Test
+    public void test_get_source_for_embedded_doc_without_metadata() throws Exception {
+        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+            put("idDigestMethod", Document.HASHER.toString());
+        }}));
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        Extractor extractor = new Extractor(tikaFactory);
+        extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.HASHER.toString()));
+        final TikaDocument document = extractor.extract(path);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
+                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
+        spewer.write(document);
+
+        Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).
+                get(TEST_INDEX, "1bf2b6aa27dd8b45c7db58875004b8cb27a78ced5200b4976b63e351ebbae5ececb86076d90e156a7cdea06cde9573ca",
+                        "f4078910c3e73a192e3a82d205f3c0bdb749c4e7b23c1d05a622db0f07d7f0ededb335abdb62aef41ace5d3cdb9298bc");
+
+        InputStream source = new SourceExtractor(true).getSource(project(TEST_INDEX), attachedPdf);
+        assertThat(source).isNotNull();
+        assertThat(getBytes(source).length).isNotEqualTo(49779);
     }
 
     private byte[] getBytes(InputStream source) throws IOException {

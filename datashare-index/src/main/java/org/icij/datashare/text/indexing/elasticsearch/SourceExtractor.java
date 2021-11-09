@@ -5,6 +5,7 @@ import org.apache.tika.parser.utils.CommonsDigester;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Project;
+import org.icij.extract.cleaner.MetadataCleaner;
 import org.icij.extract.document.*;
 import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
 import org.icij.extract.extractor.UpdatableDigester;
@@ -19,6 +20,16 @@ import static org.icij.datashare.text.Hasher.SHA_384;
 
 public class SourceExtractor {
     Logger LOGGER = LoggerFactory.getLogger(SourceExtractor.class);
+    private final boolean filterMetadata;
+    private final MetadataCleaner metadataCleaner = new MetadataCleaner();
+
+    public SourceExtractor() {
+        this(false);
+    }
+
+    public SourceExtractor(boolean filterMetadata) {
+        this.filterMetadata = filterMetadata;
+    }
 
     public InputStream getSource(final Document document) throws FileNotFoundException {
         return getSource(document.getProject(), document);
@@ -26,7 +37,15 @@ public class SourceExtractor {
 
     public InputStream getSource(final Project project, final Document document) throws FileNotFoundException {
         if (document.isRootDocument()) {
-            return new FileInputStream(document.getPath().toFile());
+            if (filterMetadata) {
+                try {
+                    return new ByteArrayInputStream(metadataCleaner.clean(new FileInputStream(document.getPath().toFile())).getContent());
+                } catch (IOException e) {
+                    throw new ExtractException("content cleaner error ", e);
+                }
+            } else {
+                return new FileInputStream(document.getPath().toFile());
+            }
         } else {
             LOGGER.info("extracting embedded document " + Identifier.shorten(document.getId(), 4) + " from root document " + document.getPath());
             TikaDocumentSource source;
@@ -45,7 +64,8 @@ public class SourceExtractor {
             TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
             try {
                 source = embeddedExtractor.extract(rootDocument, document.getId());
-                return new ByteArrayInputStream(source.content);
+                return filterMetadata ? new ByteArrayInputStream(metadataCleaner.clean(new ByteArrayInputStream(source.content)).getContent())
+                        : new ByteArrayInputStream(source.content);
             } catch (SAXException | TikaException | IOException e) {
                 throw new ExtractException("extract error for embedded document " + document.getId(), e);
             }
