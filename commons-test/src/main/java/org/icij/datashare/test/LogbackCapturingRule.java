@@ -32,6 +32,10 @@ public class LogbackCapturingRule extends ExternalResource {
         return appender.events.stream().filter(e -> e.getLevel() == level).map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList());
     }
 
+    public List<String> logs() {
+        return appender.events.stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList());
+    }
+
     private static class TestAppender extends AppenderBase<ILoggingEvent> {
         List<ILoggingEvent> events = new ArrayList<>();
 

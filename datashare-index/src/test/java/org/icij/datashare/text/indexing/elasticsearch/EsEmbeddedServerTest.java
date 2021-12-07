@@ -27,14 +27,19 @@ public class EsEmbeddedServerTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void launch_with_other_illegal_argument() {
-        new EsEmbeddedServer("name", "home/path", "data/path", "9876") {
-            @Override
-            EsEmbeddedServer.PluginConfigurableNode createNode(Settings settings) {
-                throw new IllegalArgumentException();
-            }
-        };
+        try {
+            new EsEmbeddedServer("name", "home/path", "data/path", "9876") {
+                @Override
+                EsEmbeddedServer.PluginConfigurableNode createNode(Settings settings) {
+                    throw new IllegalArgumentException();
+                }
+            };
+            fail("should send IllegalArgument");
+        } catch (IllegalArgumentException iae) {
+            assertThat(logbackCapturingRule.logs()).isEmpty();
+        }
     }
 
 }
