@@ -1,33 +1,40 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import org.elasticsearch.client.indices.GetIndexRequest;
-import org.icij.datashare.test.ElasticsearchRule;
-import org.junit.*;
-import org.junit.rules.TemporaryFolder;
+import ch.qos.logback.classic.Level;
+import org.elasticsearch.common.settings.Settings;
+import org.icij.datashare.test.LogbackCapturingRule;
+import org.junit.Rule;
+import org.junit.Test;
 
-import java.io.IOException;
-
-import static org.apache.http.HttpHost.create;
-import static org.elasticsearch.client.RequestOptions.DEFAULT;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
+import static org.fest.assertions.Fail.fail;
 
 public class EsEmbeddedServerTest {
-    private static EsEmbeddedServer server;
-    @ClassRule static public TemporaryFolder esDir = new TemporaryFolder();
-    @Rule public ElasticsearchRule es = new ElasticsearchRule(create("http://localhost:9200"));
+    @Rule public LogbackCapturingRule logbackCapturingRule = new LogbackCapturingRule();
 
     @Test
-    public void test_embedded_server_has_a_test_index() throws Exception {
-        assertThat(es.client.indices().exists(new GetIndexRequest(TEST_INDEX), DEFAULT)).isTrue();
+    public void launch_with_bad_codec() {
+        try {
+            new EsEmbeddedServer("name", "home/path", "data/path", "9876") {
+                @Override
+                EsEmbeddedServer.PluginConfigurableNode createNode(Settings settings) {
+                    throw new IllegalArgumentException("Could not load codec");
+                }
+            };
+            fail("should send IllegalArgument");
+        } catch (IllegalArgumentException iae) {
+            assertThat(logbackCapturingRule.logs(Level.ERROR)).contains("Your index version on disk (data/path) doesn't seem to have the same version as the embedded Elasticsearch engine (7.10.2). Please migrate it with snapshots, or remove it then restart datashare.");
+        }
     }
 
-    @BeforeClass
-    public static void setUp() {
-        server = new EsEmbeddedServer("datashare", esDir.getRoot().getPath(), esDir.getRoot().getPath(), "9200");
-        server.start();
+    @Test(expected = IllegalArgumentException.class)
+    public void launch_with_other_illegal_argument() {
+        new EsEmbeddedServer("name", "home/path", "data/path", "9876") {
+            @Override
+            EsEmbeddedServer.PluginConfigurableNode createNode(Settings settings) {
+                throw new IllegalArgumentException();
+            }
+        };
     }
 
-    @AfterClass
-    public static void tearDown() throws IOException { server.stop();}
 }

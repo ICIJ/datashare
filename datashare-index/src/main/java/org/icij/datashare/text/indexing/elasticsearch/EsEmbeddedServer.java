@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.reindex.ReindexPlugin;
@@ -9,6 +10,7 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.painless.PainlessPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -31,14 +33,16 @@ public class EsEmbeddedServer {
                 .put("path.data", dataPath)
                 .put("http.port", httpPort)
                 .put("cluster.name", clusterName).build();
-
-        node = new PluginConfigurableNode(settings, asList(
-                Netty4Plugin.class,
-                ParentJoinPlugin.class,
-                CommonAnalysisPlugin.class,
-                PainlessPlugin.class,
-                ReindexPlugin.class
-        ));
+        try {
+            node = createNode(settings);
+        } catch (IllegalArgumentException iae) {
+            if (iae.getMessage() != null && iae.getMessage().contains("Could not load codec")) {
+                LoggerFactory.getLogger(getClass()).error("Your index version on disk ({}) doesn't seem to have the same " +
+                        "version as the embedded Elasticsearch engine ({}). Please migrate it with snapshots, " +
+                        "or remove it then restart datashare.", dataPath, Version.CURRENT);
+            }
+            throw iae;
+        }
     }
 
     public void start() {
@@ -53,7 +57,17 @@ public class EsEmbeddedServer {
         node.close();
     }
 
-    private static class PluginConfigurableNode extends Node {
+    PluginConfigurableNode createNode(Settings settings) {
+        return new PluginConfigurableNode(settings, asList(
+                Netty4Plugin.class,
+                ParentJoinPlugin.class,
+                CommonAnalysisPlugin.class,
+                PainlessPlugin.class,
+                ReindexPlugin.class
+        ));
+    }
+
+    static class PluginConfigurableNode extends Node {
         public PluginConfigurableNode(Settings settings, Collection<Class<? extends Plugin>> classpathPlugins) {
             super(InternalSettingsPreparer.prepareEnvironment(settings, new HashMap<>(), null, () -> "datashare"), classpathPlugins, true);
         }
