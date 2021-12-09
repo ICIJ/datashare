@@ -31,6 +31,7 @@ public class BatchDownload {
     public final String query;
     public final User user;
     public final boolean encrypted;
+    public volatile long zipSize;
 
     @JsonIgnore
     private final JsonNode jsonNode;
@@ -40,22 +41,24 @@ public class BatchDownload {
     }
 
     public BatchDownload(final Project project, User user, String query, Path downloadDir, boolean isEncrypted)  {
-        this(UUID.randomUUID().toString(), project, downloadDir.resolve(createFilename(user)), query, user, isEncrypted);
+        this(UUID.randomUUID().toString(), project, downloadDir.resolve(createFilename(user)), query, user, isEncrypted, 0);
     }
 
     @JsonCreator
     private BatchDownload(@JsonProperty("uuid") final String uuid,
                           @JsonProperty("project") final Project project,
-                         @JsonProperty("filename") Path filename,
-                         @JsonProperty("query") String query,
-                         @JsonProperty("user") User user,
-                          @JsonProperty("encrypted") boolean encrypted) {
+                          @JsonProperty("filename") Path filename,
+                          @JsonProperty("query") String query,
+                          @JsonProperty("user") User user,
+                          @JsonProperty("encrypted") boolean encrypted,
+                          @JsonProperty("zipSize") long zipSize) {
         this.uuid = uuid;
         this.project = project;
         this.user = user;
         this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
         this.filename = filename;
         this.encrypted = encrypted;
+        this.zipSize = zipSize;
         if (isJsonQuery()) {
             try {
                 jsonNode = JsonObjectMapper.MAPPER.readTree(query.getBytes(StandardCharsets.UTF_8));
@@ -71,6 +74,10 @@ public class BatchDownload {
         User nonNullUser = ofNullable(user).orElseThrow(() -> new IllegalArgumentException("user cannot be null or empty"));
         String strTime = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
         return Paths.get(format(ZIP_FORMAT, nonNullUser.getId(), strTime));
+    }
+
+    public void setZipSize(long zipSize) {
+        this.zipSize = zipSize;
     }
 
     @JsonIgnore
