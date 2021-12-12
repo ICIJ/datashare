@@ -108,6 +108,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                     if (addedBytes > 0) {
                         zippedFilesSize += addedBytes;
                         numberOfResults.incrementAndGet();
+                        batchDownload.setZipSize(zippedFilesSize);
                         updateCallback.apply(new TaskView<>(new MonitorableFutureTask<>(this, taskProperties)));
                     }
                 }

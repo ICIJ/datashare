@@ -12,6 +12,7 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.function.Function;
 import java.util.zip.ZipFile;
@@ -78,6 +79,18 @@ public class BatchDownloadRunnerIntTest {
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);
         verify(updateCallback, times(2)).apply(any());
+    }
+
+    @Test
+    public void test_update_batch_download_zip_size() throws Exception {
+        new IndexerHelper(es.client).indexFile("doc1.txt", "The quick brown fox jumps over the lazy dog", fs);
+        new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
+
+        BatchDownload bd = createBatchDownload("*");
+        long sizeAtCreation = bd.zipSize;
+        new BatchDownloadRunner(indexer, createProvider(), bd, updateCallback).call();
+
+        assertThat(bd.zipSize).isGreaterThan(sizeAtCreation);
     }
 
     @Test
