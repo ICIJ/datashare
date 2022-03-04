@@ -70,8 +70,11 @@ public class IndexResource {
       * Path can be of the form :
       * * _search/scroll
       * * index_name/_search
+      * * index_name1,index_name2/_search
       * * index_name/_count
+      * * index_name1,index_name2/_count
       * * index_name/doc/_search
+      * * index_name1,index_name2/doc/_search
       *
       * @param path
       * @return 200 or http error from Elasticsearch
