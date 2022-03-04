@@ -7,6 +7,7 @@ import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
+import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.After;
 import org.junit.Before;
@@ -14,6 +15,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
@@ -90,6 +92,29 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         post("/api/index/search/cecile-datashare/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
 
         post("/api/index/search/cecile-datashare/_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(401);
+    }
+
+    @Test
+    public void test_auth_forward_request_with_user_logged_on_allow_search_on_multiple_indices() throws IOException {
+        configure(routes ->
+                routes.add(new IndexResource(indexer)).
+                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new User(new HashMap<String, Object>() {
+                            {
+                                this.put("uid", "cecile");
+                                this.put("groups_by_applications", new HashMap<String, Object>() {
+                                    {
+                                        this.put("datashare", Arrays.asList("test-index1", "test-index2"));
+                                    }
+                                });
+                            }
+                        })))));
+        indexer.add("test-index1", DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
+        indexer.add("test-index2", DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
+        post("/api/index/search/test-index1,test-index2/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/test-index1,test-index2/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
+        post("/api/index/search/test-index1,test-index2/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);
+
+        post("/api/index/search/test-index1,test-index2/_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(401);
     }
 
     @Test

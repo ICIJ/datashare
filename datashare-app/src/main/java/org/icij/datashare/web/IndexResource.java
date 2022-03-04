@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 
 import static java.lang.String.join;
+import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
@@ -126,8 +127,8 @@ public class IndexResource {
         if ("_search".equals(pathParts[0]) && "scroll".equals(pathParts[1])) {
             return getUrlString(context, path);
         }
-        String index = pathParts[0];
-        if (((DatashareUser)context.currentUser()).isGranted(index) &&
+        String[] indexes = pathParts[0].split(",");
+        if (stream(indexes).allMatch(index -> ((DatashareUser)context.currentUser()).isGranted(index)) &&
                 ("GET".equalsIgnoreCase(context.method()) ||
                         "_search".equals(pathParts[1]) ||
                         "_count".equals(pathParts[1]) ||
