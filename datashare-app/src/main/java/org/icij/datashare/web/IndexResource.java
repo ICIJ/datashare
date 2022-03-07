@@ -103,15 +103,7 @@ public class IndexResource {
      */
     @Get("/search/:path:")
     public Payload esGet(final String path, Context context) throws IOException {
-        String url;
-        byte[] getBody = context.request().contentAsBytes();
-        if (getBody != null && getBody.length > 0) {
-            // hack to remove when we will upgrade elasticsearch-py/ES to v7
-            url = path + "?source_content_type=application%2Fjson&source=" + URLEncoder.encode(new String(getBody), "utf-8");
-        } else {
-            url = checkPath(path, context);
-        }
-        return createPayload(indexer.executeRaw("GET", url, ""));
+        return createPayload(indexer.executeRaw("GET", checkPath(path, context), ""));
     }
 
     /**
