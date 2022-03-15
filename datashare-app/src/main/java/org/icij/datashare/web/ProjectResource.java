@@ -53,8 +53,8 @@ public class ProjectResource {
      * in that project table there is a field called `allow_from_mask` that can have a mask
      * with IP and star wildcard.
      *
-     * Ex : `192.168.*.*` will match all subnetwork 192.168.0.0 IP's and users with an IP in
-     * this range will not be granted for downloading documents.
+     * Ex : `192.168.*.*` will match all subnetwork 192.168.0.0 IP's and only users with an IP in
+     * this range will be granted for downloading documents.
      *
      * @param id
      * @return 200 or 403 (Forbidden)
