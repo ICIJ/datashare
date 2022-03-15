@@ -50,6 +50,12 @@ public class ProjectResource {
      * there is the project table that can specify an IP mask that is allowed per project.
      * If the client IP is not in the range, then the file download will be forbidden.
      *
+     * in that project table there is a field called `allow_from_mask` that can have a mask
+     * with IP and star wildcard.
+     *
+     * Ex : `192.168.*.*` will match all subnetwork 192.168.0.0 IP's and users with an IP in
+     * this range will not be granted for downloading documents.
+     *
      * @param id
      * @return 200 or 403 (Forbidden)
      *
