@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 38
+      author: mvanza
+      changes:
+        - createTable:
+            tableName: user_history_project
+            columns:
+              - column:
+                  name: user_history_id
+                  type: int
+                  constraints:
+                    nullable: false
+                    references: user_history(id)
+                    foreignKeyName: user_history_project_user_history_id_fk
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 39
+      author: mvanza
+      changes:
+        sql:
+          CREATE UNIQUE INDEX user_history_project_unique ON user_history_project (user_history_id, prj_id)
+
+  - changeSet:
+      id: 40
+      author: mvanza
+      changes:
+        sql:
+          INSERT INTO user_history_project (user_history_id, prj_id) SELECT id, prj_id FROM user_history
+
+  - changeSet:
+      id: 41
+      author: mvanza
+      changes:
+        - dropColumn:
+            tableName: user_history
+            columnName: prj_id

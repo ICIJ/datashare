@@ -21,8 +21,10 @@ public class DbSetupRule extends ExternalResource {
     private final String dataSourceUrl;
     private static final Operation DELETE_ALL = deleteAllFrom(
             "document", "named_entity", "document_user_star", "document_tag", "batch_search", "user_inventory",
-            "batch_search_query", "batch_search_result", "project", "note", "document_user_recommendation","api_key","user_history");
-    private static final SqlOperation RESET_USER_HISTORY_ID_SEQ = sql("ALTER SEQUENCE user_history_id_seq RESTART WITH 1;");
+            "batch_search_query", "batch_search_result", "project", "note", "document_user_recommendation", "api_key",
+            "user_history_project", "user_history");
+    private static final SqlOperation RESET_USER_HISTORY_ID_SEQ_POSTGRES = sql("ALTER SEQUENCE user_history_id_seq RESTART WITH 1;");
+    private static final SqlOperation RESET_ID_SEQ_SQLITE = sql("DELETE FROM `sqlite_sequence`;");
 
     DbSetupRule(String dataSourceUrl) {
         this.dataSource = createDatasource(dataSourceUrl);
@@ -32,7 +34,8 @@ public class DbSetupRule extends ExternalResource {
     @Override
     protected void before() {
         new RepositoryFactoryImpl().initDatabase(dataSource);
-        Operation operation = dataSourceUrl.contains("postgresql") ? sequenceOf(DELETE_ALL,RESET_USER_HISTORY_ID_SEQ) : sequenceOf(DELETE_ALL);
+        Operation operation = dataSourceUrl.contains("postgresql") ? sequenceOf(DELETE_ALL, RESET_USER_HISTORY_ID_SEQ_POSTGRES)
+                : sequenceOf(DELETE_ALL, RESET_ID_SEQ_SQLITE);
         DbSetup dbSetup = new DbSetup(new DataSourceDestination(dataSource), operation);
         dbSetup.launch();
     }

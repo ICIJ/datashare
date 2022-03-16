@@ -30,6 +30,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.Entity.LOGGER;
 import static org.icij.datashare.UserEvent.Type.fromId;
+import static org.icij.datashare.db.Tables.USER_HISTORY_PROJECT;
 import static org.icij.datashare.db.tables.Document.DOCUMENT;
 import static org.icij.datashare.db.tables.DocumentTag.DOCUMENT_TAG;
 import static org.icij.datashare.db.tables.DocumentUserRecommendation.DOCUMENT_USER_RECOMMENDATION;
@@ -175,16 +176,25 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public boolean addToHistory(Project project, UserEvent userEvent) {
-        InsertValuesStep7<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String, String> query = using(connectionProvider, dialect).
+    public boolean addToHistory(List<Project> projects, UserEvent userEvent) {
+        InsertValuesStep6<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String> insertHistory = using(connectionProvider, dialect).
                 insertInto(USER_HISTORY, USER_HISTORY.CREATION_DATE, USER_HISTORY.MODIFICATION_DATE,
-                        USER_HISTORY.USER_ID, USER_HISTORY.TYPE, USER_HISTORY.PRJ_ID, USER_HISTORY.NAME, USER_HISTORY.URI);
-        query.values(new Timestamp(userEvent.creationDate.getTime()), new Timestamp(userEvent.modificationDate.getTime()),
-                userEvent.user.id, userEvent.type.id, project.getId(), userEvent.name, userEvent.uri.toString()).returning(USER_HISTORY.ID);
-        return query.onConflict(USER_HISTORY.USER_ID, USER_HISTORY.URI)
+                        USER_HISTORY.USER_ID, USER_HISTORY.TYPE, USER_HISTORY.NAME, USER_HISTORY.URI);
+        insertHistory.values(new Timestamp(userEvent.creationDate.getTime()), new Timestamp(userEvent.modificationDate.getTime()),
+                userEvent.user.id, userEvent.type.id, userEvent.name, userEvent.uri.toString());
+        UserHistoryRecord insertHistoryRecord = insertHistory.onConflict(USER_HISTORY.USER_ID, USER_HISTORY.URI)
                 .doUpdate()
-                    .set(USER_HISTORY.MODIFICATION_DATE, new Timestamp(userEvent.modificationDate.getTime()))
-                .execute() > 0;
+                .set(USER_HISTORY.MODIFICATION_DATE, new Timestamp(userEvent.modificationDate.getTime()))
+                .returning(USER_HISTORY.ID).fetchOne();
+
+        if (insertHistoryRecord == null) {
+            return false;
+        }
+
+        InsertValuesStep2<UserHistoryProjectRecord, Integer, String> insertProject = using(connectionProvider, dialect).
+                insertInto(USER_HISTORY_PROJECT, USER_HISTORY_PROJECT.USER_HISTORY_ID, USER_HISTORY_PROJECT.PRJ_ID);
+        projects.forEach(project -> insertProject.values(insertHistoryRecord.getValue(USER_HISTORY.ID), project.getId()));
+        return insertProject.onConflictDoNothing().execute() >= 0;
     }
 
     @Override
@@ -203,14 +213,24 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean deleteUserHistory(User user, UserEvent.Type type) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(USER_HISTORY).
-                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute() > 0;
+        int result = using(connectionProvider, dialect).deleteFrom(USER_HISTORY_PROJECT).
+                where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
+                        select(USER_HISTORY.ID)
+                                .from(USER_HISTORY)
+                                .where(USER_HISTORY.TYPE.eq(type.id)).and(USER_HISTORY.USER_ID.eq(user.id))
+                )).execute();
+        result += using(connectionProvider, dialect).deleteFrom(USER_HISTORY).
+                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute();
+        return result > 1;
     }
 
     @Override
     public boolean deleteUserEvent(User user, int eventId) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(USER_HISTORY).
-                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute() > 0;
+        int result = using(connectionProvider, dialect).deleteFrom(USER_HISTORY_PROJECT).
+                where(USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(eventId)).execute();
+        result += using(connectionProvider, dialect).deleteFrom(USER_HISTORY).
+                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute();
+        return result > 1;
     }
 
     @Override
@@ -292,7 +312,7 @@ public class JooqRepository implements Repository {
             int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
             int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
             int deleteUserRecommendationResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId)).execute();
-            int deleteUserHistoryResult = inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.PRJ_ID.eq(projectId)).execute();
+            int deleteUserHistoryResult = inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).execute();
             return deleteStarResult + deleteTagResult + deleteUserRecommendationResult + deleteUserHistoryResult > 0;
         });
     }

@@ -51,9 +51,9 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_put_user_event_to_history() {
-        when(repository.addToHistory(eq(project("prj")),any(UserEvent.class))).thenReturn(true);
+        when(repository.addToHistory(eq(singletonList(project("prj"))),any(UserEvent.class))).thenReturn(true);
 
-        put("/api/users/me/history", "{\"type\": \"SEARCH\", \"project\": \"prj\", \"name\": \"foo AND bar\", \"uri\": \"search_uri\"}").should().respond(200);
+        put("/api/users/me/history", "{\"type\": \"SEARCH\", \"projectIds\": [\"prj\"], \"name\": \"foo AND bar\", \"uri\": \"search_uri\"}").should().respond(200);
     }
 
     @Test

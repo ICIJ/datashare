@@ -74,3 +74,6 @@ databaseChangeLog:
   - include:
       file: changes/024-ne-change-offset.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/025-document-search-history-projects.yml
+      relativeToChangelogFile: true

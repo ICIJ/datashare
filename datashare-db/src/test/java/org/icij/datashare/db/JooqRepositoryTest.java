@@ -346,9 +346,9 @@ public class JooqRepositoryTest {
         UserEvent userEvent2 = new UserEvent(user, DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri(), date2, date2);
         UserEvent userEvent3 = new UserEvent(user2, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri());
 
-        assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
-        assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
-        assertThat(repository.addToHistory(project("project"), userEvent3)).isTrue();
+        assertThat(repository.addToHistory(asList(project("project1"),project("project2")), userEvent)).isTrue();
+        assertThat(repository.addToHistory(singletonList(project("project")), userEvent2)).isTrue();
+        assertThat(repository.addToHistory(singletonList(project("project")), userEvent3)).isTrue();
         assertThat(repository.getUserEvents(user, DOCUMENT, 0, 10)).containsSequence(userEvent2,userEvent);
         assertThat(repository.getTotalUserEvents(user, DOCUMENT)).isEqualTo(2);
         assertThat(repository.getUserEvents(user, DOCUMENT, 0, 1)).containsExactly(userEvent2);
@@ -364,8 +364,8 @@ public class JooqRepositoryTest {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri(), date1, date1);
         UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri(), date2, date2);
 
-        assertThat(repository.addToHistory(project("project"), userEvent)).isTrue();
-        assertThat(repository.addToHistory(project("project"), userEvent2)).isTrue();
+        assertThat(repository.addToHistory(singletonList(project("project")), userEvent)).isTrue();
+        assertThat(repository.addToHistory(singletonList(project("project")), userEvent2)).isTrue();
 
         assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10)).containsExactly(userEvent);
     }
@@ -374,8 +374,8 @@ public class JooqRepositoryTest {
     public void test_delete_user_event_by_type() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
         UserEvent userEvent2 = new UserEvent(User.local(), SEARCH, "search_name", Paths.get("search_uri").toUri());
-        repository.addToHistory(project("project"), userEvent);
-        repository.addToHistory(project("project"), userEvent2);
+        repository.addToHistory(singletonList(project("project")), userEvent);
+        repository.addToHistory(singletonList(project("project")), userEvent2);
 
         assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10)).containsExactly(userEvent);
         assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isTrue();
@@ -387,8 +387,8 @@ public class JooqRepositoryTest {
     @Test
     public void test_delete_single_user_event_by_id() {
         Date date = new Date(new Date().getTime());
-        repository.addToHistory(project("project"), new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri()));
-        repository.addToHistory(project("project"), new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri()));
+        repository.addToHistory(singletonList(project("project")), new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri()));
+        repository.addToHistory(singletonList(project("project")), new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri()));
         List<UserEvent> userEvents = repository.getUserEvents(User.local(), DOCUMENT, 0, 10);
 
         assertThat(repository.deleteUserEvent(User.local(), userEvents.get(1).id)).isTrue();

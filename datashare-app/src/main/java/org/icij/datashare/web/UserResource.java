@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.project;
@@ -74,7 +75,7 @@ public class UserResource {
     }
 
     /**
-     * Add event to history. The event's type, the project id and the uri are passed in the request body.
+     * Add event to history. The event's type, the project ids and the uri are passed in the request body.
      *
      * It answers 200 when event is added or updated.
      *
@@ -82,11 +83,11 @@ public class UserResource {
      * @return 200
      *
      * Example :
-     * $(curl -i -XPUT  -H "Content-Type: application/json"  localhost:8080/api/users/me/history -d '{"type": "SEARCH", "project": "apigen-datashare", "name": "foo AND bar", "uri": "?q=foo%20AND%20bar&from=0&size=100&sort=relevance&index=luxleaks&field=all&stamp=cotgpe"}')
+     * $(curl -i -XPUT  -H "Content-Type: application/json"  localhost:8080/api/users/me/history -d '{"type": "SEARCH", "projectIds": ["apigen-datashare","local-datashare"], "name": "foo AND bar", "uri": "?q=foo%20AND%20bar&from=0&size=100&sort=relevance&index=luxleaks&field=all&stamp=cotgpe"}')
      */
     @Put("/me/history")
     public Payload addToHistory(UserHistoryQuery query, Context context) {
-        repository.addToHistory(query.project, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
+        repository.addToHistory(query.projects, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
         return Payload.ok();
     }
 
@@ -138,14 +139,14 @@ public class UserResource {
 
     private static class UserHistoryQuery {
         final Type type;
-        final Project project;
+        final List<Project> projects;
         final String name;
         final URI uri;
 
         @JsonCreator
-        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("name") String name, @JsonProperty("project") String projectId, @JsonProperty("uri") String uri) {
+        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("name") String name, @JsonProperty("projectIds") List<String> projectIds, @JsonProperty("uri") String uri) {
             this.type = Type.valueOf(type);
-            this.project = project(projectId);
+            this.projects = projectIds.stream().map(Project::project).collect(Collectors.toList());
             this.name = name;
             this.uri = URI.create(uri);
         }

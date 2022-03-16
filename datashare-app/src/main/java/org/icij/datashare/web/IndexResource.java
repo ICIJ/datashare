@@ -11,7 +11,6 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.IOException;
-import java.net.URLEncoder;
 
 import static java.lang.String.join;
 import static java.util.Arrays.stream;
