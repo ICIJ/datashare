@@ -177,24 +177,27 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean addToHistory(List<Project> projects, UserEvent userEvent) {
-        InsertValuesStep6<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String> insertHistory = using(connectionProvider, dialect).
-                insertInto(USER_HISTORY, USER_HISTORY.CREATION_DATE, USER_HISTORY.MODIFICATION_DATE,
-                        USER_HISTORY.USER_ID, USER_HISTORY.TYPE, USER_HISTORY.NAME, USER_HISTORY.URI);
-        insertHistory.values(new Timestamp(userEvent.creationDate.getTime()), new Timestamp(userEvent.modificationDate.getTime()),
-                userEvent.user.id, userEvent.type.id, userEvent.name, userEvent.uri.toString());
-        UserHistoryRecord insertHistoryRecord = insertHistory.onConflict(USER_HISTORY.USER_ID, USER_HISTORY.URI)
-                .doUpdate()
-                .set(USER_HISTORY.MODIFICATION_DATE, new Timestamp(userEvent.modificationDate.getTime()))
-                .returning(USER_HISTORY.ID).fetchOne();
+        return using(connectionProvider, dialect).transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+            InsertValuesStep6<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String> insertHistory = inner.
+                    insertInto(USER_HISTORY, USER_HISTORY.CREATION_DATE, USER_HISTORY.MODIFICATION_DATE,
+                            USER_HISTORY.USER_ID, USER_HISTORY.TYPE, USER_HISTORY.NAME, USER_HISTORY.URI);
+            insertHistory.values(new Timestamp(userEvent.creationDate.getTime()), new Timestamp(userEvent.modificationDate.getTime()),
+                    userEvent.user.id, userEvent.type.id, userEvent.name, userEvent.uri.toString());
+            UserHistoryRecord insertHistoryRecord = insertHistory.onConflict(USER_HISTORY.USER_ID, USER_HISTORY.URI)
+                    .doUpdate()
+                    .set(USER_HISTORY.MODIFICATION_DATE, new Timestamp(userEvent.modificationDate.getTime()))
+                    .returning(USER_HISTORY.ID).fetchOne();
 
-        if (insertHistoryRecord == null) {
-            return false;
-        }
+            if (insertHistoryRecord == null) {
+                return false;
+            }
 
-        InsertValuesStep2<UserHistoryProjectRecord, Integer, String> insertProject = using(connectionProvider, dialect).
-                insertInto(USER_HISTORY_PROJECT, USER_HISTORY_PROJECT.USER_HISTORY_ID, USER_HISTORY_PROJECT.PRJ_ID);
-        projects.forEach(project -> insertProject.values(insertHistoryRecord.getValue(USER_HISTORY.ID), project.getId()));
-        return insertProject.onConflictDoNothing().execute() >= 0;
+            InsertValuesStep2<UserHistoryProjectRecord, Integer, String> insertProject = inner.
+                    insertInto(USER_HISTORY_PROJECT, USER_HISTORY_PROJECT.USER_HISTORY_ID, USER_HISTORY_PROJECT.PRJ_ID);
+            projects.forEach(project -> insertProject.values(insertHistoryRecord.getValue(USER_HISTORY.ID), project.getId()));
+            return insertProject.onConflictDoNothing().execute() >= 0;
+        });
     }
 
     @Override
@@ -213,24 +216,30 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean deleteUserHistory(User user, UserEvent.Type type) {
-        int result = using(connectionProvider, dialect).deleteFrom(USER_HISTORY_PROJECT).
-                where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
-                        select(USER_HISTORY.ID)
-                                .from(USER_HISTORY)
-                                .where(USER_HISTORY.TYPE.eq(type.id)).and(USER_HISTORY.USER_ID.eq(user.id))
-                )).execute();
-        result += using(connectionProvider, dialect).deleteFrom(USER_HISTORY).
-                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute();
-        return result > 1;
+        return using(connectionProvider, dialect).transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+            int result = inner.deleteFrom(USER_HISTORY_PROJECT).
+                    where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
+                            select(USER_HISTORY.ID)
+                                    .from(USER_HISTORY)
+                                    .where(USER_HISTORY.TYPE.eq(type.id)).and(USER_HISTORY.USER_ID.eq(user.id))
+                    )).execute();
+            result += inner.deleteFrom(USER_HISTORY).
+                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute();
+            return result > 1;
+        });
     }
 
     @Override
     public boolean deleteUserEvent(User user, int eventId) {
-        int result = using(connectionProvider, dialect).deleteFrom(USER_HISTORY_PROJECT).
-                where(USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(eventId)).execute();
-        result += using(connectionProvider, dialect).deleteFrom(USER_HISTORY).
-                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute();
-        return result > 1;
+        return using(connectionProvider, dialect).transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+            int result = inner.deleteFrom(USER_HISTORY_PROJECT).
+                    where(USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(eventId)).execute();
+            result += inner.deleteFrom(USER_HISTORY).
+                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute();
+            return result > 1;
+        });
     }
 
     @Override
