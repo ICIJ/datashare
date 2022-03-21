@@ -218,15 +218,14 @@ public class JooqRepository implements Repository {
     public boolean deleteUserHistory(User user, UserEvent.Type type) {
         return using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            int result = inner.deleteFrom(USER_HISTORY_PROJECT).
+            inner.deleteFrom(USER_HISTORY_PROJECT).
                     where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
                             select(USER_HISTORY.ID)
                                     .from(USER_HISTORY)
                                     .where(USER_HISTORY.TYPE.eq(type.id)).and(USER_HISTORY.USER_ID.eq(user.id))
                     )).execute();
-            result += inner.deleteFrom(USER_HISTORY).
-                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute();
-            return result > 1;
+            return inner.deleteFrom(USER_HISTORY).
+                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute() > 0;
         });
     }
 
@@ -234,11 +233,10 @@ public class JooqRepository implements Repository {
     public boolean deleteUserEvent(User user, int eventId) {
         return using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            int result = inner.deleteFrom(USER_HISTORY_PROJECT).
+            inner.deleteFrom(USER_HISTORY_PROJECT).
                     where(USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(eventId)).execute();
-            result += inner.deleteFrom(USER_HISTORY).
-                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute();
-            return result > 1;
+            return inner.deleteFrom(USER_HISTORY).
+                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute() > 0;
         });
     }
 

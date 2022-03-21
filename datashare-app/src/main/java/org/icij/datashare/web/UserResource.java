@@ -13,14 +13,12 @@ import org.icij.datashare.UserEvent.Type;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static net.codestory.http.payload.Payload.ok;
-import static org.icij.datashare.text.Project.project;
 
 @Singleton
 @Prefix("/api/users")
@@ -76,6 +74,7 @@ public class UserResource {
 
     /**
      * Add event to history. The event's type, the project ids and the uri are passed in the request body.
+     * The project list related to the event is stored in database but is never queried (no filters on project)
      *
      * It answers 200 when event is added or updated.
      *
