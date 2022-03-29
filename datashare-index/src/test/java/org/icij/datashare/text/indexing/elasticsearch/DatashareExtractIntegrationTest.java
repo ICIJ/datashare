@@ -5,6 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Project;
 import org.icij.extract.document.DigestIdentifier;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.TikaDocument;
@@ -24,6 +25,7 @@ import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDI
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Language.ENGLISH;
+import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.mock;
 
 public class DatashareExtractIntegrationTest {
@@ -44,6 +46,7 @@ public class DatashareExtractIntegrationTest {
         spewer.write(tikaDocument);
         Document doc = indexer.get(TEST_INDEX, tikaDocument.getId());
 
+        assertThat(doc.getProject()).isEqualTo(project("test-datashare"));
         assertThat(doc.getId()).isEqualTo(tikaDocument.getId());
         assertThat(doc.getContent()).isEqualTo("This is a document to be parsed by datashare.");
         assertThat(doc.getLanguage()).isEqualTo(ENGLISH);

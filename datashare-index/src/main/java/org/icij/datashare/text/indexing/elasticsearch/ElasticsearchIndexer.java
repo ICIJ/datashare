@@ -203,7 +203,7 @@ public class ElasticsearchIndexer implements Indexer {
                         new DocumentField("_routing", Collections.singletonList(id))).getValues().get(0));
                 type = (String) sourceAsMap.get(esCfg.docTypeField);
                 Class<T> tClass = (Class<T>) Class.forName("org.icij.datashare.text." + type);
-                return JsonObjectMapper.getObject(id, sourceAsMap, tClass);
+                return JsonObjectMapper.getObject(id, resp.getIndex(), sourceAsMap, tClass);
             }
         } catch (IOException e) {
             LOGGER.error("Failed to get entity " + id + " in index " + indexName, e);
@@ -309,7 +309,7 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     private static <T extends Entity> T hitToObject(SearchHit searchHit, Class<T> cls) {
-        return JsonObjectMapper.getObject(searchHit.getId(), searchHit.getSourceAsMap(), cls);
+        return JsonObjectMapper.getObject(searchHit.getId(), searchHit.getIndex(), searchHit.getSourceAsMap(), cls);
     }
 
     public ElasticsearchIndexer withRefresh(WriteRequest.RefreshPolicy refresh) {
