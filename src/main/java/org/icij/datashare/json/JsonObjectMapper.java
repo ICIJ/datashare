@@ -62,12 +62,15 @@ public class JsonObjectMapper {
         }
     }
 
-    public static <T extends Entity> T getObject(String id, Map<String, Object> source, Class<T> type) {
+    public static <T extends Entity> T getObject(String id, String projectId, Map<String, Object> source, Class<T> type) {
         HashMap<String, Object> map;
         if (source == null) {
-            map = new HashMap<String, Object>() {{put("id", id);}};
+            map = new HashMap<String, Object>() {{
+                put("id", id);
+                put("projectId", projectId);
+            }};
         } else {
-            map = new HashMap<String, Object>() {{putAll(source); put("id", id);}};
+            map = new HashMap<String, Object>() {{putAll(source); put("id", id); put("projectId", projectId);}};
         }
         return getObject(map, type);
     }
