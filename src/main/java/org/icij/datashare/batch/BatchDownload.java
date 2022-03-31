@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -26,7 +27,7 @@ public class BatchDownload {
     public static final String ZIP_FORMAT = "archive_%s_%s.zip";
 
     public final String uuid;
-    public final Project project;
+    public final List<Project> projects;
     public final Path filename;
     public final String query;
     public final User user;
@@ -36,24 +37,24 @@ public class BatchDownload {
     @JsonIgnore
     private final JsonNode jsonNode;
 
-    public BatchDownload(final Project project, User user, String query) {
-        this(project, user, query, Paths.get(System.getProperty("java.io.tmpdir")), false);
+    public BatchDownload(final List<Project> projects, User user, String query) {
+        this(projects, user, query, Paths.get(System.getProperty("java.io.tmpdir")), false);
     }
 
-    public BatchDownload(final Project project, User user, String query, Path downloadDir, boolean isEncrypted)  {
-        this(UUID.randomUUID().toString(), project, downloadDir.resolve(createFilename(user)), query, user, isEncrypted, 0);
+    public BatchDownload(final List<Project> projects, User user, String query, Path downloadDir, boolean isEncrypted)  {
+        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, user, isEncrypted, 0);
     }
 
     @JsonCreator
     private BatchDownload(@JsonProperty("uuid") final String uuid,
-                          @JsonProperty("project") final Project project,
+                          @JsonProperty("project") final List<Project> projects,
                           @JsonProperty("filename") Path filename,
                           @JsonProperty("query") String query,
                           @JsonProperty("user") User user,
                           @JsonProperty("encrypted") boolean encrypted,
                           @JsonProperty("zipSize") long zipSize) {
         this.uuid = uuid;
-        this.project = project;
+        this.projects = projects;
         this.user = user;
         this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
         this.filename = filename;

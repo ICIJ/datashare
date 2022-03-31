@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 public interface Indexer extends Closeable {
     Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
 
-    Searcher search(String indexName, Class<? extends Entity> entityClass);
+    Searcher search(List<String> indexesNames, Class<? extends Entity> entityClass);
 
     boolean createIndex(String indexName) throws IOException;
     boolean deleteAll(String indexName) throws IOException;
