@@ -15,6 +15,7 @@ import org.icij.datashare.com.mail.MailException;
 import org.icij.datashare.com.mail.MailSender;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ExtractException;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
@@ -155,7 +156,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         }
 
         public int add(Document doc) throws IOException {
-            try (InputStream from = new SourceExtractor().getSource(batchDownload.project, doc)) {
+            try (InputStream from = new SourceExtractor().getSource(doc.getProject(), doc)) {
                 int zippedSize = 0;
                 zipOutputStream.putNextEntry(createEntry(getEntryName(doc)));
                 byte[] buffer = new byte[4096];
