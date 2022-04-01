@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -30,7 +30,7 @@ public class ResumeNlpTaskTest {
     @Test
     public void test_bug_size_of_search() throws Exception {
         for (int i = 0; i < 20; i++) {
-            indexer.add(TEST_INDEXES[0], createDoc("doc" + i).with(Pipeline.Type.CORENLP).build());
+            indexer.add(TEST_INDEX, createDoc("doc" + i).with(Pipeline.Type.CORENLP).build());
         }
         Publisher publisher = mock(Publisher.class);
         ResumeNlpTask resumeNlpTask = new ResumeNlpTask(publisher, indexer,

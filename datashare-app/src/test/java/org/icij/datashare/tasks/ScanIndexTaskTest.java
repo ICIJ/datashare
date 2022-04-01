@@ -19,13 +19,13 @@ import java.util.HashMap;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 
 public class ScanIndexTaskTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
     private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
-        put("defaultProject", TEST_INDEXES[0]);
+        put("defaultProject", TEST_INDEX);
     }});
     private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
     private MemoryDocumentCollectionFactory documentCollectionFactory = new MemoryDocumentCollectionFactory();
@@ -37,8 +37,8 @@ public class ScanIndexTaskTest {
 
     @Test
     public void test_transfer_indexed_paths_to_filter_set() throws Exception {
-        indexer.add(TEST_INDEXES[0], DocumentBuilder.createDoc("id1").build());
-        indexer.add(TEST_INDEXES[0], DocumentBuilder.createDoc("id2").build());
+        indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id1").build());
+        indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id2").build());
 
         assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser(), "test:report").call()).isEqualTo(2);
 

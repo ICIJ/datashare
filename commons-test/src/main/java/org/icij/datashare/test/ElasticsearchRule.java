@@ -18,13 +18,14 @@ import static org.elasticsearch.common.xcontent.XContentType.JSON;
 
 public class ElasticsearchRule extends ExternalResource {
     public static final String[] TEST_INDEXES = {"test-datashare", "test-index1", "test-index2"};
+    public static final String TEST_INDEX = "test-datashare";
     private static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     private static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
     public final RestHighLevelClient client;
     private final String[] indexesNames;
 
     public ElasticsearchRule() {
-        this(TEST_INDEXES);
+        this(new String[]{TEST_INDEX});
     }
     public ElasticsearchRule(final String[] indexesName) { this(indexesName, create("http://elasticsearch:9200"));}
     public ElasticsearchRule(final HttpHost esHost) { this(TEST_INDEXES, esHost);}

@@ -21,6 +21,7 @@ import java.util.zip.ZipFile;
 import static java.util.Arrays.asList;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
@@ -29,7 +30,7 @@ import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchDownloadRunnerIntTest {
-    @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
+    @ClassRule public static ElasticsearchRule es = new ElasticsearchRule(TEST_INDEXES);
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
     @Rule public TemporaryFolder fs = new TemporaryFolder();
     @Mock Function<TaskView<File>, Void> updateCallback;
@@ -123,10 +124,10 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_two_results_two_indexes() throws Exception {
-        File doc1 = new IndexerHelper(es.client).indexFile("dir1/doc1.txt", "The quick brown fox jumps over the lazy dog", fs, "test-index1");
-        File doc2 = new IndexerHelper(es.client).indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs, "test-index2");
+        File doc1 = new IndexerHelper(es.client).indexFile("dir1/doc1.txt", "The quick brown fox jumps over the lazy dog", fs, TEST_INDEXES[1]);
+        File doc2 = new IndexerHelper(es.client).indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs, TEST_INDEXES[2]);
 
-        BatchDownload bd = createBatchDownload(asList(project("test-index1"), project("test-index2")),"*");
+        BatchDownload bd = createBatchDownload(asList(project(TEST_INDEXES[1]), project(TEST_INDEXES[2])),"*");
         new BatchDownloadRunner(indexer, createProvider(), bd, updateCallback).call();
 
         assertThat(bd.filename.toFile()).isFile();
@@ -146,7 +147,7 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_embedded_doc_should_not_interrupt_zip_creation() throws Exception {
-        File file = new IndexerHelper(es.client).indexEmbeddedFile(TEST_INDEXES[0], "/docs/embedded_doc.eml");
+        File file = new IndexerHelper(es.client).indexEmbeddedFile(TEST_INDEX, "/docs/embedded_doc.eml");
 
         BatchDownload batchDownload = createBatchDownload("*");
         new BatchDownloadRunner(indexer, createProvider(), batchDownload, updateCallback).call();
@@ -175,7 +176,7 @@ public class BatchDownloadRunnerIntTest {
     }
 
     private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(asList(project(TEST_INDEXES[0])), local(), query, fs.getRoot().toPath(), false);
+        return new BatchDownload(asList(project(TEST_INDEX)), local(), query, fs.getRoot().toPath(), false);
     }
 
     @NotNull

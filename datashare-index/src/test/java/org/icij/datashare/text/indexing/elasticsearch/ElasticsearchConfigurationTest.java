@@ -12,7 +12,7 @@ import org.junit.Test;
 import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 
 public class ElasticsearchConfigurationTest {
     @ClassRule
@@ -22,7 +22,7 @@ public class ElasticsearchConfigurationTest {
     public void test_create_client_creates_mapping() throws Exception {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
-        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEXES[0]));
+        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("mapping");
     }
@@ -31,7 +31,7 @@ public class ElasticsearchConfigurationTest {
     public void test_create_client_creates_settings() throws Exception {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
-        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEXES[0]));
+        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }
@@ -42,7 +42,7 @@ public class ElasticsearchConfigurationTest {
             put("elasticsearchAddress", "http://user:pass@elasticsearch:9200");
         }}));
 
-        Response response = esClient.getLowLevelClient().performRequest(new Request("GET", TEST_INDEXES[0]));
+        Response response = esClient.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }

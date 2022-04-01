@@ -19,9 +19,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
-    @ClassRule public static ElasticsearchRule esRule = new ElasticsearchRule();
+    @ClassRule public static ElasticsearchRule esRule = new ElasticsearchRule(TEST_INDEXES);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(esRule.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
 
     @Test
@@ -102,13 +103,13 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
                                 this.put("uid", "cecile");
                                 this.put("groups_by_applications", new HashMap<String, Object>() {
                                     {
-                                        this.put("datashare", Arrays.asList("test-index1", "test-index2"));
+                                        this.put("datashare", Arrays.asList(TEST_INDEXES[1], TEST_INDEXES[2]));
                                     }
                                 });
                             }
                         })))));
-        indexer.add("test-index1", DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
-        indexer.add("test-index2", DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
+        indexer.add(TEST_INDEXES[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
+        indexer.add(TEST_INDEXES[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
         post("/api/index/search/test-index1,test-index2/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
         post("/api/index/search/test-index1,test-index2/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(200);
         post("/api/index/search/test-index1,test-index2/_count").withPreemptiveAuthentication("cecile", "").should().respond(200);

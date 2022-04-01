@@ -45,7 +45,7 @@ import static java.nio.file.Paths.get;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -69,7 +69,7 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEXES[0], document.getId()), RequestOptions.DEFAULT);
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertThat(documentFields.isExists()).isTrue();
         assertThat(documentFields.getId()).isEqualTo(document.getId());
         assertEquals(new HashMap<String, String>() {{
@@ -88,7 +88,7 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEXES[0], document.getId()), RequestOptions.DEFAULT);
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertThat(documentFields.getSourceAsMap()).includes(
                 entry("contentEncoding", "ISO-8859-1"),
                 entry("contentType", "text/plain"),
@@ -109,7 +109,7 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEXES[0], document.getId()), RequestOptions.DEFAULT);
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertThat(documentFields.getSourceAsMap()).includes(entry("contentLength", 7862117376L));
     }
 
@@ -120,7 +120,7 @@ public class ElasticsearchSpewerTest {
 
         spewer.write(document);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEXES[0], document.getId()), RequestOptions.DEFAULT);
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertTrue(documentFields.isExists());
 
         SearchRequest searchRequest = new SearchRequest();
@@ -166,8 +166,8 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
         spewer.write(document2);
 
-        GetResponse actualDocument = es.client.get(new GetRequest(TEST_INDEXES[0], document.getId()),RequestOptions.DEFAULT);
-        GetResponse actualDocument2 = es.client.get(new GetRequest(TEST_INDEXES[0], new Duplicate(document2.getPath(), document.getId()).getId()), RequestOptions.DEFAULT);
+        GetResponse actualDocument = es.client.get(new GetRequest(TEST_INDEX, document.getId()),RequestOptions.DEFAULT);
+        GetResponse actualDocument2 = es.client.get(new GetRequest(TEST_INDEX, new Duplicate(document2.getPath(), document.getId()).getId()), RequestOptions.DEFAULT);
         assertThat(actualDocument.isExists()).isTrue();
         assertThat(actualDocument.getSourceAsMap()).includes(entry("type", "Document"));
         assertThat(actualDocument2.isExists()).isTrue();
@@ -186,7 +186,7 @@ public class ElasticsearchSpewerTest {
 
         limitedContentSpewer.write(document);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEXES[0], document.getId()), RequestOptions.DEFAULT);
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertThat(documentFields.getSourceAsMap()).includes(entry("content", "this content should"));
     }
 
@@ -202,7 +202,7 @@ public class ElasticsearchSpewerTest {
 
         limitedContentSpewer.write(document);
 
-        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEXES[0], document.getId()), RequestOptions.DEFAULT);
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertThat(documentFields.getSourceAsMap()).includes(entry("content", "this content is ok"));
     }
 

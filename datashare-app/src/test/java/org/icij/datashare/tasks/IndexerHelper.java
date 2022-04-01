@@ -8,7 +8,6 @@ import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
-import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.extract.document.DigestIdentifier;
@@ -42,7 +41,7 @@ public class IndexerHelper {
     }
 
     File indexFile(String fileName, String content, TemporaryFolder fs) throws IOException {
-        return indexFile(fileName, content, fs, ElasticsearchRule.TEST_INDEXES[0]);
+        return indexFile(fileName, content, fs, ElasticsearchRule.TEST_INDEX);
     }
 
     File indexFile(String fileName, String content, TemporaryFolder fs, String indexName) throws IOException {
