@@ -9,14 +9,10 @@ import org.icij.datashare.test.ElasticsearchRule;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 
 public class ElasticsearchConfigurationTest {
     @ClassRule
@@ -26,7 +22,7 @@ public class ElasticsearchConfigurationTest {
     public void test_create_client_creates_mapping() throws Exception {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
-        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
+        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEXES[0]));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("mapping");
     }
@@ -35,7 +31,7 @@ public class ElasticsearchConfigurationTest {
     public void test_create_client_creates_settings() throws Exception {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
-        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
+        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEXES[0]));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }
@@ -46,7 +42,7 @@ public class ElasticsearchConfigurationTest {
             put("elasticsearchAddress", "http://user:pass@elasticsearch:9200");
         }}));
 
-        Response response = esClient.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
+        Response response = esClient.getLowLevelClient().performRequest(new Request("GET", TEST_INDEXES[0]));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }

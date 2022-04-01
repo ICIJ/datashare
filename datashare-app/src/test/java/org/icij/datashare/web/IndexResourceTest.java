@@ -19,10 +19,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
-    @ClassRule public static ElasticsearchRule esRule = new ElasticsearchRule(TEST_INDEX);
+    @ClassRule public static ElasticsearchRule esRule = new ElasticsearchRule();
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(esRule.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
 
     @Test
@@ -141,7 +140,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @After
     public void tearDown() throws Exception {
-        esRule.delete("cecile-datashare", "index_name", "test-index1", "test-index2");
+        esRule.delete("cecile-datashare", "index_name");
     }
 }
 

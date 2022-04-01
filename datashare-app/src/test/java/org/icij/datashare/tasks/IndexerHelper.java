@@ -42,7 +42,7 @@ public class IndexerHelper {
     }
 
     File indexFile(String fileName, String content, TemporaryFolder fs) throws IOException {
-        return indexFile(fileName, content, fs, ElasticsearchRule.TEST_INDEX);
+        return indexFile(fileName, content, fs, ElasticsearchRule.TEST_INDEXES[0]);
     }
 
     File indexFile(String fileName, String content, TemporaryFolder fs, String indexName) throws IOException {

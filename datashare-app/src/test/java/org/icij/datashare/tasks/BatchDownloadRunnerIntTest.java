@@ -21,7 +21,7 @@ import java.util.zip.ZipFile;
 import static java.util.Arrays.asList;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
 import static org.mockito.Matchers.any;
@@ -146,7 +146,7 @@ public class BatchDownloadRunnerIntTest {
 
     @Test
     public void test_embedded_doc_should_not_interrupt_zip_creation() throws Exception {
-        File file = new IndexerHelper(es.client).indexEmbeddedFile(TEST_INDEX, "/docs/embedded_doc.eml");
+        File file = new IndexerHelper(es.client).indexEmbeddedFile(TEST_INDEXES[0], "/docs/embedded_doc.eml");
 
         BatchDownload batchDownload = createBatchDownload("*");
         new BatchDownloadRunner(indexer, createProvider(), batchDownload, updateCallback).call();
@@ -175,7 +175,7 @@ public class BatchDownloadRunnerIntTest {
     }
 
     private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(asList(project(TEST_INDEX)), local(), query, fs.getRoot().toPath(), false);
+        return new BatchDownload(asList(project(TEST_INDEXES[0])), local(), query, fs.getRoot().toPath(), false);
     }
 
     @NotNull
@@ -191,8 +191,6 @@ public class BatchDownloadRunnerIntTest {
     @After
     public void tearDown() throws IOException {
         es.removeAll();
-        indexer.deleteAll("test-index1");
-        indexer.deleteAll("test-index2");
     }
 
     @NotNull

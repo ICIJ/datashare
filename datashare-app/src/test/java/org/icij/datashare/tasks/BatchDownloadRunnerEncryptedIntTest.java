@@ -21,7 +21,7 @@ import java.util.function.Function;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
+import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -50,7 +50,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
 
     @NotNull
     private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(singletonList(project(TEST_INDEX)), new User("foo", "bar", "foo@bar.com"), query, fs.getRoot().toPath(), true);
+        return new BatchDownload(singletonList(project(TEST_INDEXES[0])), new User("foo", "bar", "foo@bar.com"), query, fs.getRoot().toPath(), true);
     }
 
     @Before
