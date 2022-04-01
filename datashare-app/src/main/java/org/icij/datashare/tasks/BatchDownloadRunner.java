@@ -81,8 +81,8 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         long zippedFilesSize = 0;
 
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
-                batchDownload.user.getId(), batchDownload.project, throttleMs, scrollSize);
-        Indexer.Searcher searcher = indexer.search(batchDownload.project.getId(), Document.class).withoutSource("content").limit(scrollSize);
+                batchDownload.user.getId(), batchDownload.projects, throttleMs, scrollSize);
+        Indexer.Searcher searcher = indexer.search(batchDownload.projects.stream().map(Project::getId).collect(toList()), Document.class).withoutSource("content").limit(scrollSize);
         if (batchDownload.isJsonQuery()) {
             searcher.set(batchDownload.queryAsJson());
         } else {

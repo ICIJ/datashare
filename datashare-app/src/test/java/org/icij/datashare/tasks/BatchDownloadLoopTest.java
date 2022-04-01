@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL;
 import static org.icij.datashare.text.Project.project;
@@ -41,7 +42,7 @@ public class BatchDownloadLoopTest {
                 return batchDownloadCleaner;
             }
         };
-        batchDownloadQueue.add(new BatchDownload(project("prj"), User.local(), "query"));
+        batchDownloadQueue.add(new BatchDownload(singletonList(project("prj")), User.local(), "query"));
         app.enqueuePoison();
 
         app.run();
@@ -80,7 +81,7 @@ public class BatchDownloadLoopTest {
                 return batchDownloadCleaner;
             }
         };
-        batchDownloadQueue.add(new BatchDownload(project("prj"), User.local(), "query"));
+        batchDownloadQueue.add(new BatchDownload(singletonList(project("prj")), User.local(), "query"));
         app.enqueuePoison();
 
         app.run();

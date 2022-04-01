@@ -1,15 +1,14 @@
 package org.icij.datashare.tasks;
 
-import opennlp.tools.util.ObjectStream;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.mockito.stubbing.OngoingStubbing;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.stream.Stream;
 
+import static java.util.Collections.singletonList;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -44,6 +43,6 @@ class MockSearch {
         when(searcher.withPrefixQuery(anyString())).thenReturn(searcher);
         when(searcher.limit(anyInt())).thenReturn(searcher);
         when(searcher.totalHits()).thenReturn(length).thenReturn(0L);
-        when(mockIndexer.search("test-datashare", Document.class)).thenReturn(searcher);
+        when(mockIndexer.search(singletonList("test-datashare"), Document.class)).thenReturn(searcher);
     }
 }

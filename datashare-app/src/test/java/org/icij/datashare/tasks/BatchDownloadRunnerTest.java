@@ -24,6 +24,7 @@ import java.util.stream.IntStream;
 import java.util.zip.ZipFile;
 
 import static java.lang.String.valueOf;
+import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
@@ -43,7 +44,7 @@ public class BatchDownloadRunnerTest {
         File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
             put(BATCH_DOWNLOAD_MAX_NB_FILES, "3");
             put(SCROLL_SIZE, "3");
-        }}), new BatchDownload(project("test-datashare"), User.local(), "query"), updater).call();
+        }}), new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"), updater).call();
 
         assertThat(new ZipFile(zip).size()).isEqualTo(3);
     }
@@ -55,7 +56,7 @@ public class BatchDownloadRunnerTest {
         File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
             put(BATCH_DOWNLOAD_MAX_SIZE, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
             put(SCROLL_SIZE, "3");
-        }}), new BatchDownload(project("test-datashare"), User.local(), "query"), updater).call();
+        }}), new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"), updater).call();
 
         assertThat(new ZipFile(zip).size()).isEqualTo(4);
     }
@@ -63,7 +64,7 @@ public class BatchDownloadRunnerTest {
     @Test(expected = ElasticsearchStatusException.class)
     public void test_elasticsearch_status_exception__should_be_sent() throws Exception {
         mockSearch.willThrow(new ElasticsearchStatusException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
-        new BatchDownloadRunner(indexer, new PropertiesProvider(), new BatchDownload(project("test-datashare"), User.local(), "query"), updater).call();
+        new BatchDownloadRunner(indexer, new PropertiesProvider(), new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"), updater).call();
     }
 
     private Path createFile(int index) {

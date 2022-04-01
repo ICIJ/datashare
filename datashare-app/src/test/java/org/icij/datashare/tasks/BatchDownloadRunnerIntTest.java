@@ -4,6 +4,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.*;
@@ -12,11 +13,12 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.List;
 import java.util.function.Function;
 import java.util.zip.ZipFile;
 
+import static java.util.Arrays.asList;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
@@ -120,6 +122,20 @@ public class BatchDownloadRunnerIntTest {
     }
 
     @Test
+    public void test_two_results_two_indexes() throws Exception {
+        File doc1 = new IndexerHelper(es.client).indexFile("dir1/doc1.txt", "The quick brown fox jumps over the lazy dog", fs, "test-index1");
+        File doc2 = new IndexerHelper(es.client).indexFile("dir2/doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs, "test-index2");
+
+        BatchDownload bd = createBatchDownload(asList(project("test-index1"), project("test-index2")),"*");
+        new BatchDownloadRunner(indexer, createProvider(), bd, updateCallback).call();
+
+        assertThat(bd.filename.toFile()).isFile();
+        assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);
+        assertThat(new ZipFile(bd.filename.toFile()).getEntry(doc1.toString().substring(1))).isNotNull();
+        assertThat(new ZipFile(bd.filename.toFile()).getEntry(doc2.toString().substring(1))).isNotNull();
+    }
+
+    @Test
     public void test_progress_rate() throws Exception {
         new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
         BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), createBatchDownload("*"), updateCallback);
@@ -158,11 +174,13 @@ public class BatchDownloadRunnerIntTest {
         assertThat(batchDownloadRunner.toString()).contains(batchDownload.uuid);
     }
 
-
+    private BatchDownload createBatchDownload(String query) {
+        return new BatchDownload(asList(project(TEST_INDEX)), local(), query, fs.getRoot().toPath(), false);
+    }
 
     @NotNull
-    private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(project(TEST_INDEX), local(), query, fs.getRoot().toPath(), false);
+    private BatchDownload createBatchDownload(List<Project> projectList, String query) {
+        return new BatchDownload(projectList, local(), query, fs.getRoot().toPath(), false);
     }
 
     @Before
@@ -171,7 +189,11 @@ public class BatchDownloadRunnerIntTest {
     }
 
     @After
-    public void tearDown() throws IOException { es.removeAll();}
+    public void tearDown() throws IOException {
+        es.removeAll();
+        indexer.deleteAll("test-index1");
+        indexer.deleteAll("test-index2");
+    }
 
     @NotNull
     private PropertiesProvider createProvider() {

@@ -6,7 +6,6 @@ import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.tasks.MonitorableFutureTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskView;
@@ -24,6 +23,7 @@ import java.util.Set;
 
 import static com.google.inject.Guice.createInjector;
 import static java.lang.Boolean.parseBoolean;
+import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
@@ -66,7 +66,7 @@ class CliApp {
             boolean queueIsEmpty = queue.isEmpty();
             queue.close();
 
-            if (indexer.search(properties.getProperty("defaultProject"), Document.class).withSource(false).without(nlpPipelines.toArray(new Pipeline.Type[]{})).execute().count() == 0 && queueIsEmpty) {
+            if (indexer.search(singletonList(properties.getProperty("defaultProject")), Document.class).withSource(false).without(nlpPipelines.toArray(new Pipeline.Type[]{})).execute().count() == 0 && queueIsEmpty) {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
             }

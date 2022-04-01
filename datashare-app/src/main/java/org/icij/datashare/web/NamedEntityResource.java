@@ -12,8 +12,10 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
@@ -65,7 +67,7 @@ public class NamedEntityResource {
      */
     @Put("/:project/namedEntities/hide/:mentionNorm")
     public Payload hide(final String project, final String mentionNorm) throws IOException {
-        List<? extends Entity> nes = indexer.search(project, NamedEntity.class).
+        List<? extends Entity> nes = indexer.search(singletonList(project), NamedEntity.class).
                 thatMatchesFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
         indexer.bulkUpdate(project, nes);
         return ok();

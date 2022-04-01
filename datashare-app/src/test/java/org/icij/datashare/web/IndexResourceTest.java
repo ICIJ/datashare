@@ -141,7 +141,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @After
     public void tearDown() throws Exception {
-        esRule.delete("cecile-datashare", "index_name");
+        esRule.delete("cecile-datashare", "index_name", "test-index1", "test-index2");
     }
 }
 

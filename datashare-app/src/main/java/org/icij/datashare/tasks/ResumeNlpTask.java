@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import static java.lang.String.valueOf;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
 public class ResumeNlpTask implements Callable<Long>, UserTask {
@@ -44,7 +45,7 @@ public class ResumeNlpTask implements Callable<Long>, UserTask {
 
     @Override
     public Long call() throws IOException {
-        Indexer.Searcher searcher = indexer.search(projectName, Document.class).withSource("rootDocument").without(nlpPipelines.toArray(new Pipeline.Type[] {}));
+        Indexer.Searcher searcher = indexer.search(singletonList(projectName), Document.class).withSource("rootDocument").without(nlpPipelines.toArray(new Pipeline.Type[] {}));
         logger.info("resuming NLP name finding for index {} and {} : {} documents found", projectName, nlpPipelines, searcher.totalHits());
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         long totalHits = searcher.totalHits();

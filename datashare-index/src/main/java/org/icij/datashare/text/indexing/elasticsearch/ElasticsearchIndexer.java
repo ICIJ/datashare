@@ -283,8 +283,8 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public Searcher search(final String indexName, Class<? extends Entity> entityClass) {
-        return new ElasticsearchSearcher(client, esCfg, indexName, entityClass);
+    public Searcher search(final List<String> indexesNames, Class<? extends Entity> entityClass) {
+        return new ElasticsearchSearcher(client, esCfg, indexesNames, entityClass);
     }
 
     @Override
@@ -346,16 +346,16 @@ public class ElasticsearchIndexer implements Indexer {
         private BoolQueryBuilder boolQuery;
         private final RestHighLevelClient client;
         private final ElasticsearchConfiguration config;
-        private final String indexName;
+        private final List<String> indexesNames;
         private final Class<? extends Entity> cls;
         private final SearchSourceBuilder sourceBuilder;
         private String scrollId;
         private long totalHits;
 
-        ElasticsearchSearcher(RestHighLevelClient client, ElasticsearchConfiguration config, final String indexName, final Class<? extends Entity> cls) {
+        ElasticsearchSearcher(RestHighLevelClient client, ElasticsearchConfiguration config, final List<String> indexesNames, final Class<? extends Entity> cls) {
             this.client = client;
             this.config = config;
-            this.indexName = indexName;
+            this.indexesNames = indexesNames;
             this.cls = cls;
             sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE).timeout(new TimeValue(30, TimeUnit.MINUTES));
             this.boolQuery = boolQuery().must(matchQuery("type", JsonObjectMapper.getType(cls)));
@@ -370,7 +370,8 @@ public class ElasticsearchIndexer implements Indexer {
         @Override
         public Stream<? extends Entity> execute() throws IOException {
             sourceBuilder.query(boolQuery);
-            SearchRequest searchRequest = new SearchRequest(new String[]{indexName}, sourceBuilder);
+            Object[] indexesArray = indexesNames.toArray();
+            SearchRequest searchRequest = new SearchRequest(Arrays.copyOf(indexesArray, indexesArray.length, String[].class), sourceBuilder);
             SearchResponse search = client.search(searchRequest, RequestOptions.DEFAULT);
             return resultStream(this.cls, () -> search.getHits().iterator());
         }
@@ -388,7 +389,8 @@ public class ElasticsearchIndexer implements Indexer {
             }
             SearchResponse search;
             if (scrollId == null) {
-                SearchRequest searchRequest = new SearchRequest(new String[]{indexName}, sourceBuilder).scroll(KEEP_ALIVE);
+                Object[] indexesArray = indexesNames.toArray();
+                SearchRequest searchRequest = new SearchRequest(Arrays.copyOf(indexesArray, indexesArray.length, String[].class), sourceBuilder).scroll(KEEP_ALIVE);
                 search = client.search(searchRequest, RequestOptions.DEFAULT);
                 scrollId = search.getScrollId();
                 totalHits = search.getHits().getTotalHits().value;

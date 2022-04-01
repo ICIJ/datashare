@@ -42,6 +42,10 @@ public class IndexerHelper {
     }
 
     File indexFile(String fileName, String content, TemporaryFolder fs) throws IOException {
+        return indexFile(fileName, content, fs, ElasticsearchRule.TEST_INDEX);
+    }
+
+    File indexFile(String fileName, String content, TemporaryFolder fs, String indexName) throws IOException {
         String[] pathItems = fileName.split("/");
         File folder = pathItems.length > 1 ? fs.newFolder(Arrays.copyOf(pathItems, pathItems.length - 1)) : fs.getRoot();
         File file = folder.toPath().resolve(pathItems[pathItems.length - 1]).toFile();
@@ -49,7 +53,7 @@ public class IndexerHelper {
         Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
         String docname = FilenameUtils.removeExtension(FilenameUtils.getName(fileName));
         Document my_doc = DocumentBuilder.createDoc(docname).with(content).with(file.toPath()).build();
-        indexer.add(ElasticsearchRule.TEST_INDEX, my_doc);
+        indexer.add(indexName, my_doc);
         return file;
     }
 

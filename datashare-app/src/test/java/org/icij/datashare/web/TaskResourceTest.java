@@ -24,9 +24,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import static java.lang.String.format;
 import static java.util.Collections.singleton;
@@ -220,21 +218,30 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_batch_download() {
-        post("/api/task/batchDownload", "{\"options\":{ \"project\":\"test-datashare\", \"query\": \"*\" }}").
+        post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\" }}").
                 should().haveType("application/json").
                 should().contain("properties").
                 should().contain("filename");
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(project("test-datashare"), local(), "*", Paths.get("app", "tmp"), false)), any());
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "*", Paths.get("app", "tmp"), false)), any());
+    }
+
+    @Test
+    public void test_batch_download_multiple_projects() {
+        post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"project1\", \"project2\"], \"query\": \"*\" }}").
+                should().haveType("application/json").
+                should().contain("properties").
+                should().contain("filename");
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", Paths.get("app", "tmp"), false)), any());
     }
 
     @Test
     public void test_batch_download_json_query() {
-        post("/api/task/batchDownload", "{\"options\":{ \"project\":\"test-datashare\", \"query\": {\"match_all\":{}} }}").
+        post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": {\"match_all\":{}} }}").
                 should().haveType("application/json").
                 should().contain("properties").
                 should().contain("filename");
 
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(project("test-datashare"), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"), false)), any());
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"), false)), any());
     }
 
     @Test

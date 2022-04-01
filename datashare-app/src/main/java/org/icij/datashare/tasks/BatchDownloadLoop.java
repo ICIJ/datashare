@@ -17,10 +17,11 @@ import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Collections.singletonList;
 import static org.icij.datashare.text.Project.project;
 
 public class BatchDownloadLoop {
-    public static final BatchDownload POISON = new BatchDownload(project(""), User.nullUser(), "");
+    public static final BatchDownload POISON = new BatchDownload(singletonList(project("")), User.nullUser(), "");
     private final Path DOWNLOAD_DIR = Paths.get(System.getProperty("user.dir")).resolve("app/tmp");
     private final static String DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = "24";
     private final int ttlHour;

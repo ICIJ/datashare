@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -83,7 +84,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         try {
             for (String s : batchSearch.queries.keySet()) {
                 query = s;
-                Indexer.Searcher searcher = indexer.search(batchSearch.project.getId(), Document.class).
+                Indexer.Searcher searcher = indexer.search(Collections.singletonList(batchSearch.project.getId()), Document.class).
                         with(query, batchSearch.fuzziness, batchSearch.phraseMatches).
                         withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{})).
                         withPrefixQuery("dirname", batchSearch.paths.toArray(new String[]{})).

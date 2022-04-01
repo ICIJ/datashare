@@ -5,11 +5,8 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.WrapperQueryBuilder;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -27,7 +24,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -153,8 +149,19 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_search_no_results() throws IOException {
-        List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX),Document.class).execute().collect(toList());
         assertThat(lst).isEmpty();
+    }
+
+    @Test
+    public void test_search_with_multiple_indices() throws IOException {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content", Language.FRENCH,
+                Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
+        indexer.add("test-index1", doc);
+        indexer.add("test-index2", doc);
+
+        List<? extends Entity> lst = indexer.search(asList("test-index1", "test-index2"),Document.class).execute().collect(toList());
+        assertThat(lst.size()).isEqualTo(2);
     }
 
     @Test
@@ -163,9 +170,9 @@ public class ElasticsearchIndexerTest {
                 Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(),123L);
         indexer.add(TEST_INDEX, doc);
 
-        List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).ofStatus(INDEXED).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX),Document.class).ofStatus(INDEXED).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
-        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).execute().count()).isEqualTo(0);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).execute().count()).isEqualTo(0);
     }
 
     @Test
@@ -175,7 +182,7 @@ public class ElasticsearchIndexerTest {
         indexer.add(TEST_INDEX, doc);
 
         String query = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"*\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
-        List<? extends Entity> lst = indexer.search(TEST_INDEX,Document.class).
+        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX),Document.class).
                 set(JsonObjectMapper.MAPPER.readTree(query)).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
     }
@@ -189,7 +196,7 @@ public class ElasticsearchIndexerTest {
         assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"), tag("bar"))).isTrue();
         assertThat(indexer.tag(project(TEST_INDEX), doc.getId(), doc.getId(), tag("foo"))).isFalse();
 
-        List<? extends Entity> lst = indexer.search(TEST_INDEX, Document.class).with(tag("foo"), tag("bar")).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX), Document.class).with(tag("foo"), tag("bar")).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
         assertThat(((Document)lst.get(0)).getTags()).containsOnly(tag("foo"), tag("bar"));
     }
@@ -250,8 +257,8 @@ public class ElasticsearchIndexerTest {
         indexer.add(TEST_INDEX, create(PERSON, "John Doe", asList(12L), "docId", "root", CORENLP, Language.FRENCH));
         indexer.add(TEST_INDEX, create(PERSON, "John Doe", asList(24L), "doc2Id", "root", CORENLP, Language.FRENCH));
 
-        assertThat(indexer.search(TEST_INDEX, NamedEntity.class).thatMatchesFieldValue("mentionNorm", "john doe").execute().count()).isEqualTo(2);
-        assertThat(indexer.search(TEST_INDEX, NamedEntity.class).thatMatchesFieldValue("offsets", 24).execute().count()).isEqualTo(1);
+        assertThat(indexer.search(singletonList(TEST_INDEX), NamedEntity.class).thatMatchesFieldValue("mentionNorm", "john doe").execute().count()).isEqualTo(2);
+        assertThat(indexer.search(singletonList(TEST_INDEX), NamedEntity.class).thatMatchesFieldValue("offsets", 24).execute().count()).isEqualTo(1);
     }
 
     @Test
@@ -260,13 +267,13 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), DONE, new HashSet<Pipeline.Type>() {{ add(CORENLP); add(OPENNLP);}}, 123L);
         indexer.add(TEST_INDEX,doc);
 
-        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).without(CORENLP).execute().count()).isEqualTo(0);
-        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).without(CORENLP, OPENNLP).execute().count()).isEqualTo(0);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(CORENLP).execute().count()).isEqualTo(0);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(CORENLP, OPENNLP).execute().count()).isEqualTo(0);
 
-        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).without(IXAPIPE).execute().count()).isEqualTo(1);
-        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).with(CORENLP).execute().count()).isEqualTo(1);
-        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).with(CORENLP, OPENNLP).execute().count()).isEqualTo(1);
-        assertThat((int) indexer.search(TEST_INDEX, Document.class).ofStatus(DONE).with(CORENLP, IXAPIPE).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).without(IXAPIPE).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP, OPENNLP).execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).ofStatus(DONE).with(CORENLP, IXAPIPE).execute().count()).isEqualTo(1);
     }
 
     @Test
@@ -275,7 +282,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 345L);
         indexer.add(TEST_INDEX,doc);
 
-        assertThat((int) indexer.search(TEST_INDEX, Document.class).without().execute().count()).isEqualTo(1);
+        assertThat((int) indexer.search(singletonList(TEST_INDEX), Document.class).without().execute().count()).isEqualTo(1);
     }
 
     @Test
@@ -284,7 +291,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 444L);
         indexer.add(TEST_INDEX,doc);
 
-        Document actualDoc = (Document) indexer.search(TEST_INDEX,Document.class).withSource("contentType").execute().collect(toList()).get(0);
+        Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource("contentType").execute().collect(toList()).get(0);
         assertThat(actualDoc.getContentType()).isEqualTo("application/pdf");
         assertThat(actualDoc.getId()).isEqualTo(doc.getId());
         assertThat(actualDoc.getContent()).isEmpty();
@@ -296,7 +303,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 222L);
         indexer.add(TEST_INDEX,doc);
 
-        Document actualDoc = (Document) indexer.search(TEST_INDEX,Document.class).withSource(false).execute().collect(toList()).get(0);
+        Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource(false).execute().collect(toList()).get(0);
         assertThat(actualDoc.getId()).isNotNull();
     }
 
@@ -307,8 +314,8 @@ public class ElasticsearchIndexerTest {
                 Charset.defaultCharset(), "text/plain", new HashMap<>(), DONE, new HashSet<>(), 666L);
             indexer.add(TEST_INDEX,doc);
         }
-        assertThat(indexer.search(TEST_INDEX,Document.class).limit(5).execute().count()).isEqualTo(5);
-        assertThat(indexer.search(TEST_INDEX,Document.class).execute().count()).isEqualTo(20);
+        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).limit(5).execute().count()).isEqualTo(5);
+        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).execute().count()).isEqualTo(20);
     }
 
     @Test
@@ -319,7 +326,7 @@ public class ElasticsearchIndexerTest {
             indexer.add(TEST_INDEX,doc);
         }
 
-        Indexer.Searcher searcher = indexer.search(TEST_INDEX, Document.class).limit(5);
+        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class).limit(5);
         assertThat(searcher.scroll().count()).isEqualTo(5);
         assertThat(searcher.totalHits()).isEqualTo(12);
         assertThat(searcher.scroll().count()).isEqualTo(5);
@@ -344,7 +351,7 @@ public class ElasticsearchIndexerTest {
         ne2.hide();
         assertThat(indexer.bulkUpdate(TEST_INDEX, asList(ne1, ne2))).isTrue();
 
-        Object[] namedEntities = indexer.search(TEST_INDEX, NamedEntity.class).execute().toArray();
+        Object[] namedEntities = indexer.search(singletonList(TEST_INDEX), NamedEntity.class).execute().toArray();
         assertThat(namedEntities.length).isEqualTo(2);
         assertThat(((NamedEntity)namedEntities[0]).isHidden()).isTrue();
         assertThat(((NamedEntity)namedEntities[1]).isHidden()).isTrue();
@@ -360,7 +367,7 @@ public class ElasticsearchIndexerTest {
 
         assertThat(indexer.deleteAll(TEST_INDEX)).isTrue();
 
-        Object[] documents = indexer.search(TEST_INDEX, Document.class).execute().toArray();
+        Object[] documents = indexer.search(singletonList(TEST_INDEX), Document.class).execute().toArray();
         assertThat(documents.length).isEqualTo(0);
     }
 
@@ -372,7 +379,7 @@ public class ElasticsearchIndexerTest {
         NamedEntity ne1 = create(PERSON, "John Doe", asList(12L), doc.getId(), "root", CORENLP, Language.FRENCH);
         indexer.bulkAdd(TEST_INDEX, CORENLP, singletonList(ne1), doc);
 
-        Object[] documents = indexer.search(TEST_INDEX, Document.class).withoutSource("content").with("john").execute().toArray();
+        Object[] documents = indexer.search(singletonList(TEST_INDEX), Document.class).withoutSource("content").with("john").execute().toArray();
 
         assertThat(documents.length).isEqualTo(1);
         assertThat(((Document)documents[0]).getId()).isEqualTo("id");
@@ -413,7 +420,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        assertThat(indexer.search(TEST_INDEX,Document.class).with("john AND doe", 0, true).execute().toArray()).isEmpty();
-        assertThat(indexer.search(TEST_INDEX,Document.class).with("john AND doe", 0, false).execute().toArray()).hasSize(1);
+        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).with("john AND doe", 0, true).execute().toArray()).isEmpty();
+        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).with("john AND doe", 0, false).execute().toArray()).hasSize(1);
     }
 }

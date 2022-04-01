@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
@@ -56,7 +57,7 @@ public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
     }
 
     private Long slicedScroll(int sliceNum) {
-        Indexer.Searcher search = indexer.search(projectName, Document.class).withSource("path").limit(scrollSize);
+        Indexer.Searcher search = indexer.search(singletonList(projectName), Document.class).withSource("path").limit(scrollSize);
         List<? extends Entity> docsToProcess = new ArrayList<>();
         long nbProcessed = 0;
         do {
