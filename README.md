@@ -52,7 +52,7 @@ Just run :
     docker run -ti -p 8080:8080 -v /path/to/dist/:/home/datashare/dist icij/datashare:0.10 -m NER
 
 A bit of explanation : 
-- `-w` tells datashare to run the webserver. It is launched on 8080 that's why the port is mapped for docker
+- `-p 8080:8080` maps the 8080 to 8080, the you could access datashare at localhost:8080 (If you want to access it at localhost:8081, the change to `-p 8081:8080`)
 - `-m NER` runs datashare without index at all on a stateless mode
 - `-v /path/to/dist:/home/datashare/dist` maps the directory where the NLP models will be read (and downloaded if they don't exist)
 
