@@ -19,6 +19,8 @@
         </encoder>
     </appender>
 
+    <logger name="com.amazonaws.request" level="warn" />
+
     <root level="info" additivity="false">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>

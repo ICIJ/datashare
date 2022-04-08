@@ -18,6 +18,8 @@ export DS_DOCKER_USER_ADMIN="icij"
 
 mkdir -p $DIR/dist
 
+# options to force debug logs -Dlogback.debug=true -Dlog4j.debug 
+
 $JAVA -agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,suspend=n -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
  -Djavax.net.ssl.trustStorePassword=changeit \
  -Xmx4g -DPROD_MODE=true -cp "$DIR/dist/:${CLASSPATH}" org.icij.datashare.Main --cors '*' \
