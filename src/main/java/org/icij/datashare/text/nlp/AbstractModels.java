@@ -79,7 +79,7 @@ public abstract class AbstractModels<T> {
     public void addResourceToContextClassLoader(Path resourcePath) {
         DynamicClassLoader classLoader = (DynamicClassLoader)ClassLoader.getSystemClassLoader();
         final URL resource = classLoader.getResource(resourcePath.toString());
-        LOGGER.info("adding {} to system classloader", resourcePath);
+        LOGGER.info("adding {} to system classloader", resource == null? null: resource.getPath());
         classLoader.add(resource);
     }
 

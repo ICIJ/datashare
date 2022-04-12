@@ -9,6 +9,7 @@ import com.amazonaws.services.s3.transfer.MultipleFileUpload;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -98,7 +99,9 @@ public class RemoteFiles {
                     .map(Path::toFile)
                     .filter(File::isFile)
                     .collect(toMap(f -> getKeyFromFile(localFile, f), f -> AwsEtag.compute(f).toString()));
-            return localFilesMap.equals(remoteObjectsMap);
+            boolean equals = localFilesMap.equals(remoteObjectsMap);
+            LoggerFactory.getLogger(getClass()).debug("remote {} local {} is equal ? {}", remoteObjectsMap, localFilesMap, equals);
+            return equals;
         } else {
             ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
             return objectMetadata.getContentLength() == localFile.length();
