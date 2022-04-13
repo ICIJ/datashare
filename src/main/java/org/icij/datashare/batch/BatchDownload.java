@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -21,6 +22,7 @@ import java.util.UUID;
 import static java.lang.String.format;
 import static java.time.ZonedDateTime.from;
 import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Optional.ofNullable;
 
 public class BatchDownload {
@@ -47,14 +49,14 @@ public class BatchDownload {
 
     @JsonCreator
     private BatchDownload(@JsonProperty("uuid") final String uuid,
-                          @JsonProperty("project") final List<Project> projects,
+                          @JsonProperty("projects") final List<Project> projects,
                           @JsonProperty("filename") Path filename,
                           @JsonProperty("query") String query,
                           @JsonProperty("user") User user,
                           @JsonProperty("encrypted") boolean encrypted,
                           @JsonProperty("zipSize") long zipSize) {
         this.uuid = uuid;
-        this.projects = projects;
+        this.projects = unmodifiableList(ofNullable(projects).orElse(new ArrayList<>()));
         this.user = user;
         this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
         this.filename = filename;
