@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 42
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          CREATE TABLE IF NOT EXISTS user_history_temporary (id INTEGER CONSTRAINT PK_USER_HISTORY PRIMARY KEY AUTOINCREMENT NOT NULL, 
+          creation_date TEXT NOT NULL, modification_date TEXT NOT NULL, user_id VARCHAR(96) NOT NULL, 
+          type TINYINT(2000000000, 10) NOT NULL, name TEXT, uri TEXT NOT NULL);
+
+  - changeSet:
+      id: 43
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          INSERT INTO user_history_temporary SELECT * FROM user_history;
+
+  - changeSet:
+      id: 44
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          DROP TABLE user_history;
+
+  - changeSet:
+      id: 45
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          ALTER TABLE user_history_temporary RENAME TO user_history;
+
+  - changeSet:
+      id: 46
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          CREATE UNIQUE INDEX idx_user_history_unique ON user_history (user_id, uri)
