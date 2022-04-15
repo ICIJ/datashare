@@ -90,7 +90,7 @@ public class RemoteFiles {
             if (! localDir.isDirectory()) {
                 return false;
             }
-            ObjectListing remoteS3Objects = s3Client.listObjects(bucket, remoteKey);
+            ObjectListing remoteS3Objects = s3Client.listObjects(new ListObjectsRequest(bucket, remoteKey, null, "/", null));
             Map<String, String> remoteObjectsMap = remoteS3Objects.getObjectSummaries().stream()
                     .filter(os -> os.getSize() != 0) // because remote dirs are empty keys
                     .collect(toMap(S3ObjectSummary::getKey, S3ObjectSummary::getETag)); // Etag is 128bits MD5 hashed from file
@@ -100,7 +100,11 @@ public class RemoteFiles {
                     .filter(File::isFile)
                     .collect(toMap(f -> getKeyFromFile(localFile, f), f -> AwsEtag.compute(f).toString()));
             boolean equals = localFilesMap.equals(remoteObjectsMap);
-            LoggerFactory.getLogger(getClass()).debug("remote {} local {} is equal ? {}", remoteObjectsMap, localFilesMap, equals);
+            if (remoteObjectsMap.isEmpty()) {
+                LoggerFactory.getLogger(getClass()).warn("remote object map is empty ({})", remoteKey);
+            } else {
+                LoggerFactory.getLogger(getClass()).debug("remote {} local {} is equal ? {}", remoteObjectsMap, localFilesMap, equals);
+            }
             return equals;
         } else {
             ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
