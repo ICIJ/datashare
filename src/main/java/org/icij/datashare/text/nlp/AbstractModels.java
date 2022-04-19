@@ -122,5 +122,5 @@ public abstract class AbstractModels<T> {
     }
 
     public boolean isLoaded(Language language) { return models.containsKey(language);}
-    protected RemoteFiles getRemoteFiles() { return RemoteFiles.getDefault();}
+    protected RemoteFiles getRemoteFiles() { return RemoteFiles.getAuthenticated();}
 }

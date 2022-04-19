@@ -1,6 +1,7 @@
 package org.icij.datashare.io;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -27,7 +28,7 @@ import static java.util.stream.Collectors.toMap;
 
 public class RemoteFiles {
     private static final String S3_DATASHARE_BUCKET_NAME = "datashare-nlp";
-    private static final String S3_DATASHARE_ENDPOINT = "https://icij.org";
+    private static final String S3_DATASHARE_ENDPOINT = "https://s3.amazonaws.com";
     private static final String S3_REGION = "us-east-1";
     private static final int READ_TIMEOUT_MS = 120 * 1000;
     private static final int CONNECTION_TIMEOUT_MS = 30 * 1000;
@@ -54,6 +55,7 @@ public class RemoteFiles {
         config.setSocketTimeout(READ_TIMEOUT_MS);
         return new RemoteFiles(AmazonS3ClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(S3_DATASHARE_ENDPOINT, S3_REGION))
+                .withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
                 .withClientConfiguration(config).build(), S3_DATASHARE_BUCKET_NAME);
     }
 
@@ -90,7 +92,7 @@ public class RemoteFiles {
             if (! localDir.isDirectory()) {
                 return false;
             }
-            ObjectListing remoteS3Objects = s3Client.listObjects(new ListObjectsRequest(bucket, remoteKey, null, "/", null));
+            ObjectListing remoteS3Objects = s3Client.listObjects(bucket, remoteKey);
             Map<String, String> remoteObjectsMap = remoteS3Objects.getObjectSummaries().stream()
                     .filter(os -> os.getSize() != 0) // because remote dirs are empty keys
                     .collect(toMap(S3ObjectSummary::getKey, S3ObjectSummary::getETag)); // Etag is 128bits MD5 hashed from file
