@@ -28,7 +28,7 @@ import static java.util.stream.Collectors.toMap;
 
 public class RemoteFiles {
     private static final String S3_DATASHARE_BUCKET_NAME = "datashare-nlp";
-    private static final String S3_DATASHARE_ENDPOINT = "https://icij.org";
+    private static final String S3_DATASHARE_ENDPOINT = "s3-accelerate.amazonaws.com/";
     private static final String S3_REGION = "us-east-1";
     private static final int READ_TIMEOUT_MS = 120 * 1000;
     private static final int CONNECTION_TIMEOUT_MS = 30 * 1000;
