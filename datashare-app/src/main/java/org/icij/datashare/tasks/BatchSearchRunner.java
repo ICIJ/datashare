@@ -12,6 +12,7 @@ import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.function.TerFunction;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
@@ -77,14 +79,15 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
         callThread = Thread.currentThread();
         callWaiterLatch.countDown(); // for tests
-        logger.info("running {} queries for batch search {} on project {} with throttle {}ms and scroll size of {}",
-                batchSearch.queries.size(), batchSearch.uuid, batchSearch.project, throttleMs, scrollSize);
+        logger.info("running {} queries for batch search {} on projects {} with throttle {}ms and scroll size of {}",
+                batchSearch.queries.size(), batchSearch.uuid, batchSearch.projects.stream().map(Project::getId).collect(Collectors.joining(", "))
+                , throttleMs, scrollSize);
 
         String query = null;
         try {
             for (String s : batchSearch.queries.keySet()) {
                 query = s;
-                Indexer.Searcher searcher = indexer.search(Collections.singletonList(batchSearch.project.getId()), Document.class).
+                Indexer.Searcher searcher = indexer.search(batchSearch.projects.stream().map(Project::getId).collect(toList()), Document.class).
                         with(query, batchSearch.fuzziness, batchSearch.phraseMatches).
                         withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{})).
                         withPrefixQuery("dirname", batchSearch.paths.toArray(new String[]{})).

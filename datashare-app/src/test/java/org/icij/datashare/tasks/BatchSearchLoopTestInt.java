@@ -19,13 +19,16 @@ import org.junit.Test;
 import org.mockito.Mock;
 import sun.misc.Signal;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.concurrent.*;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
+import static org.icij.datashare.text.Project.*;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
 import static org.mockito.Mockito.*;
@@ -34,7 +37,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchLoopTestInt {
     BlockingQueue<String> batchSearchQueue;
-    BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "desc", CollectionUtils.asSet("query") , local());
+    BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "desc", CollectionUtils.asSet("query") , local());
     @Mock BatchSearchRunner batchSearchRunner;
     @Mock TaskFactory factory;
     @Mock BatchSearchRepository repository;
@@ -118,8 +121,8 @@ public class BatchSearchLoopTestInt {
     public void test_main_loop_exit_with_sigterm_and_queued_batches() throws InterruptedException {
         SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
-        BatchSearch bs1 = new BatchSearch(Project.project("prj"), "name1", "desc", CollectionUtils.asSet("query1") , local());
-        BatchSearch bs2 = new BatchSearch(Project.project("prj"), "name2", "desc", CollectionUtils.asSet("query2") , local());
+        BatchSearch bs1 = new BatchSearch(singletonList(project("prj")), "name1", "desc", CollectionUtils.asSet("query1") , local());
+        BatchSearch bs2 = new BatchSearch(singletonList(project("prj")), "name2", "desc", CollectionUtils.asSet("query2") , local());
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
         batchSearchQueue.add(bs1.uuid);
         batchSearchQueue.add(bs2.uuid);

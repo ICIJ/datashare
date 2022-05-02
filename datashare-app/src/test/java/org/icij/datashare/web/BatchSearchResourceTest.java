@@ -78,7 +78,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                     .addFile(new FileUpload("csvFile").withContent("query\r\néèàç\r\n")).build()).response();
         assertThat(response.code()).isEqualTo(200);
         BatchSearch expected = new BatchSearch(response.content(),
-                project("prj"), "nameValue", null,
+                singletonList(project("prj")), "nameValue", null,
                 asSet("query", "éèàç"), new Date(), BatchSearch.State.QUEUED, User.local());
         verify(batchSearchRepository).save(eq(expected));
         assertThat(batchSearchQueue.take()).isEqualTo(expected.uuid);
@@ -152,19 +152,19 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_rerun_batch_search() throws InterruptedException {
-        BatchSearch sourceSearch = new BatchSearch(project("prj"), "name", "description1", asSet("query 1", "query 2"), User.local());
+        BatchSearch sourceSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name", "description1", asSet("query 1", "query 2"), User.local());
         when(batchSearchRepository.get(User.local(), sourceSearch.uuid)).thenReturn(sourceSearch);
         when(batchSearchRepository.save(any())).thenReturn(true);
 
         post("/api/batch/search/copy/" + sourceSearch.uuid,
-                "{\"project\":\"prj\", \"name\": \"test\", \"description\": \"test description\"}").
+                "{\"name\": \"test\", \"description\": \"test description\"}").
                 should().respond(200);
 
         ArgumentCaptor<BatchSearch> argument = ArgumentCaptor.forClass(BatchSearch.class);
         verify(batchSearchRepository).save(argument.capture());
         assertThat(argument.getValue().name).isEqualTo("test");
         assertThat(argument.getValue().description).isEqualTo("test description");
-        assertThat(argument.getValue().project.name).isEqualTo("prj");
+        assertThat(argument.getValue().projects).isEqualTo(sourceSearch.projects);
         assertThat(argument.getValue().queries).isEqualTo(sourceSearch.queries);
         assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
 
@@ -184,14 +184,14 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
         assertThat(response.code()).isEqualTo(200);
         verify(batchSearchRepository).save(eq(new BatchSearch(response.content(),
-                project("prj"), "my batch search", "search description",
+                singletonList(project("prj")), "my batch search", "search description",
                 asSet("query"), new Date(), BatchSearch.State.RUNNING, User.local())));
     }
 
     @Test
     public void test_get_batch_search() {
-        BatchSearch search1 = new BatchSearch(project("prj"), "name1", "description1", asSet("query 1", "query 2"), User.local());
-        BatchSearch search2 = new BatchSearch(project("prj"), "name2", "description2", asSet("query 3", "query 4"), User.local());
+        BatchSearch search1 = new BatchSearch(singletonList(project("prj")), "name1", "description1", asSet("query 1", "query 2"), User.local());
+        BatchSearch search2 = new BatchSearch(asList(project("prj1"), project("prj2")), "name2", "description2", asSet("query 3", "query 4"), User.local());
         when(batchSearchRepository.get(User.local(), search1.uuid)).thenReturn(search1);
         when(batchSearchRepository.get(User.local(), search2.uuid)).thenReturn(search2);
 
@@ -202,8 +202,8 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_batch_searches_json() {
         when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"))).thenReturn(asList(
-                new BatchSearch(project("prj"), "name1", "description1", asSet("query 1", "query 2"), User.local()),
-                new BatchSearch(project("prj"), "name2", "description2", asSet("query 3", "query 4"), User.local())
+                new BatchSearch(singletonList(project("prj")), "name1", "description1", asSet("query 1", "query 2"), User.local()),
+                new BatchSearch(singletonList(project("prj")), "name2", "description2", asSet("query 3", "query 4"), User.local())
         ));
 
         get("/api/batch/search").should().respond(200).haveType("application/json").
@@ -213,10 +213,10 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_batch_searches_records_json_paginated() {
-        List<BatchSearchRecord> batchSearches = IntStream.range(0, 10).mapToObj(i -> new BatchSearchRecord(project("prj"), "name" + i, "description" + i, 2, new Date())).collect(toList());
+        List<BatchSearchRecord> batchSearches = IntStream.range(0, 10).mapToObj(i -> new BatchSearchRecord(singletonList(project("local-datashare")), "name" + i, "description" + i, 2, new Date())).collect(toList());
         when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(2, 0))).thenReturn(batchSearches.subList(0, 2));
-        when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(3, 4))).thenReturn(batchSearches.subList(5, 8));
         when(batchSearchRepository.getTotal(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(2,0))).thenReturn(batchSearches.size());
+        when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(3, 4))).thenReturn(batchSearches.subList(5, 8));
         when(batchSearchRepository.getTotal(User.local(), singletonList("local-datashare"), new BatchSearchRepository.WebQuery(3,4))).thenReturn(batchSearches.size());
 
         post("/api/batch/search", "{\"from\":0, \"size\":2, \"query\":\"*\", \"field\":\"all\"}").should().respond(200).haveType("application/json").
@@ -267,7 +267,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_search_results_csv() {
-        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asSet("q1", "q2"),User.local()));
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(singletonList(project("prj")), "name", "desc", asSet("q1", "q2"),User.local()));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(asList(
                 new SearchResult("q1", "docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), "content/type", 123L, 1),
                 new SearchResult("q2", "docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), "content/type", 123L, 2)
@@ -289,7 +289,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
             routes.add(new BatchSearchResource(batchSearchRepository, batchSearchQueue, propertiesProvider)).
                     filter(new LocalUserFilter(propertiesProvider));
         });
-        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asSet("q"), User.local()));
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(singletonList(project("prj")), "name", "desc", asSet("q"), User.local()));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId", new BatchSearchRepository.WebQuery())).thenReturn(singletonList(
                 new SearchResult("q", "docId", "rootId", Paths.get("/path/to/doc"), new Date(), "content/type", 123L, 1)
         ));
@@ -335,7 +335,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_queries_json() {
-        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asSet("q1", "q2"),User.local()));
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(singletonList(project("prj")), "name", "desc", asSet("q1", "q2"),User.local()));
         get("/api/batch/search/batchSearchId/queries").should().
                 respond(200).
                 haveType("application/json;charset=UTF-8").
@@ -344,7 +344,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_queries_csv() {
-        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(project("prj"), "name", "desc", asSet("q1", "q2"),User.local()));
+        when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(singletonList(project("prj")), "name", "desc", asSet("q1", "q2"),User.local()));
         get("/api/batch/search/batchSearchId/queries?format=csv").should().
                 respond(200).
                 haveType("text/csv;charset=UTF-8").

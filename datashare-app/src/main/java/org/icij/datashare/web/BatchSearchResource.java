@@ -213,14 +213,14 @@ public class BatchSearchResource {
      *
      * Then make a curl request with this file :
      * ```
-     * curl -i -XPOST localhost:8080/api/batch/search/prj -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
+     * curl -i -XPOST localhost:8080/api/batch/search/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
      * ```
-     * @param projectId
+     * @param comaSeparatedProjects
      * @param context : the request body
      * @return 200 or 400 or 413
      */
-    @Post("/search/:project")
-    public Payload search(String projectId, Context context) throws Exception {
+    @Post("/search/:coma_separated_projects")
+    public Payload search(String comaSeparatedProjects, Context context) throws Exception {
         List<Part> parts = context.parts();
         String name = fieldValue("name", parts);
         String csv = fieldValue("csvFile", parts);
@@ -241,7 +241,7 @@ public class BatchSearchResource {
                 .stream().map(query -> (phraseMatches && query.contains("\"")) ? query : sanitizeDoubleQuotesInQuery(query)).collect(Collectors.toCollection(LinkedHashSet::new));
         if(queries.size() >= MAX_BATCH_SIZE)
             return new Payload(413);
-        BatchSearch batchSearch = new BatchSearch(project(projectId), name, description, queries,
+        BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,
                 (User) context.currentUser(), published, fileTypes, paths, fuzziness,phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);
         if (isSaved) batchSearchQueue.put(batchSearch.uuid);
@@ -325,7 +325,7 @@ public class BatchSearchResource {
 
         getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), new BatchSearchRepository.WebQuery()).forEach(result -> builder.
                 append("\"").append(result.query).append("\"").append(",").
-                append("\"").append(docUrl(url, batchSearch.project, result.documentId, result.rootId)).append("\"").append(",").
+                append("\"").append(docUrl(url, batchSearch.projects, result.documentId, result.rootId)).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").
                 append("\"").append(result.rootId).append("\"").append(",").
                 append("\"").append(result.contentType).append("\"").append(",").
@@ -354,8 +354,8 @@ public class BatchSearchResource {
         return batchSearchRepository.deleteAll((User) context.currentUser()) ? new Payload(204): notFound();
     }
 
-    private String docUrl(String uri, Project project, String documentId, String rootId) {
-        return format("%s/#/d/%s/%s/%s", uri, project.getId(), documentId, rootId);
+    private String docUrl(String uri, List<Project> projects, String documentId, String rootId) {
+        return format("%s/#/d/%s/%s/%s", uri, projects.stream().map(Project::getId).collect(Collectors.joining(",")), documentId, rootId);
     }
 
     private LinkedHashSet<String> getQueries(String csv) {

@@ -1,0 +1,90 @@
+databaseChangeLog:
+  - changeSet:
+      id: 47
+      author: mvanza
+      changes:
+        - createTable:
+            tableName: batch_search_project
+            columns:
+              - column:
+                  name: search_uuid
+                  type: char(36)
+                  constraints:
+                    nullable: false
+                    references: batch_search(uuid)
+                    foreignKeyName: batch_search_project_batch_search_uuid_fk
+              - column:
+                  name: prj_id
+                  type: varchar(96)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 48
+      author: mvanza
+      changes:
+        sql:
+          CREATE UNIQUE INDEX batch_search_project_unique ON batch_search_project (search_uuid, prj_id)
+
+  - changeSet:
+      id: 49
+      author: mvanza
+      changes:
+        sql:
+          INSERT INTO batch_search_project (search_uuid, prj_id) SELECT uuid, prj_id FROM batch_search
+
+  - changeSet:
+      id: 50
+      author: mvanza
+      dbms: postgresql
+      changes:
+        - dropColumn:
+            tableName: batch_search
+            columnName: prj_id
+
+  - changeSet:
+      id: 51
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          CREATE TABLE batch_search_temporary (uuid CHAR(36) NOT NULL, name VARCHAR(255), description VARCHAR(4096), user_id VARCHAR(96) NOT NULL, 
+          batch_date TEXT NOT NULL, state VARCHAR(8) NOT NULL, published INTEGER NOT NULL DEFAULT 0, phrase_matches INTEGER NOT NULL DEFAULT 0,
+          fuzziness INTEGER NOT NULL DEFAULT 0, file_types TEXT, paths TEXT, error_message TEXT, batch_results int DEFAULT 0, error_query TEXT,
+          CONSTRAINT PK_BATCH_SEARCH PRIMARY KEY (uuid))
+
+  - changeSet:
+      id: 52
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          INSERT INTO batch_search_temporary (uuid, name, description, user_id, batch_date, state, published, phrase_matches, fuzziness, 
+          file_types, paths, error_message, batch_results, error_query)
+          SELECT uuid, name, description, user_id, batch_date, state, published, phrase_matches, fuzziness,
+          file_types, paths, error_message, batch_results, error_query FROM batch_search;
+
+  - changeSet:
+      id: 53
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          DROP TABLE batch_search;
+
+  - changeSet:
+      id: 54
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          ALTER TABLE batch_search_temporary RENAME TO batch_search;
+
+  - changeSet:
+      id: 55
+      author: mvanza
+      dbms: sqlite
+      changes:
+        sql:
+          CREATE INDEX batch_search_user_id ON batch_search(user_id);
+          CREATE INDEX batch_search_date ON batch_search(batch_date);

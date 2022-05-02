@@ -4,7 +4,6 @@ import org.icij.datashare.batch.*;
 import org.icij.datashare.batch.BatchSearchRecord.State;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.junit.Rule;
@@ -24,6 +23,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
+import static org.icij.datashare.text.Project.project;
 
 @RunWith(Parameterized.class)
 public class JooqBatchSearchRepositoryTest {
@@ -47,7 +47,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_save_and_get_batch_search() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name1", "description1",
+        BatchSearch batchSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name1", "description1",
                 asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),
                 3,true);
 
@@ -64,15 +64,15 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(batchSearchFromGet.nbResults).isEqualTo(batchSearch.nbResults);
         assertThat(batchSearchFromGet.phraseMatches).isEqualTo(batchSearch.phraseMatches);
         assertThat(batchSearchFromGet.queries).isEqualTo(batchSearch.queries);
-
+        assertThat(batchSearchFromGet.projects).isEqualTo(batchSearch.projects);
         assertThat(batchSearchFromGet.user).isEqualTo(User.local());
     }
 
     @Test
     public void test_get_records_filter_by_project() {
-        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj1"), "name1", "description1",
+        BatchSearch batchSearch1 = new BatchSearch(singletonList(project("prj1")), "name1", "description1",
                 asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
-        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj2"), "name2", "description2",
+        BatchSearch batchSearch2 = new BatchSearch(singletonList(project("prj2")), "name2", "description2",
                 asSet("q3", "q4"), new Date(new Date().getTime() + 1000000000));
 
         repository.save(batchSearch1);
@@ -84,9 +84,9 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_total_filter_by_project() {
-        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj1"), "name1", "description1",
+        BatchSearch batchSearch1 = new BatchSearch(asList(project("prj1"), project("prj2")), "name1", "description1",
                         asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
-        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj2"), "name2", "description2",
+        BatchSearch batchSearch2 = new BatchSearch(singletonList(project("prj2")), "name2", "description2",
                 asSet("q3", "q4"), User.local(), true);
 
         repository.save(batchSearch1);
@@ -99,7 +99,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_records() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"),"name","description",asSet("q1", "q2"), User.local(),
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")),"name","description",asSet("q1", "q2"), User.local(),
                 true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         repository.save(batchSearch);
 
@@ -109,7 +109,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(actual.getNbQueries()).isEqualTo(2);
         assertThat(actual.name).isEqualTo(batchSearch.name);
         assertThat(actual.description).isEqualTo(batchSearch.description);
-        assertThat(actual.project).isEqualTo(batchSearch.project);
+        assertThat(actual.projects).isEqualTo(batchSearch.projects);
         assertThat(actual.user).isEqualTo(batchSearch.user);
         assertThat(actual.published).isEqualTo(batchSearch.published);
         assertThat(actual.date).isEqualTo(batchSearch.date);
@@ -119,10 +119,22 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_records_with_query_and_field() {
-        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"),"foo","baz",asSet("q1", "q2"), User.local(),
+    public void test_get_records_with_multiple_project_intersection() {
+        BatchSearch batchSearch = new BatchSearch(asList(project("prj1"), project("prj2")),"name","description",asSet("q1", "q2"), User.local(),
                 true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
-        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"),"bar","baz",asSet("q3", "q2"), User.local(),
+        repository.save(batchSearch);
+
+        assertThat(repository.getRecords(User.local(), asList("prj1", "prj2"))).isNotEmpty();
+        assertThat(repository.getRecords(User.local(), asList("prj1", "prj3"))).isEmpty();
+        assertThat(repository.getRecords(User.local(), singletonList("prj1"))).isEmpty();
+        assertThat(repository.getRecords(User.local(), asList("prj1", "prj2", "prj3"))).isNotEmpty();
+    }
+
+    @Test
+    public void test_get_records_with_query_and_field() {
+        BatchSearch batchSearch1 = new BatchSearch(singletonList(project("prj")),"foo","baz",asSet("q1", "q2"), User.local(),
+                true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+        BatchSearch batchSearch2 = new BatchSearch(singletonList(project("prj")),"bar","baz",asSet("q3", "q2"), User.local(),
                 true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         repository.save(batchSearch1);
         repository.save(batchSearch2);
@@ -136,7 +148,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_records_with_query() {
-        IntStream.range(0, 5).mapToObj(i -> new BatchSearch(Project.project("prj"), "name" + i, "description" + i, asSet("q1/" + i, "q2/" + i), User.local(),
+        IntStream.range(0, 5).mapToObj(i -> new BatchSearch(asList(project("prj1")), "name" + i, "description" + i, asSet("q1/" + i, "q2/" + i), User.local(),
                 true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"), 3, true)).
                 forEach(bs -> {
                             repository.save(bs);
@@ -144,20 +156,20 @@ public class JooqBatchSearchRepositoryTest {
                         }
                 );
 
-        List<BatchSearchRecord> from0To2 = repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(2, 0));
+        List<BatchSearchRecord> from0To2 = repository.getRecords(User.local(), asList("prj1", "prj2"), new BatchSearchRepository.WebQuery(2, 0));
         assertThat(from0To2).hasSize(2);
         assertThat(from0To2.get(0).name).isEqualTo("name4");
         assertThat(from0To2.get(1).name).isEqualTo("name3");
 
-        List<BatchSearchRecord> from0To2OrderByName = repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(1, 1, "name", "asc","*","all", null));
+        List<BatchSearchRecord> from0To2OrderByName = repository.getRecords(User.local(), asList("prj1", "prj2"), new BatchSearchRepository.WebQuery(1, 1, "name", "asc","*","all", null));
         assertThat(from0To2OrderByName).hasSize(1);
         assertThat(from0To2OrderByName.get(0).name).isEqualTo("name1");
     }
 
     @Test
     public void test_get_queued_searches() {
-        repository.save(new BatchSearch(Project.project("prj"), "name1", "description1", asSet("q1", "q2"), new Date()));
-        repository.save(new BatchSearch(Project.project("prj"), "name2", "description2", asSet("q3", "q4"), new Date()));
+        repository.save(new BatchSearch(singletonList(project("prj")), "name1", "description1", asSet("q1", "q2"), new Date()));
+        repository.save(new BatchSearch(singletonList(project("prj")), "name2", "description2", asSet("q3", "q4"), new Date()));
 
         assertThat(repository.getQueued()).hasSize(2);
     }
@@ -165,7 +177,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_queued_searches_without_running_state() {
 
-        repository.save(new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+        repository.save(new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.RUNNING, User.local()));
 
         assertThat(repository.getQueued()).hasSize(0);
@@ -173,7 +185,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_search_by_id() {
-        BatchSearch expected = new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+        BatchSearch expected = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.RUNNING, User.local());
         repository.save(expected);
 
@@ -190,7 +202,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_queued_searches_without_success_state() {
-        repository.save(new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+        repository.save(new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.SUCCESS, User.local()));
 
         assertThat(repository.getQueued()).hasSize(0);
@@ -198,7 +210,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_queued_searches_without_failure_state() {
-        repository.save(new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+        repository.save(new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.FAILURE, User.local()));
 
         assertThat(repository.getQueued()).hasSize(0);
@@ -211,7 +223,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_set_state() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("q1", "q2"), new Date());
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("q1", "q2"), new Date());
         repository.save(batchSearch);
 
         assertThat(repository.get(batchSearch.uuid).state).isEqualTo(State.QUEUED);
@@ -221,7 +233,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_set_error_state() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("q1", "q2"), new Date());
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("q1", "q2"), new Date());
         repository.save(batchSearch);
 
         SearchException error = new SearchException("q1", new RuntimeException("root exception"));
@@ -234,7 +246,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_save_results() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("my query", "my other query"), User.local());
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("my query", "my other query"), User.local());
         repository.save(batchSearch);
 
         assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1").build(), createDoc("doc2").build()))).isTrue();
@@ -251,7 +263,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_save_results_multiple_times() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("my query", "my other query"), User.local());
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("my query", "my other query"), User.local());
         repository.save(batchSearch);
 
         assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1").build(), createDoc("doc2").build()))).isTrue();
@@ -263,8 +275,8 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_results_by_query_are_isolated() {
-        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"), "name1", "description1", asSet("my query", "my other query"), User.local());
-        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name2", "description2", asSet("my query", "3rd query"), User.local());
+        BatchSearch batchSearch1 = new BatchSearch(singletonList(project("prj")), "name1", "description1", asSet("my query", "my other query"), User.local());
+        BatchSearch batchSearch2 = new BatchSearch(singletonList(project("prj")), "name2", "description2", asSet("my query", "3rd query"), User.local());
         repository.save(batchSearch1);
         repository.save(batchSearch2);
         repository.saveResults(batchSearch1.uuid, "my query", asList(createDoc("doc1").build(), createDoc("doc2").build()));
@@ -274,7 +286,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_results_paginated() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("query"), User.local());
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("query"), User.local());
         repository.save(batchSearch);
 
         assertThat(repository.saveResults(batchSearch.uuid, "query", asList(
@@ -289,7 +301,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_results_filtered_by_query() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("q1", "q2"), User.local());
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("q1", "q2"), User.local());
         repository.save(batchSearch);
         repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("doc1").build(), createDoc("doc2").build()));
         repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("doc3").build(), createDoc("doc4").build()));
@@ -306,7 +318,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_results_order() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("q1", "q2"), User.local());
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("q1", "q2"), User.local());
         repository.save(batchSearch);
         repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("a").build(), createDoc("c").build()));
         repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("b").build(), createDoc("d").build()));
@@ -343,7 +355,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_batch_search_by_uuid() {
-        BatchSearch search = new BatchSearch(Project.project("prj"), "name1", "description1", asSet("q1", "q2"), User.local());
+        BatchSearch search = new BatchSearch(singletonList(project("prj")), "name1", "description1", asSet("q1", "q2"), User.local());
         repository.save(search);
 
         BatchSearch batchSearch = repository.get(User.local(), search.uuid);
@@ -354,9 +366,9 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_delete_batch_searches() {
-        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"), "name", "description1", asSet("q1", "q2"), User.local());
+        BatchSearch batchSearch1 = new BatchSearch(singletonList(project("prj")), "name", "description1", asSet("q1", "q2"), User.local());
         repository.save(batchSearch1);
-        BatchSearch batchSearch2 = new BatchSearch(Project.project("prj"), "name", "description3", asSet("q3", "q4"), new User("foo"));
+        BatchSearch batchSearch2 = new BatchSearch(singletonList(project("prj")), "name", "description3", asSet("q3", "q4"), new User("foo"));
         repository.save(batchSearch2);
         repository.saveResults(batchSearch1.uuid, "q2", asList(
                         createDoc("doc1").build(), createDoc("doc2").build(), createDoc("doc3").build(), createDoc("doc4").build()));
@@ -370,7 +382,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_delete_batch_search() {
-        BatchSearch batchSearch1 = new BatchSearch(Project.project("prj"), "name", "description1", asSet("q1", "q2"), User.local());
+        BatchSearch batchSearch1 = new BatchSearch(singletonList(project("prj")), "name", "description1", asSet("q1", "q2"), User.local());
         repository.save(batchSearch1);
         repository.saveResults(batchSearch1.uuid, "q2", asList(
                         createDoc("doc1").build(), createDoc("doc2").build(), createDoc("doc3").build(), createDoc("doc4").build()));
@@ -383,7 +395,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_delete_batch_search_by_another_user() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "foo search", "description1", asSet("q3", "q4"), new User("foo"));
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "foo search", "description1", asSet("q3", "q4"), new User("foo"));
         User foo = new User("foo");
         repository.save(batchSearch);
         repository.saveResults(batchSearch.uuid, "q2", asList(
@@ -397,7 +409,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test(expected = JooqBatchSearchRepository.UnauthorizedUserException.class)
     public void test_get_results_with_bad_user() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("query"), User.local());
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("query"), User.local());
         repository.save(batchSearch);
         repository.saveResults(batchSearch.uuid, "query", singletonList(createDoc("doc").build()));
 
@@ -406,7 +418,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_results_published_from_another_user() {
-        BatchSearch batchSearch = new BatchSearch(Project.project("prj"), "name", "description", asSet("query"), User.local(), true);
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("query"), User.local(), true);
         repository.save(batchSearch);
         repository.saveResults(batchSearch.uuid, "query", asList(
               createDoc("doc1").build(), createDoc("doc2").build(), createDoc("doc3").build(), createDoc("doc4").build()));
@@ -416,7 +428,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_publish() {
-        repository.save(new BatchSearch("uuid", Project.project("prj"), "name", "description",
+        repository.save(new BatchSearch("uuid", singletonList(project("prj")), "name", "description",
                 asSet("q1", "q2"), new Date(), State.FAILURE, User.local()));
 
         assertThat(repository.get(User.local(), "uuid").published).isFalse();
@@ -426,7 +438,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_publish_unauthorized_user_does_nothing() {
-        repository.save(new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+        repository.save(new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.FAILURE, User.local()));
 
         assertThat(repository.publish(new User("unauthorized"), "uuid", true)).isFalse();
@@ -434,7 +446,7 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_reset_batch_search() {
-        BatchSearch batchSearch = new BatchSearch("uuid", Project.project("prj"), "name1", "description1",
+        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
                 asSet("q1", "q2"), new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
         repository.saveResults(batchSearch.uuid, "query",asList(createDoc("doc1").build(),createDoc("doc2").build()));

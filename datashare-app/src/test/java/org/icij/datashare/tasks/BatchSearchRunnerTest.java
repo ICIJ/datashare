@@ -13,6 +13,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME;
@@ -49,7 +51,7 @@ public class BatchSearchRunnerTest {
     public void test_run_batch_search() throws Exception {
         Document[] documents = {createDoc("doc1").build(), createDoc("doc2").build()};
         mockSearch.willReturn(1, documents);
-        BatchSearch search = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
+        BatchSearch search = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, User.local());
 
         assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), search, resultConsumer).call()).isEqualTo(2);
 
@@ -60,7 +62,7 @@ public class BatchSearchRunnerTest {
     public void test_run_batch_search_failure() throws Exception {
         Document[] documents = {createDoc("doc").build()};
         mockSearch.willReturn(1, documents);
-        BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
+        BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
 
         when(resultConsumer.apply(anyString(), any(), anyList())).thenThrow(new RuntimeException());
 
@@ -71,7 +73,7 @@ public class BatchSearchRunnerTest {
     public void test_run_batch_search_truncate_to_60k_max_results() throws Exception {
         Document[] documents = IntStream.range(0, MAX_SCROLL_SIZE).mapToObj(i -> createDoc("doc" + i).build()).toArray(Document[]::new);
         mockSearch.willReturn(MAX_BATCH_RESULT_SIZE/MAX_SCROLL_SIZE + 1, documents);
-        BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name", "desc", asSet("query"), new Date(), BatchSearch.State.QUEUED, local());
+        BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name", "desc", asSet("query"), new Date(), BatchSearch.State.QUEUED, local());
 
         assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), batchSearch, resultConsumer).call()).isLessThan(60000);
     }
@@ -79,7 +81,7 @@ public class BatchSearchRunnerTest {
     @Test
     public void test_run_batch_search_with_throttle() throws Exception {
         mockSearch.willReturn(1, createDoc("doc").build());
-        BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
+        BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         Date beforeBatch  = timeRule.now;
 
         new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
@@ -92,7 +94,7 @@ public class BatchSearchRunnerTest {
     @Test
     public void test_run_batch_search_with_throttle_should_not_last_more_than_max_time() throws Exception {
         mockSearch.willReturn(5, createDoc("doc").build());
-        BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1",
+        BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1",
                 asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         Date beforeBatch  = timeRule.now;
 
@@ -108,7 +110,7 @@ public class BatchSearchRunnerTest {
     @Test
     public void test_cancel_current_batch_search() throws Exception {
         CountDownLatch countDownLatch = new CountDownLatch(1);
-        BatchSearch batchSearch = new BatchSearch("uuid1", project("test-datashare"), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
+        BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         Document[] documents = {createDoc("doc").build()};
         mockSearch.willReturn(1,documents);
         BatchSearchRunner batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), batchSearch, resultConsumer, countDownLatch);
