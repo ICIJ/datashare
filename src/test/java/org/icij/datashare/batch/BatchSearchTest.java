@@ -5,29 +5,28 @@ import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.junit.Test;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import java.util.*;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.*;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.text.Project.*;
 
 public class BatchSearchTest {
     @Test(expected = IllegalArgumentException.class)
     public void test_create_batch_search_with_no_queries_throws_exception() {
-        new BatchSearch(Project.project("prj"), "name", "desc", new LinkedHashSet<>(), User.local());
+        new BatchSearch(singletonList(project("prj")), "name", "desc", new LinkedHashSet<>(), User.local());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_create_batch_search_with_null_queries_throws_exception() {
-        new BatchSearch(Project.project("prj"), "name", "desc", null, User.local());
+        new BatchSearch(singletonList(project("prj")), "name", "desc", null, User.local());
     }
 
     @Test
     public void test_copy_constructor() {
         DatashareTime.setMockTime(true);
-        BatchSearch batchSearch = new BatchSearch("uuid", Project.project("prj"), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
+        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
                 new Date(), BatchSearchRecord.State.FAILURE, User.local(), 123, true,
                 asList("application/pdf"), asList("path"), 2, true,
                 "error messsage", "error query");
@@ -41,7 +40,7 @@ public class BatchSearchTest {
         assertThat(copy.errorQuery).isNull();
         assertThat(copy.date).isEqualTo(DatashareTime.getInstance().now());
 
-        assertThat(copy.project).isEqualTo(batchSearch.project);
+        assertThat(copy.projects).isEqualTo(batchSearch.projects);
         assertThat(copy.user).isEqualTo(batchSearch.user);
         assertThat(copy.name).isEqualTo(batchSearch.name);
         assertThat(copy.description).isEqualTo(batchSearch.description);
@@ -55,7 +54,7 @@ public class BatchSearchTest {
     @Test
     public void test_copy_constructor_with_overridden_params() {
         DatashareTime.setMockTime(true);
-        BatchSearch batchSearch = new BatchSearch("uuid", Project.project("prj"), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
+        BatchSearch batchSearch = new BatchSearch("uuid", asList(project("prj1"), project("prj2")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
                 new Date(), BatchSearchRecord.State.FAILURE, User.local(), 123, true,
                 asList("application/pdf"), asList("path"), 2, true,
                 "error message", "error query");
@@ -63,11 +62,9 @@ public class BatchSearchTest {
         BatchSearch copy = new BatchSearch(batchSearch, new HashMap<String, String>() {{
             put("name", "new name");
             put("description", "new description");
-            put("project", "new prj");
         }});
 
         assertThat(copy.name).isEqualTo("new name");
         assertThat(copy.description).isEqualTo("new description");
-        assertThat(copy.project.name).isEqualTo("new prj");
     }
 }

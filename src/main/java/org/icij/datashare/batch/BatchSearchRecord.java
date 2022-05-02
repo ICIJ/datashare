@@ -5,12 +5,15 @@ import org.icij.datashare.user.User;
 
 import java.util.*;
 
+import static java.util.Collections.unmodifiableList;
+import static java.util.Optional.ofNullable;
+
 public class BatchSearchRecord {
 
     public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
     public final String uuid;
     public final boolean published;
-    public final Project project;
+    public final List<Project> projects;
     public final String name;
     public final String description;
     public final User user;
@@ -22,17 +25,17 @@ public class BatchSearchRecord {
     public final String errorQuery;
 
     // for tests
-    public BatchSearchRecord(final Project project, final String name, final String description, final int nbQueries, Date date) {
-        this(UUID.randomUUID().toString(), project, name, description, nbQueries, date, State.QUEUED, User.local(),
+    public BatchSearchRecord(final List<Project> projects, final String name, final String description, final int nbQueries, Date date) {
+        this(UUID.randomUUID().toString(), projects, name, description, nbQueries, date, State.QUEUED, User.local(),
                 0, false,null, null);
     }
 
-    public BatchSearchRecord(String uuid, Project project, String name, String description, int nbQueries, Date date, State state, User user,
+    public BatchSearchRecord(String uuid, List<Project> projects, String name, String description, int nbQueries, Date date, State state, User user,
                              int nbResults, boolean published, String errorMessage, String errorQuery){
         assert date != null && uuid != null;
         this.uuid = uuid;
         this.published = published;
-        this.project = project;
+        this.projects = unmodifiableList(ofNullable(projects).orElse(new ArrayList<>()));
         this.name = name;
         this.description = description;
         this.user = user;
