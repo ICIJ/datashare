@@ -83,3 +83,6 @@ databaseChangeLog:
   - include:
       file: changes/027-batch-search-projects.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/028-adds-column-project-batch-search-results.yml
+      relativeToChangelogFile: true

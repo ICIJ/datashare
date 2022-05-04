@@ -257,8 +257,10 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(results).hasSize(2);
         assertThat(results.get(0).documentId).isEqualTo("doc1");
         assertThat(results.get(0).documentPath.toString()).isEqualTo("/path/to/doc1");
+        assertThat(results.get(0).project.getId()).isEqualTo("prj");
         assertThat(results.get(1).documentId).isEqualTo("doc2");
         assertThat(results.get(1).documentPath.toString()).isEqualTo("/path/to/doc2");
+        assertThat(results.get(1).project.getId()).isEqualTo("prj");
     }
 
     @Test

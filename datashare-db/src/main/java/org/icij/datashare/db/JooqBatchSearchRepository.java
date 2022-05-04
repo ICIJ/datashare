@@ -75,15 +75,15 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                     BATCH_SEARCH.BATCH_RESULTS.plus(documents.size())).
                     where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute();
 
-            InsertValuesStep9<BatchSearchResultRecord, String, String, Integer, String, String, String, Timestamp, String, Long> insertQuery =
+            InsertValuesStep10<BatchSearchResultRecord, String, String, Integer, String, String, String, Timestamp, String, Long, String> insertQuery =
                     inner.insertInto(BATCH_SEARCH_RESULT, BATCH_SEARCH_RESULT.SEARCH_UUID, BATCH_SEARCH_RESULT.QUERY, BATCH_SEARCH_RESULT.DOC_NB,
                     BATCH_SEARCH_RESULT.DOC_ID, BATCH_SEARCH_RESULT.ROOT_ID, BATCH_SEARCH_RESULT.DOC_PATH, BATCH_SEARCH_RESULT.CREATION_DATE,
-                    BATCH_SEARCH_RESULT.CONTENT_TYPE, BATCH_SEARCH_RESULT.CONTENT_LENGTH);
+                    BATCH_SEARCH_RESULT.CONTENT_TYPE, BATCH_SEARCH_RESULT.CONTENT_LENGTH, BATCH_SEARCH_RESULT.PRJ_ID);
             IntStream.range(0, documents.size()).forEach(i -> insertQuery.values(batchSearchId, query, i,
                                 documents.get(i).getId(), documents.get(i).getRootDocument(), documents.get(i).getPath().toString(),
                                 documents.get(i).getCreationDate() == null ? (Timestamp) null:
                                         new Timestamp(documents.get(i).getCreationDate().getTime()),
-                                documents.get(i).getContentType(), documents.get(i).getContentLength()));
+                                documents.get(i).getContentType(), documents.get(i).getContentLength(), documents.get(i).getProject().getId()));
             return insertQuery.execute() > 0;
         });
     }
@@ -321,7 +321,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         String prj = (String) record.get("projects");
         org.icij.datashare.db.tables.records.BatchSearchRecord batchSearch = record.into(BATCH_SEARCH);
         return new BatchSearchRecord(batchSearch.getUuid(),
-                prj == null || prj.isEmpty()? null: Arrays.stream(prj.split(LIST_SEPARATOR)).sorted().map(Project::project).collect(toList()),
+                prj == null || prj.isEmpty()? null : Arrays.stream(prj.split(LIST_SEPARATOR)).sorted().map(Project::project).collect(toList()),
                 batchSearch.getName(),
                 batchSearch.getDescription(),
                 (int) nbQueries,
@@ -336,11 +336,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     private SearchResult createSearchResult(final User actualUser, final Record record) {
         String owner = record.get(BATCH_SEARCH.USER_ID);
+        String prj = record.get(BATCH_SEARCH_RESULT.PRJ_ID);
         boolean published = record.get(BATCH_SEARCH.PUBLISHED)>0;
-        if (!actualUser.id.equals(owner) && !published)
+        if (!actualUser.id.equals(owner) && !published) {
             throw new UnauthorizedUserException(record.get(BATCH_SEARCH.UUID), owner, actualUser.id);
+        }
         Timestamp creationDate = record.get(BATCH_SEARCH_RESULT.CREATION_DATE);
         return new SearchResult(record.get(BATCH_SEARCH_RESULT.QUERY),
+                prj == null || prj.isEmpty() ? null : project(prj),
                 record.get(BATCH_SEARCH_RESULT.DOC_ID),
                 record.getValue(BATCH_SEARCH_RESULT.ROOT_ID),
                 Paths.get(record.getValue(BATCH_SEARCH_RESULT.DOC_PATH)),

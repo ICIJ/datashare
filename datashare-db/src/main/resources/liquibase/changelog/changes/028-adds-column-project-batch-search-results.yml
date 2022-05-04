@@ -1,0 +1,6 @@
+databaseChangeLog:
+  - changeSet:
+      id: 56
+      author: mvanza
+      sql:
+        - ALTER TABLE batch_search_result ADD COLUMN prj_id VARCHAR(96)
