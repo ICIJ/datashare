@@ -44,7 +44,8 @@ public interface Indexer extends Closeable {
     boolean untag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
     boolean tag(Project prj, List<String> documentIds, Tag... tags) throws IOException;
     boolean untag(Project prj, List<String> documentIds, Tag... tags) throws IOException;
-
+    ExtractedText getExtractedText(String indexName, String documentId, long offset, long limit) throws IOException;
+    ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, long offset, long limit) throws IOException;
     interface Searcher {
         Searcher ofStatus(Document.Status indexed);
         Stream<? extends Entity> execute() throws IOException;
