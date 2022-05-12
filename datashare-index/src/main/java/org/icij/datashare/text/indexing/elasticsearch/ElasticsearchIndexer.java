@@ -42,7 +42,9 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
+import ucar.httpservices.HTTPException;
 
+import javax.ws.rs.NotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -238,9 +240,12 @@ public class ElasticsearchIndexer implements Indexer {
         SearchRequest searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
         SearchResponse search = client.search(searchRequest.routing(routing), RequestOptions.DEFAULT);
         List<SearchHit> tHits = searchHitStream(() -> search.getHits().iterator()).collect(Collectors.toList());
+        if(tHits.isEmpty()){
+            throw new IllegalArgumentException("Document not found");
+        }
         Map<String,Object> pagination = (Map<String, Object>) tHits.get(0).field("pagination").getValues().get(0);
         if(pagination.get("error")!=null){
-            throw new IllegalArgumentException((String)pagination.get("error"));
+            throw new IndexOutOfBoundsException((String)pagination.get("error"));
         }
         return new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
                 (Integer) pagination.get("limit"), (Integer) pagination.get("maxOffset"));

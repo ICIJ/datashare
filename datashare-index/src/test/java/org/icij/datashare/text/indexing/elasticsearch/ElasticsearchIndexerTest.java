@@ -433,7 +433,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10L, 0L);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 0L, 10L);
         assertThat(actual.content).isEqualTo("content wi");
         assertThat(actual.content.length()).isEqualTo(10);
         assertThat(actual.maxOffset).isEqualTo(21);
@@ -454,7 +454,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 1L, 20L);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 20L, 1L);
         assertThat(actual.content).isEqualTo("e");
         assertThat(actual.content.length()).isEqualTo(1);
     }
@@ -464,37 +464,42 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 0L, 21L);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 21L, 0L);
         assertThat(actual.content).isEqualTo("");
         assertThat(actual.content.length()).isEqualTo(0);
     }
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_negative_limit() throws Exception {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
         indexer.getExtractedText(TEST_INDEX, "id", -10L, 1L);
     }
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_negative_start() throws Exception {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
         indexer.getExtractedText(TEST_INDEX, "id", 1L, -10L);
     }
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_oversize() throws Exception {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
         ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 0L, 22L);
     }
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_out_of_range_limit() throws Exception {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10L, 18L);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_slice_of_document_not_found() throws Exception {
         ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10L, 18L);
     }
 }

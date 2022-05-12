@@ -104,8 +104,10 @@ public class DocumentResource {
                     extractedText = indexer.getExtractedText(project, id, routing, offset, limit);
                 }
                 return new Payload(extractedText).withCode(200);
-            } catch (IllegalArgumentException e){
+            } catch (IndexOutOfBoundsException e){
                 return new Payload(e.getMessage()).withCode(400);
+            } catch (IllegalArgumentException e){
+                return new Payload(e.getMessage()).withCode(404);
             }
 
         }
