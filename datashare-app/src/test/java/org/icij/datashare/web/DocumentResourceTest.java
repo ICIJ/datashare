@@ -1,11 +1,13 @@
 package org.icij.datashare.web;
 
+import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -262,6 +264,30 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         when(repository.getProject("local-datashare")).thenReturn(null);
         get("/api/local-datashare/documents/src/docId?routing=root").should().respond(200);
     }
+
+    @Test
+    public void test_get_document_extracted_text() throws IOException {
+        when(indexer.getExtractedText("local-datashare", "docId", 5, 6)).thenReturn(new ExtractedText("content", 5, 6, 7));
+        get("/api/local-datashare/documents/content/docId?offset=5&limit=6").should().respond(200)
+                .should()
+                .haveType("application/json")
+                .contain("\"content\":\"content\"")
+                .contain("\"offset\":5")
+                .contain("\"limit\":6")
+                .contain("\"maxOffset\":7");
+    }
+    @Test
+    public void test_get_document_extracted_text_with_illegal_arg() throws IOException {
+        when(indexer.getExtractedText("local-datashare", "docId", 6, -2))
+                .thenThrow(
+                        new IllegalArgumentException("Range [6-4] is out of document range ([0-10])")
+                );
+        get("/api/local-datashare/documents/content/docId?limit=-2&offset=6")
+                .should()
+                .respond(400)
+                .contain("Range [6-4] is out of document range ([0-10])");
+    }
+
 
     private void indexFile(String index, String _id, Path path, String contentType, String routing) {
         Document doc = DocumentBuilder.createDoc(_id).with(path).ofMimeType(contentType).withRootId(routing).build();

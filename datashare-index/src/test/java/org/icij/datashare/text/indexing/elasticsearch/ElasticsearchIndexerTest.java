@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.apache.commons.math3.exception.OutOfRangeException;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
@@ -14,6 +15,7 @@ import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.After;
@@ -423,5 +425,76 @@ public class ElasticsearchIndexerTest {
 
         assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).with("john AND doe", 0, true).execute().toArray()).isEmpty();
         assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).with("john AND doe", 0, false).execute().toArray()).hasSize(1);
+    }
+
+    @Test
+    public void test_get_slice_of_document_content() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10L, 0L);
+        assertThat(actual.content).isEqualTo("content wi");
+        assertThat(actual.content.length()).isEqualTo(10);
+        assertThat(actual.maxOffset).isEqualTo(21);
+    }
+    @Test
+    public void test_get_slice_of_document_content_with_offset() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10L, 10L);
+        assertThat(actual.content).isEqualTo("th john do");
+        assertThat(actual.content.length()).isEqualTo(10);
+    }
+    @Test
+    public void test_get_slice_of_document_content_with_maxOffset() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 1L, 20L);
+        assertThat(actual.content).isEqualTo("e");
+        assertThat(actual.content.length()).isEqualTo(1);
+    }
+    @Test
+    public void test_get_slice_of_document_content_with_no_limit() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 0L, 21L);
+        assertThat(actual.content).isEqualTo("");
+        assertThat(actual.content.length()).isEqualTo(0);
+    }
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_slice_of_document_content_with_negative_limit() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+        indexer.getExtractedText(TEST_INDEX, "id", -10L, 1L);
+    }
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_slice_of_document_content_with_negative_start() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+        indexer.getExtractedText(TEST_INDEX, "id", 1L, -10L);
+    }
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_slice_of_document_content_with_oversize() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 0L, 22L);
+    }
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_slice_of_document_content_with_out_of_range_limit() throws Exception {
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10L, 18L);
     }
 }

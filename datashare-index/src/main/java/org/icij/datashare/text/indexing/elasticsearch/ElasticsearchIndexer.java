@@ -13,10 +13,7 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.ClearScrollRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchScrollRequest;
+import org.elasticsearch.action.search.*;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -42,6 +39,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
+import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 
@@ -211,6 +209,41 @@ public class ElasticsearchIndexer implements Indexer {
             LOGGER.error("no entity for type " + type);
         }
         return null;
+    }
+    public ExtractedText getExtractedText(String indexName, String id, final long offset, final long limit) throws IOException {
+        return getExtractedText(indexName, id, id, offset, limit);
+    }
+
+    public ExtractedText getExtractedText(String indexName, String id, String routing, final long offset, final long limit) throws IOException {
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE).timeout(new TimeValue(30, TimeUnit.MINUTES));
+        sourceBuilder.query(boolQuery().must(termsQuery("_id", id)));
+        final Script script = new Script(ScriptType.INLINE, "painless",
+                        "long maxOffset = params._source.content.length();" +
+                        "long end = params.offset+params.limit;" +
+                        "if(params.offset < 0 || params.limit < 0 || end > maxOffset){" +
+                        "   return [\"error\":'Range ['+params.offset+'-'+end+'] is out of document range ([0-'+maxOffset+'])'];"+
+                        "}" +
+                        "String contentResized = params._source.content.substring(params.offset,(int)end); " +
+                        " return [" +
+                        "\"content\": contentResized," +
+                        "\"maxOffset\":maxOffset, " +
+                        "\"offset\":params.offset," +
+                        "\"limit\":params.limit" +
+                        "];",
+                new HashMap<String, Object>() {{
+                    put("offset", offset);
+                    put("limit", limit);
+                }});
+        sourceBuilder.scriptField("pagination", script);
+        SearchRequest searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
+        SearchResponse search = client.search(searchRequest.routing(routing), RequestOptions.DEFAULT);
+        List<SearchHit> tHits = searchHitStream(() -> search.getHits().iterator()).collect(Collectors.toList());
+        Map<String,Object> pagination = (Map<String, Object>) tHits.get(0).field("pagination").getValues().get(0);
+        if(pagination.get("error")!=null){
+            throw new IllegalArgumentException((String)pagination.get("error"));
+        }
+        return new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
+                (Integer) pagination.get("limit"), (Integer) pagination.get("maxOffset"));
     }
 
     @Override

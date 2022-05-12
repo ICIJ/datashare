@@ -6,6 +6,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
+import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
@@ -16,9 +17,11 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.FileExtension;
 import org.icij.datashare.text.Tag;
+import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
+import ucar.httpservices.HTTPException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -76,6 +79,39 @@ public class DocumentResource {
     }
 
     /**
+     * Fetch extracted text by slice (pagination)
+     * @param project Project id
+     * @param id Document id
+     * @param offset Starting byte (starts at 0)
+     * @param limit Size of the extracted text slice in bytes
+     * @return 200 and a JSON containing the extracted text content ("content":text), the max offset as last rank index ("maxOffset":number), start ("start":number) and size ("size":number) parameters.
+     * @throws IOException
+     *
+     * Example :
+     * $(curl -XGET -H 'Content-Type: application/json' localhost:8080/api/apigen-datashare/documents/content/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f?offset=1&limit=300)
+     *
+     */
+    @Get("/:project/documents/content/:id?routing=:routing&offset=:offset&limit=:limit")
+    public Payload getExtractedText(final String project, final String id,
+                                          final String routing, final long offset, final long limit, final Context context) throws IOException {
+        if (((DatashareUser)context.currentUser()).isGranted(project) &&
+                isAllowed(repository.getProject(project), context.request().clientAddress())) {
+            try {
+                ExtractedText extractedText;
+                if(routing == null){
+                    extractedText = indexer.getExtractedText(project, id, offset, limit);
+                }else{
+                    extractedText = indexer.getExtractedText(project, id, routing, offset, limit);
+                }
+                return new Payload(extractedText).withCode(200);
+            } catch (IllegalArgumentException e){
+                return new Payload(e.getMessage()).withCode(400);
+            }
+
+        }
+        throw new ForbiddenException();
+    }
+    /**
      * Group star the documents. The id list is passed in the request body as a json list.
      *
      * It answers 200 if the change has been done and the number of documents updated in the response body.
@@ -85,6 +121,7 @@ public class DocumentResource {
      *
      * Example :
      * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
+     *
      */
     @Post("/:project/documents/batchUpdate/star")
     public Result<Integer> groupStarProject(final String projectId, final List<String> docIds, Context context) {
