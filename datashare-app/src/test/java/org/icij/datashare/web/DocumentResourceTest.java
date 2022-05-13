@@ -280,7 +280,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     public void test_get_document_extracted_text_with_out_of_bound_args() throws IOException {
         when(indexer.getExtractedText("local-datashare", "docId", 6, -2))
                 .thenThrow(
-                        new IndexOutOfBoundsException("Range [6-4] is out of document range ([0-10])")
+                        new StringIndexOutOfBoundsException("Range [6-4] is out of document range ([0-10])")
                 );
         get("/api/local-datashare/documents/content/docId?limit=-2&offset=6")
                 .should()

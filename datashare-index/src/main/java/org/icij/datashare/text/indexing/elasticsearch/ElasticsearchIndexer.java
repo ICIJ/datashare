@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
@@ -212,26 +213,30 @@ public class ElasticsearchIndexer implements Indexer {
         }
         return null;
     }
-    public ExtractedText getExtractedText(String indexName, String id, final long offset, final long limit) throws IOException {
+    public ExtractedText getExtractedText(String indexName, String id, final int offset, final int limit) throws IOException {
         return getExtractedText(indexName, id, id, offset, limit);
     }
 
-    public ExtractedText getExtractedText(String indexName, String id, String routing, final long offset, final long limit) throws IOException {
+    public ExtractedText getExtractedText(String indexName, String id, String routing, final int offset, final int limit) throws IOException {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE).timeout(new TimeValue(30, TimeUnit.MINUTES));
+        if (offset < 0 || limit < 0) {
+            throw new StringIndexOutOfBoundsException(format("offset or limit should not be negative (offset=%d, limit=%d)", offset, limit));
+        }
         sourceBuilder.query(boolQuery().must(termsQuery("_id", id)));
         final Script script = new Script(ScriptType.INLINE, "painless",
-                        "long maxOffset = params._source.content.length();" +
-                        "long end = params.offset+params.limit;" +
-                        "if(params.offset < 0 || params.limit < 0 || end > maxOffset){" +
-                        "   return [\"error\":'Range ['+params.offset+'-'+end+'] is out of document range ([0-'+maxOffset+'])'];"+
-                        "}" +
-                        "String contentResized = params._source.content.substring(params.offset,(int)end); " +
-                        " return [" +
+                        "int maxOffset = params._source.content.length();" +
+                        "int end = params.offset+params.limit;" +
+                        "try {" +
+                        "String contentResized = params._source.content.substring(params.offset, end);"+
+                        "return [" +
                         "\"content\": contentResized," +
                         "\"maxOffset\":maxOffset, " +
                         "\"offset\":params.offset," +
                         "\"limit\":params.limit" +
-                        "];",
+                        "];" +
+                        "} catch (StringIndexOutOfBoundsException e) {" +
+                        "return [\"error\":'Range ['+params.offset+'-'+end+'] is out of document range ([0-'+maxOffset+'])'];" +
+                        "}",
                 new HashMap<String, Object>() {{
                     put("offset", offset);
                     put("limit", limit);
@@ -245,7 +250,7 @@ public class ElasticsearchIndexer implements Indexer {
         }
         Map<String,Object> pagination = (Map<String, Object>) tHits.get(0).field("pagination").getValues().get(0);
         if(pagination.get("error")!=null){
-            throw new IndexOutOfBoundsException((String)pagination.get("error"));
+            throw new StringIndexOutOfBoundsException((String)pagination.get("error"));
         }
         return new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
                 (Integer) pagination.get("limit"), (Integer) pagination.get("maxOffset"));

@@ -93,7 +93,7 @@ public class DocumentResource {
      */
     @Get("/:project/documents/content/:id?routing=:routing&offset=:offset&limit=:limit")
     public Payload getExtractedText(final String project, final String id,
-                                          final String routing, final long offset, final long limit, final Context context) throws IOException {
+                                          final String routing, final int offset, final int limit, final Context context) throws IOException {
         if (((DatashareUser)context.currentUser()).isGranted(project) &&
                 isAllowed(repository.getProject(project), context.request().clientAddress())) {
             try {
@@ -104,7 +104,7 @@ public class DocumentResource {
                     extractedText = indexer.getExtractedText(project, id, routing, offset, limit);
                 }
                 return new Payload(extractedText).withCode(200);
-            } catch (IndexOutOfBoundsException e){
+            } catch (StringIndexOutOfBoundsException e){
                 return new Payload(e.getMessage()).withCode(400);
             } catch (IllegalArgumentException e){
                 return new Payload(e.getMessage()).withCode(404);
