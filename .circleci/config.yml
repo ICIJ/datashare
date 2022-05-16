@@ -68,11 +68,11 @@ jobs:
            - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
         name: elasticsearch
       - image: postgres:11.2
-          name: postgres
-          environment:
-            POSTGRES_USER: test
-            POSTGRES_PASSWORD: test
-            POSTGRES_DB: test
+        name: postgres
+        environment:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
     working_directory: ~/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
