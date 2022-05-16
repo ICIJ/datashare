@@ -1,7 +1,7 @@
 version: 2.1
 
 parameters:
-  publish_backend_api:
+  publish_backend_doc:
     type: boolean
     default: false
 
@@ -52,11 +52,7 @@ jobs:
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run: mvn -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
-      - run:
-          name: generate db doc
-          command: |
-            ./datashare-db/scr/build_db_doc.sh > ~/Backend-›-DB.md
-      - run: .circleci/publish_doc_if_web_changed.sh
+      - run: .circleci/publish_doc_if_necessary.sh
       - save_cache:
           paths:
             - ~/.m2
@@ -71,6 +67,12 @@ jobs:
            - "cluster.name=datashare"
            - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
         name: elasticsearch
+      - image: postgres:11.2
+          name: postgres
+          environment:
+            POSTGRES_USER: test
+            POSTGRES_PASSWORD: test
+            POSTGRES_DB: test
     working_directory: ~/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
@@ -116,6 +118,13 @@ jobs:
       - run:
           name: run apigen
           command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > ~/datashare-wiki/Backend-›-API.md
+      - run:
+          name: generate db doc
+          command: |
+            psql -h postgres -Utest test -c 'create database foo'
+            mvn -pl commons-test -am install
+            mvn -pl datashare-db liquibase:update
+            ./datashare-db/scr/build_db_doc.sh > ~/datashare-wiki/Backend-›-DB.md
       - run:
           name: Add/Commit changes to the Wiki
           command: |
@@ -328,7 +337,7 @@ workflows:
   version: 2
   build_workflow:
     when:
-      not: << pipeline.parameters.publish_backend_api >>
+      not: << pipeline.parameters.publish_backend_doc >>
     jobs:
       - build_back:
           filters:
@@ -385,6 +394,6 @@ workflows:
                   ignore: /.*/
 
   publish_doc_workflow:
-    when: << pipeline.parameters.publish_backend_api >>
+    when: << pipeline.parameters.publish_backend_doc >>
     jobs:
       - publish_doc
