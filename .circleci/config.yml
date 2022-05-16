@@ -129,7 +129,7 @@ jobs:
       - run:
           name: generate db doc
           command: |
-            psql -h postgres -Utest test -c 'create database foo'
+            psql -h postgres -Utest test -c 'create database datashare'
             mvn -pl commons-test -am install
             mvn -pl datashare-db liquibase:update
             ./datashare-db/scr/build_db_doc.sh > ~/datashare-wiki/Backend-›-DB.md
