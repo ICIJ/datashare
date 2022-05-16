@@ -119,6 +119,14 @@ jobs:
           name: run apigen
           command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > ~/datashare-wiki/Backend-›-API.md
       - run:
+          name: install postgres
+          command: |
+            sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+            wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+            sudo apt-get update
+            sudo apt-get install postgresql-client
+            echo "postgres:5432:test:test:test" > ~/.pgpass && chmod 600 ~/.pgpass
+      - run:
           name: generate db doc
           command: |
             psql -h postgres -Utest test -c 'create database foo'
