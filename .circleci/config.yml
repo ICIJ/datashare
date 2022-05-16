@@ -55,7 +55,7 @@ jobs:
       - run:
           name: generate db doc
           command: |
-            ./datashare-db/scr/build_db_doc.sh > ~/datashare-wiki/Backend-›-DB.md
+            ./datashare-db/scr/build_db_doc.sh > ~/Backend-›-DB.md
       - run: .circleci/publish_doc_if_web_changed.sh
       - save_cache:
           paths:
