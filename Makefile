@@ -11,8 +11,20 @@ clean:
 dist:
 		mvn validate package -Dmaven.test.skip=true
 
+build: install validate update-db package
+
 install:
 		mvn install
+
+validate:
+		mvn validate
+
+package:
+		mvn -Dmaven.test.skip=true package 
+
+update-db:
+		mvn -pl commons-test -am install
+		mvn -pl datashare-db liquibase:update
 
 help-db:
 		mvn help:describe -DgroupId=org.liquibase -DartifactId=liquibase-maven-plugin -Dversion=2.0.1 -Dfull=true
