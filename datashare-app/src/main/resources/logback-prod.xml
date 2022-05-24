@@ -3,7 +3,7 @@
     <contextName>production</contextName>
     <appender name="gelf" class="biz.paluch.logging.gelf.logback.GelfLogbackAppender">
         <host>${datashare.loghost}</host>
-        <port>5140</port>
+        <port>${datashare.logport}</port>
         <version>1.0</version>
         <facility>local7</facility>
         <additionalFields>application=datashare</additionalFields>
