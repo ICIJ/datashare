@@ -35,7 +35,11 @@ public class ServerMode extends CommonMode {
             logger.warn("\"{}\" auth users provider class not found. Setting provider to {}", authUsersProviderClassName, authUsersProviderClass);
         }
         bind(UsersWritable.class).to(authUsersProviderClass);
-        bind(SessionIdStore.class).to(RedisSessionIdStore.class);
+        if ("memory".equals(propertiesProvider.getProperties().get("sessionStoreType"))) {
+            bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
+        } else {
+            bind(SessionIdStore.class).to(RedisSessionIdStore.class);
+        }
         bind(ApiKeyStore.class).to(ApiKeyStoreAdapter.class);
         String authFilterClassName = propertiesProvider.get("authFilter").orElse("");
         Class<? extends Filter> authFilterClass = OAuth2CookieFilter.class;

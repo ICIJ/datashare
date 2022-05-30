@@ -489,4 +489,11 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .withValuesConvertedBy(regex("[0-9]+[KMG]?"));
     }
+
+    public static void sessionStoreType(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("sessionStoreType"), "Type of session store (redis|memory)")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
 }

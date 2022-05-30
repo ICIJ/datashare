@@ -2,6 +2,8 @@ package org.icij.datashare.mode;
 
 import com.google.inject.Injector;
 import net.codestory.http.filters.Filter;
+import net.codestory.http.security.SessionIdStore;
+import org.fest.assertions.Condition;
 import org.icij.datashare.session.*;
 import org.junit.Test;
 
@@ -48,4 +50,21 @@ public class ServerModeTest {
         }}));
         assertThat(injector.getInstance(UsersWritable.class)).isInstanceOf(UsersInRedis.class);
     }
+
+    @Test
+    public void test_session_store_redis() {
+        Injector injector = createInjector(new ServerMode(new HashMap<String, String>() {{
+            put("sessionStoreType", "redis");
+        }}));
+        assertThat(injector.getInstance(SessionIdStore.class)).isInstanceOf(RedisSessionIdStore.class);
+    }
+
+    @Test
+    public void test_session_store_memory() {
+        Injector injector = createInjector(new ServerMode(new HashMap<String, String>() {{
+            put("sessionStoreType", "memory");
+        }}));
+        assertThat(injector.getInstance(SessionIdStore.class)).isInstanceOf(net.codestory.http.security.SessionIdStore.inMemory().getClass());
+    }
+
 }
