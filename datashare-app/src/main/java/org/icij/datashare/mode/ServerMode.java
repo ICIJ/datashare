@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Properties;
 
 public class ServerMode extends CommonMode {
-    private Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     public ServerMode(Properties properties) { super(properties);}
     public ServerMode(Map<String, String> properties) { super(properties);}
 
@@ -29,8 +29,8 @@ public class ServerMode extends CommonMode {
         bind(TaskManager.class).toInstance(new TaskManagerRedis(propertiesProvider, getBlockingQueue(propertiesProvider, batchQueueType, "ds:batchdownload:queue")));
         Class<? extends UsersWritable> authUsersProviderClass = UsersInRedis.class;
         try {
-            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName);
             logger.info("setting auth users provider to {}", authUsersProviderClass);
+            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName);
         } catch (ClassNotFoundException e) {
             logger.warn("\"{}\" auth users provider class not found. Setting provider to {}", authUsersProviderClassName, authUsersProviderClass);
         }
