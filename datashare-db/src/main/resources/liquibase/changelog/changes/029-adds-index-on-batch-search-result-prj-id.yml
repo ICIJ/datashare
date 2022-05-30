@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: 57
+      author: bthomas
+      changes:
+        sql:
+          CREATE INDEX IF NOT EXISTS batch_search_result_prj_id ON batch_search_result(prj_id)
