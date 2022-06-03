@@ -144,6 +144,7 @@ public class BatchSearchResource {
 
     /**
      * Delete batch search with the given id and its results.
+     * It won't delete running batch searches, because results are added and would be orphans.
      *
      * Returns 204 (No Content) if rows have been removed and 404 if nothing has been done (i.e. not found).
      *

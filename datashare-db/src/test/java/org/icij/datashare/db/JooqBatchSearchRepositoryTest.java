@@ -409,6 +409,18 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.getResults(foo, batchSearch.uuid)).hasSize(4);
     }
 
+    @Test
+    public void test_delete_batch_search_running_do_not_remove_row() {
+        for (State s: State.values()) {
+            repository.save(new BatchSearch("uuid_" + s, singletonList(project("prj")), s.name(), "description", asSet("q1", "q2"), new Date(), s, User.local()));
+        }
+
+        assertThat(repository.delete(User.local(), "uuid_QUEUED")).isTrue();
+        assertThat(repository.delete(User.local(), "uuid_RUNNING")).isFalse();
+        assertThat(repository.delete(User.local(), "uuid_FAILURE")).isTrue();
+        assertThat(repository.delete(User.local(), "uuid_SUCCESS")).isTrue();
+    }
+
     @Test(expected = JooqBatchSearchRepository.UnauthorizedUserException.class)
     public void test_get_results_with_bad_user() {
         BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("query"), User.local());
