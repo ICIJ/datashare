@@ -8,7 +8,7 @@ JAVA=${JAVA_HOME:-/usr}/bin/java
 
 cd "${DATASHARE_HOME}" || exit
 
-${JAVA} -DPROD_MODE=true -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader -cp ./dist:"${DATASHARE_JAR}" org.icij.datashare.Main \
+${JAVA} -DPROD_MODE=true -Dfile.encoding=UTF-8 -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader -cp ./dist:"${DATASHARE_JAR}" org.icij.datashare.Main \
     -d "${HOME}"/Datashare  --queueType memory --busType memory \
     --dataSourceUrl jdbc:sqlite:file:"${DATASHARE_HOME}/dist/datashare.db" \
     --settings ./dist/datashare.conf --mode EMBEDDED \
