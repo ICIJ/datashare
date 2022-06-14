@@ -166,7 +166,8 @@ jobs:
           name: make tarball for non debian linux
           command: |
             cp /tmp/datashare/datashare-dist/src/main/deb/bin/datashare /tmp/datashare/datashare-dist/target
-            tar cvzf datashare-dist-${CIRCLE_TAG}.tgz datashare datashare-dist-${CIRCLE_TAG}-all.jar -C /tmp/datashare/datashare-dist/target
+            cd /tmp/datashare/datashare-dist/target
+            tar cvzf datashare-dist-${CIRCLE_TAG}.tgz datashare datashare-dist-${CIRCLE_TAG}-all.jar
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
