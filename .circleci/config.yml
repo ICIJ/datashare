@@ -163,10 +163,10 @@ jobs:
           name: make dist including frontend
           command: mvn -pl datashare-dist package > mvn.out
       - run:
-          name: make tarball for bash linux distro
+          name: make tarball for non debian linux
           command: |
             cp /tmp/datashare/datashare-dist/src/main/deb/bin/datashare /tmp/datashare/datashare-dist/target
-            tar cvzf datashare-${CIRCLE_TAG}.tgz datashare datashare-dist-${CIRCLE_TAG}-all.jar -C /tmp/datashare/datashare-dist/target
+            tar cvzf datashare-dist-${CIRCLE_TAG}.tgz datashare datashare-dist-${CIRCLE_TAG}-all.jar -C /tmp/datashare/datashare-dist/target
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
@@ -345,6 +345,7 @@ jobs:
             upload_url=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/ICIJ/datashare-installer/releases/tags/${CIRCLE_TAG}" | jq -r '.upload_url')
             upload_url="${upload_url%\{*}"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist_${CIRCLE_TAG}_all.deb" "$upload_url?name=datashare-dist_${CIRCLE_TAG}_all.deb&label=datashare-dist_${CIRCLE_TAG}_all.deb"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.tgz&label=datashare-dist-${CIRCLE_TAG}.tgz"
 
 workflows:
   version: 2
