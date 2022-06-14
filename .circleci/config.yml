@@ -162,6 +162,11 @@ jobs:
       - run:
           name: make dist including frontend
           command: mvn -pl datashare-dist package > mvn.out
+      - run:
+          name: make tarball for bash linux distro
+          command: |
+            cp /tmp/datashare/datashare-dist/src/main/deb/bin/datashare /tmp/datashare/datashare-dist/target
+            tar cvzf datashare-${CIRCLE_TAG}.tgz datashare datashare-dist-${CIRCLE_TAG}-all.jar -C /tmp/datashare/datashare-dist/target
       - persist_to_workspace:
           root: /tmp/datashare
           paths:
