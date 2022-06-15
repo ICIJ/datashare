@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 import static java.lang.String.join;
+import static java.util.Arrays.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
@@ -321,7 +322,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         String prj = (String) record.get("projects");
         org.icij.datashare.db.tables.records.BatchSearchRecord batchSearch = record.into(BATCH_SEARCH);
         return new BatchSearchRecord(batchSearch.getUuid(),
-                prj == null || prj.isEmpty()? null : Arrays.stream(prj.split(LIST_SEPARATOR)).sorted().map(Project::project).collect(toList()),
+                prj == null || prj.isEmpty()? null : stream(prj.split(LIST_SEPARATOR)).sorted().map(Project::project).collect(toList()),
                 batchSearch.getName(),
                 batchSearch.getDescription(),
                 (int) nbQueries,
@@ -353,14 +354,6 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.get(BATCH_SEARCH_RESULT.DOC_NB));
     }
 
-    private TableField<org.icij.datashare.db.tables.records.BatchSearchRecord, String> getTableRecordFromWebQueryField(String field){
-        switch (field) {
-            case "description" : return BATCH_SEARCH.DESCRIPTION;
-            case "author" : return BATCH_SEARCH.USER_ID;
-            default: return BATCH_SEARCH.NAME;
-        }
-    }
-
     private void addFilterToSelectCondition(WebQuery webQuery, SelectConditionStep<? extends Record> query) {
         if(!webQuery.query.equals("") && !webQuery.query.equals("*")){
             String searchQuery = String.format("%s%s%s","%", webQuery.query,"%");
@@ -368,7 +361,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 query.and(BATCH_SEARCH.NAME.like(searchQuery).or(BATCH_SEARCH.DESCRIPTION.like(searchQuery)).or(BATCH_SEARCH.USER_ID.like(searchQuery)));
             }
             else {
-                query.and(getTableRecordFromWebQueryField(webQuery.field).like(searchQuery));
+                stream(BATCH_SEARCH.fields()).filter(field -> field.getName().equals(webQuery.field)).forEach(field -> query.and(field.like(searchQuery)));
             }
         }
     }
