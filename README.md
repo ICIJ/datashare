@@ -79,6 +79,8 @@ The last path part (CORENLP) is the framework. You can choose it among CORENLP, 
 
   
 ### **Extract Persons, Organizations or Locations from Text** 
+
+Info: other languages than the ones listed below are not supported. We encourage you to reach out to the maintainers of the original NLP projects to support your preferred language.
    
 *Implementations*
   
