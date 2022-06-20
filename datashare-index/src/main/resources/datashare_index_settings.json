@@ -1,6 +1,22 @@
 {
   "index.mapping.total_fields.limit": 100000,
   "index.number_of_shards" : 1,
+  "index.query.default_field": [
+    "content",
+    "content_translated",
+    "metadata.tika_metadata_author",
+    "metadata.tika_metadata_creator",
+    "metadata.tika_metadata_dc_creator",
+    "metadata.tika_metadata_dc_title",
+    "metadata.tika_metadata_message_from",
+    "metadata.tika_metadata_message_to",
+    "metadata.tika_metadata_meta_author",
+    "metadata.tika_metadata_subject",
+    "metadata.tika_metadata_title",
+    "name",
+    "path",
+    "tags"
+  ],
   "analysis": {
     "analyzer": {
       "path_analyzer": {
