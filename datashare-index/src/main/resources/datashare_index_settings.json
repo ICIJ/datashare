@@ -3,6 +3,7 @@
   "index.number_of_shards" : 1,
   "index.query.default_field": [
     "content",
+    "mentionNorm",
     "content_translated",
     "metadata.tika_metadata_author",
     "metadata.tika_metadata_creator",
