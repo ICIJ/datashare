@@ -93,8 +93,11 @@ public class JooqBatchSearchRepositoryTest {
         repository.save(batchSearch2);
 
         assertThat(repository.getTotal(User.local(), asList("prj1", "prj2"),new BatchSearchRepository.WebQuery())).isEqualTo(2);
-        assertThat(repository.getTotal(User.local(), singletonList("prj1"), new BatchSearchRepository.WebQuery())).isEqualTo(1);
+        assertThat(repository.getTotal(User.local(), asList("prj1", "prj2", "prj3"),new BatchSearchRepository.WebQuery())).isEqualTo(2);
+        assertThat(repository.getTotal(User.local(), singletonList("prj2"), new BatchSearchRepository.WebQuery())).isEqualTo(1);
+        assertThat(repository.getTotal(User.local(), asList("prj2", "prj3"),new BatchSearchRepository.WebQuery())).isEqualTo(1);
         assertThat(repository.getTotal(User.local(), singletonList("prj3"), new BatchSearchRepository.WebQuery())).isEqualTo(0);
+        assertThat(repository.getTotal(User.local(), singletonList("prj1"), new BatchSearchRepository.WebQuery())).isEqualTo(0);
     }
 
     @Test

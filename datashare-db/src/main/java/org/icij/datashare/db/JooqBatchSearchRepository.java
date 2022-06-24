@@ -148,10 +148,12 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public int getTotal(User user, List<String> projectsIds, WebQuery webQuery) {
         SelectConditionStep<Record1<Integer>> query = using(dataSource, dialect).select(countDistinct(BATCH_SEARCH_PROJECT.SEARCH_UUID)).
                 from(BATCH_SEARCH_PROJECT).join(BATCH_SEARCH).on(BATCH_SEARCH_PROJECT.SEARCH_UUID.equal(BATCH_SEARCH.UUID)).
-                where(BATCH_SEARCH_PROJECT.PRJ_ID.in(projectsIds).and(BATCH_SEARCH.USER_ID.eq(user.id).
-                        or(BATCH_SEARCH.PUBLISHED.greaterThan(0))));
+                where(BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0)));
         addFilterToSelectCondition(webQuery, query);
-        return query.fetchOne(0, int.class);
+        return query.groupBy(BATCH_SEARCH.UUID).having(count().eq(
+                selectCount().from(BATCH_SEARCH_PROJECT)
+                        .where(BATCH_SEARCH_PROJECT.SEARCH_UUID.eq(BATCH_SEARCH.UUID).and(BATCH_SEARCH_PROJECT.PRJ_ID.in(projectsIds)))
+        )).fetch(0,int.class).stream().reduce(0, Integer::sum);
     }
 
     @Override
