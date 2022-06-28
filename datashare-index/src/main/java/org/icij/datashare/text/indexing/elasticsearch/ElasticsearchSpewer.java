@@ -136,6 +136,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             logger.warn("document id {} extracted text will be truncated to {} bytes", document.getId(), maxContentLength);
             content = content.substring(0, maxContentLength).trim();
         }
+        jsonDocument.put("contentTextLength", content.length());
         jsonDocument.put("language", languageGuesser.guess(content));
         jsonDocument.put(ES_CONTENT_FIELD, content);
         return jsonDocument;

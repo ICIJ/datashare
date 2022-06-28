@@ -94,6 +94,7 @@ public class ElasticsearchSpewerTest {
                 entry("contentType", "text/plain"),
                 entry("nerTags", new ArrayList<>()),
                 entry("contentLength", 45),
+                entry("contentTextLength", 45),
                 entry("status", "INDEXED"),
                 entry("path", path.toString()),
                 entry("dirname", path.getParent().toString())
