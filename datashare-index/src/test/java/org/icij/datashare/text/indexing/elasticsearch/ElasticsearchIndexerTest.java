@@ -501,4 +501,46 @@ public class ElasticsearchIndexerTest {
     public void test_get_slice_of_document_not_found() throws Exception {
         ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10, 18);
     }
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_slice_of_translated_document_not_found() throws Exception {
+        Map<String, String> english = new HashMap<>();
+        english.put("content","hello world");
+        english.put("target_language","ENGLISH");
+
+
+        List<Map<String,String>> translated_content = new ArrayList<Map<String, String>>() ;
+        translated_content.add(english);
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"),
+                "contenu avec john doe", translated_content ,Language.FRENCH,Charset.defaultCharset(),"application/pdf",
+                new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10, 18, "unknown");
+    }
+
+    @Test
+    public void test_get_slice_of_translated_document_that_exists() throws Exception {
+        Map<String, String> english = new HashMap<>();
+        english.put("content","content with john doe");
+        english.put("target_language","ENGLISH");
+
+
+        List<Map<String,String>> contentTranslated = new ArrayList<Map<String, String>>() ;
+        contentTranslated.add(english);
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"),
+                "contenu avec john doe", contentTranslated ,Language.FRENCH,Charset.defaultCharset(),"application/pdf",
+                new HashMap<>(), INDEXED, new HashSet<>(), 34L);
+        indexer.add(TEST_INDEX, doc);
+
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 0, 7, "ENGLISH");
+        assertThat(actual.content).isEqualTo("content");
+        assertThat(actual.content.length()).isEqualTo(7);
+    }
+    @Test
+    public void test_retrieve_script_from_resource_file() throws IOException {
+        String filename= "extractedContent.painless.java";
+        String res= indexer.getScriptStringFromFile(filename);
+        assertThat(res.length()).isEqualTo(486);
+        assertThat(res).isEqualTo(indexer.getMemoizeScript().get(filename));
+    }
 }

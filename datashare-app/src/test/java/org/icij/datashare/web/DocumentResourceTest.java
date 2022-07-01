@@ -298,6 +298,30 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .respond(404);
     }
 
+    @Test
+    public void test_get_document_translated_extracted_text() throws IOException {
+        when(indexer.getExtractedText("local-datashare", "docId", 5, 6,"french"))
+                .thenReturn(new ExtractedText("content", 5, 6, 7, "french"));
+        get("/api/local-datashare/documents/content/docId?offset=5&limit=6&targetLanguage=french").should().respond(200)
+                .should()
+                .haveType("application/json")
+                .contain("\"content\":\"content\"")
+                .contain("\"offset\":5")
+                .contain("\"limit\":6")
+                .contain("\"maxOffset\":7")
+                .contain("\"targetLanguage\":\"french\"");
+    }
+    @Test
+    public void test_get_document_translated_extracted_text_with_unknown_target_language() throws IOException {
+        when(indexer.getExtractedText("local-datashare", "docId", 5, 6,"unknown"))
+                .thenThrow(
+                        new IllegalArgumentException("Translated content in 'unknown' not found")
+                );
+        get("/api/local-datashare/documents/content/docId?offset=5&limit=6&targetLanguage=unknown")
+                .should()
+                .respond(404);
+    }
+
     private void indexFile(String index, String _id, Path path, String contentType, String routing) {
         Document doc = DocumentBuilder.createDoc(_id).with(path).ofMimeType(contentType).withRootId(routing).build();
         if (routing == null) {

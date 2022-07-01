@@ -2,6 +2,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
@@ -42,10 +43,9 @@ import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
-import ucar.httpservices.HTTPException;
 
-import javax.ws.rs.NotFoundException;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -65,6 +65,12 @@ import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfig
 public class ElasticsearchIndexer implements Indexer {
     public final RestHighLevelClient client;
     private final ElasticsearchConfiguration esCfg;
+
+    static private final Map<String, String> memoizeScript = new HashMap<>();
+
+    public static Map<String, String> getMemoizeScript() {
+        return memoizeScript;
+    }
 
     @Inject
     public ElasticsearchIndexer(final RestHighLevelClient esClient, final PropertiesProvider propertiesProvider) {
@@ -213,34 +219,65 @@ public class ElasticsearchIndexer implements Indexer {
         }
         return null;
     }
-    public ExtractedText getExtractedText(String indexName, String id, final int offset, final int limit) throws IOException {
-        return getExtractedText(indexName, id, id, offset, limit);
+    public static String readScriptFile(String painlessFilename) throws IOException {
+        InputStream inputStream = ElasticsearchIndexer.class.getClassLoader().getResourceAsStream(painlessFilename);
+        return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+    }
+    public static String getScriptStringFromFile(String filename) throws IOException {
+        String script;
+        if (memoizeScript.containsKey(filename)){
+            script = memoizeScript.get(filename);
+        }else{
+            script = ElasticsearchIndexer.readScriptFile(filename);
+            memoizeScript.put(filename, script);
+        }
+        return script;
+    }
+     private static Script getExtractedTranslatedContentScript(final int offset, final int limit, final String targetLanguage) throws IOException {
+         return  new Script(ScriptType.INLINE, "painless",
+                ElasticsearchIndexer.getScriptStringFromFile("extractedContentTranslated.painless.java"),
+                new HashMap<String, Object>() {
+                    {
+                        put("offset", offset);
+                        put("limit", limit);
+                        put("targetLanguage", targetLanguage);
+                    }});
+     }
+    private static Script getExtractedContentScript(final int offset, final int limit) throws IOException {
+        return  new Script(ScriptType.INLINE, "painless",
+                ElasticsearchIndexer.getScriptStringFromFile("extractedContent.painless.java"),
+                new HashMap<String, Object>() {{
+                    put("offset", offset);
+                    put("limit", limit);
+                }});
     }
 
+
+    public ExtractedText getExtractedText(String indexName, String id, final int offset, final int limit, final String targetLanguage) throws IOException{
+        return getExtractedText(indexName, id, id, offset, limit, targetLanguage);
+    }
+    public ExtractedText getExtractedText(String indexName, String id, String routing, final int offset, final int limit, String targetLanguage) throws IOException {
+        return this.getExtractedContent(indexName, id, routing, offset, limit, targetLanguage);
+    }
+    public ExtractedText getExtractedText(String indexName, String id, final int offset, final int limit) throws IOException {
+        return getExtractedContent(indexName, id, id, offset, limit, null);
+    }
     public ExtractedText getExtractedText(String indexName, String id, String routing, final int offset, final int limit) throws IOException {
+        return this.getExtractedContent(indexName, id, routing, offset, limit, null);
+    }
+
+    private ExtractedText getExtractedContent(String indexName, String id, String routing, final int offset, final int limit, String targetLanguage) throws IOException {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE).timeout(new TimeValue(30, TimeUnit.MINUTES));
         if (offset < 0 || limit < 0) {
             throw new StringIndexOutOfBoundsException(format("offset or limit should not be negative (offset=%d, limit=%d)", offset, limit));
         }
         sourceBuilder.query(boolQuery().must(termsQuery("_id", id)));
-        final Script script = new Script(ScriptType.INLINE, "painless",
-                        "int maxOffset = params._source.content.length();" +
-                        "int end = params.offset+params.limit;" +
-                        "try {" +
-                        "String contentResized = params._source.content.substring(params.offset, end);"+
-                        "return [" +
-                        "\"content\": contentResized," +
-                        "\"maxOffset\":maxOffset, " +
-                        "\"offset\":params.offset," +
-                        "\"limit\":params.limit" +
-                        "];" +
-                        "} catch (StringIndexOutOfBoundsException e) {" +
-                        "return [\"error\":'Range ['+params.offset+'-'+end+'] is out of document range ([0-'+maxOffset+'])'];" +
-                        "}",
-                new HashMap<String, Object>() {{
-                    put("offset", offset);
-                    put("limit", limit);
-                }});
+        Script script;
+        if (targetLanguage != null) {
+            script = this.getExtractedTranslatedContentScript(offset, limit, targetLanguage);
+        } else {
+            script = this.getExtractedContentScript(offset, limit);
+        }
         sourceBuilder.scriptField("pagination", script);
         SearchRequest searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
         SearchResponse search = client.search(searchRequest.routing(routing), RequestOptions.DEFAULT);
@@ -249,12 +286,28 @@ public class ElasticsearchIndexer implements Indexer {
             throw new IllegalArgumentException("Document not found");
         }
         Map<String,Object> pagination = (Map<String, Object>) tHits.get(0).field("pagination").getValues().get(0);
-        if(pagination.get("error")!=null){
-            throw new StringIndexOutOfBoundsException((String)pagination.get("error"));
+        if(pagination.get("error") != null ){
+            int code= ((Integer)pagination.get("code"));
+            if (code == 400){
+                throw new StringIndexOutOfBoundsException((String)pagination.get("error"));
+            }
+            else{
+                throw new IllegalArgumentException((String)pagination.get("error"));
+            }
         }
-        return new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
-                (Integer) pagination.get("limit"), (Integer) pagination.get("maxOffset"));
+        ExtractedText extractedText;
+        if (targetLanguage != null){
+            extractedText = new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
+                    (Integer) pagination.get("limit"), (Integer) pagination.get("maxOffset"),(String) pagination.get("targetLanguage"));
+        } else {
+            extractedText =  new ExtractedText((String) pagination.get("content"), (Integer) pagination.get("offset"),
+                    (Integer) pagination.get("limit"), (Integer) pagination.get("maxOffset"));
+        }
+       return extractedText;
     }
+
+
+
 
     @Override
     public boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException {

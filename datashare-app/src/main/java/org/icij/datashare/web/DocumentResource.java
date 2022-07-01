@@ -91,28 +91,41 @@ public class DocumentResource {
      * $(curl -XGET -H 'Content-Type: application/json' localhost:8080/api/apigen-datashare/documents/content/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f?offset=1&limit=300)
      *
      */
-    @Get("/:project/documents/content/:id?routing=:routing&offset=:offset&limit=:limit")
-    public Payload getExtractedText(final String project, final String id,
-                                          final String routing, final int offset, final int limit, final Context context) throws IOException {
+    @Get("/:project/documents/content/:id?routing=:routing&offset=:offset&limit=:limit&targetLanguage=:targetLanguage")
+    public Payload getExtractedText(
+            final String project, final String id,  final String routing,
+            final int offset, final int limit, final String targetLanguage, final Context context) throws IOException {
         if (((DatashareUser)context.currentUser()).isGranted(project) &&
                 isAllowed(repository.getProject(project), context.request().clientAddress())) {
             try {
                 ExtractedText extractedText;
                 if(routing == null){
-                    extractedText = indexer.getExtractedText(project, id, offset, limit);
+                    if(targetLanguage!=null){
+                        extractedText = indexer.getExtractedText(project, id, offset, limit, targetLanguage);
+                    } else {
+                        extractedText = indexer.getExtractedText(project, id, offset, limit);
+                    }
                 }else{
-                    extractedText = indexer.getExtractedText(project, id, routing, offset, limit);
+                    if(targetLanguage!=null) {
+                        extractedText = indexer.getExtractedText(project, id, routing, offset, limit, targetLanguage);
+                    } else {
+                        extractedText = indexer.getExtractedText(project, id, routing, offset, limit);
+                    }
                 }
                 return new Payload(extractedText).withCode(200);
-            } catch (StringIndexOutOfBoundsException e){
+            }
+            catch (StringIndexOutOfBoundsException e){
                 return new Payload(e.getMessage()).withCode(400);
-            } catch (IllegalArgumentException e){
+            }
+            catch (IllegalArgumentException e){
                 return new Payload(e.getMessage()).withCode(404);
             }
 
         }
         throw new ForbiddenException();
     }
+
+
     /**
      * Group star the documents. The id list is passed in the request body as a json list.
      *
