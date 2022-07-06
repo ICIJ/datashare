@@ -14,7 +14,10 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.*;
+import org.elasticsearch.action.search.ClearScrollRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -42,9 +45,11 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.text.nlp.Pipeline;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -233,25 +238,17 @@ public class ElasticsearchIndexer implements Indexer {
         }
         return script;
     }
-     private static Script getExtractedTranslatedContentScript(final int offset, final int limit, final String targetLanguage) throws IOException {
-         return  new Script(ScriptType.INLINE, "painless",
-                ElasticsearchIndexer.getScriptStringFromFile("extractedContentTranslated.painless.java"),
-                new HashMap<String, Object>() {
-                    {
-                        put("offset", offset);
-                        put("limit", limit);
-                        put("targetLanguage", targetLanguage);
-                    }});
-     }
-    private static Script getExtractedContentScript(final int offset, final int limit) throws IOException {
-        return  new Script(ScriptType.INLINE, "painless",
-                ElasticsearchIndexer.getScriptStringFromFile("extractedContent.painless.java"),
-                new HashMap<String, Object>() {{
-                    put("offset", offset);
-                    put("limit", limit);
-                }});
+    private static Script getExtractedTextScript(final int offset, final int limit, final String targetLanguage) throws IOException {
+        Map<String,Object> params =  new HashMap<String, Object>() {{
+            put("offset", offset);
+            put("limit", limit);
+        }};
+        if(targetLanguage != null){
+            params.put("targetLanguage",targetLanguage);
+        }
+        return new Script(ScriptType.INLINE, "painless",
+                ElasticsearchIndexer.getScriptStringFromFile("extractedText.painless.java"),params);
     }
-
 
     public ExtractedText getExtractedText(String indexName, String id, final int offset, final int limit, final String targetLanguage) throws IOException{
         return getExtractedText(indexName, id, id, offset, limit, targetLanguage);
@@ -272,12 +269,7 @@ public class ElasticsearchIndexer implements Indexer {
             throw new StringIndexOutOfBoundsException(format("offset or limit should not be negative (offset=%d, limit=%d)", offset, limit));
         }
         sourceBuilder.query(boolQuery().must(termsQuery("_id", id)));
-        Script script;
-        if (targetLanguage != null) {
-            script = this.getExtractedTranslatedContentScript(offset, limit, targetLanguage);
-        } else {
-            script = this.getExtractedContentScript(offset, limit);
-        }
+        Script script= this.getExtractedTextScript(offset, limit, targetLanguage);;
         sourceBuilder.scriptField("pagination", script);
         SearchRequest searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
         SearchResponse search = client.search(searchRequest.routing(routing), RequestOptions.DEFAULT);
@@ -306,8 +298,68 @@ public class ElasticsearchIndexer implements Indexer {
        return extractedText;
     }
 
+    private static Script searchQueryOccurrencesScript(final String query, String targetLanguage) throws IOException {
+        Map<String,Object> params = new HashMap<String, Object>() {{
+            put("query", query);
+        }};
+        Script script;
+        if(targetLanguage != null){
+            params.put("targetLanguage",targetLanguage);
+        }
+        return new Script(ScriptType.INLINE, "painless",
+                ElasticsearchIndexer.getScriptStringFromFile("searchOccurrences.painless.java"),params);
+    }
+    @Override
+    public SearchedText searchTextOccurrences(String indexName, String id, String query, String targetLanguage) throws IOException {
+        return this.searchContentOccurrences(indexName, id, id, query, targetLanguage);
+    }
 
+    @Override
+    public SearchedText searchTextOccurrences(String indexName, String id, String routing, String query, String targetLanguage) throws IOException {
+        return this.searchContentOccurrences(indexName, id, routing, query, targetLanguage);
 
+    }
+    private SearchedText searchContentOccurrences(String indexName, String id, String routing, final String query, String targetLanguage) throws IOException {
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE).timeout(new TimeValue(30, TimeUnit.MINUTES));
+        if (query.length() == 0) {
+            throw new IllegalArgumentException();
+        }
+        sourceBuilder.query(boolQuery().must(termsQuery("_id", id)));
+        Script script = searchQueryOccurrencesScript(query, targetLanguage);
+        sourceBuilder.scriptField("pagination", script);
+        SearchRequest searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
+        SearchResponse search = client.search(searchRequest.routing(routing), RequestOptions.DEFAULT);
+        List<SearchHit> tHits = searchHitStream(() -> search.getHits().iterator()).collect(Collectors.toList());
+        if(tHits.isEmpty()){
+            throw new IllegalArgumentException("Document not found");
+        }
+        Map<String,Object> pagination = (Map<String, Object>) tHits.get(0).field("pagination").getValues().get(0);
+        if(pagination.get("error") != null ){
+            int code= ((Integer)pagination.get("code"));
+            if (code == 400){
+                throw new StringIndexOutOfBoundsException((String)pagination.get("error"));
+            }
+            else{
+                throw new IllegalArgumentException((String)pagination.get("error"));
+            }
+        }
+        SearchedText searchedText;
+        List<Integer> l =(ArrayList<Integer>) pagination.get("offsets");
+        int[] offsets = l.stream().mapToInt(i-> i).toArray();
+        if (targetLanguage != null){
+            searchedText = new SearchedText(
+                    offsets,
+                    (Integer) pagination.get("count"),
+                    (String) pagination.get("query"),
+                    (String) pagination.get("targetLanguage"));
+        } else {
+            searchedText = new SearchedText(
+                    offsets,
+                    (Integer) pagination.get("count"),
+                    (String) pagination.get("query"));
+        }
+        return searchedText;
+    }
 
     @Override
     public boolean tag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException {

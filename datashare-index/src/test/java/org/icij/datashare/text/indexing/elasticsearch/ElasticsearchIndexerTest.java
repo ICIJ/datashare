@@ -16,6 +16,7 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -45,6 +46,7 @@ import static org.icij.datashare.text.NamedEntity.create;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
+import static org.junit.Assert.assertArrayEquals;
 
 public class ElasticsearchIndexerTest {
     @ClassRule
@@ -537,10 +539,42 @@ public class ElasticsearchIndexerTest {
         assertThat(actual.content.length()).isEqualTo(7);
     }
     @Test
+    public void test_search_occurrences_of_query_in_content_of_existing_document() throws Exception {
+
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "this content contains content containing john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 49L);
+        indexer.add(TEST_INDEX, doc);
+
+        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "cont",null);
+        assertThat(actual.query).isEqualTo("cont");
+        assertThat(actual.count).isEqualTo(4);
+        assertArrayEquals(actual.offsets, new int[]{5,13,22,30});
+    }
+    @Test
+    public void test_search_occurrences_of_query_in_translated_content_of_existing_document() throws Exception {
+        Map<String, String> english = new HashMap<>();
+        english.put("content","ce contenu contient du contenu contenant john doe");
+        english.put("target_language","FRENCH");
+
+
+        List<Map<String,String>> contentTranslated = new ArrayList<Map<String, String>>() ;
+        contentTranslated.add(english);
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"),
+                "this content contains content containing john doe",contentTranslated,
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 49L);
+        indexer.add(TEST_INDEX, doc);
+
+        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "cont","FRENCH");
+        assertThat(actual.query).isEqualTo("cont");
+        assertThat(actual.count).isEqualTo(4);
+        assertThat(actual.targetLanguage).isEqualTo("FRENCH");
+        assertArrayEquals(actual.offsets, new int[]{3,11,23,31});
+    }
+    @Test
     public void test_retrieve_script_from_resource_file() throws IOException {
-        String filename= "extractedContent.painless.java";
+        String filename= "extractedText.painless.java";
         String res= ElasticsearchIndexer.getScriptStringFromFile(filename);
-        assertThat(res.length()).isEqualTo(486);
+        assertThat(res.length()).isEqualTo(1784);
         assertThat(res).isEqualTo(ElasticsearchIndexer.getMemoizeScript().get(filename));
     }
 }
