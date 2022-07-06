@@ -19,6 +19,7 @@ import org.icij.datashare.text.FileExtension;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import ucar.httpservices.HTTPException;
@@ -84,6 +85,7 @@ public class DocumentResource {
      * @param id Document id
      * @param offset Starting byte (starts at 0)
      * @param limit Size of the extracted text slice in bytes
+     * @param targetLanguage Target language (like "ENGLISH") to get slice from translated content
      * @return 200 and a JSON containing the extracted text content ("content":text), the max offset as last rank index ("maxOffset":number), start ("start":number) and size ("size":number) parameters.
      * @throws IOException
      *
@@ -125,7 +127,44 @@ public class DocumentResource {
         throw new ForbiddenException();
     }
 
+    /**
+     * Search query occurrences in content or translated content (pagination)
+     * @param project Project id
+     * @param id Document id
+     * @param query Query string to search occurrences (starts at 0)
+     * @param targetLanguage Target language (like "ENGLISH") to search in translated content
+     * @return 200 and a JSON containing the occurrences offsets in the text, and the count of occurrences.
+     * @throws IOException
+     *
+     * Example :
+     * $(curl -XGET -H 'Content-Type: application/json' localhost:8080/api/apigen-datashare/documents/searchContent/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f?query=test&targetLanguage=ENGLISH)
+     *
+     */
+    @Get("/:project/documents/searchContent/:id?routing=:routing&query=:query&targetLanguage=:targetLanguage")
+    public Payload searchOccurrences(
+            final String project, final String id,  final String routing,
+            final String query, final String targetLanguage, final Context context) throws IOException {
+        if (((DatashareUser)context.currentUser()).isGranted(project) &&
+                isAllowed(repository.getProject(project), context.request().clientAddress())) {
+            try {
+                SearchedText searchedText;
+                if(routing == null){
+                    searchedText = indexer.searchTextOccurrences(project, id, query, targetLanguage);
+                }else{
+                    searchedText = indexer.searchTextOccurrences(project, id, routing, query, targetLanguage);
+                }
+                return new Payload(searchedText).withCode(200);
+            }
+            catch (StringIndexOutOfBoundsException e){
+                return new Payload(e.getMessage()).withCode(400);
+            }
+            catch (IllegalArgumentException e){
+                return new Payload(e.getMessage()).withCode(404);
+            }
 
+        }
+        throw new ForbiddenException();
+    }
     /**
      * Group star the documents. The id list is passed in the request body as a json list.
      *

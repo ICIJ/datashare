@@ -9,6 +9,7 @@ import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -320,6 +321,18 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         get("/api/local-datashare/documents/content/docId?offset=5&limit=6&targetLanguage=unknown")
                 .should()
                 .respond(404);
+    }
+
+    @Test
+    public void test_search_text_occurrences_in_document_original_content() throws IOException {
+        when(indexer.searchTextOccurrences("local-datashare", "docId", "test",null))
+                .thenReturn(new SearchedText(new int[]{1,2}, 2, "test"));
+        get("/api/local-datashare/documents/searchContent/docId?query=test").should().respond(200)
+                .should()
+                .haveType("application/json")
+                .contain("\"query\":\"test\"")
+                .contain("\"count\":2")
+                .contain("\"offsets\":[1,2]");
     }
 
     private void indexFile(String index, String _id, Path path, String contentType, String routing) {

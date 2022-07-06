@@ -539,8 +539,8 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_retrieve_script_from_resource_file() throws IOException {
         String filename= "extractedContent.painless.java";
-        String res= indexer.getScriptStringFromFile(filename);
+        String res= ElasticsearchIndexer.getScriptStringFromFile(filename);
         assertThat(res.length()).isEqualTo(486);
-        assertThat(res).isEqualTo(indexer.getMemoizeScript().get(filename));
+        assertThat(res).isEqualTo(ElasticsearchIndexer.getMemoizeScript().get(filename));
     }
 }
