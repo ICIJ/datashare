@@ -235,23 +235,6 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_batch_searches_records_json_with_filters() {
-        BatchSearchRecord batchSearchRecord = new BatchSearchRecord(singletonList(project("local-datashare")), "name", "description", 10, new Date());
-        when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"),
-                new BatchSearchRepository.WebQuery(singletonList("local-datashare"), asList("1656432540000", "1656518940000"),
-                        singletonList(BatchSearchRecord.State.QUEUED.toString())))).thenReturn(singletonList(batchSearchRecord));
-        when(batchSearchRepository.getTotal(User.local(), singletonList("local-datashare"),
-                new BatchSearchRepository.WebQuery(singletonList("local-datashare"), asList("1656432540000", "1656518940000"),
-                        singletonList(BatchSearchRecord.State.QUEUED.toString())))).thenReturn(1);
-
-        post("/api/batch/search", "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\", \"project\":[\"local-datashare\"], " +
-                "\"batch_date\":[\"1656432540000\",\"1656518940000\"], \"state\":[\"QUEUED\"]}").should().respond(200)
-                .haveType("application/json")
-                .contain("\"name\":\"name\"")
-                .contain("\"total\":1");
-    }
-
-    @Test
     public void test_get_search_results_json() {
         when(batchSearchRepository.getResults(eq(User.local()), eq("batchSearchId"), any())).thenReturn(asList(
                 new SearchResult("q1", "docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), "content/type", 123L, 1),
