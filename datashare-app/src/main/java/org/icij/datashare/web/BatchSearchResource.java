@@ -68,10 +68,14 @@ public class BatchSearchResource {
      *
      * - from : index offset of the first document to return (mandatory)
      * - size : window size of the results (mandatory)
-     * - sort: field to sort (prj_id name user_id description state batch_date batch_results published) (default "batch_date")
-     * - order: "asc" or "desc" (default "asc")
+     * - sort : field to sort (prj_id name user_id description state batch_date batch_results published) (default "batch_date")
+     * - order : "asc" or "desc" (default "asc")
+     * - project : projects to include in the filter (default null / empty list)
+     * - batch_date : batch search with a creation date included in this range (default null / empty list)
+     * - state : states to include in the filter (default null / empty list)
      *
      * If from/size are not given their default values are 0, meaning that all the results are returned.
+     * Batch_date must be a list of 2 items (the first one for the starting date and the second one for the ending date)
      *
      * @return 200 and the list of batch searches with the total batch searches for the query. See example for the JSON format.
      *
@@ -79,7 +83,7 @@ public class BatchSearchResource {
      * $(curl -H 'Content-Type: application/json' localhost:8080/api/batch/search -d '{"from":0, "size": 2}')
      */
     @Post("/search")
-    public WebResponse<BatchSearchRecord> getSearchesFiletered(BatchSearchRepository.WebQuery webQuery, Context context) {
+    public WebResponse<BatchSearchRecord> getSearchesFiltered(BatchSearchRepository.WebQuery webQuery, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         return new WebResponse<>(batchSearchRepository.getRecords(user, user.getProjects(), webQuery),
                 batchSearchRepository.getTotal(user, user.getProjects(), webQuery));
