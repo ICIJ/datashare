@@ -551,6 +551,18 @@ public class ElasticsearchIndexerTest {
         assertArrayEquals(actual.offsets, new int[]{5,13,22,30});
     }
     @Test
+    public void test_search_occurrences_of_query_in_content_of_existing_document_ignoring_case() throws Exception {
+
+        Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "this content contains content containing john doe",
+                Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 49L);
+        indexer.add(TEST_INDEX, doc);
+
+        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "CONT",null);
+        assertThat(actual.query).isEqualTo("CONT");
+        assertThat(actual.count).isEqualTo(4);
+        assertArrayEquals(actual.offsets, new int[]{5,13,22,30});
+    }
+    @Test
     public void test_search_occurrences_of_query_in_translated_content_of_existing_document() throws Exception {
         Map<String, String> english = new HashMap<>();
         english.put("content","ce contenu contient du contenu contenant john doe");

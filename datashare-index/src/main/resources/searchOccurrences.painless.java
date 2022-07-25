@@ -15,11 +15,13 @@ String getTranslationContent(def _source, def targetLanguage) {
 
 ArrayList getOffsets(String query,String content){
     def offsets = new ArrayList();
+    String contentInLower = content.toLowerCase();
+    String queryInLower = query.toLowerCase();
     int queryLength = query.length();
-    int lastIndex = content.indexOf(query);
+    int lastIndex = contentInLower.indexOf(queryInLower);
     while (lastIndex != -1) {
         offsets.add(lastIndex);
-        lastIndex = content.indexOf(query, lastIndex + queryLength);
+        lastIndex = contentInLower.indexOf(queryInLower, lastIndex + queryLength);
     }
     return offsets;
 }
