@@ -48,8 +48,8 @@ public interface Indexer extends Closeable {
     ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, int offset, int limit) throws IOException;
     ExtractedText getExtractedText(String indexName, String documentId, int offset, int limit, String targetLanguage) throws IOException;
     ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, int offset, int limit, String targetLanguage) throws IOException;
-    SearchedText searchTextOccurrences(String indexName, String documentId, String query, String targetLanguage, String regex) throws IOException;
-    SearchedText searchTextOccurrences(String indexName, String documentId, String rootDocument, String query, String targetLanguage, String regex) throws IOException;
+    SearchedText searchTextOccurrences(String indexName, String documentId, String query, String targetLanguage) throws IOException;
+    SearchedText searchTextOccurrences(String indexName, String documentId, String rootDocument, String query, String targetLanguage) throws IOException;
     interface Searcher {
         Searcher ofStatus(Document.Status indexed);
         Stream<? extends Entity> execute() throws IOException;
