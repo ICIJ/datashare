@@ -1,4 +1,7 @@
 String getTranslationContent(def _source, def targetLanguage) {
+    if (targetLanguage == null || targetLanguage == "original") {
+        return _source.content;
+    }
     boolean hasContent = _source.content_translated !== null && _source.content_translated.length > 0;
     if (hasContent) {
         def translations = _source.content_translated;
@@ -13,7 +16,7 @@ String getTranslationContent(def _source, def targetLanguage) {
     }
 }
 
-ArrayList getOffsets(String query,String content){
+ArrayList getOffsets(String query, String content) {
     def offsets = new ArrayList();
     String contentInLower = content.toLowerCase();
     String queryInLower = query.toLowerCase();
@@ -26,21 +29,12 @@ ArrayList getOffsets(String query,String content){
     return offsets;
 }
 
-if(params.targetLanguage != null){
-    String content = getTranslationContent(params._source,params.targetLanguage);
-    def offsets = getOffsets(params.query,content);
-    return [
-            "query": params.query,
-            "offsets":offsets,
-            "count":offsets.length,
-            "targetLanguage":params.targetLanguage
-    ];
-} else {
-    String content = params._source.content;
-    def offsets = getOffsets(params.query,content);
-    return [
-            "query": params.query,
-            "offsets":offsets,
-            "count":offsets.length
-    ];
-}
+String content = getTranslationContent(params._source, params.targetLanguage);
+def offsets = getOffsets(params.query, content);
+
+return [
+    "query": params.query,
+    "offsets": offsets,
+    "count": offsets.length,
+    "targetLanguage":params.targetLanguage
+];
