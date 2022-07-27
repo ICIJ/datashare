@@ -8,7 +8,7 @@ parameters:
 jobs:
   build_back:
     docker:
-      - image: circleci/openjdk:8-stretch
+      - image: cimg/openjdk:8-stretch
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
@@ -60,7 +60,7 @@ jobs:
 
   publish_doc:
     docker:
-      - image: circleci/openjdk:8-stretch
+      - image: cimg/openjdk:8-stretch
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
            - "discovery.type=single-node"
@@ -143,7 +143,7 @@ jobs:
 
   package_back:
     docker:
-      - image: circleci/openjdk:8-stretch
+      - image: cimg/openjdk:8-stretch
     working_directory: /tmp/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
@@ -175,7 +175,7 @@ jobs:
 
   deploy_back:
     docker:
-      - image: circleci/openjdk:8-stretch
+      - image: cimg/openjdk:8-stretch
     working_directory: /tmp
     steps:
       - attach_workspace:
@@ -191,7 +191,7 @@ jobs:
 
   build_front:
     docker:
-      - image: circleci/node:16.16.0
+      - image: cimg/node:16.16.0
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
@@ -254,7 +254,7 @@ jobs:
 
   deploy_front:
     docker:
-      - image: circleci/node:16.16.0
+      - image: cimg/node:16.16.0
     working_directory: /tmp
     steps:
       - attach_workspace:
@@ -296,7 +296,7 @@ jobs:
 
   build_installers:
     docker:
-      - image: circleci/build-image
+      - image: cimg/build-image
     working_directory: /tmp
     steps:
       - attach_workspace:
