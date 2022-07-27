@@ -191,7 +191,7 @@ jobs:
 
   build_front:
     docker:
-      - image: circleci/node:14.15.5
+      - image: circleci/node:16.16.0
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
@@ -254,7 +254,7 @@ jobs:
 
   deploy_front:
     docker:
-      - image: circleci/node:14.15.5
+      - image: circleci/node:16.16.0
     working_directory: /tmp
     steps:
       - attach_workspace:
