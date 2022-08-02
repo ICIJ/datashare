@@ -245,7 +245,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                         singletonList(BatchSearchRecord.State.QUEUED.toString()), "0"))).thenReturn(1);
 
         post("/api/batch/search", "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\", \"project\":[\"local-datashare\"], " +
-                "\"batch_date\":[\"1656432540000\",\"1656518940000\"], \"state\":[\"QUEUED\"], \"publish_state\":\"0\"}").should().respond(200)
+                "\"batchDate\":[\"1656432540000\",\"1656518940000\"], \"state\":[\"QUEUED\"], \"publishState\":\"0\"}").should().respond(200)
                 .haveType("application/json")
                 .contain("\"name\":\"name\"")
                 .contain("\"total\":1");

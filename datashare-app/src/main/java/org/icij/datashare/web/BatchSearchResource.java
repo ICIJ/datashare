@@ -71,13 +71,13 @@ public class BatchSearchResource {
      * - sort : field to sort (prj_id name user_id description state batch_date batch_results published) (default "batch_date")
      * - order : "asc" or "desc" (default "asc")
      * - project : projects to include in the filter (default null / empty list)
-     * - batch_date : batch search with a creation date included in this range (default null / empty list)
+     * - batchDate : batch search with a creation date included in this range (default null / empty list)
      * - state : states to include in the filter (default null / empty list)
-     * - publish_state : publish state to filter (default null)
+     * - publishState : publish state to filter (default null)
      *
      * If from/size are not given their default values are 0, meaning that all the results are returned.
-     * Batch_date must be a list of 2 items (the first one for the starting date and the second one for the ending date)
-     * If defined publish_state is a string equals to "0" or "1"
+     * BatchDate must be a list of 2 items (the first one for the starting date and the second one for the ending date)
+     * If defined publishState is a string equals to "0" or "1"
      *
      * @return 200 and the list of batch searches with the total batch searches for the query. See example for the JSON format.
      *
