@@ -165,6 +165,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
         SelectConditionStep<Record12<String, String, String, String, Timestamp, String, Integer, Integer, String, String, String, Object>> query = createBatchSearchRecordWithQueriesSelectStatement(using(dataSource, dialect))
                 .where(BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0)));
+        List<String> filteredProjects = webQuery.hasFilteredProjects() ? webQuery.project : projectsIds;
         addFilterToSelectCondition(webQuery, query);
         if (webQuery.isSorted()) {
             query.orderBy(field(webQuery.sort + " " + webQuery.order));
@@ -175,7 +176,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (webQuery.from > 0) query.offset(webQuery.from);
         return query.groupBy(BATCH_SEARCH.UUID).having(count().eq(
                         selectCount().from(BATCH_SEARCH_PROJECT)
-                                     .where(BATCH_SEARCH_PROJECT.SEARCH_UUID.eq(BATCH_SEARCH.UUID).and(BATCH_SEARCH_PROJECT.PRJ_ID.in(projectsIds)))
+                                     .where(BATCH_SEARCH_PROJECT.SEARCH_UUID.eq(BATCH_SEARCH.UUID).and(BATCH_SEARCH_PROJECT.PRJ_ID.in(filteredProjects)))
                 )).orderBy(BATCH_SEARCH.BATCH_DATE.desc()).
                 fetch().stream().map(this::createBatchSearchRecordFrom).collect(toList());
     }
@@ -356,7 +357,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.get(BATCH_SEARCH_RESULT.DOC_NB));
     }
 
-    private void addFilterToSelectCondition(WebQuery webQuery, SelectConditionStep<? extends Record> query) {
+    private static void addFilterToSelectCondition(WebQuery webQuery, SelectConditionStep<? extends Record> query) {
         if(!webQuery.query.equals("") && !webQuery.query.equals("*")){
             String searchQuery = String.format("%s%s%s","%", webQuery.query,"%");
             if(webQuery.field.equals("all")) {
@@ -365,6 +366,15 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             else {
                 stream(BATCH_SEARCH.fields()).filter(field -> field.getName().equals(webQuery.field)).forEach(field -> query.and(field.like(searchQuery)));
             }
+        }
+        if (webQuery.hasFilteredDates()) {
+            query.and(BATCH_SEARCH.BATCH_DATE.between(new Timestamp(Long.parseLong(webQuery.batchDate.get(0))), new Timestamp(Long.parseLong(webQuery.batchDate.get(1)))));
+        }
+        if (webQuery.hasFilteredStates()) {
+            query.and(BATCH_SEARCH.STATE.in(webQuery.state));
+        }
+        if (webQuery.hasFilteredPublishStates()) {
+            query.and(BATCH_SEARCH.PUBLISHED.eq(Integer.parseInt(webQuery.publishState)));
         }
     }
 

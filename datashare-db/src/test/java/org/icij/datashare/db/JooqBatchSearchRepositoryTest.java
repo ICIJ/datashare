@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -136,22 +137,41 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_records_with_query_and_field() {
         BatchSearch batchSearch1 = new BatchSearch(singletonList(project("prj")),"foo","baz",asSet("q1", "q2"), User.local(),
+                false,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+        BatchSearch batchSearch2 = new BatchSearch(singletonList(project("anotherPrj")),"bar","baz",asSet("q3", "q2"), User.local(),
                 true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
-        BatchSearch batchSearch2 = new BatchSearch(singletonList(project("prj")),"bar","baz",asSet("q3", "q2"), User.local(),
+        BatchSearch batchSearch3 = new BatchSearch(singletonList(project("otherPrj")),"bar","baz",asSet("q4", "q1"), User.local(),
                 true,asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+        long currentDateTime = new Date().getTime();
+        BatchSearch batchSearch4 = new BatchSearch(asList(project("prj"),project("anotherPrj")),"qux","baz",asSet("q1", "q3"), new Date(currentDateTime + 50), State.SUCCESS, true);
         repository.save(batchSearch1);
         repository.save(batchSearch2);
-        assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"*","all",null))).hasSize(2);
-        assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"foo","all",null))).hasSize(1);
-        assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"oo","all",null))).hasSize(1);
-        assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"baz","description",null))).hasSize(2);
-        assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"baz","name",null))).hasSize(0);
-        assertThat(repository.getRecords(User.local(), singletonList("prj"), new BatchSearchRepository.WebQuery(0, 0,null,null,"","all",null))).hasSize(2);
+        repository.save(batchSearch3);
+        repository.save(batchSearch4);
+
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery("*","all"))).hasSize(4);
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery("foo","all"))).hasSize(1);
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery("oo","all"))).hasSize(1);
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery("baz","description"))).hasSize(4);
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery("baz","name"))).hasSize(0);
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery("","all")));
+
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery(singletonList("anotherPrj"), null, null, null))).hasSize(1);
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery(asList("prj","anotherPrj"), null, null, null))).hasSize(3);
+
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery(null, asList(String.valueOf(currentDateTime + 10), String.valueOf(currentDateTime + 100)), null, null))).hasSize(1);
+
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery(null, null, singletonList(State.SUCCESS.toString()), null))).hasSize(1);
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery(null, null, asList(State.SUCCESS.toString(), State.QUEUED.toString()), null))).hasSize(4);
+
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery(asList("otherPrj","prj"), null, null, "0"))).hasSize(1);
+
+        assertThat(repository.getRecords(User.local(), asList("prj", "otherPrj", "anotherPrj"), new BatchSearchRepository.WebQuery(asList("otherPrj","prj"), null, asList(State.SUCCESS.toString(), State.QUEUED.toString()), null))).hasSize(2);
     }
 
     @Test
     public void test_get_records_with_query() {
-        IntStream.range(0, 5).mapToObj(i -> new BatchSearch(asList(project("prj1")), "name" + i, "description" + i, asSet("q1/" + i, "q2/" + i), User.local(),
+        IntStream.range(0, 5).mapToObj(i -> new BatchSearch(singletonList(project("prj1")), "name" + i, "description" + i, asSet("q1/" + i, "q2/" + i), User.local(),
                 true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"), 3, true)).
                 forEach(bs -> {
                             repository.save(bs);
@@ -164,7 +184,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(from0To2.get(0).name).isEqualTo("name4");
         assertThat(from0To2.get(1).name).isEqualTo("name3");
 
-        List<BatchSearchRecord> from0To2OrderByName = repository.getRecords(User.local(), asList("prj1", "prj2"), new BatchSearchRepository.WebQuery(1, 1, "name", "asc","*","all", null));
+        List<BatchSearchRecord> from0To2OrderByName = repository.getRecords(User.local(), asList("prj1", "prj2"), new BatchSearchRepository.WebQuery(1, 1, "name", "asc", "*", "all", null, null, null, null, null));
         assertThat(from0To2OrderByName).hasSize(1);
         assertThat(from0To2OrderByName.get(0).name).isEqualTo("name1");
     }
@@ -311,13 +331,13 @@ public class JooqBatchSearchRepositoryTest {
         repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("doc1").build(), createDoc("doc2").build()));
         repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("doc3").build(), createDoc("doc4").build()));
 
-        List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, null, null,"*","all", singletonList("q1")));
+        List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(singletonList("q1")));
         assertThat(results).hasSize(2);
         assertThat(results).containsExactly(
                 resultFrom(createDoc("doc1").build(), 1, "q1"),
                 resultFrom(createDoc("doc2").build(), 2, "q1")
         );
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, null, null,"*","all", singletonList("q2")))).
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(singletonList("q2")))).
                 hasSize(2);
     }
 
@@ -335,21 +355,21 @@ public class JooqBatchSearchRepositoryTest {
                         resultFrom(createDoc("b").build(), 1, "q2"),
                         resultFrom(createDoc("d").build(), 2, "q2")
                 );
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_path", "asc","*","all", null))).
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery("doc_path", "asc","*","all"))).
                 containsExactly(
                         resultFrom(createDoc("a").build(), 1, "q1"),
                         resultFrom(createDoc("b").build(), 1, "q2"),
                         resultFrom(createDoc("c").build(), 2, "q1"),
                         resultFrom(createDoc("d").build(), 2, "q2")
                 );
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_path", "desc","*","all", null))).
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery("doc_path", "desc","*","all"))).
                 containsExactly(
                         resultFrom(createDoc("d").build(), 2, "q2"),
                         resultFrom(createDoc("c").build(), 2, "q1"),
                         resultFrom(createDoc("b").build(), 1, "q2"),
                         resultFrom(createDoc("a").build(), 1, "q1")
                 );
-        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery(0, 0, "doc_nb", "desc","*","all", null))).
+        assertThat(repository.getResults(User.local(), batchSearch.uuid, new BatchSearchRepository.WebQuery("doc_nb", "desc","*","all"))).
                 containsExactly(
                         resultFrom(createDoc("d").build(), 2, "q2"),
                         resultFrom(createDoc("b").build(), 1, "q2"),
