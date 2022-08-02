@@ -54,8 +54,8 @@ public interface BatchSearchRepository extends Closeable {
                         @JsonProperty("sort") String sort, @JsonProperty("order") String order,
                         @JsonProperty("query") String query, @JsonProperty("field") String field,
                         @JsonProperty("queries") List<String> queries, @JsonProperty("project") List<String> project,
-                        @JsonProperty("batch_date") List<String> batchDate, @JsonProperty("state") List<String> state,
-                        @JsonProperty("publish_state") String publishState) {
+                        @JsonProperty("batchDate") List<String> batchDate, @JsonProperty("state") List<String> state,
+                        @JsonProperty("publishState") String publishState) {
             this.size = size;
             this.from = from;
             this.sort = sort == null ? DEFAULT_SORT_FIELD : sort;
