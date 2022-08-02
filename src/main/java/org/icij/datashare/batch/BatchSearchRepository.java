@@ -44,12 +44,18 @@ public interface BatchSearchRepository extends Closeable {
         public final int from;
         public final int size;
         public final List<String> queries;
+        public final List<String> project;
+        public final List<String> batchDate;
+        public final List<String> state;
+        public final String publishState;
 
         @JsonCreator
         public WebQuery(@JsonProperty("size") int size, @JsonProperty("from") int from,
                         @JsonProperty("sort") String sort, @JsonProperty("order") String order,
                         @JsonProperty("query") String query, @JsonProperty("field") String field,
-                        @JsonProperty("queries") List<String> queries) {
+                        @JsonProperty("queries") List<String> queries, @JsonProperty("project") List<String> project,
+                        @JsonProperty("batch_date") List<String> batchDate, @JsonProperty("state") List<String> state,
+                        @JsonProperty("publish_state") String publishState) {
             this.size = size;
             this.from = from;
             this.sort = sort == null ? DEFAULT_SORT_FIELD : sort;
@@ -57,10 +63,31 @@ public interface BatchSearchRepository extends Closeable {
             this.field = field;
             this.order = sort == null ? "asc": order;
             this.queries = queries == null ? null: unmodifiableList(queries);
+            this.project = project == null ? null: unmodifiableList(project);
+            this.batchDate = batchDate == null ? null: unmodifiableList(batchDate);
+            this.state = state == null ? null: unmodifiableList(state);
+            this.publishState = publishState;
         }
 
-        public WebQuery(int size, int from) { this(size, from, null, null, "*", "all", null);}
-        public WebQuery() { this(0, 0, null, null, "*", "all", null);}
+        public WebQuery(int size, int from) { this(size, from, null, null, "*", "all", null, null, null, null, null);}
+        public WebQuery() { this(0, 0, null, null, "*", "all", null, null, null, null, null);}
+
+        // for tests
+        public WebQuery(String sort, String order, String query, String field) {
+            this(0, 0, sort, order, query, field, null,null,null,null,null);
+        }
+
+        public WebQuery(String query, String field) {
+            this(null, null, query, field);
+        }
+
+        public WebQuery(List<String> queries) {
+            this(0, 0, null, null,"*","all", queries,null,null,null, null);
+        }
+
+        public WebQuery(List<String> project, List<String> batchDate, List<String> state, String publishState) {
+            this(0, 0, null, null,"*","all", null, project, batchDate, state, publishState);
+        }
 
         @Override
         public boolean equals(Object o) {
@@ -73,14 +100,20 @@ public interface BatchSearchRepository extends Closeable {
                     Objects.equals(order, that.order) &&
                     Objects.equals(query,that.query) &&
                     Objects.equals(field,that.field) &&
-                    Objects.equals(queries, that.queries);
+                    Objects.equals(queries, that.queries) &&
+                    Objects.equals(project, that.project) &&
+                    Objects.equals(batchDate, that.batchDate) &&
+                    Objects.equals(state, that.state) &&
+                    Objects.equals(publishState, that.publishState);
         }
 
         @Override
-        public int hashCode() {
-            return Objects.hash(sort, order, query, field, from, size, queries);
-        }
+        public int hashCode() { return Objects.hash(sort, order, query, field, from, size, queries, project, batchDate, state, publishState); }
         public boolean hasFilteredQueries() { return queries !=null && !queries.isEmpty();}
+        public boolean hasFilteredProjects() { return project !=null && !project.isEmpty();}
+        public boolean hasFilteredDates() { return batchDate !=null && !batchDate.isEmpty();}
+        public boolean hasFilteredStates() { return state !=null && !state.isEmpty();}
+        public boolean hasFilteredPublishStates() { return publishState !=null && !publishState.isEmpty();}
         public boolean isSorted() { return !DEFAULT_SORT_FIELD.equals(this.sort);}
     }
 }

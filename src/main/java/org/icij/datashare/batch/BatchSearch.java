@@ -59,9 +59,13 @@ public class BatchSearch extends BatchSearchRecord {
     }
 
     // for tests
-    public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, Date date) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), date, State.QUEUED, User.local(),
-                0, false, null, null, 0,false, null, null);
+    public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, final Date date, final State state, final boolean published) {
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), date, state, User.local(),
+                0, published, null, null, 0,false, null, null);
+    }
+
+    public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, final Date date) {
+        this(projects, name, description, queries, date, State.QUEUED, false);
     }
 
     // retrieved from persistence
