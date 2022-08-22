@@ -81,6 +81,9 @@ public class BatchDownload {
         String strTime = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
         return Paths.get(format(ZIP_FORMAT, nonNullUser.getId(), strTime));
     }
+    public void setZipSize(long zipSize) {
+        this.zipSize = zipSize;
+    }
     @JsonSetter("exists")
     public void setExists() {
         this.exists = Files.exists(this.filename);
