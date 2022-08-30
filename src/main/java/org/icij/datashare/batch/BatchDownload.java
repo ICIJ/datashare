@@ -3,7 +3,6 @@ package org.icij.datashare.batch;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
@@ -37,7 +36,6 @@ public class BatchDownload {
     public final User user;
     public final boolean encrypted;
     public volatile long zipSize;
-    public boolean exists;
 
     @JsonIgnore
     private final JsonNode jsonNode;
@@ -81,14 +79,18 @@ public class BatchDownload {
         String strTime = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
         return Paths.get(format(ZIP_FORMAT, nonNullUser.getId(), strTime));
     }
+
+    /**
+     * useful because zipSize cannot be known by object constructor method
+     * (before the zip file actually exists on disk)
+     *
+     * see org.icij.datashare.tasks.BatchDownloadRunner
+     * @param zipSize
+     */
     public void setZipSize(long zipSize) {
         this.zipSize = zipSize;
     }
-    @JsonSetter("exists")
-    public void setExists() {
-        this.exists = Files.exists(this.filename);
-    }
-    @JsonSetter("exists")
+
     public boolean getExists() {
         return Files.exists(this.filename);
     }

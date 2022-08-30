@@ -109,8 +109,6 @@ public class BatchDownloadTest {
                 project("prj2")), local(), "query"));
         assertThat(json).contains("\"filename\":\"file:///tmp/archive_local_2021-07-07T14:53:47Z%5BGMT%5D.zip\"");
         assertThat(json).contains("\"exists\":false");
-
-        assertThat(objectMapper.readValue(json, BatchDownload.class)).isNotNull();
     }
 
 
