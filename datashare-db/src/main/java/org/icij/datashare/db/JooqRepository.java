@@ -428,7 +428,7 @@ public class JooqRepository implements Repository {
                     record.getMention(), MAPPER.readValue(record.getOffsets(), List.class),
                     record.getDocId(), record.getRootId(), Pipeline.Type.fromCode(record.getExtractor()),
                     Language.parse(record.getExtractorLanguage()));
-        } catch (JsonProcessingException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
