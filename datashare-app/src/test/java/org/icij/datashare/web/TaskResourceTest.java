@@ -279,8 +279,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         assertThat(taskManager.get(dummyTask.name).getState()).isEqualTo(TaskView.State.RUNNING);
         put("/api/task/clean/" + dummyTask.name).should().respond(403);
         assertThat(taskManager.get()).hasSize(1);
-        // Cancel all tasks to avoid side-effects with other tests
-        get("/api/task/all").should().respond(200).contain("\"state\":\"CANCELLED\"");
+        // Cancel the all tasks to avoid side-effects with other tests
+        put("/api/task/stopAll").should().respond(200);
     }
 
     @Test
