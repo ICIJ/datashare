@@ -262,12 +262,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         taskManager.waitTasksToBeDone(1, SECONDS);
         assertThat(taskManager.get()).hasSize(1);
         assertThat(taskManager.get(dummyTask.name).getState()).isEqualTo(TaskView.State.DONE);
-        ShouldChain responseBody = put("/api/task/clean/" + dummyTask.name).should().respond(200);
+        put("/api/task/clean/" + dummyTask.name).should().respond(200);
         assertThat(taskManager.get()).hasSize(0);
     }
     @Test
     public void test_cannot_clean_unknown_task() {
-        ShouldChain responseBody = put("/api/task/clean/UNKNOWN_TASK_NAME").should().respond(404);
+        put("/api/task/clean/UNKNOWN_TASK_NAME").should().respond(404);
     }
 
     @Test
@@ -277,8 +277,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
             return "ok";
         });
         assertThat(taskManager.get(dummyTask.name).getState()).isEqualTo(TaskView.State.RUNNING);
-        ShouldChain responseBody = put("/api/task/clean/" + dummyTask.name).should().respond(403);
+        put("/api/task/clean/" + dummyTask.name).should().respond(403);
         assertThat(taskManager.get()).hasSize(1);
+        // Cancel all tasks to avoid side-effects with other tests
+        get("/api/task/all").should().respond(200).contain("\"state\":\"CANCELLED\"");
     }
 
     @Test
