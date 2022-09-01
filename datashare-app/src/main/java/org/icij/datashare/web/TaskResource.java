@@ -263,7 +263,7 @@ public class TaskResource {
      * Example :
      * $(curl -XPOST localhost:8080/api/task/batchSearch)
      */
-    @Put("/batchSearch")
+    @Post("/batchSearch")
     public TaskView<?> runBatchSearches(Context context) {
         // TODO replace with call with batchId (in local mode there is only one batch run at a time)
         BatchSearchLoop batchSearchLoop = taskFactory.createBatchSearchLoop();
