@@ -61,6 +61,34 @@ public class TaskManagerMemoryTest {
         assertThat(taskView.task.properties).includes(entry("foo", "bar"));
     }
 
+    @Test
+    public void test_clear_the_only_task() {
+        TaskView<String> task = taskManager.startTask(() -> "task 1");
+        assertThat(taskManager.get()).hasSize(1);
+        taskManager.clearTask(task.name);
+        assertThat(taskManager.get()).hasSize(0);
+    }
+
+    @Test
+    public void test_clear_task_among_two_tasks() {
+        TaskView<String> t1 = taskManager.startTask(() -> "task 1");
+        TaskView<String> t2 = taskManager.startTask(() -> "task 2");
+        assertThat(taskManager.get()).hasSize(2);
+        taskManager.clearTask(t1.name);
+        assertThat(taskManager.get()).hasSize(1);
+        assertThat(taskManager.get(t1.name)).isNull();
+        assertThat(taskManager.get(t2.name)).isNotNull();
+    }
+
+    @Test
+    public void test_clear_and_return_the_same_task() {
+        TaskView<String> t1 = taskManager.startTask(() -> "task 1");
+        assertThat(taskManager.get()).hasSize(1);
+        TaskView<?> t2 = taskManager.clearTask(t1.name);
+        assertThat(taskManager.get()).hasSize(0);
+        assertThat(t1.name).isEqualTo(t2.name);
+    }
+
     @After
     public void tearDown() { taskManager.shutdownNow();}
 }

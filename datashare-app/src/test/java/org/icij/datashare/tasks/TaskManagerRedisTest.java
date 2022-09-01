@@ -94,6 +94,43 @@ public class TaskManagerRedisTest {
         assertThat(redis.hlen("test:task:manager")).isEqualTo(1);
     }
 
+    @Test
+    public void test_clear_the_only_task() {
+        MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "task");
+        TaskView<String> task = new TaskView<>(futureTask);
+        taskManager.save(task);
+        assertThat(taskManager.get()).hasSize(1);
+        taskManager.clearTask(task.name);
+        assertThat(taskManager.get()).hasSize(0);
+    }
+
+    @Test
+    public void test_clear_task_among_two_tasks() {
+        MonitorableFutureTask<String> futureTask1 = new MonitorableFutureTask<>(() -> "task 1");
+        TaskView<String> t1 = new TaskView<>(futureTask1);
+        taskManager.save(t1);
+        MonitorableFutureTask<String> futureTask2 = new MonitorableFutureTask<>(() -> "task 1");
+        TaskView<String> t2 = new TaskView<>(futureTask2);
+        taskManager.save(t2);
+        assertThat(taskManager.get()).hasSize(2);
+        taskManager.clearTask(t1.name);
+        assertThat(taskManager.get()).hasSize(1);
+        assertThat(taskManager.get(t1.name)).isNull();
+        assertThat(taskManager.get(t2.name)).isNotNull();
+    }
+
+    @Test
+    public void test_clear_and_return_the_same_task() {
+        MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "task");
+        TaskView<String> t1 = new TaskView<>(futureTask);
+        taskManager.save(t1);
+        assertThat(taskManager.get()).hasSize(1);
+        TaskView<?> t2 = taskManager.clearTask(t1.name);
+        assertThat(taskManager.get()).hasSize(0);
+        assertThat(t1.name).isEqualTo(t2.name);
+    }
+
+
     @After
     public void tearDown() throws Exception {
         redis.del("test:task:manager");

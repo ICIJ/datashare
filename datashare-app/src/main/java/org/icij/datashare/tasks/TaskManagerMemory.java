@@ -103,6 +103,11 @@ public class TaskManagerMemory implements TaskManager {
         return tasks.values().stream().filter(taskView -> taskView.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.name)).collect(toList());
     }
 
+    @Override
+    public TaskView<?> clearTask(String taskName) {
+        return tasks.remove(taskName);
+    }
+
     public boolean stopTask(String taskName) {
         logger.info("cancelling task {}", taskName);
         return tasks.get(taskName).task.cancel(true);

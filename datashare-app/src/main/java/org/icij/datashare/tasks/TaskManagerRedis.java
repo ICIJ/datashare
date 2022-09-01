@@ -74,6 +74,10 @@ public class TaskManagerRedis implements TaskManager {
     public List<TaskView<?>> clearDoneTasks() {
         return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.name)).collect(toList());
     }
+    @Override
+    public TaskView<?> clearTask(String taskName) {
+        return tasks.remove(taskName);
+    }
 
     @Override public TaskView<Void> startTask(Runnable task) { throw new IllegalStateException("not implemented"); }
     @Override public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }

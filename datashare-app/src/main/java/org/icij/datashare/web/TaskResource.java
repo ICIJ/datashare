@@ -35,10 +35,10 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
+import static net.codestory.http.payload.Payload.forbidden;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
-import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
 @Singleton
@@ -234,6 +234,28 @@ public class TaskResource {
     }
 
     /**
+     * Cleans a specific task.
+     *
+     * @param taskName
+     * @return
+     */
+    @Put("/clean/:taskName:")
+    public Payload cleanTask(final String taskName, Context context) {
+        TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.get(taskName)));
+        if (task.getState() == TaskView.State.RUNNING) {
+            return forbidden();
+        } else {
+            taskManager.clearTask(task.name);
+            return ok();
+        }
+    }
+
+    @Options("/cleans/:taskName")
+    public Payload cleanTaskPreflight(final String taskName) {
+        return ok().withAllowMethods("OPTIONS", "PUT");
+    }
+
+    /**
      * Run batch searches
      *
      * @return 200 and the created task
@@ -241,7 +263,7 @@ public class TaskResource {
      * Example :
      * $(curl -XPOST localhost:8080/api/task/batchSearch)
      */
-    @Post("/batchSearch")
+    @Put("/batchSearch")
     public TaskView<?> runBatchSearches(Context context) {
         // TODO replace with call with batchId (in local mode there is only one batch run at a time)
         BatchSearchLoop batchSearchLoop = taskFactory.createBatchSearchLoop();
@@ -250,6 +272,7 @@ public class TaskResource {
 
         return taskManager.startTask(batchSearchLoop::run);
     }
+
 
     /**
      * Cancels the task with the given name. It answers 200 with the cancellation status `true|false`

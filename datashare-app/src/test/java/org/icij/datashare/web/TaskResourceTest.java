@@ -257,6 +257,31 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_clean_one_done_task() {
+        TaskView<String> dummyTask = taskManager.startTask(() ->  "ok");
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        assertThat(taskManager.get()).hasSize(1);
+        assertThat(taskManager.get(dummyTask.name).getState()).isEqualTo(TaskView.State.DONE);
+        ShouldChain responseBody = put("/api/task/clean/" + dummyTask.name).should().respond(200);
+        assertThat(taskManager.get()).hasSize(0);
+    }
+    @Test
+    public void test_cannot_clean_unknown_task() {
+        ShouldChain responseBody = put("/api/task/clean/UNKNOWN_TASK_NAME").should().respond(404);
+    }
+
+    @Test
+    public void test_cannot_clean_running_task() {
+        TaskView<String> dummyTask = taskManager.startTask(() -> {
+            Thread.sleep(10000);
+            return "ok";
+        });
+        assertThat(taskManager.get(dummyTask.name).getState()).isEqualTo(TaskView.State.RUNNING);
+        ShouldChain responseBody = put("/api/task/clean/" + dummyTask.name).should().respond(403);
+        assertThat(taskManager.get()).hasSize(1);
+    }
+
+    @Test
     public void test_stop_task() {
         TaskView<String> dummyTask = taskManager.startTask(() -> {
             Thread.sleep(10000);
