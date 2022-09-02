@@ -253,9 +253,9 @@ public class TaskResource {
         }
     }
 
-    @Options("/cleans/:taskName")
+    @Options("/clean/:taskName:")
     public Payload cleanTaskPreflight(final String taskName) {
-        return ok().withAllowMethods("OPTIONS", "PUT");
+        return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
     /**

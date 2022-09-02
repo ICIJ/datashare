@@ -271,6 +271,13 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_clean_task_preflight() {
+        TaskView<String> dummyTask = taskManager.startTask(() ->  "ok");
+        taskManager.waitTasksToBeDone(1, SECONDS);
+        options("/api/task/clean/" + dummyTask.name).should().respond(200);
+    }
+
+    @Test
     public void test_cannot_clean_running_task() {
         TaskView<String> dummyTask = taskManager.startTask(() -> {
             Thread.sleep(10000);
