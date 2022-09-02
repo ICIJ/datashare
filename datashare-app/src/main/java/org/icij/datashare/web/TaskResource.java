@@ -238,8 +238,11 @@ public class TaskResource {
      *
      * @param taskName
      * @return
+     *
+     * Example :
+     * $(curl -XDELETE -d '{}' http://dsenv:8080/api/task/clean/TASK_NAME
      */
-    @Put("/clean/:taskName:")
+    @Delete("/clean/:taskName:")
     public Payload cleanTask(final String taskName, Context context) {
         TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.get(taskName)));
         if (task.getState() == TaskView.State.RUNNING) {
