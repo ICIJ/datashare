@@ -80,6 +80,19 @@ public class BatchSearch extends BatchSearchRecord {
         this.phraseMatches=phraseMatches;
     }
 
+    /**
+     * Allow creation of batch search without queries
+     */
+    public BatchSearch(String uuid, List<Project> projects, String name, String description, Integer nbQueries, Date date, State state, User user,
+                       int nbResults, boolean published, List<String> fileTypes, List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage, String errorQuery) {
+        super(uuid,projects,name,description,nbQueries,date,state,user,nbResults,published,errorMessage, errorQuery);
+        this.queries = new LinkedHashMap<>();
+        this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
+        this.paths = unmodifiableList(ofNullable(paths).orElse(new ArrayList<>()));
+        this.fuzziness = fuzziness;
+        this.phraseMatches=phraseMatches;
+    }
+
     @JsonIgnore
     public List<String> getQueryList() {return new ArrayList<>(queries.keySet());}
 

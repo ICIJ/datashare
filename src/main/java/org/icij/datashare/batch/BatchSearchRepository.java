@@ -20,7 +20,7 @@ public interface BatchSearchRepository extends Closeable {
     boolean deleteAll(User user);
     boolean delete(User user, String batchId);
 
-    BatchSearch get(String id);
+
     List<BatchSearchRecord> getRecords(User user, List<String> projectsIds);
     int getTotal(User user, List<String> projectsIds, WebQuery webQuery);
     List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery);
@@ -30,7 +30,11 @@ public interface BatchSearchRepository extends Closeable {
 
     boolean publish(User user, String batchId, boolean published);
 
+    BatchSearch get(String id);
     BatchSearch get(User user, String batchId);
+    BatchSearch get(User user, String batchId, boolean withQueries);
+
+    List<String> getQueries(User user, String batchId, int from, int size);
 
     boolean reset(String batchId);
 
