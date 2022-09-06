@@ -114,13 +114,14 @@ public class BatchSearchResource {
      * if the request parameter format is set with csv, then it will answer with
      * content-disposition attachment (file downloading)
      *
-     * if the requests parameter from and size are provided: a window of queries
-     * is returned ordered by their query number.
-     * If "from" is not provided then it starts from 0.
-     * If "size" is not provided (or 0) then all the queries starting from the "from" parameter are returned.
+     * the optional request parameters are :
+     * - from : if not provided it starts from 0
+     * - size : if not provided all queries are returned from the "from" parameter
+     * - search : if provided it will filter the queries accordingly
+     * - orderBy : field name to order by asc (if it does not exist it will return a 500 error)
      *
      * @param batchId
-     * @return 200 and the batch search
+     * @return 200 and the batch search queries map [(query, nbResults), ...]
      *
      * Example :
      * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146/queries?format=csv&from=0&size=2 )
@@ -130,7 +131,7 @@ public class BatchSearchResource {
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(ofNullable(context.get("size")).orElse("0"));
 
-        Map<String,Integer> queries = batchSearchRepository.getQueries((User) context.currentUser(), batchId, from, size, null, null);
+        Map<String,Integer> queries = batchSearchRepository.getQueries((User) context.currentUser(), batchId, from, size, context.get("search"), context.get("orderBy"));
 
         if ("csv".equals(context.get("format"))) {
             return new Payload("text/csv;charset=UTF-8", String.join("\n", queries.keySet())).

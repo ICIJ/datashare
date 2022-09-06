@@ -6,6 +6,7 @@ import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
+import org.jooq.exception.DataAccessException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -533,6 +534,29 @@ public class JooqBatchSearchRepositoryTest {
     @Test(expected = IllegalArgumentException.class)
     public void test_get_batch_search_queries_with_negative_size_is_illegal() {
         repository.getQueries(User.local(), "uuid", 2, -1, null, null);
+    }
+    @Test
+    public void test_get_batch_search_queries_with_search_filter() {
+        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
+                new LinkedHashSet<String>() {{add("query abc");add("def query");}}, new Date(), State.RUNNING, User.local());
+        repository.save(batchSearch);
+        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, "query", null)).hasSize(2);
+        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, "def", null)).hasSize(1);
+        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, "abc", null)).hasSize(1);
+    }
+
+    @Test
+    public void test_get_batch_search_queries_with_orderBy_param() {
+        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
+                new LinkedHashSet<String>() {{add("q2"); add("q1");}}, new Date(), State.RUNNING, User.local());
+        repository.save(batchSearch);
+        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, null, "query").keySet().stream().findFirst().get()).isEqualTo("q1");
+        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, null, "query_number").keySet().stream().findFirst().get()).isEqualTo("q2");
+    }
+
+    @Test(expected = DataAccessException.class)
+    public void test_get_batch_search_queries_with_unknown_orderBy_field() {
+        repository.getQueries(User.local(), "uuid", 0, 0, null, "unknown_field");
     }
 
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {
