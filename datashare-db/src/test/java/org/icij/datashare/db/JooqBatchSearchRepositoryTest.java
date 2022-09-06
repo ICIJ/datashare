@@ -386,6 +386,11 @@ public class JooqBatchSearchRepositoryTest {
 
         assertThat(batchSearch).isNotNull();
         assertThat(batchSearch.queries).hasSize(2);
+
+        batchSearch = repository.get(User.local(), search.uuid, true);
+
+        assertThat(batchSearch).isNotNull();
+        assertThat(batchSearch.queries).hasSize(2);
     }
 
     @Test

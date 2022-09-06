@@ -291,6 +291,33 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         .join(BATCH_SEARCH_PROJECT).on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_PROJECT.SEARCH_UUID)));
     }
 
+    private SelectJoinStep<Record16<String, String, String, String, Timestamp, String, Integer, String, String, Integer, Integer, Integer, String, String, String, Integer>>
+    createBatchSearchWithoutQueriesSelectStatement(DSLContext create) {
+        return create.select(
+                        BATCH_SEARCH.UUID,
+                        BATCH_SEARCH.NAME,
+                        BATCH_SEARCH.DESCRIPTION,
+                        BATCH_SEARCH.USER_ID,
+                        BATCH_SEARCH.BATCH_DATE,
+                        BATCH_SEARCH.STATE,
+                        BATCH_SEARCH.PUBLISHED,
+                        BATCH_SEARCH.FILE_TYPES,
+                        BATCH_SEARCH.PATHS,
+                        BATCH_SEARCH.FUZZINESS,
+                        BATCH_SEARCH.PHRASE_MATCHES,
+                        BATCH_SEARCH.BATCH_RESULTS,
+                        BATCH_SEARCH.ERROR_MESSAGE,
+                        BATCH_SEARCH.ERROR_QUERY,
+                        BATCH_SEARCH_PROJECT.PRJ_ID,
+                        field(selectCount()
+                                .from(BATCH_SEARCH_QUERY)
+                                .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(BATCH_SEARCH.UUID)))
+                                .as(field("nb_queries")))
+                .from(BATCH_SEARCH
+                        .join(BATCH_SEARCH_PROJECT)
+                        .on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_PROJECT.SEARCH_UUID)));
+    }
+
     private SelectOnConditionStep<Record12<String, String, String, String, Timestamp, String, Integer, Integer, String, String, String, Object>>
     createBatchSearchRecordWithQueriesSelectStatement(DSLContext create) {
         return create.select(
@@ -312,12 +339,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     private BatchSearch createBatchSearchFrom(final Record record) {
         Integer query_results = record.getValue(BATCH_SEARCH_QUERY.QUERY_RESULTS);
         Integer nb_queries = query_results == null ? 0: query_results;
-        String prj = record.get(BATCH_SEARCH_PROJECT.PRJ_ID);
-        String file_types = record.get(BATCH_SEARCH.FILE_TYPES);
-        String paths = record.get(BATCH_SEARCH.PATHS);
         boolean phraseMatches= record.get(BATCH_SEARCH.PHRASE_MATCHES) != 0;
         return new BatchSearch(record.get(BATCH_SEARCH.UUID).trim(),
-                singletonList(project(prj)),
+                singletonList(project(record.get(BATCH_SEARCH_PROJECT.PRJ_ID))),
                 record.getValue(BATCH_SEARCH.NAME),
                 record.getValue(BATCH_SEARCH.DESCRIPTION),
                 new LinkedHashMap<String, Integer>() {{
@@ -327,12 +351,37 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 new User(record.get(BATCH_SEARCH.USER_ID)),
                 record.get(BATCH_SEARCH.BATCH_RESULTS),
                 record.get(BATCH_SEARCH.PUBLISHED) > 0,
-                file_types == null || file_types.isEmpty()? null: asList(file_types.split(LIST_SEPARATOR)),
-                paths == null || paths.isEmpty()? null: asList(paths.split(LIST_SEPARATOR)),
+                getListFromStringOrNull(record.get(BATCH_SEARCH.FILE_TYPES)),
+                getListFromStringOrNull(record.get(BATCH_SEARCH.PATHS)),
                 record.get(BATCH_SEARCH.FUZZINESS),
                 phraseMatches,
                 record.get(BATCH_SEARCH.ERROR_MESSAGE),
                 record.get(BATCH_SEARCH.ERROR_QUERY));
+    }
+
+    private BatchSearch createBatchSearchWithoutQueries(final Record record) {
+        Integer nb_queries = record.get("nb_queries", Integer.class);
+        boolean phraseMatches= record.get(BATCH_SEARCH.PHRASE_MATCHES) != 0;
+        return new BatchSearch(record.get(BATCH_SEARCH.UUID).trim(),
+                singletonList(project(record.get(BATCH_SEARCH_PROJECT.PRJ_ID))),
+                record.getValue(BATCH_SEARCH.NAME),
+                record.getValue(BATCH_SEARCH.DESCRIPTION),
+                nb_queries,
+                Date.from(record.get(BATCH_SEARCH.BATCH_DATE).toInstant()),
+                State.valueOf(record.get(BATCH_SEARCH.STATE)),
+                new User(record.get(BATCH_SEARCH.USER_ID)),
+                record.get(BATCH_SEARCH.BATCH_RESULTS),
+                record.get(BATCH_SEARCH.PUBLISHED) > 0,
+                getListFromStringOrNull(record.get(BATCH_SEARCH.FILE_TYPES)),
+                getListFromStringOrNull(record.get(BATCH_SEARCH.PATHS)),
+                record.get(BATCH_SEARCH.FUZZINESS),
+                phraseMatches,
+                record.get(BATCH_SEARCH.ERROR_MESSAGE),
+                record.get(BATCH_SEARCH.ERROR_QUERY));
+    }
+
+    private static List<String> getListFromStringOrNull(String stringList) {
+        return stringList == null || stringList.isEmpty() ? null : asList(stringList.split(LIST_SEPARATOR));
     }
 
     private BatchSearchRecord createBatchSearchRecordFrom(final Record record) {
