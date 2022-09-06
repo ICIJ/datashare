@@ -235,6 +235,17 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_batch_download_uri() {
+        post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\", \"uri\": \"/an%20url-encoded%20uri\" }}").
+                should().haveType("application/json").
+                should().contain("properties").
+                should().contain("filename");
+        BatchDownload same = new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", "/an%20url-encoded%20uri", Paths.get("app", "tmp"), false);
+        verify(taskFactory).createDownloadRunner(eq(same), any());
+    }
+
+
+    @Test
     public void test_batch_download_json_query() {
         post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": {\"match_all\":{}} }}").
                 should().haveType("application/json").

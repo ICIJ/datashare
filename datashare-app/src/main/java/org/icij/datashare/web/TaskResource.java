@@ -135,7 +135,7 @@ public class TaskResource {
      * @return 200 and json task
      *
      * Example :
-     * $(curl -XPOST -H 'Content-Type: application/json' localhost:8080/api/task/batchDownload -d '{"options": {"projectIds": ["genapi-datashare"], "query": "*" }}')
+     * $(curl -XPOST -H 'Content-Type: application/json' localhost:8080/api/task/batchDownload -d '{"options": {"projectIds": ["genapi-datashare"], "query": "*", "uri": "/?q=&from=0&size=25&indices=genapi-datashare" }}')
      */
     @Post("/batchDownload")
     public TaskView<File> batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws JsonProcessingException {
@@ -143,9 +143,10 @@ public class TaskResource {
         Path tmpPath = get(context.env().appFolder(), "tmp");
         if (!tmpPath.toFile().exists()) tmpPath.toFile().mkdirs();
         String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
+        String uri = (String) options.get("uri");
         boolean batchDownloadEncrypt = parseBoolean(propertiesProvider.get("batchDownloadEncrypt").orElse("false"));
         List<String> projectIds = (List<String>) options.get("projectIds");
-        BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, tmpPath, batchDownloadEncrypt);
+        BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, uri, tmpPath, batchDownloadEncrypt);
         BatchDownloadRunner downloadTask = taskFactory.createDownloadRunner(batchDownload, v -> null);
         return taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}});
     }
