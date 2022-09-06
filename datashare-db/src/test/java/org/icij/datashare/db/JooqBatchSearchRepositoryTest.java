@@ -14,6 +14,7 @@ import org.junit.runners.Parameterized;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -505,6 +506,32 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.reset(batchSearch.uuid)).isTrue();
         assertThat(repository.get(batchSearch.uuid).state).isEqualTo(State.QUEUED);
         assertThat(repository.getResults(User.local(), batchSearch.uuid)).hasSize(0);
+    }
+
+    @Test
+    public void test_get_batch_search_queries() {
+        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
+                new LinkedHashSet<String>() {{add("q2");add("q1");}}, new Date(), State.RUNNING, User.local());
+        repository.save(batchSearch);
+        List<String> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2);
+        assertThat(queries).isNotNull();
+        assertThat(queries).hasSize(2);
+        assertThat(queries.get(0)).isEqualTo("q2");
+        assertThat(queries.get(1)).isEqualTo("q1");
+
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1)).hasSize(1);
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1).get(0)).isEqualTo("q2");
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1).get(0)).isEqualTo("q1");
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 2)).hasSize(1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_batch_search_queries_with_negative_from_is_illegal() {
+       repository.getQueries(User.local(), "uuid", -1, 2);
+    }
+    @Test(expected = IllegalArgumentException.class)
+    public void test_get_batch_search_queries_with_negative_size_is_illegal() {
+        repository.getQueries(User.local(), "uuid", 2, -1);
     }
 
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {

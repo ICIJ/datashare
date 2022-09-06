@@ -201,7 +201,17 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<String> getQueries(User user, String batchId, int from, int size) {
-        return null;
+        if(from < 0 || size < 0) {
+            throw new IllegalArgumentException("from or size argument cannot be negative");
+        }
+        return using(dataSource, dialect)
+                .select()
+                .from(BATCH_SEARCH_QUERY)
+                .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchId))
+                .orderBy(BATCH_SEARCH_QUERY.QUERY_NUMBER.asc())
+                .offset(from)
+                .limit(size)
+                .fetch(BATCH_SEARCH_QUERY.QUERY);
     }
 
     @Override
