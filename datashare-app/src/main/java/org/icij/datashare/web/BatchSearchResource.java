@@ -19,7 +19,10 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
@@ -27,6 +30,7 @@ import static java.lang.Boolean.*;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
 import static net.codestory.http.payload.Payload.*;
 import static org.icij.datashare.CollectionUtils.asSet;
 
@@ -92,16 +96,19 @@ public class BatchSearchResource {
 
     /**
      * Retrieve the batch search with the given id
+     * The query param "withQueries" accepts a boolean value
+     * When "withQueries" is set to false, the list of queries is empty and nbQueries contains the number of queries.
      *
      * @param batchId
      * @return 200 and the batch search
      *
      * Example :
-     * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146 )
+     * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146?withQueries=true)
      */
     @Get("/search/:batchid")
     public BatchSearch getBatch(String batchId, Context context) {
-        return batchSearchRepository.get((User) context.currentUser(), batchId);
+        boolean withQueries = Boolean.parseBoolean(context.get("withQueries"));
+        return batchSearchRepository.get((User) context.currentUser(), batchId, withQueries);
     }
 
     /**
@@ -110,15 +117,23 @@ public class BatchSearchResource {
      * if the request parameter format is set with csv, then it will answer with
      * content-disposition attachment (file downloading)
      *
+     * if the requests parameter from and size are provided: a window of queries
+     * is returned ordered by their query number.
+     * If "from" is not provided then it starts from 0.
+     * If "size" is not provided (or 0) then all the queries starting from the "from" parameter are returned.
+     *
      * @param batchId
      * @return 200 and the batch search
      *
      * Example :
-     * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146/queries?format=csv )
+     * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146/queries?format=csv&from=0&size=2 )
      */
     @Get("/search/:batchid/queries")
     public Payload getBatchQueries(String batchId, Context context) {
-        Set<String> queries = batchSearchRepository.get((User) context.currentUser(), batchId).queries.keySet();
+        int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
+        int size = Integer.parseInt(ofNullable(context.get("size")).orElse("0"));
+        List<String> queries = batchSearchRepository.getQueries((User) context.currentUser(), batchId, from, size);
+
         if ("csv".equals(context.get("format"))) {
             return new Payload("text/csv;charset=UTF-8", String.join("\n", queries)).
                             withHeader("Content-Disposition", "attachment;filename=\"" + batchId + "-queries.csv\"");
@@ -312,7 +327,7 @@ public class BatchSearchResource {
         return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
     }
 
-    @Get("/search/result/:batchid/query?from=&to=")
+    //@Get("/search/result/:batchid/query?from=&to=")
 
 
     /**

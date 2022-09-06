@@ -184,7 +184,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(from0To2.get(0).name).isEqualTo("name4");
         assertThat(from0To2.get(1).name).isEqualTo("name3");
 
-        List<BatchSearchRecord> from0To2OrderByName = repository.getRecords(User.local(), asList("prj1", "prj2"), new BatchSearchRepository.WebQuery(1, 1, "name", "asc", "*", "all", null, null, null, null, null));
+        List<BatchSearchRecord> from0To2OrderByName = repository.getRecords(User.local(), asList("prj1", "prj2"), new BatchSearchRepository.WebQuery(1, 1, "name", "asc", "*", "all", null, null, null, null, null, true));
         assertThat(from0To2OrderByName).hasSize(1);
         assertThat(from0To2OrderByName.get(0).name).isEqualTo("name1");
     }
@@ -523,6 +523,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1).get(0)).isEqualTo("q2");
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1).get(0)).isEqualTo("q1");
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 2)).hasSize(1);
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0)).hasSize(2);
     }
 
     @Test(expected = IllegalArgumentException.class)

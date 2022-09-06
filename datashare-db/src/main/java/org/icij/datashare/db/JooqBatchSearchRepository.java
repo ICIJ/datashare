@@ -204,14 +204,16 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if(from < 0 || size < 0) {
             throw new IllegalArgumentException("from or size argument cannot be negative");
         }
-        return using(dataSource, dialect)
+        SelectSeekStep1<Record, Integer> statement = using(dataSource, dialect)
                 .select()
                 .from(BATCH_SEARCH_QUERY)
                 .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchId))
-                .orderBy(BATCH_SEARCH_QUERY.QUERY_NUMBER.asc())
-                .offset(from)
-                .limit(size)
-                .fetch(BATCH_SEARCH_QUERY.QUERY);
+                .orderBy(BATCH_SEARCH_QUERY.QUERY_NUMBER.asc());
+
+        if (size > 0) statement.limit(size);
+        if (from > 0) statement.offset(from);
+
+        return statement.fetch(BATCH_SEARCH_QUERY.QUERY);
     }
 
     @Override
