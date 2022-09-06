@@ -200,7 +200,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
-    public List<String> getQueries(User user, String batchId, int from, int size) {
+    public Map<String, Integer> getQueries(User user, String batchId, int from, int size, String search, String orderBy ) {
         if(from < 0 || size < 0) {
             throw new IllegalArgumentException("from or size argument cannot be negative");
         }
@@ -213,7 +213,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (size > 0) statement.limit(size);
         if (from > 0) statement.offset(from);
 
-        return statement.fetch(BATCH_SEARCH_QUERY.QUERY);
+        return statement.fetch().stream().map(
+                r -> new AbstractMap.SimpleEntry<>(r.get("query", String.class), r.get("query_results", Integer.class))).collect(
+                toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); },
+                        LinkedHashMap::new));
     }
 
     @Override

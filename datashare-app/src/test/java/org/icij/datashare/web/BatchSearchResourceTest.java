@@ -352,16 +352,16 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_queries_json() {
-        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 0)).thenReturn(asList("q1", "q2"));
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 0,null,null)).thenReturn(new HashMap<String, Integer>() {{put("q1", 1);put("q2", 2);}});
         get("/api/batch/search/batchSearchId/queries").should().
                 respond(200).
                 haveType("application/json;charset=UTF-8").
-                contain("[\"q1\",\"q2\"]");
+                contain("{\"q1\":1,\"q2\":2}");
     }
 
     @Test
     public void test_get_queries_csv() {
-        when(batchSearchRepository.getQueries(User.local(), "batchSearchId",0,0)).thenReturn(asList("q1", "q2"));
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId",0,0,null,null)).thenReturn(new HashMap<String, Integer>() {{ put("q1", 1);put("q2", 2);}});
         get("/api/batch/search/batchSearchId/queries?format=csv").should().
                 respond(200).
                 haveType("text/csv;charset=UTF-8").
@@ -381,11 +381,11 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_batch_search_queries_with_window_from_size() {
-        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 2)).thenReturn(asList("q1", "q2"));
+        when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 2,null,null)).thenReturn(new HashMap<String, Integer>() {{put("q1", 1);put("q2", 2);}});
         get("/api/batch/search/batchSearchId/queries?from=0&size=2").should().
                 respond(200).
                 haveType("application/json").
-                contain("[\"q1\",\"q2\"]");
+                contain("{\"q1\":1,\"q2\":2}");
     }
 
     private void testTripleQuote(Boolean phraseMatch, String query, String tripleQuoteResult) {

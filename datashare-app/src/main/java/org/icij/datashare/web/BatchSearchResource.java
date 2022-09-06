@@ -19,10 +19,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
@@ -132,10 +129,11 @@ public class BatchSearchResource {
     public Payload getBatchQueries(String batchId, Context context) {
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(ofNullable(context.get("size")).orElse("0"));
-        List<String> queries = batchSearchRepository.getQueries((User) context.currentUser(), batchId, from, size);
+
+        Map<String,Integer> queries = batchSearchRepository.getQueries((User) context.currentUser(), batchId, from, size, null, null);
 
         if ("csv".equals(context.get("format"))) {
-            return new Payload("text/csv;charset=UTF-8", String.join("\n", queries)).
+            return new Payload("text/csv;charset=UTF-8", String.join("\n", queries.keySet())).
                             withHeader("Content-Disposition", "attachment;filename=\"" + batchId + "-queries.csv\"");
         }
         return new Payload(queries);

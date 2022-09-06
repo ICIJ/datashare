@@ -12,10 +12,8 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.util.Collection;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
+import java.util.Map.Entry;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
@@ -513,26 +511,28 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
                 new LinkedHashSet<String>() {{add("q2");add("q1");}}, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
-        List<String> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2);
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null);
+
         assertThat(queries).isNotNull();
         assertThat(queries).hasSize(2);
-        assertThat(queries.get(0)).isEqualTo("q2");
-        assertThat(queries.get(1)).isEqualTo("q1");
+        Iterator<Entry<String, Integer>> entrySetIterator = queries.entrySet().iterator();
+        assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q2", 0));
+        assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q1", 0));
 
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1)).hasSize(1);
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1).get(0)).isEqualTo("q2");
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1).get(0)).isEqualTo("q1");
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 2)).hasSize(1);
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0)).hasSize(2);
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null)).hasSize(1);
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null).keySet().stream().findFirst().get()).isEqualTo("q2");
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1, null, null).keySet().stream().findFirst().get()).isEqualTo("q1");
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 2, null, null)).hasSize(1);
+        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null)).hasSize(2);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_get_batch_search_queries_with_negative_from_is_illegal() {
-       repository.getQueries(User.local(), "uuid", -1, 2);
+       repository.getQueries(User.local(), "uuid", -1, 2, null, null);
     }
     @Test(expected = IllegalArgumentException.class)
     public void test_get_batch_search_queries_with_negative_size_is_illegal() {
-        repository.getQueries(User.local(), "uuid", 2, -1);
+        repository.getQueries(User.local(), "uuid", 2, -1, null, null);
     }
 
     private SearchResult resultFrom(Document doc, int docNb, String queryName) {
