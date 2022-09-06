@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.sun.istack.internal.Nullable;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.time.DatashareTime;
