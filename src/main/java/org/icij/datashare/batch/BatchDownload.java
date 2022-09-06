@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.sun.istack.internal.Nullable;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.time.DatashareTime;
@@ -33,6 +34,7 @@ public class BatchDownload {
     public final List<Project> projects;
     public final Path filename;
     public final String query;
+    public final String uri;
     public final User user;
     public final boolean encrypted;
     public volatile long zipSize;
@@ -40,12 +42,20 @@ public class BatchDownload {
     @JsonIgnore
     private final JsonNode jsonNode;
 
+    public BatchDownload(final List<Project> projects, User user, String query, String uri) {
+        this(projects, user, query,  uri, Paths.get(System.getProperty("java.io.tmpdir")),false);
+    }
+
     public BatchDownload(final List<Project> projects, User user, String query) {
-        this(projects, user, query, Paths.get(System.getProperty("java.io.tmpdir")), false);
+        this(projects, user, query, null, Paths.get(System.getProperty("java.io.tmpdir")), false);
+    }
+
+    public BatchDownload(final List<Project> projects, User user, String query, String uri, Path downloadDir, boolean isEncrypted)  {
+        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, uri, user, isEncrypted, 0);
     }
 
     public BatchDownload(final List<Project> projects, User user, String query, Path downloadDir, boolean isEncrypted)  {
-        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, user, isEncrypted, 0);
+        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, null, user, isEncrypted, 0);
     }
 
     @JsonCreator
@@ -53,6 +63,7 @@ public class BatchDownload {
                           @JsonProperty("projects") final List<Project> projects,
                           @JsonProperty("filename") Path filename,
                           @JsonProperty("query") String query,
+                          @JsonProperty("uri") String uri,
                           @JsonProperty("user") User user,
                           @JsonProperty("encrypted") boolean encrypted,
                           @JsonProperty("zipSize") long zipSize) {
@@ -60,6 +71,7 @@ public class BatchDownload {
         this.projects = unmodifiableList(ofNullable(projects).orElse(new ArrayList<>()));
         this.user = user;
         this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
+        this.uri = uri;
         this.filename = filename;
         this.encrypted = encrypted;
         this.zipSize = zipSize;

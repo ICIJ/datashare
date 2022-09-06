@@ -56,6 +56,14 @@ public class BatchDownloadTest {
                 Paths.get("/bar"), false).filename.toString()).
                 isEqualTo("/bar/archive_local_2021-07-07T14:15:16Z[GMT].zip");
     }
+
+    @Test
+    public void test_batch_download_constructor_with_uri() {
+        DatashareTime.getInstance().setMockDate("2021-07-07T14:15:16Z");
+        BatchDownload bd = new BatchDownload(singletonList(project("prj")), local(), "foo", "#/uri");
+        assertThat(bd.uri).isEqualTo("#/uri");
+    }
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
     @Test
