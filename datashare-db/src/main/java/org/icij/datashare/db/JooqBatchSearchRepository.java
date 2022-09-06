@@ -20,8 +20,8 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 import static java.lang.String.join;
-import static java.util.Arrays.*;
 import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.*;
@@ -190,6 +190,21 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     @Override
+    public BatchSearch get(User user, String batchId, boolean withQueries) {
+        if (withQueries){
+            return get(user, batchId);
+        }
+        return createBatchSearchWithoutQueriesSelectStatement(DSL.using(dataSource, dialect)).
+                where(BATCH_SEARCH.UUID.eq(batchId)).
+                fetch().stream().map(this::createBatchSearchWithoutQueries).collect(toList()).get(0);
+    }
+
+    @Override
+    public List<String> getQueries(User user, String batchId, int from, int size) {
+        return null;
+    }
+
+    @Override
     public boolean reset(String batchId) {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
@@ -240,7 +255,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         Map<String, List<BatchSearch>> collect = flatBatchSearches.stream().collect(groupingBy(bs -> bs.uuid));
         return collect.values().stream().map(batchSearches ->
                 new BatchSearch(batchSearches.get(0).uuid, batchSearches.stream().map(bs -> bs.projects).flatMap(Collection::stream).distinct().collect(toList()), batchSearches.get(0).name, batchSearches.get(0).description,
-                        batchSearches.stream().map(bs -> bs.queries.entrySet()).flatMap(Collection::stream).distinct().collect(
+                        (LinkedHashMap<String, Integer>) batchSearches.stream().map(bs -> bs.queries.entrySet()).flatMap(Collection::stream).distinct().collect(
                                 toMap(Map.Entry::getKey, Map.Entry::getValue,
                                         (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); },
                                         LinkedHashMap::new)),

@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -379,7 +378,7 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
-    public void test_get_batch_search_by_uuid() {
+    public void test_get_batch_search_by_uuid_with_queries() {
         BatchSearch search = new BatchSearch(singletonList(project("prj")), "name1", "description1", asSet("q1", "q2"), User.local());
         repository.save(search);
 
@@ -387,6 +386,16 @@ public class JooqBatchSearchRepositoryTest {
 
         assertThat(batchSearch).isNotNull();
         assertThat(batchSearch.queries).hasSize(2);
+    }
+
+    @Test
+    public void test_get_batch_search_by_uuid_without_queries() {
+        BatchSearch search = new BatchSearch(singletonList(project("prj")), "name1", "description1", asSet("q1", "q2"), User.local());
+        repository.save(search);
+        BatchSearch batchSearch = repository.get(User.local(), search.uuid, false);
+        assertThat(batchSearch).isNotNull();
+        assertThat(batchSearch.queries).hasSize(0);
+        assertThat(batchSearch.getNbQueries()).isEqualTo(2);
     }
 
     @Test

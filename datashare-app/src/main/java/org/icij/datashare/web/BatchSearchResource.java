@@ -29,7 +29,6 @@ import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static net.codestory.http.payload.Payload.*;
 import static org.icij.datashare.CollectionUtils.asSet;
-import static org.icij.datashare.text.Project.project;
 
 @Singleton
 @Prefix("/api/batch")
@@ -312,6 +311,9 @@ public class BatchSearchResource {
     public List<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {
         return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
     }
+
+    @Get("/search/result/:batchid/query?from=&to=")
+
 
     /**
      * Retrieve the results of a batch search as a CSV file.
