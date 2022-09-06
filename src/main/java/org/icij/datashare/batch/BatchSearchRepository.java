@@ -8,6 +8,7 @@ import org.icij.datashare.user.User;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static java.util.Collections.unmodifiableList;
@@ -34,7 +35,7 @@ public interface BatchSearchRepository extends Closeable {
     BatchSearch get(User user, String batchId);
     BatchSearch get(User user, String batchId, boolean withQueries);
 
-    List<String> getQueries(User user, String batchId, int from, int size);
+    Map<String,Integer> getQueries(User user, String batchId, int from, int size, String search, String orderBy);
 
     boolean reset(String batchId);
 
