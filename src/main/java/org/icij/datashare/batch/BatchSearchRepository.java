@@ -52,6 +52,7 @@ public interface BatchSearchRepository extends Closeable {
         public final List<String> batchDate;
         public final List<String> state;
         public final String publishState;
+        public final boolean withQueries;
 
         @JsonCreator
         public WebQuery(@JsonProperty("size") int size, @JsonProperty("from") int from,
@@ -59,7 +60,7 @@ public interface BatchSearchRepository extends Closeable {
                         @JsonProperty("query") String query, @JsonProperty("field") String field,
                         @JsonProperty("queries") List<String> queries, @JsonProperty("project") List<String> project,
                         @JsonProperty("batchDate") List<String> batchDate, @JsonProperty("state") List<String> state,
-                        @JsonProperty("publishState") String publishState) {
+                        @JsonProperty("publishState") String publishState, @JsonProperty("withQueries") boolean withQueries) {
             this.size = size;
             this.from = from;
             this.sort = sort == null ? DEFAULT_SORT_FIELD : sort;
@@ -71,14 +72,15 @@ public interface BatchSearchRepository extends Closeable {
             this.batchDate = batchDate == null ? null: unmodifiableList(batchDate);
             this.state = state == null ? null: unmodifiableList(state);
             this.publishState = publishState;
+            this.withQueries = withQueries;
         }
 
-        public WebQuery(int size, int from) { this(size, from, null, null, "*", "all", null, null, null, null, null);}
-        public WebQuery() { this(0, 0, null, null, "*", "all", null, null, null, null, null);}
+        public WebQuery(int size, int from) { this(size, from, null, null, "*", "all", null, null, null, null, null, false);}
+        public WebQuery() { this(0, 0, null, null, "*", "all", null, null, null, null, null, false);}
 
         // for tests
         public WebQuery(String sort, String order, String query, String field) {
-            this(0, 0, sort, order, query, field, null,null,null,null,null);
+            this(0, 0, sort, order, query, field, null,null,null,null,null, false);
         }
 
         public WebQuery(String query, String field) {
@@ -86,11 +88,11 @@ public interface BatchSearchRepository extends Closeable {
         }
 
         public WebQuery(List<String> queries) {
-            this(0, 0, null, null,"*","all", queries,null,null,null, null);
+            this(0, 0, null, null,"*","all", queries,null,null,null, null, false);
         }
 
         public WebQuery(List<String> project, List<String> batchDate, List<String> state, String publishState) {
-            this(0, 0, null, null,"*","all", null, project, batchDate, state, publishState);
+            this(0, 0, null, null,"*","all", null, project, batchDate, state, publishState, false);
         }
 
         @Override
