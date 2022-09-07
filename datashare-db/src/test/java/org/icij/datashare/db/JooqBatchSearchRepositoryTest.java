@@ -521,10 +521,20 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q1", 0));
 
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null)).hasSize(1);
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null).keySet().stream().findFirst().get()).isEqualTo("q2");
-        assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1, null, null).keySet().stream().findFirst().get()).isEqualTo("q1");
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 2, null, null)).hasSize(1);
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null)).hasSize(2);
+    }
+    @Test
+    public void test_get_batch_search_queries_order(){
+        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
+                new LinkedHashSet<String>() {{add("q2");add("q1");}}, new Date(), State.RUNNING, User.local());
+        repository.save(batchSearch);
+
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null);
+        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q2");
+
+        queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1, null, null);
+        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q1");
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -550,8 +560,13 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
                 new LinkedHashSet<String>() {{add("q2"); add("q1");}}, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
-        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, null, "query").keySet().stream().findFirst().get()).isEqualTo("q1");
-        assertThat(repository.getQueries(User.local(), "uuid", 0, 0, null, "query_number").keySet().stream().findFirst().get()).isEqualTo("q2");
+
+        Map<String, Integer> queries = repository.getQueries(User.local(), "uuid", 0, 0, null, "query");
+        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q1");
+
+        queries = repository.getQueries(User.local(), "uuid", 0, 0, null, "query_number");
+        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q2");
+
     }
 
     @Test(expected = DataAccessException.class)
