@@ -526,15 +526,25 @@ public class JooqBatchSearchRepositoryTest {
     }
     @Test
     public void test_get_batch_search_queries_order(){
+        LinkedHashSet<String> queryList = new LinkedHashSet<String>() {{
+            add("q3");
+            add("q4");
+        }};
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
-                new LinkedHashSet<String>() {{add("q2");add("q1");}}, new Date(), State.RUNNING, User.local());
+                queryList, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
+        Map<String, Integer> queriesNaturalOrder = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null);
+        System.out.println("***************** QUERY LIST "+queryList+ " CURRENT QUERY natural q3 q4 "+queriesNaturalOrder);
 
         Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null);
-        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q2");
+        System.out.println("***************** QUERY LIST "+queryList+ " CURRENT QUERY q3 "+queries);
+
+        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q3");
 
         queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1, null, null);
-        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q1");
+        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q4");
+        System.out.println("***************** QUERY LIST "+queryList+ " CURRENT QUERY q4 "+queries);
+
     }
 
     @Test(expected = IllegalArgumentException.class)
