@@ -12,6 +12,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -22,7 +24,6 @@ import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.CollectionUtils.asSet;
-import static org.icij.datashare.Entity.LOGGER;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 
@@ -525,6 +526,8 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 2, null, null)).hasSize(1);
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null)).hasSize(2);
     }
+
+    static Logger logger = LoggerFactory.getLogger(JooqBatchSearchRepositoryTest.class);
     @Test
     public void test_get_batch_search_queries_order(){
         LinkedHashSet<String> queryList = new LinkedHashSet<String>() {{
@@ -535,16 +538,20 @@ public class JooqBatchSearchRepositoryTest {
                 queryList, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
         Map<String, Integer> queriesNaturalOrder = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null);
-        LOGGER.info("***************** QUERY LIST "+queryList+ " CURRENT QUERY natural q4 q3 "+queriesNaturalOrder);
+
+        logger.info("***************** QUERY LIST "+queryList+ " CURRENT QUERY natural q4 q3 "+queriesNaturalOrder);
+        Iterator<Entry<String, Integer>> iterator = queriesNaturalOrder.entrySet().iterator();
+        assertThat(iterator.next().getKey()).isEqualTo("q4");
+        assertThat(iterator.next().getKey()).isEqualTo("q3");
 
         Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null);
-        LOGGER.info("***************** QUERY LIST "+queryList+ " CURRENT QUERY q4 "+queries);
+        logger.info("***************** QUERY LIST "+queryList+ " CURRENT QUERY q4 "+queries);
 
         assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q4");
 
         queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1, null, null);
         assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q3");
-        LOGGER.info("***************** QUERY LIST "+queryList+ " CURRENT QUERY q3 "+queries);
+        logger.info("***************** QUERY LIST "+queryList+ " CURRENT QUERY q3 "+queries);
 
     }
 
