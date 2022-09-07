@@ -22,6 +22,7 @@ import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.CollectionUtils.asSet;
+import static org.icij.datashare.Entity.LOGGER;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 
@@ -527,23 +528,23 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_batch_search_queries_order(){
         LinkedHashSet<String> queryList = new LinkedHashSet<String>() {{
-            add("q3");
             add("q4");
+            add("q3");
         }};
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
                 queryList, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
         Map<String, Integer> queriesNaturalOrder = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null);
-        System.out.println("***************** QUERY LIST "+queryList+ " CURRENT QUERY natural q3 q4 "+queriesNaturalOrder);
+        LOGGER.info("***************** QUERY LIST "+queryList+ " CURRENT QUERY natural q4 q3 "+queriesNaturalOrder);
 
         Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null);
-        System.out.println("***************** QUERY LIST "+queryList+ " CURRENT QUERY q3 "+queries);
+        LOGGER.info("***************** QUERY LIST "+queryList+ " CURRENT QUERY q4 "+queries);
 
-        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q3");
+        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q4");
 
         queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1, null, null);
-        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q4");
-        System.out.println("***************** QUERY LIST "+queryList+ " CURRENT QUERY q4 "+queries);
+        assertThat(queries.entrySet().iterator().next().getKey()).isEqualTo("q3");
+        LOGGER.info("***************** QUERY LIST "+queryList+ " CURRENT QUERY q3 "+queries);
 
     }
 
