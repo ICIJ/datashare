@@ -533,40 +533,6 @@ public class JooqBatchSearchRepositoryTest {
         }
         return entry;
     }
-    @Test
-    public void test_get_batch_search_queries_order(){
-        LinkedHashSet<String> queryList = new LinkedHashSet<String>() {{
-            add("q4");
-            add("q3");
-            add("q2");
-        }};
-        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
-                queryList, new Date(), State.RUNNING, User.local());
-        repository.save(batchSearch);
-        Map<String, Integer> queriesNaturalOrder = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null);
-
-        Entry<String, Integer> entry = GetEntry(queriesNaturalOrder,0);
-        assertThat(entry.getKey()).isEqualTo("q4");
-        assertThat(entry.getValue()).isEqualTo(0);
-
-        entry = GetEntry(queriesNaturalOrder,1);
-        assertThat(entry.getKey()).isEqualTo("q3");
-        assertThat(entry.getValue()).isEqualTo(0);
-
-        entry = GetEntry(queriesNaturalOrder,2);
-        assertThat(entry.getKey()).isEqualTo("q2");
-        assertThat(entry.getValue()).isEqualTo(0);
-
-        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 1, null, null);
-        entry = GetEntry(queries,0);
-        assertThat(entry.getValue()).isEqualTo(0);
-        assertThat(entry.getKey()).isEqualTo("q4");
-
-        queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 1, null, null);
-        entry = GetEntry(queries,0);
-        assertThat(entry.getValue()).isEqualTo(0);
-        assertThat(entry.getKey()).isEqualTo("q3");
-    }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_get_batch_search_queries_with_negative_from_is_illegal() {
