@@ -211,8 +211,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (search != null) statement.and(BATCH_SEARCH_QUERY.QUERY.contains(search));
         if (orderBy != null) statement.orderBy(field(orderBy).asc());
 
-        if (size > 0) statement.limit(size);
         if (from > 0) statement.offset(from);
+        if (size > 0) statement.limit(size);
 
         return statement.fetch().stream().map(
                 r -> new AbstractMap.SimpleEntry<>(r.get("query", String.class), r.get("query_results", Integer.class))).collect(
