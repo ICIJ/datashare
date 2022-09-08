@@ -118,7 +118,7 @@ public class BatchSearchResource {
      * - from : if not provided it starts from 0
      * - size : if not provided all queries are returned from the "from" parameter
      * - search : if provided it will filter the queries accordingly
-     * - orderBy : field name to order by asc (if it does not exist it will return a 500 error)
+     * - orderBy : field name to order by asc, "query_number" by default (if it does not exist it will return a 500 error)
      *
      * @param batchId
      * @return 200 and the batch search queries map [(query, nbResults), ...]

@@ -208,11 +208,19 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 .select()
                 .from(BATCH_SEARCH_QUERY)
                 .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchId));
-        if (search != null) statement.and(BATCH_SEARCH_QUERY.QUERY.contains(search));
-        if (orderBy != null) statement.orderBy(field(orderBy).asc());
+        if (search != null) {
+            statement.and(BATCH_SEARCH_QUERY.QUERY.contains(search));
+        }
+        if (orderBy != null) {
+            statement.orderBy(field(orderBy).asc());
+        } else {
+            statement.orderBy(BATCH_SEARCH_QUERY.QUERY_NUMBER.asc());
+        }
 
-        if (from > 0) statement.offset(from);
-        if (size > 0) statement.limit(size);
+        if (size > 0) {
+            statement.limit(size);
+        }
+        statement.offset(from);
 
         return statement.fetch().stream().map(
                 r -> new AbstractMap.SimpleEntry<>(r.get("query", String.class), r.get("query_results", Integer.class))).collect(
