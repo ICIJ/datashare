@@ -58,7 +58,7 @@ A bit of explanation :
 
 Then query with curl the server with : 
 
-    curl -i localhost:8080/ner/findNames/CORENLP --data-binary @path/to/a/file.txt
+    curl -i localhost:8080/api/ner/findNames/CORENLP --data-binary @path/to/a/file.txt
 
 The last path part (CORENLP) is the framework. You can choose it among CORENLP, IXAPIPE, MITIE or OPENNLP.    
 
