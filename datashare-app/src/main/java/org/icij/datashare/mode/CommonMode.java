@@ -93,7 +93,6 @@ public class CommonMode extends AbstractModule {
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
-        bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
 
         String batchQueueType = propertiesProvider.get("batchQueueType").orElse("org.icij.datashare.extract.MemoryBlockingQueue");
         bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(
@@ -124,6 +123,10 @@ public class CommonMode extends AbstractModule {
         bind(DataBus.class).toInstance(dataBus);
         bind(Publisher.class).toInstance(dataBus);
 
+        feedPipelineRegistry();
+    }
+
+    void feedPipelineRegistry() {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);
         pipelineRegistry.register(Pipeline.Type.CORENLP);
@@ -133,6 +136,7 @@ public class CommonMode extends AbstractModule {
             LoggerFactory.getLogger(getClass()).info("extensions dir not found " + e.getMessage());
         }
         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
+        bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
     }
 
     public Properties properties() {

@@ -1,9 +1,7 @@
 package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
-import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.web.NerResource;
 
 import java.util.Properties;
@@ -13,7 +11,7 @@ public class NerMode extends CommonMode {
 
     @Override
     protected void configure() {
-        bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
+        feedPipelineRegistry();
     }
 
     @Override
