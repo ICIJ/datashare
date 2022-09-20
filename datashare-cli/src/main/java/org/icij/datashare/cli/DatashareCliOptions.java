@@ -458,7 +458,8 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList(BATCH_DOWNLOAD_MAX_NB_FILES), "Maximum file number that can be archived in a zip (Default 10,000)")
                 .withRequiredArg()
-                .ofType(Integer.class);
+                .ofType(Integer.class)
+                .defaultsTo(10000);
     }
 
     public static void batchDownloadEncrypt(OptionParser parser) {
