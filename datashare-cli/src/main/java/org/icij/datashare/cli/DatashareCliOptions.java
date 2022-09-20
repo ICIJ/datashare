@@ -451,7 +451,8 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList(BATCH_DOWNLOAD_ZIP_TTL), "Time to live in hour for batch download zip files (Default 24)")
                 .withRequiredArg()
-                .ofType(Integer.class);
+                .ofType(Integer.class)
+                .defaultsTo(24);
     }
 
     public static void batchDownloadMaxNbFiles(OptionParser parser) {
@@ -480,7 +481,9 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList(BATCH_DOWNLOAD_MAX_SIZE), "Maximum total files size that can be zipped. Human readable suffix K/M/G for KB/MB/GB (Default 100M)")
                 .withRequiredArg()
-                .withValuesConvertedBy(regex("[0-9]+[KMG]?"));
+                .withValuesConvertedBy(regex("[0-9]+[KMG]?"))
+                .defaultsTo("100M");
+
     }
 
     public static void maxContentLength(OptionParser parser) {

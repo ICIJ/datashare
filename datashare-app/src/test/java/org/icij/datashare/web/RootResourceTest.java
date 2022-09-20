@@ -25,6 +25,14 @@ public class RootResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_public_config_for_batch_download_max_size() {
+        get("/settings").should()
+                    .respond(200)
+                    .haveType("application/json")
+                    .contain("batchDownloadMaxSize");
+    }
+
+    @Test
     public void test_get_version() {
         get("/version").should().respond(200);
     }
