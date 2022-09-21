@@ -216,7 +216,7 @@ public class TaskResource {
      */
     @Post("/batchUpdate/scan/:filePath:")
     public TaskView<Long> scanFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
-        Path path = IS_OS_WINDOWS ?  get(filePath):get(File.separator, filePath);
+        Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
         return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
                 propertiesProvider.createOverriddenWith(optionsWrapper.getOptions())));
     }
