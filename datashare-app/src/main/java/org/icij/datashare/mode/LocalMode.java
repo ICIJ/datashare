@@ -27,6 +27,7 @@ public class LocalMode extends CommonMode {
     protected Routes addModeConfiguration(Routes routes) {
         return routes.
                 add(TaskResource.class).
+                add(TreeResource.class).
                 add(IndexResource.class).
                 add(UserResource.class).
                 add(NamedEntityResource.class).
