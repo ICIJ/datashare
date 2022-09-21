@@ -24,6 +24,7 @@ import static java.util.Arrays.asList;
 import static net.codestory.http.payload.Payload.notFound;
 import static net.codestory.http.payload.Payload.forbidden;
 import static net.codestory.http.payload.Payload.badRequest;
+import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 
 @Singleton
 @Prefix("/api/tree")
@@ -52,7 +53,8 @@ public class TreeResource {
      */
     @Get(":dirPath:")
     public Payload getTree(final String dirPath) throws IOException {
-        File dir = new File('/' + dirPath);
+        Path path = IS_OS_WINDOWS ?  Paths.get(dirPath) : Paths.get(File.separator, dirPath);
+        File dir = path.toFile();
         if (!dir.exists()) { return notFound(); }
         if (!dir.isDirectory()) { return badRequest(); }
         if (!isAllowed(dir)) { return forbidden(); }
