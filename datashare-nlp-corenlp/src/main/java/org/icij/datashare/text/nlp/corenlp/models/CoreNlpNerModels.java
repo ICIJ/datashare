@@ -85,6 +85,8 @@ public class CoreNlpNerModels extends CoreNlpModels<AbstractSequenceClassifier<C
         modelNames.put(FRENCH, "ner/french-wikiner-4class.crf.ser.gz");
         modelNames.put(CHINESE, "ner/chinese.misc.distsim.crf.ser.gz");
         modelNames.put(GERMAN, "ner/german.distsim.crf.ser.gz");
+        modelNames.put(HUNGARIAN, "ner/hungarian.crf.ser.gz");
+        modelNames.put(ITALIAN, "ner/italian.crf.ser.gz");
     }
     @Override
     String getPropertyName() { return "ner.model";}
