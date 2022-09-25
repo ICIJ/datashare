@@ -13,7 +13,7 @@ import java.util.Map;
 import static java.util.Arrays.asList;
 
 public abstract class CoreNlpModels<T> extends AbstractModels<CoreNlpAnnotator<T>> {
-    static final String VERSION = "4.0.0";
+    static final String VERSION = "4.5.1";
     final Map<Language, String> modelNames = new HashMap<>();
     private static final String IN_JAR_BASE_PATH = "edu/stanford/nlp/models/";
 
