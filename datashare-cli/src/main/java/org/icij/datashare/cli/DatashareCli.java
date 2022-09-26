@@ -73,6 +73,7 @@ public class DatashareCli {
         DatashareCliOptions.enableBrowserOpenLink(parser);
         DatashareCliOptions.batchSearchMaxTime(parser);
         DatashareCliOptions.batchThrottle(parser);
+        DatashareCliOptions.batchSearchQueueType(parser);
         DatashareCliOptions.sessionStoreType(parser);
         DatashareCliOptions.batchDownloadTimeToLive(parser);
         DatashareCliOptions.batchDownloadMaxNbFiles(parser);
