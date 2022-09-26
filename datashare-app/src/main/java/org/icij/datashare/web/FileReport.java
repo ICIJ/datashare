@@ -2,6 +2,7 @@ package org.icij.datashare.web;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -21,7 +23,7 @@ class FileReport {
     protected final File file;
     @JsonIgnore
     private final BasicFileAttributes fileAttributes;
-    private final List<FileReport> children = new LinkedList<>();
+    private final TreeSet<FileReport> children = new TreeSet<>(Comparator.comparing(f -> f.file));
 
     public enum Type {
         DIRECTORY, FILE;
@@ -58,7 +60,7 @@ class FileReport {
         children.add(fileReport);
     }
 
-    public List<FileReport> getChildren() { return children; }
+    public List<FileReport> getChildren() { return new ArrayList<>(children); }
 
     public String getName() {
         return file.getPath();

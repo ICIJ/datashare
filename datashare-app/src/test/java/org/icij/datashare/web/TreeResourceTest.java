@@ -98,7 +98,7 @@ public class TreeResourceTest extends AbstractProdWebServerTest {
         JSONObject result = getJSON("/api/tree" + dirName);
         JSONArray children = (JSONArray) result.get("children");
         assertThat(children.size()).isEqualTo(3);
-        JSONObject firstChild = (JSONObject) children.get(2);
+        JSONObject firstChild = (JSONObject) children.get(0);
         assertThat(firstChild.get("name")).isEqualTo(dirName + "doc.txt");
         assertThat(firstChild.get("type")).isEqualTo("file");
         assertThat(firstChild.get("size").toString()).isEqualTo("28");
