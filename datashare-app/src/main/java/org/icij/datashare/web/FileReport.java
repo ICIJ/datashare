@@ -82,16 +82,21 @@ class FileReport {
         if (fileAttributes instanceof PosixFileAttributes) {
             return PosixFilePermissions.toString(((PosixFileAttributes) fileAttributes).permissions());
         } else if (fileAttributes instanceof DosFileAttributes){
-            StringBuilder sb = new StringBuilder(9);
-            if (((DosFileAttributes) fileAttributes).isReadOnly()) {
-                sb.append('r');
-            } else {
-                sb.append('w');
-            }
-            return sb.toString();
+            return dosFileAttributeToString((DosFileAttributes)fileAttributes);
         } else {
             throw new IllegalStateException("Unknown file attributes : " + fileAttributes);
         }
+    }
+
+    @NotNull
+    private String dosFileAttributeToString(DosFileAttributes fileAttributes) {
+        StringBuilder sb = new StringBuilder(9);
+        if (fileAttributes.isReadOnly()) {
+            sb.append('r');
+        } else {
+            sb.append('w');
+        }
+        return sb.toString();
     }
 
     static class FileReportVisitor extends SimpleFileVisitor<Path> {
