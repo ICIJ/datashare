@@ -20,12 +20,10 @@ import java.nio.file.attribute.PosixFilePermissions;
 public abstract class AbstractFileReport {
     public enum Type {
         DIRECTORY, FILE;
-
         @JsonValue
         public String toValue() {
             return name().toLowerCase();
         }
-
     }
     @JsonIgnore
     protected final File file;

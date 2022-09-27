@@ -20,7 +20,7 @@ public class DirectoryFileReport extends AbstractFileReport {
         contents.add(fileReport);
     }
 
-    public List<AbstractFileReport> getContents() { return new ArrayList<>(contents); }
+    public List<AbstractFileReport> getContents() { return new LinkedList<>(contents); }
 
     @Override
     public Type getType() { return Type.DIRECTORY; }
