@@ -21,27 +21,27 @@ public class FileReportTest {
 
     @Test
     public void test_report_for_directory() throws IOException {
-        assertThat(new DirectoryFileReport(getFile("docs")).getProt()).isEqualTo("drwxr-xr-x");
+        assertThat(new DirectoryReport(getFile("docs")).getProt()).isEqualTo("drwxr-xr-x");
     }
 
     @Test
     public void test_get_type_for_directory() throws IOException {
-        assertThat(new DirectoryFileReport(getFile("app")).getType()).isEqualTo(DIRECTORY);
+        assertThat(new DirectoryReport(getFile("app")).getType()).isEqualTo(DIRECTORY);
     }
 
     @Test
     public void test_get_type_for_file() throws IOException {
-        assertThat(new FileReport(getFile("extensions.json")).getType()).isEqualTo(DirectoryFileReport.Type.FILE);
+        assertThat(new FileReport(getFile("extensions.json")).getType()).isEqualTo(DirectoryReport.Type.FILE);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_add_children_on_directory_that_is_not_parent() throws IOException {
-        new DirectoryFileReport(getFile("docs")).add(new DirectoryFileReport(getFile("email.eml")));
+        new DirectoryReport(getFile("docs")).add(new DirectoryReport(getFile("email.eml")));
     }
 
     @Test
     public void test_add_children_on_directory() throws IOException {
-        DirectoryFileReport fr = new DirectoryFileReport(getFile("docs"));
+        DirectoryReport fr = new DirectoryReport(getFile("docs"));
         fr.add(new FileReport(getFile("docs/doc.txt")));
         assertThat(fr.getContents()).hasSize(1);
     }
@@ -49,33 +49,33 @@ public class FileReportTest {
     @Test
     public void test_file_report_visitor_with_depth_one() throws IOException {
         File docs = getFile("docs");
-        DirectoryFileReport rootReport = new DirectoryFileReport(docs);
+        DirectoryReport rootReport = new DirectoryReport(docs);
         Files.walkFileTree(docs.toPath(), new FileReportVisitor(rootReport));
         List<AbstractFileReport> children = rootReport.getContents();
         assertThat(children).hasSize(3);
         assertThat(children.get(2).file.getName()).isEqualTo("foo");
         assertThat(children.get(2).getType()).isEqualTo(DIRECTORY);
-        assertThat(((DirectoryFileReport)children.get(2)).getContents()).hasSize(0);
+        assertThat(((DirectoryReport)children.get(2)).getContents()).hasSize(0);
     }
 
     @Test
     public void test_file_report_visitor_with_depth() throws IOException {
         File docs = getFile("docs");
-        DirectoryFileReport rootReport = new DirectoryFileReport(docs);
+        DirectoryReport rootReport = new DirectoryReport(docs);
         Files.walkFileTree(docs.toPath(), new FileReportVisitor(rootReport, 2));
         assertThat(rootReport.getContents()).hasSize(3);
         assertThat(rootReport.getContents().get(1).file.getName()).isEqualTo("embedded_doc.eml");
         assertThat(rootReport.getContents().get(1).fileProt()).isEqualTo("rw-r--r--");
 
         assertThat(rootReport.getContents().get(2).file.getName()).isEqualTo("foo");
-        assertThat(((DirectoryFileReport)rootReport.getContents().get(2)).getContents()).hasSize(1);
-        assertThat(((DirectoryFileReport)rootReport.getContents().get(2)).getContents().get(0).file.getName()).isEqualTo("bar.txt");
+        assertThat(((DirectoryReport)rootReport.getContents().get(2)).getContents()).hasSize(1);
+        assertThat(((DirectoryReport)rootReport.getContents().get(2)).getContents().get(0).file.getName()).isEqualTo("bar.txt");
     }
 
     @Test
     public void test_get_name() throws IOException {
-        assertThat(new DirectoryFileReport(getFile("extensions.json")).getName()).endsWith("datashare/datashare-app/target/test-classes/extensions.json");
-        assertThat(new DirectoryFileReport(getFile("data")).getName()).endsWith("datashare/datashare-app/target/test-classes/data");
+        assertThat(new DirectoryReport(getFile("extensions.json")).getName()).endsWith("datashare/datashare-app/target/test-classes/extensions.json");
+        assertThat(new DirectoryReport(getFile("data")).getName()).endsWith("datashare/datashare-app/target/test-classes/data");
     }
 
     @NotNull

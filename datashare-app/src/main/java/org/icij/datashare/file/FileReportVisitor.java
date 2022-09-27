@@ -8,11 +8,11 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Stack;
 
 public class FileReportVisitor extends SimpleFileVisitor<Path> {
-    private final Stack<DirectoryFileReport> dirStack = new Stack<>();
+    private final Stack<DirectoryReport> dirStack = new Stack<>();
     private final int depth;
 
-    public FileReportVisitor(DirectoryFileReport root) { this(root, 1); }
-    public FileReportVisitor(DirectoryFileReport root, int depth) {
+    public FileReportVisitor(DirectoryReport root) { this(root, 1); }
+    public FileReportVisitor(DirectoryReport root, int depth) {
         this.depth = depth;
         dirStack.push(root);
     }
@@ -28,7 +28,7 @@ public class FileReportVisitor extends SimpleFileVisitor<Path> {
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
         if (!dir.toFile().equals(dirStack.peek().file)) {
             // we'd like to call FileReport(dir.toFile(), attrs) but in that case they are BasicFileAttributes
-            DirectoryFileReport dirReport = new DirectoryFileReport(dir.toFile());
+            DirectoryReport dirReport = new DirectoryReport(dir.toFile());
             dirStack.peek().add(dirReport);
             if (dirStack.size() < depth) {
                 dirStack.push(dirReport);

@@ -7,11 +7,11 @@ import java.util.*;
 
 import static java.lang.String.format;
 
-public class DirectoryFileReport extends AbstractFileReport {
+public class DirectoryReport extends AbstractFileReport {
     private final TreeSet<AbstractFileReport> contents = new TreeSet<>(Comparator.comparing(f -> f.file));
 
-    public DirectoryFileReport(File file) throws IOException { super(file); }
-    public DirectoryFileReport(File file, BasicFileAttributes fileAttributes) { super(file, fileAttributes); }
+    public DirectoryReport(File file) throws IOException { super(file); }
+    public DirectoryReport(File file, BasicFileAttributes fileAttributes) { super(file, fileAttributes); }
 
     public void add(AbstractFileReport fileReport) {
         if (!file.equals(fileReport.file.getParentFile())) {

@@ -9,7 +9,7 @@ import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.NotFoundException;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.file.DirectoryFileReport;
+import org.icij.datashare.file.DirectoryReport;
 import org.icij.datashare.file.FileReportVisitor;
 
 import java.io.File;
@@ -45,7 +45,7 @@ public class TreeResource {
      * Example $(curl -XGET localhost:8080/api/tree/home/datashare/data)
      */
     @Get(":dirPath:")
-    public DirectoryFileReport getTree(final String dirPath, Context context) throws IOException {
+    public DirectoryReport getTree(final String dirPath, Context context) throws IOException {
         Path path = IS_OS_WINDOWS ?  Paths.get(dirPath) : Paths.get(File.separator, dirPath);
         int depth = parseInt(ofNullable(context.get("depth")).orElse("0"));
         File dir = path.toFile();
@@ -55,8 +55,8 @@ public class TreeResource {
         return tree(path, depth);
     }
 
-    private DirectoryFileReport tree(Path dir, int depth) throws IOException {
-        DirectoryFileReport rootReport = new DirectoryFileReport(dir.toFile());
+    private DirectoryReport tree(Path dir, int depth) throws IOException {
+        DirectoryReport rootReport = new DirectoryReport(dir.toFile());
         Files.walkFileTree(dir, new FileReportVisitor(rootReport, depth));
         return rootReport;
     }
