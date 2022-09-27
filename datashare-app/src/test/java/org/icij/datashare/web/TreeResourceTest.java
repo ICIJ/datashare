@@ -88,7 +88,7 @@ public class TreeResourceTest extends AbstractProdWebServerTest {
     public void test_get_files_tree_in_docs_directory_as_list_with_three_children () throws ParseException {
         String dirName = getClass().getResource("/docs/").getPath();
         JSONObject result = getJSON("/api/tree" + dirName);
-        JSONArray children = (JSONArray) result.get("children");
+        JSONArray children = (JSONArray) result.get("contents");
         assertThat(children).hasSize(3);
     }
 
@@ -96,14 +96,14 @@ public class TreeResourceTest extends AbstractProdWebServerTest {
     public void test_get_files_tree_in_docs_directory_as_list_with_a_child_file () throws ParseException {
         String dirName = getClass().getResource("/docs/").getPath();
         JSONObject result = getJSON("/api/tree" + dirName);
-        JSONArray children = (JSONArray) result.get("children");
+        JSONArray children = (JSONArray) result.get("contents");
         assertThat(children.size()).isEqualTo(3);
+        System.out.println(children);
         JSONObject firstChild = (JSONObject) children.get(0);
         assertThat(firstChild.get("name")).isEqualTo(dirName + "doc.txt");
         assertThat(firstChild.get("type")).isEqualTo("file");
         assertThat(firstChild.get("size").toString()).isEqualTo("28");
-        // for now we put children for each node
-        // assertThat(firstChild.get("children")).isNull();
+        assertThat(firstChild.get("contents")).isNull();
     }
 
     private JSONObject getJSON(String url) throws ParseException {

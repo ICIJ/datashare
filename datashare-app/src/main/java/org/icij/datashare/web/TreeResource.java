@@ -8,26 +8,16 @@ import net.codestory.http.annotations.Prefix;
 import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.errors.NotFoundException;
-import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.file.DirectoryFileReport;
+import org.icij.datashare.file.FileReportVisitor;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.*;
-import java.nio.file.attribute.PosixFileAttributes;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.util.*;
-import java.util.function.BiFunction;
 
 import static java.lang.Integer.parseInt;
-import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
-import static net.codestory.http.payload.Payload.notFound;
-import static net.codestory.http.payload.Payload.forbidden;
-import static net.codestory.http.payload.Payload.badRequest;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 
 @Singleton
@@ -55,7 +45,7 @@ public class TreeResource {
      * Example $(curl -XGET localhost:8080/api/tree/home/datashare/data)
      */
     @Get(":dirPath:")
-    public FileReport getTree(final String dirPath, Context context) throws IOException {
+    public DirectoryFileReport getTree(final String dirPath, Context context) throws IOException {
         Path path = IS_OS_WINDOWS ?  Paths.get(dirPath) : Paths.get(File.separator, dirPath);
         int depth = parseInt(ofNullable(context.get("depth")).orElse("0"));
         File dir = path.toFile();
@@ -65,9 +55,9 @@ public class TreeResource {
         return tree(path, depth);
     }
 
-    private FileReport tree(Path dir, int depth) throws IOException {
-        FileReport rootReport = new FileReport(dir.toFile());
-        Files.walkFileTree(dir, new FileReport.FileReportVisitor(rootReport, depth));
+    private DirectoryFileReport tree(Path dir, int depth) throws IOException {
+        DirectoryFileReport rootReport = new DirectoryFileReport(dir.toFile());
+        Files.walkFileTree(dir, new FileReportVisitor(rootReport, depth));
         return rootReport;
     }
 
