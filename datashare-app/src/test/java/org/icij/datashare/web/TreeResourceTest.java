@@ -26,14 +26,6 @@ public class TreeResourceTest extends AbstractProdWebServerTest {
         configure(routes -> routes.add(new TreeResource(propertiesProvider)));
     }
 
-    public JSONArray getJSONArray (String url) throws ParseException {
-        RestAssert request = get(url);
-        request.should().respond(200);
-        String jsonString = request.response().content();
-        JSONParser parser = new JSONParser();
-        return (JSONArray) parser.parse(jsonString);
-    }
-
     @Test
     public void test_reject_files_tree_with_doc_file () {
         String dirName = getClass().getResource("/docs/doc.txt").getPath();
@@ -65,69 +57,60 @@ public class TreeResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_files_tree_in_docs_directory_as_list () throws ParseException {
+    public void test_get_files_tree_in_docs_directory_returns_a_json_object() throws ParseException {
         String dirName = getClass().getResource("/docs/").getPath();
-        JSONArray results = getJSONArray("/api/tree" + dirName);
-        assertThat(results).hasSize(2);
+        get("/api/tree" + dirName).should().haveType("application/json").
+                should().not().contain("bar.txt");
+    }
+
+    @Test
+    public void test_get_files_tree_in_docs_directory_as_object_with_depth () throws ParseException {
+        String dirName = getClass().getResource("/docs/").getPath();
+        get("/api/tree" + dirName + "?depth=2").should().contain("bar.txt");
     }
 
     @Test
     public void test_get_files_tree_in_docs_directory_as_list_with_name () throws ParseException {
         String dirName = getClass().getResource("/docs/").getPath();
-        JSONArray results = getJSONArray("/api/tree" + dirName);
-        JSONObject firstDir = (JSONObject) results.get(0);
-        assertThat(firstDir.get("name") + File.separator).isEqualTo(dirName);
-        assertThat(firstDir.get("type")).isEqualTo("directory");
+        JSONObject result = getJSON("/api/tree" + dirName);
+        assertThat(result.get("name") + File.separator).isEqualTo(dirName);
+        assertThat(result.get("type")).isEqualTo("directory");
     }
 
     @Test
     public void test_get_files_tree_in_docs_directory_as_list_with_type () throws ParseException {
         String dirName = getClass().getResource("/docs/").getPath();
-        JSONArray results = getJSONArray("/api/tree" + dirName);
-        JSONObject firstDir = (JSONObject) results.get(0);
-        assertThat(firstDir.get("type")).isEqualTo("directory");
+        JSONObject result = getJSON("/api/tree" + dirName);
+        assertThat(result.get("type")).isEqualTo("directory");
     }
-
 
     @Test
     public void test_get_files_tree_in_docs_directory_as_list_with_three_children () throws ParseException {
         String dirName = getClass().getResource("/docs/").getPath();
-        JSONArray results = getJSONArray("/api/tree" + dirName);
-        JSONObject firstDir = (JSONObject) results.get(0);
-        JSONArray children = (JSONArray) firstDir.get("children");
+        JSONObject result = getJSON("/api/tree" + dirName);
+        JSONArray children = (JSONArray) result.get("contents");
         assertThat(children).hasSize(3);
     }
 
     @Test
     public void test_get_files_tree_in_docs_directory_as_list_with_a_child_file () throws ParseException {
         String dirName = getClass().getResource("/docs/").getPath();
-        JSONArray results = getJSONArray("/api/tree" + dirName);
-        JSONObject firstDir = (JSONObject) results.get(0);
-        JSONArray children = (JSONArray) firstDir.get("children");
+        JSONObject result = getJSON("/api/tree" + dirName);
+        JSONArray children = (JSONArray) result.get("contents");
+        assertThat(children.size()).isEqualTo(3);
+        System.out.println(children);
         JSONObject firstChild = (JSONObject) children.get(0);
         assertThat(firstChild.get("name")).isEqualTo(dirName + "doc.txt");
         assertThat(firstChild.get("type")).isEqualTo("file");
         assertThat(firstChild.get("size").toString()).isEqualTo("28");
-        assertThat(firstChild.get("children")).isNull();
+        assertThat(firstChild.get("contents")).isNull();
     }
 
-    @Test
-    public void test_get_files_tree_with_a_report_in_docs () throws ParseException {
-        String dirName = getClass().getResource("/docs/").getPath();
-        JSONArray results = getJSONArray("/api/tree" + dirName);
-        JSONObject report = (JSONObject) results.get(1);
-        assertThat(report.get("type")).isEqualTo("report");
-        assertThat(report.get("directories").toString()).isEqualTo("1");
-        assertThat(report.get("files").toString()).isEqualTo("2");
-    }
-
-    @Test
-    public void test_get_files_tree_with_a_report_in_docs_foo () throws ParseException {
-        String dirName = getClass().getResource("/docs/foo/").getPath();
-        JSONArray results = getJSONArray("/api/tree" + dirName);
-        JSONObject report = (JSONObject) results.get(1);
-        assertThat(report.get("type")).isEqualTo("report");
-        assertThat(report.get("directories").toString()).isEqualTo("0");
-        assertThat(report.get("files").toString()).isEqualTo("1");
+    private JSONObject getJSON(String url) throws ParseException {
+        RestAssert request = get(url);
+        request.should().respond(200);
+        String jsonString = request.response().content();
+        JSONParser parser = new JSONParser();
+        return (JSONObject) parser.parse(jsonString);
     }
 }
