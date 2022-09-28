@@ -28,10 +28,9 @@
         </dependency>
         <!-- Stanford CoreNLP -->
         <dependency>
-            <groupId>com.github.ICIJ</groupId>
-            <artifactId>CoreNLP</artifactId>
-            <version>bcbfc59</version>
-            <type>jar</type>
+            <groupId>edu.stanford.nlp</groupId>
+            <artifactId>stanford-corenlp</artifactId>
+            <version>${corenlp.version}</version>
         </dependency>
 
         <!-- test dependencies -->
