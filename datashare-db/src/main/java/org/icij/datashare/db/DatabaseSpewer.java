@@ -15,7 +15,7 @@ import java.util.HashSet;
 
 import static java.lang.Long.valueOf;
 import static java.util.Optional.ofNullable;
-import static javax.ws.rs.core.HttpHeaders.CONTENT_ENCODING;
+import static org.apache.tika.metadata.HttpHeaders.CONTENT_ENCODING;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
 

@@ -76,7 +76,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <datashare-api.version>8.5.1</datashare-api.version>
+        <datashare-api.version>8.6.0</datashare-api.version>
 
         <datashare-cli.version>${project.version}</datashare-cli.version>
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
@@ -85,7 +85,7 @@
         <guice.version>4.1.0</guice.version>
         <amazon.version>1.11.327</amazon.version>
 
-        <extract.version>3.9.0</extract.version>
+        <extract.version>4.0.0</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>7.10.2</elasticsearch.version>
         <lucene.version>8.7.0</lucene.version>
@@ -101,8 +101,8 @@
         <joptsimple.version>6.0-alpha-3</joptsimple.version>
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.2.9</logback.version>
-        <log4jtoslf4j.version>2.14.0</log4jtoslf4j.version>
-        <log4-over-slf4j.version>2.14.0</log4-over-slf4j.version>
+        <log4jtoslf4j.version>2.17.2</log4jtoslf4j.version>
+        <log4-over-slf4j.version>2.17.2</log4-over-slf4j.version>
         <junit.version>4.13.1</junit.version>
 
         <!-- Maven Plugins -->

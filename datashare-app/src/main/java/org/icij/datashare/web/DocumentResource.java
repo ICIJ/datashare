@@ -6,7 +6,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
-import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
@@ -22,7 +21,6 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
-import ucar.httpservices.HTTPException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

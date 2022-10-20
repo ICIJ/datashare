@@ -1,7 +1,7 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.apache.tika.exception.TikaException;
-import org.apache.tika.parser.utils.CommonsDigester;
+import org.apache.tika.parser.digestutils.CommonsDigester;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Project;

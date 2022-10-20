@@ -19,6 +19,12 @@
        	    <artifactId>fluent-http</artifactId>
        	    <version>5aba37b</version>
             <type>jar</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-io</groupId>
+                    <artifactId>commons-io</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.github.scribejava</groupId>
