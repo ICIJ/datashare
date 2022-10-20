@@ -158,7 +158,7 @@ public class Document implements Entity {
     public Set<Pipeline.Type> getNerTags() { return nerTags;}
     public Set<Tag> getTags() { return tags;}
     public Date getCreationDate() {
-        String creationDate = (String) ofNullable(metadata).orElse(new HashMap<>()).get("tika_metadata_creation_date");
+        String creationDate = (String) ofNullable(metadata).orElse(new HashMap<>()).get("tika_metadata_dcterms_created");
         if (creationDate == null) return null;
         Instant instant = null;
         try {

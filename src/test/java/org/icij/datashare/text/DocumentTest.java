@@ -79,18 +79,18 @@ public class DocumentTest {
     @Test
     public void test_creation_date_without_zone() {
         assertThat(createDoc("name").with(new HashMap<String, Object>() {{
-            put("tika_metadata_creation_date", "2019-02-04T11:37:30.368441317");}}).build().getCreationDate()).isNotNull();
+            put("tika_metadata_dcterms_created", "2019-02-04T11:37:30.368441317");}}).build().getCreationDate()).isNotNull();
     }
 
     @Test
     public void test_creation_date_zoned() {
         assertThat(createDoc("name").with(new HashMap<String, Object>() {{
-            put("tika_metadata_creation_date", "2019-02-04T11:37:30Z");}}).build().getCreationDate()).isNotNull();
+            put("tika_metadata_dcterms_created", "2019-02-04T11:37:30Z");}}).build().getCreationDate()).isNotNull();
     }
 
     @Test
     public void test_creation_date_unparseable() {
         assertThat(createDoc("name").with(new HashMap<String, Object>() {{
-            put("tika_metadata_creation_date", "not a date");}}).build().getCreationDate()).isNull();
+            put("tika_metadata_dcterms_created", "not a date");}}).build().getCreationDate()).isNull();
     }
 }
