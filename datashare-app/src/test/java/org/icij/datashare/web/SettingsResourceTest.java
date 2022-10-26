@@ -54,4 +54,17 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
         patch("/api/settings", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
             withPreemptiveAuthentication("local", "pass").should().respond(403);
     }
+
+    @Test
+    public void test_list_ocr_languages() {
+        PropertiesProvider properties = new PropertiesProvider();
+        configure(routes -> routes.add(new SettingsResource(properties)));
+
+        get("/api/settings/ocr/languages")
+                .should()
+                .respond(200)
+                .contain("eng")
+                .contain("osd");
+    }
+
 }

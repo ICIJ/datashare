@@ -8,13 +8,17 @@ import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Patch;
 import net.codestory.http.annotations.Prefix;
 import net.codestory.http.payload.Payload;
+import org.apache.tika.exception.TikaConfigException;
+import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static net.codestory.http.payload.Payload.ok;
 
@@ -73,5 +77,17 @@ public class SettingsResource {
             return Payload.notFound();
         }
         return Payload.ok();
+    }
+
+    /**
+     * List all available language in Tesseract
+     * @return 200
+     */
+    @Get("/ocr/languages")
+    public Set<String> ocrLanguages() throws TikaConfigException {
+        TesseractOCRParser ocrParser = new TesseractOCRParser();
+        ocrParser.setPreloadLangs(true);
+        ocrParser.initialize(new HashMap<>());
+        return ocrParser.getLangs();
     }
 }
