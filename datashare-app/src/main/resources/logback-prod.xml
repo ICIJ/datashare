@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <contextName>production</contextName>
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d [%thread] %-5level %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
     <appender name="gelf" class="biz.paluch.logging.gelf.logback.GelfLogbackAppender">
         <host>${datashare.loghost}</host>
         <port>${datashare.logport:-5140}</port>
@@ -16,6 +21,7 @@
     </appender>
 
     <root level="INFO">
+        <appender-ref ref="stdout"/>
         <appender-ref ref="gelf" />
     </root>
 </configuration>
