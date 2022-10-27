@@ -13,6 +13,7 @@ import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.TikaDocument;
 import org.icij.spewer.FieldNames;
@@ -136,8 +137,12 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             logger.warn("document id {} extracted text will be truncated to {} bytes", document.getId(), maxContentLength);
             content = content.substring(0, maxContentLength).trim();
         }
+        if (document.getLanguage() == null) {
+            jsonDocument.put("language", languageGuesser.guess(content));
+        } else  {
+            jsonDocument.put("language", Language.parse(document.getLanguage()).toString());
+        }
         jsonDocument.put("contentTextLength", content.length());
-        jsonDocument.put("language", languageGuesser.guess(content));
         jsonDocument.put(ES_CONTENT_FIELD, content);
         return jsonDocument;
     }

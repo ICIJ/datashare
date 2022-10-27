@@ -46,8 +46,7 @@ import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDI
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
@@ -80,6 +79,79 @@ public class ElasticsearchSpewerTest {
         verify(publisher).publish(eq(Channel.NLP), argument.capture());
         assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
     }
+
+    @Test
+    public void test_write_with_correct_iso1_language() throws Exception {
+        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
+        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+            put("language", "zho");
+        }}));
+        TikaDocument document = new Extractor(documentFactory).extract(path);
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(
+                entry("language", "CHINESE")
+        );
+    }
+
+    @Test
+    public void test_write_with_correct_iso2_language() throws Exception {
+        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/jpn.txt")).getPath());
+        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+            put("language", "jpn");
+        }}));
+        TikaDocument document = new Extractor(documentFactory).extract(path);
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(
+                entry("language", "JAPANESE")
+        );
+    }
+
+    @Test
+    public void test_write_with_correct_language_name() throws Exception {
+        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/maltese.txt")).getPath());
+        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+            put("language", "Maltese");
+        }}));
+        TikaDocument document = new Extractor(documentFactory).extract(path);
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(
+                entry("language", "MALTESE")
+        );
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_write_with_incorrect_language() throws Exception {
+        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
+
+        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+            put("language", "foo");
+        }}));
+        TikaDocument document = new Extractor(documentFactory).extract(path);
+        spewer.write(document);
+    }
+
+    @Test
+    public void test_write_without_language() throws Exception {
+        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
+        TikaDocument document = new Extractor().extract(path);
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(
+                entry("language", "ENGLISH")
+        );
+    }
+
 
     @Test
     public void test_metadata() throws Exception {
