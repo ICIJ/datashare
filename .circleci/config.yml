@@ -43,10 +43,11 @@ jobs:
             sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
-            sudo apt-get install postgresql-client
+            sudo apt-get install -y postgresql-client
             echo "postgres:5432:test:test:test" > ~/.pgpass && chmod 600 ~/.pgpass
             psql -h postgres -U test test -c "CREATE DATABASE datashare;"
 
+      - run: sudo apt-get install -y tesseract-ocr-eng
       - run: mvn validate
       - run: mvn -pl commons-test -am install
       - run: mvn -pl datashare-db liquibase:update
