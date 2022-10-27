@@ -62,9 +62,7 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
 
         get("/api/settings/ocr/languages")
                 .should()
-                .respond(200)
-                .contain("eng")
-                .contain("osd");
+                .respond(200);
     }
 
 }
