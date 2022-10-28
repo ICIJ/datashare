@@ -12,13 +12,13 @@ import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.text.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Stream;
 
 import static net.codestory.http.payload.Payload.ok;
 
@@ -84,10 +84,46 @@ public class SettingsResource {
      * @return 200
      */
     @Get("/ocr/languages")
-    public Set<String> ocrLanguages() throws TikaConfigException {
+    public List<Map<String, String>> ocrLanguages() throws TikaConfigException {
         TesseractOCRParser ocrParser = new TesseractOCRParser();
         ocrParser.setPreloadLangs(true);
         ocrParser.initialize(new HashMap<>());
-        return ocrParser.getLangs();
+        return languageListToMap(ocrParser.getLangs());
+    }
+
+    /**
+     * List all available language in the text extractor
+     *
+     * @return 200
+     */
+    @Get("/text/languages")
+    public List<Map<String, String>> textLanguages() {
+        return languageListToMap(Language.values());
+    }
+
+    private List<Map<String, String>> languageListToMap (String[] languageStrings)  {
+        List<Map<String, String>> languages = new ArrayList<>();
+        for (String languageString : languageStrings) {
+            try {
+                Language language = Language.parse(languageString);
+                Map<String, String> lang = new HashMap<String, String>() {{
+                    put("iso6392", language.iso6392Code());
+                    put("name", language.name());
+                }};
+                languages.add(lang);
+            // Ignore unknown languages
+            } catch (IllegalArgumentException ignore) { }
+        }
+        return languages;
+    }
+
+
+    private List<Map<String, String>> languageListToMap (Language[] languages)  {
+        String[] languageStrings = Stream.of(languages).map(Language::name).toArray(String[]::new);
+        return languageListToMap(languageStrings);
+    }
+
+    private List<Map<String, String>> languageListToMap (Set<String> languages) {
+        return languageListToMap(languages.stream().toArray(String[]::new));
     }
 }

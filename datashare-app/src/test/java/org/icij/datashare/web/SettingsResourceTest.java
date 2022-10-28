@@ -65,4 +65,17 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
                 .respond(200);
     }
 
+    @Test
+    public void test_list_text_languages() {
+        PropertiesProvider properties = new PropertiesProvider();
+        configure(routes -> routes.add(new SettingsResource(properties)));
+
+        get("/api/settings/text/languages")
+                .should()
+                .respond(200)
+                .contain("FRENCH")
+                .contain("fra")
+                .contain("VIETNAMESE")
+                .contain("vie");
+    }
 }
