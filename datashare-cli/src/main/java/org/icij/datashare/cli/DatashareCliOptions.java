@@ -324,6 +324,14 @@ public final class DatashareCliOptions {
                 withRequiredArg().ofType(Boolean.class).defaultsTo(true);
     }
 
+    static void language(OptionParser parser) {
+        parser.acceptsAll(
+                asList("language", "l"),
+                "Explicitly specify language of indexed documents (instead of detecting automatically)")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
     static void nlpPipelines(OptionParser parser) {
         parser.acceptsAll(
                 asList(NLP_PIPELINES_OPT, "nlpp"),

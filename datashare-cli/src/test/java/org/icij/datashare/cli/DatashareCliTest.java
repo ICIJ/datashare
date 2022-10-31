@@ -76,4 +76,16 @@ public class DatashareCliTest {
     public void test_max_batch_download_size_illegal_value() {
         cli.asProperties(cli.createParser().parse("--batchDownloadMaxSize", "123A"), null);
     }
+
+    @Test
+    public void test_no_default_indexing_language_value() {
+        cli.parseArguments(new String[] {""});
+        assertThat(cli.properties).excludes(entry("language", null));
+    }
+
+    @Test
+    public void test_has_english_indexing_language_value() {
+        cli.parseArguments(new String[] {"--language", "ENGLISH"});
+        assertThat(cli.properties).includes(entry("language", "ENGLISH"));
+    }
 }
