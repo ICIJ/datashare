@@ -10,9 +10,9 @@ import org.mockito.Mockito;
 
 import java.util.HashMap;
 
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.local;
 import static org.icij.datashare.user.User.nullUser;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class IndexTaskTest {
@@ -53,7 +53,7 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         IndexTask indexTask = new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
         Options<String> options = indexTask.options();
-        assertTrue(options.toString().contains("ocr="));
+        assertThat(options.toString()).contains("ocr=");
     }
 
     @Test
@@ -61,7 +61,7 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         IndexTask indexTask = new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
         Options<String> options = indexTask.options();
-        assertTrue(options.toString().contains("ocrLanguage="));
+        assertThat(options.toString()).contains("ocrLanguage=");
     }
 
     @Test
@@ -70,6 +70,6 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         IndexTask indexTask = new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
         Options<String> options = indexTask.options();
-        assertTrue(options.toString().contains("language="));
+        assertThat(options.toString()).contains("language=");
     }
 }
