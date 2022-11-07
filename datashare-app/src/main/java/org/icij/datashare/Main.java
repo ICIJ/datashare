@@ -23,5 +23,6 @@ public class Main {
         } else {
             CliApp.start(cli.properties);
         }
+        LOGGER.info("exiting main");
     }
 }
