@@ -36,6 +36,7 @@ import static org.icij.datashare.com.Message.Field.VALUE;
 import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 
 @OptionsClass(Extractor.class)
+@OptionsClass(DocumentFactory.class)
 @OptionsClass(DocumentQueueDrainer.class)
 public class IndexTask extends PipelineTask implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());

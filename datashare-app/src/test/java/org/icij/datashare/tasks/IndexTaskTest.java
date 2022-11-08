@@ -65,10 +65,11 @@ public class IndexTaskTest {
     }
 
     @Test
-    @Ignore
     public void test_options_include_language() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        IndexTask indexTask = new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
+        IndexTask indexTask = new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
+            put("language",  "FRENCH");
+        }}).getProperties());
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("language=");
     }
