@@ -61,7 +61,7 @@ jobs:
 
   publish_doc:
     docker:
-      - image: circleci/openjdk:8-stretch
+      - image: circleci/openjdk:8-buster
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
            - "discovery.type=single-node"
@@ -122,7 +122,7 @@ jobs:
       - run:
           name: install postgres
           command: |
-            sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+            sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install postgresql-client
@@ -144,7 +144,7 @@ jobs:
 
   package_back:
     docker:
-      - image: circleci/openjdk:8-stretch
+      - image: circleci/openjdk:8-buster
     working_directory: /tmp/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
@@ -176,7 +176,7 @@ jobs:
 
   deploy_back:
     docker:
-      - image: circleci/openjdk:8-stretch
+      - image: circleci/openjdk:8-buster
     working_directory: /tmp
     steps:
       - attach_workspace:
