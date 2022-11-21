@@ -23,7 +23,7 @@ public class EsEmbeddedServerTest {
             };
             fail("should send IllegalArgument");
         } catch (IllegalArgumentException iae) {
-            assertThat(logbackCapturingRule.logs(Level.ERROR)).contains("Your index version on disk (data/path) doesn't seem to have the same version as the embedded Elasticsearch engine (7.10.2). Please migrate it with snapshots, or remove it then restart datashare.");
+            assertThat(logbackCapturingRule.logs(Level.ERROR)).contains("Your index version on disk (data/path) doesn't seem to have the same version as the embedded Elasticsearch engine (7.17.7). Please migrate it with snapshots, or remove it then restart datashare.");
         }
     }
 

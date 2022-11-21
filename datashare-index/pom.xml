@@ -13,6 +13,14 @@
     <artifactId>datashare-index</artifactId>
     <packaging>jar</packaging>
 
+    <repositories>
+        <repository>
+            <id>codelibs.org</id>
+            <name>CodeLibs Repository</name>
+            <url>https://maven.codelibs.org/</url>
+        </repository>
+    </repositories>
+
     <properties>
         <jna.version>4.1.0</jna.version>
     </properties>
