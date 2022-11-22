@@ -3,7 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import org.elasticsearch.Version;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.reindex.ReindexPlugin;
+import org.elasticsearch.index.reindex.ReindexPlugin;
 import org.elasticsearch.join.ParentJoinPlugin;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
