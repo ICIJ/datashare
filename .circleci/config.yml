@@ -365,7 +365,7 @@ workflows:
             - build_front
           filters:
             tags:
-              only: /^[0-9.]*/
+              only: /^[0-9]+\..*/
             branches:
               ignore: /.*/
       - deploy_back:
@@ -373,7 +373,7 @@ workflows:
             - package_back
           filters:
             tags:
-              only: /^[0-9.]*/
+              only: /^[0-9]+\..*/
             branches:
               ignore: /.*/
       - build_front:
@@ -381,7 +381,7 @@ workflows:
             - build_back
           filters:
               tags:
-                  only: /^[0-9.]*/
+                  only: /^[0-9]+\..*/
               branches:
                   ignore: /.*/
       - deploy_front:
@@ -389,7 +389,7 @@ workflows:
             - build_front
           filters:
             tags:
-              only: /^[0-9.]*/
+              only: /^[0-9]+\..*/
             branches:
               ignore: /.*/
       - build_docker:
@@ -397,7 +397,7 @@ workflows:
             - package_back
           filters:
               tags:
-                  only: /^[0-9.]*/
+                  only: /^[0-9]+\..*/
               branches:
                   ignore: /.*/
       - build_installers:
@@ -405,7 +405,7 @@ workflows:
             - build_docker
           filters:
               tags:
-                  only: /^[0-9.]*/
+                  only: /^[0-9]+\..*/
               branches:
                   ignore: /.*/
 
