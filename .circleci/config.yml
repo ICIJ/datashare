@@ -297,7 +297,7 @@ jobs:
 
   build_installers:
     docker:
-      - image: cimg/build-image
+      - image: circleci/build-image
     working_directory: /tmp
     steps:
       - attach_workspace:
