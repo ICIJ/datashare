@@ -297,7 +297,7 @@ jobs:
 
   build_installers:
     docker:
-      - image: cimg/rust:1.65.0
+      - image: cimg/build-image
     working_directory: /tmp
     steps:
       - attach_workspace:
@@ -310,7 +310,8 @@ jobs:
             wget https://github.com/hogliux/bomutils/archive/0.2.tar.gz && tar -zxf 0.2.tar.gz && cd bomutils-0.2 && make && make install
             wget https://github.com/downloads/mackyle/xar/xar-1.6.1.tar.gz && tar -zxf xar-1.6.1.tar.gz && cd xar-1.6.1 && ./configure && make && make install
             wget --no-check-certificate https://nsis.sourceforge.io/mediawiki/images/9/9d/Untgz.zip  && unzip Untgz.zip && cp untgz/untgz.dll /usr/share/nsis/Plugins/
-            cargo install apple-codesign
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source "$HOME/.cargo/env" && cargo install apple-codesign
       - run:
           name: adds_ssh_dir
           command: |
