@@ -297,7 +297,7 @@ jobs:
 
   build_installers:
     docker:
-      - image: cimg/rust
+      - image: cimg/rust:1.65.0
     working_directory: /tmp
     steps:
       - attach_workspace:
