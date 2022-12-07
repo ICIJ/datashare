@@ -191,6 +191,7 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-back.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.jar&label=datashare-dist-${CIRCLE_TAG}.jar"
 
   build_front:
+    resource_class: large
     docker:
       - image: cimg/node:16.16.0
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
@@ -296,6 +297,7 @@ jobs:
             docker push icij/datashare:${CIRCLE_TAG}
 
   build_installers:
+    resource_class: large
     docker:
       - image: circleci/build-image
     working_directory: /tmp
@@ -329,6 +331,7 @@ jobs:
           name: build mac installer
           command: |
             cd /tmp/datashare-installer/mac
+            source "$HOME/.cargo/env"
             make VERSION=${CIRCLE_TAG} all
       - run:
           name: build windows installer
