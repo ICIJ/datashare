@@ -328,22 +328,21 @@ jobs:
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-installer.git
       - run:
-          name: build mac installer
+          name: build Mac installer
           command: |
             cd /tmp/datashare-installer/mac
             source "$HOME/.cargo/env"
             make VERSION=${CIRCLE_TAG} all
       - run:
-          name: build windows installer
+          name: build Windows installer
           command: |
             cd /tmp/datashare-installer/windows
-            make VERSION=${CIRCLE_TAG} dist/installDatashare.exe
-            make VERSION=${CIRCLE_TAG} dist/installDatashareStandalone.exe
+            make VERSION=${CIRCLE_TAG} all
       - run:
-          name: build linux installer
+          name: build Linux installer
           command: |
             cd /tmp/datashare-installer/linux
-            make VERSION=${CIRCLE_TAG} dist/datashare.sh
+            make VERSION=${CIRCLE_TAG} all
       - run:
           name: deploy installers on github
           command: |
@@ -351,8 +350,8 @@ jobs:
             ./deploy.sh ${CIRCLE_TAG}
             upload_url=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/ICIJ/datashare-installer/releases/tags/${CIRCLE_TAG}" | jq -r '.upload_url')
             upload_url="${upload_url%\{*}"
-            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist_${CIRCLE_TAG}_all.deb" "$upload_url?name=datashare-dist_${CIRCLE_TAG}_all.deb&label=datashare-dist_${CIRCLE_TAG}_all.deb"
-            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.tgz&label=datashare-dist-${CIRCLE_TAG}.tgz"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist_${CIRCLE_TAG}_all.deb" "$upload_url?name=datashare-${CIRCLE_TAG}.deb&label=datashare-${CIRCLE_TAG}.deb"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-${CIRCLE_TAG}.tgz&label=datashare-${CIRCLE_TAG}.tgz"
 
 workflows:
   version: 2
