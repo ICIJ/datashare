@@ -231,23 +231,24 @@ jobs:
             cd datashare-client
             git pull origin master --tags
             git checkout ${CIRCLE_TAG}
+      - restore_cache:
+          keys:
+            - dependency-cache-{{ checksum "/tmp/datashare-client/package.json" }}
+            - dependency-cache-
       - run:
           name: make install
           command: |
             cd /tmp/datashare-client
             make install
-
       - save_cache:
           key: dependency-cache-{{ checksum "/tmp/datashare-client/package.json" }}
           paths:
             - /tmp/datashare-client/node_modules
-
       - run:
           name: run tests and build dist
           command: |
             cd /tmp/datashare-client
             make unit dist
-
       - persist_to_workspace:
           root: /tmp/datashare-client
           paths:
@@ -303,7 +304,10 @@ jobs:
     working_directory: /tmp
     steps:
       - attach_workspace:
-           at: /tmp/datashare
+          at: /tmp/datashare
+      - restore_cache:
+          keys:
+            - cargo-cache
       - run:
           name: install dependencies
           command: |
@@ -311,9 +315,13 @@ jobs:
             wget --no-check-certificate https://nsis.sourceforge.io/mediawiki/images/c/c9/Inetc.zip && unzip Inetc.zip && cp Plugins/x86-ansi/INetC.dll /usr/share/nsis/Plugins/
             wget https://github.com/hogliux/bomutils/archive/0.2.tar.gz && tar -zxf 0.2.tar.gz && cd bomutils-0.2 && make && make install
             wget https://github.com/downloads/mackyle/xar/xar-1.6.1.tar.gz && tar -zxf xar-1.6.1.tar.gz && cd xar-1.6.1 && ./configure && make && make install
-            wget --no-check-certificate https://nsis.sourceforge.io/mediawiki/images/9/9d/Untgz.zip  && unzip Untgz.zip && cp untgz/untgz.dll /usr/share/nsis/Plugins/
+            wget --no-check-certificate https://nsis.sourceforge.io/mediawiki/images/9/9d/Untgz.zip && unzip Untgz.zip && cp untgz/untgz.dll /usr/share/nsis/Plugins/
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
             source "$HOME/.cargo/env" && cargo install apple-codesign
+      - save_cache:
+          key: cargo-cache
+          paths:
+            - $HOME/.cargo
       - run:
           name: adds_ssh_dir
           command: |
