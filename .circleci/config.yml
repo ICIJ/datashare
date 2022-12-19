@@ -296,7 +296,7 @@ jobs:
       - run:
           name: Build and push the image for several platform
           command: |
-            cd /datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/Dockerfile
+            cd /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/Dockerfile
             docker buildx create --use
             docker buildx build \
               --platform linux/amd64,linux/arm64 \
