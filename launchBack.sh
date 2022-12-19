@@ -20,7 +20,8 @@ mkdir -p $DIR/dist
 
 # options to force debug logs -Dlogback.debug=true -Dlog4j.debug 
 
-$JAVA -agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,suspend=n -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
+$JAVA -agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,suspend=n \
+ -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
  -Djavax.net.ssl.trustStorePassword=changeit \
  -Ddatashare.loghost=udp:localhost -Dlogback.configurationFile=logback.xml \
  -Xmx4g -DPROD_MODE=true -cp "$DIR/dist/:${CLASSPATH}" org.icij.datashare.Main --cors '*' \
