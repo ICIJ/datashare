@@ -286,11 +286,6 @@ jobs:
            at: /tmp/datashare
       - setup_remote_docker
       - run:
-          name: Install dependencies
-          command: |
-            apk add --no-cache py-pip=9.0.0-r1
-            pip install docker-compose==1.12.0
-      - run:
           name: Login to Docker hub
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
@@ -301,11 +296,11 @@ jobs:
       - run:
           name: Build and push the image for several platform
           command: |
+            cd /datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/Dockerfile
             docker buildx create --use
             docker buildx build \
               --platform linux/amd64,linux/arm64 \
               -t icij/datashare:${CIRCLE_TAG} \
-              -f /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/Dockerfile
               --push .
 
   build_installers:
