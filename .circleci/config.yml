@@ -293,8 +293,8 @@ jobs:
       - run:
           name: build and push docker image
           command: |
-            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
+            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/
             docker push icij/datashare:${CIRCLE_TAG}
 
   build_installers:
