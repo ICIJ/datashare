@@ -279,7 +279,7 @@ jobs:
 
   build_docker:
     docker:
-      - image: docker:17.05.0-ce-git
+      - image: docker:20.10.22-git
     working_directory: /tmp
     steps:
       - attach_workspace:
@@ -291,11 +291,22 @@ jobs:
             apk add --no-cache py-pip=9.0.0-r1
             pip install docker-compose==1.12.0
       - run:
-          name: build and push docker image
+          name: Login to Docker hub
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
-            docker build -t icij/datashare:${CIRCLE_TAG} /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/
-            docker push icij/datashare:${CIRCLE_TAG}
+      - run:
+          name: Install tonistiigi/binfmt support for additional platforms
+          command: |
+            docker run --privileged --rm tonistiigi/binfmt --install all
+      - run:
+          name: Build and push the image for several platform
+          command: |
+            docker buildx create --use
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              -t icij/datashare:${CIRCLE_TAG} \
+              -f /tmp/datashare/datashare-dist/target/datashare-dist-$CIRCLE_TAG-docker/Dockerfile
+              --push .
 
   build_installers:
     resource_class: large
