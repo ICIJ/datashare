@@ -61,7 +61,7 @@ jobs:
 
   publish_doc:
     docker:
-      - image: circleci/openjdk:8-buster
+      - image: cimg/openjdk:11.0.16
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
            - "discovery.type=single-node"
@@ -144,7 +144,7 @@ jobs:
 
   package_back:
     docker:
-      - image: circleci/openjdk:8-buster
+      - image: cimg/openjdk:11.0.16
     working_directory: /tmp/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
@@ -176,7 +176,7 @@ jobs:
 
   deploy_back:
     docker:
-      - image: circleci/openjdk:8-buster
+      - image: cimg/openjdk:11.0.16
     working_directory: /tmp
     steps:
       - attach_workspace:
