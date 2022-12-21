@@ -1,56 +1,56 @@
 #!/bin/bash
 
-JAVA_BIN=${JAVA_HOME:-/usr}/bin/java
-DATASHARE_JAR=${DATASHARE_JAR:-/usr/share/java/datashare.jar}
+java_bin=${JAVA_HOME:-/usr}/bin/java
+datashare_jar=${DATASHARE_JAR:-/usr/share/java/datashare.jar}
 # All default options for the command line
-DATASHARE_HOME=${DATASHARE_HOME:-$HOME/.local/share/datashare}
-DATASHARE_DATA_DIR=${DATASHARE_DATA_DIR:-$HOME/Datashare}
-DATASHARE_MODE=${DATASHARE_MODE:-EMBEDDED}
-DATASHARE_QUEUE_TYPE=${DATASHARE_QUEUETYPE:-memory}
-DATASHARE_BUS_TYPE=${DATASHARE_BUSTYPE:-memory}
-DATASHARE_DATA_SOURCE_URL=${DATASHARE_DATASOURCEURL:-jdbc:sqlite:file:$DATASHARE_HOME/dist/datashare.db}
-DATASHARE_SETTINGS=${DATASHARE_SETTINGS:-./dist/datashare.conf}
-DATASHARE_BROWSER_OPEN_LINK=${DATASHARE_BROWSEROPENLINK:-true}
-DATASHARE_PLUGINS_DIR=${DATASHARE_PLUGINSDIR:-$DATASHARE_HOME/plugins}
-DATASHARE_EXTENSIONS_DIR=${DATASHARE_EXTENSIONSDIR:-$DATASHARE_HOME/extensions}
-DATASHARE_ELASTICSEARCH_DATA_PATH=${DATASHARE_ELASTICSEARCHDATAPATH:-$DATASHARE_HOME/index}
+datashare_home=${DATASHARE_HOME:-$HOME/.local/share/datashare}
+datashare_data_dir=${DATASHARE_DATA_DIR:-$HOME/Datashare}
+datashare_mode=${DATASHARE_MODE:-EMBEDDED}
+datashare_queue_type=${DATASHARE_QUEUE_TYPE:-memory}
+datashare_bus_type=${DATASHARE_BUSTYPE:-memory}
+datashare_data_source_url=${DATASHARE_DATA_SOURCE_URL:-jdbc:sqlite:file:$datashare_home/dist/datashare.db}
+datashare_settings=${DATASHARE_SETTINGS:-./dist/datashare.conf}
+datashare_browser_open_link=${DATASHARE_BROWSER_OPEN_LINK:-true}
+datashare_plugins_dir=${DATASHARE_PLUGINS_DIR:-$datashare_home/plugins}
+datashare_extensions_dir=${DATASHARE_EXTENSION_DIR:-$datashare_home/extensions}
+datashare_elasticsearch_data_path=${DATASHARE_ELASTICSEARCH_DATA_PATH:-$datashare_home/index}
 
 
 # Locating Datashare binary
-if [ ! -f "$DATASHARE_JAR" ]; then
-  echo "$DATASHARE_JAR: not found, trying in this directory"
+if [ ! -f "$datashare_jar" ]; then
+  echo "$datashare_jar: not found, trying in this directory"
   JAR_PATTERN="datashare-dist-*-all.jar"
   JARS=( $JAR_PATTERN )
-  DATASHARE_JAR="$PWD/${JARS[0]}"
-  if [ ! -f "$DATASHARE_JAR" ]; then
-    echo "$DATASHARE_JAR: not found"
+  datashare_jar="$PWD/${JARS[0]}"
+  if [ ! -f "$datashare_jar" ]; then
+    echo "$datashare_jar: not found"
     exit 2
   fi
 fi
 
 # Create every required directories
 mkdir -p \
-  $DATASHARE_DATA_DIR \
-  $DATASHARE_HOME/dist \
-  $DATASHARE_HOME/index  \
-  $DATASHARE_HOME/plugins \
-  $DATASHARE_HOME/extensions
+  $datashare_data_dir \
+  $datashare_home/dist \
+  $datashare_home/index  \
+  $datashare_home/plugins \
+  $datashare_home/extensions
 
-cd $DATASHARE_HOME || exit
+cd $datashare_home || exit
 
-${JAVA_BIN} \
+${java_bin} \
     -DPROD_MODE=true \
     -Dfile.encoding=UTF-8 \
     -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
-    -cp ./dist:$DATASHARE_JAR org.icij.datashare.Main \
-      --mode $DATASHARE_MODE \
-      --dataDir $DATASHARE_DATA_DIR \
-      --queueType $DATASHARE_QUEUE_TYPE \
-      --busType $DATASHARE_BUS_TYPE \
-      --dataSourceUrl $DATASHARE_DATA_SOURCE_URL \
-      --settings $DATASHARE_SETTINGS \
-      --browserOpenLink $DATASHARE_BROWSER_OPEN_LINK \
-      --pluginsDir $DATASHARE_PLUGINS_DIR \
-      --extensionsDir $DATASHARE_EXTENSIONS_DIR \
-      --elasticsearchDataPath $DATASHARE_ELASTICSEARCH_DATA_PATH \
+    -cp ./dist:$datashare_jar org.icij.datashare.Main \
+      --mode $datashare_mode \
+      --dataDir $datashare_data_dir \
+      --queueType $datashare_queue_type \
+      --busType $datashare_bus_type \
+      --dataSourceUrl $datashare_data_source_url \
+      --settings $datashare_settings \
+      --browserOpenLink $datashare_browser_open_link \
+      --pluginsDir $datashare_plugins_dir \
+      --extensionsDir $datashare_extensions_dir \
+      --elasticsearchDataPath $datashare_elasticsearch_data_path \
       "$@"
