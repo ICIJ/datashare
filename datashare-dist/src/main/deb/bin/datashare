@@ -1,11 +1,22 @@
 #!/bin/bash
 
-DATASHARE_HOME="${HOME}"/.local/share/datashare
-mkdir -p "${DATASHARE_HOME}"/dist "${DATASHARE_HOME}"/index "${DATASHARE_HOME}"/plugins "${DATASHARE_HOME}"/extensions "${HOME}"/Datashare
+JAVA_BIN=${JAVA_HOME:-/usr}/bin/java
+DATASHARE_JAR=${DATASHARE_JAR:-/usr/share/java/datashare.jar}
+# All default options for the command line
+DATASHARE_HOME=${DATASHARE_HOME:-$HOME/.local/share/datashare}
+DATASHARE_DATA_DIR=${DATASHARE_DATA_DIR-$HOME/Datashare}
+DATASHARE_MODE=${DATASHARE_MODE:-EMBEDDED}
+DATASHARE_QUEUE_TYPE=${DATASHARE_QUEUETYPE:-memory}
+DATASHARE_BUS_TYPE=${DATASHARE_BUSTYPE:-memory}
+DATASHARE_DATA_SOURCE_URL=${DATASHARE_DATASOURCEURL:-jdbc:sqlite:file:$DATASHARE_HOME/dist/datashare.db}
+DATASHARE_SETTINGS=${DATASHARE_SETTINGS:-./dist/datashare.conf}
+DATASHARE_BROWSER_OPEN_LINK=${DATASHARE_BROWSEROPENLINK:-true}
+DATASHARE_PLUGINS_DIR=${DATASHARE_PLUGINSDIR:-$DATASHARE_HOME/plugins}
+DATASHARE_EXTENSIONS_DIR=${DATASHARE_EXTENSIONSDIR:-$DATASHARE_HOME/extensions}
+DATASHARE_ELASTICSEARCH_DATA_PATH=${DATASHARE_ELASTICSEARCHDATAPATH:-$DATASHARE_HOME/index}
 
-DATASHARE_JAR=/usr/share/java/datashare.jar
-JAVA=${JAVA_HOME:-/usr}/bin/java
 
+# Locating Datashare binary
 if [ ! -f "$DATASHARE_JAR" ]; then
   echo "$DATASHARE_JAR: not found, trying in this directory"
   JAR_PATTERN="datashare-dist-*-all.jar"
@@ -17,13 +28,29 @@ if [ ! -f "$DATASHARE_JAR" ]; then
   fi
 fi
 
-cd "${DATASHARE_HOME}" || exit
+# Create every required directories
+mkdir -p \
+  $DATASHARE_DATA_DIR \
+  $DATASHARE_HOME/dist \
+  $DATASHARE_HOME/index  \
+  $DATASHARE_HOME/plugins \
+  $DATASHARE_HOME/extensions
 
-${JAVA} -DPROD_MODE=true -Dfile.encoding=UTF-8 -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader -cp ./dist:"${DATASHARE_JAR}" org.icij.datashare.Main \
-    -d "${HOME}"/Datashare  --queueType memory --busType memory \
-    --dataSourceUrl jdbc:sqlite:file:"${DATASHARE_HOME}/dist/datashare.db" \
-    --settings ./dist/datashare.conf --mode EMBEDDED \
-    --browserOpenLink true \
-    --pluginsDir "${DATASHARE_HOME}"/plugins \
-    --extensionsDir "${DATASHARE_HOME}"/extensions \
-    --elasticsearchDataPath "${DATASHARE_HOME}"/index "$@"
+cd $DATASHARE_HOME || exit
+
+${JAVA_BIN} \
+    -DPROD_MODE=true \
+    -Dfile.encoding=UTF-8 \
+    -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
+    -cp ./dist:$DATASHARE_JAR org.icij.datashare.Main \
+      --mode $DATASHARE_MODE \
+      --dataDir $DATASHARE_DATA_DIR \
+      --queueType $DATASHARE_QUEUE_TYPE \
+      --busType $DATASHARE_BUS_TYPE \
+      --dataSourceUrl $DATASHARE_DATA_SOURCE_URL \
+      --settings $DATASHARE_SETTINGS \
+      --browserOpenLink $DATASHARE_BROWSER_OPEN_LINK \
+      --pluginsDir $DATASHARE_PLUGINS_DIR \
+      --extensionsDir $DATASHARE_EXTENSIONS_DIR \
+      --elasticsearchDataPath $DATASHARE_ELASTICSEARCH_DATA_PATH \
+      "$@"
