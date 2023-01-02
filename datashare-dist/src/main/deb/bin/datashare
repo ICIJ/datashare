@@ -19,9 +19,9 @@ datashare_elasticsearch_data_path=${DATASHARE_ELASTICSEARCH_DATA_PATH:-$datashar
 # Locating Datashare binary
 if [ ! -f "$datashare_jar" ]; then
   echo "$datashare_jar: not found, trying in this directory"
-  JAR_PATTERN="datashare-dist-*-all.jar"
-  JARS=( $JAR_PATTERN )
-  datashare_jar="$PWD/${JARS[0]}"
+  jar_pattern="datashare-dist-*-all.jar"
+  jars=( $jar_pattern )
+  datashare_jar="$PWD/${jars[0]}"
   if [ ! -f "$datashare_jar" ]; then
     echo "$datashare_jar: not found"
     exit 2
@@ -42,6 +42,7 @@ ${java_bin} \
     -DPROD_MODE=true \
     -Dfile.encoding=UTF-8 \
     -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
+    -Djna.tmpdir=$DATASHARE_HOME/index/tmp \
     -cp ./dist:$datashare_jar org.icij.datashare.Main \
       --mode $datashare_mode \
       --dataDir $datashare_data_dir \
