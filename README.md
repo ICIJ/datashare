@@ -1,15 +1,19 @@
-# Datashare
+# Datashare [![CircleCI](https://circleci.com/gh/ICIJ/datashare.svg?style=shield)](https://circleci.com/gh/ICIJ/datashare) [![Crowdin](https://badges.crowdin.net/datashare/localized.svg)](https://crowdin.com/project/datashare)
 
-[![CircleCI](https://circleci.com/gh/ICIJ/datashare.svg?style=shield)](https://circleci.com/gh/ICIJ/datashare)
-[![Crowdin](https://badges.crowdin.net/datashare/localized.svg)](https://crowdin.com/project/datashare)
+![Datashare: Better analyze information, in all its forms](https://i.imgur.com/9SPU1x2.png)
+
+<p align="center">
+<a href="https://datashare-demo.icij.org">Demo</a> |
+<a href="https://datashare.icij.org">Download</a> |
+<a href="https://github.com/ICIJ/datashare/wiki">Documentation</a> |
+<a href="https://icij.gitbook.io/datashare/">User Guide</a>
+</p>
 
 ## Download
 
+Datashare is an open-source software developed by the International Consortium of Investigative Journalists (ICIJ). You can use it for free on your computer or install it on your server and analyse your documents with collaborative features.
+
 https://datashare.icij.org/
-
-## Documentation
-
-Datashare's user guide can be found here: https://icij.gitbook.io/datashare/
 
 ## Follow new updates and features
 
