@@ -14,7 +14,7 @@ datashare_browser_open_link=${DATASHARE_BROWSER_OPEN_LINK:-true}
 datashare_plugins_dir=${DATASHARE_PLUGINS_DIR:-$datashare_home/plugins}
 datashare_extensions_dir=${DATASHARE_EXTENSION_DIR:-$datashare_home/extensions}
 datashare_elasticsearch_data_path=${DATASHARE_ELASTICSEARCH_DATA_PATH:-$datashare_home/index}
-datashare_jna_tmpdir=${DATASHARE_JNA_TMPDIR:-$DATASHARE_HOME/index/tmp}
+datashare_jna_tmpdir=${DATASHARE_JNA_TMPDIR:-$datashare_home/index/tmp}
 
 
 # Locating Datashare binary
