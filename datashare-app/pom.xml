@@ -112,6 +112,14 @@
         </dependency>
 
         <!--test dependencies-->
+        <!-- :/ to override netty 4.1.49 from datashare-index and avoid blocking Redis tests -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>3.19.0</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.subethamail</groupId>
             <artifactId>subethasmtp</artifactId>

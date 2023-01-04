@@ -49,7 +49,7 @@ public class BatchSearchLoop {
     }
 
     public void run() {
-        logger.info("Datashare running in batch mode. Waiting batch from ds:batchsearch.queue ({})", batchSearchQueue.getClass());
+        logger.info("Datashare running in batch mode. Waiting batch from ds:batchsearch:queue ({})", batchSearchQueue.getClass());
         String currentBatchId = null;
         waitForMainLoopCalled.countDown();
         loopThread = Thread.currentThread();
@@ -96,7 +96,9 @@ public class BatchSearchLoop {
     }
 
     public void close() throws IOException {
+        logger.info("{}", batchSearchQueue.getClass());
         if (batchSearchQueue instanceof Closeable) {
+            logger.info("closing batch search queue");
             ((Closeable) batchSearchQueue).close();
         }
         repository.close();

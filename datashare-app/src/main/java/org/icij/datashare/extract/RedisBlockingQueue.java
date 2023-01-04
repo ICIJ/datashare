@@ -14,6 +14,8 @@ import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import java.io.Closeable;
+import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements Closeable {
     private final RedissonClient redissonClient;
@@ -33,6 +35,6 @@ public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements C
     }
 
     public void close() {
-        redissonClient.shutdown();
+        redissonClient.shutdown(0, 2, TimeUnit.SECONDS);
     }
 }

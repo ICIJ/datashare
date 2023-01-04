@@ -31,6 +31,7 @@
                     <artifactId>sqlite-jdbc</artifactId>
                 </exclusion>
             </exclusions>
+            <scope>provided</scope> <!-- netty is pulled by extract and netty4 plugin so there is a conflict -->
         </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>
@@ -51,12 +52,12 @@
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
             <version>${elasticsearch.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-api</artifactId>
-                </exclusion>
-            </exclusions>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>log4j-api</artifactId>
+                    </exclusion>
+                </exclusions>
         </dependency>
         <dependency>
             <groupId>org.elasticsearch.plugin</groupId>
@@ -141,6 +142,7 @@
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -159,6 +161,11 @@
                                     <!--because of conflict with code-story/webjar-locator-->
                                     <pattern>org.apache.commons.compress</pattern>
                                     <shadedPattern>org.apache.commons.compress14-tika</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!--because of conflict with redisson netty-->
+                                    <pattern>io.netty</pattern>
+                                    <shadedPattern>io.netty-es</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
