@@ -79,6 +79,15 @@
             <artifactId>datashare-nlp-corenlp</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!--
+        extract is pulling redisson needed for RedisBlockingQueue. Redisson is pulling netty.
+        It overrides netty 4.1.49 from datashare-index and avoid blocking Redis tests
+        :/
+        -->
+        <dependency>
+            <groupId>org.icij.extract</groupId>
+            <artifactId>extract-lib</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-cli</artifactId>
@@ -104,22 +113,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>log4j-over-slf4j</artifactId>
         </dependency>
-
         <dependency>
             <groupId>biz.paluch.logging</groupId>
             <artifactId>logstash-gelf</artifactId>
-            <version>1.12.1</version>
+            <version>1.15.0</version>
         </dependency>
 
         <!--test dependencies-->
-        <!-- :/ to override netty 4.1.49 from datashare-index and avoid blocking Redis tests -->
-        <dependency>
-            <groupId>org.redisson</groupId>
-            <artifactId>redisson</artifactId>
-            <version>3.19.0</version>
-            <scope>test</scope>
-        </dependency>
-
         <dependency>
             <groupId>org.subethamail</groupId>
             <artifactId>subethasmtp</artifactId>
