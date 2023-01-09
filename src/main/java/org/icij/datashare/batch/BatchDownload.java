@@ -91,6 +91,10 @@ public class BatchDownload {
         return Paths.get(format(ZIP_FORMAT, nonNullUser.getId(), strTime));
     }
 
+    public static BatchDownload nullObject() {
+        return new BatchDownload(null, null, Paths.get("/dev/null"), "", null, User.nullUser(),false, 0L);
+    }
+
     /**
      * useful because zipSize cannot be known by object constructor method
      * (before the zip file actually exists on disk)

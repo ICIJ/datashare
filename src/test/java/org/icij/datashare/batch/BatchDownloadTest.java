@@ -119,6 +119,13 @@ public class BatchDownloadTest {
         assertThat(json).contains("\"exists\":false");
     }
 
+    @Test
+    public void test_null_object() {
+        BatchDownload nullBatchDownload = BatchDownload.nullObject();
+        assertThat(nullBatchDownload).isEqualTo(BatchDownload.nullObject());
+    }
+
+
 
     @Before public void setUp() { DatashareTime.setMockTime(true); }
     @After public void tearDown() { DatashareTime.setMockTime(false); }}
