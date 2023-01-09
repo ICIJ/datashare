@@ -15,7 +15,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BatchDownloadLoopTestInt {
+public class BatchDownloadLoopIntTest {
     private LinkedBlockingQueue<BatchDownload> batchDownloadQueue = new LinkedBlockingQueue<>();
     private TaskManagerRedis taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", batchDownloadQueue);
 
