@@ -3,7 +3,6 @@ package org.icij.datashare.mode;
 import com.google.inject.Injector;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.security.SessionIdStore;
-import org.fest.assertions.Condition;
 import org.icij.datashare.session.*;
 import org.junit.Test;
 
@@ -66,5 +65,4 @@ public class ServerModeTest {
         }}));
         assertThat(injector.getInstance(SessionIdStore.class)).isInstanceOf(net.codestory.http.security.SessionIdStore.inMemory().getClass());
     }
-
 }

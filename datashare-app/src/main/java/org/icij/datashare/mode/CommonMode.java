@@ -81,10 +81,10 @@ public class CommonMode extends AbstractModule {
             case SERVER:
                 return new ServerMode(properties);
             case CLI:
-            case BATCH_SEARCH:
                 return new CliMode(properties);
+            case BATCH_SEARCH:
             case BATCH_DOWNLOAD:
-                return new BatchDownloadMode(properties);
+                return new BatchMode(properties);
             default:
                 throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
         }
@@ -103,7 +103,6 @@ public class CommonMode extends AbstractModule {
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
-        bind(TaskManagerMemory.class).toInstance(new TaskManagerMemory(propertiesProvider));
         install(new FactoryModuleBuilder().build(TaskFactory.class));
 
         if ("memory".equals(propertiesProvider.getProperties().get("queueType"))) {
