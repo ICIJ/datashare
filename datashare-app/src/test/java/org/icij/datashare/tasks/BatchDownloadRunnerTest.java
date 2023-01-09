@@ -67,6 +67,15 @@ public class BatchDownloadRunnerTest {
         new BatchDownloadRunner(indexer, new PropertiesProvider(), new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"), updater).call();
     }
 
+    @Test
+    public void test_do_nothing_with_null_object() throws Exception {
+        Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).build()).toArray(Document[]::new);
+        mockSearch.willThrow(new RuntimeException("ES should not be called"));
+        File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>()), BatchDownload.nullObject(), updater).call();
+
+        assertThat(zip).isNull();
+    }
+
     private Path createFile(int index) {
         File file;
         try {
