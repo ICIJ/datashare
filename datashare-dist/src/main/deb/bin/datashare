@@ -32,6 +32,7 @@ fi
 # Create every required directories
 mkdir -p \
   $datashare_data_dir \
+  $datashare_jna_tmpdir \
   $datashare_home/dist \
   $datashare_home/index  \
   $datashare_home/plugins \
