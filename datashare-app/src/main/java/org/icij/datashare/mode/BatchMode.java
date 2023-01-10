@@ -2,6 +2,9 @@ package org.icij.datashare.mode;
 
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.tasks.TaskManagerRedis;
+import org.icij.extract.redis.RedissonClientFactory;
+import org.icij.task.Options;
+import org.redisson.api.RedissonClient;
 
 import java.util.Properties;
 
@@ -13,9 +16,7 @@ public class BatchMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-
-        String batchQueueType = propertiesProvider.get("batchQueueType").orElse("org.icij.datashare.extract.MemoryBlockingQueue");
-        bind(TaskManager.class).toInstance(new TaskManagerRedis(propertiesProvider, getBlockingQueue(propertiesProvider, batchQueueType, "ds:batchdownload:queue")));
+        bind(TaskManager.class).to(TaskManagerRedis.class).asEagerSingleton();
         configurePersistence();
     }
 }

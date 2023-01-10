@@ -25,8 +25,7 @@ public class ServerMode extends CommonMode {
     protected void configure() {
         super.configure();
         String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse("org.icij.datashare.session.UsersInRedis");
-        String batchQueueType = propertiesProvider.get("batchQueueType").orElse("org.icij.datashare.extract.MemoryBlockingQueue");
-        bind(TaskManager.class).toInstance(new TaskManagerRedis(propertiesProvider, getBlockingQueue(propertiesProvider, batchQueueType, "ds:batchdownload:queue")));
+        bind(TaskManager.class).to(TaskManagerRedis.class).asEagerSingleton();
         Class<? extends UsersWritable> authUsersProviderClass = UsersInRedis.class;
         try {
             logger.info("setting auth users provider to {}", authUsersProviderClass);
