@@ -48,10 +48,13 @@ public class BatchDownloadLoop {
 
                 HashMap<String, Object> taskProperties = new HashMap<>();
                 taskProperties.put("batchDownload", currentBatch);
-                MonitorableFutureTask<File> fileMonitorableFutureTask = new MonitorableFutureTask<>(
-                        factory.createDownloadRunner(currentBatch, manager::save), taskProperties);
-                fileMonitorableFutureTask.run();
-                manager.save(new TaskView<>(fileMonitorableFutureTask));
+
+                if (!NULL_BATCH_DOWNLOAD.equals(currentBatch) && currentBatch != null) {
+                    MonitorableFutureTask<File> fileMonitorableFutureTask = new MonitorableFutureTask<>(
+                            factory.createDownloadRunner(currentBatch, manager::save), taskProperties);
+                    fileMonitorableFutureTask.run();
+                    manager.save(new TaskView<>(fileMonitorableFutureTask));
+                }
             } catch (Exception ex) {
                 logger.error("error in loop", ex);
             }
