@@ -75,7 +75,6 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
 
     @Override
     public File call() throws Exception {
-        if (NULL_BATCH_DOWNLOAD.equals(batchDownload)) return null;
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE).orElse("0"));
         int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
