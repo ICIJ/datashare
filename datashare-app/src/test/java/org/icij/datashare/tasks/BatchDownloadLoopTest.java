@@ -47,8 +47,8 @@ public class BatchDownloadLoopTest {
 
         app.run();
 
-        verify(batchRunner, times(2)).call();
-        verify(manager, times(2)).save(argCaptor.capture());
+        verify(batchRunner).call();
+        verify(manager).save(argCaptor.capture());
         verify(batchDownloadCleaner, times(2)).run();
         assertThat(argCaptor.getValue().getState()).isEqualTo(TaskView.State.DONE);
     }
@@ -86,7 +86,7 @@ public class BatchDownloadLoopTest {
 
         app.run();
 
-        verify(manager,times(2)).save(argCaptor.capture());
+        verify(manager).save(argCaptor.capture());
         assertThat(argCaptor.getValue().getState()).isEqualTo(TaskView.State.ERROR);
         assertThat(argCaptor.getValue().error.getClass()).isNotEqualTo(ElasticsearchStatusException.class);
     }
