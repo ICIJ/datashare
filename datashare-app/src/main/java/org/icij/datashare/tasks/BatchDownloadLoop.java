@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.cli.DatashareCliOptions;
-import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +16,7 @@ import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Collections.singletonList;
-import static org.icij.datashare.tasks.BatchDownloadRunner.*;
-import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.tasks.BatchDownloadRunner.NULL_BATCH_DOWNLOAD;
 
 public class BatchDownloadLoop {
     private final Path DOWNLOAD_DIR = Paths.get(System.getProperty("user.dir")).resolve("app/tmp");
@@ -49,7 +46,7 @@ public class BatchDownloadLoop {
                 HashMap<String, Object> taskProperties = new HashMap<>();
                 taskProperties.put("batchDownload", currentBatch);
 
-                if (!NULL_BATCH_DOWNLOAD.equals(currentBatch) && currentBatch != null) {
+                if (currentBatch != null && !NULL_BATCH_DOWNLOAD.equals(currentBatch)) {
                     MonitorableFutureTask<File> fileMonitorableFutureTask = new MonitorableFutureTask<>(
                             factory.createDownloadRunner(currentBatch, manager::save), taskProperties);
                     fileMonitorableFutureTask.run();
