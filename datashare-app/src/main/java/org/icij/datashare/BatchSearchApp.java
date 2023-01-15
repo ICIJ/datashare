@@ -5,6 +5,7 @@ import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.text.indexing.Indexer;
+import org.redisson.api.RedissonClient;
 
 import java.util.Properties;
 
@@ -17,6 +18,7 @@ public class BatchSearchApp {
         batchSearchLoop.requeueDatabaseBatches();
         batchSearchLoop.run();
         batchSearchLoop.close();
-        injector.getInstance(Indexer.class).close(); // to avoid being blocked
+        injector.getInstance(Indexer.class).close();// to avoid being blocked
+        injector.getInstance(RedissonClient.class).shutdown();
     }
 }

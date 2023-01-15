@@ -25,8 +25,7 @@ import org.icij.datashare.com.RedisDataBus;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
-import org.icij.datashare.extract.RedisUserDocumentQueue;
-import org.icij.datashare.extract.RedisUserReportMap;
+import org.icij.datashare.extract.*;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.DocumentCollectionFactory;
@@ -41,12 +40,13 @@ import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
 import org.icij.datashare.web.StatusResource;
 import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.extract.report.ReportMap;
+import org.icij.task.Options;
+import org.redisson.api.RedissonClient;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
@@ -63,10 +63,12 @@ public class CommonMode extends AbstractModule {
     public static final String DS_BATCHDOWNLOAD_QUEUE_NAME = "ds:batchdownload:queue";
     public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
     protected final PropertiesProvider propertiesProvider;
+    protected final RedissonClient redissonClient;
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
                 new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).mergeWith(properties);
+        redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
     }
 
     CommonMode(final Map<String, String> map) {
@@ -96,20 +98,16 @@ public class CommonMode extends AbstractModule {
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
+        bind(RedissonClient.class).toInstance(redissonClient);
 
         QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
-        if( batchQueueType ==  QueueType.MEMORY) {
-            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(
-                    getBlockingQueue(propertiesProvider, "org.icij.datashare.extract.MemoryBlockingQueue", DS_BATCHSEARCH_QUEUE_NAME));
-            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(
-                    getBlockingQueue(propertiesProvider, "org.icij.datashare.extract.MemoryBlockingQueue", DS_BATCHDOWNLOAD_QUEUE_NAME));
+        if ( batchQueueType == QueueType.REDIS ) {
+            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
+            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
         } else {
-            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(
-                    getBlockingQueue(propertiesProvider, "org.icij.datashare.extract.RedisBlockingQueue", DS_BATCHSEARCH_QUEUE_NAME));
-            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(
-                    getBlockingQueue(propertiesProvider, "org.icij.datashare.extract.RedisBlockingQueue", DS_BATCHDOWNLOAD_QUEUE_NAME));
+            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHSEARCH_QUEUE_NAME));
+            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));;
         }
-
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
@@ -201,16 +199,6 @@ public class CommonMode extends AbstractModule {
             }
         }
         return routes;
-    }
-
-    protected  <T> BlockingQueue<T> getBlockingQueue(PropertiesProvider propertiesProvider, String className, String queueName) {
-        try {
-            Class<? extends BlockingQueue<T>> aClass = (Class<? extends BlockingQueue<T>>) Class.forName(className);
-            Constructor<? extends BlockingQueue<T>> constructor = aClass.getConstructor(PropertiesProvider.class, String.class);
-            return constructor.newInstance(propertiesProvider, queueName);
-        } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private Routes addCors(Routes routes, PropertiesProvider provider) {
