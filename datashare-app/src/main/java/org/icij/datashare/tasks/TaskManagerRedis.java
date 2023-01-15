@@ -48,6 +48,12 @@ public class TaskManagerRedis implements TaskManager {
         this(propertiesProvider, CommonMode.DS_TASK_MANAGER_QUEUE_NAME, batchDownloadQueue);
     }
 
+    public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, BlockingQueue<BatchDownload> batchDownloadQueue) {
+        CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
+        this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
+        this.batchDownloadQueue = batchDownloadQueue;
+    }
+
     TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<BatchDownload> batchDownloadQueue) {
         RedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
