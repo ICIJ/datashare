@@ -221,8 +221,8 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList("busType"),
                 "Backend data bus type. Values can be \"memory\" or \"redis\"")
-                .withRequiredArg()
-                .defaultsTo("redis");
+                .withRequiredArg().ofType( QueueType.class )
+                .defaultsTo(QueueType.REDIS);
     }
 
     static void redisAddress(OptionParser parser) {
@@ -237,8 +237,8 @@ public final class DatashareCliOptions {
             parser.acceptsAll(
                     singletonList("queueType"),
                     "Backend queues and sets type. Values can be \"memory\" or \"redis\"")
-                    .withRequiredArg()
-                    .defaultsTo("redis");
+                    .withRequiredArg().ofType(QueueType.class)
+                    .defaultsTo(QueueType.REDIS);
         }
 
     static void fileParserParallelism(OptionParser parser) {
@@ -450,9 +450,9 @@ public final class DatashareCliOptions {
 
     public static void batchSearchQueueType(OptionParser parser) {
         parser.acceptsAll(
-                singletonList("batchQueueType"), "Queue class for batch search queue")
-                        .withRequiredArg()
-                        .ofType(String.class);
+                singletonList("batchQueueType"), "")
+                .withRequiredArg().ofType( QueueType.class )
+                .defaultsTo(QueueType.REDIS);
     }
 
     public static void batchDownloadTimeToLive(OptionParser parser) {
@@ -506,6 +506,6 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList("sessionStoreType"), "Type of session store (redis|memory)")
                 .withRequiredArg()
-                .ofType(String.class);
+                .ofType(QueueType.class);
     }
 }
