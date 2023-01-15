@@ -17,6 +17,7 @@ import org.icij.datashare.Repository;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.com.DataBus;
 import org.icij.datashare.com.MemoryDataBus;
 import org.icij.datashare.com.Publisher;
@@ -96,18 +97,27 @@ public class CommonMode extends AbstractModule {
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
 
-        String batchQueueType = propertiesProvider.get("batchQueueType").orElse("org.icij.datashare.extract.MemoryBlockingQueue");
-        bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(
-                getBlockingQueue(propertiesProvider, batchQueueType, DS_BATCHSEARCH_QUEUE_NAME));
-        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(
-                getBlockingQueue(propertiesProvider, batchQueueType, DS_BATCHDOWNLOAD_QUEUE_NAME));
+        QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
+        if( batchQueueType ==  QueueType.MEMORY) {
+            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(
+                    getBlockingQueue(propertiesProvider, "org.icij.datashare.extract.MemoryBlockingQueue", DS_BATCHSEARCH_QUEUE_NAME));
+            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(
+                    getBlockingQueue(propertiesProvider, "org.icij.datashare.extract.MemoryBlockingQueue", DS_BATCHDOWNLOAD_QUEUE_NAME));
+        } else {
+            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(
+                    getBlockingQueue(propertiesProvider, "org.icij.datashare.extract.RedisBlockingQueue", DS_BATCHSEARCH_QUEUE_NAME));
+            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(
+                    getBlockingQueue(propertiesProvider, "org.icij.datashare.extract.RedisBlockingQueue", DS_BATCHDOWNLOAD_QUEUE_NAME));
+        }
+
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
         install(new FactoryModuleBuilder().build(TaskFactory.class));
 
-        if ("memory".equals(propertiesProvider.getProperties().get("queueType"))) {
+        QueueType queueType = QueueType.valueOf(propertiesProvider.get("queueType").orElse(QueueType.MEMORY.name()));
+        if ( queueType == QueueType.MEMORY ) {
             bind(DocumentCollectionFactory.class).to(MemoryDocumentCollectionFactory.class).asEagerSingleton();
         } else {
             install(new FactoryModuleBuilder().
@@ -116,7 +126,8 @@ public class CommonMode extends AbstractModule {
                     build(DocumentCollectionFactory.class));
         }
         DataBus dataBus;
-        if ("memory".equals(propertiesProvider.getProperties().get("busType"))) {
+        QueueType busType = QueueType.valueOf(propertiesProvider.get("busType").orElse(QueueType.MEMORY.name()));
+        if ( busType == QueueType.MEMORY) {
             dataBus = new MemoryDataBus();
         } else {
             dataBus = new RedisDataBus(propertiesProvider);

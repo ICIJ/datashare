@@ -2,7 +2,7 @@ package org.icij.datashare.mode;
 
 import com.google.inject.Injector;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.extract.RedisBlockingQueue;
+import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.tasks.BatchDownloadLoop;
 import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
@@ -10,6 +10,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.redisson.api.RedissonClient;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -24,7 +25,7 @@ public class BatchModeTest {
         Injector injector = createInjector(new BatchMode(PropertiesProvider.fromMap(new HashMap<>() {{
             put("dataDir", dataDir.getRoot().toString());
             put("mode", "BATCH_SEARCH");
-            put("batchQueueType", RedisBlockingQueue.class.getName());
+            put("batchQueueType", QueueType.REDIS.name());
         }})));
 
         BatchSearchLoop batchSearchLoop = injector.getInstance(TaskFactory.class).createBatchSearchLoop();
@@ -39,7 +40,7 @@ public class BatchModeTest {
         Injector injector = createInjector(new BatchMode(PropertiesProvider.fromMap(new HashMap<>() {{
             put("dataDir", dataDir.getRoot().toString());
             put("mode", "BATCH_DOWNLOAD");
-            put("batchQueueType", RedisBlockingQueue.class.getName());
+            put("batchQueueType", QueueType.MEMORY.name());
         }})));
 
         BatchDownloadLoop batchDownloadLoop = injector.getInstance(TaskFactory.class).createBatchDownloadLoop();

@@ -6,6 +6,7 @@ import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
+import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.session.*;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.tasks.TaskManagerRedis;
@@ -34,7 +35,8 @@ public class ServerMode extends CommonMode {
             logger.warn("\"{}\" auth users provider class not found. Setting provider to {}", authUsersProviderClassName, authUsersProviderClass);
         }
         bind(UsersWritable.class).to(authUsersProviderClass);
-        if ("memory".equals(propertiesProvider.getProperties().get("sessionStoreType"))) {
+        QueueType sessionStoreType = QueueType.valueOf(propertiesProvider.get("sessionStoreType").orElse(QueueType.MEMORY.name()));
+        if (QueueType.MEMORY == sessionStoreType) {
             bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
         } else {
             bind(SessionIdStore.class).to(RedisSessionIdStore.class);

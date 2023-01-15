@@ -3,6 +3,7 @@ package org.icij.datashare.mode;
 import com.google.inject.Injector;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.security.SessionIdStore;
+import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.session.*;
 import org.junit.Test;
 
@@ -53,7 +54,7 @@ public class ServerModeTest {
     @Test
     public void test_session_store_redis() {
         Injector injector = createInjector(new ServerMode(new HashMap<String, String>() {{
-            put("sessionStoreType", "redis");
+            put("sessionStoreType", QueueType.REDIS.name());
         }}));
         assertThat(injector.getInstance(SessionIdStore.class)).isInstanceOf(RedisSessionIdStore.class);
     }
@@ -61,7 +62,7 @@ public class ServerModeTest {
     @Test
     public void test_session_store_memory() {
         Injector injector = createInjector(new ServerMode(new HashMap<String, String>() {{
-            put("sessionStoreType", "memory");
+            put("sessionStoreType", QueueType.MEMORY.name());
         }}));
         assertThat(injector.getInstance(SessionIdStore.class)).isInstanceOf(net.codestory.http.security.SessionIdStore.inMemory().getClass());
     }
