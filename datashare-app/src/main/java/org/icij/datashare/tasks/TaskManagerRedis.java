@@ -11,6 +11,7 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.mode.CommonMode;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.redisson.Redisson;
@@ -44,7 +45,7 @@ public class TaskManagerRedis implements TaskManager {
 
     @Inject
     public TaskManagerRedis(PropertiesProvider propertiesProvider, BlockingQueue<BatchDownload> batchDownloadQueue) {
-        this(propertiesProvider, "ds:task:manager", batchDownloadQueue);
+        this(propertiesProvider, CommonMode.DS_TASK_MANAGER_QUEUE_NAME, batchDownloadQueue);
     }
 
     TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<BatchDownload> batchDownloadQueue) {

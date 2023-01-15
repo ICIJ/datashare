@@ -3,18 +3,17 @@ package org.icij.datashare.extract;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.mode.CommonMode;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RedissonClient;
-import org.redisson.client.codec.StringCodec;
 import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import java.io.Closeable;
-import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements Closeable {
@@ -26,7 +25,7 @@ public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements C
     }
 
     public RedisBlockingQueue(PropertiesProvider propertiesProvider) {
-        this(propertiesProvider, "ds:batchsearch:queue");
+        this(propertiesProvider, CommonMode.DS_BATCHSEARCH_QUEUE_NAME);
     }
 
     public RedisBlockingQueue(RedissonClient redissonClient, String queueName) {

@@ -31,7 +31,6 @@ import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.DocumentCollectionFactory;
 import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
 import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -59,6 +58,9 @@ import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public class CommonMode extends AbstractModule {
+    public static final String DS_BATCHSEARCH_QUEUE_NAME = "ds:batchsearch:queue";
+    public static final String DS_BATCHDOWNLOAD_QUEUE_NAME = "ds:batchdownload:queue";
+    public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
     protected final PropertiesProvider propertiesProvider;
 
     protected CommonMode(Properties properties) {
@@ -96,9 +98,9 @@ public class CommonMode extends AbstractModule {
 
         String batchQueueType = propertiesProvider.get("batchQueueType").orElse("org.icij.datashare.extract.MemoryBlockingQueue");
         bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(
-                getBlockingQueue(propertiesProvider, batchQueueType, "ds:batchsearch:queue"));
+                getBlockingQueue(propertiesProvider, batchQueueType, DS_BATCHSEARCH_QUEUE_NAME));
         bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(
-                getBlockingQueue(propertiesProvider, batchQueueType, "ds:batchdownload:queue"));
+                getBlockingQueue(propertiesProvider, batchQueueType, DS_BATCHDOWNLOAD_QUEUE_NAME));
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
