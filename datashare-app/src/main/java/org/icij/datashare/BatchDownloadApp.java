@@ -19,6 +19,7 @@ public class BatchDownloadApp {
         BatchDownloadLoop batchDownloadLoop = injector.getInstance(TaskFactory.class).createBatchDownloadLoop();
         batchDownloadLoop.run();
         batchDownloadLoop.close();
+        injector.getInstance(Indexer.class).close();
         injector.getInstance(RedissonClient.class).shutdown();
     }
 }
