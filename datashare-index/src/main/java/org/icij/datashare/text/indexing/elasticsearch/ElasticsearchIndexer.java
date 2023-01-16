@@ -1,6 +1,5 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.Inject;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
@@ -14,10 +13,8 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -27,7 +24,6 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.UpdateByQueryRequest;
 import org.elasticsearch.rest.RestStatus;
@@ -35,7 +31,6 @@ import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.slice.SliceBuilder;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -54,17 +49,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
-import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
+import static org.elasticsearch.index.query.QueryBuilders.termsQuery;
 import static org.icij.datashare.json.JsonObjectMapper.*;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSearcher.searchHitStream;
 
 
 public class ElasticsearchIndexer implements Indexer {
@@ -448,18 +443,6 @@ public class ElasticsearchIndexer implements Indexer {
         return response.getStatusLine().getStatusCode() == RestStatus.OK.getStatus();
     }
 
-    private static Stream<SearchHit> searchHitStream(Iterable<SearchHit> searchHitIterable) {
-        return StreamSupport.stream(searchHitIterable.spliterator(), false);
-    }
-
-    private static <T extends Entity> Stream<T> resultStream(Class<T> cls, Iterable<SearchHit> iterable) {
-        return searchHitStream(iterable).map(hit -> hitToObject(hit, cls));
-    }
-
-    private static <T extends Entity> T hitToObject(SearchHit searchHit, Class<T> cls) {
-        return JsonObjectMapper.getObject(searchHit.getId(), searchHit.getIndex(), searchHit.getSourceAsMap(), cls);
-    }
-
     public ElasticsearchIndexer withRefresh(WriteRequest.RefreshPolicy refresh) {
         esCfg.withRefresh(refresh);
         return this;
@@ -486,181 +469,6 @@ public class ElasticsearchIndexer implements Indexer {
         } catch (IOException e) {
             LOGGER.error("Index Health Error : ", e);
             return false;
-        }
-    }
-
-    static class ElasticsearchSearcher implements Searcher {
-        static final TimeValue KEEP_ALIVE = new TimeValue(60000);
-        private BoolQueryBuilder boolQuery;
-        private final RestHighLevelClient client;
-        private final ElasticsearchConfiguration config;
-        private final List<String> indexesNames;
-        private final Class<? extends Entity> cls;
-        private final SearchSourceBuilder sourceBuilder;
-        private String scrollId;
-        private long totalHits;
-
-        ElasticsearchSearcher(RestHighLevelClient client, ElasticsearchConfiguration config, final List<String> indexesNames, final Class<? extends Entity> cls) {
-            this.client = client;
-            this.config = config;
-            this.indexesNames = indexesNames;
-            this.cls = cls;
-            sourceBuilder = new SearchSourceBuilder().size(DEFAULT_SEARCH_SIZE).timeout(new TimeValue(30, TimeUnit.MINUTES));
-            this.boolQuery = boolQuery().must(matchQuery("type", JsonObjectMapper.getType(cls)));
-        }
-
-        @Override
-        public Searcher ofStatus(Document.Status status) {
-            this.boolQuery.must(matchQuery("status", status.toString()));
-            return this;
-        }
-
-        @Override
-        public Stream<? extends Entity> execute() throws IOException {
-            sourceBuilder.query(boolQuery);
-            Object[] indexesArray = indexesNames.toArray();
-            SearchRequest searchRequest = new SearchRequest(Arrays.copyOf(indexesArray, indexesArray.length, String[].class), sourceBuilder);
-            SearchResponse search = client.search(searchRequest, RequestOptions.DEFAULT);
-            return resultStream(this.cls, () -> search.getHits().iterator());
-        }
-
-        @Override
-        public Stream<? extends Entity> scroll() throws IOException {
-            return scroll(0, 0);
-        }
-
-        @Override
-        public Stream<? extends Entity> scroll(int numSlice, int nbSlices) throws IOException {
-            sourceBuilder.query(boolQuery);
-            if (nbSlices > 1) {
-                sourceBuilder.slice(new SliceBuilder(numSlice, nbSlices));
-            }
-            SearchResponse search;
-            if (scrollId == null) {
-                Object[] indexesArray = indexesNames.toArray();
-                SearchRequest searchRequest = new SearchRequest(Arrays.copyOf(indexesArray, indexesArray.length, String[].class), sourceBuilder).scroll(KEEP_ALIVE);
-                search = client.search(searchRequest, RequestOptions.DEFAULT);
-                scrollId = search.getScrollId();
-                totalHits = search.getHits().getTotalHits().value;
-            } else {
-                search = client.scroll(new SearchScrollRequest(scrollId).scroll(KEEP_ALIVE), RequestOptions.DEFAULT);
-                scrollId = search.getScrollId();
-            }
-            return resultStream(this.cls, () -> search.getHits().iterator());
-        }
-
-        @Override
-        public Searcher withSource(String... fields) {
-            sourceBuilder.fetchSource(fields, new String[]{});
-            return this;
-        }
-
-        public Searcher withoutSource(String... fields) {
-            this.sourceBuilder.fetchSource(new String[]{"*"}, fields);
-            return this;
-        }
-
-        @Override
-        public Searcher withSource(boolean source) {
-            sourceBuilder.fetchSource(false);
-            return this;
-        }
-
-        @Override
-        public Searcher without(Pipeline.Type... nlpPipelines) {
-            boolQuery.mustNot(new ConstantScoreQueryBuilder(new TermsQueryBuilder("nerTags",
-                    stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList()))));
-            return this;
-        }
-
-        @Override
-        public Searcher with(Pipeline.Type... nlpPipelines) {
-            boolQuery.must(new ConstantScoreQueryBuilder(new TermsQueryBuilder("nerTags",
-                    stream(nlpPipelines).map(Pipeline.Type::toString).collect(toList()))));
-            return this;
-        }
-
-        @Override
-        public Searcher with(Tag... tags) {
-            this.boolQuery.must(new ConstantScoreQueryBuilder(new TermsQueryBuilder("tags",
-                    stream(tags).map(t -> t.label).collect(toList()))));
-            return this;
-        }
-
-        @Override
-        public Searcher with(String query) {
-            return with(query, 0, false);
-        }
-
-        @Override
-        public Searcher set(JsonNode jsonQuery) {
-            this.boolQuery = new BoolQueryBuilder().must(new WrapperQueryBuilder(jsonQuery.toString()));
-            return this;
-        }
-
-        @Override
-        public Searcher with(String query, int fuzziness, boolean phraseMatches) {
-            String queryString = query;
-            if (phraseMatches) {
-                queryString = "\"" + query + "\"" + (fuzziness == 0 ? "" : "~" + fuzziness);
-            } else if (fuzziness > 0) {
-                queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
-            }
-            this.boolQuery.must(new MatchAllQueryBuilder());
-            this.boolQuery.must(new QueryStringQueryBuilder(queryString));
-            return this;
-        }
-
-        @Override
-        public Searcher limit(int maxCount) {
-            sourceBuilder.size(maxCount);
-            return this;
-        }
-
-        @Override
-        public Searcher withFieldValues(String key, String... values) {
-            if (values.length > 0) this.boolQuery.must(termsQuery(key, values));
-            return this;
-        }
-
-        @Override
-        public Searcher withPrefixQuery(String key, String... values) {
-            if (values.length == 0) {
-                return this;
-            }
-            if (values.length == 1) {
-                this.boolQuery.must(prefixQuery(key, values[0]));
-                return this;
-            }
-            BoolQueryBuilder innerQuery = new BoolQueryBuilder();
-            Arrays.stream(values).forEach(v -> innerQuery.must(prefixQuery(key, v)));
-            this.boolQuery.must(innerQuery);
-            return this;
-        }
-
-        @Override
-        public Searcher thatMatchesFieldValue(String name, Object value) {
-            this.boolQuery.must(matchQuery(name, value));
-            return this;
-        }
-
-        @Override
-        public void clearScroll() throws IOException {
-            ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
-            clearScrollRequest.addScrollId(scrollId);
-            this.client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
-            scrollId = null;
-            totalHits = 0;
-        }
-
-        @Override
-        public long totalHits() {
-            return totalHits;
-        }
-
-        @Override
-        public String toString() {
-            return "boolQuery : " + boolQuery;
         }
     }
 }
