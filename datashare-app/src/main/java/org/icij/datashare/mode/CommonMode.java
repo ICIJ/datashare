@@ -63,12 +63,10 @@ public class CommonMode extends AbstractModule {
     public static final String DS_BATCHDOWNLOAD_QUEUE_NAME = "ds:batchdownload:queue";
     public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
     protected final PropertiesProvider propertiesProvider;
-    protected final RedissonClient redissonClient;
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
                 new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).mergeWith(properties);
-        redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
     }
 
     CommonMode(final Map<String, String> map) {
@@ -98,6 +96,7 @@ public class CommonMode extends AbstractModule {
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
+        RedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
         bind(RedissonClient.class).toInstance(redissonClient);
 
         QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));

@@ -16,8 +16,7 @@ public class BatchMode extends CommonMode {
     protected void configure() {
         super.configure();
 
-        RBlockingQueue<BatchDownload> batchDownloadQueue = redissonClient.getBlockingQueue(DS_BATCHDOWNLOAD_QUEUE_NAME);
-        bind(TaskManager.class).toInstance(new TaskManagerRedis(redissonClient, DS_TASK_MANAGER_QUEUE_NAME, batchDownloadQueue));
+        bind(TaskManager.class).to(TaskManagerRedis.class).asEagerSingleton();
         configurePersistence();
     }
 }
