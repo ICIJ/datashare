@@ -98,21 +98,31 @@ public class CommonMode extends AbstractModule {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
         RedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
         bind(RedissonClient.class).toInstance(redissonClient);
-
-        QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
-        if ( batchQueueType == QueueType.REDIS ) {
-            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
-            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
-        } else {
-            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHSEARCH_QUEUE_NAME));
-            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));;
-        }
+        configureBatchQueues(redissonClient, propertiesProvider);
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
+
         install(new FactoryModuleBuilder().build(TaskFactory.class));
 
+        configureIndexingQueues(propertiesProvider);
+        configureDataBus(propertiesProvider);
+        feedPipelineRegistry(propertiesProvider);
+    }
+
+    private void configureDataBus(final PropertiesProvider propertiesProvider) {
+        QueueType busType = QueueType.valueOf(propertiesProvider.get("busType").orElse(QueueType.MEMORY.name()));
+        if ( busType == QueueType.MEMORY) {
+            bind(DataBus.class).to(MemoryDataBus.class).asEagerSingleton();
+            bind(Publisher.class).to(MemoryDataBus.class).asEagerSingleton();
+        } else {
+            bind(DataBus.class).to(RedisDataBus.class).asEagerSingleton();
+            bind(Publisher.class).to(RedisDataBus.class).asEagerSingleton();
+        }
+    }
+
+    private void configureIndexingQueues(final PropertiesProvider propertiesProvider) {
         QueueType queueType = QueueType.valueOf(propertiesProvider.get("queueType").orElse(QueueType.MEMORY.name()));
         if ( queueType == QueueType.MEMORY ) {
             bind(DocumentCollectionFactory.class).to(MemoryDocumentCollectionFactory.class).asEagerSingleton();
@@ -122,20 +132,20 @@ public class CommonMode extends AbstractModule {
                     implement(ReportMap.class, RedisUserReportMap.class).
                     build(DocumentCollectionFactory.class));
         }
-        DataBus dataBus;
-        QueueType busType = QueueType.valueOf(propertiesProvider.get("busType").orElse(QueueType.MEMORY.name()));
-        if ( busType == QueueType.MEMORY) {
-            dataBus = new MemoryDataBus();
-        } else {
-            dataBus = new RedisDataBus(propertiesProvider);
-        }
-        bind(DataBus.class).toInstance(dataBus);
-        bind(Publisher.class).toInstance(dataBus);
-
-        feedPipelineRegistry();
     }
 
-    void feedPipelineRegistry() {
+    private void configureBatchQueues(RedissonClient redissonClient, final PropertiesProvider propertiesProvider) {
+        QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
+        if ( batchQueueType == QueueType.REDIS ) {
+            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
+            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
+        } else {
+            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHSEARCH_QUEUE_NAME));
+            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));;
+        }
+    }
+
+    void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);
         pipelineRegistry.register(Pipeline.Type.CORENLP);
