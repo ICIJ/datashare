@@ -14,7 +14,7 @@ public class CliMode extends CommonMode {
     protected void configure() {
         super.configure();
 
-        bind(TaskManager.class).toInstance(new TaskManagerMemory(propertiesProvider));
+        bind(TaskManager.class).to(TaskManagerMemory.class).asEagerSingleton();
         configurePersistence();
     }
 }

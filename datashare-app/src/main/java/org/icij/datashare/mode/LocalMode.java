@@ -18,7 +18,7 @@ public class LocalMode extends CommonMode {
         super.configure();
         bind(IndexWaiterFilter.class).asEagerSingleton();
         bind(StatusResource.class).asEagerSingleton();
-        bind(TaskManager.class).toInstance(new TaskManagerMemory(propertiesProvider));
+        bind(TaskManager.class).to(TaskManagerMemory.class).asEagerSingleton();
 
         configurePersistence();
     }
