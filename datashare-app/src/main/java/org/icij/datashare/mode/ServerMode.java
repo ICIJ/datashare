@@ -8,8 +8,6 @@ import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.session.*;
-import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.tasks.TaskManagerRedis;
 import org.icij.datashare.web.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +24,6 @@ public class ServerMode extends CommonMode {
     protected void configure() {
         super.configure();
         String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse("org.icij.datashare.session.UsersInRedis");
-        bind(TaskManager.class).to(TaskManagerRedis.class).asEagerSingleton();
         Class<? extends UsersWritable> authUsersProviderClass = UsersInRedis.class;
         try {
             logger.info("setting auth users provider to {}", authUsersProviderClass);

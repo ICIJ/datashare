@@ -1,5 +1,6 @@
 package org.icij.datashare.mode;
 
+import com.google.inject.ConfigurationException;
 import com.google.inject.Injector;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.QueueType;

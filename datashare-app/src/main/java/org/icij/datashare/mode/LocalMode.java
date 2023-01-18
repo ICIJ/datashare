@@ -2,8 +2,6 @@ package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.web.*;
 
 import java.util.Map;
@@ -18,7 +16,6 @@ public class LocalMode extends CommonMode {
         super.configure();
         bind(IndexWaiterFilter.class).asEagerSingleton();
         bind(StatusResource.class).asEagerSingleton();
-        bind(TaskManager.class).to(TaskManagerMemory.class).asEagerSingleton();
 
         configurePersistence();
     }
