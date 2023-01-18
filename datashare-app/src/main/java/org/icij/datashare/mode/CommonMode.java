@@ -84,11 +84,10 @@ public class CommonMode extends AbstractModule {
                 return new EmbeddedMode(properties);
             case SERVER:
                 return new ServerMode(properties);
-            case CLI:
-                return new CliMode(properties);
             case BATCH_SEARCH:
             case BATCH_DOWNLOAD:
-                return new BatchMode(properties);
+            case CLI:
+                return new CliMode(properties);
             default:
                 throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
         }
