@@ -1,6 +1,5 @@
 package org.icij.datashare.mode;
 
-import com.google.inject.ConfigurationException;
 import com.google.inject.Injector;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.QueueType;
@@ -11,19 +10,18 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.redisson.api.RedissonClient;
 
 import java.io.IOException;
 import java.util.HashMap;
 
 import static com.google.inject.Guice.createInjector;
 
-public class BatchModeTest {
+public class CliModeTest {
     @Rule public TemporaryFolder dataDir = new TemporaryFolder();
 
     @Test
     public void test_batch_search() throws IOException {
-        Injector injector = createInjector(new BatchMode(PropertiesProvider.fromMap(new HashMap<>() {{
+        Injector injector = createInjector(new CliMode(PropertiesProvider.fromMap(new HashMap<>() {{
             put("dataDir", dataDir.getRoot().toString());
             put("mode", "BATCH_SEARCH");
             put("batchQueueType", QueueType.REDIS.name());
@@ -38,7 +36,7 @@ public class BatchModeTest {
 
     @Test
     public void test_batch_download() throws IOException {
-        Injector injector = createInjector(new BatchMode(PropertiesProvider.fromMap(new HashMap<>() {{
+        Injector injector = createInjector(new CliMode(PropertiesProvider.fromMap(new HashMap<>() {{
             put("dataDir", dataDir.getRoot().toString());
             put("mode", "BATCH_DOWNLOAD");
             put("batchQueueType", QueueType.MEMORY.name());
