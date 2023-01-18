@@ -222,7 +222,7 @@ public final class DatashareCliOptions {
                 singletonList("busType"),
                 "Backend data bus type. Values can be \"memory\" or \"redis\"")
                 .withRequiredArg().ofType( QueueType.class )
-                .defaultsTo(QueueType.REDIS);
+                .defaultsTo(QueueType.MEMORY);
     }
 
     static void redisAddress(OptionParser parser) {
@@ -238,7 +238,7 @@ public final class DatashareCliOptions {
                     singletonList("queueType"),
                     "Backend queues and sets type. Values can be \"memory\" or \"redis\"")
                     .withRequiredArg().ofType(QueueType.class)
-                    .defaultsTo(QueueType.REDIS);
+                    .defaultsTo(QueueType.MEMORY);
         }
 
     static void fileParserParallelism(OptionParser parser) {
@@ -452,7 +452,7 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList("batchQueueType"), "")
                 .withRequiredArg().ofType( QueueType.class )
-                .defaultsTo(QueueType.REDIS);
+                .defaultsTo(QueueType.MEMORY);
     }
 
     public static void batchDownloadTimeToLive(OptionParser parser) {
