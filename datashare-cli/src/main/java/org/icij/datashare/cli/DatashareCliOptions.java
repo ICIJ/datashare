@@ -448,7 +448,7 @@ public final class DatashareCliOptions {
                 .ofType(String.class);
     }
 
-    public static void batchSearchQueueType(OptionParser parser) {
+    public static void batchQueueType(OptionParser parser) {
         parser.acceptsAll(
                 singletonList("batchQueueType"), "")
                 .withRequiredArg().ofType( QueueType.class )
