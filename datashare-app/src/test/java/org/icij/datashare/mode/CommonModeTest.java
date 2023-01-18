@@ -2,6 +2,7 @@ package org.icij.datashare.mode;
 
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
+import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Rule;
@@ -17,6 +18,7 @@ import java.util.HashMap;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.JarUtil.createJar;
 
 @RunWith(Parameterized.class)
@@ -52,6 +54,22 @@ public class CommonModeTest extends AbstractProdWebServerTest {
 
         Method restAssertMethod = FluentRestTest.class.getMethod(method.toLowerCase(), String.class);
         return (RestAssert) restAssertMethod.invoke(this, ofNullable(prefix).orElse("") + "/url");
+    }
+
+    @Test
+    public void test_has_redis_property() {
+        CommonMode modeWithRedis = new CommonMode(new HashMap<String, String>() {{
+            put("extensionsDir", pluginFolder.getRoot().toString());
+            put("busType", QueueType.REDIS.name());
+        }});
+
+        CommonMode modeWithoutRedis = new CommonMode(new HashMap<String, String>() {{
+            put("extensionsDir", pluginFolder.getRoot().toString());
+            put("queueType", QueueType.MEMORY.name());
+        }});
+
+        assertThat(modeWithRedis.hasRedisProperty()).isTrue();
+        assertThat(modeWithoutRedis.hasRedisProperty()).isFalse();
     }
 
     public CommonModeTest(String method) { this.method = method;}

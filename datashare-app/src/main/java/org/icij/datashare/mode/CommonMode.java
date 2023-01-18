@@ -25,12 +25,13 @@ import org.icij.datashare.com.RedisDataBus;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
-import org.icij.datashare.extract.*;
+import org.icij.datashare.extract.MemoryBlockingQueue;
+import org.icij.datashare.extract.RedisBlockingQueue;
+import org.icij.datashare.extract.RedisUserDocumentQueue;
+import org.icij.datashare.extract.RedisUserReportMap;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.tasks.DocumentCollectionFactory;
-import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
-import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -96,9 +97,21 @@ public class CommonMode extends AbstractModule {
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
-        RedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
-        bind(RedissonClient.class).toInstance(redissonClient);
-        configureBatchQueues(redissonClient, propertiesProvider);
+
+        RedissonClient redissonClient = null;
+        if ( hasRedisProperty() ) {
+            redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
+            bind(RedissonClient.class).toInstance(redissonClient);
+        }
+
+        QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
+        if ( batchQueueType == QueueType.REDIS ) {
+            configureBatchQueuesRedis(redissonClient);
+            bind(TaskManager.class).to(TaskManagerRedis.class).asEagerSingleton();
+        } else {
+            configureBatchQueuesMemory(propertiesProvider);
+            bind(TaskManager.class).to(TaskManagerMemory.class).asEagerSingleton();
+        }
 
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
@@ -134,15 +147,14 @@ public class CommonMode extends AbstractModule {
         }
     }
 
-    private void configureBatchQueues(RedissonClient redissonClient, final PropertiesProvider propertiesProvider) {
-        QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
-        if ( batchQueueType == QueueType.REDIS ) {
-            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
-            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
-        } else {
-            bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHSEARCH_QUEUE_NAME));
-            bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));;
-        }
+    private void configureBatchQueuesMemory(PropertiesProvider propertiesProvider) {
+        bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHSEARCH_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));
+    }
+
+    private void configureBatchQueuesRedis(RedissonClient redissonClient) {
+        bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
     void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {
@@ -208,6 +220,10 @@ public class CommonMode extends AbstractModule {
             }
         }
         return routes;
+    }
+
+    protected boolean hasRedisProperty() {
+        return propertiesProvider.getProperties().contains(QueueType.REDIS.name());
     }
 
     private Routes addCors(Routes routes, PropertiesProvider provider) {
