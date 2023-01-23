@@ -195,8 +195,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             return get(user, batchId);
         }
         return createBatchSearchWithoutQueriesSelectStatement(DSL.using(dataSource, dialect)).
-                where(BATCH_SEARCH.UUID.eq(batchId)).
-                fetch().stream().map(this::createBatchSearchWithoutQueries).collect(toList()).get(0);
+                where(BATCH_SEARCH.UUID.eq(batchId)).groupBy(BATCH_SEARCH.UUID).having(count().eq(
+                        selectCount().from(BATCH_SEARCH_PROJECT)
+                                .where(BATCH_SEARCH_PROJECT.SEARCH_UUID.eq(BATCH_SEARCH.UUID))))
+                .fetch().stream().map(this::createBatchSearchWithoutQueries).collect(toList()).get(0);
     }
 
     @Override
@@ -333,7 +335,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         BATCH_SEARCH.BATCH_RESULTS,
                         BATCH_SEARCH.ERROR_MESSAGE,
                         BATCH_SEARCH.ERROR_QUERY,
-                        BATCH_SEARCH_PROJECT.PRJ_ID,
+                        groupConcat(BATCH_SEARCH_PROJECT.PRJ_ID).as(field("projects")),
                         field(selectCount()
                                 .from(BATCH_SEARCH_QUERY)
                                 .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(BATCH_SEARCH.UUID)))
@@ -386,9 +388,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     private BatchSearch createBatchSearchWithoutQueries(final Record record) {
         Integer nb_queries = record.get("nb_queries", Integer.class);
+        String projects = (String) record.get("projects");
         boolean phraseMatches= record.get(BATCH_SEARCH.PHRASE_MATCHES) != 0;
         return new BatchSearch(record.get(BATCH_SEARCH.UUID).trim(),
-                singletonList(project(record.get(BATCH_SEARCH_PROJECT.PRJ_ID))),
+                getProjects(projects),
                 record.getValue(BATCH_SEARCH.NAME),
                 record.getValue(BATCH_SEARCH.DESCRIPTION),
                 nb_queries,
@@ -411,10 +414,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     private BatchSearchRecord createBatchSearchRecordFrom(final Record record) {
         Object nbQueries = record.getValue("nbQueries");
-        String prj = (String) record.get("projects");
+        String projects = (String) record.get("projects");
         org.icij.datashare.db.tables.records.BatchSearchRecord batchSearch = record.into(BATCH_SEARCH);
         return new BatchSearchRecord(batchSearch.getUuid(),
-                prj == null || prj.isEmpty()? null : stream(prj.split(LIST_SEPARATOR)).sorted().map(Project::project).collect(toList()),
+                getProjects(projects),
                 batchSearch.getName(),
                 batchSearch.getDescription(),
                 (int) nbQueries,
@@ -425,6 +428,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 batchSearch.getPublished() > 0,
                 batchSearch.getErrorMessage(),
                 batchSearch.getErrorQuery());
+    }
+
+    private static List<Project> getProjects(String prj) {
+        return prj == null || prj.isEmpty() ? null : stream(prj.split(LIST_SEPARATOR)).sorted().map(Project::project).collect(toList());
     }
 
     private SearchResult createSearchResult(final User actualUser, final Record record) {

@@ -69,6 +69,30 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_get_batch_search_by_user_with_projects_without_queries() {
+        BatchSearch batchSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name1", "description1",
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),
+                3,true);
+
+        repository.save(batchSearch);
+        BatchSearch batchSearchFromGet = repository.get(User.local(), batchSearch.uuid, false);
+
+        assertThat(batchSearchFromGet.projects).isEqualTo(batchSearch.projects);
+    }
+
+    @Test
+    public void test_get_batch_search_by_user_with_projects_with_queries() {
+        BatchSearch batchSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name1", "description1",
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),
+                3,true);
+
+        repository.save(batchSearch);
+        BatchSearch batchSearchFromGet = repository.get(User.local(), batchSearch.uuid, true);
+
+        assertThat(batchSearchFromGet.projects).isEqualTo(batchSearch.projects);
+    }
+
+    @Test
     public void test_get_records_filter_by_project() {
         BatchSearch batchSearch1 = new BatchSearch(singletonList(project("prj1")), "name1", "description1",
                 asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
