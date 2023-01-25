@@ -126,8 +126,9 @@ public class CommonMode extends AbstractModule {
     private void configureDataBus(final PropertiesProvider propertiesProvider) {
         QueueType busType = QueueType.valueOf(propertiesProvider.get("busType").orElse(QueueType.MEMORY.name()));
         if ( busType == QueueType.MEMORY) {
-            bind(DataBus.class).to(MemoryDataBus.class).asEagerSingleton();
-            bind(Publisher.class).to(MemoryDataBus.class).asEagerSingleton();
+            MemoryDataBus memoryDataBus = new MemoryDataBus();
+            bind(DataBus.class).toInstance(memoryDataBus);
+            bind(Publisher.class).toInstance(memoryDataBus);
         } else {
             bind(DataBus.class).to(RedisDataBus.class).asEagerSingleton();
             bind(Publisher.class).to(RedisDataBus.class).asEagerSingleton();
