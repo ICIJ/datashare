@@ -15,7 +15,7 @@ public class RedisSessionIdStore implements SessionIdStore {
 
     @Inject
     public RedisSessionIdStore(PropertiesProvider propertiesProvider) {
-        this.redis = new JedisPool(propertiesProvider.get("messageBusAddress").orElse("redis://redis:6379"));
+        this.redis = new JedisPool(propertiesProvider.get("redisAddress").orElse("redis://redis:6379"));
         this.ttl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("1"));
     }
 

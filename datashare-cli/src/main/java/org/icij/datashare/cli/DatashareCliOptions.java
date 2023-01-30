@@ -220,7 +220,7 @@ public final class DatashareCliOptions {
     public static void busType(OptionParser parser) {
         parser.acceptsAll(
                 singletonList("busType"),
-                "Backend data bus type. Values can be \"memory\" or \"redis\"")
+                "Backend data bus type.")
                 .withRequiredArg().ofType( QueueType.class )
                 .defaultsTo(QueueType.MEMORY);
     }
@@ -236,7 +236,7 @@ public final class DatashareCliOptions {
     static void queueType(OptionParser parser) {
             parser.acceptsAll(
                     singletonList("queueType"),
-                    "Backend queues and sets type. Values can be \"memory\" or \"redis\"")
+                    "Backend queues and sets type.")
                     .withRequiredArg().ofType(QueueType.class)
                     .defaultsTo(QueueType.MEMORY);
         }
@@ -383,7 +383,7 @@ public final class DatashareCliOptions {
 
     static void queueName(OptionParser parser) {
         parser.acceptsAll(
-                singletonList("queueName"), "Redis queue name")
+                singletonList("queueName"), "Extract queue name")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("extract:queue");
@@ -506,6 +506,6 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList("sessionStoreType"), "Type of session store")
                 .withRequiredArg()
-                .ofType(QueueType.class);
+                .ofType(QueueType.class).defaultsTo(QueueType.MEMORY);
     }
 }
