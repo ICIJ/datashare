@@ -504,7 +504,7 @@ public final class DatashareCliOptions {
 
     public static void sessionStoreType(OptionParser parser) {
         parser.acceptsAll(
-                singletonList("sessionStoreType"), "Type of session store (redis|memory)")
+                singletonList("sessionStoreType"), "Type of session store")
                 .withRequiredArg()
                 .ofType(QueueType.class);
     }
