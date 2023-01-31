@@ -44,7 +44,9 @@ import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.extract.report.ReportMap;
 import org.icij.task.Options;
+import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RedissonClient;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
@@ -59,23 +61,31 @@ import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
-public class CommonMode extends AbstractModule {
+public abstract class CommonMode extends AbstractModule {
+    protected Logger logger = LoggerFactory.getLogger(getClass());
     public static final String DS_BATCHSEARCH_QUEUE_NAME = "ds:batchsearch:queue";
     public static final String DS_BATCHDOWNLOAD_QUEUE_NAME = "ds:batchdownload:queue";
     public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
     protected final PropertiesProvider propertiesProvider;
+    protected final Mode mode;
+    private final GuiceAdapter guiceAdapter;
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
                 new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).mergeWith(properties);
+        this.mode = getMode(properties);
+        this.guiceAdapter = new GuiceAdapter(this);
     }
 
     CommonMode(final Map<String, String> map) {
         this(PropertiesProvider.fromMap(map));
     }
 
+    public static CommonMode create(final Map<String, String> map) {
+        return create(PropertiesProvider.fromMap(map));
+    }
     public static CommonMode create(final Properties properties) {
-        switch (Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode"))) {
+        switch (getMode(properties)) {
             case NER:
                 return new NerMode(properties);
             case LOCAL:
@@ -92,6 +102,9 @@ public class CommonMode extends AbstractModule {
                 throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
         }
     }
+
+    public Mode getMode() {return mode;}
+    public <T> T get(Class<T> type) {return guiceAdapter.get(type);}
 
     @Override
     protected void configure() {
@@ -164,7 +177,7 @@ public class CommonMode extends AbstractModule {
         try {
             pipelineRegistry.load();
         } catch (FileNotFoundException e) {
-            LoggerFactory.getLogger(getClass()).info("extensions dir not found " + e.getMessage());
+            logger.info("extensions dir not found " + e.getMessage());
         }
         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
@@ -178,7 +191,7 @@ public class CommonMode extends AbstractModule {
         return routes -> addModeConfiguration(defaultRoutes(addCors(routes, propertiesProvider), propertiesProvider));
     }
 
-    protected Routes addModeConfiguration(final Routes routes) {return routes;}
+    protected abstract Routes addModeConfiguration(final Routes routes);
 
     void configurePersistence() {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
@@ -189,7 +202,7 @@ public class CommonMode extends AbstractModule {
     }
 
     private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
-        routes.setIocAdapter(new GuiceAdapter(this))
+        routes.setIocAdapter(guiceAdapter)
                 .add(RootResource.class)
                 .add(SettingsResource.class)
                 .add(StatusResource.class)
@@ -216,7 +229,7 @@ public class CommonMode extends AbstractModule {
                 new ExtensionLoader(Paths.get(extensionsDir)).load((Consumer<Class<?>>)routes::add,
                         c -> c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class));
             } catch (FileNotFoundException e) {
-                LoggerFactory.getLogger(getClass()).info("extensions dir not found", e);
+                logger.info("extensions dir not found", e);
             }
         }
         return routes;
@@ -232,5 +245,10 @@ public class CommonMode extends AbstractModule {
             routes.filter(new CorsFilter(cors));
         }
         return routes;
+    }
+
+    @NotNull
+    private static Mode getMode(Properties properties) {
+        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode"));
     }
 }

@@ -2,6 +2,7 @@ package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.web.*;
 
 import java.util.Map;
@@ -9,7 +10,7 @@ import java.util.Properties;
 
 public class LocalMode extends CommonMode {
     LocalMode(Properties properties) { super(properties);}
-    public LocalMode(Map<String, String> properties) { super(properties);}
+    LocalMode(Map<String, String> properties) { super(properties);}
 
     @Override
     protected void configure() {

@@ -3,6 +3,7 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.codestory.rest.Response;
+import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.mode.LocalMode;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -17,7 +18,8 @@ import static org.fest.assertions.Assertions.assertThat;
 public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() throws Exception {
-        configure(new LocalMode(new HashMap<String, String>() {{
+        configure(CommonMode.create(new HashMap<>() {{
+            put("mode", "LOCAL");
             put("dataDir", WebLocalAcceptanceTest.class.getResource("/data").getPath());
             put("extensionsDir", WebLocalAcceptanceTest.class.getResource("/extensions").getPath());
             put("pluginsDir", WebLocalAcceptanceTest.class.getResource("/plugins").getPath());
@@ -59,7 +61,7 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_extensions_plugins_without_directory() throws Exception {
-        configure(new LocalMode(new HashMap<>()).createWebConfiguration());
+        configure(CommonMode.create(new HashMap<>() {{ put("mode", "LOCAL");}}).createWebConfiguration());
         waitForDatashare();
         get("/api/extensions").should().haveType("application/json").contain("\"installed\":false");
         get("/api/plugins").should().haveType("application/json").contain("\"installed\":false");

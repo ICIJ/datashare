@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
@@ -161,9 +162,11 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     private void setupAppWith(String... userLogins) {
-        final PropertiesProvider propertiesProvider = new PropertiesProvider();
+        final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("mode", "LOCAL");
+        }});
         taskManager = new TaskManagerMemory(propertiesProvider);
-        configure(new CommonMode(new Properties()) {
+        configure(new CommonMode(propertiesProvider.getProperties()) {
             @Override
             protected void configure() {
                 bind(PropertiesProvider.class).toInstance(propertiesProvider);

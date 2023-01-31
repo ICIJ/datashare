@@ -16,9 +16,8 @@ import java.util.Map;
 import java.util.Properties;
 
 public class ServerMode extends CommonMode {
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    public ServerMode(Properties properties) { super(properties);}
-    public ServerMode(Map<String, String> properties) { super(properties);}
+    ServerMode(Properties properties) { super(properties);}
+    ServerMode(Map<String, String> properties) { super(properties);}
 
     @Override
     protected void configure() {

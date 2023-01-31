@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import com.google.inject.Injector;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -21,7 +20,6 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Set;
 
-import static com.google.inject.Guice.createInjector;
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
@@ -38,7 +36,8 @@ class CliApp {
     static void start(Properties properties) throws Exception {
         process(new PluginService(new PropertiesProvider(properties)), properties);
         process(new ExtensionService(new PropertiesProvider(properties)), properties);
-        runTaskRunner(createInjector(CommonMode.create(properties)), properties);
+        CommonMode commonMode = CommonMode.create(properties);
+        runTaskRunner(commonMode, properties);
     }
 
     private static void process(DeliverableService<?> deliverableService, Properties properties) throws IOException {
@@ -54,12 +53,12 @@ class CliApp {
         System.exit(0);
     }
 
-    private static void runTaskRunner(Injector injector, Properties properties) throws Exception {
-        TaskManagerMemory taskManager = injector.getInstance(TaskManagerMemory.class);
-        TaskFactory taskFactory = injector.getInstance(TaskFactory.class);
+    private static void runTaskRunner(CommonMode mode, Properties properties) throws Exception {
+        TaskManagerMemory taskManager = mode.get(TaskManagerMemory.class);
+        TaskFactory taskFactory = mode.get(TaskFactory.class);
 
         Set<Pipeline.Type> nlpPipelines = parseAll(properties.getProperty(DatashareCliOptions.NLP_PIPELINES_OPT));
-        Indexer indexer = injector.getInstance(Indexer.class);
+        Indexer indexer = mode.get(Indexer.class);
 
         if (resume(properties)) {
             RedisUserDocumentQueue queue = new RedisUserDocumentQueue(nullUser(), new PropertiesProvider(properties));
@@ -113,17 +112,17 @@ class CliApp {
 
         if (pipeline.has(DatashareCli.Stage.SCAN) && !resume(properties)) {
             taskManager.startTask(taskFactory.createScanTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.SCAN), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), properties),
-                    () -> closeAndLogException(injector.getInstance(DocumentQueue.class)).run());
+                    () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
         }
 
         if (pipeline.has(DatashareCli.Stage.INDEX)) {
             taskManager.startTask(taskFactory.createIndexTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.INDEX), properties),
-                    () -> closeAndLogException(injector.getInstance(DocumentQueue.class)).run());
+                    () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
         }
 
         if (pipeline.has(DatashareCli.Stage.NLP)) {
             for (Pipeline.Type nlp : nlpPipelines) {
-                Pipeline pipelineClass = injector.getInstance(PipelineRegistry.class).get(nlp);
+                Pipeline pipelineClass = mode.get(PipelineRegistry.class).get(nlp);
                 taskManager.startTask(taskFactory.createNlpTask(nullUser(), pipelineClass));
             }
             if (resume(properties)) {
