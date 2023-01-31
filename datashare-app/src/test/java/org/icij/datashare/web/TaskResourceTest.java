@@ -44,9 +44,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        PipelineRegistry pipelineRegistry = new PipelineRegistry(new PropertiesProvider());
+        final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("mode", "LOCAL");
+        }});
+        PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);
-        configure(new CommonMode(new Properties()) {
+        configure(new CommonMode(propertiesProvider.getProperties()) {
                     @Override
                     protected void configure() {
                         bind(TaskFactory.class).toInstance(taskFactory);
@@ -111,14 +114,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         response.should().respond(200).haveType("application/json");
         verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get("/default/data/dir"), new PropertiesProvider(properties).getProperties());
-    }
-
-    @Test
-    public void test_run_batch_search() {
-        RestAssert response = post("/api/task/batchSearch", "{}");
-
-        response.should().respond(200).haveType("application/json");
-        verify(taskFactory).createBatchSearchLoop();
     }
 
     @Test

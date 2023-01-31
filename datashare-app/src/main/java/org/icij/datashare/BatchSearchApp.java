@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import com.google.inject.Injector;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
@@ -9,16 +8,15 @@ import org.redisson.api.RedissonClient;
 
 import java.util.Properties;
 
-import static com.google.inject.Guice.createInjector;
 
 public class BatchSearchApp {
     public static void start(Properties properties) throws Exception {
-        Injector injector = createInjector(CommonMode.create(properties));
-        BatchSearchLoop batchSearchLoop = injector.getInstance(TaskFactory.class).createBatchSearchLoop();
+        CommonMode mode = CommonMode.create(properties);
+        BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
         batchSearchLoop.requeueDatabaseBatches();
         batchSearchLoop.run();
         batchSearchLoop.close();
-        injector.getInstance(Indexer.class).close();// to avoid being blocked
-        injector.getInstance(RedissonClient.class).shutdown();
+        mode.get(Indexer.class).close();// to avoid being blocked
+        mode.get(RedissonClient.class).shutdown();
     }
 }

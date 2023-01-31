@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import org.icij.datashare.cli.DatashareCli;
+import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.mode.ServerMode;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -9,7 +10,7 @@ import org.junit.Test;
 public class WebServerAcceptanceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() throws Exception {
-        configure(new ServerMode(new DatashareCli().parseArguments(new String[]{"--cors=*"}).properties).createWebConfiguration());
+        configure(CommonMode.create(new DatashareCli().parseArguments(new String[]{"--cors=*", "--mode=SERVER"}).properties).createWebConfiguration());
         waitForDatashare();
     }
 

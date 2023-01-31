@@ -1,8 +1,13 @@
 package org.icij.datashare;
 
+import com.google.inject.Injector;
 import net.codestory.http.WebServer;
 import org.icij.datashare.cli.DatashareCli;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.BatchSearchLoop;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
 
 import java.awt.*;
 import java.io.IOException;
@@ -36,6 +41,11 @@ public class WebApp {
                 parseBoolean(properties.getProperty(OPEN_LINK))) {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
+        }
+        if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
+            BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
+            TaskManager taskManager = mode.get(TaskManager.class);
+            taskManager.startTask(batchSearchLoop::run);
         }
         webServerThread.join();
     }

@@ -1,6 +1,5 @@
 package org.icij.datashare.mode;
 
-import com.google.inject.Injector;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.tasks.BatchDownloadLoop;
@@ -14,35 +13,34 @@ import org.junit.rules.TemporaryFolder;
 import java.io.IOException;
 import java.util.HashMap;
 
-import static com.google.inject.Guice.createInjector;
 
 public class CliModeTest {
     @Rule public TemporaryFolder dataDir = new TemporaryFolder();
 
     @Test
     public void test_batch_search() throws IOException {
-        Injector injector = createInjector(new CliMode(PropertiesProvider.fromMap(new HashMap<>() {{
+        CommonMode mode = CommonMode.create(PropertiesProvider.fromMap(new HashMap<>() {{
             put("dataDir", dataDir.getRoot().toString());
             put("mode", "BATCH_SEARCH");
             put("batchQueueType", QueueType.REDIS.name());
-        }})));
+        }}));
 
-        BatchSearchLoop batchSearchLoop = injector.getInstance(TaskFactory.class).createBatchSearchLoop();
+        BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
         batchSearchLoop.enqueuePoison();
         batchSearchLoop.run();
         batchSearchLoop.close();
-        injector.getInstance(Indexer.class).close();
+        mode.get(Indexer.class).close();
     }
 
     @Test
     public void test_batch_download() throws IOException {
-        Injector injector = createInjector(new CliMode(PropertiesProvider.fromMap(new HashMap<>() {{
+        CommonMode mode = CommonMode.create(PropertiesProvider.fromMap(new HashMap<>() {{
             put("dataDir", dataDir.getRoot().toString());
             put("mode", "BATCH_DOWNLOAD");
             put("batchQueueType", QueueType.MEMORY.name());
-        }})));
+        }}));
 
-        BatchDownloadLoop batchDownloadLoop = injector.getInstance(TaskFactory.class).createBatchDownloadLoop();
+        BatchDownloadLoop batchDownloadLoop = mode.get(TaskFactory.class).createBatchDownloadLoop();
         batchDownloadLoop.enqueuePoison();
         batchDownloadLoop.run();
         batchDownloadLoop.close();

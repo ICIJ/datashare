@@ -260,25 +260,6 @@ public class TaskResource {
     }
 
     /**
-     * Run batch searches
-     *
-     * @return 200 and the created task
-     *
-     * Example :
-     * $(curl -XPOST localhost:8080/api/task/batchSearch)
-     */
-    @Post("/batchSearch")
-    public TaskView<?> runBatchSearches(Context context) {
-        // TODO replace with call with batchId (in local mode there is only one batch run at a time)
-        BatchSearchLoop batchSearchLoop = taskFactory.createBatchSearchLoop();
-        batchSearchLoop.requeueDatabaseBatches();
-        batchSearchLoop.enqueuePoison();
-
-        return taskManager.startTask(batchSearchLoop::run);
-    }
-
-
-    /**
      * Cancels the task with the given name. It answers 200 with the cancellation status `true|false`
      *
      * @param taskId

@@ -1,5 +1,7 @@
 package org.icij.datashare.mode;
 
+import net.codestory.http.routes.Routes;
+
 import java.util.Properties;
 
 public class CliMode extends CommonMode {
@@ -12,5 +14,10 @@ public class CliMode extends CommonMode {
         super.configure();
 
         configurePersistence();
+    }
+
+    @Override
+    protected Routes addModeConfiguration(Routes routes) {
+        return null;
     }
 }
