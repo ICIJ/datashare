@@ -7,7 +7,7 @@ import org.icij.datashare.web.NerResource;
 import java.util.Properties;
 
 public class NerMode extends CommonMode {
-    public NerMode(Properties properties) { super(properties);}
+    NerMode(Properties properties) { super(properties);}
 
     @Override
     protected void configure() {
