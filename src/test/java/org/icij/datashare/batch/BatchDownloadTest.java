@@ -39,7 +39,7 @@ public class BatchDownloadTest {
 
         assertThat(batchDownload.projects).isEqualTo(singletonList(project("prj")));
         assertThat(batchDownload.query).isEqualTo("foo");
-        assertThat(batchDownload.filename.toString()).isEqualTo("/tmp/archive_local_2021-07-07T14:53:47Z[GMT].zip");
+        assertThat(batchDownload.filename.toString()).isEqualTo("/tmp/archive_local_2021-07-07T14_53_47Z[GMT].zip");
         assertThat(batchDownload.getExists()).isFalse();
     }
 
@@ -54,7 +54,7 @@ public class BatchDownloadTest {
 
         assertThat(new BatchDownload(singletonList(project("prj")), local(), "foo",
                 Paths.get("/bar"), false).filename.toString()).
-                isEqualTo("/bar/archive_local_2021-07-07T14:15:16Z[GMT].zip");
+                isEqualTo("/bar/archive_local_2021-07-07T14_15_16Z[GMT].zip");
     }
 
     @Test
@@ -68,7 +68,7 @@ public class BatchDownloadTest {
     public TemporaryFolder folder = new TemporaryFolder();
     @Test
     public void test_if_batch_download_archive_exists() throws Exception {
-        File tempFile = folder.newFile("archive_local_2021-07-07T14:53:47Z[GMT].zip");
+        File tempFile = folder.newFile("archive_local_2021-07-07T14_53_47Z[GMT].zip");
         assertThat(Files.exists(tempFile.toPath())).isTrue();
         Path tmpPath  = folder.getRoot().toPath();
 
@@ -77,7 +77,7 @@ public class BatchDownloadTest {
         BatchDownload bd = new BatchDownload(asList(project("prj1"),
                 project("prj2")),  local(), "query", tmpPath ,false);
         String json = objectMapper.writeValueAsString(bd);
-        assertThat(json).contains("\"filename\":\"file://"+ tmpPath + "/archive_local_2021-07-07T14:53:47Z%5BGMT%5D.zip\"");
+        assertThat(json).contains("\"filename\":\"file://"+ tmpPath + "/archive_local_2021-07-07T14_53_47Z%5BGMT%5D.zip\"");
         assertThat(json).contains("\"exists\":true");
         assertThat(bd.getExists()).isTrue();
 
@@ -115,7 +115,7 @@ public class BatchDownloadTest {
 
         String json = objectMapper.writeValueAsString(new BatchDownload(asList(project("prj1"),
                 project("prj2")), local(), "query"));
-        assertThat(json).contains("\"filename\":\"file:///tmp/archive_local_2021-07-07T14:53:47Z%5BGMT%5D.zip\"");
+        assertThat(json).contains("\"filename\":\"file:///tmp/archive_local_2021-07-07T14_53_47Z%5BGMT%5D.zip\"");
         assertThat(json).contains("\"exists\":false");
     }
 

@@ -87,7 +87,8 @@ public class BatchDownload {
 
     public static Path createFilename(User user) {
         User nonNullUser = ofNullable(user).orElseThrow(() -> new IllegalArgumentException("user cannot be null or empty"));
-        String strTime = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT"))));
+        // Fix : double dot char cannot be contained in a file name on Windows
+        String strTime = ISO_DATE_TIME.format(from(DatashareTime.getInstance().now().toInstant().atZone(ZoneId.of("GMT")))).replace(":", "_");
         return Paths.get(format(ZIP_FORMAT, nonNullUser.getId(), strTime));
     }
 
