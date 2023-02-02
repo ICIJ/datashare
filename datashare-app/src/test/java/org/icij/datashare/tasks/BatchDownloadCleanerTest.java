@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 
 import static org.icij.datashare.batch.BatchDownload.createFilename;
-import static org.icij.datashare.text.Project.project;
 
 public class BatchDownloadCleanerTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule();
@@ -28,12 +27,15 @@ public class BatchDownloadCleanerTest {
     @Test
     public void test_remove_zip_file_with_correct_patterns() throws IOException {
         File file = downloadDir.newFile(createFilename(User.local()).toString());
+        File fileWithDoubleDots = downloadDir.newFile("archive_local_0000-00-00T00:00:00Z[GMT].zip");
+
         // we must advance the delay between time fixed by the time rule and file creation date ~60ms
         DatashareTime.getInstance().addMilliseconds(100);
 
         new BatchDownloadCleaner(downloadDir.getRoot().toPath(), 0).run();
 
         Assertions.assertThat(file).doesNotExist();
+        Assertions.assertThat(fileWithDoubleDots).doesNotExist();
     }
 
     @Test

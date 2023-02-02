@@ -15,7 +15,7 @@ import static java.util.regex.Pattern.compile;
 
 public class BatchDownloadCleaner implements Runnable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final Pattern filePattern = compile(BatchDownload.ZIP_FORMAT.replace("%s", "[a-z0-9\\.:Z\\-\\[GMT\\]]+"));
+    private final Pattern filePattern = compile(BatchDownload.ZIP_FORMAT.replace("%s", "[a-z0-9\\.:|_Z\\-\\[GMT\\]]+"));
     private final Path downloadDir;
     private final int ttlHour;
 
