@@ -8,6 +8,7 @@ import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.text.Language;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.apache.commons.io.IOUtils.copy;
 import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR;
@@ -72,7 +74,9 @@ public class RootResource {
      */
     @Get("settings")
     public Map<String, Object> getPublicSettings() {
-        return propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*", ".*Url.*", ".*Key.*");
+        Map<String, Object> filteredProperties = propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*", ".*Url.*", ".*Key.*");
+        filteredProperties.put("pathSeparator", File.separator);
+        return filteredProperties;
     }
 
     /**
@@ -93,5 +97,4 @@ public class RootResource {
             throw new RuntimeException(e);
         }
     }
-
 }

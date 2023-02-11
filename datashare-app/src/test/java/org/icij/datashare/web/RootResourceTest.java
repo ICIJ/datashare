@@ -33,6 +33,14 @@ public class RootResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_public_config_for_path_separator() {
+        get("/settings").should()
+                .respond(200)
+                .haveType("application/json")
+                .contain("pathSeparator");
+    }
+
+    @Test
     public void test_get_version() {
         get("/version").should().respond(200);
     }
