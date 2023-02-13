@@ -330,7 +330,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         when(batchSearchRepository.deleteAll(User.local())).thenReturn(true).thenReturn(false);
 
         delete("/api/batch/search").should().respond(204);
-        delete("/api/batch/search").should().respond(404);
+        delete("/api/batch/search").should().respond(204);
     }
 
     @Test
@@ -345,9 +345,9 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     public void test_delete_batch_search_by_id() {
         when(batchSearchRepository.delete(User.local(), "myid")).thenReturn(true).thenReturn(false);
 
-        delete("/api/batch/search/unknownid").should().respond(404);
+        delete("/api/batch/search/unknownid").should().respond(204);
         delete("/api/batch/search/myid").should().respond(204);
-        delete("/api/batch/search/myid").should().respond(404);
+        delete("/api/batch/search/myid").should().respond(204);
     }
 
     @Test

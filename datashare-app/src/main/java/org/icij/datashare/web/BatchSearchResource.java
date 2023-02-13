@@ -165,9 +165,9 @@ public class BatchSearchResource {
      * Delete batch search with the given id and its results.
      * It won't delete running batch searches, because results are added and would be orphans.
      *
-     * Returns 204 (No Content) if rows have been removed and 404 if nothing has been done (i.e. not found).
+     * Returns 204 (No Content) : idempotent
      *
-     * @return 204 or 404
+     * @return 204
      *
      * Example :
      * $(curl -i -XDELETE localhost:8080/api/batch/search/unknown_id)
@@ -175,7 +175,8 @@ public class BatchSearchResource {
      */
     @Delete("/search/:batchid")
     public Payload deleteBatch(String batchId, Context context) {
-        return batchSearchRepository.delete((User) context.currentUser(), batchId) ? new Payload(204): notFound();
+        batchSearchRepository.delete((User) context.currentUser(), batchId);
+        return new Payload(204);
     }
 
     /**
@@ -365,16 +366,17 @@ public class BatchSearchResource {
     /**
      * Delete batch searches and results for the current user.
      *
-     * Returns 204 (No Content) if rows have been removed and 404 if nothing has been done (i.e. not found).
+     * Returns 204 (No Content): idempotent 
      *
-     * @return 204 or 404
+     * @return 204
      *
      * Example :
      * $(curl -XDELETE localhost:8080/api/batch/search)
      */
     @Delete("/search")
     public Payload deleteSearches(Context context) {
-        return batchSearchRepository.deleteAll((User) context.currentUser()) ? new Payload(204): notFound();
+        batchSearchRepository.deleteAll((User) context.currentUser());
+        return new Payload(204);
     }
 
     private String docUrl(String uri, List<Project> projects, String documentId, String rootId) {
