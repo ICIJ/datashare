@@ -93,7 +93,7 @@ public class UserResource {
     /**
      * Delete user history by type.
      *
-     * Returns 204.
+     * Returns 204 (No Content) : idempotent
      *
      * @param type
      * @return 204
@@ -121,10 +121,10 @@ public class UserResource {
     /**
      * Delete user event by id.
      *
-     * Returns 204
+     * Returns 204 (No Content) : idempotent
      *
      * @param eventId
-     * @return 200
+     * @return 204
      *
      * Example :
      * $(curl -i -XDELETE localhost:8080/api/users/me/history/event?id=1)
