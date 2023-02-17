@@ -1,6 +1,5 @@
 package org.icij.datashare.batch;
 
-import org.icij.datashare.text.Project;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.junit.Test;
@@ -28,8 +27,8 @@ public class BatchSearchTest {
         DatashareTime.setMockTime(true);
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
                 new Date(), BatchSearchRecord.State.FAILURE, User.local(), 123, true,
-                asList("application/pdf"), asList("path"), 2, true,
-                "error messsage", "error query");
+                singletonList("application/pdf"), singletonList("path"), 2, true,
+                "error message", "error query");
 
         BatchSearch copy = new BatchSearch(batchSearch);
 
@@ -56,7 +55,7 @@ public class BatchSearchTest {
         DatashareTime.setMockTime(true);
         BatchSearch batchSearch = new BatchSearch("uuid", asList(project("prj1"), project("prj2")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
                 new Date(), BatchSearchRecord.State.FAILURE, User.local(), 123, true,
-                asList("application/pdf"), asList("path"), 2, true,
+                singletonList("application/pdf"), singletonList("path"), 2, true,
                 "error message", "error query");
 
         BatchSearch copy = new BatchSearch(batchSearch, new HashMap<String, String>() {{
