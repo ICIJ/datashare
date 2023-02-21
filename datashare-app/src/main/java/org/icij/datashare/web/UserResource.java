@@ -93,10 +93,10 @@ public class UserResource {
     /**
      * Delete user history by type.
      *
-     * Returns 200 if rows have been removed and 404 if nothing has been done (i.e. not found).
+     * Returns 204.
      *
      * @param type
-     * @return 200 or 404
+     * @return 204
      *
      * Example :
      * $(curl -i -XDELETE localhost:8080/api/users/me/history?type=search)
@@ -104,8 +104,8 @@ public class UserResource {
      */
     @Delete("/me/history?type=:type")
     public Payload deleteUserHistory(String type, Context context) {
-        boolean isDeleted = repository.deleteUserHistory((DatashareUser) context.currentUser(), Type.valueOf(type.toUpperCase()));
-        return isDeleted ? Payload.ok() : Payload.notFound();
+        repository.deleteUserHistory((DatashareUser) context.currentUser(), Type.valueOf(type.toUpperCase()));
+        return new Payload(204);
     }
 
     /**
@@ -121,10 +121,10 @@ public class UserResource {
     /**
      * Delete user event by id.
      *
-     * Returns 200 if removed and 404 if nothing has been done (i.e. not found).
+     * Returns 204
      *
      * @param eventId
-     * @return 200 or 404
+     * @return 200
      *
      * Example :
      * $(curl -i -XDELETE localhost:8080/api/users/me/history/event?id=1)
@@ -132,8 +132,8 @@ public class UserResource {
      */
     @Delete("/me/history/event?id=:eventId")
     public Payload deleteUserEvent(String eventId, Context context) {
-        boolean isDeleted = repository.deleteUserEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
-        return isDeleted ? Payload.ok() : Payload.notFound();
+        repository.deleteUserEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
+        return new Payload(204);
     }
 
     private static class UserHistoryQuery {

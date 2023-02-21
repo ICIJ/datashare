@@ -60,17 +60,17 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     public void test_delete_user_history_by_type() {
         when(repository.deleteUserHistory(User.local(), DOCUMENT)).thenReturn(true).thenReturn(false);
 
-        delete("/api/users/me/history?type=search").should().respond(404);
-        delete("/api/users/me/history?type=document").should().respond(200);
-        delete("/api/users/me/history?type=document").should().respond(404);
+        delete("/api/users/me/history?type=search").should().respond(204);
+        delete("/api/users/me/history?type=document").should().respond(204);
+        delete("/api/users/me/history?type=document").should().respond(204);
     }
 
     @Test
     public void test_delete_user_event_by_id() {
         when(repository.deleteUserEvent(User.local(), 1)).thenReturn(true).thenReturn(false);
 
-        delete("/api/users/me/history/event?id=7").should().respond(404);
-        delete("/api/users/me/history/event?id=1").should().respond(200);
-        delete("/api/users/me/history/event?id=1").should().respond(404);
+        delete("/api/users/me/history/event?id=7").should().respond(204);
+        delete("/api/users/me/history/event?id=1").should().respond(204);
+        delete("/api/users/me/history/event?id=1").should().respond(204);
     }
 }
