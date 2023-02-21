@@ -57,13 +57,13 @@ public class PluginResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_uninstall_plugin() {
         put("/api/plugins/install?id=my-plugin").should().respond(200);
-        delete("/api/plugins/uninstall?id=my-plugin").should().respond(200);
+        delete("/api/plugins/uninstall?id=my-plugin").should().respond(204);
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
     }
 
     @Test
     public void test_uninstall_unknown_plugin() {
-        delete("/api/plugins/uninstall?id=unknown_id").should().respond(404);
+        delete("/api/plugins/uninstall?id=unknown_id").should().respond(204);
     }
 
     @Before
