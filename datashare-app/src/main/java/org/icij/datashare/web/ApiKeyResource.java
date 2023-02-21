@@ -78,15 +78,17 @@ public class ApiKeyResource {
 
     /**
      * Deletes an apikey for current user.
+     * Returns 204 (idempotent) or server error.
      *
      * "/api/key" resource is available only in SERVER mode.
      *
      * @param userId
-     * @return 204 or 404 (if no key found)
+     * @return 204
      * @throws Exception
      */
     @Delete("/:userId")
     public Payload deleteKey(String userId,Context context) throws Exception {
-        return taskFactory.createDelApiKey(new User(userId)).call() ? new Payload(204) : new Payload(404);
+        taskFactory.createDelApiKey(new User(userId)).call();
+        return new Payload(204);
     }
 }

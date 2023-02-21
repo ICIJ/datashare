@@ -54,7 +54,7 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
         when(task.call()).thenReturn(false);
         when(taskFactory.createDelApiKey(User.local())).thenReturn(task);
 
-        delete("/api/key/" + User.local().id).should().respond(404);
+        delete("/api/key/" + User.local().id).should().respond(204);
     }
 
     @Before
