@@ -2,6 +2,7 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import liquibase.pro.packaged.E;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Delete;
 import net.codestory.http.annotations.Get;
@@ -17,6 +18,7 @@ import org.icij.datashare.PluginService;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import static java.util.Optional.ofNullable;
@@ -101,9 +103,10 @@ public class PluginResource {
 
     /**
      * Uninstall plugin specified by its id
+     * Always returns 204 or error 500.
      *
      * @param pluginId
-     * @return 200 if the plugin is uninstalled 404 if the plugin is not found by the provided id
+     * @return 204
      *
      * @throws IOException if there is a filesystem error
      *
@@ -114,9 +117,9 @@ public class PluginResource {
     public Payload uninstallPlugin(String pluginId) throws IOException {
         try {
             pluginService.delete(pluginId);
-        } catch (DeliverableRegistry.UnknownDeliverableException unknownDeliverableException) {
-            return Payload.notFound();
+        } catch (DeliverableRegistry.UnknownDeliverableException|NoSuchElementException unknownDeliverableException) {
+            return new Payload(204);
         }
-        return Payload.ok();
+        return new Payload(204);
     }
 }
