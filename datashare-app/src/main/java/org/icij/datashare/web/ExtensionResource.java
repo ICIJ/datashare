@@ -13,6 +13,7 @@ import org.icij.datashare.ExtensionService;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import static java.util.Optional.ofNullable;
@@ -99,7 +100,7 @@ public class ExtensionResource {
      * Uninstall extension specified by its id
      *
      * @param extensionId
-     * @return 200 if the extension is uninstalled 404 if the extension is not found by the provided id
+     * @return 204 if the extension is uninstalled (idempotent)
      *
      * @throws IOException if there is a filesystem error
      *
@@ -110,9 +111,9 @@ public class ExtensionResource {
     public Payload uninstallExtension(String extensionId) throws IOException {
         try {
             extensionService.delete(extensionId);
-        } catch (DeliverableRegistry.UnknownDeliverableException unknownDeliverableException) {
-            return Payload.notFound();
+        } catch (DeliverableRegistry.UnknownDeliverableException | NoSuchElementException unknownDeliverableException) {
+            return new Payload(204);
         }
-        return Payload.ok();
+        return new Payload(204);
     }
 }

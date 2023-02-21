@@ -70,13 +70,13 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
     public void test_uninstall_extension() {
         put("/api/extensions/install?id=my-extension").should().respond(200);
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
-        delete("/api/extensions/uninstall?id=my-extension").should().respond(200);
+        delete("/api/extensions/uninstall?id=my-extension").should().respond(204);
         assertThat(extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toFile()).doesNotExist();
     }
 
     @Test
     public void test_uninstall_unknown_extension() {
-        delete("/api/extensions/uninstall?id=unknown_id").should().respond(404);
+        delete("/api/extensions/uninstall?id=unknown_id").should().respond(204);
     }
 
     @Before
