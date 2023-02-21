@@ -11,6 +11,7 @@ import net.codestory.http.payload.Payload;
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.slf4j.LoggerFactory;
 
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.text.Project.isAllowed;
@@ -80,14 +81,13 @@ public class ProjectResource {
     /**
      * Delete the project from database and elasticsearch indices.
      *
-     * It returns 204 (no content) when something has been removed (index and/or database), or
-     * 404 if nothing has been removed (i.e. index and database don't exist).
+     * It always returns 204 (no content) or 500 if an error occurs.
      *
      * If the project id is not the current user project (local-datashare in local mode),
      * then it will return 401 (unauthorized)
      *
      * @param id
-     * @return 204 (no content) or 404
+     * @return 204
      *
      * Example :
      * $(curl -I -XDELETE -H 'Content-Type:application/json' localhost:8080/api/project/unknown-project)
@@ -99,6 +99,8 @@ public class ProjectResource {
         }
         boolean isDeleted = this.repository.deleteAll(id);
         boolean indexDeleted = this.indexer.deleteAll(id);
-        return isDeleted || indexDeleted ? new Payload(204): new Payload(404);
+        LoggerFactory.getLogger(getClass()).info("deleted project {} index (deleted={}) and db (deleted={})", id, indexDeleted, isDeleted);
+
+        return new Payload(204);
     }
 }

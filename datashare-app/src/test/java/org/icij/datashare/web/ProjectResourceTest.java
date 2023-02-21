@@ -47,7 +47,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     public void test_delete_project() throws SQLException {
         when(repository.deleteAll("local-datashare")).thenReturn(true).thenReturn(false);
         delete("/api/project/local-datashare").should().respond(204);
-        delete("/api/project/local-datashare").should().respond(404);
+        delete("/api/project/local-datashare").should().respond(204);
     }
 
     @Test
@@ -55,7 +55,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(repository.deleteAll("local-datashare")).thenReturn(false).thenReturn(false);
         when(indexer.deleteAll("local-datashare")).thenReturn(true).thenReturn(false);
         delete("/api/project/local-datashare").should().respond(204);
-        delete("/api/project/local-datashare").should().respond(404);
+        delete("/api/project/local-datashare").should().respond(204);
     }
 
     @Test
