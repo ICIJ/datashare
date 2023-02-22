@@ -177,7 +177,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public boolean addToHistory(List<Project> projects, UserEvent userEvent) {
+    public boolean addToUserHistory(List<Project> projects, UserEvent userEvent) {
         return using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
             InsertValuesStep6<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String> insertHistory = inner.
@@ -202,7 +202,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<UserEvent> getUserEvents(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds) {
+    public List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds) {
         Field<?> sortBy = USER_HISTORY.MODIFICATION_DATE;
         if(sort != null && !sort.trim().isEmpty()){
             sortBy =  USER_HISTORY.field(sort);
@@ -229,7 +229,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public int getTotalUserEvents(User user, UserEvent.Type type) {
+    public int getUserHistorySize(User user, UserEvent.Type type) {
         SelectConditionStep<Record1<Integer>> query = using(connectionProvider, dialect).selectCount().from(USER_HISTORY).
                 where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id));
         return query.fetchOne(0, int.class);
@@ -251,7 +251,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public boolean deleteUserEvent(User user, int eventId) {
+    public boolean deleteUserHistoryEvent(User user, int eventId) {
         return using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
             inner.deleteFrom(USER_HISTORY_PROJECT).
