@@ -333,7 +333,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_get_empty_user_history() {
-        assertThat(repository.getUserEvents(User.local(), SEARCH, 0, 10, "modification_date", true)).isEmpty();
+        assertThat(repository.getUserHistory(User.local(), SEARCH, 0, 10, "modification_date", true)).isEmpty();
     }
 
     @Test
@@ -347,17 +347,17 @@ public class JooqRepositoryTest {
         UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("uri2_doc").toUri(), date2, date2);
         UserEvent userEvent3 = new UserEvent(User.local(), DOCUMENT, "doc_name3", Paths.get("doc_uri3").toUri(), date3, date3);
 
-        repository.addToHistory(project, userEvent3);
-        repository.addToHistory(project, userEvent);
-        repository.addToHistory(project, userEvent2);
+        repository.addToUserHistory(project, userEvent3);
+        repository.addToUserHistory(project, userEvent);
+        repository.addToUserHistory(project, userEvent2);
 
-        List<UserEvent> userEvents = repository.getUserEvents(User.local(), DOCUMENT, 0, 10,null ,true);
+        List<UserEvent> userEvents = repository.getUserHistory(User.local(), DOCUMENT, 0, 10,null ,true);
         assertThat(userEvents).hasSize(3);
         assertThat(userEvents.get(0).modificationDate.getTime()).isEqualTo(date3.getTime());
         assertThat(userEvents.get(1).modificationDate.getTime()).isEqualTo(date2.getTime());
         assertThat(userEvents.get(2).modificationDate.getTime()).isEqualTo(date1.getTime());
 
-        List<UserEvent> userEventsAsc = repository.getUserEvents(User.local(), DOCUMENT, 0, 10,null ,false);
+        List<UserEvent> userEventsAsc = repository.getUserHistory(User.local(), DOCUMENT, 0, 10,null ,false);
         assertThat(userEventsAsc.get(0).modificationDate.getTime()).isEqualTo(date1.getTime());
         assertThat(userEventsAsc.get(1).modificationDate.getTime()).isEqualTo(date2.getTime());
         assertThat(userEventsAsc.get(2).modificationDate.getTime()).isEqualTo(date3.getTime());
@@ -372,17 +372,17 @@ public class JooqRepositoryTest {
         UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("uri2_doc").toUri(), date1, date1);
         UserEvent userEvent3 = new UserEvent(User.local(), DOCUMENT, "doc_name3", Paths.get("doc_uri3").toUri(), date1, date1);
 
-        repository.addToHistory(project, userEvent3);
-        repository.addToHistory(project, userEvent);
-        repository.addToHistory(project, userEvent2);
+        repository.addToUserHistory(project, userEvent3);
+        repository.addToUserHistory(project, userEvent);
+        repository.addToUserHistory(project, userEvent2);
 
-        List<UserEvent> userEvents = repository.getUserEvents(User.local(), DOCUMENT, 0, 10, USER_HISTORY.URI.getName() ,true);
+        List<UserEvent> userEvents = repository.getUserHistory(User.local(), DOCUMENT, 0, 10, USER_HISTORY.URI.getName() ,true);
         assertThat(userEvents).hasSize(3);
         assertThat(userEvents.get(0).uri.getPath()).contains("uri2_doc");
         assertThat(userEvents.get(1).uri.getPath()).contains("doc_uri3");
         assertThat(userEvents.get(2).uri.getPath()).contains("doc_uri1");
 
-        List<UserEvent> userEventsAsc = repository.getUserEvents(User.local(), DOCUMENT, 0, 10,USER_HISTORY.URI.getName() ,false);
+        List<UserEvent> userEventsAsc = repository.getUserHistory(User.local(), DOCUMENT, 0, 10,USER_HISTORY.URI.getName() ,false);
         assertThat(userEventsAsc.get(0).uri.getPath()).contains("doc_uri1");
         assertThat(userEventsAsc.get(1).uri.getPath()).contains("doc_uri3");
         assertThat(userEventsAsc.get(2).uri.getPath()).contains("uri2_doc");
@@ -391,7 +391,7 @@ public class JooqRepositoryTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_sort_user_history_with_wrong_value(){
-        repository.getUserEvents(User.local(), SEARCH, 0, 10, "modificationDate", true);
+        repository.getUserHistory(User.local(), SEARCH, 0, 10, "modificationDate", true);
     }
 
     @Test
@@ -401,14 +401,14 @@ public class JooqRepositoryTest {
         List<Project> project2 = asList(project("project"),project("project2"));
         List<Project> project1 = singletonList(project("project1"));
 
-        repository.addToHistory(project, new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri(), date1, date1));
-        repository.addToHistory(project2, new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("uri2_doc").toUri(), date1, date1));
-        repository.addToHistory(project1, new UserEvent(User.local(), DOCUMENT, "doc_name3", Paths.get("doc_uri3").toUri(), date1, date1));
+        repository.addToUserHistory(project, new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri(), date1, date1));
+        repository.addToUserHistory(project2, new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("uri2_doc").toUri(), date1, date1));
+        repository.addToUserHistory(project1, new UserEvent(User.local(), DOCUMENT, "doc_name3", Paths.get("doc_uri3").toUri(), date1, date1));
 
-        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true, "project")).hasSize(2);
-        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true, "project3", "project2")).hasSize(1);
-        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true, "")).hasSize(0);
-        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true )).hasSize(3);
+        assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true, "project")).hasSize(2);
+        assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true, "project3", "project2")).hasSize(1);
+        assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true, "")).hasSize(0);
+        assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true )).hasSize(3);
     }
 
     @Test
@@ -422,15 +422,15 @@ public class JooqRepositoryTest {
         UserEvent userEvent2 = new UserEvent(user, DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri(), date2, date2);
         UserEvent userEvent3 = new UserEvent(user2, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri());
 
-        assertThat(repository.addToHistory(asList(project("project1"),project("project2")), userEvent)).isTrue();
-        assertThat(repository.addToHistory(singletonList(project("project")), userEvent2)).isTrue();
-        assertThat(repository.addToHistory(singletonList(project("project")), userEvent3)).isTrue();
-        assertThat(repository.getUserEvents(user, DOCUMENT, 0, 10, "modification_date", true)).containsSequence(userEvent2,userEvent);
-        assertThat(repository.getTotalUserEvents(user, DOCUMENT)).isEqualTo(2);
-        assertThat(repository.getUserEvents(user, DOCUMENT, 0, 1, "modification_date", true)).containsExactly(userEvent2);
-        assertThat(repository.getUserEvents(user2, DOCUMENT, 0, 10, "modification_date", true)).containsExactly(userEvent3);
-        assertThat(repository.getTotalUserEvents(user2, DOCUMENT)).isEqualTo(1);
-        assertThat(repository.getUserEvents(user, SEARCH, 0, 10, "modification_date", true)).isEmpty();
+        assertThat(repository.addToUserHistory(asList(project("project1"),project("project2")), userEvent)).isTrue();
+        assertThat(repository.addToUserHistory(singletonList(project("project")), userEvent2)).isTrue();
+        assertThat(repository.addToUserHistory(singletonList(project("project")), userEvent3)).isTrue();
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date", true)).containsSequence(userEvent2,userEvent);
+        assertThat(repository.getUserHistorySize(user, DOCUMENT)).isEqualTo(2);
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 1, "modification_date", true)).containsExactly(userEvent2);
+        assertThat(repository.getUserHistory(user2, DOCUMENT, 0, 10, "modification_date", true)).containsExactly(userEvent3);
+        assertThat(repository.getUserHistorySize(user2, DOCUMENT)).isEqualTo(1);
+        assertThat(repository.getUserHistory(user, SEARCH, 0, 10, "modification_date", true)).isEmpty();
     }
 
     @Test
@@ -440,36 +440,36 @@ public class JooqRepositoryTest {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri(), date1, date1);
         UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri(), date2, date2);
 
-        assertThat(repository.addToHistory(singletonList(project("project")), userEvent)).isTrue();
-        assertThat(repository.addToHistory(singletonList(project("project")), userEvent2)).isTrue();
+        assertThat(repository.addToUserHistory(singletonList(project("project")), userEvent)).isTrue();
+        assertThat(repository.addToUserHistory(singletonList(project("project")), userEvent2)).isTrue();
 
-        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true)).containsExactly(userEvent);
+        assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true)).containsExactly(userEvent);
     }
 
     @Test
     public void test_delete_user_event_by_type() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri());
         UserEvent userEvent2 = new UserEvent(User.local(), SEARCH, "search_name", Paths.get("search_uri").toUri());
-        repository.addToHistory(singletonList(project("project")), userEvent);
-        repository.addToHistory(singletonList(project("project")), userEvent2);
+        repository.addToUserHistory(singletonList(project("project")), userEvent);
+        repository.addToUserHistory(singletonList(project("project")), userEvent2);
 
-        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true)).containsExactly(userEvent);
+        assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true)).containsExactly(userEvent);
         assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isTrue();
         assertThat(repository.deleteUserHistory(User.local(), DOCUMENT)).isFalse();
-        assertThat(repository.getTotalUserEvents(User.local(),DOCUMENT)).isEqualTo(0);
-        assertThat(repository.getUserEvents(User.local(),SEARCH, 0, 10, "modification_date", true)).containsExactly(userEvent2);
+        assertThat(repository.getUserHistorySize(User.local(),DOCUMENT)).isEqualTo(0);
+        assertThat(repository.getUserHistory(User.local(),SEARCH, 0, 10, "modification_date", true)).containsExactly(userEvent2);
     }
 
     @Test
     public void test_delete_single_user_event_by_id() {
         Date date = new Date(new Date().getTime());
-        repository.addToHistory(singletonList(project("project")), new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri()));
-        repository.addToHistory(singletonList(project("project")), new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri()));
-        List<UserEvent> userEvents = repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true);
+        repository.addToUserHistory(singletonList(project("project")), new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri()));
+        repository.addToUserHistory(singletonList(project("project")), new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri()));
+        List<UserEvent> userEvents = repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true);
 
-        assertThat(repository.deleteUserEvent(User.local(), userEvents.get(1).id)).isTrue();
-        assertThat(repository.deleteUserEvent(User.local(), userEvents.get(1).id)).isFalse();
-        assertThat(repository.getUserEvents(User.local(),DOCUMENT, 0, 10, "modification_date", true)).containsExactly(userEvents.get(0));
+        assertThat(repository.deleteUserHistoryEvent(User.local(), userEvents.get(1).id)).isTrue();
+        assertThat(repository.deleteUserHistoryEvent(User.local(), userEvents.get(1).id)).isFalse();
+        assertThat(repository.getUserHistory(User.local(),DOCUMENT, 0, 10, "modification_date", true)).containsExactly(userEvents.get(0));
     }
 
     @Test

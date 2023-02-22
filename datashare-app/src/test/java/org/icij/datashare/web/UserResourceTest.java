@@ -43,47 +43,47 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_user_history() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
         get("/api/users/me/history?type=document&from=0&size=10&sort=modification_date&desc=true").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
     }
     @Test
     public void test_get_user_history_with_default_sort_and_order() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
         get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
     }
     @Test
     public void test_get_user_history_with_sort_field() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "name",true)).thenReturn(singletonList(userEvent));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "name",true)).thenReturn(singletonList(userEvent));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
         get("/api/users/me/history?type=document&from=0&size=10&sort=name").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
     }
     @Test
     public void test_get_user_history_with_sort_and_order() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "uri",false)).thenReturn(singletonList(userEvent));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "uri",false)).thenReturn(singletonList(userEvent));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
         get("/api/users/me/history?type=document&from=0&size=10&sort=uri&desc=false").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
     }
 
     @Test
     public void test_get_user_history_with_invalid_sort(){
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modificationDate",true)).thenThrow(new IllegalArgumentException("Invalid sort attribute : modificationDate"));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modificationDate",true)).thenThrow(new IllegalArgumentException("Invalid sort attribute : modificationDate"));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
         get("/api/users/me/history?type=document&from=0&size=10&sort=modificationDate").should().respond(400);
     }
     @Test
     public void test_get_user_history_with_default_desc_order() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
         get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
         get("/api/users/me/history?type=document&from=0&size=10&desc=TOTO").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
@@ -92,8 +92,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_user_history_with__false_desc_order() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",false)).thenReturn(singletonList(userEvent));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",false)).thenReturn(singletonList(userEvent));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
         get("/api/users/me/history?type=document&from=0&size=10&desc=false").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
         get("/api/users/me/history?type=document&from=0&size=10&desc=FALSE").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
@@ -102,8 +102,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_user_history_without_project_filter() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
         get("/api/users/me/history?type=document&from=0&size=10&projects=").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
         get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
@@ -112,22 +112,22 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_user_history_with_one_project_filter() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",true, "toto")).thenReturn(singletonList(userEvent));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true, "toto")).thenReturn(singletonList(userEvent));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
         get("/api/users/me/history?type=document&from=0&size=10&projects=toto").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
     }
 
     @Test
     public void test_get_user_history_with_two_projects_filter() {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
-        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",true, "toto","titi")).thenReturn(singletonList(userEvent));
-        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        when(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true, "toto","titi")).thenReturn(singletonList(userEvent));
+        when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
         get("/api/users/me/history?type=document&from=0&size=10&projects=toto,titi").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
     }
 
     @Test
     public void test_put_user_event_to_history() {
-        when(repository.addToHistory(eq(singletonList(project("prj"))),any(UserEvent.class))).thenReturn(true);
+        when(repository.addToUserHistory(eq(singletonList(project("prj"))),any(UserEvent.class))).thenReturn(true);
 
         put("/api/users/me/history", "{\"type\": \"SEARCH\", \"projectIds\": [\"prj\"], \"name\": \"foo AND bar\", \"uri\": \"search_uri\"}").should().respond(200);
     }
@@ -143,7 +143,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_delete_user_event_by_id() {
-        when(repository.deleteUserEvent(User.local(), 1)).thenReturn(true).thenReturn(false);
+        when(repository.deleteUserHistoryEvent(User.local(), 1)).thenReturn(true).thenReturn(false);
 
         delete("/api/users/me/history/event?id=7").should().respond(204);
         delete("/api/users/me/history/event?id=1").should().respond(204);
