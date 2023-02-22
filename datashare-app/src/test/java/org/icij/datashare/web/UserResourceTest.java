@@ -98,6 +98,33 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         get("/api/users/me/history?type=document&from=0&size=10&desc=false").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
         get("/api/users/me/history?type=document&from=0&size=10&desc=FALSE").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
     }
+
+    @Test
+    public void test_get_user_history_without_project_filter() {
+        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
+        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
+        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+
+        get("/api/users/me/history?type=document&from=0&size=10&projects=").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+    }
+
+    @Test
+    public void test_get_user_history_with_one_project_filter() {
+        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
+        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",true, "toto")).thenReturn(singletonList(userEvent));
+        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        get("/api/users/me/history?type=document&from=0&size=10&projects=toto").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+    }
+
+    @Test
+    public void test_get_user_history_with_two_projects_filter() {
+        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
+        when(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date",true, "toto","titi")).thenReturn(singletonList(userEvent));
+        when(repository.getTotalUserEvents(User.local(), DOCUMENT)).thenReturn(1);
+        get("/api/users/me/history?type=document&from=0&size=10&projects=toto,titi").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+    }
+
     @Test
     public void test_put_user_event_to_history() {
         when(repository.addToHistory(eq(singletonList(project("prj"))),any(UserEvent.class))).thenReturn(true);

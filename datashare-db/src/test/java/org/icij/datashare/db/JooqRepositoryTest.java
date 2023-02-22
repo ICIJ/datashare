@@ -395,6 +395,23 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_sort_user_history_with_project_filter(){
+        Date date1 = new Date(new Date().getTime());
+        List<Project> project = singletonList(project("project"));
+        List<Project> project2 = asList(project("project"),project("project2"));
+        List<Project> project1 = singletonList(project("project1"));
+
+        repository.addToHistory(project, new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri(), date1, date1));
+        repository.addToHistory(project2, new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("uri2_doc").toUri(), date1, date1));
+        repository.addToHistory(project1, new UserEvent(User.local(), DOCUMENT, "doc_name3", Paths.get("doc_uri3").toUri(), date1, date1));
+
+        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true, "project")).hasSize(2);
+        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true, "project3", "project2")).hasSize(1);
+        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true, "")).hasSize(0);
+        assertThat(repository.getUserEvents(User.local(), DOCUMENT, 0, 10, "modification_date", true )).hasSize(3);
+    }
+
+    @Test
     public void test_add_get_document_to_user_history() {
         User user = new User("userid");
         User user2 = new User("userid2");
