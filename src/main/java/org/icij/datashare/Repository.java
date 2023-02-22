@@ -18,11 +18,11 @@ public interface Repository {
     // user related
     AggregateList<User> getRecommendations(Project project);
     AggregateList<User> getRecommendations(Project project, List<String> documentIds);
-    boolean addToHistory(List<Project> project, UserEvent userEvent);
-    List<UserEvent> getUserEvents(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds);
-    int getTotalUserEvents(User user, UserEvent.Type type);
+    boolean addToUserHistory(List<Project> project, UserEvent userEvent);
+    List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds);
+    int getUserHistorySize(User user, UserEvent.Type type);
     boolean deleteUserHistory(User user, UserEvent.Type type);
-    boolean deleteUserEvent(User user, int eventId);
+    boolean deleteUserHistoryEvent(User user, int eventId);
 
     // project related
     List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type);
