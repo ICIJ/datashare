@@ -18,7 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.lang.Boolean.parseBoolean;
 import static net.codestory.http.payload.Payload.ok;
+import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 
 @Singleton
 @Prefix("/api/users")
@@ -56,20 +58,30 @@ public class UserResource {
     /**
      * Gets the user's history by type
      *
-     * @param type
-     * @param from
-     * @param size
+     * @param type String included in 'document' or 'search'
+     * @param from the offset of the list, starting from 0
+     * @param size the number of element retrieved
+     * @param sort the name of the parameter to sort on (default: modificationDate)
+     * @param desc the list is sorted in descending order (default: true)
      * @return 200, the user's list of events and the total number of events
-     *
+     * <p>
      * Example :
-     * $(curl -i localhost:8080/api/users/me/history?type=document&from=0&size=10)
+     * $(curl -i localhost:8080/api/users/me/history?type=document&from=0&size=10&sort=modificationDate&desc=true)
      */
-    @Get("/me/history?type=:type&from=:from&size=:size")
-    public WebResponse<UserEvent> getUserHistory(String type, int from, int size, Context context) {
+    @Get("/me/history?type=:type&from=:from&size=:size&sort=:sort&desc=:desc")
+    public Payload getUserHistory(String type, int from, int size, String sort, String desc, Context context) throws Exception{
         DatashareUser user = (DatashareUser) context.currentUser();
         Type eventType = Type.valueOf(type.toUpperCase());
-        return new WebResponse<>(repository.getUserEvents(user, eventType, from, size),
-                repository.getTotalUserEvents(user, eventType));
+        String sortBy = sort == null || sort.trim().isEmpty()? USER_HISTORY.MODIFICATION_DATE.getName():sort;
+        boolean isDesc = parseBoolean(desc) || desc == null || !desc.equalsIgnoreCase("false");
+        try {
+            WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(repository.getUserEvents(user, eventType, from, size, sortBy, isDesc),
+                    repository.getTotalUserEvents(user, eventType));
+            return new Payload(userEventWebResponse);
+        } catch (IllegalArgumentException e){
+            return Payload.badRequest();
+        }
+
     }
 
     /**

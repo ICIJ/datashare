@@ -202,10 +202,19 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<UserEvent> getUserEvents(User user, UserEvent.Type type, int from, int size) {
-        return DSL.using(connectionProvider, dialect).selectFrom(USER_HISTORY).
+    public List<UserEvent> getUserEvents(User user, UserEvent.Type type, int from, int size, String sort, boolean desc) {
+        Field<?> sortBy = USER_HISTORY.MODIFICATION_DATE;
+        if(sort != null && !sort.trim().isEmpty()){
+            sortBy =  USER_HISTORY.field(sort);
+            if(sortBy == null){
+                throw new IllegalArgumentException("Invalid sort attribute: " + sort);
+            }
+        }
+
+        SortField<?> order  = desc ? sortBy.desc() : sortBy.asc();
+        return using(connectionProvider, dialect).selectFrom(USER_HISTORY).
                 where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
-                .orderBy(USER_HISTORY.MODIFICATION_DATE.desc()).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
+                .orderBy(order).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
     }
 
     @Override
