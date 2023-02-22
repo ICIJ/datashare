@@ -63,19 +63,22 @@ public class UserResource {
      * @param size the number of element retrieved
      * @param sort the name of the parameter to sort on (default: modificationDate)
      * @param desc the list is sorted in descending order (default: true)
+     * @param projects projectIds separated by comma to filter by projects (default: none)
      * @return 200, the user's list of events and the total number of events
      * <p>
      * Example :
-     * $(curl -i localhost:8080/api/users/me/history?type=document&from=0&size=10&sort=modificationDate&desc=true)
+     * $(curl -i localhost:8080/api/users/me/history?type=document&from=0&size=10&sort=modificationDate&desc=true&projects=project1,project2)
      */
-    @Get("/me/history?type=:type&from=:from&size=:size&sort=:sort&desc=:desc")
-    public Payload getUserHistory(String type, int from, int size, String sort, String desc, Context context) throws Exception{
+    @Get("/me/history?type=:type&from=:from&size=:size&sort=:sort&desc=:desc&projects=:projects")
+    public Payload getUserHistory(String type, int from, int size, String sort, String desc, String projects, Context context) throws Exception{
         DatashareUser user = (DatashareUser) context.currentUser();
         Type eventType = Type.valueOf(type.toUpperCase());
-        String sortBy = sort == null || sort.trim().isEmpty()? USER_HISTORY.MODIFICATION_DATE.getName():sort;
+        String sortBy = sort == null || sort.isBlank()? USER_HISTORY.MODIFICATION_DATE.getName():sort;
         boolean isDesc = parseBoolean(desc) || desc == null || !desc.equalsIgnoreCase("false");
+        String[] projectIds = projects == null || projects.isBlank() ? new String[] {}: projects.trim().split(",");
         try {
-            WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(repository.getUserEvents(user, eventType, from, size, sortBy, isDesc),
+            WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(
+                    repository.getUserEvents(user, eventType, from, size, sortBy, isDesc, projectIds),
                     repository.getTotalUserEvents(user, eventType));
             return new Payload(userEventWebResponse);
         } catch (IllegalArgumentException e){

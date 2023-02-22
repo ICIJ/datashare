@@ -202,7 +202,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<UserEvent> getUserEvents(User user, UserEvent.Type type, int from, int size, String sort, boolean desc) {
+    public List<UserEvent> getUserEvents(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds) {
         Field<?> sortBy = USER_HISTORY.MODIFICATION_DATE;
         if(sort != null && !sort.trim().isEmpty()){
             sortBy =  USER_HISTORY.field(sort);
@@ -212,9 +212,20 @@ public class JooqRepository implements Repository {
         }
 
         SortField<?> order  = desc ? sortBy.desc() : sortBy.asc();
-        return using(connectionProvider, dialect).selectFrom(USER_HISTORY).
-                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
-                .orderBy(order).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
+        if (projectIds.length>0) {
+            return using(connectionProvider, dialect)
+                    .selectFrom(USER_HISTORY)
+                    .where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
+                    .and(USER_HISTORY.ID
+                            .in(select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds)))
+                    )
+                    .orderBy(order).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
+        } else {
+            return using(connectionProvider, dialect).selectFrom(USER_HISTORY).
+                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
+                    .orderBy(order).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
+        }
+
     }
 
     @Override
