@@ -78,8 +78,8 @@ public class UserResource {
         String[] projectIds = projects == null || projects.isBlank() ? new String[] {}: projects.trim().split(",");
         try {
             WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(
-                    repository.getUserEvents(user, eventType, from, size, sortBy, isDesc, projectIds),
-                    repository.getTotalUserEvents(user, eventType));
+                    repository.getUserHistory(user, eventType, from, size, sortBy, isDesc, projectIds),
+                    repository.getUserHistorySize(user, eventType));
             return new Payload(userEventWebResponse);
         } catch (IllegalArgumentException e){
             return Payload.badRequest();
@@ -100,9 +100,9 @@ public class UserResource {
      * $(curl -i -XPUT  -H "Content-Type: application/json"  localhost:8080/api/users/me/history -d '{"type": "SEARCH", "projectIds": ["apigen-datashare","local-datashare"], "name": "foo AND bar", "uri": "?q=foo%20AND%20bar&from=0&size=100&sort=relevance&index=luxleaks&field=all&stamp=cotgpe"}')
      */
     @Put("/me/history")
-    public Payload addToHistory(UserHistoryQuery query, Context context) {
-        repository.addToHistory(query.projects, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
-        return Payload.ok();
+    public Payload addToUserHistory(UserHistoryQuery query, Context context) {
+        repository.addToUserHistory(query.projects, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
+        return ok();
     }
 
     /**
@@ -147,7 +147,7 @@ public class UserResource {
      */
     @Delete("/me/history/event?id=:eventId")
     public Payload deleteUserEvent(String eventId, Context context) {
-        repository.deleteUserEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
+        repository.deleteUserHistoryEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
         return new Payload(204);
     }
 
