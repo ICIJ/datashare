@@ -223,10 +223,14 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public int getUserHistorySize(User user, UserEvent.Type type) {
+    public int getUserHistorySize(User user, UserEvent.Type type, String... projectIds) {
         SelectConditionStep<Record1<Integer>> query = using(connectionProvider, dialect).selectCount().from(USER_HISTORY).
                 where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id));
+        if(projectIds.length>0){
+            query.and(USER_HISTORY.ID.in(select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds))));
+        }
         return query.fetchOne(0, int.class);
+
     }
 
     @Override
