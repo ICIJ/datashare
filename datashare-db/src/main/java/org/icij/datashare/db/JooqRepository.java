@@ -10,7 +10,6 @@ import org.icij.datashare.text.*;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.jooq.*;
-import org.jooq.Record;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.slf4j.LoggerFactory;
@@ -22,6 +21,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.Charset.forName;
@@ -203,14 +203,8 @@ public class JooqRepository implements Repository {
 
     @Override
     public List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds) {
-        Field<?> sortBy = USER_HISTORY.MODIFICATION_DATE;
-        if(sort != null && !sort.trim().isEmpty()){
-            sortBy =  USER_HISTORY.field(sort);
-            if(sortBy == null){
-                throw new IllegalArgumentException("Invalid sort attribute: " + sort);
-            }
-        }
-
+        String sortName = Optional.ofNullable(sort).filter(Predicate.not(String::isBlank)).orElse(USER_HISTORY.MODIFICATION_DATE.getName());
+        Field<?> sortBy =  Optional.ofNullable(USER_HISTORY.field(sortName)).orElseThrow(() -> new IllegalArgumentException(String.format("Invalid sort attribute: %s", sortName)));
         SortField<?> order  = desc ? sortBy.desc() : sortBy.asc();
         if (projectIds.length>0) {
             return using(connectionProvider, dialect)
