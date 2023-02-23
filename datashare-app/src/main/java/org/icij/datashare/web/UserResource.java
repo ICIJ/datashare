@@ -12,10 +12,13 @@ import org.icij.datashare.UserEvent;
 import org.icij.datashare.UserEvent.Type;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
+import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.parseBoolean;
@@ -73,18 +76,27 @@ public class UserResource {
     public Payload getUserHistory(String type, int from, int size, String sort, String desc, String projects, Context context) throws Exception{
         DatashareUser user = (DatashareUser) context.currentUser();
         Type eventType = Type.valueOf(type.toUpperCase());
-        String sortBy = sort == null || sort.isBlank()? USER_HISTORY.MODIFICATION_DATE.getName():sort;
-        boolean isDesc = parseBoolean(desc) || desc == null || !desc.equalsIgnoreCase("false");
-        String[] projectIds = projects == null || projects.isBlank() ? new String[] {}: projects.trim().split(",");
+        String sortBy = getStringValue(sort).orElse( USER_HISTORY.MODIFICATION_DATE.getName());
         try {
             WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(
-                    repository.getUserHistory(user, eventType, from, size, sortBy, isDesc, projectIds),
+                    repository.getUserHistory(user, eventType, from, size, sortBy, parseBooleanQueryArg(desc), parseProjectIdsQueryArg(projects)),
                     repository.getUserHistorySize(user, eventType));
             return new Payload(userEventWebResponse);
         } catch (IllegalArgumentException e){
             return Payload.badRequest();
         }
+    }
 
+    private static Optional<String> getStringValue(String value){
+        return Optional.ofNullable(value).filter(Predicate.not(String::isBlank));
+    }
+    @NotNull
+    private static String[] parseProjectIdsQueryArg(String projects) {
+        return getStringValue(projects).isEmpty() ? new String[]{} : projects.trim().split(",");
+    }
+
+    private static boolean parseBooleanQueryArg(String desc) {
+        return parseBoolean(desc) || getStringValue(desc).isEmpty() || !desc.equalsIgnoreCase("false");
     }
 
     /**

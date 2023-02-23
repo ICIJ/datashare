@@ -55,6 +55,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(repository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
         get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&sort=").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&desc=").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
     }
     @Test
     public void test_get_user_history_with_sort_field() {
