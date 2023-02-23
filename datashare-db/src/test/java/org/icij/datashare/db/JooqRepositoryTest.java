@@ -406,9 +406,15 @@ public class JooqRepositoryTest {
         repository.addToUserHistory(project1, new UserEvent(User.local(), DOCUMENT, "doc_name3", Paths.get("doc_uri3").toUri(), date1, date1));
 
         assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true, "project")).hasSize(2);
+        assertThat(repository.getUserHistorySize(User.local(), DOCUMENT, "project")).isEqualTo(2);
         assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true, "project3", "project2")).hasSize(1);
+        assertThat(repository.getUserHistorySize(User.local(), DOCUMENT,"project3", "project2")).isEqualTo(1);
+
         assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true, "")).hasSize(0);
+        assertThat(repository.getUserHistorySize(User.local(), DOCUMENT, "")).isEqualTo(0);
+
         assertThat(repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true )).hasSize(3);
+        assertThat(repository.getUserHistorySize(User.local(), DOCUMENT)).isEqualTo(3);
     }
 
     @Test
