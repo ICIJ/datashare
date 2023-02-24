@@ -431,7 +431,7 @@ workflows:
   publish_doc_workflow:
     when:
       and:
-        - [ master, << pipeline.git.branch >> ]
+        - equal: [ master, << pipeline.git.branch >> ]
         - << pipeline.parameters.publish_backend_doc >>
     jobs:
       - publish_doc
