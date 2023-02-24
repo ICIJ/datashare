@@ -53,7 +53,11 @@ jobs:
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run: mvn -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
-      - run: .circleci/publish_doc_if_necessary.sh
+      - when:
+          condition:
+            equal: [ master, << pipeline.git.branch >> ]
+          steps:
+            - run: .circleci/publish_doc_if_necessary.sh
       - save_cache:
           paths:
             - ~/.m2
@@ -429,9 +433,6 @@ workflows:
                   ignore: /.*/
 
   publish_doc_workflow:
-    when:
-      and:
-        - equal: [ master, << pipeline.git.branch >> ]
-        - << pipeline.parameters.publish_backend_doc >>
+    when: << pipeline.parameters.publish_backend_doc >>
     jobs:
       - publish_doc
