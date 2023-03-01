@@ -44,9 +44,6 @@ public interface Indexer extends Closeable {
     boolean untag(Project prj, String documentId, String rootDocument, Tag... tags) throws IOException;
     boolean tag(Project prj, List<String> documentIds, Tag... tags) throws IOException;
     boolean untag(Project prj, List<String> documentIds, Tag... tags) throws IOException;
-    ExtractedText getExtractedText(String indexName, String documentId, int offset, int limit) throws IOException;
-    ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, int offset, int limit) throws IOException;
-    ExtractedText getExtractedText(String indexName, String documentId, int offset, int limit, String targetLanguage) throws IOException;
     ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, int offset, int limit, String targetLanguage) throws IOException;
     SearchedText searchTextOccurrences(String indexName, String documentId, String query, String targetLanguage) throws IOException;
     SearchedText searchTextOccurrences(String indexName, String documentId, String rootDocument, String query, String targetLanguage) throws IOException;
