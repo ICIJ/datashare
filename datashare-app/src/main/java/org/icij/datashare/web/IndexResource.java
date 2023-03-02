@@ -11,6 +11,8 @@ import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.lang.String.join;
 import static java.util.Arrays.stream;
@@ -38,7 +40,11 @@ public class IndexResource {
      */
     @Put("/:index")
     public Payload createIndex(final String index) throws IOException {
-        return indexer.createIndex(index) ? created() : ok();
+        try{
+            return indexer.createIndex(this.checkIndices(index)) ? created() : ok();
+        }catch (IllegalArgumentException e){
+            return new Payload(e.getMessage()).withCode(400);
+        }
     }
 
     /**
@@ -49,7 +55,12 @@ public class IndexResource {
      */
     @Options("/:index")
     public Payload createIndexPreflight(final String index) {
-        return ok().withAllowMethods("OPTIONS", "PUT");
+        try{
+            this.checkIndices(index);
+            return ok().withAllowMethods("OPTIONS", "PUT");
+        }catch (IllegalArgumentException e){
+            return new Payload(e.getMessage()).withCode(400);
+        }
     }
 
     /**
@@ -60,7 +71,11 @@ public class IndexResource {
      */
     @Head("/search/:path:")
     public Payload esHead(final String path) throws IOException {
-        return new Payload(indexer.executeRaw("HEAD", path, null));
+        try {
+            return new Payload(indexer.executeRaw("HEAD", path, null));
+        } catch (IllegalArgumentException e){
+            return new Payload(e.getMessage()).withCode(400);
+        }
     }
 
     /**
@@ -76,14 +91,18 @@ public class IndexResource {
       * * index_name1,index_name2/doc/_search
       *
       * @param path
-      * @return 200 or http error from Elasticsearch
+     *  @return 200 or http error from Elasticsearch
       *
       * Example :
      * $(curl -XPOST -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/apigen-datashare/_search -d '{}')
       */
     @Post("/search/:path:")
     public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
-        return createPayload(indexer.executeRaw("POST", checkPath(path, context), new String(request.contentAsBytes())));
+        try {
+            return createPayload(indexer.executeRaw("POST", checkPath(path, context), new String(request.contentAsBytes())));
+        } catch ( IllegalArgumentException e){
+            return new Payload(e.getMessage()).withCode(400);
+        }
     }
 
     /**
@@ -102,7 +121,11 @@ public class IndexResource {
      */
     @Get("/search/:path:")
     public Payload esGet(final String path, Context context) throws IOException {
-        return createPayload(indexer.executeRaw("GET", checkPath(path, context), ""));
+        try {
+            return createPayload(indexer.executeRaw("GET", checkPath(path, context), ""));
+        } catch (IllegalArgumentException e){
+            return new Payload(e.getMessage()).withCode(400);
+        }
     }
 
     /**
@@ -113,7 +136,21 @@ public class IndexResource {
      */
     @Options("/search/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
-        return ok().withAllowMethods(indexer.executeRaw("OPTIONS", path, null).split(","));
+        try {
+            this.checkIndices(index);
+            return ok().withAllowMethods(indexer.executeRaw("OPTIONS", path, null).split(","));
+        } catch (IllegalArgumentException e){
+            return new Payload(e.getMessage()).withCode(400);
+        }
+    }
+    private String checkIndices(String indices){
+        if( indices == null) { throw new IllegalArgumentException("indices is null"); }
+        Pattern pattern = Pattern.compile("^[-a-zA-Z0-9_]+(,[-a-zA-Z0-9_]+)*$");
+        Matcher matcher = pattern.matcher(indices);
+        if( !matcher.find()) {
+            throw new IllegalArgumentException("Bad format for indices : '" + indices+"'");
+        }
+        return indices;
     }
 
     private String checkPath(String path, Context context) {
@@ -121,7 +158,7 @@ public class IndexResource {
         if ("_search".equals(pathParts[0]) && "scroll".equals(pathParts[1])) {
             return getUrlString(context, path);
         }
-        String[] indexes = pathParts[0].split(",");
+        String[] indexes = this.checkIndices(pathParts[0]).split(",");
         if (stream(indexes).allMatch(index -> ((DatashareUser)context.currentUser()).isGranted(index)) &&
                 ("GET".equalsIgnoreCase(context.method()) ||
                         "_search".equals(pathParts[1]) ||
