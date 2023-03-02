@@ -155,6 +155,9 @@ public class IndexResource {
 
     private String checkPath(String path, Context context) {
         String[] pathParts = path.split("/");
+        if(pathParts.length < 2){
+            throw new IllegalArgumentException(String.format("Invalid path: '%s'", path));
+        }
         if ("_search".equals(pathParts[0]) && "scroll".equals(pathParts[1])) {
             return getUrlString(context, path);
         }
