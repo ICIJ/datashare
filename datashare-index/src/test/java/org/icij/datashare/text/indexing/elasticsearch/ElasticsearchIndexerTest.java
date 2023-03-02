@@ -434,7 +434,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 0, 10);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 0, 10, null);
         assertThat(actual.content).isEqualTo("content wi");
         assertThat(actual.content.length()).isEqualTo(10);
         assertThat(actual.maxOffset).isEqualTo(21);
@@ -445,7 +445,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10, 10);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 10, 10, null);
         assertThat(actual.content).isEqualTo("th john do");
         assertThat(actual.content.length()).isEqualTo(10);
     }
@@ -455,7 +455,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 20, 1);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 20, 1, null);
         assertThat(actual.content).isEqualTo("e");
         assertThat(actual.content.length()).isEqualTo(1);
     }
@@ -465,7 +465,7 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 21, 0);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 21, 0, null);
         assertThat(actual.content).isEqualTo("");
         assertThat(actual.content.length()).isEqualTo(0);
     }
@@ -474,21 +474,21 @@ public class ElasticsearchIndexerTest {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
-        indexer.getExtractedText(TEST_INDEX, "id", -10, 1);
+        indexer.getExtractedText(TEST_INDEX, "id", null, -10, 1, null);
     }
     @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_negative_start() throws Exception {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
-        indexer.getExtractedText(TEST_INDEX, "id", 1, -10);
+        indexer.getExtractedText(TEST_INDEX, "id", null, 1, -10, null);
     }
     @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_oversize() throws Exception {
         Document doc = new org.icij.datashare.text.Document("id", project("prj"), Paths.get("doc.txt"), "content with john doe",
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 0, 22);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 0, 22, null);
     }
     @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_out_of_range_limit() throws Exception {
@@ -496,12 +496,12 @@ public class ElasticsearchIndexerTest {
                 Language.FRENCH, Charset.defaultCharset(), "application/pdf", new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10, 18);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_get_slice_of_document_not_found() throws Exception {
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10, 18);
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, null);
     }
     @Test(expected = IllegalArgumentException.class)
     public void test_get_slice_of_translated_document_not_found() throws Exception {
@@ -517,7 +517,7 @@ public class ElasticsearchIndexerTest {
                 new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 10, 18, "unknown");
+        indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, "unknown");
     }
 
     @Test
@@ -534,7 +534,7 @@ public class ElasticsearchIndexerTest {
                 new HashMap<>(), INDEXED, new HashSet<>(), 34L);
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", 0, 7, "ENGLISH");
+        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 0, 7, "ENGLISH");
         assertThat(actual.content).isEqualTo("content");
         assertThat(actual.content.length()).isEqualTo(7);
     }

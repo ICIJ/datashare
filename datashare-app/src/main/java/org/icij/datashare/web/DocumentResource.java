@@ -98,20 +98,7 @@ public class DocumentResource {
         if (((DatashareUser)context.currentUser()).isGranted(project) &&
                 isAllowed(repository.getProject(project), context.request().clientAddress())) {
             try {
-                ExtractedText extractedText;
-                if(routing == null){
-                    if(targetLanguage!=null){
-                        extractedText = indexer.getExtractedText(project, id, offset, limit, targetLanguage);
-                    } else {
-                        extractedText = indexer.getExtractedText(project, id, offset, limit);
-                    }
-                }else{
-                    if(targetLanguage!=null) {
-                        extractedText = indexer.getExtractedText(project, id, routing, offset, limit, targetLanguage);
-                    } else {
-                        extractedText = indexer.getExtractedText(project, id, routing, offset, limit);
-                    }
-                }
+                ExtractedText extractedText = indexer.getExtractedText(project, id, routing, offset, limit, targetLanguage);
                 return new Payload(extractedText).withCode(200);
             }
             catch (StringIndexOutOfBoundsException e){

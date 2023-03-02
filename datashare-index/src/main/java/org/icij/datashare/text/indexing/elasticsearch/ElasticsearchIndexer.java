@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -245,17 +246,11 @@ public class ElasticsearchIndexer implements Indexer {
                 ElasticsearchIndexer.getScriptStringFromFile("extractedText.painless.java"),params);
     }
 
-    public ExtractedText getExtractedText(String indexName, String id, final int offset, final int limit, final String targetLanguage) throws IOException{
-        return getExtractedText(indexName, id, id, offset, limit, targetLanguage);
-    }
+
     public ExtractedText getExtractedText(String indexName, String id, String routing, final int offset, final int limit, String targetLanguage) throws IOException {
-        return this.getExtractedContent(indexName, id, routing, offset, limit, targetLanguage);
-    }
-    public ExtractedText getExtractedText(String indexName, String id, final int offset, final int limit) throws IOException {
-        return getExtractedContent(indexName, id, id, offset, limit, null);
-    }
-    public ExtractedText getExtractedText(String indexName, String id, String routing, final int offset, final int limit) throws IOException {
-        return this.getExtractedContent(indexName, id, routing, offset, limit, null);
+        String nullRouting = Optional.ofNullable(routing).filter(Predicate.not(String::isBlank)).orElse(id);
+        String nullTargetLanguage = Optional.ofNullable(targetLanguage).filter(Predicate.not(String::isBlank)).orElse(null);
+        return this.getExtractedContent(indexName, id, nullRouting, offset, limit, nullTargetLanguage);
     }
 
     private ExtractedText getExtractedContent(String indexName, String id, String routing, final int offset, final int limit, String targetLanguage) throws IOException {

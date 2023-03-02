@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.LocalUserFilter;
@@ -265,10 +264,9 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         when(repository.getProject("local-datashare")).thenReturn(null);
         get("/api/local-datashare/documents/src/docId?routing=root").should().respond(200);
     }
-
     @Test
     public void test_get_document_extracted_text() throws IOException {
-        when(indexer.getExtractedText("local-datashare", "docId", 5, 6)).thenReturn(new ExtractedText("content", 5, 6, 7));
+        when(indexer.getExtractedText("local-datashare", "docId", null,5, 6, null)).thenReturn(new ExtractedText("content", 5, 6, 7));
         get("/api/local-datashare/documents/content/docId?offset=5&limit=6").should().respond(200)
                 .should()
                 .haveType("application/json")
@@ -277,9 +275,28 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .contain("\"limit\":6")
                 .contain("\"maxOffset\":7");
     }
+
+    @Test
+    public void test_get_document_extracted_text_with_routing() throws IOException {
+        when(indexer.getExtractedText("local-datashare", "docId", "routingId", 5, 6, null)).thenReturn(new ExtractedText("content", 5, 6, 7));
+        get("/api/local-datashare/documents/content/docId?offset=5&limit=6&routing=routingId").should().respond(200)
+                .should()
+                .haveType("application/json")
+                .contain("\"content\":\"content\"")
+                .contain("\"offset\":5")
+                .contain("\"limit\":6")
+                .contain("\"maxOffset\":7");
+    }
+
+    @Test
+    public void test_get_document_extracted_text_with_blank_target_language() throws IOException {
+        when(indexer.getExtractedText("local-datashare", "docId",null, 5, 6, "")).thenReturn(new ExtractedText("content", 5, 6, 7));
+        get("/api/local-datashare/documents/content/docId?offset=5&limit=6&targetLanguage").should().respond(200);
+    }
+
     @Test
     public void test_get_document_extracted_text_with_out_of_bound_args() throws IOException {
-        when(indexer.getExtractedText("local-datashare", "docId", 6, -2))
+        when(indexer.getExtractedText("local-datashare", "docId",null, 6, -2, null))
                 .thenThrow(
                         new StringIndexOutOfBoundsException("Range [6-4] is out of document range ([0-10])")
                 );
@@ -290,7 +307,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
     @Test
     public void test_get_document_extracted_text_not_found() throws IOException {
-        when(indexer.getExtractedText("local-datashare", "notFoundDoc", 6, -2))
+        when(indexer.getExtractedText("local-datashare", "notFoundDoc", null,6, -2,null))
                 .thenThrow(
                         new IllegalArgumentException("Document not found")
                 );
@@ -301,7 +318,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_document_translated_extracted_text() throws IOException {
-        when(indexer.getExtractedText("local-datashare", "docId", 5, 6,"french"))
+        when(indexer.getExtractedText("local-datashare", "docId", null, 5, 6,"french"))
                 .thenReturn(new ExtractedText("content", 5, 6, 7, "french"));
         get("/api/local-datashare/documents/content/docId?offset=5&limit=6&targetLanguage=french").should().respond(200)
                 .should()
@@ -314,7 +331,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
     @Test
     public void test_get_document_translated_extracted_text_with_unknown_target_language() throws IOException {
-        when(indexer.getExtractedText("local-datashare", "docId", 5, 6,"unknown"))
+        when(indexer.getExtractedText("local-datashare", "docId", null,5, 6,"unknown"))
                 .thenThrow(
                         new IllegalArgumentException("Translated content in 'unknown' not found")
                 );
