@@ -155,7 +155,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         post("/api/index/search/ test-index1  /_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(400);
         get("/api/index/search/test-index1, test-index1").withPreemptiveAuthentication("cecile", "").should().respond(400);
         get("/api/index/search/,test-index1").withPreemptiveAuthentication("cecile", "").should().respond(400);
-        get("/api/index/search/test-index1test-index2,test-index2").withPreemptiveAuthentication("cecile", "").should().respond(401);
+        get("/api/index/search/test-index1test-index2,test-index2").withPreemptiveAuthentication("cecile", "").should().respond(400);
     }
     @Test
     public void test_auth_forward_request_for_scroll_requests() {
