@@ -41,6 +41,14 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         get("/api/index/search/unauthorized/_search").should().respond(401);
     }
     @Test
+    public void test_no_auth_get_forward_request_to_elastic_with_empty_indice() {
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(new PropertiesProvider(new HashMap<String, String>() {{
+            put("defaultUserName", "test");
+        }}))));
+        get("/api/index/search/    /_search").should().respond(400);
+        get("/api/index/search/!!/_search").should().respond(400);
+    }
+    @Test
     public void test_no_auth_get_unauthorized_on_unknown_index() {
         configure(routes -> routes.add(new IndexResource(indexer)).filter(LocalUserFilter.class));
         get("/api/index/search/hacker/bar/baz").should().respond(401);
@@ -49,6 +57,8 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     public void test_put_create_local_index_in_local_mode() {
         configure(routes -> routes.add(new IndexResource(indexer)).filter(LocalUserFilter.class));
         put("/api/index/index_name").should().respond(201);
+        put("/api/index/ !!").should().respond(400);
+        put("/api/index/  /").should().respond(404);
     }
     @Test
     public void test_no_auth_post_forward_request_to_elastic_with_body() {
@@ -56,6 +66,10 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
             put("defaultUserName", "test");
         }}))));
         post("/api/index/search/test-datashare/_search", "{}").should().respond(200).contain("\"successful\":1");
+
+        post("/api/index/search/  \\").should().respond(400);
+        post("/api/index/search/  /  ").should().respond(400);
+        post("/api/index/search/unauthorized/_search").should().respond(401);
     }
 
     @Test
@@ -64,6 +78,8 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
             put("defaultUserName", "test");
         }}))));
         options("/api/index/search/test-datashare").should().respond(200);
+        options("/api/index/search/  /").should().respond(400);
+        options("/api/index/search/  \\").should().respond(400);
     }
 
     @Test
@@ -118,6 +134,30 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_auth_forward_request_with_user_logged_on_multiple_indices_with_bad_requests() throws IOException {
+        configure(routes ->
+                routes.add(new IndexResource(indexer)).
+                        filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser(new User(new HashMap<String, Object>() {
+                            {
+                                this.put("uid", "cecile");
+                                this.put("groups_by_applications", new HashMap<String, Object>() {
+                                    {
+                                        this.put("datashare", Arrays.asList(TEST_INDEXES[1], TEST_INDEXES[2]));
+                                    }
+                                });
+                            }
+                        })))));
+        indexer.add(TEST_INDEXES[1], DocumentBuilder.createDoc("doc1").withRootId("rootId").build());
+        indexer.add(TEST_INDEXES[2], DocumentBuilder.createDoc("doc2").withRootId("rootId").build());
+        post("/api/index/search/test-index1,  /_search").withPreemptiveAuthentication("cecile", "").should().respond(400);
+        post("/api/index/search/,test-index2/_doc/_search").withPreemptiveAuthentication("cecile", "").should().respond(400);
+        post("/api/index/search/,test-index2,/_count").withPreemptiveAuthentication("cecile", "").should().respond(400);
+        post("/api/index/search/ test-index1  /_delete_by_query").withPreemptiveAuthentication("cecile", "").should().respond(400);
+        get("/api/index/search/test-index1, test-index1").withPreemptiveAuthentication("cecile", "").should().respond(400);
+        get("/api/index/search/,test-index1").withPreemptiveAuthentication("cecile", "").should().respond(400);
+        get("/api/index/search/test-index1test-index2,test-index2").withPreemptiveAuthentication("cecile", "").should().respond(401);
+    }
+    @Test
     public void test_auth_forward_request_for_scroll_requests() {
         post("/api/index/search/_search/scroll?scroll_id=DXF1ZXJ5QW5kRmV0Y2gBAAAAAAAAAD4WYm9laVYtZndUQlNsdDcwakFMNjU1QQ").withPreemptiveAuthentication("cecile", "").should().respond(500);
     }
@@ -130,7 +170,10 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_put_createIndex() {
         put("/api/index/cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(201);
+        put("/api/index/!!").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
+        put("/api/index/ cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
     }
+
 
     @Before
     public void setUp() {
