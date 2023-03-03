@@ -26,12 +26,14 @@ import java.net.URLDecoder;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.String.format;
+import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.apache.http.HttpHost.create;
 import static org.elasticsearch.common.xcontent.XContentType.JSON;
 
 public class ElasticsearchConfiguration {
     static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
     static final String SETTINGS_RESOURCE_NAME = "datashare_index_settings.json";
+    static final String SETTINGS_RESOURCE_NAME_WINDOWS = "datashare_index_settings_windows.json";
     static final int INDEX_MAX_RESULT_WINDOW = 100000;
     static Logger LOGGER = LoggerFactory.getLogger(ElasticsearchConfiguration.class);
 
@@ -101,7 +103,11 @@ public class ElasticsearchConfiguration {
             if (!client.indices().exists(request, RequestOptions.DEFAULT)) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
                 CreateIndexRequest createReq = new CreateIndexRequest(indexName);
-                createReq.settings(getResourceContent(SETTINGS_RESOURCE_NAME), JSON);
+                if (IS_OS_WINDOWS) {
+                    createReq.settings(getResourceContent(SETTINGS_RESOURCE_NAME_WINDOWS), JSON);
+                } else {
+                    createReq.settings(getResourceContent(SETTINGS_RESOURCE_NAME), JSON);
+                }
                 createReq.mapping(getResourceContent(MAPPING_RESOURCE_NAME), JSON);
                 client.indices().create(createReq, RequestOptions.DEFAULT);
                 return true;
