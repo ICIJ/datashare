@@ -1,0 +1,52 @@
+databaseChangeLog:
+  - changeSet:
+      id: 58
+      author: promera
+      changes:
+        - addColumn:
+            tableName: project
+            column:
+              name: label
+              type: varchar(255)
+
+        - addColumn:
+            tableName: project
+            column:
+              name: publisher_name
+              type: varchar(255)
+              defaultValue: ''
+
+        - addColumn:
+            tableName: project
+            column:
+              name: maintainer_name
+              type: varchar(255)
+              defaultValue: ''
+
+        - addColumn:
+            tableName: project
+            column:
+              name: source_url
+              type: varchar(2048)
+              defaultValue: ''
+
+        - addColumn:
+            tableName: project
+            column:
+              name: logo_url
+              type: varchar(2048)
+              defaultValue: ''
+
+        - addColumn:
+            tableName: project
+            column:
+              name: creation_date
+              type: datetime
+              defaultValue: now()
+
+        - addColumn:
+            tableName: project
+            column:
+              name: update_date
+              type: datetime
+              defaultValue: now()
