@@ -13,6 +13,7 @@ public class Main {
         DatashareCli cli = new DatashareCli().parseArguments(args);
         LOGGER.info("Running datashare " + (cli.isWebServer() ? "web server" : ""));
         LOGGER.info("JVM charset encoding {}", Charset.defaultCharset());
+        LOGGER.debug("debug logs are activated");
 
         if (cli.isWebServer()) {
             WebApp.start(cli.properties);
