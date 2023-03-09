@@ -26,11 +26,13 @@ import static net.codestory.http.payload.Payload.ok;
 @Prefix("/api/settings")
 public class SettingsResource {
     Logger logger = LoggerFactory.getLogger(getClass());
-    private PropertiesProvider provider;
+    private PropertiesProvider propertiesProvider;
+    private TesseractOCRParser ocrParser;
 
     @Inject
-    public SettingsResource(PropertiesProvider provider) {
-        this.provider = provider;
+    public SettingsResource(PropertiesProvider propertiesProvider, TesseractOCRParser ocrParser) {
+        this.propertiesProvider = propertiesProvider;
+        this.ocrParser = ocrParser;
     }
 
     /**
@@ -67,12 +69,12 @@ public class SettingsResource {
      */
     @Patch()
     public Payload patchSettings(Context context, JsonData data) throws IOException {
-        if (provider.get("mode").orElse(Mode.LOCAL.name()).equals(Mode.SERVER.name())) {
+        if (propertiesProvider.get("mode").orElse(Mode.LOCAL.name()).equals(Mode.SERVER.name())) {
             return Payload.forbidden();
         }
         logger.info("user {} is updating the settings", context.currentUser().login());
         try {
-            provider.overrideWith(data.asProperties()).save();
+            propertiesProvider.overrideWith(data.asProperties()).save();
         } catch (PropertiesProvider.SettingsNotFound e) {
             return Payload.notFound();
         }
@@ -85,7 +87,6 @@ public class SettingsResource {
      */
     @Get("/ocr/languages")
     public List<Map<String, String>> ocrLanguages() throws TikaConfigException {
-        TesseractOCRParser ocrParser = new TesseractOCRParser();
         ocrParser.setPreloadLangs(true);
         ocrParser.initialize(new HashMap<>());
         return languageListToMap(ocrParser.getLangs());
