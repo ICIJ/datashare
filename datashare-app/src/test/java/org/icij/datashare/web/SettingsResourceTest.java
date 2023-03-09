@@ -1,7 +1,12 @@
 package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
+import org.apache.tika.exception.TikaConfigException;
+import org.apache.tika.parser.external.ExternalParser;
+import org.apache.tika.parser.ocr.TesseractOCRConfig;
+import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -18,6 +23,10 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.session.DatashareUser.local;
 import static org.icij.datashare.session.DatashareUser.singleUser;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class SettingsResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();
@@ -25,7 +34,7 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
     public void test_patch_configuration() throws IOException {
         File settings = folder.newFile("file.settings");
         Files.write(settings.toPath(), asList("foo=doe", "bar=baz"));
-        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider(settings.getAbsolutePath()))).
+        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider(settings.getAbsolutePath()), new TesseractOCRParser())).
                 filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
 
         patch("/api/settings", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
@@ -37,7 +46,7 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_patch_configuration_with_no_config_file() {
-        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider("/unwritable.conf"))).
+        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider("/unwritable.conf"), new TesseractOCRParser())).
                 filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
 
         patch("/api/settings", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
@@ -46,10 +55,10 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_patch_configuration_should_answer_403_in_server_mode() {
-        PropertiesProvider properties = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put("mode", "SERVER");
         }});
-        configure(routes -> routes.add(new SettingsResource(properties)).filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
+        configure(routes -> routes.add(new SettingsResource(propertiesProvider, new TesseractOCRParser())).filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
 
         patch("/api/settings", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
             withPreemptiveAuthentication("local", "pass").should().respond(403);
@@ -57,8 +66,8 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_list_ocr_languages() {
-        PropertiesProvider properties = new PropertiesProvider();
-        configure(routes -> routes.add(new SettingsResource(properties)));
+        PropertiesProvider propertiesProvider = new PropertiesProvider();
+        configure(routes -> routes.add(new SettingsResource(propertiesProvider, new TesseractOCRParser())));
 
         get("/api/settings/ocr/languages")
                 .should()
@@ -68,7 +77,7 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_list_text_languages() {
         PropertiesProvider properties = new PropertiesProvider();
-        configure(routes -> routes.add(new SettingsResource(properties)));
+        configure(routes -> routes.add(new SettingsResource(properties, new TesseractOCRParser())));
 
         get("/api/settings/text/languages")
                 .should()
