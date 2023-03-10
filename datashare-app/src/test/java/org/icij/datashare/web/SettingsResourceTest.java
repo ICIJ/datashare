@@ -2,6 +2,7 @@ package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.apache.tika.exception.TikaConfigException;
+import org.apache.tika.exception.TikaException;
 import org.apache.tika.parser.external.ExternalParser;
 import org.apache.tika.parser.ocr.TesseractOCRConfig;
 import org.apache.tika.parser.ocr.TesseractOCRParser;
@@ -65,13 +66,39 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_ocr_languages() {
+    public void test_list_ocr_languages() throws TikaConfigException {
+        TesseractOCRParser mock = mock(TesseractOCRParser.class);
+        when(mock.hasTesseract()).thenReturn(true);
         PropertiesProvider propertiesProvider = new PropertiesProvider();
-        configure(routes -> routes.add(new SettingsResource(propertiesProvider, new TesseractOCRParser())));
+        configure(routes -> routes.add(new SettingsResource(propertiesProvider, mock)));
 
         get("/api/settings/ocr/languages")
                 .should()
                 .respond(200);
+    }
+
+    @Test
+    public void test_list_ocr_languages_tesseract_not_installed() throws TikaConfigException {
+        TesseractOCRParser mock = mock(TesseractOCRParser.class);
+        when(mock.hasTesseract()).thenReturn(false);
+        PropertiesProvider properties = new PropertiesProvider();
+        configure(routes -> routes.add(new SettingsResource(properties, mock)));
+
+        get("/api/settings/ocr/languages")
+                .should()
+                .respond(503);
+    }
+
+    @Test
+    public void test_list_ocr_languages_throws_tika_config_exception() throws TikaConfigException {
+        TesseractOCRParser mock = mock(TesseractOCRParser.class);
+        when(mock.hasTesseract()).thenThrow(new TikaConfigException("tesseractPath doesn't point to an existing directory"));
+        PropertiesProvider properties = new PropertiesProvider();
+        configure(routes -> routes.add(new SettingsResource(properties, mock)));
+
+        get("/api/settings/ocr/languages")
+                .should()
+                .respond(500);
     }
 
     @Test
