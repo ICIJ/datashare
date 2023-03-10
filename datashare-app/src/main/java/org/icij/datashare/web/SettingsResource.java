@@ -7,6 +7,8 @@ import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Patch;
 import net.codestory.http.annotations.Prefix;
+import net.codestory.http.constants.HttpStatus;
+import net.codestory.http.errors.HttpException;
 import net.codestory.http.payload.Payload;
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.parser.ocr.TesseractOCRParser;
@@ -83,13 +85,25 @@ public class SettingsResource {
 
     /**
      * List all available language in Tesseract
-     * @return 200
+     *
+     * Returns 500 if Tesseract configuration failed
+     * Returns 503 if Tesseract is not installed
+     *
+     * @return 200, 500 or 503
      */
     @Get("/ocr/languages")
     public List<Map<String, String>> ocrLanguages() throws TikaConfigException {
-        ocrParser.setPreloadLangs(true);
-        ocrParser.initialize(new HashMap<>());
-        return languageListToMap(ocrParser.getLangs());
+        try {
+            if (ocrParser.hasTesseract()) {
+                ocrParser.setPreloadLangs(true);
+                ocrParser.initialize(new HashMap<>());
+                return languageListToMap(ocrParser.getLangs());
+            } else {
+                throw new HttpException(HttpStatus.SERVICE_UNAVAILABLE);
+            }
+        } catch (TikaConfigException e) {
+            throw new HttpException(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
