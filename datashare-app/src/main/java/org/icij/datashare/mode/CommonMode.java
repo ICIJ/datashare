@@ -11,8 +11,6 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
-import org.apache.tika.exception.TikaConfigException;
-import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
@@ -54,7 +52,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
