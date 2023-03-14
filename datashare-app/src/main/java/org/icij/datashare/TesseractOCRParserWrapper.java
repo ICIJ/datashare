@@ -6,14 +6,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 
-public class TesseractOCRParserBuilder {
+public class TesseractOCRParserWrapper {
     private TesseractOCRParser ocrParser;
 
-    public TesseractOCRParserBuilder() {
+    public TesseractOCRParserWrapper() {
         this.ocrParser = initializeParser(new TesseractOCRParser());
     }
 
-    TesseractOCRParserBuilder(TesseractOCRParser ocrParser) {
+    TesseractOCRParserWrapper(TesseractOCRParser ocrParser) {
         this.ocrParser = initializeParser(ocrParser);
     }
 
@@ -29,7 +29,7 @@ public class TesseractOCRParserBuilder {
                 return ocrParser;
             }
         } catch (TikaConfigException e) {
-            LoggerFactory.getLogger(TesseractOCRParserBuilder.class).info("Ocr parser initialization failed" + e);
+            LoggerFactory.getLogger(TesseractOCRParserWrapper.class).info("Ocr parser initialization failed" + e);
         }
         return ocrParser;
     }
