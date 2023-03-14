@@ -1,9 +1,8 @@
 package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
-import org.apache.tika.exception.TikaConfigException;
-import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.TesseractOCRParserWrapper;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,7 +28,7 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
     public void test_patch_configuration() throws IOException {
         File settings = folder.newFile("file.settings");
         Files.write(settings.toPath(), asList("foo=doe", "bar=baz"));
-        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider(settings.getAbsolutePath()), new TesseractOCRParser())).
+        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider(settings.getAbsolutePath()), new TesseractOCRParserWrapper())).
                 filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
 
         patch("/api/settings", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
@@ -41,7 +40,7 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_patch_configuration_with_no_config_file() {
-        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider("/unwritable.conf"), new TesseractOCRParser())).
+        configure(routes -> routes.add(new SettingsResource(new PropertiesProvider("/unwritable.conf"), new TesseractOCRParserWrapper())).
                 filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
 
         patch("/api/settings", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
@@ -53,18 +52,16 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put("mode", "SERVER");
         }});
-        configure(routes -> routes.add(new SettingsResource(propertiesProvider, new TesseractOCRParser())).filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
+        configure(routes -> routes.add(new SettingsResource(propertiesProvider, new TesseractOCRParserWrapper())).filter(new BasicAuthFilter("/", "icij", singleUser(local()))));
 
         patch("/api/settings", "{\"data\": {\"foo\": \"qux\", \"xyzzy\":\"fred\"}}").
             withPreemptiveAuthentication("local", "pass").should().respond(403);
     }
 
     @Test
-    public void test_list_ocr_languages() throws TikaConfigException {
-        TesseractOCRParser mock = mock(TesseractOCRParser.class);
-        when(mock.hasTesseract()).thenReturn(true);
-        PropertiesProvider propertiesProvider = new PropertiesProvider();
-        configure(routes -> routes.add(new SettingsResource(propertiesProvider, mock)));
+    public void test_list_ocr_languages() {
+        PropertiesProvider properties = new PropertiesProvider();
+        configure(routes -> routes.add(new SettingsResource(properties, new TesseractOCRParserWrapper())));
 
         get("/api/settings/ocr/languages")
                 .should()
@@ -72,8 +69,8 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_ocr_languages_tesseract_not_installed() throws TikaConfigException {
-        TesseractOCRParser mock = mock(TesseractOCRParser.class);
+    public void test_list_ocr_languages_tesseract_not_installed() {
+        TesseractOCRParserWrapper mock = mock(TesseractOCRParserWrapper.class);
         when(mock.hasTesseract()).thenReturn(false);
         PropertiesProvider properties = new PropertiesProvider();
         configure(routes -> routes.add(new SettingsResource(properties, mock)));
@@ -84,21 +81,9 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_list_ocr_languages_throws_tika_config_exception() throws TikaConfigException {
-        TesseractOCRParser mock = mock(TesseractOCRParser.class);
-        when(mock.hasTesseract()).thenThrow(new TikaConfigException("tesseractPath doesn't point to an existing directory"));
-        PropertiesProvider properties = new PropertiesProvider();
-        configure(routes -> routes.add(new SettingsResource(properties, mock)));
-
-        get("/api/settings/ocr/languages")
-                .should()
-                .respond(500);
-    }
-
-    @Test
     public void test_list_text_languages() {
         PropertiesProvider properties = new PropertiesProvider();
-        configure(routes -> routes.add(new SettingsResource(properties, new TesseractOCRParser())));
+        configure(routes -> routes.add(new SettingsResource(properties, new TesseractOCRParserWrapper())));
 
         get("/api/settings/text/languages")
                 .should()

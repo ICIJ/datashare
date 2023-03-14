@@ -6,6 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -31,6 +32,27 @@ public class TesseractOCRParserWrapperTest {
         when(ocrParser.hasTesseract()).thenThrow(new TikaConfigException("Ocr parser initialization failed"));
         TesseractOCRParserWrapper tesseractOCRParserWrapper = new TesseractOCRParserWrapper(ocrParser);
         verify(ocrParser, never()).initialize(any());
+    }
+
+    @Test
+    public void test_has_tesseract_wrapper_is_true() throws TikaConfigException {
+        when(ocrParser.hasTesseract()).thenReturn(true);
+        TesseractOCRParserWrapper tesseractOCRParserWrapper = new TesseractOCRParserWrapper(ocrParser);
+        assertThat(tesseractOCRParserWrapper.hasTesseract()).isTrue();
+    }
+
+    @Test
+    public void test_has_tesseract_wrapper_is_false() throws TikaConfigException {
+        when(ocrParser.hasTesseract()).thenReturn(false);
+        TesseractOCRParserWrapper tesseractOCRParserWrapper = new TesseractOCRParserWrapper(ocrParser);
+        assertThat(tesseractOCRParserWrapper.hasTesseract()).isFalse();
+    }
+
+    @Test
+    public void test_has_tesseract_wrapper_is_false_tika_config_exception() throws TikaConfigException {
+        when(ocrParser.hasTesseract()).thenThrow(new TikaConfigException("Ocr parser initialization failed"));
+        TesseractOCRParserWrapper tesseractOCRParserWrapper = new TesseractOCRParserWrapper(ocrParser);
+        assertThat(tesseractOCRParserWrapper.hasTesseract()).isFalse();
     }
 
     @Before
