@@ -2,11 +2,13 @@ package org.icij.datashare;
 
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.parser.ocr.TesseractOCRParser;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 
 public class TesseractOCRParserWrapper {
+    private final static Logger logger = LoggerFactory.getLogger(TesseractOCRParserWrapper.class);
     private TesseractOCRParser ocrParser;
 
     public TesseractOCRParserWrapper() {
@@ -21,6 +23,15 @@ public class TesseractOCRParserWrapper {
         return ocrParser;
     }
 
+    public boolean hasTesseract() {
+        try {
+            return ocrParser.hasTesseract();
+        } catch (TikaConfigException e) {
+            logger.warn("Ocr parser failed to check if tesseract is installed" + e);
+        }
+        return false;
+    }
+
     public static TesseractOCRParser initializeParser(TesseractOCRParser ocrParser) {
         ocrParser.setPreloadLangs(true);
         try {
@@ -29,7 +40,7 @@ public class TesseractOCRParserWrapper {
                 return ocrParser;
             }
         } catch (TikaConfigException e) {
-            LoggerFactory.getLogger(TesseractOCRParserWrapper.class).info("Ocr parser initialization failed" + e);
+            logger.warn("Ocr parser initialization failed" + e);
         }
         return ocrParser;
     }

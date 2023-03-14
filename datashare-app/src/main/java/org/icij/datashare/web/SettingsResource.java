@@ -12,6 +12,7 @@ import net.codestory.http.errors.HttpException;
 import net.codestory.http.payload.Payload;
 import org.apache.tika.exception.TikaConfigException;
 import org.apache.tika.parser.ocr.TesseractOCRParser;
+import org.icij.datashare.TesseractOCRParserWrapper;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Language;
@@ -29,12 +30,12 @@ import static net.codestory.http.payload.Payload.ok;
 public class SettingsResource {
     Logger logger = LoggerFactory.getLogger(getClass());
     private PropertiesProvider propertiesProvider;
-    private TesseractOCRParser ocrParser;
+    private TesseractOCRParserWrapper ocrParserWrapper;
 
     @Inject
-    public SettingsResource(PropertiesProvider propertiesProvider, TesseractOCRParser ocrParser) {
+    public SettingsResource(PropertiesProvider propertiesProvider, TesseractOCRParserWrapper ocrParserWrapper) {
         this.propertiesProvider = propertiesProvider;
-        this.ocrParser = ocrParser;
+        this.ocrParserWrapper = ocrParserWrapper;
     }
 
     /**
@@ -86,23 +87,16 @@ public class SettingsResource {
     /**
      * List all available language in Tesseract
      *
-     * Returns 500 if Tesseract configuration failed
      * Returns 503 if Tesseract is not installed
      *
-     * @return 200, 500 or 503
+     * @return 200 or 503
      */
     @Get("/ocr/languages")
-    public List<Map<String, String>> ocrLanguages() throws TikaConfigException {
-        try {
-            if (ocrParser.hasTesseract()) {
-                ocrParser.setPreloadLangs(true);
-                ocrParser.initialize(new HashMap<>());
-                return languageListToMap(ocrParser.getLangs());
-            } else {
-                throw new HttpException(HttpStatus.SERVICE_UNAVAILABLE);
-            }
-        } catch (TikaConfigException e) {
-            throw new HttpException(HttpStatus.INTERNAL_SERVER_ERROR);
+    public List<Map<String, String>> ocrLanguages() {
+        if (ocrParserWrapper.hasTesseract()) {
+            return languageListToMap(ocrParserWrapper.getOcrParser().getLangs());
+        } else {
+            throw new HttpException(HttpStatus.SERVICE_UNAVAILABLE);
         }
     }
 

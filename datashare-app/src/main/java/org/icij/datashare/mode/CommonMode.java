@@ -11,9 +11,12 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.apache.tika.exception.TikaConfigException;
+import org.apache.tika.parser.ocr.TesseractOCRParser;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.TesseractOCRParserWrapper;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
@@ -51,6 +54,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
@@ -128,6 +132,8 @@ public abstract class CommonMode extends AbstractModule {
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
+
+        bind(TesseractOCRParserWrapper.class).toInstance(new TesseractOCRParserWrapper());
 
         install(new FactoryModuleBuilder().build(TaskFactory.class));
 
