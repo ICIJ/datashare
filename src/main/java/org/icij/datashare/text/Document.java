@@ -24,6 +24,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
 
 
+
 @IndexType("Document")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Document implements Entity {
@@ -94,14 +95,33 @@ public class Document implements Entity {
     public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
         this(project, getHash(project, filePath), filePath, content, null, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength, new HashSet<>());
     }
-    public Document(String id, Project project, Path filePath, String content,List<Map<String,String>> content_translated, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
+    public Document(String id, Project project, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
         this(project, id, filePath, content, content_translated, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength, new HashSet<>());
+    }
+
+    public Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
+                    String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
+                    Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
+                    Long contentLength, Set<Tag> tags) {
+        this(project, id, filePath, content, content_translated, language, extractionDate, charset,
+                mimetype, extractionLevel, metadata, status, nerTags,
+                parentDocument, rootDocument, contentLength,
+                tags);
+    }
+    public Document(Project project, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
+                    String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
+                    Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
+                    Long contentLength, Set<Tag> tags) {
+        this(project, getHash(project, filePath), filePath, content, content_translated, language, extractionDate, charset,
+                mimetype, extractionLevel, metadata, status, nerTags,
+                parentDocument, rootDocument, contentLength,
+                tags);
     }
 
     @JsonCreator
     private Document(@JsonProperty("projectId") Project project, @JsonProperty("id") String id, @JsonProperty("path") Path path,
                      @JsonProperty("content") String content,
-                     @JsonProperty("content_translated") List<Map<String,String>> contentTranslated,
+                     @JsonProperty("content_translated") List<Map<String,String>> content_translated,
                      @JsonProperty("language") Language language, @JsonProperty("extractionDate") Date extractionDate,
                      @JsonProperty("contentEncoding") Charset contentEncoding, @JsonProperty("contentType") String contentType,
                      @JsonProperty("extractionLevel") int extractionLevel,
@@ -117,7 +137,7 @@ public class Document implements Entity {
         this.path = path;
         this.dirname = path == null ? null: getDirnameFrom(path);
         this.content = ofNullable(content).orElse("");
-        this.content_translated = ofNullable(contentTranslated).orElse(new ArrayList<>());
+        this.content_translated = ofNullable(content_translated).orElse(new ArrayList<>());
         this.extractionDate = extractionDate;
         this.extractionLevel = (short)extractionLevel;
         this.contentLength = ofNullable(contentLength).orElse(0L);
@@ -142,6 +162,8 @@ public class Document implements Entity {
     public Project getProject() { return project;}
     public String getProjectId() { return project.getId();}
     public String getContent() { return content; }
+    @JsonGetter("content_translated")
+    public List<Map<String, String>> getContentTranslated() { return content_translated; }
     public int getContentTextLength() { return content.length();}
     public Path getPath() { return path;}
     public Path getDirname() { return dirname;}

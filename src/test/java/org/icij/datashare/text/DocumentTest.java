@@ -3,9 +3,7 @@ package org.icij.datashare.text;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
@@ -92,5 +90,21 @@ public class DocumentTest {
     public void test_creation_date_unparseable() {
         assertThat(createDoc("name").with(new HashMap<String, Object>() {{
             put("tika_metadata_dcterms_created", "not a date");}}).build().getCreationDate()).isNull();
+    }
+
+    @Test
+    public void test_content_translated() throws Exception {
+        Map<String, String> english = new HashMap<>();
+        english.put("content","hello world");
+        english.put("target_language","ENGLISH");
+        List<Map<String,String>> content_translated = new ArrayList<>(){{add(english); }};
+        Document doc = createDoc("name").with(content_translated).build();
+        assertThat(doc.getContentTranslated()).isNotNull();
+        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(doc)).contains("\"content_translated\":[{\"target_language\":\"ENGLISH\",\"content\":\"hello world\"}]");
+    }
+
+    @Test
+    public void test_serialize_contains_content_translated() throws Exception {
+        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build())).contains("\"content_translated\":[]");
     }
 }
