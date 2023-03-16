@@ -4,6 +4,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Language;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.TikaDocument;
@@ -34,9 +35,14 @@ public class SourceExtractorTest {
 
     @Test
     public void test_get_source_for_root_doc() throws IOException {
-        Document document = new Document(project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()), "it has been parsed",
-                    Language.FRENCH, Charset.defaultCharset(), "message/rfc822", new HashMap<>(),
-                    Document.Status.INDEXED, 45L);
+        Document document = DocumentBuilder.createDoc(project("project"),get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .with("it has been parsed")
+                .with(Language.FRENCH)
+                .with(Charset.defaultCharset())
+                .ofMimeType("message/rfc822")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .withContentLength(45L).build();
 
         InputStream source = new SourceExtractor().getSource(document);
         assertThat(source).isNotNull();
@@ -45,9 +51,14 @@ public class SourceExtractorTest {
 
     @Test
     public void test_get_source_for_doc_and_pdf_with_without_metadata() throws IOException {
-        Document document = new Document(project("project"), get(getClass().getResource("/docs/office_document.doc").getPath()), null,
-                Language.ENGLISH, Charset.defaultCharset(), "application/msword", new HashMap<>(),
-                Document.Status.INDEXED, 0L);
+        Document document = DocumentBuilder.createDoc(project("project"),get(getClass().getResource("/docs/office_document.doc").getPath()))
+                .with((String) null)
+                .with(Language.ENGLISH)
+                .with(Charset.defaultCharset())
+                .ofMimeType("application/msword")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .withContentLength(0L).build();
 
         InputStream inputStreamWithMetadata = new SourceExtractor(false).getSource(document);
         InputStream inputStreamWithoutMetadata = new SourceExtractor(true).getSource(document);

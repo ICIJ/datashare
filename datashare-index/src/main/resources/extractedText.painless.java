@@ -17,8 +17,8 @@ int end = params.offset+params.limit;
 try{
     if(params.targetLanguage != null) {
         String content = getTranslationContent(params._source,params.targetLanguage);
-        String contentResized = content.substring(params.offset, end);
         maxOffset = content.length();
+        String contentResized = content.substring(params.offset, end);
         return [
             "content": contentResized,
             "maxOffset":maxOffset,

@@ -5,11 +5,7 @@ import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.test.DatashareTimeRule;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.NamedEntity;
-import org.icij.datashare.text.Project;
-import org.icij.datashare.text.Tag;
-import org.icij.datashare.text.nlp.Pipeline;
+import org.icij.datashare.text.*;
 import org.icij.datashare.user.User;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,13 +51,20 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_create_document() throws Exception {
-        Document document = new Document("id", project("prj"), Paths.get("/path/to/doc"), "content",
-                FRENCH, Charset.defaultCharset(),
-                "text/plain", new HashMap<String, Object>() {{
-            put("key 1", "value 1");
-            put("key 2", "value 2");
-        }},
-                Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
+
+        Document document = DocumentBuilder.createDoc("id")
+                .with(project("prj"))
+                .with(Paths.get("/path/to/doc"))
+                .with("content")
+                .with(FRENCH).with(Charset.defaultCharset())
+                .with("text/plain")
+                .with(new HashMap<>() {{
+                    put("key 1", "value 1");
+                    put("key 2", "value 2");
+                }})
+                .with(Document.Status.INDEXED)
+                .with(CORENLP, OPENNLP)
+                .withContentLength(432L).build();
 
         repository.create(document);
 
@@ -75,14 +78,27 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_get_untagged_documents() throws Exception {
-        Document coreAndOpenNlp = new Document("idCore", project("prj"), Paths.get("/path/to/coreAndOpenNlp"), "coreAndOpenNlp",
-                FRENCH, Charset.defaultCharset(),
-                "text/plain", new HashMap<>(),
-                Document.Status.INDEXED, Pipeline.set(CORENLP, OPENNLP), 432L);
-        Document ixaPipe = new Document("idIxa", project("prj"), Paths.get("/path/to/ixaPipe"), "ixaPipe",
-                FRENCH, Charset.defaultCharset(),
-                "text/plain", new HashMap<>(),
-                Document.Status.INDEXED, Pipeline.set(IXAPIPE), 234L);
+        Document coreAndOpenNlp = DocumentBuilder.createDoc("idCore")
+                .with(project("prj"))
+                .with(Paths.get("/path/to/coreAndOpenNlp"))
+                .with("coreAndOpenNlp")
+                .with(FRENCH).with(Charset.defaultCharset())
+                .with("text/plain")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .with(CORENLP, OPENNLP)
+                .withContentLength(432L).build();
+        Document ixaPipe = DocumentBuilder.createDoc("idIxa")
+                .with(project("prj"))
+                .with(Paths.get("/path/to/ixaPipe"))
+                .with("ixaPipe")
+                .with(FRENCH).with(Charset.defaultCharset())
+                .with("text/plain")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .with(IXAPIPE)
+                .withContentLength(234L).build();
+
         repository.create(coreAndOpenNlp);
         repository.create(ixaPipe);
 
