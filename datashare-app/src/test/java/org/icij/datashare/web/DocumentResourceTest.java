@@ -22,6 +22,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -275,6 +279,27 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .contain("\"limit\":6")
                 .contain("\"maxOffset\":7");
     }
+    @Test
+    public void test_get_document_content() throws IOException {
+        HashMap<String, String> language = new HashMap<>() {{
+            put("fr", "mon-contenu");
+        }};
+        List<Map<String,String>> langs = new ArrayList<>();
+        langs.add(language);
+
+
+        Document doc = createDoc("docId")
+                .with("my-content")
+                .with(langs).build();
+        when(repository.getDocument("docId")).thenReturn(doc);
+        get("/api/local-datashare/documents/content/docId").should().respond(200)
+                .haveType("text/html;charset=UTF-8")
+                .contain("my-content");
+        get("/api/local-datashare/documents/content/docId?targetLanguage=fr").should().respond(200)
+                .haveType("text/html;charset=UTF-8")
+                .contain("mon-contenu");
+    }
+
 
     @Test
     public void test_get_document_extracted_text_with_routing() throws IOException {
@@ -353,7 +378,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     private void indexFile(String index, String _id, Path path, String contentType, String routing) {
-        Document doc = DocumentBuilder.createDoc(_id).with(path).ofMimeType(contentType).withRootId(routing).build();
+        Document doc = DocumentBuilder.createDoc(_id).with(path).ofMimeType(contentType).withParentId(routing).withRootId(routing).build();
         if (routing == null) {
             when(indexer.get(index, _id)).thenReturn(doc);
         } else {

@@ -34,7 +34,6 @@ import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,7 +45,9 @@ import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDI
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
-import static org.junit.Assert.*;
+import static org.icij.datashare.text.DocumentBuilder.createDoc;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
@@ -216,11 +217,14 @@ public class ElasticsearchSpewerTest {
         extractor.setDigester(new UpdatableDigester("project", Document.HASHER.toString()));
 
         final TikaDocument extractDocument = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()));
-
-        Document document = new Document(Project.project("project"), get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()),
-                "This is a document to be parsed by datashare.",
-                Language.FRENCH, Charset.defaultCharset(), "text/plain", convert(extractDocument.getMetadata()),
-                Document.Status.INDEXED, 45L);
+        Document document = createDoc(Project.project("project"),get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()))
+                .with("This is a document to be parsed by datashare.")
+                .with(Language.FRENCH)
+                .ofMimeType("text/plain")
+                .with(convert(extractDocument.getMetadata()))
+                .with(Document.Status.INDEXED)
+                .withContentLength(45L)
+                .build();
 
         assertThat(document.getId()).isEqualTo(extractDocument.getId());
     }

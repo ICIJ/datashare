@@ -259,7 +259,7 @@ public class ElasticsearchIndexer implements Indexer {
             throw new StringIndexOutOfBoundsException(format("offset or limit should not be negative (offset=%d, limit=%d)", offset, limit));
         }
         sourceBuilder.query(boolQuery().must(termsQuery("_id", id)));
-        Script script= this.getExtractedTextScript(offset, limit, targetLanguage);;
+        Script script= this.getExtractedTextScript(offset, limit, targetLanguage);
         sourceBuilder.scriptField("pagination", script);
         SearchRequest searchRequest = new SearchRequest(new String[] {indexName}, sourceBuilder);
         SearchResponse search = client.search(searchRequest.routing(routing), RequestOptions.DEFAULT);
