@@ -76,27 +76,9 @@ public class Document implements Entity {
     @IndexRoot
     private final String rootDocument;
 
-    public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Long contentLength) {
-        this(project, getHash(project, filePath), filePath, content,null, language, new Date(), charset, mimetype, 0, metadata, status, new HashSet<>(), null, null, contentLength, new HashSet<>());
-    }
 
     public Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
         this(project, id, filePath, content,null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>());
-    }
-
-    public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
-        this(project, getHash(project, filePath), filePath, content,null, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength, new HashSet<>());
-    }
-
-    public Document(String id, Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
-        this(project, id, filePath, content, null, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength, new HashSet<>());
-    }
-
-    public Document(Project project, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, HashSet<Pipeline.Type> nerTags, Document parentDocument, Long contentLength) {
-        this(project, getHash(project, filePath), filePath, content, null, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, parentDocument.getId(), parentDocument.getRootDocument(), contentLength, new HashSet<>());
-    }
-    public Document(String id, Project project, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Long contentLength) {
-        this(project, id, filePath, content, content_translated, language, new Date(), charset, mimetype, 0, metadata, status, nerTags, null, null, contentLength, new HashSet<>());
     }
 
     public Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
@@ -104,15 +86,6 @@ public class Document implements Entity {
                     Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
                     Long contentLength, Set<Tag> tags) {
         this(project, id, filePath, content, content_translated, language, extractionDate, charset,
-                mimetype, extractionLevel, metadata, status, nerTags,
-                parentDocument, rootDocument, contentLength,
-                tags);
-    }
-    public Document(Project project, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
-                    String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
-                    Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
-                    Long contentLength, Set<Tag> tags) {
-        this(project, getHash(project, filePath), filePath, content, content_translated, language, extractionDate, charset,
                 mimetype, extractionLevel, metadata, status, nerTags,
                 parentDocument, rootDocument, contentLength,
                 tags);
