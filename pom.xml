@@ -76,7 +76,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
 
-        <datashare-api.version>9.0.2</datashare-api.version>
+        <datashare-api.version>9.1.0</datashare-api.version>
 
         <datashare-cli.version>${project.version}</datashare-cli.version>
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
