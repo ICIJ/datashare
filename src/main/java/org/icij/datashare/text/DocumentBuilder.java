@@ -1,18 +1,18 @@
 package org.icij.datashare.text;
 
-import org.icij.datashare.Entity;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
+
 import static java.nio.file.Paths.get;
 import static java.util.stream.Collectors.toSet;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
 
-public class DocumentBuilder  implements Entity {
-    private final String id;
+public class DocumentBuilder {
+    private String id;
     private String content;
     private List<Map<String, String>> content_translated;
     private Path path;
@@ -30,22 +30,18 @@ public class DocumentBuilder  implements Entity {
     private Date extractionDate;
     private Long contentLength;
 
+    private DocumentBuilder() {}
+    public static DocumentBuilder createDoc() {
+        return new DocumentBuilder();
+    }
     public static DocumentBuilder createDoc(String id) {
-
-        return new DocumentBuilder(id);
+        return new DocumentBuilder().withDefaultValues(id);
     }
-    public static DocumentBuilder createDoc(Project project,Path path) {
-        return new DocumentBuilder(getHash(project,path)).with(project).with(path);
-    }
-    private static String getHash(Project project, Path path) {
-        try {
-            return HASHER.hash(path, project.getId());
-        } catch(IllegalArgumentException e){
-            return HASHER.hash(project.getId()+path);
-        }
+    public static DocumentBuilder createDoc(Project project, Path path) {
+        return new DocumentBuilder().withDefaultValues(Document.getHash(project,path)).with(project).with(path);
     }
 
-    private DocumentBuilder(String id) {
+    public DocumentBuilder withDefaultValues(String id){
         this.id = id;
         this.charset = Charset.defaultCharset();
         this.content = id;
@@ -58,6 +54,7 @@ public class DocumentBuilder  implements Entity {
         this.pipelines = new HashSet<>();
         this.project = project("prj");
         this.tags = new HashSet<>();
+        return this;
     }
 
     public DocumentBuilder with(String content) {
@@ -134,8 +131,8 @@ public class DocumentBuilder  implements Entity {
         return this;
     }
     public Document build() {
-        if(id == null && path == null){
-            System.out.println("Path and id are missing.");
+        if(id == null && project == null && path == null && content == null){
+            throw new NullPointerException("Id, Project, Path or content are missing.");
         }
         return new Document(project, id, path, content, content_translated, language,
                 charset, mimeType, metadata, documentStatus,
@@ -143,8 +140,4 @@ public class DocumentBuilder  implements Entity {
                 contentLength, tags);
     }
 
-    @Override
-    public String getId() {
-        return id;
-    }
 }
