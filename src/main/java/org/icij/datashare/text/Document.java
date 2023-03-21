@@ -77,11 +77,11 @@ public class Document implements Entity {
     private final String rootDocument;
 
 
-    public Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
+    Document(Project project, String id, Path filePath, String content, Language language, Charset charset, String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags, Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel, Long contentLength) {
         this(project, id, filePath, content,null, language, extractionDate, charset, mimetype, extractionLevel, metadata, status, nerTags, parentDocument, rootDocument, contentLength, new HashSet<>());
     }
 
-    public Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
+    Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
                     String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
                     Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
                     Long contentLength, Set<Tag> tags) {
@@ -125,7 +125,7 @@ public class Document implements Entity {
         this.tags = tags;
     }
 
-    private static String getHash(Project project, Path path) {
+    static String getHash(Project project, Path path) {
         return HASHER.hash(path, project.getId());
     }
 

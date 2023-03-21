@@ -57,6 +57,10 @@ public class DocumentBuilder {
         return this;
     }
 
+    public DocumentBuilder withId(String id) {
+        this.id = id;
+        return this;
+    }
     public DocumentBuilder with(String content) {
         this.content = content;
         return this;
@@ -97,7 +101,7 @@ public class DocumentBuilder {
         return this;
     }
 
-    public DocumentBuilder with(Pipeline.Type ... pipelineTypes) {
+    public DocumentBuilder with(Pipeline.Type... pipelineTypes) {
         this.pipelines = Arrays.stream(pipelineTypes).collect(toSet());
         return this;
     }
@@ -109,7 +113,7 @@ public class DocumentBuilder {
         this.project = project;
         return this;
     }
-    public DocumentBuilder with(Tag ... tags) {
+    public DocumentBuilder with(Tag... tags) {
         this.tags = Arrays.stream(tags).collect(toSet());
         return this;
     }
