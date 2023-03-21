@@ -444,7 +444,7 @@ public class JooqRepository implements Repository {
     private NamedEntity createFrom(NamedEntityRecord record) {
         try {
             return NamedEntity.create(NamedEntity.Category.parse(record.getCategory()),
-                    record.getMention(), getLongList(record.getOffsets()),
+                    record.getMention(), MAPPER.readValue(record.getOffsets(), List.class),
                     record.getDocId(), record.getRootId(), Pipeline.Type.fromCode(record.getExtractor()),
                     Language.parse(record.getExtractorLanguage()));
         } catch (IOException e) {
@@ -456,7 +456,7 @@ public class JooqRepository implements Repository {
         DocumentRecord documentRecord = result.into(DOCUMENT);
         Map<String, Object> metadata;
         try {
-            metadata = getHashMapStringObject(documentRecord.getMetadata());
+            metadata = MAPPER.readValue(documentRecord.getMetadata(), HashMap.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -469,7 +469,7 @@ public class JooqRepository implements Repository {
                 .with(documentRecord.getContent())
                 .with(parse(documentRecord.getLanguage()))
                 .with(forName(documentRecord.getCharset()))
-                .with(documentRecord.getContentType())
+                .ofMimeType(documentRecord.getContentType())
                 .with(metadata)
                 .with(nerTags)
                 .with(fromCode(documentRecord.getStatus()))
