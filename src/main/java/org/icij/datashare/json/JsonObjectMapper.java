@@ -1,7 +1,9 @@
 package org.icij.datashare.json;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.icij.datashare.Entity;
@@ -13,6 +15,7 @@ import org.icij.datashare.text.indexing.IndexType;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
@@ -35,6 +38,18 @@ public class JsonObjectMapper {
 
     // JSON - Object mapper
     public static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static final  TypeReference<HashMap<String,Object>> TYPE_REF_MAP_STRING_OBJECT = new TypeReference<>(){};
+    public static HashMap<String,Object> getHashMapStringObject(final String mapStr) throws JsonProcessingException {
+        CollectionType collectionType = MAPPER.getTypeFactory().constructCollectionType(List.class, TYPE_REF_MAP_STRING_OBJECT.getClass());
+        return MAPPER.readValue(mapStr, collectionType);
+    }
+    private static final   TypeReference<List<Long>> TYPE_REF_LIST_LONG = new TypeReference<>() {};
+    public static List<Long> getLongList(final String listStr) throws JsonProcessingException {
+        CollectionType collectionType = MAPPER.getTypeFactory().constructCollectionType(List.class, TYPE_REF_LIST_LONG.getClass());
+        return MAPPER.readValue(listStr, collectionType);
+    }
+
     static {
         // Handle Optional and other JDK 8 only features
         MAPPER.registerModule(new Jdk8Module());
