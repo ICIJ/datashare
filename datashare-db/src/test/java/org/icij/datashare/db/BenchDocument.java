@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.Pipeline;
@@ -30,12 +31,12 @@ public class BenchDocument {
         logger.info("writing {} documents with {} named entities", nbDocs, nbNes);
         long beginTime = System.currentTimeMillis();
         for (int docIdx = 0; docIdx < nbDocs; docIdx++) {
-            Document document = new Document(project("prj"), Paths.get("/foo/bar_" + docIdx + ".txt"),
-                    "This is a content with Gael Giraud " + docIdx,
-                    Language.FRENCH,
-                    Charset.defaultCharset(),
-                    "text/plain",
-                    new HashMap<String, Object>() {{
+            Document document = DocumentBuilder.createDoc(project("prj"), Paths.get("/foo/bar_" + docIdx + ".txt"))
+                    .with("This is a content with Gael Giraud " + docIdx)
+                    .with(Language.FRENCH)
+                    .with(Charset.defaultCharset())
+                    .ofMimeType("text/plain")
+                    .with(new HashMap<String, Object>() {{
                         put("key1", "value1");
                         put("key2", "value2");
                         put("key3", "value3");
@@ -46,8 +47,11 @@ public class BenchDocument {
                         put("key8", "value8");
                         put("key9", "value9");
                         put("key10", "value10");
-                    }},
-                    Document.Status.INDEXED, 345L);
+                    }})
+                    .with(Document.Status.INDEXED)
+                    .withContentLength(345L)
+                    .build();
+
             repository.create(document);
 
             List<NamedEntity> neList = new ArrayList<>();
