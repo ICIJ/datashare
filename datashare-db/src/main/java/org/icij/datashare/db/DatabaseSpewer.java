@@ -5,6 +5,7 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.LanguageGuesser;
+import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.document.TikaDocument;
 import org.icij.spewer.FieldNames;
 import org.icij.spewer.Spewer;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 
 import static java.lang.Long.valueOf;
 import static java.util.Optional.ofNullable;
@@ -56,6 +58,7 @@ public class DatabaseSpewer extends Spewer {
                 withRootId(rootId).
                 withExtractionLevel((short) level).
                 withContentLength(contentLength).
+                with(new Pipeline.Type[]{}).
                 build();
         repository.create(document);
     }
