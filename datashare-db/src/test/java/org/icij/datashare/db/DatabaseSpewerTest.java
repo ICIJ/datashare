@@ -45,8 +45,8 @@ public class DatabaseSpewerTest {
         Files.write(file.toPath(), singletonList("chaîne en iso8859"), forName("ISO-8859-1"));
         TikaDocument tikaDocument = new Extractor().extract(file.toPath());
 
+        System.out.println("************ " + tikaDocument.getId());
         dbSpewer.write(tikaDocument);
-
         Document actual = dbSpewer.repository.getDocument(tikaDocument.getId());
         assertThat(actual.getContent()).isEqualTo("chaîne en iso8859");
         assertThat(actual.getContentEncoding()).isEqualTo(forName("iso8859-1"));
