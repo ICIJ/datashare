@@ -41,7 +41,7 @@ import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
 import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
-import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
+import static org.icij.datashare.json.JsonObjectMapper.*;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
 import static org.icij.datashare.text.Project.project;
@@ -444,7 +444,7 @@ public class JooqRepository implements Repository {
     private NamedEntity createFrom(NamedEntityRecord record) {
         try {
             return NamedEntity.create(NamedEntity.Category.parse(record.getCategory()),
-                    record.getMention(), MAPPER.readValue(record.getOffsets(), List.class),
+                    record.getMention(), getLongList(record.getOffsets()),
                     record.getDocId(), record.getRootId(), Pipeline.Type.fromCode(record.getExtractor()),
                     Language.parse(record.getExtractorLanguage()));
         } catch (IOException e) {
@@ -456,17 +456,29 @@ public class JooqRepository implements Repository {
         DocumentRecord documentRecord = result.into(DOCUMENT);
         Map<String, Object> metadata;
         try {
-            metadata = MAPPER.readValue(documentRecord.getMetadata(), HashMap.class);
+            metadata = getHashMapStringObject(documentRecord.getMetadata());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        Set<Pipeline.Type> nerTags = Document.fromNerMask(documentRecord.getNerMask());
-        return new Document(project(documentRecord.getProjectId()), documentRecord.getId(),
-                Paths.get(documentRecord.getPath()), documentRecord.getContent(), parse(documentRecord.getLanguage()),
-                forName(documentRecord.getCharset()), documentRecord.getContentType(), metadata, fromCode(documentRecord.getStatus()),
-                nerTags, new Date(documentRecord.getExtractionDate().getTime()), documentRecord.getParentId(),
-                documentRecord.getRootId(), documentRecord.getExtractionLevel(),
-                documentRecord.getContentLength());
+        Pipeline.Type[] nerTags = Document.fromNerMask(documentRecord.getNerMask()).toArray(Pipeline.Type[]::new);
+        return DocumentBuilder.createDoc()
+                .with(project(documentRecord.getProjectId()))
+                .with(Document.Status.PARSED)
+                .withId(documentRecord.getId())
+                .with(Paths.get(documentRecord.getPath()))
+                .with(documentRecord.getContent())
+                .with(parse(documentRecord.getLanguage()))
+                .with(forName(documentRecord.getCharset()))
+                .with(documentRecord.getContentType())
+                .with(metadata)
+                .with(nerTags)
+                .with(fromCode(documentRecord.getStatus()))
+                .extractedAt(new Date(documentRecord.getExtractionDate().getTime()))
+                .withParentId(documentRecord.getParentId())
+                .withRootId(documentRecord.getRootId())
+                .withExtractionLevel(documentRecord.getExtractionLevel())
+                .withContentLength(documentRecord.getContentLength())
+                .build();
     }
 
     private Tag createTagFrom(DocumentTagRecord record) {

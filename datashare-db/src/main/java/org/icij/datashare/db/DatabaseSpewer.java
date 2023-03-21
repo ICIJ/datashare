@@ -2,6 +2,7 @@ package org.icij.datashare.db;
 
 import org.icij.datashare.Repository;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.TikaDocument;
@@ -10,14 +11,12 @@ import org.icij.spewer.Spewer;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 
 import static java.lang.Long.valueOf;
 import static java.util.Optional.ofNullable;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_ENCODING;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
+import static org.apache.tika.metadata.HttpHeaders.*;
 
 public class DatabaseSpewer extends Spewer {
     private final Project project;
@@ -41,9 +40,23 @@ public class DatabaseSpewer extends Spewer {
         String parentId = parent == null ? null: parent.getId();
         String rootId = root == null ? null: root.getId();
 
-        Document document = new Document(project, tikaDocument.getId(), tikaDocument.getPath(), content,
-                languageGuesser.guess(content), charset, contentType, getMetadata(tikaDocument), Document.Status.INDEXED, new HashSet<>(), new Date(),
-                parentId, rootId, (short) level, contentLength);
+        Document document = DocumentBuilder.createDoc().
+                with(project).
+                withId(tikaDocument.getId()).
+                with(tikaDocument.getPath()).
+                with(Document.Status.PARSED).
+                with(content).
+                with(languageGuesser.guess(content)).
+                with(charset).
+                ofMimeType(contentType).
+                with(getMetadata(tikaDocument)).
+                with(new ArrayList<>()).
+                extractedAt(new Date()).
+                withParentId(parentId).
+                withRootId(rootId).
+                withExtractionLevel((short) level).
+                withContentLength(contentLength).
+                build();
         repository.create(document);
     }
 }
