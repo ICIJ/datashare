@@ -456,6 +456,7 @@ public class JooqRepository implements Repository {
         DocumentRecord documentRecord = result.into(DOCUMENT);
         Map<String, Object> metadata;
         try {
+            // type check
             metadata = MAPPER.readValue(documentRecord.getMetadata(), HashMap.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
