@@ -97,13 +97,15 @@ public class DocumentResource {
     public Payload getExtractedText(
             final String project, final String id,  final String routing,
             final Integer offset, final Integer limit, final String targetLanguage, final Context context) throws IOException {
-        if (((DatashareUser)context.currentUser()).isGranted(project) &&
+        if ( ((DatashareUser)context.currentUser()).isGranted(project) &&
                 isAllowed(repository.getProject(project), context.request().clientAddress())) {
             try {
-                if(limit == null || offset == null){
-                    return getAllExtractedText(project, id,routing,targetLanguage);
+                ExtractedText extractedText;
+                if(offset == null && limit == null ){
+                    extractedText = getAllExtractedText(id, targetLanguage);
+                }else{
+                    extractedText = indexer.getExtractedText(project, id, routing, offset, limit, targetLanguage);
                 }
-                ExtractedText extractedText = indexer.getExtractedText(project, id, routing, offset.intValue(), limit.intValue(), targetLanguage);
                 return new Payload(extractedText).withCode(200);
             }
             catch (StringIndexOutOfBoundsException e){
@@ -112,37 +114,28 @@ public class DocumentResource {
             catch (IllegalArgumentException e){
                 return new Payload(e.getMessage()).withCode(404);
             }
-
         }
         throw new ForbiddenException();
     }
-    public Payload getAllExtractedText(
-            final String project, final String id,  final String routing, final String targetLanguage) throws IOException {
-            try {
-                if(targetLanguage == null){
-                    String c= repository.getDocument(id).getContent();
-                    return new Payload(c).withCode(200);
-                }
-                if(targetLanguage.isBlank()){
-                    return new Payload("Target language is blank").withCode(400);
-                }
-                Iterator<Map<String, String>> mapIterator = repository.getDocument(id).getContentTranslated().iterator();
-                while (mapIterator.hasNext() ){
-                    Map<String, String > lang = mapIterator.next();
-                    if(lang.containsKey(targetLanguage)){
-                        return new Payload(lang.get(targetLanguage)).withCode(200);
-                    }
-                }
 
-                return new Payload("Target language not found").withCode(404);
+    private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws IllegalArgumentException {
+        //original content (no targetLanguage specified)
+        if(targetLanguage == null || targetLanguage.isBlank()){
+            String content = repository.getDocument(id).getContent();
+            return new ExtractedText(content,0,content.length(),content.length());
+        }
+        //translated content with targetLanguage
+        Iterator<Map<String, String>> translationsIterator = repository.getDocument(id).getContentTranslated().iterator();
+        while (translationsIterator.hasNext() ){
+            Map<String, String > translation = translationsIterator.next();
+            if(translation.get("target_language").equals(targetLanguage)){
+                String content=translation.get("content");
+                int contentLength = content.length();
+                return new ExtractedText(content,0,contentLength,contentLength, targetLanguage);
             }
-            catch (StringIndexOutOfBoundsException e){
-                return new Payload(e.getMessage()).withCode(400);
-            }
-            catch (IllegalArgumentException e){
-                return new Payload(e.getMessage()).withCode(404);
-            }
-
+        }
+        // targetLanguage not found
+        throw new IllegalArgumentException("Target language not found");
     }
 
     /**

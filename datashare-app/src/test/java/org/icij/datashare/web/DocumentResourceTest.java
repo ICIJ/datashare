@@ -281,8 +281,10 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
     @Test
     public void test_get_document_content() throws IOException {
+
         HashMap<String, String> language = new HashMap<>() {{
-            put("fr", "mon-contenu");
+            put("target_language", "fr");
+            put("content", "mon-contenu");
         }};
         List<Map<String,String>> langs = new ArrayList<>();
         langs.add(language);
@@ -293,10 +295,10 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .with(langs).build();
         when(repository.getDocument("docId")).thenReturn(doc);
         get("/api/local-datashare/documents/content/docId").should().respond(200)
-                .haveType("text/html;charset=UTF-8")
+                .haveType("application/json;charset=UTF-8")
                 .contain("my-content");
         get("/api/local-datashare/documents/content/docId?targetLanguage=fr").should().respond(200)
-                .haveType("text/html;charset=UTF-8")
+                .haveType("application/json;charset=UTF-8")
                 .contain("mon-contenu");
     }
 
