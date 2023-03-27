@@ -103,6 +103,4 @@ public class ProjectResource {
 
         return new Payload(204);
     }
-
-
 }
