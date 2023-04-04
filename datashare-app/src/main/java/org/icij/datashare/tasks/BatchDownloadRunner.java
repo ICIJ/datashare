@@ -56,7 +56,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
     private final BatchDownload batchDownload;
-    public final static BatchDownload NULL_BATCH_DOWNLOAD = BatchDownload.nullObject();
+    public final static TaskView<Integer> NULL_BATCH_DOWNLOAD = new TaskView<>(new MonitorableFutureTask<>(() -> 0, new HashMap<>()));
     private final Function<TaskView<File>, Void> updateCallback;
     private final Function<URI, MailSender> mailSenderSupplier;
 

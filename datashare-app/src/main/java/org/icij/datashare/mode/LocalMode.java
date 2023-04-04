@@ -2,7 +2,6 @@ package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.web.*;
 
 import java.util.Map;

@@ -66,7 +66,6 @@ public abstract class CommonMode extends AbstractModule {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     public static final String DS_BATCHSEARCH_QUEUE_NAME = "ds:batchsearch:queue";
     public static final String DS_BATCHDOWNLOAD_QUEUE_NAME = "ds:batchdownload:queue";
-    public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
     private final GuiceAdapter guiceAdapter;
@@ -168,12 +167,12 @@ public abstract class CommonMode extends AbstractModule {
 
     private void configureBatchQueuesMemory(PropertiesProvider propertiesProvider) {
         bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHSEARCH_QUEUE_NAME));
-        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
     private void configureBatchQueuesRedis(RedissonClient redissonClient) {
         bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
-        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
     void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {

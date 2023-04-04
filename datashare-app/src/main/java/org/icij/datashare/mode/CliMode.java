@@ -12,7 +12,6 @@ public class CliMode extends CommonMode {
     @Override
     protected void configure() {
         super.configure();
-
         configurePersistence();
     }
 

@@ -11,7 +11,6 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
-import org.icij.datashare.mode.CommonMode;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.redisson.Redisson;
@@ -40,21 +39,22 @@ import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.painless.api.Augmentation.asList;
 
 public class TaskManagerRedis implements TaskManager {
+    public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
     private final RedissonMap<String, TaskView<?>> tasks;
-    private final BlockingQueue<BatchDownload> batchDownloadQueue;
+    private final BlockingQueue<TaskView<?>> batchDownloadQueue;
 
     @Inject
-    public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, BlockingQueue<BatchDownload> batchDownloadQueue) {
+    public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> batchDownloadQueue) {
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
-        this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
+        this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, DS_TASK_MANAGER_QUEUE_NAME, redissonClient, null, null);
         this.batchDownloadQueue = batchDownloadQueue;
     }
 
-    public TaskManagerRedis(PropertiesProvider propertiesProvider, BlockingQueue<BatchDownload> batchDownloadQueue) {
-        this(propertiesProvider, CommonMode.DS_TASK_MANAGER_QUEUE_NAME, batchDownloadQueue);
+    public TaskManagerRedis(PropertiesProvider propertiesProvider, BlockingQueue<TaskView<?>> batchDownloadQueue) {
+        this(propertiesProvider, DS_TASK_MANAGER_QUEUE_NAME, batchDownloadQueue);
     }
     
-    TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<BatchDownload> batchDownloadQueue) {
+    TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<TaskView<?>> batchDownloadQueue) {
         RedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
@@ -92,7 +92,7 @@ public class TaskManagerRedis implements TaskManager {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task, properties);
         TaskView<V> taskView = new TaskView<>(futureTask);
         save(taskView);
-        batchDownloadQueue.add((BatchDownload) properties.get("batchDownload"));
+        batchDownloadQueue.add(taskView);
         return taskView;
     }
     @Override public <V> TaskView<V> startTask(Callable<V> task) { throw new IllegalStateException("not implemented"); }

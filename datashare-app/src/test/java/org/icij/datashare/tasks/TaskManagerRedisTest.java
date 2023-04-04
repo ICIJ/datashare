@@ -5,6 +5,7 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 
@@ -25,7 +26,7 @@ public class TaskManagerRedisTest {
     PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
         put("redisAddress", "redis://redis:6379");
     }});
-    private final BlockingQueue<BatchDownload> batchDownloadQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<TaskView<?>> batchDownloadQueue = new LinkedBlockingQueue<>();
     private final TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, "test:task:manager", batchDownloadQueue);
 
     @Test

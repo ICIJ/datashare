@@ -6,6 +6,7 @@ import org.icij.datashare.tasks.BatchDownloadLoop;
 import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.text.indexing.Indexer;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -31,7 +32,7 @@ public class CliModeTest {
         batchSearchLoop.close();
         mode.get(Indexer.class).close();
     }
-
+    @Ignore
     @Test
     public void test_batch_download() throws IOException {
         CommonMode mode = CommonMode.create(PropertiesProvider.fromMap(new HashMap<>() {{

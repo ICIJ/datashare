@@ -23,12 +23,12 @@ public class BatchDownloadLoop {
     private final static String DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = "24";
     private final int ttlHour;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final BlockingQueue<BatchDownload> batchDownloadQueue;
+    private final BlockingQueue<TaskView<?>> batchDownloadQueue;
     private final TaskFactory factory;
     private final TaskManager manager;
 
     @Inject
-    public BatchDownloadLoop(PropertiesProvider propertiesProvider, BlockingQueue<BatchDownload> batchDownloadQueue, TaskFactory factory, TaskManager manager) {
+    public BatchDownloadLoop(PropertiesProvider propertiesProvider, BlockingQueue<TaskView<?>> batchDownloadQueue, TaskFactory factory, TaskManager manager) {
         this.batchDownloadQueue = batchDownloadQueue;
         this.factory = factory;
         this.manager = manager;
@@ -40,7 +40,7 @@ public class BatchDownloadLoop {
         BatchDownload currentBatch = null;
         while (!NULL_BATCH_DOWNLOAD.equals(currentBatch)) {
             try {
-                currentBatch = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
+                //currentBatch = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
                 createDownloadCleaner(DOWNLOAD_DIR, ttlHour).run();
 
                 HashMap<String, Object> taskProperties = new HashMap<>();
