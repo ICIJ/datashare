@@ -58,6 +58,7 @@ public class TaskView<V> {
     public V getResult() {
         return getResult(false);
     }
+    public Map<String, Object> getProperties() {return properties;}
 
     public V getResult(boolean sync) {
         if (task != null && (task.isDone() || sync)) {

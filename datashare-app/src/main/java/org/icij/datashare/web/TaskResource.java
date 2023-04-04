@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Pattern;
 
@@ -50,12 +51,29 @@ public class TaskResource {
     private final PropertiesProvider propertiesProvider;
     private final PipelineRegistry pipelineRegistry;
 
+    private final Random random = new Random();
+
     @Inject
     public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
         this.pipelineRegistry = pipelineRegistry;
+    }
+
+    @Get("/next")
+    public TaskView<?> getTask() throws InterruptedException {
+        return notFoundIfNull(taskManager.takeTask());
+    }
+
+    @Put("/new")
+    public TaskView<?> addTask(Context context, TaskView<?> taskView) {
+        return taskManager.startTask(random::nextInt, taskView.getProperties());
+    }
+
+    @Post("/save")
+    public void saveTask(Context context, TaskView<?> taskView) {
+        taskManager.save(taskView);
     }
 
     /**

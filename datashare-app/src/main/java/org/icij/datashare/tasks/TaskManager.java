@@ -9,6 +9,8 @@ public interface TaskManager extends TaskRepository {
     <V> TaskView<V> startTask(Callable<V> task, Runnable callback);
     <V> TaskView<V> startTask(Callable<V> task, Map<String, Object> properties);
     <V> TaskView<V> startTask(Callable<V> task);
+    <V> TaskView<V> takeTask() throws InterruptedException;
+
     boolean stopTask(String taskName);
     <V> TaskView<?> clearTask(String taskName);
     boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException;

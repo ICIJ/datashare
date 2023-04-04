@@ -1,0 +1,23 @@
+{
+  "name": "CountWord",
+  "state": "RUNNING",
+  "progress": 0.0,
+  "user": {
+    "id": "local",
+    "name": null,
+    "email": null,
+    "provider": "local",
+    "details": {
+      "uid": "local",
+      "groups_by_applications": {
+        "datashare": [
+          "local-datashare"
+        ]
+      }
+    }
+  },
+  "properties": {
+    "name": "CountWord",
+    "url": "http://icij.org"
+  }
+}

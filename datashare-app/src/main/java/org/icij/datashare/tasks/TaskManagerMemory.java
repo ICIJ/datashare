@@ -65,6 +65,11 @@ public class TaskManagerMemory implements TaskManager {
         return taskView;
     }
 
+    @Override
+    public <V> TaskView<V> takeTask() {
+        return null;
+    }
+
     public TaskView<?> get(final String taskName) {
         return tasks.get(taskName);
     }

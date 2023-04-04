@@ -121,6 +121,9 @@ public abstract class CommonMode extends AbstractModule {
         if ( batchQueueType == QueueType.REDIS ) {
             configureBatchQueuesRedis(redissonClient);
             bind(TaskManager.class).to(TaskManagerRedis.class).asEagerSingleton();
+        } else if (batchQueueType == QueueType.REMOTE) {
+            configureBatchQueuesMemory(propertiesProvider);
+            bind(TaskManager.class).to(RemoteTaskManager.class).asEagerSingleton();
         } else {
             configureBatchQueuesMemory(propertiesProvider);
             bind(TaskManager.class).to(TaskManagerMemory.class).asEagerSingleton();

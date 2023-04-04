@@ -96,6 +96,12 @@ public class TaskManagerRedis implements TaskManager {
         return taskView;
     }
     @Override public <V> TaskView<V> startTask(Callable<V> task) { throw new IllegalStateException("not implemented"); }
+
+    @Override
+    public <V> TaskView<V> takeTask() {
+        return null;
+    }
+
     @Override public boolean stopTask(String taskName) { throw new IllegalStateException("not implemented"); }
     @Override public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException { throw new IllegalStateException("not implemented"); }
 
