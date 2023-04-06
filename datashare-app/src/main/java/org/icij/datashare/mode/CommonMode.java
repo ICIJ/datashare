@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -11,6 +13,8 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
+import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
@@ -22,6 +26,7 @@ import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.com.DataBus;
 import org.icij.datashare.com.MemoryDataBus;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.com.PulsarStatusHandler;
 import org.icij.datashare.com.RedisDataBus;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
@@ -47,6 +52,9 @@ import org.icij.extract.report.ReportMap;
 import org.icij.task.Options;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RedissonClient;
+import org.rocksdb.CompressionType;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +75,9 @@ public abstract class CommonMode extends AbstractModule {
     public static final String DS_BATCHSEARCH_QUEUE_NAME = "ds:batchsearch:queue";
     public static final String DS_BATCHDOWNLOAD_QUEUE_NAME = "ds:batchdownload:queue";
     public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
+    private static final Path TMP_ROOT = Path.of(FileSystems.getDefault().getSeparator(), "tmp");
+    private static final String PULSAR_URL = "pulsar://localhost:6650";
+
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
     private final GuiceAdapter guiceAdapter;
@@ -116,12 +127,19 @@ public abstract class CommonMode extends AbstractModule {
             redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
             bind(RedissonClient.class).toInstance(redissonClient);
         }
-
         QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
         if ( batchQueueType == QueueType.REDIS ) {
             configureBatchQueuesRedis(redissonClient);
             bind(TaskManager.class).to(TaskManagerRedis.class).asEagerSingleton();
-        } else {
+        } else if ( batchQueueType == QueueType.REMOTE ) {
+            // TODO: this should not be needed
+            configureBatchQueuesMemory(propertiesProvider);
+            configureRocksDB();
+            configurePulsar();
+            configureStatusHandler();
+            bind(TaskManager.class).to(TaskManagerPulsar.class).asEagerSingleton();
+        }
+        else {
             configureBatchQueuesMemory(propertiesProvider);
             bind(TaskManager.class).to(TaskManagerMemory.class).asEagerSingleton();
         }
@@ -138,7 +156,6 @@ public abstract class CommonMode extends AbstractModule {
         configureDataBus(propertiesProvider);
         feedPipelineRegistry(propertiesProvider);
     }
-
     private void configureDataBus(final PropertiesProvider propertiesProvider) {
         QueueType busType = QueueType.valueOf(propertiesProvider.get("busType").orElse(QueueType.MEMORY.name()));
         if ( busType == QueueType.MEMORY) {
@@ -153,7 +170,8 @@ public abstract class CommonMode extends AbstractModule {
 
     private void configureIndexingQueues(final PropertiesProvider propertiesProvider) {
         QueueType queueType = QueueType.valueOf(propertiesProvider.get("queueType").orElse(QueueType.MEMORY.name()));
-        if ( queueType == QueueType.MEMORY ) {
+        // TODO: fix this OR....
+        if ( queueType == QueueType.MEMORY || queueType == QueueType.REMOTE) {
             bind(DocumentCollectionFactory.class).to(MemoryDocumentCollectionFactory.class).asEagerSingleton();
         } else {
             install(new FactoryModuleBuilder().
@@ -171,6 +189,28 @@ public abstract class CommonMode extends AbstractModule {
     private void configureBatchQueuesRedis(RedissonClient redissonClient) {
         bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
         bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
+    }
+
+    private void configureRocksDB() {
+        // TODO: handle the autoclosable side of things...
+        try {
+            bind(RocksDB.class).toInstance(RocksDB.open(TMP_ROOT.resolve("datashare-rocksdb").toAbsolutePath().toString()));
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void configurePulsar() {
+        // TODO: handle the autoclosable side of things...
+        // TODO: read this from the properties provider
+        try {
+            bind(PulsarClient.class).toInstance(PulsarClient.builder().serviceUrl(PULSAR_URL).build());
+        } catch (PulsarClientException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private void configureStatusHandler() {
+        bind(PulsarStatusHandler.class).asEagerSingleton();
     }
 
     void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {

@@ -12,10 +12,8 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class TaskView<V> {
+public class TaskView<V> implements TaskViewInterface<V> {
     final Map<String, Object> properties;
-
-    public enum State {RUNNING, ERROR, DONE, CANCELLED;}
 
     public final String name;
 
@@ -69,7 +67,7 @@ public class TaskView<V> {
                 state = State.CANCELLED;
                 return null;
             } catch (ExecutionException | InterruptedException e) {
-                LoggerFactory.getLogger(getClass()).error(String.format("Task failed for user %s :", getUser()), e);
+                LoggerFactory.getLogger(getClass()).error(String.format("Task failed for user %s :", user.name), e);
                 error = e.getCause().toString();
                 state = State.ERROR;
                 return null;
@@ -96,5 +94,16 @@ public class TaskView<V> {
         return state;
     }
 
+    @Override
+    public String getError() {
+        return this.error;
+    }
+
+    @Override
     public User getUser() { return user;}
+
+    @Override
+    public String getName() {
+        return name;
+    }
 }

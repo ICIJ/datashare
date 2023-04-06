@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,7 @@ import static java.util.stream.Collectors.toList;
 public class TaskManagerMemory implements TaskManager {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
-    private final ConcurrentMap<String, TaskView<?>> tasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, TaskViewInterface<?>> tasks = new ConcurrentHashMap<>();
 
     @Inject
     public TaskManagerMemory(final PropertiesProvider provider) {
@@ -34,6 +35,12 @@ public class TaskManagerMemory implements TaskManager {
         executor.submit(futureTask);
         save(taskView);
         return taskView;
+    }
+
+    @Override
+    public <V> TaskViewInterface<V> startTask(User user, String taskType,
+                                              Map<String, Object> inputs) {
+        throw new IllegalStateException("not implemented");
     }
 
     @Override
@@ -65,18 +72,18 @@ public class TaskManagerMemory implements TaskManager {
         return taskView;
     }
 
-    public TaskView<?> get(final String taskName) {
+    public TaskViewInterface<?> get(final String taskName) {
         return tasks.get(taskName);
     }
 
     @Override
-    public List<TaskView<?>> get() {
+    public List<TaskViewInterface<?>> get() {
         return new LinkedList<>(tasks.values());
     }
 
     @Override
-    public <V> Void save(TaskView<V> task) {
-        tasks.put(task.name, task);
+    public <V> Void save(TaskViewInterface<V> task) {
+        tasks.put(task.getName(), task);
         return null;
     }
 
@@ -89,27 +96,30 @@ public class TaskManagerMemory implements TaskManager {
         return executor.awaitTermination(timeout, timeUnit);
     }
 
-    public List<TaskView<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
+    public List<TaskViewInterface<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
         return tasks.values().stream().peek(taskView -> {
-            try {
-                taskView.task.get(timeout, timeUnit);
-            } catch (InterruptedException|ExecutionException|TimeoutException|CancellationException e) {
-                logger.error("task interrupted while running", e);
-            }
+            // TODO:....
+//            try {
+////                taskView.task.get(timeout, timeUnit);
+//            } catch (InterruptedException|ExecutionException|TimeoutException|CancellationException e) {
+//                logger.error("task interrupted while running", e);
+//            }
         }).collect(toList());
     }
 
-    public List<TaskView<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(taskView -> taskView.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.name)).collect(toList());
+    public List<TaskViewInterface<?>> clearDoneTasks() {
+        return tasks.values().stream().filter(taskView -> taskView.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.getName())).collect(toList());
     }
 
     @Override
-    public TaskView<?> clearTask(String taskName) {
+    public TaskViewInterface<?> clearTask(String taskName) {
         return tasks.remove(taskName);
     }
 
     public boolean stopTask(String taskName) {
         logger.info("cancelling task {}", taskName);
-        return tasks.get(taskName).task.cancel(true);
+        // TODO:....
+//        return tasks.get(taskName).task.cancel(true);
+        return true;
     }
 }

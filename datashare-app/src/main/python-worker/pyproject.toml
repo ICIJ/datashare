@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "python-worker"
+version = "0.1.0"
+description = ""
+authors = ["Clément Doumouro <clement.doumouro@gmail.com>"]
+readme = "README.md"
+packages = [{include = "python_worker"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pulsar-client = "^3.1.0"
+requests = "^2.28.2"
+pydantic = "^1.10.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -15,9 +15,9 @@
 
     <dependencies>
         <dependency>
-       	    <groupId>com.github.CodeStory</groupId>
-       	    <artifactId>fluent-http</artifactId>
-       	    <version>5aba37b</version>
+            <groupId>com.github.CodeStory</groupId>
+            <artifactId>fluent-http</artifactId>
+            <version>5aba37b</version>
             <type>jar</type>
             <exclusions>
                 <exclusion>
@@ -120,7 +120,24 @@
             <artifactId>redisson</artifactId>
             <version>3.19.0</version>
         </dependency>
-        
+        <dependency>
+            <groupId>org.apache.pulsar</groupId>
+            <artifactId>pulsar-client</artifactId>
+            <version>2.10.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+            <version>7.10.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+            <version>1.1.9.1</version>
+            <type>jar</type>
+<!--            <scope>compile</scope>-->
+        </dependency>
+
         <!--test dependencies-->
         <dependency>
             <groupId>org.subethamail</groupId>

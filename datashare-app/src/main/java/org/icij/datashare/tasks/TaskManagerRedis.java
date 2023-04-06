@@ -12,6 +12,7 @@ import io.netty.buffer.ByteBufOutputStream;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.redisson.Redisson;
@@ -40,7 +41,7 @@ import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.painless.api.Augmentation.asList;
 
 public class TaskManagerRedis implements TaskManager {
-    private final RedissonMap<String, TaskView<?>> tasks;
+    private final RedissonMap<String, TaskViewInterface<?>> tasks;
     private final BlockingQueue<BatchDownload> batchDownloadQueue;
 
     @Inject
@@ -62,31 +63,38 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V> Void save(TaskView<V> task) {
-        tasks.put(task.name, task);
+    public <V> Void save(TaskViewInterface<V> task) {
+        tasks.put(task.getName(), task);
         return null;
     }
 
     @Override
-    public TaskView<?> get(String id) {
+    public TaskViewInterface<?> get(String id) {
         return tasks.get(id);
     }
 
     @Override
-    public List<TaskView<?>> get() {
+    public List<TaskViewInterface<?>> get() {
         return asList(tasks.values());
     }
 
     @Override
-    public List<TaskView<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.name)).collect(toList());
+    public List<TaskViewInterface<?>> clearDoneTasks() {
+        return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.getName())).collect(toList());
     }
     @Override
-    public TaskView<?> clearTask(String taskName) {
+    public TaskViewInterface<?> clearTask(String taskName) {
         return tasks.remove(taskName);
     }
 
     @Override public TaskView<Void> startTask(Runnable task) { throw new IllegalStateException("not implemented"); }
+
+    @Override
+    public <V> TaskViewInterface<V> startTask(User user, String taskType,
+                                              Map<String, Object> inputs) {
+        throw new IllegalStateException("not implemented");
+    }
+
     @Override public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
     @Override public <V> TaskView<V> startTask(Callable<V> task, Map<String, Object> properties) {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task, properties);
