@@ -126,7 +126,8 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
-            LOGGER.error("Failed to convert {} into a {}", taskAsBytes.toString(), LanguageAgnosticTaskView.class.getName());
+            LOGGER.error("Failed to convert {} into a {}", taskAsBytes.toString(),
+                LanguageAgnosticTaskView.class.getName());
         }
         return cleared;
     }
@@ -159,23 +160,30 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
         // TODO: configure the producer properly here...
         Producer<byte[]> prod;
         String taskId = taskType + "-" + UUID.randomUUID();
-        LanguageAgnosticTaskView<V> task = new LanguageAgnosticTaskView<>(taskType, taskId, user, inputs);
+        LanguageAgnosticTaskView<V> task =
+            new LanguageAgnosticTaskView<>(taskType, taskId, user, inputs);
         this.createTask(task);
         synchronized (this.producers) {
-            try {
-                prod = Optional.ofNullable(this.producers.get(taskType))
-                    .orElse(client.newProducer().topic(taskType).create());
-            } catch (PulsarClientException e) {
-                throw new RuntimeException(e);
-            }
-            this.producers.put(taskType, prod);
+            prod = Optional.ofNullable(this.producers.get(taskType))
+                .orElseGet(
+                    () -> {
+                        try {
+                            Producer<byte[]> p = client.newProducer().topic(taskType).create();
+                            this.producers.put(taskType, p);
+                            return p;
+                        } catch (PulsarClientException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                );
         }
         task.setState(TaskViewInterface.State.QUEUING);
         this.updateTask(task);
         try {
-            LOGGER.info("Broadcasting task {} to pulsar bus", task.name);
+            String taskAsString = MAPPER.writeValueAsString(task);
+            LOGGER.info("Broadcasting task {} to pulsar bus", taskAsString);
             // TODO: could be done in an async fashion
-            prod.send(MAPPER.writeValueAsBytes(task));
+            prod.send(taskAsString.getBytes());
         } catch (PulsarClientException | JsonProcessingException e) {
             LOGGER.error("Failed to broadcast task {}, reverting queue status", task.name);
             // TODO put more details in the error
