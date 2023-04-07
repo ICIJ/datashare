@@ -16,6 +16,7 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 
 _STATUS_TOPIC = "task-status"
+_MAX_JOB_DURATION = 1000 * 10
 
 
 class UnknownTaskError(ValueError):
@@ -175,6 +176,7 @@ def _make_pulsar(
             consumer_name=consumer_name,
             receiver_queue_size=1,
             consumer_type=pulsar.ConsumerType.Shared,
+            unacked_messages_timeout_ms=_MAX_JOB_DURATION,
             negative_ack_redelivery_delay_ms=5 * 1000,
         )
         status_updater = client.create_producer(
