@@ -175,7 +175,7 @@ def _make_pulsar(
             consumer_name=consumer_name,
             receiver_queue_size=1,
             consumer_type=pulsar.ConsumerType.Shared,
-            negative_ack_redelivery_delay_ms=1 * 1000,
+            negative_ack_redelivery_delay_ms=5 * 1000,
         )
         status_updater = client.create_producer(
             topic=_STATUS_TOPIC,
