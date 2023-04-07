@@ -116,7 +116,7 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
         try (final RocksIterator iterator = this.rocksDB.newIterator()) {
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
                 taskAsBytes = iterator.value();
-                TaskView<?> task = MAPPER.readValue(taskAsBytes, TaskView.class);
+                LanguageAgnosticTaskView<?> task = MAPPER.readValue(taskAsBytes, LanguageAgnosticTaskView.class);
                 if (task.getState() == TaskView.State.RUNNING) {
                     continue;
                 }
@@ -126,8 +126,7 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
-            LOGGER.error("Failed to convert {} into a {}", taskAsBytes.toString(),
-                LanguageAgnosticTaskView.class.getName());
+            LOGGER.error("Failed to convert {} into a {}", taskAsBytes, LanguageAgnosticTaskView.class.getName());
         }
         return cleared;
     }
