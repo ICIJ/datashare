@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 ProgressHandler = Callable[[float], None]
 
-app = ICIJApp()
+app = ICIJApp("test-app")
 
 
 @app.task(name="count", recover_from=[ConnectionError], max_retries=5)

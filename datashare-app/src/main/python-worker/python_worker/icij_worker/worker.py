@@ -88,7 +88,8 @@ class StatusUpdate(LowerCamelCaseModel, IgnoreExtraModel):
 
 
 class ICIJApp:
-    def __init__(self):
+    def __init__(self, name: str):
+        self._name = name
         self._registry = dict()
         self._retries = defaultdict(int)
 
@@ -96,11 +97,15 @@ class ICIJApp:
     def registry(self) -> Dict:
         return self._registry
 
+    @property
+    def name(self) -> str:
+        return self._name
+
     def task(
         self,
         name: str,
         recover_from: Optional[List[Type]] = None,
-        max_retries: Optional[int] = None,
+        max_retries: int = 10,
     ) -> Callable:
         return functools.partial(
             self._register_task,
@@ -163,17 +168,18 @@ def _make_pulsar(
     try:
         client = pulsar.Client("pulsar://localhost:6650")
         topics = list(app.registry)
-        subscription_name = f"worker-{uuid.uuid4().hex}"
+        consumer_name = f"worker-{uuid.uuid4().hex}"
         task_listener = client.subscribe(
             topics,
-            subscription_name,
-            receiver_queue_size=0,
+            subscription_name=app.name,
+            consumer_name=consumer_name,
+            receiver_queue_size=1,
             consumer_type=pulsar.ConsumerType.Shared,
             negative_ack_redelivery_delay_ms=1 * 1000,
         )
         status_updater = client.create_producer(
             topic=_STATUS_TOPIC,
-            producer_name=subscription_name,
+            producer_name=consumer_name,
         )
         yield task_listener, status_updater
     finally:
@@ -183,7 +189,7 @@ def _make_pulsar(
 
 def main(app: ICIJApp):
     with _make_pulsar(app) as (task_listener, status_updater):
-        worker_name = task_listener.subscription_name()
+        worker_name = status_updater.producer_name()
         progress_updater = functools.partial(
             _set_progress, status_updater=status_updater
         )
