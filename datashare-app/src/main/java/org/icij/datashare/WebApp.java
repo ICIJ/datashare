@@ -11,8 +11,13 @@ import java.net.URI;
 import java.util.Properties;
 import net.codestory.http.WebServer;
 import org.icij.datashare.cli.DatashareCli;
+import org.icij.datashare.cli.Mode;
 import org.icij.datashare.com.PulsarStatusHandler;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.BatchDownloadLoop;
+import org.icij.datashare.tasks.BatchSearchLoop;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +57,9 @@ public class WebApp {
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:") +
                 mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }
+        Thread batchDLThread = new Thread(() -> mode.get(TaskFactory.class).createBatchDownloadLoop().run());
+        batchDLThread.start();
+        logger.info("batch download loop started...");
         // TODO: put his back
 //        if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
 //            BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();

@@ -2,6 +2,7 @@ package org.icij.datashare;
 
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.mode.CommonMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

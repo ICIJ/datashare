@@ -22,7 +22,7 @@ public interface TaskFactory {
     BatchSearchLoop createBatchSearchLoop();
     BatchDownloadLoop createBatchDownloadLoop();
     BatchSearchRunner createBatchSearchRunner(BatchSearch batchSearch, TerFunction<String, String, List<Document>, Boolean> resultConsumer);
-    BatchDownloadRunner createDownloadRunner(BatchDownload batchDownload, Function<TaskView<File>, Void> updateCallback);
+    BatchDownloadRunner createDownloadRunner(BatchDownload batchDownload, Function<TaskViewInterface<File>, Void> updateCallback);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);

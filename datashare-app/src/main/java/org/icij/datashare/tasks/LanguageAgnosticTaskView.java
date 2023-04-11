@@ -82,22 +82,22 @@ public class LanguageAgnosticTaskView<V> implements TaskViewInterface<V> {
     }
 
     public static class LanguageAgnosticTaskViewUpdate<V> {
-        public final State state;
-        public final String name;
-        public final Double progress;
-        public final V result;
-        public final String error;
-        public final Integer retries;
-        public final Integer maxRetries;
+        public State state;
+        public String name;
+        public Double progress;
+        public V result;
+        public String error;
+        public Integer retries;
+        public Integer maxRetries;
 
         @JsonCreator
         public LanguageAgnosticTaskViewUpdate(@JsonProperty("name") String name,
                                               @JsonProperty("state") State state,
-                                              @JsonProperty("progress") double progress,
+                                              @JsonProperty("progress") Double progress,
                                               @JsonProperty("result") V result,
                                               @JsonProperty("error") String error,
-                                              @JsonProperty("retries") int retries,
-                                              @JsonProperty("maxRetries") int maxRetries
+                                              @JsonProperty("retries") Integer retries,
+                                              @JsonProperty("maxRetries") Integer maxRetries
                                               ) {
             // TODO: some states updates should probably be forbidden...
             this.name = name;
@@ -107,6 +107,26 @@ public class LanguageAgnosticTaskView<V> implements TaskViewInterface<V> {
             this.error = error;
             this.retries = retries;
             this.maxRetries = maxRetries;
+        }
+        public LanguageAgnosticTaskViewUpdate(String name) {
+            this(name, null, null, null, null, null, null);
+        }
+        public LanguageAgnosticTaskViewUpdate<V> withState(State state) {
+            this.state = state;
+            return this;
+        }
+        public LanguageAgnosticTaskViewUpdate<V> withResult(V res) {
+            this.result = res;
+            return this;
+        }
+        public LanguageAgnosticTaskViewUpdate<V> withError(String error) {
+            this.error = error;
+            return this;
+        }
+
+        public LanguageAgnosticTaskViewUpdate<V> withProgress(double progress) {
+            this.progress = progress;
+            return this;
         }
     }
 

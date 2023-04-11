@@ -57,15 +57,15 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private final PropertiesProvider propertiesProvider;
     private final BatchDownload batchDownload;
     public final static BatchDownload NULL_BATCH_DOWNLOAD = BatchDownload.nullObject();
-    private final Function<TaskView<File>, Void> updateCallback;
+    private final Function<TaskViewInterface<File>, Void> updateCallback;
     private final Function<URI, MailSender> mailSenderSupplier;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted BatchDownload batchDownload, @Assisted Function<TaskView<File>, Void> updateCallback) {
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted BatchDownload batchDownload, @Assisted Function<TaskViewInterface<File>, Void> updateCallback) {
         this(indexer, propertiesProvider, batchDownload, updateCallback, MailSender::new);
     }
 
-    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, BatchDownload batchDownload, Function<TaskView<File>, Void> updateCallback, Function<URI, MailSender> mailSenderSupplier) {
+    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, BatchDownload batchDownload, Function<TaskViewInterface<File>, Void> updateCallback, Function<URI, MailSender> mailSenderSupplier) {
         this.indexer = indexer;
         this.propertiesProvider = provider;
         this.batchDownload = batchDownload;
