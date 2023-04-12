@@ -20,9 +20,9 @@ jobs:
       - image: postgres:11.2
         name: postgres
         environment:
-          POSTGRES_USER: test
+          POSTGRES_USER: dstest
           POSTGRES_PASSWORD: test
-          POSTGRES_DB: test
+          POSTGRES_DB: dstest
 
     working_directory: /tmp/datashare
 
@@ -44,8 +44,7 @@ jobs:
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install -y postgresql-client-11
-            echo "postgres:5432:test:test:test" > ~/.pgpass && chmod 600 ~/.pgpass
-            psql -h postgres -U test test -c "CREATE DATABASE datashare;"
+            PGPASSWORD=test psql -h postgres -U dstest dstest -c "CREATE DATABASE datashare;"
 
       - run: sudo apt-get install -y tesseract-ocr-eng
       - run: mvn validate
@@ -75,9 +74,9 @@ jobs:
       - image: postgres:11.2
         name: postgres
         environment:
-          POSTGRES_USER: test
+          POSTGRES_USER: dstest
           POSTGRES_PASSWORD: test
-          POSTGRES_DB: test
+          POSTGRES_DB: dstest
     working_directory: ~/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
