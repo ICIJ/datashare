@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "amqp-client"
+version = "0.1.0"
+description = ""
+authors = ["Bruno Thomas <bthomas@icij.org>"]
+readme = "README.md"
+packages = [{include = "amqp_client"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pika = "^1.3.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

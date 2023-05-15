@@ -1,5 +1,6 @@
 package org.icij.datashare.mode;
 
+import org.icij.datashare.com.QpidDatabusEmbedded;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration;
 import org.icij.datashare.text.indexing.elasticsearch.EsEmbeddedServer;
 
@@ -17,6 +18,11 @@ public class EmbeddedMode extends LocalMode {
         Properties properties = new Properties();
         properties.put(ElasticsearchConfiguration.INDEX_ADDRESS_PROP, "http://localhost:9200");
         propertiesProvider.overrideWith(properties);
+        try {
+            new QpidDatabusEmbedded().start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         super.configure();
     }
 }
