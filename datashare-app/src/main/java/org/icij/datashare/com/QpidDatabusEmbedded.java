@@ -1,10 +1,12 @@
 package org.icij.datashare.com;
 
 import org.apache.qpid.server.SystemLauncher;
+import org.apache.qpid.server.store.MemorySystemConfigImplFactory;
 
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +20,7 @@ public class QpidDatabusEmbedded {
         try {
             executor.execute(() -> {
                 try {
+                    ServiceLoader.load(MemorySystemConfigImplFactory.class);
                     systemLauncher.startup(createSystemConfig());
                 } catch (Exception e) {
                     throw new RuntimeException(e);
