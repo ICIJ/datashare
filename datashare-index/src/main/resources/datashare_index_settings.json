@@ -4,7 +4,7 @@
   "index.query.default_field": [
     "content",
     "mentionNorm",
-    "content_translated",
+    "content_translated.content",
     "metadata.tika_metadata_author",
     "metadata.tika_metadata_creator",
     "metadata.tika_metadata_dc_creator",
