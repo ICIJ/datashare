@@ -70,7 +70,7 @@ def main_amqp(app: ICIJApp):
         )
         while True:
             logger.info("%s waiting for work...", worker_name)
-            msg: Message = task_listener.receive()
+            msg: Message = task_listener.receive(timeout=None)
             try:
                 t = pydantic.parse_raw_as(Task, msg.body)
                 registered = app.registry.get(t.type)
