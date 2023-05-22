@@ -1,7 +1,8 @@
 package org.icij.datashare.tasks;
 
-import static org.icij.datashare.com.PulsarStatusHandler.STATUS_TOPIC;
-import static org.icij.datashare.com.PulsarStatusHandler.TASK_TOPIC;
+import static org.icij.datashare.com.TaskStatusHandler.CREATE_QUEUE;
+import static org.icij.datashare.com.TaskStatusHandler.STATUS_QUEUE;
+import static org.icij.datashare.com.TaskStatusHandler.TASK_QUEUE;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,9 +16,13 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
-import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
+import javax.jms.BytesMessage;
+import javax.jms.Connection;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
 import org.icij.datashare.user.User;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -26,29 +31,26 @@ import org.rocksdb.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TaskManagerPulsar implements TaskManager, AutoCloseable {
-    protected final PulsarClient client;
-    protected final Hashtable<String, Producer<byte[]>> producers;
-    protected final Producer<byte[]> taskCreator;
-    protected final Producer<byte[]> statusUpdater;
+public class TaskManagerActiveMQ implements TaskManager, AutoCloseable {
+    protected final Session session;
+    protected final MessageProducer taskCreator;
+    protected final MessageProducer statusUpdater;
+    protected final Hashtable<String, MessageProducer> producers;
+
+    public static final String ICIJ_JOB  = "icij-job";
+
     protected final RocksDB rocksDB;
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(TaskManagerPulsar.class);
+    private final static Logger LOGGER = LoggerFactory.getLogger(TaskManagerActiveMQ.class);
 
     @Inject
-    public TaskManagerPulsar(RocksDB rocksDB, PulsarClient pulsarClient)
-        throws PulsarClientException {
-        this.client = pulsarClient;
+    public TaskManagerActiveMQ(Connection connection, RocksDB rocksDB) throws JMSException {
+        // TODO: session needs to be thread safe, is it the case ?
+        session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+        this.taskCreator = session.createProducer(session.createQueue(CREATE_QUEUE));
+        this.statusUpdater = session.createProducer(session.createQueue(STATUS_QUEUE));
         this.producers = new Hashtable<>();
         this.rocksDB = rocksDB;
-        this.taskCreator = this.client
-            .newProducer()
-            .topic(TASK_TOPIC)
-            .create();
-        this.statusUpdater = this.client
-            .newProducer()
-            .topic(STATUS_TOPIC)
-            .create();
     }
 
     @Override
@@ -116,7 +118,8 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
         try (final RocksIterator iterator = this.rocksDB.newIterator()) {
             for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
                 taskAsBytes = iterator.value();
-                LanguageAgnosticTaskView<?> task = MAPPER.readValue(taskAsBytes, LanguageAgnosticTaskView.class);
+                LanguageAgnosticTaskView<?> task =
+                    MAPPER.readValue(taskAsBytes, LanguageAgnosticTaskView.class);
                 if (task.getState() == TaskView.State.RUNNING) {
                     continue;
                 }
@@ -126,7 +129,8 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
-            LOGGER.error("Failed to convert {} into a {}", taskAsBytes, LanguageAgnosticTaskView.class.getName());
+            LOGGER.error("Failed to convert {} into a {}", taskAsBytes,
+                LanguageAgnosticTaskView.class.getName());
         }
         return cleared;
     }
@@ -157,7 +161,7 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
                                                      Map<String, Object> inputs) {
         // TODO, do something more robust here.... the task type should be in the TaskView...
         // TODO: configure the producer properly here...
-        Producer<byte[]> prod;
+        MessageProducer prod;
         String taskId = taskType + "-" + UUID.randomUUID();
         LanguageAgnosticTaskView<V> task =
             new LanguageAgnosticTaskView<>(taskType, taskId, user, inputs);
@@ -167,10 +171,11 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
                 .orElseGet(
                     () -> {
                         try {
-                            Producer<byte[]> p = client.newProducer().topic(taskType).create();
+                            MessageProducer p =
+                                this.session.createProducer(this.session.createQueue(ICIJ_JOB + "/" + taskType));
                             this.producers.put(taskType, p);
                             return p;
-                        } catch (PulsarClientException e) {
+                        } catch (JMSException e) {
                             throw new RuntimeException(e);
                         }
                     }
@@ -180,10 +185,12 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
         this.updateTask(task);
         try {
             String taskAsString = MAPPER.writeValueAsString(task);
-            LOGGER.info("Broadcasting task {} to pulsar bus", taskAsString);
+            LOGGER.info("Broadcasting task {} to the bus", taskAsString);
             // TODO: could be done in an async fashion
-            prod.send(taskAsString.getBytes());
-        } catch (PulsarClientException | JsonProcessingException e) {
+            BytesMessage msg = session.createBytesMessage();
+            msg.writeBytes(taskAsString.getBytes());
+            prod.send(msg);
+        } catch (JsonProcessingException | JMSException e) {
             LOGGER.error("Failed to broadcast task {}, reverting queue status", task.name);
             // TODO put more details in the error
             task.setError(e.getMessage());
@@ -198,8 +205,10 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
         try {
             LanguageAgnosticTaskView.LanguageAgnosticTaskViewUpdate<V> update = task.asUpdate();
             LOGGER.info("Trying to update task to {}", update);
-            this.statusUpdater.send(MAPPER.writeValueAsBytes(update));
-        } catch (PulsarClientException e) {
+            BytesMessage msg = session.createBytesMessage();
+            msg.writeBytes(MAPPER.writeValueAsBytes(update));
+            statusUpdater.send(msg);
+        } catch (JMSException e) {
             LOGGER.error("Failed to post status update for task {}: {}", task.name, e);
             throw new RuntimeException(e);
         } catch (JsonProcessingException e) {
@@ -211,8 +220,10 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
     protected <V> void createTask(LanguageAgnosticTaskView<V> task) {
         try {
             LOGGER.info("Trying to update task to {}", task);
-            this.taskCreator.send(MAPPER.writeValueAsBytes(task));
-        } catch (PulsarClientException e) {
+            BytesMessage msg = session.createBytesMessage();
+            msg.writeBytes(MAPPER.writeValueAsBytes(task));
+            taskCreator.send(msg);
+        } catch (JMSException e) {
             LOGGER.error("Failed to create task {}: {}", task.name, e);
             throw new RuntimeException(e);
         } catch (JsonProcessingException e) {
@@ -256,18 +267,18 @@ public class TaskManagerPulsar implements TaskManager, AutoCloseable {
             .forEach(producer -> {
                 try {
                     producer.close();
-                } catch (PulsarClientException e) {
+                } catch (JMSException e) {
                     throw new RuntimeException(e);
                 }
             });
         try {
             this.taskCreator.close();
-        } catch (PulsarClientException e) {
+        } catch (JMSException e) {
             throw new RuntimeException(e);
         }
         try {
             this.statusUpdater.close();
-        } catch (PulsarClientException e) {
+        } catch (JMSException e) {
             throw new RuntimeException(e);
         }
     }

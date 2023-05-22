@@ -8,9 +8,10 @@ packages = [{include = "python_worker"}]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pulsar-client = "^3.1.0"
 requests = "^2.28.2"
 pydantic = "^1.10.7"
+stomp-py = "^8.1.0"
+python-qpid-proton = "^0.38.0"
 
 
 [build-system]

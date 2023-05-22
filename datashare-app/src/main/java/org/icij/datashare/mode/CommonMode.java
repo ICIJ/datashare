@@ -1,11 +1,25 @@
 package org.icij.datashare.mode;
 
+import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
+import static java.util.Optional.ofNullable;
+import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
+import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import java.io.FileNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.BlockingQueue;
+import java.util.function.Consumer;
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -13,8 +27,10 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.activemq.artemis.api.core.TransportConfiguration;
+import org.apache.activemq.artemis.api.jms.ActiveMQJMSClient;
+import org.apache.activemq.artemis.api.jms.JMSFactoryType;
+import org.apache.activemq.artemis.core.remoting.impl.netty.NettyConnectorFactory;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
@@ -26,8 +42,8 @@ import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.com.DataBus;
 import org.icij.datashare.com.MemoryDataBus;
 import org.icij.datashare.com.Publisher;
-import org.icij.datashare.com.PulsarStatusHandler;
 import org.icij.datashare.com.RedisDataBus;
+import org.icij.datashare.com.TaskStatusHandler;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -37,7 +53,11 @@ import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.extract.RedisUserReportMap;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.tasks.*;
+import org.icij.datashare.tasks.DocumentCollectionFactory;
+import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.TaskManagerActiveMQ;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -52,23 +72,10 @@ import org.icij.extract.report.ReportMap;
 import org.icij.task.Options;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RedissonClient;
-import org.rocksdb.CompressionType;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.FileNotFoundException;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.BlockingQueue;
-import java.util.function.Consumer;
-
-import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule {
     protected Logger logger = LoggerFactory.getLogger(getClass());
@@ -76,7 +83,6 @@ public abstract class CommonMode extends AbstractModule {
     public static final String DS_BATCHDOWNLOAD_QUEUE_NAME = "ds:batchdownload:queue";
     public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
     private static final Path TMP_ROOT = Path.of(FileSystems.getDefault().getSeparator(), "tmp");
-    private static final String PULSAR_URL = "pulsar://localhost:6650";
 
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
@@ -84,7 +90,9 @@ public abstract class CommonMode extends AbstractModule {
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
-                new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).mergeWith(properties);
+            new PropertiesProvider(
+                properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).mergeWith(
+                properties);
         this.mode = getMode(properties);
         this.guiceAdapter = new GuiceAdapter(this);
     }
@@ -96,6 +104,7 @@ public abstract class CommonMode extends AbstractModule {
     public static CommonMode create(final Map<String, String> map) {
         return create(PropertiesProvider.fromMap(map));
     }
+
     public static CommonMode create(final Properties properties) {
         switch (getMode(properties)) {
             case NER:
@@ -115,35 +124,30 @@ public abstract class CommonMode extends AbstractModule {
         }
     }
 
-    public Mode getMode() {return mode;}
-    public <T> T get(Class<T> type) {return guiceAdapter.get(type);}
+    public Mode getMode() {
+        return mode;
+    }
+
+    public <T> T get(Class<T> type) {
+        return guiceAdapter.get(type);
+    }
 
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
 
         RedissonClient redissonClient = null;
-        if ( hasRedisProperty() ) {
-            redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
+        if (hasRedisProperty()) {
+            redissonClient = new RedissonClientFactory().withOptions(
+                Options.from(propertiesProvider.getProperties())).create();
             bind(RedissonClient.class).toInstance(redissonClient);
         }
-        QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
-        if ( batchQueueType == QueueType.REDIS ) {
-            configureBatchQueuesRedis(redissonClient);
-            bind(TaskManager.class).to(TaskManagerRedis.class).asEagerSingleton();
-        } else if ( batchQueueType == QueueType.REMOTE ) {
-            // TODO: this should not be needed
-            configureBatchQueuesMemory(propertiesProvider);
-            configureRocksDB();
-            configurePulsar();
-            configureStatusHandler();
-            bind(TaskManager.class).to(TaskManagerPulsar.class).asEagerSingleton();
-        }
-        else {
-            configureBatchQueuesMemory(propertiesProvider);
-            bind(TaskManager.class).to(TaskManagerMemory.class).asEagerSingleton();
-        }
-
+        configureBatchQueuesMemory(propertiesProvider);
+        configureRocksDB();
+        // TODO: use injection instead
+        configureActiveMQ();
+        configureStatusHandler();
+        bind(TaskManager.class).to(TaskManagerActiveMQ.class).asEagerSingleton();
         RestHighLevelClient esClient = createESClient(propertiesProvider);
         bind(RestHighLevelClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
@@ -156,9 +160,11 @@ public abstract class CommonMode extends AbstractModule {
         configureDataBus(propertiesProvider);
         feedPipelineRegistry(propertiesProvider);
     }
+
     private void configureDataBus(final PropertiesProvider propertiesProvider) {
-        QueueType busType = QueueType.valueOf(propertiesProvider.get("busType").orElse(QueueType.MEMORY.name()));
-        if ( busType == QueueType.MEMORY) {
+        QueueType busType =
+            QueueType.valueOf(propertiesProvider.get("busType").orElse(QueueType.MEMORY.name()));
+        if (busType == QueueType.MEMORY) {
             MemoryDataBus memoryDataBus = new MemoryDataBus();
             bind(DataBus.class).toInstance(memoryDataBus);
             bind(Publisher.class).toInstance(memoryDataBus);
@@ -169,48 +175,66 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     private void configureIndexingQueues(final PropertiesProvider propertiesProvider) {
-        QueueType queueType = QueueType.valueOf(propertiesProvider.get("queueType").orElse(QueueType.MEMORY.name()));
+        QueueType queueType =
+            QueueType.valueOf(propertiesProvider.get("queueType").orElse(QueueType.MEMORY.name()));
         // TODO: fix this OR....
-        if ( queueType == QueueType.MEMORY || queueType == QueueType.REMOTE) {
-            bind(DocumentCollectionFactory.class).to(MemoryDocumentCollectionFactory.class).asEagerSingleton();
+        if (queueType == QueueType.MEMORY || queueType == QueueType.REMOTE) {
+            bind(DocumentCollectionFactory.class).to(MemoryDocumentCollectionFactory.class)
+                .asEagerSingleton();
         } else {
             install(new FactoryModuleBuilder().
-                    implement(DocumentQueue.class, RedisUserDocumentQueue.class).
-                    implement(ReportMap.class, RedisUserReportMap.class).
-                    build(DocumentCollectionFactory.class));
+                implement(DocumentQueue.class, RedisUserDocumentQueue.class).
+                implement(ReportMap.class, RedisUserReportMap.class).
+                build(DocumentCollectionFactory.class));
         }
     }
 
     private void configureBatchQueuesMemory(PropertiesProvider propertiesProvider) {
-        bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHSEARCH_QUEUE_NAME));
-        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<String>>() {
+        }).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHSEARCH_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<BatchDownload>>() {
+        }).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
     private void configureBatchQueuesRedis(RedissonClient redissonClient) {
-        bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
-        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<String>>() {
+        }).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<BatchDownload>>() {
+        }).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
     private void configureRocksDB() {
         // TODO: handle the autoclosable side of things...
         try {
-            bind(RocksDB.class).toInstance(RocksDB.open(TMP_ROOT.resolve("datashare-rocksdb").toAbsolutePath().toString()));
+            bind(RocksDB.class).toInstance(
+                RocksDB.open(TMP_ROOT.resolve("datashare-rocksdb").toAbsolutePath().toString()));
         } catch (RocksDBException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void configurePulsar() {
-        // TODO: handle the autoclosable side of things...
+    private void configureActiveMQ() {
+
         // TODO: read this from the properties provider
+        TransportConfiguration transportConfiguration =
+            new TransportConfiguration(NettyConnectorFactory.class.getName());
+
+        // TODO: handle the autoclosable side of things...
+        ConnectionFactory connectionFactory = ActiveMQJMSClient.createConnectionFactoryWithoutHA(
+            JMSFactoryType.CF, transportConfiguration);
+        // TODO: use a context here and make sure to START IT !!!!!
         try {
-            bind(PulsarClient.class).toInstance(PulsarClient.builder().serviceUrl(PULSAR_URL).build());
-        } catch (PulsarClientException e) {
+            // TODO: fix this mess
+            Connection conn = connectionFactory.createConnection();
+            conn.start();
+            bind(Connection.class).toInstance(conn);
+        } catch (JMSException e) {
             throw new RuntimeException(e);
         }
     }
+
     private void configureStatusHandler() {
-        bind(PulsarStatusHandler.class).asEagerSingleton();
+        bind(TaskStatusHandler.class).asEagerSingleton();
     }
 
     void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {
@@ -231,7 +255,8 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     public Configuration createWebConfiguration() {
-        return routes -> addModeConfiguration(defaultRoutes(addCors(routes, propertiesProvider), propertiesProvider));
+        return routes -> addModeConfiguration(
+            defaultRoutes(addCors(routes, propertiesProvider), propertiesProvider));
     }
 
     protected abstract Routes addModeConfiguration(final Routes routes);
@@ -240,37 +265,42 @@ public abstract class CommonMode extends AbstractModule {
         RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
         bind(Repository.class).toInstance(repositoryFactory.createRepository());
         bind(ApiKeyRepository.class).toInstance(repositoryFactory.createApiKeyRepository());
-        bind(BatchSearchRepository.class).toInstance(repositoryFactory.createBatchSearchRepository());
+        bind(BatchSearchRepository.class).toInstance(
+            repositoryFactory.createBatchSearchRepository());
         repositoryFactory.initDatabase();
     }
 
     private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
         routes.setIocAdapter(guiceAdapter)
-                .add(RootResource.class)
-                .add(SettingsResource.class)
-                .add(StatusResource.class)
-                .setExtensions(new Extensions() {
-                    @Override
-                    public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper, Env env) {
-                        defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-                        return defaultObjectMapper;
-                    }
-                });
+            .add(RootResource.class)
+            .add(SettingsResource.class)
+            .add(StatusResource.class)
+            .setExtensions(new Extensions() {
+                @Override
+                public ObjectMapper configureOrReplaceObjectMapper(ObjectMapper defaultObjectMapper,
+                                                                   Env env) {
+                    defaultObjectMapper.enable(ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+                    return defaultObjectMapper;
+                }
+            });
         addModeConfiguration(routes);
         addExtensionConfiguration(routes);
 
         if (provider.get(PropertiesProvider.PLUGINS_DIR).orElse(null) != null) {
-            routes.bind(PLUGINS_BASE_URL, Paths.get(provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR)).toFile());
+            routes.bind(PLUGINS_BASE_URL,
+                Paths.get(provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR))
+                    .toFile());
         }
         return routes;
     }
 
     Routes addExtensionConfiguration(Routes routes) {
-        String extensionsDir = propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
+        String extensionsDir =
+            propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
         if (extensionsDir != null) {
             try {
-                new ExtensionLoader(Paths.get(extensionsDir)).load((Consumer<Class<?>>)routes::add,
-                        c -> c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class));
+                new ExtensionLoader(Paths.get(extensionsDir)).load((Consumer<Class<?>>) routes::add,
+                    c -> c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class));
             } catch (FileNotFoundException e) {
                 logger.info("extensions dir not found", e);
             }

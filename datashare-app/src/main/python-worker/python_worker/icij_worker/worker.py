@@ -7,15 +7,21 @@ from contextlib import contextmanager
 from copy import copy
 from enum import Enum, unique
 from inspect import signature
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, Generator, List, Optional, Type
 
-import pulsar
 import pydantic
+import stomp
 from pydantic import BaseModel
+from stomp.__main__ import do_nothing_loop
+from stomp.constants import HDR_ID
+from stomp.utils import Frame
+
+ANY_CAST = "ANYCAST"
 
 logger = logging.getLogger(__name__)
 
-_STATUS_TOPIC = "task-status"
+_STATUS_TOPIC = "tasks.status"
+JOB_QUEUE_PREFIX = "icij-job"
 _MAX_JOB_DURATION = 1000 * 10
 
 
@@ -150,103 +156,107 @@ class ICIJApp:
         return update
 
 
-def _update_task(update: StatusUpdate, status_updater: pulsar.Producer):
-    status_updater.send(json.dumps(update.dict()).encode())
+def _update_task(update: StatusUpdate, conn: stomp.Connection, destination: str):
+    conn.send(destination, json.dumps(update.dict()).encode())
 
 
-def _set_progress(progress: float, *, t: Task, status_updater: pulsar.Producer):
+def _set_progress(
+    progress: float, *, t: Task, conn: stomp.Connection, destination: str
+):
     update = StatusUpdate(name=t.name, progress=progress, state=Status.RUNNING)
-    status_updater.send(json.dumps(update.dict()).encode())
+    conn.send(destination, json.dumps(update.dict()).encode())
 
 
 @contextmanager
-def _make_pulsar(
-    app: ICIJApp,
-) -> Generator[Tuple[pulsar.Consumer, pulsar.Producer], None, None]:
+def _make_activemq_conn(app: ICIJApp) -> Generator[stomp.Connection11, None, None]:
     # TODO: if we want worker to process several tasks at the same time configure it
     #  here
-    client = None
+    conn = None
     try:
-        client = pulsar.Client("pulsar://localhost:6650")
-        topics = list(app.registry)
+        # TODO: set the heartbeat here
+        conn = stomp.Connection11([("127.0.0.1", 61616)], timeout=None)
         consumer_name = f"worker-{uuid.uuid4().hex}"
-        task_listener = client.subscribe(
-            topics,
-            subscription_name=app.name,
-            consumer_name=consumer_name,
-            receiver_queue_size=1,
-            consumer_type=pulsar.ConsumerType.Shared,
-            unacked_messages_timeout_ms=_MAX_JOB_DURATION,
-            negative_ack_redelivery_delay_ms=5 * 1000,
+        progress_updater = functools.partial(
+            _set_progress, conn=conn, destination=_STATUS_TOPIC
         )
-        status_updater = client.create_producer(
-            topic=_STATUS_TOPIC,
-            producer_name=consumer_name,
+        conn.set_listener(
+            "tasks",
+            TaskListener(app, consumer_name, progress__fn=progress_updater, conn=conn),
         )
-        yield task_listener, status_updater
+        conn.connect(wait=False, with_connect_command=True, headers={HDR_ID: consumer_name, "client-id": consumer_name})
+        # TODO: set timeouts and so on...
+        for queue in app.registry:
+            conn.subscribe(
+                destination=f"{JOB_QUEUE_PREFIX}/{queue}",
+                id=consumer_name,
+                ack="client-individual",
+                headers={"durable-subscription-name": consumer_name}
+            )
+        yield conn
     finally:
-        if client is not None:
-            client.shutdown()
+        if conn is not None:
+            conn.disconnect()
+
+
+class TaskListener(stomp.ConnectionListener):
+    def __init__(
+        self,
+        app: ICIJApp,
+        worker_name: str,
+        progress__fn: Callable[[float, Task], None],
+        conn: stomp.Connection,
+    ):
+        self._app = app
+        self._progress_fn = progress__fn
+        self._worker_name = worker_name
+        self._conn = conn
+
+    def on_error(self, frame: Frame):
+        pass
+
+    def on_message(self, frame: Frame):
+        logger.info("received message")
+        t = pydantic.parse_raw_as(Task, frame.body)
+        registered = self._app.registry.get(t.type)
+        if registered is None:
+            # If the task is unknown, we mark it as failed and do not requeue it
+            e = UnknownTaskError(f"Unknown task {t.type}, available tasks: {list()}")
+            update = StatusUpdate(name=t.name, error=str(e), state=Status.ERROR)
+            _update_task(update=update, conn=self._conn, destination=_STATUS_TOPIC)
+            self._conn.ack(
+                id=frame.headers["message-id"], subscription=self._worker_name
+            )
+            return
+        task_fn = registered["task"]
+        if any(
+            param.name == "progress_handler"
+            for param in signature(task_fn).parameters.values()
+        ):
+            task_status_updater = functools.partial(self._progress_fn, t=t)
+            task_fn = functools.partial(task_fn, progress_handler=task_status_updater)
+        task_res = task_fn(**t.inputs)
+        logger.info("%s succeeded for task %s", self._worker_name, t.name)
+        update = StatusUpdate(
+            name=t.name,
+            state=Status.DONE,
+            result=task_res,
+            progress=100,
+            error="",  # Ideally we would set it to null
+        )
+        _update_task(update=update, conn=self._conn, destination=_STATUS_TOPIC)
+        self._conn.ack(id=frame.headers["message-id"], subscription=self._worker_name)
 
 
 def main(app: ICIJApp):
-    with _make_pulsar(app) as (task_listener, status_updater):
-        worker_name = status_updater.producer_name()
-        progress_updater = functools.partial(
-            _set_progress, status_updater=status_updater
-        )
-        while True:
-            logger.info("%s waiting for work...", worker_name)
-            msg: pulsar.Message = task_listener.receive()
-            try:
-                t = pydantic.parse_raw_as(Task, msg.data())
-                registered = app.registry.get(t.type)
-                if registered is None:
-                    # If the task is unknown, we mark it as failed and do not requeue it
-                    e = UnknownTaskError(
-                        f"Unknown task {t.type}, available tasks: {list()}"
-                    )
-                    update = StatusUpdate(name=t.name, error=str(e), state=Status.ERROR)
-                    _update_task(update=update, status_updater=status_updater)
-                    task_listener.acknowledge(msg)
-                    continue
-                recoverable = tuple(registered.get("recover_from", []))
-                task_fn = registered["task"]
-                if any(
-                    param.name == "progress_handler"
-                    for param in signature(task_fn).parameters.values()
-                ):
-                    task_status_updater = functools.partial(progress_updater, t=t)
-                    task_fn = functools.partial(
-                        task_fn, progress_handler=task_status_updater
-                    )
-                _update_task(
-                    update=app.check_max_retries(t), status_updater=status_updater
-                )
-                try:
-                    task_res = task_fn(**t.inputs)
-                except recoverable as e:
-                    logger.error("%s - task %s, error: %s", worker_name, t.name, e)
-                    update = StatusUpdate(
-                        name=t.name,
-                        error=str(e),
-                        state=Status.RETRY,
-                        retries=t.retries + 1,
-                    )
-                    _update_task(update=update, status_updater=status_updater)
-                    task_listener.negative_acknowledge(msg)
-                    continue
-                logger.info("%s succeeded for task %s", worker_name, t.name)
-                update = StatusUpdate(
-                    name=t.name,
-                    state=Status.DONE,
-                    result=task_res,
-                    progress=100,
-                    error="",  # Ideally we would set it to null
-                )
-                _update_task(update=update, status_updater=status_updater)
-                task_listener.acknowledge(msg)
-            except Exception as e:
-                logger.error("error in %s for task %s: %s", worker_name, t.name, e)
-                update = StatusUpdate(name=t.name, error=str(e), state=Status.ERROR)
-                _update_task(update=update, status_updater=status_updater)
+    with _make_activemq_conn(app) as conn:
+        # task = Task(
+        #     name="some-id",
+        #     type="count",
+        #     retries=-1,
+        #     max_retries=10,
+        #     inputs={"url": "https://www.icij.org/"},
+        # )
+        # str_task = task.json().encode()
+        # conn.send("icij-job/count", str_task)
+        # time.sleep()
+        do_nothing_loop()

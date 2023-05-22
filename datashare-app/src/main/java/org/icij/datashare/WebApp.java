@@ -12,12 +12,9 @@ import java.util.Properties;
 import net.codestory.http.WebServer;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
-import org.icij.datashare.com.PulsarStatusHandler;
+import org.icij.datashare.com.TaskStatusHandler;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.tasks.BatchDownloadLoop;
-import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,8 +28,12 @@ public class WebApp {
     }
 
     static void start(Properties properties) throws Exception {
-//        // TODO: remove this, needed for attaching a debugger to the dependency injection
-//        Thread.sleep(1000 * 10);
+        // TODO: use injection instead
+        ActiveMQBroker activeMQBroker = new ActiveMQBroker();
+        Thread brokerThread = new Thread(activeMQBroker);
+        brokerThread.start();
+        // TODO: replace this sleep by a loop which check if the broker listening port is open
+        Thread.sleep(1000 * 3);
         CommonMode mode = CommonMode.create(properties);
         logger.info("after mode creation start");
         Thread webServerThread = new Thread(() ->
@@ -44,7 +45,7 @@ public class WebApp {
                 .start(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)))
         );
         logger.info("starting status handler");
-        Thread statusHandlerThread = new Thread(mode.get(PulsarStatusHandler.class));
+        Thread statusHandlerThread = new Thread(mode.get(TaskStatusHandler.class));
         webServerThread.start();
         logger.info("webserver started");
         statusHandlerThread.start();
@@ -60,7 +61,8 @@ public class WebApp {
         Thread batchDLThread = new Thread(() -> mode.get(TaskFactory.class).createBatchDownloadLoop().run());
         batchDLThread.start();
         logger.info("batch download loop started...");
-        // TODO: put his back
+        // TODO: start the bus here
+
 //        if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
 //            BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
 //            TaskManager taskManager = mode.get(TaskManager.class);
