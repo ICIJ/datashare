@@ -2,7 +2,22 @@
   "properties": {
     "content": {
       "type": "text",
-      "index_options": "offsets"
+      "index_options": "offsets",
+      "analyzer": "folding"
+    },
+    "metadata" : {
+      "properties": {
+        "tika_metadata_resourcename": {
+          "type": "text",
+          "analyzer": "folding",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        }
+      }
     },
     "extractionDate": {
       "type": "date",
@@ -54,9 +69,6 @@
     "tags": {
       "type": "keyword",
       "normalizer": "keyword_lowercase"
-    },
-    "metadata": {
-      "type": "object"
     },
     "type": {
       "type": "keyword"
