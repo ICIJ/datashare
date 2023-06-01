@@ -22,6 +22,10 @@
     "analyzer": {
       "path_analyzer": {
         "tokenizer": "path_tokenizer"
+      },
+      "folding": {
+        "tokenizer": "standard",
+        "filter":  [ "lowercase", "asciifolding" ]
       }
     },
     "tokenizer": {
