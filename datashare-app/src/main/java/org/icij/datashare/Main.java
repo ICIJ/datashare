@@ -12,6 +12,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
         DatashareCli cli = new DatashareCli().parseArguments(args);
         LOGGER.info("Running datashare " + (cli.isWebServer() ? "web server" : ""));
+        LOGGER.info("JVM version {}", System.getProperty("java.version"));
         LOGGER.info("JVM charset encoding {}", Charset.defaultCharset());
         LOGGER.debug("debug logs are activated");
 
