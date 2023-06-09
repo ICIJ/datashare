@@ -67,7 +67,7 @@ public class SourceExtractor {
                 return filterMetadata ? new ByteArrayInputStream(metadataCleaner.clean(new ByteArrayInputStream(source.content)).getContent())
                         : new ByteArrayInputStream(source.content);
             } catch (SAXException | TikaException | IOException e) {
-                throw new ExtractException("extract error for embedded document " + document.getId(), e);
+                throw new ExtractException(String.format("extract error for embedded document in project %s / id : %s / routing_id : %s", document.getProject().getName(), document.getId(), document.getRootDocument()), e);
             }
         }
     }
