@@ -364,7 +364,7 @@ jobs:
       - run:
           name: create git tag
           command: | 
-            curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${release}\", \"name\":\"${release}\",\"body\":\"release ${CIRCLE_TAG}\" \"prerelease\":true}" "https://api.github.com/repos/ICIJ/datashare-installer/releases"
+            curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\" \"prerelease\":true}" "https://api.github.com/repos/ICIJ/datashare-installer/releases"
       - run:
           name: deploy installers on github
           command: |
