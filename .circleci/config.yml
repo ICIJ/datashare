@@ -142,6 +142,7 @@ jobs:
       - run:
           name: Add/Commit changes to the doc
           command: |
+            git -C ~/datashare-docs add -A
             git -C ~/datashare-docs commit -am "doc: update backend documentation [${CIRCLE_SHA1}]" || true
       - run:
           name: Push changes to the doc
