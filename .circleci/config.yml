@@ -3,7 +3,7 @@ version: 2.1
 parameters:
   publish_backend_doc:
     type: boolean
-    default: false
+    default: true
 
 jobs:
   build_back:
