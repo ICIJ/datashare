@@ -102,36 +102,40 @@ jobs:
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-docs.git ~/datashare-docs
       - run:
-          name: make dist without frontend
+          name: Make dist without frontend
           command: mvn -pl datashare-dist package > mvn.out
       - run:
-          name: populate apigen index
+          name: Populate apigen index
           command: ./doc/apigen/populate_apigen.sh
       - run:
-          name: launch datashare apigen
+          name: Launch datashare apigen
           command: ./doc/apigen/datashare_for_apigen.sh
           background: true
       - run:
-          name: install apigen
+          name: Install apigen
           command: |
             sudo apt-get update
             sudo apt-get install -y python3-pip
             sudo pip3 install fluent-http-apigen
       - run:
-          name: run apigen
+          name: Run apigen
           command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > ~/datashare-docs/developers/backend/api.md
       - run:
-          name: install postgres
+          name: Install postgres
           command: |
             sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install -y postgresql-client-11
-            echo "postgres:5432:dstest:dstest:test" > ~/.pgpass && chmod 600 ~/.pgpass
       - run:
-          name: generate db doc
+          name: Generate db doc
+          environment:
+            PGDB: dstest
+            PGUSER: dstest
+            PGPASSWORD: test
           command: |
-            psql -h postgres -Utest test -c 'create database datashare'
+            echo "postgres:5432:$PGDB:$PGUSER:$PGPASSWORD" > ~/.pgpass && chmod 600 ~/.pgpass
+            psql -h postgres -U $PGUSER $PGDB -c 'create database $PGDB'
             mvn -pl commons-test -am install
             mvn -pl datashare-db liquibase:update
             ./datashare-db/scr/build_db_doc.sh > ~/datashare-docs/developers/backend/database.md
