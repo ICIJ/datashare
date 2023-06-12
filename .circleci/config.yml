@@ -135,7 +135,7 @@ jobs:
             PGPASSWORD: test
           command: |
             echo "postgres:5432:$PGDB:$PGUSER:$PGPASSWORD" > ~/.pgpass && chmod 600 ~/.pgpass
-            psql -h postgres -U $PGUSER $PGDB -c 'create database $PGDB'
+            psql -h postgres -U $PGUSER $PGDB -c "create database $PGDB"
             mvn -pl commons-test -am install
             mvn -pl datashare-db liquibase:update
             ./datashare-db/scr/build_db_doc.sh > ~/datashare-docs/developers/backend/database.md
