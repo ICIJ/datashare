@@ -3,7 +3,7 @@ version: 2.1
 parameters:
   publish_backend_doc:
     type: boolean
-    default: true
+    default: false
 
 jobs:
   build_back:
@@ -52,6 +52,11 @@ jobs:
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run: mvn -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
+      - when:
+          condition:
+            equal: [ master, << pipeline.git.branch >> ]
+          steps:
+            - run: .circleci/publish_doc_if_necessary.sh
       - save_cache:
           paths:
             - ~/.m2
