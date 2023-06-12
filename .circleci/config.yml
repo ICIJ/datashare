@@ -127,7 +127,7 @@ jobs:
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
             sudo apt-get update
             sudo apt-get install -y postgresql-client-11
-            echo "postgres:5432:test:test:test" > ~/.pgpass && chmod 600 ~/.pgpass
+            echo "postgres:5432:dstest:dstest:test" > ~/.pgpass && chmod 600 ~/.pgpass
       - run:
           name: generate db doc
           command: |
