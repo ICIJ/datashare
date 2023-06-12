@@ -92,7 +92,10 @@ jobs:
             chmod 700 ~/.ssh
       - add_ssh_keys:
           fingerprints:
-            - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
+            # This deploy key has read-write permission on ICIJ/datashare-docs repository
+            # @see https://app.circleci.com/settings/project/github/ICIJ/datashare/ssh
+            # @see https://github.com/ICIJ/datashare-docs/settings/keys
+            - "d0:5d:4a:ba:8a:55:2e:1f:6f:ad:57:c5:e0:21:ce:34"
       - run:
           name: Configure Git identity
           command: |
