@@ -99,10 +99,10 @@ jobs:
             git config --global user.name $CIRCLE_USERNAME
             git config --global user.email "engineering@icij.org"
       - run:
-          name: Checkout Datashare Wiki repository
+          name: Checkout Datashare Doc repository
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
-            git clone git@github.com:ICIJ/datashare.wiki.git ~/datashare-wiki
+            git clone git@github.com:ICIJ/datashare-docs.git ~/datashare-docs
       - run:
           name: make dist without frontend
           command: mvn -pl datashare-dist package > mvn.out
@@ -121,7 +121,7 @@ jobs:
             sudo pip3 install fluent-http-apigen
       - run:
           name: run apigen
-          command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > ~/datashare-wiki/Backend-›-API.md
+          command: apigen datashare-app/src/main/java/org/icij/datashare/web/*Resource.java > ~/datashare-docs/developers/backend/api.md
       - run:
           name: install postgres
           command: |
@@ -136,14 +136,14 @@ jobs:
             psql -h postgres -Utest test -c 'create database datashare'
             mvn -pl commons-test -am install
             mvn -pl datashare-db liquibase:update
-            ./datashare-db/scr/build_db_doc.sh > ~/datashare-wiki/Backend-›-DB.md
+            ./datashare-db/scr/build_db_doc.sh > ~/datashare-docs/developers/backend/database.md
       - run:
-          name: Add/Commit changes to the Wiki
+          name: Add/Commit changes to the doc
           command: |
-            git -C ~/datashare-wiki commit -am "Publish backend documentation [${CIRCLE_SHA1}]" || true
+            git -C ~/datashare-docs commit -am "doc: update backend documentation [${CIRCLE_SHA1}]" || true
       - run:
-          name: Push changes to the Wiki
-          command: git -C ~/datashare-wiki push origin master
+          name: Push changes to the doc
+          command: git -C ~/datashare-docs push origin master
 
   package_back:
     docker:
