@@ -130,7 +130,7 @@ jobs:
       - run:
           name: Generate db doc
           environment:
-            PGDB: dstest
+            PGDB: dsdoc
             PGUSER: dstest
             PGPASSWORD: test
           command: |
