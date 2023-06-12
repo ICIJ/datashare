@@ -69,8 +69,8 @@ jobs:
       - image: postgres:11.2
         name: postgres
         environment:
-          POSTGRES_DB: dstest
           POSTGRES_USER: dstest
+          POSTGRES_DB: dstest
           POSTGRES_PASSWORD: test
     working_directory: ~/datashare
     environment:
@@ -135,7 +135,7 @@ jobs:
             PGPASSWORD: test
           command: |
             echo "postgres:5432:$PGDB:$PGUSER:$PGPASSWORD" > ~/.pgpass && chmod 600 ~/.pgpass
-            psql -h postgres -U $PGUSER $PGDB -c "create database $PGDB"
+            createdb -U $PGUSER -h postgres $PGDB
             mvn -pl commons-test -am install
             mvn -pl datashare-db liquibase:update
             ./datashare-db/scr/build_db_doc.sh > ~/datashare-docs/developers/backend/database.md
