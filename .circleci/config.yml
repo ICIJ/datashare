@@ -145,7 +145,7 @@ jobs:
             git -C ~/datashare-docs commit -am "doc: update backend documentation [${CIRCLE_SHA1}]" || true
       - run:
           name: Push changes to the doc
-          command: git -C ~/datashare-docs push origin master
+          command: git -C ~/datashare-docs push origin main
 
   package_back:
     docker:
