@@ -226,7 +226,7 @@ jobs:
       - run:
           name: release client on GitHub
           command: |
-            upload_url=$(curl -X POST -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
+            upload_url=$(curl -X POST -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": true }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
             echo $upload_url > /tmp/datashare-client/datashare-client.url
       - run:
           name: checkout tag
@@ -361,6 +361,10 @@ jobs:
           command: |
             cd /tmp/datashare-installer/linux
             make VERSION=${CIRCLE_TAG} all
+      - run:
+          name: create git tag
+          command: | 
+            curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${release}\", \"name\":\"${release}\",\"body\":\"release ${release}\" \"prerelease\":true}" "https://api.github.com/repos/$repo/releases"
       - run:
           name: deploy installers on github
           command: |
