@@ -6,6 +6,7 @@ import joptsimple.OptionSpec;
 import java.io.File;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -328,6 +329,14 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 asList("language", "l"),
                 "Explicitly specify language of indexed documents (instead of detecting automatically)")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
+    static void ocrLanguage(OptionParser parser) {
+        parser.acceptsAll(
+                        List.of("ocrLanguage"),
+                        "Explicitly specify OCR languages for tesseract. 3-character ISO 639-2 language codes and + sign for multiple languages")
                 .withRequiredArg()
                 .ofType(String.class);
     }
