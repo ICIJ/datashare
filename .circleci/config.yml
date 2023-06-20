@@ -341,7 +341,7 @@ jobs:
           paths:
             - $HOME/.cargo
       - run:
-          name: Adds_ssh_dir
+          name: Adds SSH directory
           command: |
             mkdir -p ~/.ssh
             chmod 700 ~/.ssh
