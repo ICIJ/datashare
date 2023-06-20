@@ -355,6 +355,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         return new HashMap<String, String>() {{
             put("dataDir", "/default/data/dir");
             put("foo", "bar");
+            put("batchDownloadDir", "app/tmp");
         }};
     }
 

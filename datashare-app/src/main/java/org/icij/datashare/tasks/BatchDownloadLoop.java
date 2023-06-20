@@ -19,7 +19,8 @@ import java.util.concurrent.TimeUnit;
 import static org.icij.datashare.tasks.BatchDownloadRunner.NULL_BATCH_DOWNLOAD;
 
 public class BatchDownloadLoop {
-    private final Path DOWNLOAD_DIR = Paths.get(System.getProperty("user.dir")).resolve("app/tmp");
+    private final String DEFAULT_DIR = Paths.get(System.getProperty("user.dir")).resolve("app/tmp").toString();
+    private final Path downloadDir;
     private final static String DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = "24";
     private final int ttlHour;
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -32,6 +33,7 @@ public class BatchDownloadLoop {
         this.batchDownloadQueue = batchDownloadQueue;
         this.factory = factory;
         this.manager = manager;
+        downloadDir = Paths.get(propertiesProvider.get(DatashareCliOptions.BATCH_DOWNLOAD_DIR).orElse(DEFAULT_DIR));
         ttlHour = Integer.parseInt(propertiesProvider.get(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL).orElse(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
     }
 
@@ -41,7 +43,7 @@ public class BatchDownloadLoop {
         while (!NULL_BATCH_DOWNLOAD.equals(currentBatch)) {
             try {
                 currentBatch = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
-                createDownloadCleaner(DOWNLOAD_DIR, ttlHour).run();
+                createDownloadCleaner(downloadDir, ttlHour).run();
 
                 HashMap<String, Object> taskProperties = new HashMap<>();
                 taskProperties.put("batchDownload", currentBatch);

@@ -6,7 +6,9 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.user.User;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -19,6 +21,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
@@ -30,6 +33,8 @@ public class BatchDownloadLoopTest {
     @Mock BatchDownloadRunner batchRunner;
     @Mock TaskFactory factory;
     @Mock TaskManager manager;
+    @Rule
+    public TemporaryFolder batchDownloadDir = new TemporaryFolder();
     @Captor
     private ArgumentCaptor<TaskView<File>> argCaptor;
 
@@ -58,6 +63,7 @@ public class BatchDownloadLoopTest {
         BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put(BATCH_DOWNLOAD_ZIP_TTL, "15");
+            put(BATCH_DOWNLOAD_DIR, batchDownloadDir.toString());
         }});
         BatchDownloadLoop app = new BatchDownloadLoop(propertiesProvider, batchDownloadQueue, factory, manager) {
             @Override
