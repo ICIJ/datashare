@@ -326,7 +326,7 @@ jobs:
           keys:
             - cargo-cache
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             apt-get install -y nsis cpio jq imagemagick icnsutils
             wget --no-check-certificate https://nsis.sourceforge.io/mediawiki/images/c/c9/Inetc.zip && unzip Inetc.zip && cp Plugins/x86-ansi/INetC.dll /usr/share/nsis/Plugins/
@@ -341,7 +341,7 @@ jobs:
           paths:
             - $HOME/.cargo
       - run:
-          name: adds_ssh_dir
+          name: Adds_ssh_dir
           command: |
             mkdir -p ~/.ssh
             chmod 700 ~/.ssh
@@ -349,32 +349,42 @@ jobs:
           fingerprints:
           - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
-          name: checkout
+          name: Checkout
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-installer.git
       - run:
-          name: build Mac installer
+          name: Build Mac installer
           command: |
             cd /tmp/datashare-installer/mac
             source "$HOME/.cargo/env"
             make VERSION=${CIRCLE_TAG} all
       - run:
-          name: build Windows installer
+          name: Build Windows installer
           command: |
             cd /tmp/datashare-installer/windows
             make VERSION=${CIRCLE_TAG} all
       - run:
-          name: build Linux installer
+          name: Build Linux installer
           command: |
             cd /tmp/datashare-installer/linux
-            make VERSION=${CIRCLE_TAG} all
+            make VERSION=${CIRCLE_TAG} all        
       - run:
-          name: create git tag
+          name: Populate VERSION.txt file
+          command: echo $CIRCLE_TAG > /tmp/datashare-installer/VERSION.txt
+      - run:
+          name: Commit version changes
+          command: |
+            git -C /tmp/datashare-installer/ commit -am "build: bump to ${CIRCLE_SHA1}" || true
+      - run:
+          name: Push changes
+          command: git -C /tmp/datashare-installer/ push origin master
+      - run:
+          name: Create git tag
           command: | 
             curl -s -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\",\"prerelease\":true}" "https://api.github.com/repos/ICIJ/datashare-installer/releases"
       - run:
-          name: deploy installers on github
+          name: Deploy installers on github
           command: |
             cd /tmp/datashare-installer
             ./deploy.sh ${CIRCLE_TAG}
