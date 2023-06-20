@@ -5,6 +5,8 @@ import joptsimple.OptionSpec;
 
 import java.io.File;
 import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,6 +30,7 @@ public final class DatashareCliOptions {
     public static final String SCROLL_SIZE = "scrollSize";
     public static final String BATCH_DOWNLOAD_MAX_NB_FILES = "batchDownloadMaxNbFiles";
     public static final String BATCH_DOWNLOAD_MAX_SIZE = "batchDownloadMaxSize";
+    public static final String BATCH_DOWNLOAD_DIR = "batchDownloadDir";
 
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String ROOT_HOST = "rootHost";
@@ -501,6 +504,15 @@ public final class DatashareCliOptions {
                 .withValuesConvertedBy(regex("[0-9]+[KMG]?"))
                 .defaultsTo("100M");
 
+    }
+
+    public static void batchDownloadDir(OptionParser parser) {
+        String defaultDir = Paths.get(System.getProperty("user.dir")).resolve("app/tmp").toString();
+        parser.acceptsAll(
+                        singletonList(BATCH_DOWNLOAD_DIR), "Directory where Batch Download archives are downloaded. (Default: <currentUserDir>/app/tmp")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(defaultDir);
     }
 
     public static void maxContentLength(OptionParser parser) {

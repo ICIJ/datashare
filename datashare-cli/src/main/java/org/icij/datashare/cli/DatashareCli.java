@@ -81,6 +81,7 @@ public class DatashareCli {
         DatashareCliOptions.batchDownloadMaxNbFiles(parser);
         DatashareCliOptions.batchDownloadMaxSize(parser);
         DatashareCliOptions.batchDownloadEncrypt(parser);
+        DatashareCliOptions.batchDownloadDir(parser);
         DatashareCliOptions.smtpUrl(parser);
 
         DatashareCliOptions.maxContentLength(parser);
