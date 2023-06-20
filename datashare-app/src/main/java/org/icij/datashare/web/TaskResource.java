@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Pattern;
@@ -140,13 +141,13 @@ public class TaskResource {
     @Post("/batchDownload")
     public TaskView<File> batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws JsonProcessingException {
         Map<String, Object> options = optionsWrapper.getOptions();
-        Path tmpPath = get(context.env().appFolder(), "tmp");
-        if (!tmpPath.toFile().exists()) tmpPath.toFile().mkdirs();
+        Path downloadDir = get(propertiesProvider.getProperties().get("batchDownloadDir").toString());
+        if (!downloadDir.toFile().exists()) downloadDir.toFile().mkdirs();
         String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
         String uri = (String) options.get("uri");
         boolean batchDownloadEncrypt = parseBoolean(propertiesProvider.get("batchDownloadEncrypt").orElse("false"));
         List<String> projectIds = (List<String>) options.get("projectIds");
-        BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, uri, tmpPath, batchDownloadEncrypt);
+        BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, uri, downloadDir, batchDownloadEncrypt);
         BatchDownloadRunner downloadTask = taskFactory.createDownloadRunner(batchDownload, v -> null);
         return taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}});
     }
