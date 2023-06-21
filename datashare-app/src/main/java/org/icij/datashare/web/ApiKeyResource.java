@@ -2,6 +2,11 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
@@ -22,53 +27,26 @@ public class ApiKeyResource {
         this.taskFactory = taskFactory;
     }
 
-    /**
-     * Preflight for key management.
-     *
-     * @return 200 with OPTIONS, GET, PUT and DELETE
-     */
+    @Operation(description = "Preflight for key management")
+    @ApiResponse(responseCode = "200", description="returns OPTIONS, GET, PUT and DELETE")
     @Options("/:userId")
-    public Payload createKey(String userId) {
+    public Payload createKey(@Parameter(name="userId", description="user identifier") String userId) {
         return ok().withAllowMethods("OPTIONS", "GET", "PUT", "DELETE");
     }
 
-    /**
-     * Creates a new private key and saves its 384 hash into database for current user.
-     *
-     * "/api/key" resource is available only in SERVER mode.
-     *
-     * Returns JSON like :
-     * ```
-     * {"apiKey":"SrcasvUmaAD6NsZ3+VmUkFFWVfRggIRNmWR5aHx7Kfc="}
-     * ```
-     *
-     * @param userId
-     * @return 201 (created) or error
-     *
-     * @throws Exception
-     */
+    @Operation(description = "Creates a new private key and saves its SHA384 hash into database for current user. Only available in SERVER mode.")
+    @ApiResponse(responseCode = "201", description = "returns the api key JSON",
+            content = { @Content(examples = { @ExampleObject(value="{\"apiKey\":\"SrcasvUmaAD6NsZ3+VmUkFFWVfRggIRNmWR5aHx7Kfc=\"}")})})
     @Put("/:userId")
-    public Payload createKey(String userId, Context context) throws Exception {
+    public Payload createKey(@Parameter(name = "userId", description = "user identifier") String userId, Context context) throws Exception {
         return new Payload("application/json", new HashMap<String, String>() {{
             put("apiKey", taskFactory.createGenApiKey(new User(userId)).call());
         }},201);
     }
 
-    /**
-     * Get the private key for an existing user.
-     *
-     * "/api/key" resource is available only in SERVER mode.
-     *
-     * Returns JSON like :
-     * ```
-     * {"hashedKey":"c3e7766f7605659f2b97f2a6f5bcf34611997fc31173931eefcea91df1b465ffe35c2b9b4b91e8bbe2eec3730ce2a74a"}
-     * ```
-     *
-     * @param userId
-     * @return 200 or error
-     *
-     * @throws Exception
-     */
+    @Operation(description = "Get the private key for an existing user. Only available in SERVER mode.")
+    @ApiResponse(responseCode = "200", description = "returns the hashed key JSON",
+            content = { @Content(examples = { @ExampleObject(value="{\"hashedKey\":\"c3e7766f7605659f2b97f2a6f5bcf34611997fc31173931eefcea91df1b465ffe35c2b9b4b91e8bbe2eec3730ce2a74a\"}")})})
     @Get("/:userId")
     public Payload getKey(String userId) throws Exception{
         return new Payload("application/json", new HashMap<String, String>() {{
@@ -76,16 +54,8 @@ public class ApiKeyResource {
         }},200);
     }
 
-    /**
-     * Deletes an apikey for current user.
-     * Returns 204 (idempotent) or server error.
-     *
-     * "/api/key" resource is available only in SERVER mode.
-     *
-     * @param userId
-     * @return 204
-     * @throws Exception
-     */
+    @Operation(description = "Deletes an apikey for current user. Only available in SERVER mode.")
+    @ApiResponse(responseCode = "204", description = "when key has been deleted")
     @Delete("/:userId")
     public Payload deleteKey(String userId,Context context) throws Exception {
         taskFactory.createDelApiKey(new User(userId)).call();
