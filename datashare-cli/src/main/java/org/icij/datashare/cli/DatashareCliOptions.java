@@ -5,7 +5,6 @@ import joptsimple.OptionSpec;
 
 import java.io.File;
 import java.net.URI;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -49,6 +48,10 @@ public final class DatashareCliOptions {
     public static final String OPEN_LINK = "browserOpenLink";
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
     public static final String DEFAULT_USER_NAME = "defaultUserName";
+    public static final String DEFAULT_BATCH_DOWNLOAD_DIR = Paths.get(System.getProperty("user.dir")).resolve("app/tmp").toString();
+    public static final String DEFAULT_BATCH_DOWNLOAD_MAX_SIZE = "100M";
+    public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
+    public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
 
     static void stages(OptionParser parser) {
         parser.acceptsAll(
@@ -472,7 +475,7 @@ public final class DatashareCliOptions {
                 singletonList(BATCH_DOWNLOAD_ZIP_TTL), "Time to live in hour for batch download zip files (Default 24)")
                 .withRequiredArg()
                 .ofType(Integer.class)
-                .defaultsTo(24);
+                .defaultsTo(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL);
     }
 
     public static void batchDownloadMaxNbFiles(OptionParser parser) {
@@ -480,7 +483,7 @@ public final class DatashareCliOptions {
                 singletonList(BATCH_DOWNLOAD_MAX_NB_FILES), "Maximum file number that can be archived in a zip (Default 10,000)")
                 .withRequiredArg()
                 .ofType(Integer.class)
-                .defaultsTo(10000);
+                .defaultsTo(DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES);
     }
 
     public static void batchDownloadEncrypt(OptionParser parser) {
@@ -502,17 +505,16 @@ public final class DatashareCliOptions {
                 singletonList(BATCH_DOWNLOAD_MAX_SIZE), "Maximum total files size that can be zipped. Human readable suffix K/M/G for KB/MB/GB (Default 100M)")
                 .withRequiredArg()
                 .withValuesConvertedBy(regex("[0-9]+[KMG]?"))
-                .defaultsTo("100M");
+                .defaultsTo(DEFAULT_BATCH_DOWNLOAD_MAX_SIZE);
 
     }
 
     public static void batchDownloadDir(OptionParser parser) {
-        String defaultDir = Paths.get(System.getProperty("user.dir")).resolve("app/tmp").toString();
         parser.acceptsAll(
-                        singletonList(BATCH_DOWNLOAD_DIR), "Directory where Batch Download archives are downloaded. (Default: <currentUserDir>/app/tmp")
+                        singletonList(BATCH_DOWNLOAD_DIR), "Directory where Batch Download archives are downloaded. (Default <currentUserDir>/app/tmp")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo(defaultDir);
+                .defaultsTo(DEFAULT_BATCH_DOWNLOAD_DIR);
     }
 
     public static void maxContentLength(OptionParser parser) {

@@ -6,10 +6,12 @@ import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -23,7 +25,13 @@ public class BatchDownloadLoopIntTest {
     public void test_batch_download_task_view_properties() {
         TaskFactory factory = mock(TaskFactory.class);
         when(factory.createDownloadRunner(any(), any())).thenReturn(mock(BatchDownloadRunner.class));
-        BatchDownloadLoop batchDownloadLoop = new BatchDownloadLoop(new PropertiesProvider(), batchDownloadQueue, factory, taskManager);
+
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+            put(BATCH_DOWNLOAD_ZIP_TTL, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
+            put(BATCH_DOWNLOAD_DIR, DEFAULT_BATCH_DOWNLOAD_DIR);
+        }});
+
+        BatchDownloadLoop batchDownloadLoop = new BatchDownloadLoop(propertiesProvider, batchDownloadQueue, factory, taskManager);
 
         batchDownloadQueue.add(new BatchDownload(singletonList(project("prj")), User.local(), "foo"));
         batchDownloadLoop.enqueuePoison();
