@@ -1,6 +1,7 @@
 package org.icij.datashare.mode;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.tasks.BatchDownloadLoop;
 import org.icij.datashare.tasks.BatchSearchLoop;
@@ -12,6 +13,9 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.util.HashMap;
+
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_DIR;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_ZIP_TTL;
 
 
 public class CliModeTest {
@@ -38,6 +42,8 @@ public class CliModeTest {
             put("dataDir", dataDir.getRoot().toString());
             put("mode", "BATCH_DOWNLOAD");
             put("batchQueueType", QueueType.MEMORY.name());
+            put(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
+            put(DatashareCliOptions.BATCH_DOWNLOAD_DIR, DEFAULT_BATCH_DOWNLOAD_DIR);
         }}));
 
         BatchDownloadLoop batchDownloadLoop = mode.get(TaskFactory.class).createBatchDownloadLoop();

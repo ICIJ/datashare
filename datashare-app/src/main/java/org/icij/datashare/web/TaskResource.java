@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Pattern;
@@ -35,11 +34,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
-import static net.codestory.http.payload.Payload.ok;
 import static net.codestory.http.payload.Payload.forbidden;
+import static net.codestory.http.payload.Payload.ok;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
 @Singleton
@@ -141,7 +141,7 @@ public class TaskResource {
     @Post("/batchDownload")
     public TaskView<File> batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws JsonProcessingException {
         Map<String, Object> options = optionsWrapper.getOptions();
-        Path downloadDir = get(propertiesProvider.getProperties().get("batchDownloadDir").toString());
+        Path downloadDir = get(propertiesProvider.getProperties().getProperty(BATCH_DOWNLOAD_DIR));
         if (!downloadDir.toFile().exists()) downloadDir.toFile().mkdirs();
         String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
         String uri = (String) options.get("uri");
