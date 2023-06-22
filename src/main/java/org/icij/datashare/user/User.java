@@ -80,6 +80,7 @@ public class User implements Entity {
         return (List<String>) ofNullable(applications.get(XEMX_DATASHARE_KEY)).orElse(new LinkedList<>());
     }
 
+
     @JsonIgnore
     public Map<String, Object> getDetails() {
         return details.entrySet().stream().

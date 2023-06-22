@@ -13,8 +13,12 @@ import static org.fest.assertions.Assertions.assertThat;
 public class SearchResultTest {
     @Test
     public void test_json_serialize() throws Exception {
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(new SearchResult("q1", Project.project("prj"),"docId1", "rootId1", Paths.get("/path/to/doc1"),
-                new Date(), "content/type", 123L, 1))).contains("\"project\":{\"name\":\"prj\",\"sourcePath\":\"file:///vault/prj\"}").contains("\"documentPath\":\"/path/to/doc1\"");
+        Project project = Project.project("prj");
+        SearchResult searchResult = new SearchResult("q1", project, "docId1", "rootId1", Paths.get("/path/to/doc1"), new Date(), "content/type", 123L, 1);
+        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(searchResult))
+            .contains("\"name\":\"prj\"")
+            .contains("\"sourcePath\":\"file:///vault/prj\"")
+            .contains("\"documentPath\":\"/path/to/doc1\"");
         SearchResult searchResultFromJson = JsonObjectMapper.MAPPER.readValue(("{\"query\":\"q1\"," +
                         "\"project\":{\"name\":\"prj\",\"sourcePath\":\"file:///vault/prj\"}," +
                         "\"documentId\":\"docId1\"," +

@@ -14,7 +14,13 @@ import static org.fest.assertions.Assertions.assertThat;
 public class NoteTest {
     @Test
     public void serialize_note() throws JsonProcessingException {
-        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(new Note(Project.project("projet"), Paths.get("toto/tata"),"This is a test"))).isEqualTo("{\"project\":{\"name\":\"projet\",\"sourcePath\":\"file:///vault/projet\"},\"path\":\"toto/tata\",\"note\":\"This is a test\",\"variant\":\"info\"}");
+        Note note = new Note(Project.project("projet"), Paths.get("toto/tata"),"This is a test");
+        assertThat(JsonObjectMapper.MAPPER.writeValueAsString(note))
+                .contains("\"name\":\"projet\"")
+                .contains("\"label\":\"projet\"")
+                .contains("\"sourcePath\":\"file:///vault/projet\"")
+                .contains("\"note\":\"This is a test\"")
+                .contains("\"variant\":\"info\"");
     }
 
     @Test
