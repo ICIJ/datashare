@@ -46,6 +46,7 @@ public interface Repository {
     Project getProject(String projectId);
     List<Project> getProjects();
     List<Project> getProjects(String[] projectIds);
+    boolean save(Project project);
 
     List<Note> getNotes(Project prj, String pathPrefix);
     boolean save(Note note);
