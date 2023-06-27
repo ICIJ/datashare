@@ -3,17 +3,27 @@ package org.icij.datashare.web;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Delete;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Prefix;
+import net.codestory.http.annotations.*;
+import net.codestory.http.constants.HttpStatus;
+import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
+import org.icij.datashare.cli.Mode;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+
 import static net.codestory.http.payload.Payload.ok;
+import static org.apache.tika.utils.StringUtils.isEmpty;
 import static org.icij.datashare.text.Project.isAllowed;
 import static org.icij.datashare.text.Project.project;
 
@@ -22,11 +32,61 @@ import static org.icij.datashare.text.Project.project;
 public class ProjectResource {
     private final Repository repository;
     private final Indexer indexer;
+    private final PropertiesProvider propertiesProvider;
 
     @Inject
-    public ProjectResource(Repository repository, Indexer indexer) {
+    public ProjectResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider) {
         this.repository = repository;
         this.indexer = indexer;
+        this.propertiesProvider = propertiesProvider;
+    }
+
+    private void checkAllowedMode(Mode ...modes) throws ForbiddenException {
+        String modeName = this.propertiesProvider.get("mode").orElse(null);
+        if (modeName != null) {
+            Mode mode = Mode.valueOf(modeName);
+            if (!Arrays.asList(modes).contains(mode)) {
+                throw new ForbiddenException();
+            }
+        }
+    }
+
+    @Get("/")
+    public List<Project> getProjects(Context context) {
+        String[] projectIds = ((DatashareUser) context.currentUser()).getProjects().toArray(new String[] {});
+        return repository.getProjects(projectIds);
+    }
+
+    @Post("/")
+    public Payload createProject(Context context) throws IOException {
+        this.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        Project project =  context.extract(Project.class);
+        if (isEmpty(project.name)) {
+            return new Payload("`name` field is required.").withCode(HttpStatus.BAD_REQUEST);
+        }
+        if (project.sourcePath == null) {
+            return new Payload("`sourcePath` field is required.").withCode(HttpStatus.BAD_REQUEST);
+        }
+        if (!this.isDataDirAllowed(project.sourcePath)) {
+            return new Payload(String.format("`sourcePath` cannot be outside %s.", this.dataDir())).withCode(HttpStatus.BAD_REQUEST);
+        }
+        if (!repository.save(project)) {
+            return new Payload("Unable to save the project").withCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new Payload(project).withCode(HttpStatus.CREATED);
+    }
+
+    @Put("/:id")
+    public Payload updateProject(String id, @NotNull Context context) throws IOException {
+        this.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+        Project project =  context.extract(Project.class);
+        if (repository.getProject(id) == null) {
+            return new Payload("Project not found").withCode(HttpStatus.NOT_FOUND);
+        }
+        if (!project.getId().equals(id) || !repository.save(project)) {
+            return new Payload("Unable to save the project").withCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new Payload(project).withCode(HttpStatus.OK);
     }
 
     /**
@@ -43,7 +103,7 @@ public class ProjectResource {
     @Get("/:id")
     public Project getProject(String id) {
         Project project = repository.getProject(id);
-        return project == null ? project(id):project;
+        return project == null ? project(id) : project;
     }
 
     /**
@@ -94,13 +154,22 @@ public class ProjectResource {
      */
     @Delete("/:id")
     public Payload deleteProject(String id, Context context) throws Exception {
-        if (!context.currentUser().isInRole("local")) {
-            return new Payload(401);
-        }
+        this.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         boolean isDeleted = this.repository.deleteAll(id);
         boolean indexDeleted = this.indexer.deleteAll(id);
         LoggerFactory.getLogger(getClass()).info("deleted project {} index (deleted={}) and db (deleted={})", id, indexDeleted, isDeleted);
-
         return new Payload(204);
+    }
+
+    protected String dataDir () {
+        return propertiesProvider.get("dataDir").orElse("/home/datashare/data");
+    }
+
+    protected Path dataDirPath () {
+        return Paths.get(this.dataDir());
+    }
+
+    protected boolean isDataDirAllowed (Path path) {
+        return path.equals(this.dataDirPath()) || path.startsWith(this.dataDirPath());
     }
 }
