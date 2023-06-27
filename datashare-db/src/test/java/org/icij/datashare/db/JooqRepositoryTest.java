@@ -14,8 +14,10 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -51,7 +53,6 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_create_document() throws Exception {
-
         Document document = DocumentBuilder.createDoc("id")
                 .with(project("prj"))
                 .with(Paths.get("/path/to/doc"))
@@ -135,6 +136,18 @@ public class JooqRepositoryTest {
     @Test
     public void test_get_unknown_project() {
         assertThat(repository.getProject("unknown")).isNull();
+    }
+
+    @Test
+    public void test_get_list_project_by_ids() {
+        repository.save(new Project("foo"));
+        repository.save(new Project("bar"));
+        String[] projectIds = {"foo", "bar"};
+        List<Project> projects = repository.getProjects(projectIds);
+        assertThat(projects).hasSize(2);
+        List<String> projectNames = projects.stream().map(Project::getName).collect(Collectors.toList());
+        assertThat("foo").isIn(projectNames);
+        assertThat("bar").isIn(projectNames);
     }
 
     @Test
@@ -327,7 +340,56 @@ public class JooqRepositoryTest {
 
         assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).isEmpty();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
-        assertThat(repository.getRecommentationsBy(project("prj"),asList(user))).isEmpty();
+        assertThat(repository.getRecommentationsBy(project("prj"), asList(user))).isEmpty();
+    }
+    @Test
+    public void test_save_project() {
+        Project project = new Project(
+                "projectId",
+                "Project ID",
+                Path.of("/vault/project"),
+                "https://icij.org",
+                "Data Team",
+                "ICIJ",
+                null,
+                "*",
+                new Date(),
+                new Date());
+        repository.save(project);
+        assertThat(repository.getProject("projectId").getLabel()).isEqualTo("Project ID");
+    }
+
+    @Test
+    public void test_save_existing_project() {
+        repository.save(new Project(
+                "projectId",
+                "Project ID",
+                Path.of("/vault/project"),
+                "https://icij.org",
+                "Data Team",
+                "ICIJ",
+                null,
+                "*",
+                new Date(),
+                new Date()));
+        // Save the same project twice
+        repository.save(new Project(
+                "projectId",
+                "Project ID v2",
+                Path.of("/vault/project/foo"),
+                "https://icij.org/foo",
+                "Tech Team",
+                "ICIJ",
+                null,
+                "*/foo",
+                new Date(),
+                new Date()));
+        Project updatedProject = repository.getProject("projectId");
+        assertThat(updatedProject.getLabel()).isEqualTo("Project ID v2");
+        assertThat(updatedProject.getMaintainerName()).isEqualTo("Tech Team");
+        assertThat(updatedProject.getSourceUrl()).isEqualTo("https://icij.org/foo");
+        // Only this value should be unchanged
+        assertThat(updatedProject.getSourcePath().toString()).isEqualTo("/vault/project");
     }
 
     @Test
