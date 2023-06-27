@@ -191,7 +191,16 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     public Configuration createWebConfiguration() {
-        return routes -> addModeConfiguration(defaultRoutes(addCors(routes, propertiesProvider), propertiesProvider));
+        return routes -> {
+            addModeConfiguration(
+                    defaultRoutes(
+                                addCorsFilter(routes,
+                                        propertiesProvider
+                                ),
+                                propertiesProvider
+                    )
+            );
+        };
     }
 
     protected abstract Routes addModeConfiguration(final Routes routes);
@@ -242,7 +251,7 @@ public abstract class CommonMode extends AbstractModule {
         return propertiesProvider.getProperties().contains(QueueType.REDIS.name());
     }
 
-    private Routes addCors(Routes routes, PropertiesProvider provider) {
+    private Routes addCorsFilter(Routes routes, PropertiesProvider provider) {
         String cors = provider.get("cors").orElse("no-cors");
         if (!cors.equals("no-cors")) {
             routes.filter(new CorsFilter(cors));
