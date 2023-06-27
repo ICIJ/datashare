@@ -350,6 +350,19 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public List<Project> getProjects() {
+        return DSL.using(connectionProvider, dialect).selectFrom(PROJECT).
+                stream().map(this::createProjectFrom).collect(toList());
+    }
+
+    @Override
+    public List<Project> getProjects(String[] projectIds) {
+        return DSL.using(connectionProvider, dialect).selectFrom(PROJECT).
+                where(PROJECT.ID.in(projectIds)).
+                stream().map(this::createProjectFrom).collect(toList());
+    }
+
+    @Override
     public List<Note> getNotes(Project prj, String documentPath) {
         return DSL.using(connectionProvider, dialect).selectFrom(NOTE).
                 where(NOTE.PROJECT_ID.eq(prj.getId())).and(value(documentPath).like(NOTE.PATH.concat('%'))).
@@ -369,14 +382,36 @@ public class JooqRepository implements Repository {
                 values(note.project.name, note.path.toString(), note.note, note.variant.name()).execute() > 0;
     }
 
-    boolean save(Project project) {
-        return DSL.using(connectionProvider, dialect).insertInto(PROJECT, PROJECT.ID, PROJECT.PATH, PROJECT.ALLOW_FROM_MASK).
-                values(project.name, project.sourcePath.toString(), project.allowFromMask).execute() > 0;
+    @Override
+    public boolean save(Project project) {
+        return DSL.using(connectionProvider, dialect).
+                insertInto(
+                        PROJECT, PROJECT.ID, PROJECT.LABEL, PROJECT.PATH, PROJECT.SOURCE_URL,
+                        PROJECT.MAINTAINER_NAME, PROJECT.PUBLISHER_NAME, PROJECT.LOGO_URL,
+                        PROJECT.ALLOW_FROM_MASK,
+                        PROJECT.CREATION_DATE, PROJECT.UPDATE_DATE).
+                values(
+                        project.name, project.label, project.sourcePath.toString(), project.sourceUrl,
+                        project.maintainerName, project.publisherName, project.logoUrl,
+                        project.allowFromMask,
+                        new Timestamp(project.creationDate.getTime()), new Timestamp(project.updateDate.getTime())).
+                onConflict(PROJECT.ID).
+                    doUpdate().
+                        set(PROJECT.LABEL, project.label).
+                        set(PROJECT.SOURCE_URL, project.sourceUrl).
+                        set(PROJECT.MAINTAINER_NAME, project.maintainerName).
+                        set(PROJECT.PUBLISHER_NAME, project.publisherName).
+                        set(PROJECT.LOGO_URL, project.logoUrl).
+                        set(PROJECT.ALLOW_FROM_MASK, project.allowFromMask).
+                        set(PROJECT.UPDATE_DATE, new Timestamp(project.updateDate.getTime())).
+                execute() > 0;
     }
 
     public boolean save(User user) {
-        return DSL.using(connectionProvider, dialect).insertInto(USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL,
-                USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER, USER_INVENTORY.DETAILS).
+        return DSL.using(connectionProvider, dialect).
+                insertInto(
+                        USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL,
+                        USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER, USER_INVENTORY.DETAILS).
                 values(user.id, user.email, user.name, user.provider, JsonUtils.serialize(user.details)).
                 onConflict(USER_INVENTORY.ID).
                     doUpdate().
@@ -421,7 +456,9 @@ public class JooqRepository implements Repository {
 
     // ---------------------------
     private User createUserFrom(Record record) {
-        if (record == null) return null;
+        if (record == null) {
+            return null;
+        }
         UserInventoryRecord userRecord = record.into(USER_INVENTORY);
         if (userRecord.getId() == null) {
             return new User(record.into(DOCUMENT_USER_RECOMMENDATION).getUserId());
@@ -430,15 +467,29 @@ public class JooqRepository implements Repository {
     }
 
     private Note createNoteFrom(NoteRecord noteRecord) {
-        return noteRecord == null ? null: new Note(
-                project(noteRecord.getProjectId()),
+        if (noteRecord == null) {
+            return null;
+        }
+        return new Note(project(noteRecord.getProjectId()),
                 Paths.get(noteRecord.getPath()),
                 noteRecord.getNote(),
                 Note.Variant.valueOf(noteRecord.getVariant()));
     }
 
     private Project createProjectFrom(ProjectRecord record) {
-        return record == null ? null: new Project(record.getId(), Paths.get(record.getPath()), record.getAllowFromMask());
+        if (record == null) {
+            return null;
+        }
+        return new Project(record.getId(),
+                record.getLabel(),
+                Paths.get(record.getPath()),
+                record.getSourceUrl(),
+                record.getMaintainerName(),
+                record.getPublisherName(),
+                record.getLogoUrl(),
+                record.getAllowFromMask(),
+                new Timestamp(record.getCreationDate().getTime()),
+                new Timestamp(record.getUpdateDate().getTime()));
     }
 
     private NamedEntity createFrom(NamedEntityRecord record) {
