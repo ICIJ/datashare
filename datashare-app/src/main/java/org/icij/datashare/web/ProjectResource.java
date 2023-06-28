@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static net.codestory.http.payload.Payload.ok;
 import static org.apache.tika.utils.StringUtils.isEmpty;
@@ -41,7 +42,7 @@ public class ProjectResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    private void checkAllowedMode(Mode ...modes) throws ForbiddenException {
+    void checkAllowedMode(Mode ...modes) throws ForbiddenException {
         String modeName = this.propertiesProvider.get("mode").orElse(null);
         if (modeName != null) {
             Mode mode = Mode.valueOf(modeName);
@@ -51,9 +52,39 @@ public class ProjectResource {
         }
     }
 
+    String[] getServerModeUserProjectIds(DatashareUser user) {
+        return user.getProjects().toArray(String[]::new);
+    }
+
+    String[] getRepositoryUserProjectIds (DatashareUser user) {
+        return repository.getProjects().stream().map(Project::getId).toArray(String[]::new);
+    }
+
+    String[] getUserProjectIds(DatashareUser user) {
+        String modeName = this.propertiesProvider.get("mode").orElse(null);
+        if (!Mode.SERVER.name().equals(modeName)) {
+            return Stream.of(this.getServerModeUserProjectIds(user), this.getRepositoryUserProjectIds(user))
+                    .flatMap(Stream::of)
+                    .toArray(String[]::new);
+        }
+        return this.getServerModeUserProjectIds(user);
+    }
+
+    String dataDir () {
+        return propertiesProvider.get("dataDir").orElse("/home/datashare/data");
+    }
+
+    Path dataDirPath () {
+        return Paths.get(this.dataDir());
+    }
+
+    boolean isDataDirAllowed (Path path) {
+        return path.equals(this.dataDirPath()) || path.startsWith(this.dataDirPath());
+    }
+
     @Get("/")
     public List<Project> getProjects(Context context) {
-        String[] projectIds = ((DatashareUser) context.currentUser()).getProjects().toArray(new String[] {});
+        String[] projectIds = this.getUserProjectIds((DatashareUser) context.currentUser());
         return repository.getProjects(projectIds);
     }
 
@@ -75,6 +106,9 @@ public class ProjectResource {
         }
         if (!repository.save(project)) {
             return new Payload("Unable to save the project").withCode(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        if (!this.indexer.createIndex(project.getId())) {
+            return new Payload("Unable to create the project's index").withCode(HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return new Payload(project).withCode(HttpStatus.CREATED);
     }
@@ -162,17 +196,5 @@ public class ProjectResource {
         boolean indexDeleted = this.indexer.deleteAll(id);
         LoggerFactory.getLogger(getClass()).info("deleted project {} index (deleted={}) and db (deleted={})", id, indexDeleted, isDeleted);
         return new Payload(204);
-    }
-
-    protected String dataDir () {
-        return propertiesProvider.get("dataDir").orElse("/home/datashare/data");
-    }
-
-    protected Path dataDirPath () {
-        return Paths.get(this.dataDir());
-    }
-
-    protected boolean isDataDirAllowed (Path path) {
-        return path.equals(this.dataDirPath()) || path.startsWith(this.dataDirPath());
     }
 }

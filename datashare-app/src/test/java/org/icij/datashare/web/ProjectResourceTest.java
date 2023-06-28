@@ -1,24 +1,27 @@
 package org.icij.datashare.web;
 
+import net.codestory.http.filters.basic.BasicAuthFilter;
+import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.YesBasicAuthFilter;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Properties;
+import java.util.*;
 
+import static java.util.Arrays.asList;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -40,6 +43,25 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider);
             routes.filter(new LocalUserFilter(propertiesProvider)).add(projectResource);
         });
+    }
+
+    private Users get_datashare_users(String uid, List<String> groups) {
+        User user = new User(new HashMap<String, Object>() {
+                    {
+                        this.put("uid", uid);
+                        this.put("groups_by_applications", new HashMap<String, Object>() {
+                            {
+                                this.put("datashare", groups);
+                            }
+                        });
+                    }
+        });
+        return DatashareUser.singleUser(user);
+    }
+
+
+    private Users get_datashare_users(List<String> groups) {
+        return get_datashare_users("local", groups);
     }
 
     @Test
@@ -75,17 +97,57 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_create_project_with_name_and_label() {
-        String body = "{ \"name\": \"foo-bar\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
-        when(repository.save((Project) any())).thenReturn(true);
-        post("/api/project/", body).should().respond(201)
-                .contain("\"name\":\"foo-bar\"")
-                .contain("\"label\":\"Foo Bar\"");
+    public void test_get_all_project_in_local_mode() {
+        Project foo = new Project("foo");
+        Project bar = new Project("bar");
+        when(repository.getProjects(new String[]{"local-datashare", "foo", "bar"})).thenReturn(asList(foo, bar));
+        when(repository.getProjects()).thenReturn(asList(foo, bar));
+        get("/api/project/").should().respond(200)
+                .contain("\"name\":\"foo\"")
+                .contain("\"name\":\"bar\"");
     }
 
     @Test
-    public void test_create_project() {
+    public void test_get_ony_user_project_in_server_mode() {
+        configure(routes -> {
+            PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+                put("mode", Mode.SERVER.name());
+            }});
+            ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider);
+            Users datashareUsers = get_datashare_users(asList("foo", "biz"));
+            BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", datashareUsers);
+            routes.filter(basicAuthFilter).add(projectResource);
+        });
+
+        Project foo = new Project("foo");
+        Project bar = new Project("bar");
+        when(repository.getProjects(new String[]{ "foo", "biz"})).thenReturn(List.of(foo));
+        when(repository.getProjects()).thenReturn(asList(foo, bar));
+        get("/api/project/")
+                .withPreemptiveAuthentication("local", "")
+                .should()
+                    .respond(200)
+                    .contain("\"name\":\"foo\"")
+                    .not().contain("\"name\":\"bar\"");
+    }
+
+    @Test
+    public void test_create_project_with_name_and_label() throws IOException {
+        String body = "{ \"name\": \"foo-bar\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
+        when(indexer.createIndex("foo-bar")).thenReturn(true);
+        when(indexer.createIndex("local-datashare")).thenReturn(true);
+        when(repository.save((Project) any())).thenReturn(true);
+        post("/api/project/", body)
+                .should()
+                    .respond(201)
+                    .contain("\"name\":\"foo-bar\"")
+                    .contain("\"label\":\"Foo Bar\"");
+    }
+
+    @Test
+    public void test_create_project() throws IOException {
         String body = "{ \"name\": \"foo\", \"label\": \"Foo v2\", \"sourcePath\": \"/vault/foo\", \"publisherName\":\"ICIJ\" }";
+        when(indexer.createIndex("foo")).thenReturn(true);
         when(repository.getProject("foo")).thenReturn(null);
         when(repository.save((Project) any())).thenReturn(true);
         post("/api/project/", body).should().respond(201)
@@ -95,8 +157,9 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"sourcePath\":\"file:///vault/foo\"");
     }
     @Test
-    public void test_cannot_create_project_twice() {
+    public void test_cannot_create_project_twice() throws IOException {
         String body = "{ \"name\": \"foo\", \"sourcePath\": \"/vault/foo\" }";
+        when(indexer.createIndex("foo")).thenReturn(true);
         when(repository.save((Project) any())).thenReturn(true);
         when(repository.getProject("foo")).thenReturn(null);
         post("/api/project/", body).should().respond(201);
@@ -119,8 +182,9 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_can_create_project_with_source_path_using_data_dir() {
+    public void test_can_create_project_with_source_path_using_data_dir() throws IOException {
         String body = "{ \"name\": \"foo\", \"label\": \"Foo Bar\", \"sourcePath\": \"/vault\" }";
+        when(indexer.createIndex("foo")).thenReturn(true);
         when(repository.save((Project) any())).thenReturn(true);
         post("/api/project/", body).should().respond(201);
     }
