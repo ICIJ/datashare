@@ -26,7 +26,6 @@ import java.util.stream.Stream;
 import static net.codestory.http.payload.Payload.ok;
 import static org.apache.tika.utils.StringUtils.isEmpty;
 import static org.icij.datashare.text.Project.isAllowed;
-import static org.icij.datashare.text.Project.project;
 
 @Singleton
 @Prefix("/api/project")
@@ -130,17 +129,20 @@ public class ProjectResource {
      * Gets the project information for the given project id.
      *
      * @param id
-     * @return 200 and the project from database if it exists else a transient one
-     *
+     * @return 200 and the project from database if it exists
+     * <p>
      * Example :
-     *
+     * <p>
      * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/apigen-datashare
-     *)
+     * )
      */
     @Get("/:id")
-    public Project getProject(String id) {
+    public Payload getProject(String id) {
         Project project = repository.getProject(id);
-        return project == null ? project(id) : project;
+        if (project == null) {
+            return new Payload("Project not found").withCode(HttpStatus.NOT_FOUND);
+        }
+        return new Payload(project).withCode(HttpStatus.OK);
     }
 
     /**

@@ -74,6 +74,12 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_cannot_get_unknown_project() {
+        when(repository.getProject("projectId")).thenReturn(null);
+        get("/api/project/projectId").should().respond(404);
+    }
+
+    @Test
     public void test_get_project_with_more_properties() {
         Project project = new Project(
                 "projectId",
