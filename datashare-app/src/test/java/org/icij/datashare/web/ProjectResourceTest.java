@@ -86,6 +86,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_create_project() {
         String body = "{ \"name\": \"foo\", \"label\": \"Foo v2\", \"sourcePath\": \"/vault/foo\", \"publisherName\":\"ICIJ\" }";
+        when(repository.getProject("foo")).thenReturn(null);
         when(repository.save((Project) any())).thenReturn(true);
         post("/api/project/", body).should().respond(201)
                 .contain("\"name\":\"foo\"")
@@ -93,16 +94,27 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .contain("\"publisherName\":\"ICIJ\"")
                 .contain("\"sourcePath\":\"file:///vault/foo\"");
     }
+    @Test
+    public void test_cannot_create_project_twice() {
+        String body = "{ \"name\": \"foo\", \"sourcePath\": \"/vault/foo\" }";
+        when(repository.save((Project) any())).thenReturn(true);
+        when(repository.getProject("foo")).thenReturn(null);
+        post("/api/project/", body).should().respond(201);
+        when(repository.getProject("foo")).thenReturn(new Project("foo"));
+        post("/api/project/", body).should().respond(409);
+    }
 
     @Test
     public void test_cannot_create_project_without_source_path() {
         String body = "{ \"name\": \"projectId\", \"label\": \"Project ID\", \"sourceUrl\": \"https://icij.org\", \"publisherName\":\"ICIJ\" }";
+        when(repository.getProject("foo")).thenReturn(null);
         post("/api/project/", body).should().respond(400);
     }
 
     @Test
     public void test_cannot_create_project_with_source_path_outside_data_dir() {
         String body = "{ \"name\": \"foo\", \"label\": \"Foo Bar\", \"sourcePath\": \"/home/foo\" }";
+        when(repository.getProject("foo")).thenReturn(null);
         post("/api/project/", body).should().respond(400);
     }
 
@@ -116,6 +128,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_cannot_create_project_without_name() {
         String body = "{ \"label\": \"Foo Bar\", \"sourcePath\": \"/vault/foo\" }";
+        when(repository.getProject("foo")).thenReturn(null);
         post("/api/project/", body).should().respond(400);
     }
 

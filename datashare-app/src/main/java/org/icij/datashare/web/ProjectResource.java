@@ -61,6 +61,9 @@ public class ProjectResource {
     public Payload createProject(Context context) throws IOException {
         this.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
         Project project =  context.extract(Project.class);
+        if (repository.getProject(project.name) != null) {
+            return new Payload("Project already exists").withCode(HttpStatus.CONFLICT);
+        }
         if (isEmpty(project.name)) {
             return new Payload("`name` field is required.").withCode(HttpStatus.BAD_REQUEST);
         }
