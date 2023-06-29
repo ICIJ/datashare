@@ -228,8 +228,9 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_is_allowed() {
-        when(repository.getProject("projectId")).thenReturn(new Project("projectId", "127.0.0.1"));
-        get("/api/project/isDownloadAllowed/projectId").should().respond(200);
+        Project project = new Project("local-datashare", "127.0.0.1");
+        when(repository.getProject("local-datashare")).thenReturn(project);
+        get("/api/project/isDownloadAllowed/local-datashare").should().respond(200);
     }
 
     @Test
@@ -239,8 +240,8 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_is_not_allowed() {
-        when(repository.getProject("projectId")).thenReturn(new Project("projectId", "127.0.0.2"));
-        get("/api/project/isDownloadAllowed/projectId").should().respond(403);
+        when(repository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "127.0.0.2"));
+        get("/api/project/isDownloadAllowed/local-datashare").should().respond(403);
     }
 
     @Test
