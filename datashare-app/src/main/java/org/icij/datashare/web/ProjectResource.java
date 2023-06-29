@@ -23,6 +23,7 @@
     import java.util.*;
     import java.util.stream.Stream;
 
+    import static java.util.Optional.ofNullable;
     import static net.codestory.http.payload.Payload.ok;
     import static org.apache.tika.utils.StringUtils.isEmpty;
     import static org.icij.datashare.text.Project.isAllowed;
@@ -66,9 +67,17 @@
             return this.getServerModeUserProjectIds(user);
         }
 
-        List<Project> getUserProjects(User user) {
-            String[] projectIds = this.getUserProjectIds((DatashareUser)  user);
+        List<Project> getUserProjects(DatashareUser user) {
+            String[] projectIds = this.getUserProjectIds(user);
             return repository.getProjects(projectIds);
+        }
+
+        Project getUserProject(DatashareUser user, String id) {
+            return getUserProjects(user)
+                    .stream()
+                    .filter((Project p) -> p.getId().equals(id))
+                    .findAny()
+                    .orElse(null);
         }
 
         boolean projectExists(Project project) {
@@ -89,7 +98,7 @@
 
         @Get("/")
         public List<Project> getProjects(Context context) {
-            User user = context.currentUser();
+            DatashareUser user = (DatashareUser) context.currentUser();
             return getUserProjects(user);
         }
 
@@ -137,11 +146,7 @@
          */
         @Get("/:id")
         public Payload getProject(String id, Context context) {
-            Project project = getUserProjects(context.currentUser())
-                    .stream()
-                    .filter((Project p) -> p.getId().equals(id))
-                    .findAny()
-                    .orElse(null);
+            Project project = getUserProject((DatashareUser) context.currentUser(), id);
             if (project == null) {
                 return payloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
@@ -168,8 +173,19 @@
          * $(curl -i -H 'Content-Type:application/json' localhost:8080/api/project/isDownloadAllowed/disallowed-project)
          */
         @Get("/isDownloadAllowed/:id")
-        public Payload isProjectAllowed(String id, Context context) {
-            return isAllowed(repository.getProject(id), context.request().clientAddress()) ? ok(): Payload.forbidden();
+        public Payload isDownloadAllowed(String id, Context context) {
+            List<String> projects = ((DatashareUser) context.currentUser()).getProjects();
+            String projectId = projects.stream()
+                    .filter(i -> i.equals(id))
+                    .findAny()
+                    .orElse(null);
+            Project project = repository.getProject(projectId);
+
+            if (project != null && !isAllowed(project, context.request().clientAddress()))  {
+                return payloadFormatter.error("Download not allowed", HttpStatus.FORBIDDEN);
+            }
+
+            return ok();
         }
 
         /**
