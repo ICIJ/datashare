@@ -21,8 +21,7 @@
     import java.io.IOException;
     import java.nio.file.Path;
     import java.nio.file.Paths;
-    import java.util.Arrays;
-    import java.util.List;
+    import java.util.*;
     import java.util.stream.Stream;
 
     import static net.codestory.http.payload.Payload.ok;
@@ -109,7 +108,8 @@
         }
 
         Payload errorPayload(String message, int status) {
-            return new Payload(message).withCode(status);
+            Map<String, String> body = Collections.singletonMap("error", message);
+            return new Payload(body).withCode(status);
         }
 
         @Get("/")
