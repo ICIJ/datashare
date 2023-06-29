@@ -137,11 +137,11 @@
          */
         @Get("/:id")
         public Payload getProject(String id, Context context) {
-            List<Project> projects = getUserProjects(context.currentUser());
-            Project project = projects.stream()
-              .filter((Project p) -> p.getId().equals(id))
-              .findAny()
-              .orElse(null);
+            Project project = getUserProjects(context.currentUser())
+                    .stream()
+                    .filter((Project p) -> p.getId().equals(id))
+                    .findAny()
+                    .orElse(null);
             if (project == null) {
                 return payloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
