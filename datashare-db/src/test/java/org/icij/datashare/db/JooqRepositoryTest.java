@@ -342,6 +342,7 @@ public class JooqRepositoryTest {
         assertThat(repository.getStarredDocuments(user)).isEmpty();
         assertThat(repository.getRecommentationsBy(project("prj"), asList(user))).isEmpty();
     }
+
     @Test
     public void test_save_project() {
         Project project = new Project(
@@ -465,7 +466,6 @@ public class JooqRepositoryTest {
         assertThat(userEventsAsc.get(1).uri.getPath()).contains("doc_uri3");
         assertThat(userEventsAsc.get(2).uri.getPath()).contains("uri2_doc");
     }
-
 
     @Test(expected = IllegalArgumentException.class)
     public void test_sort_user_history_with_wrong_value(){
