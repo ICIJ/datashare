@@ -7,6 +7,7 @@
     import net.codestory.http.constants.HttpStatus;
     import net.codestory.http.errors.ForbiddenException;
     import net.codestory.http.payload.Payload;
+    import net.codestory.http.security.User;
     import org.icij.datashare.PropertiesProvider;
     import org.icij.datashare.Repository;
     import org.icij.datashare.cli.Mode;
@@ -16,6 +17,7 @@
     import org.jetbrains.annotations.NotNull;
     import org.slf4j.LoggerFactory;
 
+    import javax.xml.crypto.Data;
     import java.io.IOException;
     import java.nio.file.Path;
     import java.nio.file.Paths;
@@ -69,6 +71,15 @@
             return this.getServerModeUserProjectIds(user);
         }
 
+        List<Project> getUserProjects(DatashareUser user) {
+            String[] projectIds = this.getUserProjectIds(user);
+            return repository.getProjects(projectIds);
+        }
+
+        List<Project> getUserProjects(User user) {
+            return getUserProjects((DatashareUser) user);
+        }
+
         String dataDir () {
             return propertiesProvider.get("dataDir").orElse("/home/datashare/data");
         }
@@ -97,26 +108,14 @@
             return project.getSourcePath() == null;
         }
 
-        boolean saveProject(Project project) {
-            return repository.save(project);
-        }
-
-        boolean createProjectIndex(String projectId) throws IOException {
-            return this.indexer.createIndex(projectId);
-        }
-
         Payload errorPayload(String message, int status) {
             return new Payload(message).withCode(status);
         }
 
-        Payload errorPayload(String message) {
-            return errorPayload(message, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
         @Get("/")
         public List<Project> getProjects(Context context) {
-            String[] projectIds = this.getUserProjectIds((DatashareUser) context.currentUser());
-            return repository.getProjects(projectIds);
+            User user = context.currentUser();
+            return getUserProjects(user);
         }
 
         @Post("/")
@@ -133,10 +132,10 @@
                 result = errorPayload("`sourcePath` field is required.", HttpStatus.BAD_REQUEST);
             } else if (!isDataDirAllowed(project.getSourcePath())) {
                 result = errorPayload(String.format("`sourcePath` cannot be outside %s.", this.dataDir()), HttpStatus.BAD_REQUEST);
-            } else if (!saveProject(project)) {
-                result = errorPayload("Unable to save the project");
-            } else if (!createProjectIndex(project.getId())) {
-                result = errorPayload("Unable to create the project's index");
+            } else if (!repository.save(project)) {
+                result = errorPayload("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
+            } else if (!this.indexer.createIndex(project.getId())) {
+                result = errorPayload("Unable to create the project's index", HttpStatus.INTERNAL_SERVER_ERROR);
             } else {
                 result = new Payload(project).withCode(HttpStatus.CREATED);
             }
@@ -151,8 +150,8 @@
             if (!projectExists(id)) {
                 return errorPayload("Project not found", HttpStatus.NOT_FOUND);
             }
-            if (!project.getId().equals(id) || !saveProject(project)) {
-                return errorPayload("Unable to save the project");
+            if (!project.getId().equals(id) || !repository.save(project)) {
+                return errorPayload("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
             return new Payload(project).withCode(HttpStatus.OK);
         }
