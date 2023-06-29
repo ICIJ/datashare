@@ -92,3 +92,6 @@ databaseChangeLog:
   - include:
       file: changes/030-adds-metadata-to-project.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/031-adds-description-to-project.yml
+      relativeToChangelogFile: true

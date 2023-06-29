@@ -85,6 +85,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         Project project = new Project(
                 "projectId",
                 "Project ID",
+                "A description",
                 Path.of("/vault/project"),
                 "https://icij.org",
                 "Data Team",
@@ -98,6 +99,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 .respond(200)
                 .contain("\"name\":\"projectId\"")
                 .contain("\"label\":\"Project ID\"")
+                .contain("\"description\":\"A description\"")
                 .contain("\"sourceUrl\":\"https://icij.org\"")
                 .contain("\"maintainerName\":\"Data Team\"")
                 .contain("\"publisherName\":\"ICIJ\"")

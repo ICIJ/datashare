@@ -386,18 +386,19 @@ public class JooqRepository implements Repository {
     public boolean save(Project project) {
         return DSL.using(connectionProvider, dialect).
                 insertInto(
-                        PROJECT, PROJECT.ID, PROJECT.LABEL, PROJECT.PATH, PROJECT.SOURCE_URL,
+                        PROJECT, PROJECT.ID, PROJECT.LABEL, PROJECT.DESCRIPTION, PROJECT.PATH, PROJECT.SOURCE_URL,
                         PROJECT.MAINTAINER_NAME, PROJECT.PUBLISHER_NAME, PROJECT.LOGO_URL,
                         PROJECT.ALLOW_FROM_MASK,
                         PROJECT.CREATION_DATE, PROJECT.UPDATE_DATE).
                 values(
-                        project.name, project.label, project.sourcePath.toString(), project.sourceUrl,
+                        project.name, project.label, project.description, project.sourcePath.toString(), project.sourceUrl,
                         project.maintainerName, project.publisherName, project.logoUrl,
                         project.allowFromMask,
                         new Timestamp(project.creationDate.getTime()), new Timestamp(project.updateDate.getTime())).
                 onConflict(PROJECT.ID).
                     doUpdate().
                         set(PROJECT.LABEL, project.label).
+                        set(PROJECT.DESCRIPTION, project.description).
                         set(PROJECT.SOURCE_URL, project.sourceUrl).
                         set(PROJECT.MAINTAINER_NAME, project.maintainerName).
                         set(PROJECT.PUBLISHER_NAME, project.publisherName).
@@ -482,6 +483,7 @@ public class JooqRepository implements Repository {
         }
         return new Project(record.getId(),
                 record.getLabel(),
+                record.getDescription(),
                 Paths.get(record.getPath()),
                 record.getSourceUrl(),
                 record.getMaintainerName(),
