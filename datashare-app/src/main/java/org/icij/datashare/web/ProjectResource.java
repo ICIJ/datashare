@@ -5,7 +5,6 @@
     import net.codestory.http.Context;
     import net.codestory.http.annotations.*;
     import net.codestory.http.constants.HttpStatus;
-    import net.codestory.http.errors.ForbiddenException;
     import net.codestory.http.payload.Payload;
     import net.codestory.http.security.User;
     import org.icij.datashare.PropertiesProvider;
@@ -14,13 +13,13 @@
     import org.icij.datashare.session.DatashareUser;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
+    import org.icij.datashare.utils.DataDirVerifier;
+    import org.icij.datashare.utils.ModeVerifier;
+    import org.icij.datashare.utils.PayloadFormatter;
     import org.jetbrains.annotations.NotNull;
     import org.slf4j.LoggerFactory;
 
-    import javax.xml.crypto.Data;
     import java.io.IOException;
-    import java.nio.file.Path;
-    import java.nio.file.Paths;
     import java.util.*;
     import java.util.stream.Stream;
 
@@ -34,22 +33,19 @@
         private final Repository repository;
         private final Indexer indexer;
         private final PropertiesProvider propertiesProvider;
+        private final DataDirVerifier dataDirVerifier;
+        private final ModeVerifier modeVerifier;
+        private final PayloadFormatter payloadFormatter;
+
 
         @Inject
         public ProjectResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider) {
             this.repository = repository;
             this.indexer = indexer;
             this.propertiesProvider = propertiesProvider;
-        }
-
-        void checkAllowedMode(Mode... modes) throws ForbiddenException {
-            String modeName = propertiesProvider.get("mode").orElse(null);
-            if (modeName != null) {
-                Mode mode = Mode.valueOf(modeName);
-                if (!Arrays.asList(modes).contains(mode)) {
-                    throw new ForbiddenException();
-                }
-            }
+            this.dataDirVerifier = new DataDirVerifier(propertiesProvider);;
+            this.modeVerifier = new ModeVerifier(propertiesProvider);
+            this.payloadFormatter = new PayloadFormatter();
         }
 
         String[] getServerModeUserProjectIds(DatashareUser user) {
@@ -75,18 +71,6 @@
             return repository.getProjects(projectIds);
         }
 
-        String dataDir () {
-            return propertiesProvider.get("dataDir").orElse("/home/datashare/data");
-        }
-
-        Path dataDirPath () {
-            return Paths.get(this.dataDir());
-        }
-
-        boolean isDataDirAllowed (Path path) {
-            return path.equals(this.dataDirPath()) || path.startsWith(this.dataDirPath());
-        }
-
         boolean projectExists(Project project) {
             return projectExists(project.getName());
         }
@@ -103,11 +87,6 @@
             return project.getSourcePath() == null;
         }
 
-        Payload errorPayload(String message, int status) {
-            Map<String, String> body = Collections.singletonMap("error", message);
-            return new Payload(body).withCode(status);
-        }
-
         @Get("/")
         public List<Project> getProjects(Context context) {
             User user = context.currentUser();
@@ -116,17 +95,17 @@
 
         @Post("/")
         public Payload createProject(Context context) throws IOException {
-            checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+            modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             Project project = context.extract(Project.class);
 
             if (projectExists(project)) {
-                return errorPayload("Project already exists.", HttpStatus.CONFLICT);
+                return payloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
             } else if (isProjectNameEmpty(project)) {
-                return errorPayload("`name` field is required.", HttpStatus.BAD_REQUEST);
-            } else if (isProjectSourcePathNull(project) || !isDataDirAllowed(project.getSourcePath())) {
-                return errorPayload(String.format("`sourcePath` is required and must not be outside %s.", this.dataDir()), HttpStatus.BAD_REQUEST);
+                return payloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
+            } else if (isProjectSourcePathNull(project) || !dataDirVerifier.allowed(project.getSourcePath())) {
+                return payloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
             } else if (!repository.save(project) || !this.indexer.createIndex(project.getId())) {
-                return errorPayload("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
+                return payloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             return new Payload(project).withCode(HttpStatus.CREATED);
@@ -134,13 +113,13 @@
 
         @Put("/:id")
         public Payload updateProject(String id, @NotNull Context context) throws IOException {
-            checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+            modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             Project project = context.extract(Project.class);
-            if (!projectExists(id)) {
-                return errorPayload("Project not found", HttpStatus.NOT_FOUND);
+            if (!projectExists(project) || !Objects.equals(project.getId(), id)) {
+                return payloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
             if (!project.getId().equals(id) || !repository.save(project)) {
-                return errorPayload("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
+                return payloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
             return new Payload(project).withCode(HttpStatus.OK);
         }
@@ -160,7 +139,7 @@
         public Payload getProject(String id) {
             Project project = repository.getProject(id);
             if (project == null) {
-                return errorPayload("Project not found", HttpStatus.NOT_FOUND);
+                return payloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
             return new Payload(project).withCode(HttpStatus.OK);
         }
@@ -213,7 +192,7 @@
          */
         @Delete("/:id")
         public Payload deleteProject(String id, Context context) throws Exception {
-            checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+            modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             boolean isDeleted = repository.deleteAll(id);
             boolean indexDeleted = indexer.deleteAll(id);
             LoggerFactory.getLogger(getClass()).info("deleted project {} index (deleted={}) and db (deleted={})", id, indexDeleted, isDeleted);
