@@ -65,7 +65,7 @@
     <repositories>
         <repository>
             <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
+            <url>https://www.jitpack.io</url>
         </repository>
     </repositories>
 
@@ -99,8 +99,8 @@
         <bouncycastle.version>1.66</bouncycastle.version>
         <httpcomponents.version>4.5.2</httpcomponents.version>
         <joptsimple.version>6.0-alpha-3</joptsimple.version>
-        <slf4j.version>1.7.25</slf4j.version>
-        <logback.version>1.2.9</logback.version>
+        <slf4j.version>2.0.6</slf4j.version>
+        <logback.version>1.4.5</logback.version>
         <log4jtoslf4j.version>2.17.2</log4jtoslf4j.version>
         <log4-over-slf4j.version>2.17.2</log4-over-slf4j.version>
         <junit.version>4.13.1</junit.version>
