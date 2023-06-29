@@ -26,6 +26,7 @@ public class Project implements Entity {
     @JsonIgnore
     private final Pattern pattern;
     public final String label;
+    public final String description;
     public final String publisherName;
     public final String maintainerName;
     public final String logoUrl;
@@ -45,19 +46,18 @@ public class Project implements Entity {
     }
 
     public Project(String name, Path sourcePath, String allowFromMask) {
-        this.name = name;
-        this.label = name;
-        this.sourcePath = sourcePath;
-        this.sourceUrl = null;
-        this.maintainerName = null;
-        this.publisherName = null;
-        this.logoUrl = null;
-        this.creationDate = new Date();
-        this.updateDate = new Date();
-        this.allowFromMask = allowFromMask;
-        this.pattern = Pattern.compile(allowFromMask.
-                replace(".", "\\.").
-                replace("*", "\\d{1,3}"));
+        this(name,
+            name,
+            null,
+            sourcePath,
+            null,
+            null,
+            null,
+            null,
+            allowFromMask,
+            new Date(),
+            new Date()
+        );
     }
 
     public Project(String name,
@@ -70,8 +70,34 @@ public class Project implements Entity {
                    String allowFromMask,
                    Date creationDate,
                    Date updateDate) {
+        this(name,
+            label,
+            null,
+            sourcePath,
+            sourceUrl,
+            maintainerName,
+            publisherName,
+            logoUrl,
+            allowFromMask,
+            creationDate,
+            updateDate
+        );
+    }
+
+    public Project(String name,
+                   String label,
+                   String description,
+                   Path sourcePath,
+                   String sourceUrl,
+                   String maintainerName,
+                   String publisherName,
+                   String logoUrl,
+                   String allowFromMask,
+                   Date creationDate,
+                   Date updateDate) {
         this.name = name;
         this.label = label;
+        this.description = description;
         this.sourcePath = sourcePath;
         this.sourceUrl = sourceUrl;
         this.maintainerName = maintainerName;
@@ -109,6 +135,10 @@ public class Project implements Entity {
 
     public String getLabel() {
         return label;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public String getMaintainerName() {
