@@ -56,27 +56,23 @@
             return user.getProjects().toArray(String[]::new);
         }
 
-        String[] getRepositoryUserProjectIds (DatashareUser user) {
+        String[] getAllProjectIds () {
             return repository.getProjects().stream().map(Project::getId).toArray(String[]::new);
         }
 
         String[] getUserProjectIds(DatashareUser user) {
             String modeName = this.propertiesProvider.get("mode").orElse(null);
             if (!Mode.SERVER.name().equals(modeName)) {
-                return Stream.of(this.getServerModeUserProjectIds(user), this.getRepositoryUserProjectIds(user))
+                return Stream.of(this.getServerModeUserProjectIds(user), this.getAllProjectIds())
                         .flatMap(Stream::of)
                         .toArray(String[]::new);
             }
             return this.getServerModeUserProjectIds(user);
         }
 
-        List<Project> getUserProjects(DatashareUser user) {
-            String[] projectIds = this.getUserProjectIds(user);
-            return repository.getProjects(projectIds);
-        }
-
         List<Project> getUserProjects(User user) {
-            return getUserProjects((DatashareUser) user);
+            String[] projectIds = this.getUserProjectIds((DatashareUser)  user);
+            return repository.getProjects(projectIds);
         }
 
         String dataDir () {
