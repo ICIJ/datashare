@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 59
+      author: promera
+      changes:
+        - addColumn:
+            tableName: project
+            column:
+              name: description
+              type: varchar(4096)
+              defaultValue: ''

@@ -347,7 +347,7 @@ public class JooqRepositoryTest {
     public void test_save_project() {
         Project project = new Project(
                 "projectId",
-                "Project ID",
+                "Project",
                 Path.of("/vault/project"),
                 "https://icij.org",
                 "Data Team",
@@ -357,7 +357,24 @@ public class JooqRepositoryTest {
                 new Date(),
                 new Date());
         repository.save(project);
-        assertThat(repository.getProject("projectId").getLabel()).isEqualTo("Project ID");
+        assertThat(repository.getProject("projectId").getLabel()).isEqualTo("Project");
+    }
+    @Test
+    public void test_save_project_with_description() {
+        Project project = new Project(
+                "anotherProjectId",
+                "Another Project",
+                "This is a another project",
+                Path.of("/vault/project"),
+                "https://icij.org",
+                "Data Team",
+                "ICIJ",
+                null,
+                "*",
+                new Date(),
+                new Date());
+        repository.save(project);
+        assertThat(repository.getProject("anotherProjectId").getDescription()).isEqualTo("This is a another project");
     }
 
     @Test
