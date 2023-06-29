@@ -67,7 +67,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_project() {
         Project project = new Project("projectId");
-        when(repository.getProject("projectId")).thenReturn(project);
+        when(repository.getProjects(any())).thenReturn(List.of(project));
         get("/api/project/projectId").should().respond(200)
                 .contain("\"name\":\"projectId\"")
                 .contain("\"label\":\"projectId\"");
