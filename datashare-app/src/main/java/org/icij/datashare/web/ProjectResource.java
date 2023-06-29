@@ -122,25 +122,18 @@
         public Payload createProject(Context context) throws IOException {
             checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             Project project = context.extract(Project.class);
-            Payload result;
 
             if (projectExists(project)) {
-                result = errorPayload("Project already exists.", HttpStatus.CONFLICT);
+                return errorPayload("Project already exists.", HttpStatus.CONFLICT);
             } else if (isProjectNameEmpty(project)) {
-                result = errorPayload("`name` field is required.", HttpStatus.BAD_REQUEST);
-            } else if (isProjectSourcePathNull(project)) {
-                result = errorPayload("`sourcePath` field is required.", HttpStatus.BAD_REQUEST);
-            } else if (!isDataDirAllowed(project.getSourcePath())) {
-                result = errorPayload(String.format("`sourcePath` cannot be outside %s.", this.dataDir()), HttpStatus.BAD_REQUEST);
-            } else if (!repository.save(project)) {
-                result = errorPayload("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
-            } else if (!this.indexer.createIndex(project.getId())) {
-                result = errorPayload("Unable to create the project's index", HttpStatus.INTERNAL_SERVER_ERROR);
-            } else {
-                result = new Payload(project).withCode(HttpStatus.CREATED);
+                return errorPayload("`name` field is required.", HttpStatus.BAD_REQUEST);
+            } else if (isProjectSourcePathNull(project) || !isDataDirAllowed(project.getSourcePath())) {
+                return errorPayload(String.format("`sourcePath` is required and must not be outside %s.", this.dataDir()), HttpStatus.BAD_REQUEST);
+            } else if (!repository.save(project) || !this.indexer.createIndex(project.getId())) {
+                return errorPayload("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            return result;
+            return new Payload(project).withCode(HttpStatus.CREATED);
         }
 
         @Put("/:id")
