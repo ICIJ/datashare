@@ -68,14 +68,15 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     public void test_get_project() {
         Project project = new Project("projectId");
         when(repository.getProjects(any())).thenReturn(List.of(project));
-        get("/api/project/projectId").should().respond(200)
+        get("/api/project/projectId").should()
+                .respond(200)
                 .contain("\"name\":\"projectId\"")
                 .contain("\"label\":\"projectId\"");
     }
 
     @Test
     public void test_cannot_get_unknown_project() {
-        when(repository.getProject("projectId")).thenReturn(null);
+        when(repository.getProjects(any())).thenReturn(new ArrayList<>());
         get("/api/project/projectId").should().respond(404);
     }
 
@@ -92,8 +93,9 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 "*",
                 new Date(),
                 new Date());
-        when(repository.getProject("projectId")).thenReturn(project);
-        get("/api/project/projectId").should().respond(200)
+        when(repository.getProjects(any())).thenReturn(List.of(project));
+        get("/api/project/projectId").should()
+                .respond(200)
                 .contain("\"name\":\"projectId\"")
                 .contain("\"label\":\"Project ID\"")
                 .contain("\"sourceUrl\":\"https://icij.org\"")
