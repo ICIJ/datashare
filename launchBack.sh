@@ -11,9 +11,15 @@ else
   JAVA=${JAVA_HOME}/bin/java
 fi
 
+if [[ $(uname) == "Darwin" ]]; then
+  DOCKER_PS=docker ps
+else
+  DOCKER_PS=sudo docker ps
+fi
+
 export DS_DOCKER_PREVIEW_HOST="http://localhost:5000"
-export DS_DOCKER_BACK_HOST="http://localhost:$(sudo docker ps|grep 8080|sed 's/.*0.0.0.0:\([0-9]\{4\}\)->8080.*/\1/g')"
-export DS_DOCKER_FRONT_HOST="http://localhost:$(sudo docker ps|grep 9090|sed 's/.*0.0.0.0:\([0-9]\{4\}\)->9090.*/\1/g')"
+export DS_DOCKER_BACK_HOST="http://localhost:$($DOCKER_PS|grep 8080|sed 's/.*0.0.0.0:\([0-9]\{4\}\)->8080.*/\1/g')"
+export DS_DOCKER_FRONT_HOST="http://localhost:$($DOCKER_PS|grep 9090|sed 's/.*0.0.0.0:\([0-9]\{4\}\)->9090.*/\1/g')"
 export DS_DOCKER_USER_ADMIN="icij"
 
 mkdir -p $DIR/dist
