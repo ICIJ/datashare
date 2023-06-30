@@ -115,10 +115,11 @@ public class BatchSearchResource {
      * content-disposition attachment (file downloading)
      *
      * the optional request parameters are :
-     * - from : if not provided it starts from 0
-     * - size : if not provided all queries are returned from the "from" parameter
-     * - search : if provided it will filter the queries accordingly
-     * - orderBy : field name to order by asc, "query_number" by default (if it does not exist it will return a 500 error)
+     * - from: if not provided it starts from 0
+     * - size: if not provided all queries are returned from the "from" parameter
+     * - search: if provided it will filter the queries accordingly
+     * - orderBy: field name to order by asc, "query_number" by default (if it does not exist it will return a 500 error)
+     * - maxResult: number of maximum results for each returned query (-1 means no maxResults)
      *
      * @param batchId
      * @return 200 and the batch search queries map [(query, nbResults), ...]
@@ -128,14 +129,20 @@ public class BatchSearchResource {
      */
     @Get("/search/:batchid/queries")
     public Payload getBatchQueries(String batchId, Context context) {
+        User user = (User) context.currentUser();
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(ofNullable(context.get("size")).orElse("0"));
+        String search = context.get("search");
+        String orderBy = context.get("orderBy");
+        int maxResults = Integer.parseInt(ofNullable(context.get("maxResults")).orElse("-1"));
 
-        Map<String,Integer> queries = batchSearchRepository.getQueries((User) context.currentUser(), batchId, from, size, context.get("search"), context.get("orderBy"));
+        Map<String, Integer> queries = batchSearchRepository.getQueries(user, batchId, from, size, search, orderBy, maxResults);
 
         if ("csv".equals(context.get("format"))) {
-            return new Payload("text/csv;charset=UTF-8", String.join("\n", queries.keySet())).
-                            withHeader("Content-Disposition", "attachment;filename=\"" + batchId + "-queries.csv\"");
+            String contentType = "text/csv;charset=UTF-8";
+            String queriesFilename = batchId + "-queries.csv";
+            String body = String.join("\n", queries.keySet());
+            return new Payload(contentType, body). withHeader("Content-Disposition", "attachment;filename=\"" + queriesFilename + "\"");
         }
         return new Payload(queries);
     }
@@ -193,7 +200,10 @@ public class BatchSearchResource {
      */
     @Patch("/search/:batchid")
     public Payload updateBatch(String batchId, Context context, JsonData data) {
-        return batchSearchRepository.publish((User) context.currentUser(), batchId, data.asBoolean("published")) ? ok(): notFound();
+        if (batchSearchRepository.publish((User) context.currentUser(), batchId, data.asBoolean("published"))) {
+            return ok();
+        }
+        return notFound();
     }
 
     /**

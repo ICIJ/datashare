@@ -40,7 +40,7 @@ public class DbSetupRule extends ExternalResource {
         dbSetup.launch();
     }
 
-    BatchSearchRepository createBatchSearchRepository() {
+    JooqBatchSearchRepository createBatchSearchRepository() {
         return new JooqBatchSearchRepository(dataSource, RepositoryFactoryImpl.guessSqlDialectFrom(dataSourceUrl));
     }
 
