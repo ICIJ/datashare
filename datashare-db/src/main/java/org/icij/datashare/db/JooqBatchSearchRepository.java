@@ -206,28 +206,18 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if(from < 0 || size < 0) {
             throw new IllegalArgumentException("from or size argument cannot be negative");
         }
-        SelectConditionStep<Record> statement = using(dataSource, dialect)
-                .select()
-                .from(BATCH_SEARCH_QUERY)
-                .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchId));
+        SelectConditionStep<Record> statement = using(dataSource, dialect).select().from(BATCH_SEARCH_QUERY).where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchId));
         if (search != null) {
             statement.and(BATCH_SEARCH_QUERY.QUERY.contains(search));
         }
         if (maxResults > -1) {
             statement.and(BATCH_SEARCH_QUERY.QUERY_RESULTS.lessOrEqual(maxResults));
         }
-        if (orderBy != null) {
-            statement.orderBy(field(orderBy).asc());
-        } else {
-            statement.orderBy(BATCH_SEARCH_QUERY.QUERY_NUMBER.asc());
-        }
-
-        if (size > 0) {
-            statement.limit(size);
-        }
-        statement.offset(from);
-
-        return statement.fetch().stream().map(r -> {
+        return statement
+                .orderBy(orderBy != null ? field(orderBy).asc() : BATCH_SEARCH_QUERY.QUERY_NUMBER.asc())
+                .limit(size > 0 ? size : null)
+                .offset(from)
+                .fetch().stream().map(r -> {
                     return new AbstractMap.SimpleEntry<>(r.get("query", String.class), r.get("query_results", Integer.class));
                 }).collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (u,v) -> {
                     throw new IllegalStateException(String.format("Duplicate key %s", u));
