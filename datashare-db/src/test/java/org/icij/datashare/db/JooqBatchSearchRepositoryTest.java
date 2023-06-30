@@ -4,6 +4,7 @@ import org.icij.datashare.batch.*;
 import org.icij.datashare.batch.BatchSearchRecord.State;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.jooq.exception.DataAccessException;
@@ -30,7 +31,7 @@ public class JooqBatchSearchRepositoryTest {
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-08-04T10:20:30Z");
     @Rule public DbSetupRule dbRule;
     @Rule public TemporaryFolder dataFolder = new TemporaryFolder();
-    private final BatchSearchRepository repository;
+    private final JooqBatchSearchRepository repository;
 
     @Parameterized.Parameters
     public static Collection<Object[]> dataSources() {
@@ -568,8 +569,12 @@ public class JooqBatchSearchRepositoryTest {
 
     @Test
     public void test_get_batch_search_queries() {
-        BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
-                new LinkedHashSet<String>() {{add("q2");add("q1");}}, new Date(), State.RUNNING, User.local());
+        List<Project> project = singletonList(project("prj"));
+        LinkedHashSet<String> bsQueries = new LinkedHashSet<String>() {{
+            add("q2");
+            add("q1");
+        }};
+        BatchSearch batchSearch = new BatchSearch("uuid", project, "name1", "description1", bsQueries, new Date(), State.RUNNING, User.local());
         repository.save(batchSearch);
         Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null);
 
@@ -583,6 +588,64 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 1, 2, null, null)).hasSize(1);
         assertThat(repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null)).hasSize(2);
     }
+
+    @Test
+    public void test_get_batch_search_queries_with_zero_results() {
+        List<Project> project = singletonList(project("prj"));
+        LinkedHashSet<String> bsQueries = new LinkedHashSet<String>() {{
+            add("q1");
+            add("q2");
+            add("q3");
+        }};
+        BatchSearch batchSearch = new BatchSearch("uuid", project, "name1", "description1", bsQueries, new Date(), State.RUNNING, User.local());
+        repository.save(batchSearch);
+        repository.saveResults(batchSearch.uuid, "q2", List.of(createDoc("doc1").build()));
+        repository.saveResults(batchSearch.uuid, "q3", List.of(createDoc("doc1").build()));
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 0, null, null, 0);
+        assertThat(queries).isNotNull();
+        assertThat(queries).hasSize(1);
+        Iterator<Entry<String, Integer>> entrySetIterator = queries.entrySet().iterator();
+        assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q1", 0));
+    }
+
+    @Test
+    public void test_get_batch_search_queries_with_two_as_max_results() {
+        List<Project> project = singletonList(project("foo"));
+        LinkedHashSet<String> bsQueries = new LinkedHashSet<String>() {{
+            add("q1");
+            add("q2");
+        }};
+        BatchSearch batchSearch = new BatchSearch("bar", project, "name1", "description1", bsQueries, new Date(), State.RUNNING, User.local());
+        repository.save(batchSearch);
+        repository.saveResults(batchSearch.uuid, "q2", List.of(createDoc("doc1").build()));
+        repository.saveResults(batchSearch.uuid, "q2", List.of(createDoc("doc2").build()));
+        repository.saveResults(batchSearch.uuid, "q2", List.of(createDoc("doc3").build()));
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null, 1);
+        assertThat(queries).isNotNull();
+        assertThat(queries).hasSize(1);
+        Iterator<Entry<String, Integer>> entrySetIterator = queries.entrySet().iterator();
+        assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q1", 0));
+    }
+
+    @Test
+    public void test_get_batch_search_queries_with_no_max_results() {
+        List<Project> project = singletonList(project("prj"));
+        LinkedHashSet<String> bsQueries = new LinkedHashSet<String>() {{
+            add("q1");
+            add("q2");
+        }};
+        BatchSearch batchSearch = new BatchSearch("uuid", project, "name1", "description1", bsQueries, new Date(), State.RUNNING, User.local());
+        List<Document> matchingDocuments = List.of(createDoc("doc1").build());
+        repository.save(batchSearch);
+        repository.saveResults(batchSearch.uuid, "q2", matchingDocuments);
+        Map<String, Integer> queries = repository.getQueries(batchSearch.user, batchSearch.uuid, 0, 2, null, null, -1);
+        assertThat(queries).isNotNull();
+        assertThat(queries).hasSize(2);
+        Iterator<Entry<String, Integer>> entrySetIterator = queries.entrySet().iterator();
+        assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q1", 0));
+        assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q2", 1));
+    }
+
     static public Entry<String, Integer> GetEntry(Map<String,Integer> queries, int position){
         Iterator<Entry<String, Integer>> iterator = queries.entrySet().iterator();
         int i = 0;
@@ -597,10 +660,12 @@ public class JooqBatchSearchRepositoryTest {
     public void test_get_batch_search_queries_with_negative_from_is_illegal() {
        repository.getQueries(User.local(), "uuid", -1, 2, null, null);
     }
+
     @Test(expected = IllegalArgumentException.class)
     public void test_get_batch_search_queries_with_negative_size_is_illegal() {
         repository.getQueries(User.local(), "uuid", 2, -1, null, null);
     }
+
     @Test
     public void test_get_batch_search_queries_with_search_filter() {
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name1", "description1",
