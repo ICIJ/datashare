@@ -9,7 +9,18 @@ import org.icij.datashare.json.JsonUtils;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.jooq.*;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.InsertValuesStep2;
+import org.jooq.InsertValuesStep3;
+import org.jooq.InsertValuesStep5;
+import org.jooq.InsertValuesStep6;
+import org.jooq.InsertValuesStep9;
+import org.jooq.Record;
+import org.jooq.Record1;
+import org.jooq.SQLDialect;
+import org.jooq.SelectConditionStep;
+import org.jooq.SortField;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.slf4j.LoggerFactory;
@@ -128,7 +139,8 @@ public class JooqRepository implements Repository {
     // this could be removed later
     @Override
     public int star(Project project, User user, List<String> documentIds) {
-        InsertValuesStep3<DocumentUserStarRecord, String, String, String> query = using(connectionProvider, dialect).
+        InsertValuesStep3<DocumentUserStarRecord, String, String, String>
+            query = using(connectionProvider, dialect).
                 insertInto(DOCUMENT_USER_STAR, DOCUMENT_USER_STAR.DOC_ID, DOCUMENT_USER_STAR.USER_ID, DOCUMENT_USER_STAR.PRJ_ID);
         documentIds.forEach(t -> query.values(t, user.id, project.getId()));
         return query.onConflictDoNothing().execute();
@@ -180,7 +192,8 @@ public class JooqRepository implements Repository {
     public boolean addToUserHistory(List<Project> projects, UserEvent userEvent) {
         return using(connectionProvider, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
-            InsertValuesStep6<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String> insertHistory = inner.
+            InsertValuesStep6<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String>
+                insertHistory = inner.
                     insertInto(USER_HISTORY, USER_HISTORY.CREATION_DATE, USER_HISTORY.MODIFICATION_DATE,
                             USER_HISTORY.USER_ID, USER_HISTORY.TYPE, USER_HISTORY.NAME, USER_HISTORY.URI);
             insertHistory.values(new Timestamp(userEvent.creationDate.getTime()), new Timestamp(userEvent.modificationDate.getTime()),
@@ -224,7 +237,8 @@ public class JooqRepository implements Repository {
 
     @Override
     public int getUserHistorySize(User user, UserEvent.Type type, String... projectIds) {
-        SelectConditionStep<Record1<Integer>> query = using(connectionProvider, dialect).selectCount().from(USER_HISTORY).
+        SelectConditionStep<Record1<Integer>>
+            query = using(connectionProvider, dialect).selectCount().from(USER_HISTORY).
                 where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id));
         if(projectIds.length>0){
             query.and(USER_HISTORY.ID.in(select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds))));
