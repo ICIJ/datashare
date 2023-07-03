@@ -10,14 +10,14 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.SendFailedException;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -47,6 +47,24 @@ public class MailSenderTest {
 		assertEquals(1, fakeSmtpServer.getMessages().size());
 		Mail receivedMail = extractMail(fakeSmtpServer.getMessages().get(0).getMimeMessage());
 		assertEquals(mail.toString(), receivedMail.toString());
+	}
+
+	@Test public void sendSimpleMailWithUserPass() throws Exception {
+		MailSender passSender = new MailSender("localhost", testSmtpPort, "user", "password");
+		Mail mail = new Mail("from", "recipient@fake.net", "subject", "body");
+
+		passSender.send(mail);
+
+		assertEquals(1, fakeSmtpServer.getMessages().size());
+	}
+
+	@Test public void sendSimpleMailWithUserPassUrl() throws Exception {
+		MailSender passSender = new MailSender(new URI("smtp://user:password@host:12345"));
+
+		assertThat(passSender.user).isEqualTo("user");
+		assertThat(passSender.password).isEqualTo("password");
+		assertThat(passSender.port).isEqualTo(12345);
+		assertThat(passSender.host).isEqualTo("host");
 	}
 
 	@Test public void sendMailWithCC() throws Exception {
