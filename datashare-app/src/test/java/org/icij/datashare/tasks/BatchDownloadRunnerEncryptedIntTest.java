@@ -45,7 +45,8 @@ public class BatchDownloadRunnerEncryptedIntTest {
         verify(mailSender).send(mailCaptor.capture());
         assertThat(mailCaptor.getValue().from).isEqualTo("engineering@icij.org");
         assertThat(mailCaptor.getValue().toRecipientList).containsExactly("foo@bar.com");
-        assertThat(mailCaptor.getValue().subject).isEqualTo("[datashare] " + batchDownload.filename.getFileName());
+        assertThat(mailCaptor.getValue().subject).isEqualTo("[Datashare] Your batch download is ready - " + batchDownload.filename.getFileName());
+        assertThat(mailCaptor.getValue().messageBody).contains("https://datashare-demo.icij.org/#/tasks/batch-download");
     }
 
     @NotNull
@@ -63,6 +64,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
     private PropertiesProvider createProvider() {
         return new PropertiesProvider(new HashMap<String, String>() {{
             put("downloadFolder", fs.getRoot().toString());
+            put("rootHost", "https://datashare-demo.icij.org");
         }});
     }
 }
