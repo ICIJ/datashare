@@ -6,6 +6,7 @@ import net.lingala.zip4j.io.outputstream.ZipOutputStream;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
@@ -123,9 +124,13 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     }
 
     private Zipper createZipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider, Function<URI, MailSender> mailSenderSupplier) throws URISyntaxException, IOException {
-        return batchDownload.encrypted ?
-                new ZipperWithPassword(batchDownload, mailSenderSupplier.apply(new URI(propertiesProvider.get("smtpUrl").orElse("smtp://localhost:25")))):
-                new Zipper(batchDownload);
+        if (batchDownload.encrypted) {
+            String rootHost = propertiesProvider.get("rootHost").orElse(null);
+            URI mailSenderUri = new URI(propertiesProvider.get("smtpUrl").orElse("smtp://localhost:25"));
+            MailSender mailSender = mailSenderSupplier.apply(mailSenderUri);
+            return new ZipperWithPassword(batchDownload, mailSender, rootHost);
+        }
+        return new Zipper(batchDownload);
     }
 
     @Override
@@ -194,15 +199,28 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private static class ZipperWithPassword extends Zipper {
         private final String password;
         private final MailSender passwordSender;
+        private final String rootHost;
 
-        public ZipperWithPassword(BatchDownload batchDownload, MailSender mailSender) throws IOException {
-            this(batchDownload, mailSender, RandomStringUtils.randomAlphanumeric(16));
+        public ZipperWithPassword(BatchDownload batchDownload, MailSender mailSender, String rootHost) throws IOException {
+            this(batchDownload, mailSender, RandomStringUtils.randomAlphanumeric(16), rootHost);
         }
 
-        public ZipperWithPassword(BatchDownload batchDownload, MailSender mailSender, String password) throws IOException {
+        public ZipperWithPassword(BatchDownload batchDownload, MailSender mailSender, String password, String rootHost) throws IOException {
             super(batchDownload, new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()), password.toCharArray()));
             this.password = password;
             this.passwordSender = mailSender;
+            this.rootHost = rootHost;
+        }
+
+        public String batchDownloadsLink() {
+            return StringUtils.stripEnd(this.rootHost, "/").concat("/#/tasks/batch-download");
+        }
+
+        public String batchDownloadsLinkRow () {
+            if (rootHost == null || rootHost.trim().isEmpty()) {
+                return "";
+            }
+            return String.format("You can download your file at the following location: %s\n\n", batchDownloadsLink());
         }
 
         @Override
@@ -217,8 +235,17 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         public void close() throws Exception {
             zipOutputStream.close();
             try {
-                passwordSender.send(new Mail("engineering@icij.org", batchDownload.user.email, String.format("[datashare] %s", batchDownload.filename.getFileName()),
-                        "Your password to open the zip file is " + password));
+                String from = "engineering@icij.org";
+                String recipient = batchDownload.user.email;
+                String subject = String.format("[Datashare] Your batch download is ready - %s", batchDownload.filename.getFileName());
+                String body = "Hello,\n\n"
+                        .concat("Your requested batch download has been successfully processed and is now ready for your retrieval.\n\n")
+                        .concat(this.batchDownloadsLinkRow())
+                        .concat("In order to ensure the highest level of security, your batch download is password protected.\n\n")
+                        .concat(String.format("To open the ZIP file, the password is \"%s\".\n\n", password))
+                        .concat("We strongly recommend that you keep this password confidential. Do not share it with anyone and delete this email after you have successfully accessed your batch download.");
+                Mail mail = new Mail(from, recipient, subject, body);
+                passwordSender.send(mail);
             } catch (MailException mex) {
                 logger.error("failed to send mail password" , mex);
             }
