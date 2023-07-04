@@ -13,6 +13,7 @@ import javax.mail.*;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
+import static java.util.Optional.ofNullable;
 import static javax.mail.Message.RecipientType.CC;
 import static javax.mail.Message.RecipientType.TO;
 
@@ -21,9 +22,9 @@ public class MailSender {
     protected final Log logger = LogFactory.getLog(this.getClass());
     
     public final int port;
+    public final String host;
     final String user;
     final String password;
-    public final String host;
 
     public MailSender(String host, int port) {
         this(host, port, null, null);
@@ -33,8 +34,9 @@ public class MailSender {
         this(
             uri.getHost(),
             uri.getPort(),
-            uri.getUserInfo().split(":")[0],
-            uri.getUserInfo().split(":")[1]);
+            uri.getUserInfo() != null ? uri.getUserInfo().split(":")[0]: null,
+            uri.getUserInfo() != null ? uri.getUserInfo().split(":")[1]: null
+        );
     }
 
     public MailSender(String host, int port, String user, String password) {
