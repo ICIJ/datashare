@@ -67,6 +67,13 @@ public class MailSenderTest {
 		assertThat(passSender.host).isEqualTo("host");
 	}
 
+	@Test public void sendSimpleMailWithSimpleUrl() throws Exception {
+		MailSender passSender = new MailSender(new URI("smtp://host:12345"));
+
+		assertThat(passSender.user).isNull();
+		assertThat(passSender.password).isNull();
+	}
+
 	@Test public void sendMailWithCC() throws Exception {
 		Mail mail = new Mail("from", new ArrayList<String>(), singletonList("recipient@fake.net"), "subject", "body");
 
