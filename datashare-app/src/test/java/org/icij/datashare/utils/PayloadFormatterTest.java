@@ -6,6 +6,8 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -24,5 +26,37 @@ public class PayloadFormatterTest {
 
         assertTrue(result.isError());
         assertEquals(result.rawContent(), expectedPayload.rawContent());
+    }
+
+    @Test
+    public void test_allow_single_method() {
+        PayloadFormatter payloadFormatter = new PayloadFormatter();
+        Payload payload = payloadFormatter.allowMethods("GET");
+
+        assertThat(payload.headers()).includes(entry("Access-Control-Allow-Methods", "GET"));
+    }
+
+    @Test
+    public void test_allow_multiple_methods() {
+        PayloadFormatter payloadFormatter = new PayloadFormatter();
+        Payload payload = payloadFormatter.allowMethods("GET", "POST");
+
+        assertThat(payload.headers()).includes(entry("Access-Control-Allow-Methods", "GET, POST"));
+    }
+
+    @Test
+    public void test_allow_multiple_comma_separated_methods() {
+        PayloadFormatter payloadFormatter = new PayloadFormatter();
+        Payload payload = payloadFormatter.allowMethods("GET,POST");
+
+        assertThat(payload.headers()).includes(entry("Access-Control-Allow-Methods", "GET, POST"));
+    }
+
+    @Test
+    public void test_allow_multiple_comma_separated_trimmed_methods() {
+        PayloadFormatter payloadFormatter = new PayloadFormatter();
+        Payload payload = payloadFormatter.allowMethods("GET,  POST", "PATCH");
+
+        assertThat(payload.headers()).includes(entry("Access-Control-Allow-Methods", "GET, POST, PATCH"));
     }
 }
