@@ -61,7 +61,7 @@ public class IndexResource {
     public Payload createIndexPreflight(final String index) {
         try{
             this.checkIndices(index);
-            return ok().withAllowMethods("OPTIONS", "PUT");
+            return payloadFormatter.allowMethods("OPTIONS", "PUT");
         }catch (IllegalArgumentException e){
             return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -142,7 +142,7 @@ public class IndexResource {
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
         try {
             this.checkIndices(index);
-            return ok().withAllowMethods(indexer.executeRaw("OPTIONS", path, null).split(","));
+            return payloadFormatter.allowMethods(indexer.executeRaw("OPTIONS", path, null));
         } catch (IllegalArgumentException e){
             return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
