@@ -5,10 +5,12 @@ import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.utils.PayloadFormatter;
 
 import java.io.IOException;
 import java.util.regex.Matcher;
@@ -24,10 +26,12 @@ import static net.codestory.http.payload.Payload.ok;
 @Prefix("/api/index")
 public class IndexResource {
     private final Indexer indexer;
+    private final PayloadFormatter payloadFormatter;
 
     @Inject
     public IndexResource(Indexer indexer) {
         this.indexer = indexer;
+        this.payloadFormatter = new PayloadFormatter();
     }
 
     /**
@@ -43,7 +47,7 @@ public class IndexResource {
         try{
             return indexer.createIndex(this.checkIndices(index)) ? created() : ok();
         }catch (IllegalArgumentException e){
-            return new Payload(e.getMessage()).withCode(400);
+            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -59,7 +63,7 @@ public class IndexResource {
             this.checkIndices(index);
             return ok().withAllowMethods("OPTIONS", "PUT");
         }catch (IllegalArgumentException e){
-            return new Payload(e.getMessage()).withCode(400);
+            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -74,7 +78,7 @@ public class IndexResource {
         try {
             return new Payload(indexer.executeRaw("HEAD", path, null));
         } catch (IllegalArgumentException e){
-            return new Payload(e.getMessage()).withCode(400);
+            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -99,9 +103,9 @@ public class IndexResource {
     @Post("/search/:path:")
     public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
-            return createPayload(indexer.executeRaw("POST", checkPath(path, context), new String(request.contentAsBytes())));
+            return payloadFormatter.json(indexer.executeRaw("POST", checkPath(path, context), new String(request.contentAsBytes())));
         } catch ( IllegalArgumentException e){
-            return new Payload(e.getMessage()).withCode(400);
+            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -122,9 +126,9 @@ public class IndexResource {
     @Get("/search/:path:")
     public Payload esGet(final String path, Context context) throws IOException {
         try {
-            return createPayload(indexer.executeRaw("GET", checkPath(path, context), ""));
+            return payloadFormatter.json(indexer.executeRaw("GET", checkPath(path, context), ""));
         } catch (IllegalArgumentException e){
-            return new Payload(e.getMessage()).withCode(400);
+            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -140,7 +144,7 @@ public class IndexResource {
             this.checkIndices(index);
             return ok().withAllowMethods(indexer.executeRaw("OPTIONS", path, null).split(","));
         } catch (IllegalArgumentException e){
-            return new Payload(e.getMessage()).withCode(400);
+            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
     private String checkIndices(String indices){
@@ -181,9 +185,5 @@ public class IndexResource {
 
     static String getQueryAsString(final Query query) {
         return join("&", query.keyValues().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(toList()));
-    }
-
-    private Payload createPayload(String responseBody) {
-        return new Payload("application/json", responseBody);
     }
 }
