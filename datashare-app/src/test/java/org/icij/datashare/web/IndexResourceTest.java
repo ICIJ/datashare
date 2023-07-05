@@ -174,7 +174,6 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
         put("/api/index/ cecile-datashare").withPreemptiveAuthentication("cecile", "pass").should().respond(400);
     }
 
-
     @Before
     public void setUp() {
         configure(routes ->

@@ -10,6 +10,7 @@ import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
 
 import java.io.IOException;
@@ -27,11 +28,13 @@ import static net.codestory.http.payload.Payload.ok;
 public class IndexResource {
     private final Indexer indexer;
     private final PayloadFormatter payloadFormatter;
+    private final IndexAccessVerifier indexAccessVerifier;
 
     @Inject
     public IndexResource(Indexer indexer) {
         this.indexer = indexer;
         this.payloadFormatter = new PayloadFormatter();
+        this.indexAccessVerifier = new IndexAccessVerifier();
     }
 
     /**
@@ -45,7 +48,7 @@ public class IndexResource {
     @Put("/:index")
     public Payload createIndex(final String index) throws IOException {
         try{
-            return indexer.createIndex(this.checkIndices(index)) ? created() : ok();
+            return indexer.createIndex(indexAccessVerifier.checkIndices(index)) ? created() : ok();
         }catch (IllegalArgumentException e){
             return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -60,7 +63,7 @@ public class IndexResource {
     @Options("/:index")
     public Payload createIndexPreflight(final String index) {
         try{
-            this.checkIndices(index);
+            indexAccessVerifier.checkIndices(index);
             return payloadFormatter.allowMethods("OPTIONS", "PUT");
         }catch (IllegalArgumentException e){
             return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
@@ -103,7 +106,7 @@ public class IndexResource {
     @Post("/search/:path:")
     public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
-            return payloadFormatter.json(indexer.executeRaw("POST", checkPath(path, context), new String(request.contentAsBytes())));
+            return payloadFormatter.json(indexer.executeRaw("POST", indexAccessVerifier.checkPath(path, context), new String(request.contentAsBytes())));
         } catch ( IllegalArgumentException e){
             return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -126,7 +129,7 @@ public class IndexResource {
     @Get("/search/:path:")
     public Payload esGet(final String path, Context context) throws IOException {
         try {
-            return payloadFormatter.json(indexer.executeRaw("GET", checkPath(path, context), ""));
+            return payloadFormatter.json(indexer.executeRaw("GET", indexAccessVerifier.checkPath(path, context), ""));
         } catch (IllegalArgumentException e){
             return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
@@ -141,49 +144,10 @@ public class IndexResource {
     @Options("/search/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
         try {
-            this.checkIndices(index);
+            indexAccessVerifier.checkIndices(index);
             return payloadFormatter.allowMethods(indexer.executeRaw("OPTIONS", path, null));
         } catch (IllegalArgumentException e){
             return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
-    }
-    private String checkIndices(String indices){
-        if( indices == null) { throw new IllegalArgumentException("indices is null"); }
-        Pattern pattern = Pattern.compile("^[-a-zA-Z0-9_]+(,[-a-zA-Z0-9_]+)*$");
-        Matcher matcher = pattern.matcher(indices);
-        if( !matcher.find()) {
-            throw new IllegalArgumentException("Bad format for indices : '" + indices+"'");
-        }
-        return indices;
-    }
-
-    private String checkPath(String path, Context context) {
-        String[] pathParts = path.split("/");
-        if(pathParts.length < 2){
-            throw new IllegalArgumentException(String.format("Invalid path: '%s'", path));
-        }
-        if ("_search".equals(pathParts[0]) && "scroll".equals(pathParts[1])) {
-            return getUrlString(context, path);
-        }
-        String[] indexes = this.checkIndices(pathParts[0]).split(",");
-        if (stream(indexes).allMatch(index -> ((DatashareUser)context.currentUser()).isGranted(index)) &&
-                ("GET".equalsIgnoreCase(context.method()) ||
-                        "_search".equals(pathParts[1]) ||
-                        "_count".equals(pathParts[1]) ||
-                        (pathParts.length >=3 && "_search".equals(pathParts[2])))) {
-            return getUrlString(context, path);
-        }
-        throw new UnauthorizedException();
-    }
-
-    private String getUrlString(Context context, String s) {
-        if (context.query().keyValues().size() > 0) {
-            s += "?" + getQueryAsString(context.query());
-        }
-        return s;
-    }
-
-    static String getQueryAsString(final Query query) {
-        return join("&", query.keyValues().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(toList()));
     }
 }
