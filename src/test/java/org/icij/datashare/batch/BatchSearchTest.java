@@ -27,7 +27,7 @@ public class BatchSearchTest {
         DatashareTime.setMockTime(true);
         BatchSearch batchSearch = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
                 new Date(), BatchSearchRecord.State.FAILURE, User.local(), 123, true,
-                singletonList("application/pdf"), singletonList("path"), 2, true,
+                singletonList("application/pdf"), singletonList("tag"),singletonList("path"), 2, true,
                 "error message", "error query");
 
         BatchSearch copy = new BatchSearch(batchSearch);
@@ -44,6 +44,7 @@ public class BatchSearchTest {
         assertThat(copy.name).isEqualTo(batchSearch.name);
         assertThat(copy.description).isEqualTo(batchSearch.description);
         assertThat(copy.fileTypes).isEqualTo(batchSearch.fileTypes);
+        assertThat(copy.tags).isEqualTo(batchSearch.tags);
         assertThat(copy.fuzziness).isEqualTo(batchSearch.fuzziness);
         assertThat(copy.paths).isEqualTo(batchSearch.paths);
         assertThat(copy.published).isEqualTo(batchSearch.published);
@@ -55,7 +56,7 @@ public class BatchSearchTest {
         DatashareTime.setMockTime(true);
         BatchSearch batchSearch = new BatchSearch("uuid", asList(project("prj1"), project("prj2")), "name", "desc", new LinkedHashMap<String, Integer>() {{ put("query", 3);}},
                 new Date(), BatchSearchRecord.State.FAILURE, User.local(), 123, true,
-                singletonList("application/pdf"), singletonList("path"), 2, true,
+                singletonList("application/pdf"), singletonList("tag"),singletonList("path"), 2, true,
                 "error message", "error query");
 
         BatchSearch copy = new BatchSearch(batchSearch, new HashMap<String, String>() {{

@@ -16,6 +16,7 @@ public class BatchSearch extends BatchSearchRecord {
 
     public final LinkedHashMap<String, Integer> queries; // LinkedHashMap keeps insert order
     public final List<String> fileTypes;
+    public final List<String> tags;
     public final List<String> paths;
     public final int fuzziness;
     public final boolean phraseMatches;
@@ -23,25 +24,25 @@ public class BatchSearch extends BatchSearchRecord {
     // batch search creation
     public BatchSearch(final List<Project> projects, final String name, final String description, User user) {
         this(UUID.randomUUID().toString(), projects, name, description, new LinkedHashMap<>(), DatashareTime.getInstance().now(), State.QUEUED, user,
-                0, false, null, null, 0,false, null, null);
+                0, false, null, null, null,0,false, null, null);
     }
     public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, User user) {
         this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user,
-                0, false, null, null, 0,false, null, null);
+                0, false, null, null, null, 0,false, null, null);
     }
     public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, null, null, 0,false, null, null);
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, null, null,null, 0,false, null, null);
     }
-    public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,false, null, null);
-    }
-
-    public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths, int fuzziness,boolean phraseMatches) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, paths, fuzziness,phraseMatches, null, null);
+    public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> tags, List<String> paths, int fuzziness) {
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, tags, paths, fuzziness,false, null, null);
     }
 
-    public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> paths,boolean phraseMatches) {
-        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, paths, 0,phraseMatches, null, null);
+    public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> tags,List<String> paths, int fuzziness,boolean phraseMatches) {
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, tags, paths, fuzziness,phraseMatches, null, null);
+    }
+
+    public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, User user, boolean published, List<String> fileTypes, List<String> tags, List<String> paths,boolean phraseMatches) {
+        this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), DatashareTime.getInstance().now(), State.QUEUED, user, 0, published, fileTypes, tags, paths, 0,phraseMatches, null, null);
     }
 
     // copy constructor
@@ -50,18 +51,18 @@ public class BatchSearch extends BatchSearchRecord {
         this(UUID.randomUUID().toString(), toCopy.projects,
                 ofNullable(overriddenParameters.get("name")).orElse(toCopy.name),
                 ofNullable(overriddenParameters.get("description")).orElse(toCopy.description), toCopy.queries, DatashareTime.getNow(), State.QUEUED,
-                toCopy.user, 0, toCopy.published, toCopy.fileTypes, toCopy.paths, toCopy.fuzziness, toCopy.phraseMatches, null, null);
+                toCopy.user, 0, toCopy.published, toCopy.fileTypes, toCopy.tags,toCopy.paths, toCopy.fuzziness, toCopy.phraseMatches, null, null);
     }
 
     public BatchSearch(String uuid, List<Project> projects, String name, String description, LinkedHashSet<String> queries, Date date, State state, User user) {
         this(uuid, projects, name, description, toLinkedHashMap(queries), date, state, user,
-                0, false, null, null, 0,false, null, null);
+                0, false, null, null, null, 0,false, null, null);
     }
 
     // for tests
     public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, final Date date, final State state, final boolean published) {
         this(UUID.randomUUID().toString(), projects, name, description, toLinkedHashMap(queries), date, state, User.local(),
-                0, published, null, null, 0,false, null, null);
+                0, published, null, null, null, 0,false, null, null);
     }
 
     public BatchSearch(final List<Project> projects, final String name, final String description, final LinkedHashSet<String> queries, final Date date) {
@@ -70,11 +71,12 @@ public class BatchSearch extends BatchSearchRecord {
 
     // retrieved from persistence
     public BatchSearch(String uuid, List<Project> projects, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, User user,
-                       int nbResults, boolean published, List<String> fileTypes, List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage, String errorQuery) {
+                       int nbResults, boolean published, List<String> fileTypes, List<String> tags,List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage, String errorQuery) {
         super(uuid,projects,name,description,queries.size(),date,state,user,nbResults,published,errorMessage, errorQuery);
         if (getNbQueries() == 0) throw new IllegalArgumentException("queries cannot be empty");
         this.queries = queries;
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
+        this.tags = unmodifiableList(ofNullable(tags).orElse(new ArrayList<>()));
         this.paths = unmodifiableList(ofNullable(paths).orElse(new ArrayList<>()));
         this.fuzziness = fuzziness;
         this.phraseMatches=phraseMatches;
@@ -84,10 +86,12 @@ public class BatchSearch extends BatchSearchRecord {
      * Allow creation of batch search without queries
      */
     public BatchSearch(String uuid, List<Project> projects, String name, String description, Integer nbQueries, Date date, State state, User user,
-                       int nbResults, boolean published, List<String> fileTypes, List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage, String errorQuery) {
+                       int nbResults, boolean published, List<String> fileTypes, List<String> tags, List<String> paths, int fuzziness, boolean phraseMatches,
+                       String errorMessage, String errorQuery) {
         super(uuid,projects,name,description,nbQueries,date,state,user,nbResults,published,errorMessage, errorQuery);
         this.queries = new LinkedHashMap<>();
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
+        this.tags = unmodifiableList(ofNullable(tags).orElse(new ArrayList<>()));
         this.paths = unmodifiableList(ofNullable(paths).orElse(new ArrayList<>()));
         this.fuzziness = fuzziness;
         this.phraseMatches=phraseMatches;
