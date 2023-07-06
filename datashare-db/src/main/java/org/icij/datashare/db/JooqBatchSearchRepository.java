@@ -9,7 +9,6 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.jooq.*;
-import org.jooq.Record;
 import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
@@ -159,7 +158,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds) {
-        return getRecords(user, projectsIds, new WebQuery());
+        return getRecords(user, projectsIds, WebQueryBuilder.createWebQuery().queryAll().build());
     }
 
     @Override
@@ -248,7 +247,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<SearchResult> getResults(final User user, String batchSearchId) {
-        return getResults(user, batchSearchId, new WebQuery(0, 0));
+        return getResults(user, batchSearchId, WebQueryBuilder.createWebQuery().build());
     }
 
     @Override
@@ -257,7 +256,16 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         SelectConditionStep<Record> query = create.select().from(BATCH_SEARCH_RESULT).
                 join(BATCH_SEARCH).on(BATCH_SEARCH.UUID.equal(BATCH_SEARCH_RESULT.SEARCH_UUID)).
                 where(BATCH_SEARCH_RESULT.SEARCH_UUID.eq(batchSearchId));
-        if (webQuery.hasFilteredQueries()) query.and(BATCH_SEARCH_RESULT.QUERY.in(webQuery.queries));
+        if (webQuery.hasFilteredQueries()) {
+            if(webQuery.queriesExcluded){
+                query.and(BATCH_SEARCH_RESULT.QUERY.notIn(webQuery.queries));
+            }else{
+                query.and(BATCH_SEARCH_RESULT.QUERY.in(webQuery.queries));
+            }
+        }
+        if(webQuery.hasFilteredContentTypes()){
+            query.and(BATCH_SEARCH_RESULT.QUERY.in(webQuery.contentTypes));
+        }
         if (webQuery.isSorted()) {
             query.orderBy(field(webQuery.sort + " " + webQuery.order));
         } else {
@@ -471,6 +479,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         }
         if (webQuery.hasFilteredPublishStates()) {
             query.and(BATCH_SEARCH.PUBLISHED.eq(Integer.parseInt(webQuery.publishState)));
+        }
+        if(webQuery.hasFilteredContentTypes()){
+            query.and(BATCH_SEARCH.FILE_TYPES.in(webQuery.contentTypes));
         }
     }
 

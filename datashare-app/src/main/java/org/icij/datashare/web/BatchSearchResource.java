@@ -9,10 +9,7 @@ import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearchRecord;
-import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.batch.SearchResult;
+import org.icij.datashare.batch.*;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
@@ -357,7 +354,7 @@ public class BatchSearchResource {
         BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId);
         String url = propertiesProvider.get("rootHost").orElse(context.header("Host"));
 
-        getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), new BatchSearchRepository.WebQuery()).forEach(result -> builder.
+        getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), WebQueryBuilder.createWebQuery().queryAll().build()).forEach(result -> builder.
                 append("\"").append(result.query).append("\"").append(",").
                 append("\"").append(docUrl(url, batchSearch.projects, result.documentId, result.rootId)).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").
