@@ -40,7 +40,6 @@ public interface BatchSearchRepository extends Closeable {
     Map<String,Integer> getQueries(User user, String batchId, int from, int size, String search, String orderBy, int maxResults);
 
     boolean reset(String batchId);
-
     @JsonIgnoreProperties(ignoreUnknown = true)
     class WebQuery {
         public static final String DEFAULT_SORT_FIELD = "doc_nb";
@@ -51,6 +50,9 @@ public interface BatchSearchRepository extends Closeable {
         public final int from;
         public final int size;
         public final List<String> queries;
+        public final boolean queriesExcluded;
+        public final List<String> contentTypes;
+
         public final List<String> project;
         public final List<String> batchDate;
         public final List<String> state;
@@ -61,9 +63,10 @@ public interface BatchSearchRepository extends Closeable {
         public WebQuery(@JsonProperty("size") int size, @JsonProperty("from") int from,
                         @JsonProperty("sort") String sort, @JsonProperty("order") String order,
                         @JsonProperty("query") String query, @JsonProperty("field") String field,
-                        @JsonProperty("queries") List<String> queries, @JsonProperty("project") List<String> project,
+                        @JsonProperty("queries") List<String> queries,  @JsonProperty("project") List<String> project,
                         @JsonProperty("batchDate") List<String> batchDate, @JsonProperty("state") List<String> state,
-                        @JsonProperty("publishState") String publishState, @JsonProperty("withQueries") boolean withQueries) {
+                        @JsonProperty("publishState") String publishState, @JsonProperty("withQueries") boolean withQueries,
+                        @JsonProperty("queriesExcluded") boolean queriesExcluded, @JsonProperty("contentTypes") List<String> contentTypes) {
             this.size = size;
             this.from = from;
             this.sort = sort == null ? DEFAULT_SORT_FIELD : sort;
@@ -71,31 +74,13 @@ public interface BatchSearchRepository extends Closeable {
             this.field = field;
             this.order = sort == null ? "asc": order;
             this.queries = queries == null ? null: unmodifiableList(queries);
+            this.queriesExcluded = queriesExcluded;
+            this.contentTypes = contentTypes == null ? null: unmodifiableList(contentTypes);
             this.project = project == null ? null: unmodifiableList(project);
             this.batchDate = batchDate == null ? null: unmodifiableList(batchDate);
             this.state = state == null ? null: unmodifiableList(state);
             this.publishState = publishState;
             this.withQueries = withQueries;
-        }
-
-        public WebQuery(int size, int from) { this(size, from, null, null, "*", "all", null, null, null, null, null, false);}
-        public WebQuery() { this(0, 0, null, null, "*", "all", null, null, null, null, null, false);}
-
-        // for tests
-        public WebQuery(String sort, String order, String query, String field) {
-            this(0, 0, sort, order, query, field, null,null,null,null,null, false);
-        }
-
-        public WebQuery(String query, String field) {
-            this(null, null, query, field);
-        }
-
-        public WebQuery(List<String> queries) {
-            this(0, 0, null, null,"*","all", queries,null,null,null, null, false);
-        }
-
-        public WebQuery(List<String> project, List<String> batchDate, List<String> state, String publishState) {
-            this(0, 0, null, null,"*","all", null, project, batchDate, state, publishState, false);
         }
 
         @Override
@@ -113,11 +98,14 @@ public interface BatchSearchRepository extends Closeable {
                     Objects.equals(project, that.project) &&
                     Objects.equals(batchDate, that.batchDate) &&
                     Objects.equals(state, that.state) &&
-                    Objects.equals(publishState, that.publishState);
+                    Objects.equals(publishState, that.publishState) &&
+                    Objects.equals(contentTypes, that.contentTypes) &&
+                    Objects.equals(queriesExcluded, that.queriesExcluded);
         }
 
         @Override
-        public int hashCode() { return Objects.hash(sort, order, query, field, from, size, queries, project, batchDate, state, publishState); }
+        public int hashCode() { return Objects.hash(sort, order, query, field, from, size, queries, project, batchDate, state, publishState, contentTypes, queriesExcluded); }
+        public boolean hasFilteredContentTypes() { return contentTypes !=null && !contentTypes.isEmpty();}
         public boolean hasFilteredQueries() { return queries !=null && !queries.isEmpty();}
         public boolean hasFilteredProjects() { return project !=null && !project.isEmpty();}
         public boolean hasFilteredDates() { return batchDate !=null && !batchDate.isEmpty();}
