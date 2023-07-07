@@ -95,3 +95,6 @@ databaseChangeLog:
   - include:
       file: changes/031-adds-description-to-project.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/032-batch-search-adds-tags-column.yml
+      relativeToChangelogFile: true
