@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 60
+      author: mvanza
+      changes:
+        - addColumn:
+            tableName: batch_search
+            column:
+              name: tags
+              type: text
