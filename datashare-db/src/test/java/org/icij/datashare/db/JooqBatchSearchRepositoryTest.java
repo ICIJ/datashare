@@ -387,13 +387,39 @@ public class JooqBatchSearchRepositoryTest {
         repository.save(batchSearch);
         repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("doc1").build(), createDoc("doc2").build()));
         repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("doc3").build(), createDoc("doc4").build()));
+        repository.saveResults(batchSearch.uuid, "q3", asList(createDoc("doc5").build(), createDoc("doc6").build()));
         List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid, WebQueryBuilder.createWebQuery().queryAll().withQueries(singletonList("q1")).build());
         assertThat(results).hasSize(2);
         assertThat(results).containsExactly(
                 resultFrom(createDoc("doc1").build(), 1, "q1"),
                 resultFrom(createDoc("doc2").build(), 2, "q1")
         );
-        assertThat(repository.getResults(User.local(), batchSearch.uuid,  WebQueryBuilder.createWebQuery().queryAll().withQueries(singletonList("q2")).build())).hasSize(2);
+        List<SearchResult> resultExcludingQ1 = repository.getResults(User.local(), batchSearch.uuid, WebQueryBuilder.createWebQuery().queryAll().withQueries(singletonList("q1")).queriesExcluded(true).build());
+        assertThat(resultExcludingQ1).hasSize(4);
+        assertThat(resultExcludingQ1).containsExactly(
+                resultFrom(createDoc("doc3").build(), 1, "q2"),
+                resultFrom(createDoc("doc4").build(), 2, "q2"),
+                resultFrom(createDoc("doc5").build(), 1, "q3"),
+                resultFrom(createDoc("doc6").build(), 2, "q3")
+        );
+    }
+
+    @Test
+    public void test_get_results_filtered_by_content_type() {
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("q1", "q2"), User.local());
+        repository.save(batchSearch);
+        repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("doc1").ofMimeType("application/pdf").build(), createDoc("doc2").ofMimeType("content/type").build()));
+        repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("doc3").ofMimeType("application/pdf").build(), createDoc("doc4").build()));
+        List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid, WebQueryBuilder.createWebQuery().queryAll().withContentTypes(asList("application/pdf")).build());
+        assertThat(results).hasSize(2);
+        assertThat(results).containsExactly(
+                resultFrom(createDoc("doc1").ofMimeType("application/pdf").build(), 1, "q1"),
+                resultFrom(createDoc("doc3").ofMimeType("application/pdf").build(), 1, "q2")
+        );
+        //empty list means all and no content types
+        List<SearchResult> results2 = repository.getResults(User.local(), batchSearch.uuid, WebQueryBuilder.createWebQuery().queryAll().withContentTypes(asList()).build());
+        assertThat(results2).hasSize(4);
+
     }
     @Test
     public void test_get_results_order() {
