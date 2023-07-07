@@ -48,11 +48,12 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         return DSL.using(dataSource, dialect).transactionResult(configuration -> {
             DSLContext inner = using(configuration);
             inner.insertInto(BATCH_SEARCH, BATCH_SEARCH.UUID, BATCH_SEARCH.NAME, BATCH_SEARCH.DESCRIPTION, BATCH_SEARCH.USER_ID,
-                    BATCH_SEARCH.BATCH_DATE, BATCH_SEARCH.STATE, BATCH_SEARCH.PUBLISHED, BATCH_SEARCH.FILE_TYPES,
+                    BATCH_SEARCH.BATCH_DATE, BATCH_SEARCH.STATE, BATCH_SEARCH.PUBLISHED, BATCH_SEARCH.FILE_TYPES, BATCH_SEARCH.TAGS,
                     BATCH_SEARCH.PATHS, BATCH_SEARCH.FUZZINESS, BATCH_SEARCH.PHRASE_MATCHES).
                     values(batchSearch.uuid, batchSearch.name, batchSearch.description, batchSearch.user.id,
                             new Timestamp(batchSearch.getDate().getTime()), batchSearch.state.name(), batchSearch.published?1:0,
-                            join(LIST_SEPARATOR, batchSearch.fileTypes),join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness,batchSearch.phraseMatches?1:0).execute();
+                            join(LIST_SEPARATOR, batchSearch.fileTypes), join(LIST_SEPARATOR, batchSearch.tags),
+                            join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness,batchSearch.phraseMatches?1:0).execute();
 
             InsertValuesStep4<BatchSearchQueryRecord, String, String, Integer, Integer> insertQuery = inner.insertInto(BATCH_SEARCH_QUERY, BATCH_SEARCH_QUERY.SEARCH_UUID, BATCH_SEARCH_QUERY.QUERY, BATCH_SEARCH_QUERY.QUERY_NUMBER, BATCH_SEARCH_QUERY.QUERY_RESULTS);
             List<String> queries = new ArrayList<>(batchSearch.queries.keySet());
@@ -295,12 +296,12 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                                         LinkedHashMap::new)),
                         batchSearches.get(0).getDate(),
                         batchSearches.get(0).state, batchSearches.get(0).user, batchSearches.get(0).nbResults, batchSearches.get(0).published,
-                        batchSearches.get(0).fileTypes, batchSearches.get(0).paths, batchSearches.get(0).fuzziness,
+                        batchSearches.get(0).fileTypes, batchSearches.get(0).tags, batchSearches.get(0).paths, batchSearches.get(0).fuzziness,
                         batchSearches.get(0).phraseMatches, batchSearches.get(0).errorMessage, batchSearches.get(0).errorQuery)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
     }
 
-    private SelectJoinStep<Record18<String, String, String, String, Timestamp, String, Integer, String, String, Integer, Integer, Integer, String, String, String, String, Integer, Integer>>
+    private SelectJoinStep<Record19<String, String, String, String, Timestamp, String, Integer, String, String, String,Integer, Integer, Integer, String, String, String, String, Integer, Integer>>
     createBatchSearchWithQueriesSelectStatement(DSLContext create) {
         return create.select(
                 BATCH_SEARCH.UUID,
@@ -311,6 +312,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 BATCH_SEARCH.STATE,
                 BATCH_SEARCH.PUBLISHED,
                 BATCH_SEARCH.FILE_TYPES,
+                BATCH_SEARCH.TAGS,
                 BATCH_SEARCH.PATHS,
                 BATCH_SEARCH.FUZZINESS,
                 BATCH_SEARCH.PHRASE_MATCHES,
@@ -325,7 +327,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         .join(BATCH_SEARCH_PROJECT).on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_PROJECT.SEARCH_UUID)));
     }
 
-    private SelectJoinStep<Record16<String, String, String, String, Timestamp, String, Integer, String, String, Integer, Integer, Integer, String, String, String, Integer>>
+    private SelectJoinStep<Record17<String, String, String, String, Timestamp, String, Integer, String, String, String, Integer, Integer, Integer, String, String, String, Integer>>
     createBatchSearchWithoutQueriesSelectStatement(DSLContext create) {
         return create.select(
                         BATCH_SEARCH.UUID,
@@ -336,6 +338,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         BATCH_SEARCH.STATE,
                         BATCH_SEARCH.PUBLISHED,
                         BATCH_SEARCH.FILE_TYPES,
+                        BATCH_SEARCH.TAGS,
                         BATCH_SEARCH.PATHS,
                         BATCH_SEARCH.FUZZINESS,
                         BATCH_SEARCH.PHRASE_MATCHES,
@@ -387,6 +390,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.get(BATCH_SEARCH.BATCH_RESULTS),
                 record.get(BATCH_SEARCH.PUBLISHED) > 0,
                 getListFromStringOrNull(record.get(BATCH_SEARCH.FILE_TYPES)),
+                getListFromStringOrNull(record.get(BATCH_SEARCH.TAGS)),
                 getListFromStringOrNull(record.get(BATCH_SEARCH.PATHS)),
                 record.get(BATCH_SEARCH.FUZZINESS),
                 phraseMatches,
@@ -409,6 +413,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.get(BATCH_SEARCH.BATCH_RESULTS),
                 record.get(BATCH_SEARCH.PUBLISHED) > 0,
                 getListFromStringOrNull(record.get(BATCH_SEARCH.FILE_TYPES)),
+                getListFromStringOrNull(record.get(BATCH_SEARCH.TAGS)),
                 getListFromStringOrNull(record.get(BATCH_SEARCH.PATHS)),
                 record.get(BATCH_SEARCH.FUZZINESS),
                 phraseMatches,
