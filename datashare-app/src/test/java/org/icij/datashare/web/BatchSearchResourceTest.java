@@ -123,6 +123,8 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 .addField("published",String.valueOf(true))
                 .addField("fileTypes","application/pdf")
                 .addField("fileTypes","image/jpeg")
+                .addField("tags","tag_01")
+                .addField("tags","tag_02")
                 .addField("paths","/path/to/document")
                 .addField("paths","/other/path/")
                 .addField("fuzziness",String.valueOf(4))
@@ -133,6 +135,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         verify(batchSearchRepository).save(argument.capture());
         assertThat(argument.getValue().published).isTrue();
         assertThat(argument.getValue().fileTypes).containsExactly("application/pdf", "image/jpeg");
+        assertThat(argument.getValue().tags).containsExactly("tag_01", "tag_02");
         assertThat(argument.getValue().paths).containsExactly("/path/to/document", "/other/path/");
         assertThat(argument.getValue().fuzziness).isEqualTo(4);
         assertThat(argument.getValue().phraseMatches).isTrue();
@@ -394,7 +397,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_batch_search_without_queries() {
         BatchSearch search = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", 2, new Date(), BatchSearchRecord.State.SUCCESS, User.local(),
-                                        3, true, singletonList("application/pdf"), asList("/path"), 0, false, null, null);
+                                        3, true, singletonList("application/pdf"), null, asList("/path"), 0, false, null, null);
         when(batchSearchRepository.get(User.local(), search.uuid, false)).thenReturn(search);
 
         get("/api/batch/search/uuid?withQueries=false").should().
