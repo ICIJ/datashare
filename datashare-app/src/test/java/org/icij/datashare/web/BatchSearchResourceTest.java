@@ -278,6 +278,31 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 contain("\"documentId\":\"docId9\"").
                 not().contain("\"documentId\":\"docId7\"");
     }
+    @Test
+    public void test_get_search_results_filtered_by_content_types() {
+        SearchResult searchResult1 = new SearchResult("q1", "docId1", "rootId1",
+                Paths.get("/path/to/doc1"), new Date(), "content/type", 123L, 1);
+        SearchResult searchResult2 = new SearchResult("q2", "docId2", "rootId2",
+                Paths.get("/path/to/doc2"), new Date(), "content/type", 123L, 2);
+        SearchResult searchResult3 = new SearchResult("q3", "docId3", "rootId3",
+                Paths.get("/path/to/doc3"), new Date(), "content/other", 123L, 3);
+
+        List<SearchResult> searchResultsContentType = asList(searchResult1, searchResult2);
+        List<SearchResult> searchResultsAllContentType = asList(searchResult1, searchResult2,searchResult3);
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", WebQueryBuilder.createWebQuery().queryAll().withContentTypes(asList("content/type")).build()))
+                .thenReturn(searchResultsContentType);
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", WebQueryBuilder.createWebQuery().queryAll().withContentTypes(asList()).build()))
+                .thenReturn(searchResultsAllContentType);
+        post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\",\"contentTypes\":[\"content/type\"]}").
+                should().respond(200).haveType("application/json").
+                contain("\"documentId\":\"docId1\"").
+                contain("\"documentId\":\"docId2\"");
+        post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\",\"contentTypes\":[]}").
+                should().respond(200).haveType("application/json").
+                contain("\"documentId\":\"docId1\"").
+                contain("\"documentId\":\"docId2\"").
+                contain("\"documentId\":\"docId3\"");
+    }
 
     @Test
     public void test_get_search_results_csv() {
