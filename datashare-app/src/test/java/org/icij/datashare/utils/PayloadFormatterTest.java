@@ -3,6 +3,7 @@ package org.icij.datashare.utils;
 import net.codestory.http.payload.Payload;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
@@ -58,5 +59,19 @@ public class PayloadFormatterTest {
         Payload payload = payloadFormatter.allowMethods("GET,  POST", "PATCH");
 
         assertThat(payload.headers()).includes(entry("Access-Control-Allow-Methods", "GET, POST, PATCH"));
+    }
+
+    @Test
+    public void test_create_json_payload_with_string() {
+        PayloadFormatter payloadFormatter = new PayloadFormatter();
+        Payload payload = payloadFormatter.json("Foo");
+        assertThat(payload.rawContentType()).isEqualTo("application/json");
+    }
+
+    @Test
+    public void test_create_json_payload_with_list_of_string() {
+        PayloadFormatter payloadFormatter = new PayloadFormatter();
+        Payload payload = payloadFormatter.json(new String[]{"Foo", "Bar"});
+        assertThat(payload.rawContentType()).isEqualTo("application/json");
     }
 }
