@@ -14,7 +14,7 @@ public class PayloadFormatter {
 
     public Payload error(String message, int status) {
         Map<String, String> responseBody = Collections.singletonMap("error", message);
-        return new Payload(responseBody).withCode(status);
+        return json(responseBody).withCode(status);
     }
 
     public Payload error(RuntimeException error, int status) {
