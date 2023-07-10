@@ -206,6 +206,14 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_unknown_batch_search_returns_404() {
+        get("/api/batch/search/unknown-id").should()
+                .respond(404)
+                .haveType("application/json")
+                .contain("Batch search not found.");
+    }
+
+    @Test
     public void test_get_batch_searches_json() {
         when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"))).thenReturn(asList(
                 new BatchSearch(singletonList(project("prj")), "name1", "description1", asSet("query 1", "query 2"), User.local()),
