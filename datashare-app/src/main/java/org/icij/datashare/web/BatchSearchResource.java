@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.Part;
 import net.codestory.http.annotations.*;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
@@ -14,6 +15,7 @@ import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
+import org.icij.datashare.utils.PayloadFormatter;
 
 import java.io.IOException;
 import java.util.*;
@@ -34,6 +36,7 @@ public class BatchSearchResource {
     private final BatchSearchRepository batchSearchRepository;
     private final BlockingQueue<String> batchSearchQueue;
     private final PropertiesProvider propertiesProvider;
+    private final PayloadFormatter payloadFormatter;
     private final int MAX_BATCH_SIZE = 60000;
 
     @Inject
@@ -41,6 +44,7 @@ public class BatchSearchResource {
         this.batchSearchRepository = batchSearchRepository;
         this.batchSearchQueue = batchSearchQueue;
         this.propertiesProvider = propertiesProvider;
+        this.payloadFormatter = new PayloadFormatter();
     }
 
     /**
@@ -95,14 +99,15 @@ public class BatchSearchResource {
      *
      * @param batchId
      * @return 200 and the batch search
-     *
+     * <p>
      * Example :
      * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146?withQueries=true)
      */
     @Get("/search/:batchid")
-    public BatchSearch getBatch(String batchId, Context context) {
+    public Object getBatch(String batchId, Context context) {
         boolean withQueries = Boolean.parseBoolean(context.get("withQueries"));
-        return batchSearchRepository.get((User) context.currentUser(), batchId, withQueries);
+        BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId, withQueries);
+        return batchSearch == null ? payloadFormatter.error("Batch search not found.", HttpStatus.NOT_FOUND) : batchSearch;
     }
 
     /**
