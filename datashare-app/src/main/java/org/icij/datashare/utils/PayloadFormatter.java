@@ -26,6 +26,10 @@ public class PayloadFormatter {
         return new Payload("application/json", responseBody);
     }
 
+    public Payload json(Object content) {
+        return new Payload("application/json", content);
+    }
+
     public Payload allowMethods(String... methodOrMethods) {
         List<String> methods = Arrays.stream(methodOrMethods)
                 .flatMap(s -> Arrays.stream(s.split(",")))
