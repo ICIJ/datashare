@@ -520,6 +520,18 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_cannot_get_unknown_batch_search_without_queries() {
+        BatchSearch batchSearch = repository.get(User.local(), "unknown-id", false);
+        assertThat(batchSearch).isNull();
+    }
+
+    @Test
+    public void test_cannot_get_unknown_batch_search_with_queries() {
+        BatchSearch batchSearch = repository.get(User.local(), "unknown-id", true);
+        assertThat(batchSearch).isNull();
+    }
+
+    @Test
     public void test_delete_batch_searches() {
         BatchSearch batchSearch1 = new BatchSearch(singletonList(project("prj")), "name", "description1", asSet("q1", "q2"), User.local());
         repository.save(batchSearch1);

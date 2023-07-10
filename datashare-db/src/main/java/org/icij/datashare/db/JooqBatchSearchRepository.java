@@ -184,10 +184,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public BatchSearch get(User user, String batchId) {
-        return mergeBatchSearches(
-                createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect)).
-                        where(BATCH_SEARCH.UUID.eq(batchId)).
-                        fetch().stream().map(this::createBatchSearchFrom).collect(toList())).get(0);
+        return mergeBatchSearches(createBatchSearchWithQueriesSelectStatement(DSL.using(dataSource, dialect))
+                .where(BATCH_SEARCH.UUID.eq(batchId)).fetch()
+                .stream()
+                    .map(this::createBatchSearchFrom).collect(toList()))
+                    .stream().findFirst().orElse(null);
     }
 
     @Override
@@ -195,11 +196,15 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         if (withQueries){
             return get(user, batchId);
         }
-        return createBatchSearchWithoutQueriesSelectStatement(DSL.using(dataSource, dialect)).
-                where(BATCH_SEARCH.UUID.eq(batchId)).groupBy(BATCH_SEARCH.UUID).having(count().eq(
-                        selectCount().from(BATCH_SEARCH_PROJECT)
-                                .where(BATCH_SEARCH_PROJECT.SEARCH_UUID.eq(BATCH_SEARCH.UUID))))
-                .fetch().stream().map(this::createBatchSearchWithoutQueries).collect(toList()).get(0);
+        return createBatchSearchWithoutQueriesSelectStatement(DSL.using(dataSource, dialect))
+                .where(BATCH_SEARCH.UUID.eq(batchId))
+                    .groupBy(BATCH_SEARCH.UUID).having(count().eq(
+                            selectCount().from(BATCH_SEARCH_PROJECT).where(BATCH_SEARCH_PROJECT.SEARCH_UUID.eq(BATCH_SEARCH.UUID))
+                    )).fetch()
+                    .stream()
+                        .map(this::createBatchSearchWithoutQueries)
+                        .collect(toList())
+                        .stream().findFirst().orElse(null);
     }
 
     public Map<String, Integer> getQueries(User user, String batchId, int from, int size, String search, String orderBy, int maxResults) {
