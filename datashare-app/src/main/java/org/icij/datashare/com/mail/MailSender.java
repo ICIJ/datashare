@@ -102,9 +102,7 @@ public class MailSender {
         properties.setProperty("mail.smtp.class", "com.sun.mail.smtp.SMTPTransport");
         properties.setProperty("mail.smtp.port", String.valueOf(mailSender.port));
         properties.setProperty("mail.smtp.host", mailSender.host);
-        if (mailSender.shouldAuth()) {
-            properties.setProperty("mail.smtp.auth", "true");
-        }
+        properties.setProperty("mail.smtp.auth", String.valueOf(mailSender.shouldAuth()));
         properties.setProperty("mail.smtp.ssl.enable", String.valueOf(mailSender.tls));
 
         return mailSender.shouldAuth() ? Session.getDefaultInstance(properties) : Session.getInstance(properties, new Authenticator() {
