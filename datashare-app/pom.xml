@@ -123,9 +123,9 @@
         
         <!--test dependencies-->
         <dependency>
-            <groupId>org.subethamail</groupId>
+            <groupId>com.github.voodoodyne</groupId>
             <artifactId>subethasmtp</artifactId>
-            <version>3.1.7</version>
+            <version>e70b7dd3357f82a3e9c0da43290ef9e47ec982ad</version>
             <scope>test</scope>
         </dependency>
 
