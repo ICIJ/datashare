@@ -3,6 +3,9 @@ package org.icij.datashare.com.mail;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.subethamail.smtp.auth.EasyAuthenticationHandlerFactory;
+import org.subethamail.smtp.auth.LoginFailedException;
+import org.subethamail.smtp.auth.UsernamePasswordValidator;
 import org.subethamail.wiser.Wiser;
 
 import javax.mail.Address;
@@ -22,7 +25,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class MailSenderTest {
-
 	private Wiser fakeSmtpServer;
 	private static final int testSmtpPort = 2500;
 	private MailSender sender;
@@ -50,7 +52,10 @@ public class MailSenderTest {
 	}
 
 	@Test public void sendSimpleMailWithUserPass() throws Exception {
-		MailSender passSender = new MailSender("localhost", testSmtpPort, "user", "password");
+		UsernamePasswordValidator validator = new RequiredUsernamePasswordValidator("user", "password");
+		fakeSmtpServer.getServer().setAuthenticationHandlerFactory(new EasyAuthenticationHandlerFactory(validator));
+		fakeSmtpServer.getServer().setRequireAuth(true);
+		MailSender passSender = new MailSender("localhost", testSmtpPort, "user", "password", false, false);
 		Mail mail = new Mail("from", "recipient@fake.net", "subject", "body");
 
 		passSender.send(mail);
@@ -72,6 +77,17 @@ public class MailSenderTest {
 
 		assertThat(passSender.user).isNull();
 		assertThat(passSender.password).isNull();
+		assertThat(passSender.tls).isFalse();
+	}
+
+	@Test public void sendSimpleMailWithSimpleUrlWithSsl() throws Exception {
+		MailSender passSender = new MailSender(new URI("smtps://host:12345"));
+		assertThat(passSender.tls).isTrue();
+	}
+
+	@Test public void sendSimpleMailWithSimpleUrAndDebug() throws Exception {
+		MailSender passSender = new MailSender(new URI("smtp://host:12345?debug=true"));
+		assertThat(passSender.debug).isTrue();
 	}
 
 	@Test public void sendMailWithCC() throws Exception {
@@ -119,4 +135,21 @@ public class MailSenderTest {
 
 		return new Mail(from, recipients, recipientsCC, subject, content);
 	}
+
+	private static class RequiredUsernamePasswordValidator implements UsernamePasswordValidator {
+		private final String user;
+		private final String pass;
+
+		public RequiredUsernamePasswordValidator(String user, String pass) {
+			this.user = user;
+			this.pass = pass;
+		}
+
+		public void login(String username, String password) throws LoginFailedException {
+			if (!username.equals(user) || !password.equals(pass)) {
+				throw new LoginFailedException();
+			}
+		}
+	}
+
 }
