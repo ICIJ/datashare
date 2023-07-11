@@ -23,6 +23,7 @@ public class User implements Entity {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
+    private List<String> projects = new ArrayList<>();
 
     public User(final String id, String name, String email, String provider, String jsonDetails) {
         this.id = id;
@@ -75,11 +76,40 @@ public class User implements Entity {
     }
 
     @JsonIgnore
-    public List<String> getProjects() {
+    public List<String> getApplicationProjects() {
         HashMap<String, Object> applications = (HashMap<String, Object>) ofNullable(details.get(XEMX_APPLICATIONS_KEY)).orElse(new HashMap<>());
         return (List<String>) ofNullable(applications.get(XEMX_DATASHARE_KEY)).orElse(new LinkedList<>());
     }
 
+    @JsonIgnore
+    public List<String> getProjects() {
+        HashSet<String> uniqueProjects = new HashSet<>();
+
+        uniqueProjects.addAll(projects);
+        uniqueProjects.addAll(getApplicationProjects());
+
+        return new ArrayList<>(uniqueProjects);
+    }
+
+    @JsonIgnore
+    public void addProject(String newProject) {
+        if (!getProjects().contains(newProject)) {
+            projects.add(newProject);
+        }
+    }
+
+    @JsonIgnore
+    public void addProjects(List<String> newProjects) {
+        // We add each project one by one to ensure that even if `newProjects` contains
+        // duplicates, they are only added once
+        newProjects.forEach(this::addProject);
+    }
+
+    @JsonIgnore
+    public void setProjects(List<String> newProjects) {
+        projects.clear();
+        addProjects(newProjects);
+    }
 
     @JsonIgnore
     public Map<String, Object> getDetails() {

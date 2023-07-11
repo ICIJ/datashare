@@ -6,6 +6,7 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.time.DatashareTime;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -111,5 +112,40 @@ public class UserTest {
         assertThat(copy.email).isEqualTo("email");
         assertThat(copy.provider).isEqualTo("provider");
         assertThat(copy.details).isEqualTo(new HashMap<>());
+    }
+
+    @Test
+    public void test_can_set_one_project() {
+        User user = new User("id", "name", "email", "provider", "{}");
+        user.setProjects(Collections.singletonList("foo"));
+        assertThat(user.getProjects()).hasSize(1);
+        assertThat(user.getProjects()).contains("foo");
+    }
+
+    @Test
+    public void test_can_set_several_projects() {
+        User user = new User("id", "name", "email", "provider", "{}");
+        user.setProjects(Arrays.asList("foo", "bar"));
+        assertThat(user.getProjects()).hasSize(2);
+        assertThat(user.getProjects()).contains("foo");
+        assertThat(user.getProjects()).contains("bar");
+    }
+
+    @Test
+    public void test_can_set_several_duplicated_projects() {
+        User user = new User("id", "name", "email", "provider", "{}");
+        user.setProjects(Arrays.asList("foo", "bar", "foo"));
+        assertThat(user.getProjects()).hasSize(2);
+        assertThat(user.getProjects()).contains("foo");
+        assertThat(user.getProjects()).contains("bar");
+    }
+
+    @Test
+    public void test_can_set_several_projects_in_addition_to_json_detail() {
+        User user = new User("id", "name", "email", "provider", "{ \"groups_by_applications\": { \"datashare\": [\"foo\"] } }");
+        user.setProjects(Collections.singletonList("bar"));
+        assertThat(user.getProjects()).hasSize(2);
+        assertThat(user.getProjects()).contains("foo");
+        assertThat(user.getProjects()).contains("bar");
     }
 }
