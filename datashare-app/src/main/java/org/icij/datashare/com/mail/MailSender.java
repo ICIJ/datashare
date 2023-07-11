@@ -51,17 +51,21 @@ public class MailSender {
     public void send(Mail donneesEmail) throws MailException {
         try {
             Message message = createMessage(donneesEmail);
-            if (shouldAuth()) {
-                Transport.send(message, user, password);
-            } else {
-                Transport.send(message);
-            }
+            send(message);
         } catch (NullPointerException e) {
             logger.error("If error is about MailcapFile, delete .mailcap in the user's home");
             throw new MailException(e);
         } catch (Throwable t) {
             logger.error("Failed to send mail : hostmail=" + host + ", port=" + port,  t);
             throw new MailException(t);
+        }
+    }
+
+    private void send(Message message) throws MessagingException {
+        if (shouldAuth()) {
+            Transport.send(message, user, password);
+        } else {
+            Transport.send(message);
         }
     }
 
