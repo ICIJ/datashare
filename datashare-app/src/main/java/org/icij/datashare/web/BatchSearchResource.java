@@ -2,15 +2,31 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.Part;
-import net.codestory.http.annotations.*;
+import net.codestory.http.annotations.Delete;
+import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Options;
+import net.codestory.http.annotations.Patch;
+import net.codestory.http.annotations.Post;
+import net.codestory.http.annotations.Prefix;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.batch.*;
+import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRecord;
+import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchResult;
+import org.icij.datashare.batch.WebQueryBuilder;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
@@ -18,16 +34,25 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
-import static java.lang.Boolean.*;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-import static net.codestory.http.payload.Payload.*;
+import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
+import static net.codestory.http.payload.Payload.badRequest;
+import static net.codestory.http.payload.Payload.notFound;
+import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.CollectionUtils.asSet;
 
 @Singleton
@@ -45,44 +70,20 @@ public class BatchSearchResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    /**
-     * Retrieve the batch search list for the user issuing the request.
-     *
-     * @return 200 and the list of batch searches
-     *
-     * Example :
-     * $(curl localhost:8080/api/batch/search )
-     */
+
+    @Operation(description = "Retrieve the batch search list for the user issuing the request")
+    @ApiResponse(description = "200 and the list of batch search")
     @Get("/search")
     public List<BatchSearchRecord> getSearches(Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         return batchSearchRepository.getRecords(user, user.getProjectNames());
     }
 
-    /**
-     * Retrieve the batch search list for the user issuing the request filter with the given criteria, and the total
-     * of batch searches matching the criteria.
-     *
-     * It needs a Query json body with the parameters :
-     *
-     * - from : index offset of the first document to return (mandatory)
-     * - size : window size of the results (mandatory)
-     * - sort : field to sort (prj_id name user_id description state batch_date batch_results published) (default "batch_date")
-     * - order : "asc" or "desc" (default "asc")
-     * - project : projects to include in the filter (default null / empty list)
-     * - batchDate : batch search with a creation date included in this range (default null / empty list)
-     * - state : states to include in the filter (default null / empty list)
-     * - publishState : publish state to filter (default null)
-     *
-     * If from/size are not given their default values are 0, meaning that all the results are returned.
-     * BatchDate must be a list of 2 items (the first one for the starting date and the second one for the ending date)
-     * If defined publishState is a string equals to "0" or "1"
-     *
-     * @return 200 and the list of batch searches with the total batch searches for the query. See example for the JSON format.
-     *
-     * Example :
-     * $(curl -H 'Content-Type: application/json' localhost:8080/api/batch/search -d '{"from":0, "size": 2}')
-     */
+    @Operation(description = "Retrieve the batch search list for the user issuing the request filter with the given criteria, and the total of batch searches matching the criteria.<br>" +
+            "If from/size are not given their default values are 0, meaning that all the results are returned. BatchDate must be a list of 2 items (the first one for the starting date and the second one for the ending date) If defined publishState is a string equals to \"0\" or \"1\"",
+            requestBody = @RequestBody(description = "the json webQuery request body", required = true,  content = @Content(schema = @Schema(implementation = BatchSearchRepository.WebQuery.class)))
+    )
+    @ApiResponse(responseCode = "200", description = "the list of batch searches with the total batch searches for the query", useReturnTypeSchema = true)
     @Post("/search")
     public WebResponse<BatchSearchRecord> getSearchesFiltered(BatchSearchRepository.WebQuery webQuery, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
@@ -90,45 +91,25 @@ public class BatchSearchResource {
                 batchSearchRepository.getTotal(user, user.getProjectNames(), webQuery));
     }
 
-    /**
-     * Retrieve the batch search with the given id
-     * The query param "withQueries" accepts a boolean value
-     * When "withQueries" is set to false, the list of queries is empty and nbQueries contains the number of queries.
-     *
-     * @param batchId
-     * @return 200 and the batch search
-     * <p>
-     * Example :
-     * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146?withQueries=true)
-     */
+    @Operation(description = "Retrieve the batch search with the given id. The query param \"withQueries\" accepts a boolean value." +
+            "When \"withQueries\" is set to false, the list of queries is empty and nbQueries contains the number of queries.")
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/search/:batchid")
-    public Object getBatch(String batchId, Context context) {
+    public BatchSearch getBatch(@Parameter(name = "batchId", in = ParameterIn.PATH) String batchId, Context context) {
         boolean withQueries = Boolean.parseBoolean(context.get("withQueries"));
-        BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId, withQueries);
-        return batchSearch == null ? PayloadFormatter.error("Batch search not found.", HttpStatus.NOT_FOUND) : batchSearch;
+        return notFoundIfNull(batchSearchRepository.get((User) context.currentUser(), batchId, withQueries));
     }
 
-    /**
-     * Retrieve the batch search queries with the given batch id and returns a list of strings UTF-8 encoded
-     *
-     * if the request parameter format is set with csv, then it will answer with
-     * content-disposition attachment (file downloading)
-     *
-     * the optional request parameters are :
-     * - from: if not provided it starts from 0
-     * - size: if not provided all queries are returned from the "from" parameter
-     * - search: if provided it will filter the queries accordingly
-     * - orderBy: field name to order by asc, "query_number" by default (if it does not exist it will return a 500 error)
-     * - maxResult: number of maximum results for each returned query (-1 means no maxResults)
-     *
-     * @param batchId
-     * @return 200 and the batch search queries map [(query, nbResults), ...]
-     *
-     * Example :
-     * $(curl localhost:8080/api/batch/search/b7bee2d8-5ede-4c56-8b69-987629742146/queries?format=csv&from=0&size=2 )
-     */
+    @Operation(description = "Retrieve the batch search queries with the given batch id and returns a list of strings UTF-8 encoded",
+                parameters = {@Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
+                              @Parameter(name = "size", description = "if not provided all queries are returned from the \"from\" parameter", in = ParameterIn.QUERY),
+                              @Parameter(name = "format", description = "if set to csv, answer with content-disposition attachment (file downloading)", in = ParameterIn.QUERY),
+                              @Parameter(name = "search", description = "if provided it will filter the queries accordingly", in = ParameterIn.QUERY),
+                              @Parameter(name = "orderBy", description = "field name to order by asc, \"query_number\" by default (if it does not exist it will return a 500 error)", in = ParameterIn.QUERY),
+                              @Parameter(name = "maxResult", description = "number of maximum results for each returned query (-1 means no maxResults)", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", description = "the batch search queries map [(query, nbResults), ...]")
     @Get("/search/:batchid/queries")
-    public Payload getBatchQueries(String batchId, Context context) {
+    public Payload getBatchQueries(@Parameter(name = "batchId", description = "identifier of the batch search", in = ParameterIn.PATH) String batchId, Context context) {
         User user = (User) context.currentUser();
         int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
         int size = Integer.parseInt(ofNullable(context.get("size")).orElse("0"));
@@ -147,57 +128,32 @@ public class BatchSearchResource {
         return new Payload(queries);
     }
 
-    /**
-     * preflight request
-     *
-     * @return 200 DELETE
-     */
+    @Operation(description = "Preflight request")
+    @ApiResponse(responseCode = "200", description = "returns DELETE")
     @Options("/search")
     public Payload optionsSearches(Context context) {
         return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
-    /**
-     * preflight resquest for removal of one batchsearch
-     *
-     * @param batchId
-     * @return 200 DELETE
-     */
+    @Operation(description = "Preflight request")
+    @ApiResponse(responseCode = "200", description = "returns DELETE")
     @Options("/search/:batchid")
     public Payload optionsDelete(String batchId, Context context) {
         return ok().withAllowMethods("OPTIONS", "DELETE", "PATCH");
     }
 
-    /**
-     * Delete batch search with the given id and its results.
-     * It won't delete running batch searches, because results are added and would be orphans.
-     *
-     * Returns 204 (No Content) : idempotent
-     *
-     * @return 204
-     *
-     * Example :
-     * $(curl -i -XDELETE localhost:8080/api/batch/search/unknown_id)
-     *
-     */
+    @Operation(description = "Delete batch search with the given id and its results. It won't delete running batch searches, because results are added and would be orphans.")
+    @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent")
     @Delete("/search/:batchid")
     public Payload deleteBatch(String batchId, Context context) {
         batchSearchRepository.delete((User) context.currentUser(), batchId);
         return new Payload(204);
     }
 
-    /**
-     * Update batch search with the given id.
-     *
-     * Returns 200 and 404 if there is no batch id
-     * If the user issuing the request is not the same as the batch owner in database, it will do nothing (thus returning 404)
-     *
-     * @return 200 or 404
-     *
-     * Example :
-     * $(curl -i -XPATCH localhost:8080/api/batch/search/f74432db-9ae8-401d-977c-5c44a124f2c8 -H 'Content-Type: application/json' -d '{"data": {"published": true}}')
-     *
-     */
+    @Operation(description = "Update batch search with the given id.",
+            requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = JsonData.class))))
+    @ApiResponse(responseCode = "404", description = "If the user issuing the request is not the same as the batch owner in database, it will do nothing (thus returning 404)")
+    @ApiResponse(responseCode = "200", description = "If the batch has been updated")
     @Patch("/search/:batchid")
     public Payload updateBatch(String batchId, Context context, JsonData data) {
         if (batchSearchRepository.publish((User) context.currentUser(), batchId, data.asBoolean("published"))) {

@@ -2,6 +2,10 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -35,17 +39,9 @@ public class StatusResource {
         this.queue = documentCollectionFactory.createQueue(propertiesProvider, propertiesProvider.get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue"));
     }
 
-    /**
-     * Retrieve the status of databus connection, database connection, shared queues and index.
-     * Adding "format=openmetrics" parameter to the url will return the status witn openmetrics format.
-     *
-     * @return the status of datashare elements
-     *
-     * Example:
-     * $(curl localhost:8080/api/status)
-     *
-     * $(curl localhost:8080/api/status?format=openmetrics)
-     */
+    @Operation(description = "Retrieve the status of databus connection, database connection, shared queues and index.",
+            parameters = { @Parameter(name = "format=openmetrics", description = "if provided in the url it will return the status witn openmetrics format", in = ParameterIn.QUERY) })
+    @ApiResponse(responseCode = "200", description = "returns the status of datashare elements", useReturnTypeSchema = true)
     @Get("/status")
     public Payload getStatus(Context context) {
         boolean queueStatus = false;

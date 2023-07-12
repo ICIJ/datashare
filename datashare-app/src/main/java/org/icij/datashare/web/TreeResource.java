@@ -2,6 +2,12 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -31,21 +37,11 @@ public class TreeResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    /**
-     * List all files and directory for the given path. This endpoint returns a JSON using the same
-     * specification than the `tree` command on UNIX. It is roughly the equivalent of:
-     *
-     * ```
-     * tree -L 1 -spJ --noreport /home/datashare/data
-     * ```
-     *
-     * @param dirPath
-     * @return 200 and the list of files and directory
-     *
-     * Example $(curl -XGET localhost:8080/api/tree/home/datashare/data)
-     */
+    @Operation(description = "List all files and directory for the given path. This endpoint returns a JSON using the same specification than the `tree` command on UNIX. It is roughly the equivalent of:<br>" +
+            "<pre>tree -L 1 -spJ --noreport /home/datashare/data</pre>")
+    @ApiResponse(responseCode = "200", description = "returns the list of files and directory", useReturnTypeSchema = true)
     @Get(":dirPath:")
-    public DirectoryReport getTree(final String dirPath, Context context) throws IOException {
+    public DirectoryReport getTree(@Parameter(name="dirPath", description="directory path in the tree", in = ParameterIn.PATH) final String dirPath, Context context) throws IOException {
         Path path = IS_OS_WINDOWS ?  Paths.get(dirPath) : Paths.get(File.separator, dirPath);
         int depth = parseInt(ofNullable(context.get("depth")).orElse("0"));
         File dir = path.toFile();

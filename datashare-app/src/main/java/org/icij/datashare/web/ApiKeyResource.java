@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,7 +31,7 @@ public class ApiKeyResource {
     @Operation(description = "Preflight for key management")
     @ApiResponse(responseCode = "200", description="returns OPTIONS, GET, PUT and DELETE")
     @Options("/:userId")
-    public Payload createKey(@Parameter(name="userId", description="user identifier") String userId) {
+    public Payload createKey(@Parameter(name="userId", description="user identifier", in = ParameterIn.PATH) String userId) {
         return ok().withAllowMethods("OPTIONS", "GET", "PUT", "DELETE");
     }
 
@@ -38,7 +39,7 @@ public class ApiKeyResource {
     @ApiResponse(responseCode = "201", description = "returns the api key JSON",
             content = { @Content(examples = { @ExampleObject(value="{\"apiKey\":\"SrcasvUmaAD6NsZ3+VmUkFFWVfRggIRNmWR5aHx7Kfc=\"}")})})
     @Put("/:userId")
-    public Payload createKey(@Parameter(name = "userId", description = "user identifier") String userId, Context context) throws Exception {
+    public Payload createKey(@Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId, Context context) throws Exception {
         return new Payload("application/json", new HashMap<String, String>() {{
             put("apiKey", taskFactory.createGenApiKey(new User(userId)).call());
         }},201);
@@ -48,7 +49,7 @@ public class ApiKeyResource {
     @ApiResponse(responseCode = "200", description = "returns the hashed key JSON",
             content = { @Content(examples = { @ExampleObject(value="{\"hashedKey\":\"c3e7766f7605659f2b97f2a6f5bcf34611997fc31173931eefcea91df1b465ffe35c2b9b4b91e8bbe2eec3730ce2a74a\"}")})})
     @Get("/:userId")
-    public Payload getKey(String userId) throws Exception{
+    public Payload getKey(@Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId) throws Exception{
         return new Payload("application/json", new HashMap<String, String>() {{
             put("hashedKey", taskFactory.createGetApiKey(new User(userId)).call());
         }},200);
@@ -57,7 +58,7 @@ public class ApiKeyResource {
     @Operation(description = "Deletes an apikey for current user. Only available in SERVER mode.")
     @ApiResponse(responseCode = "204", description = "when key has been deleted")
     @Delete("/:userId")
-    public Payload deleteKey(String userId,Context context) throws Exception {
+    public Payload deleteKey(@Parameter(name = "userId", description = "user identifier", in = ParameterIn.PATH) String userId,Context context) throws Exception {
         taskFactory.createDelApiKey(new User(userId)).call();
         return new Payload(204);
     }
