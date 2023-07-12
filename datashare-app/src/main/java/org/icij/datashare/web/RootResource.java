@@ -2,6 +2,10 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
@@ -37,14 +41,9 @@ public class RootResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    /**
-     * gets the root of the front-end app ie: ./app/index.html
-     *
-     * if pluginsDir is set, it will add in the index the tag <script src="plugins/my_plugin/index.js"></script>
-     * else it will return the index.html content as is
-     *
-     * @return the content of index.html file
-     */
+    @Operation(description = "Gets the root of the front-end app ie: ./app/index.html<br>" +
+            "If pluginsDir is set, it will add in the index the tag <script src=\"plugins/my_plugin/index.js\"></script> else it will return the index.html content as is")
+    @ApiResponse(responseCode = "200", description = "returns the content of index.html file", useReturnTypeSchema = true)
     @Get()
     public String getRoot(Context context) throws IOException {
         Path index = new File(context.env().workingDir(), context.env().appFolder()).toPath().resolve(INDEX_HTML);

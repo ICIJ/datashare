@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Properties;
 
 public class JsonData {
-    private Map<String, Object> data;
+    public Map<String, Object> data;
     public Object get(String key) {
         return data.get(key);
     }
