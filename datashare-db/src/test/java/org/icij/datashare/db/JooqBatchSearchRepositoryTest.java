@@ -217,11 +217,11 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_records_filtered_by_content_type(){
         BatchSearch batchSearch1 = new BatchSearch(singletonList(project("prj1")),"foo","baz",asSet("q1", "q2"), User.local(),
-                false,asList("application/json", "application/text"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+                false,asList("application/json", "application/text"),null, asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         BatchSearch batchSearch2 = new BatchSearch(singletonList(project("prj1")),"bar","baz",asSet("q3", "q2"), User.local(),
-                true,asList("application/json"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+                true,asList("application/json"), null,asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         BatchSearch batchSearch3 = new BatchSearch(asList(project("prj1")),"bar","baz",asSet("q3", "q2"), User.local(),
-                true,null, asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+                true,null, null,asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         repository.save(batchSearch1);
         repository.save(batchSearch2);
         repository.save(batchSearch3);
