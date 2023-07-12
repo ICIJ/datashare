@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonUtils;
+import org.icij.datashare.text.Project;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,7 +24,7 @@ public class User implements Entity {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
-    private final List<String> projects = new ArrayList<>();
+    private final HashSet<Project> projects = new HashSet<Project>();
 
     public User(final String id, String name, String email, String provider, String jsonDetails) {
         this.id = id;
@@ -76,39 +77,59 @@ public class User implements Entity {
     }
 
     @JsonIgnore
-    public List<String> getApplicationProjects() {
+    public List<String> getApplicationProjectNames() {
         HashMap<String, Object> applications = (HashMap<String, Object>) ofNullable(details.get(XEMX_APPLICATIONS_KEY)).orElse(new HashMap<>());
         return (List<String>) ofNullable(applications.get(XEMX_DATASHARE_KEY)).orElse(new LinkedList<>());
     }
 
     @JsonIgnore
-    public List<String> getProjects() {
-        HashSet<String> uniqueProjects = new HashSet<>();
+    public List<Project> getApplicationProjects() {
+        return getApplicationProjectNames().stream().map(Project::new).collect(Collectors.toList());
+    }
 
-        uniqueProjects.addAll(projects);
+    @JsonIgnore
+    public List<String> getProjectNames() {
+        return getProjects().stream().map(p -> p.name).collect(Collectors.toList());
+    }
+
+    @JsonIgnore
+    public List<Project> getProjects() {
+        HashSet<Project> uniqueProjects = new HashSet<>(projects);
         uniqueProjects.addAll(getApplicationProjects());
-
         return new ArrayList<>(uniqueProjects);
     }
 
     @JsonIgnore
-    public void addProject(String newProject) {
+    public User addProject(String newProjectName) {
+        Project newProject = new Project(newProjectName);
+        return addProject(newProject);
+    }
+
+    @JsonIgnore
+    public User addProject(Project newProject) {
         if (!getProjects().contains(newProject)) {
             projects.add(newProject);
         }
+        return this;
     }
 
     @JsonIgnore
-    public void addProjects(List<String> newProjects) {
+    public User addProjects(List<String> newProjects) {
         // We add each project one by one to ensure that even if `newProjects` contains
         // duplicates, they are only added once
         newProjects.forEach(this::addProject);
+        return this;
     }
 
     @JsonIgnore
-    public void setProjects(List<String> newProjects) {
+    public User setProjects(List<String> newProjects) {
+        return clearProjects().addProjects(newProjects);
+    }
+
+    @JsonIgnore
+    public User clearProjects() {
         projects.clear();
-        addProjects(newProjects);
+        return this;
     }
 
     @JsonIgnore
@@ -124,9 +145,13 @@ public class User implements Entity {
         return JsonUtils.serialize(getDetails());
     }
 
-    public boolean isGranted(String index) {
-            return getProjects().contains(index);
-        }
+    public boolean isGranted(String projectName) {
+        return getProjectNames().contains(projectName);
+    }
+
+    public boolean isGranted(Project project) {
+        return getProjects().contains(project);
+    }
 
     @Override public String getId() { return id;}
     public String queueName() { return "extract:queue_" + id;}

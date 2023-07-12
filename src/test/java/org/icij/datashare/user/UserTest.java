@@ -57,8 +57,8 @@ public class UserTest {
 
     @Test
     public void test_get_indices_for_local_user() {
-        assertThat(User.local().getProjects()).containsExactly("local-datashare");
-        assertThat(User.localUser("foo").getProjects()).containsExactly("foo-datashare");
+        assertThat(User.local().getProjectNames()).containsExactly("local-datashare");
+        assertThat(User.localUser("foo").getProjectNames()).containsExactly("foo-datashare");
     }
 
     @Test
@@ -68,7 +68,7 @@ public class UserTest {
             put("groups_by_applications", new HashMap<String, Object>() {{
                 put("datashare", Collections.singletonList("external_index"));
             }});
-        }}).getProjects()).containsExactly("external_index");
+        }}).getProjectNames()).containsExactly("external_index");
     }
 
     @Test
@@ -118,34 +118,53 @@ public class UserTest {
     public void test_can_set_one_project() {
         User user = new User("id", "name", "email", "provider", "{}");
         user.setProjects(Collections.singletonList("foo"));
-        assertThat(user.getProjects()).hasSize(1);
-        assertThat(user.getProjects()).contains("foo");
+        assertThat(user.getProjectNames()).hasSize(1);
+        assertThat(user.getProjectNames()).contains("foo");
     }
 
     @Test
     public void test_can_set_several_projects() {
         User user = new User("id", "name", "email", "provider", "{}");
         user.setProjects(Arrays.asList("foo", "bar"));
-        assertThat(user.getProjects()).hasSize(2);
-        assertThat(user.getProjects()).contains("foo");
-        assertThat(user.getProjects()).contains("bar");
+        assertThat(user.getProjectNames()).hasSize(2);
+        assertThat(user.getProjectNames()).contains("foo");
+        assertThat(user.getProjectNames()).contains("bar");
     }
 
     @Test
     public void test_can_set_several_duplicated_projects() {
         User user = new User("id", "name", "email", "provider", "{}");
         user.setProjects(Arrays.asList("foo", "bar", "foo"));
-        assertThat(user.getProjects()).hasSize(2);
-        assertThat(user.getProjects()).contains("foo");
-        assertThat(user.getProjects()).contains("bar");
+        assertThat(user.getProjectNames()).hasSize(2);
+        assertThat(user.getProjectNames()).contains("foo");
+        assertThat(user.getProjectNames()).contains("bar");
     }
 
     @Test
     public void test_can_set_several_projects_in_addition_to_json_detail() {
         User user = new User("id", "name", "email", "provider", "{ \"groups_by_applications\": { \"datashare\": [\"foo\"] } }");
         user.setProjects(Collections.singletonList("bar"));
-        assertThat(user.getProjects()).hasSize(2);
-        assertThat(user.getProjects()).contains("foo");
-        assertThat(user.getProjects()).contains("bar");
+        assertThat(user.getProjectNames()).hasSize(2);
+        assertThat(user.getProjectNames()).contains("foo");
+        assertThat(user.getProjectNames()).contains("bar");
+    }
+
+    @Test
+    public void test_clear_projects_but_details() {
+        User user = new User("id", "name", "email", "provider", "{ \"groups_by_applications\": { \"datashare\": [\"foo\"] } }");
+        user.setProjects(Collections.singletonList("bar"));
+        assertThat(user.getProjectNames()).hasSize(2);
+        user.clearProjects();
+        assertThat(user.getProjectNames()).hasSize(1);
+        assertThat(user.getProjectNames()).contains("foo");
+    }
+
+    @Test
+    public void test_clear_projects() {
+        User user = new User("id", "name", "email", "provider");
+        user.setProjects(Collections.singletonList("bar"));
+        assertThat(user.getProjectNames()).hasSize(1);
+        user.clearProjects();
+        assertThat(user.getProjectNames()).hasSize(0);
     }
 }
