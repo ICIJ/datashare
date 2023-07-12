@@ -38,6 +38,7 @@ import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.ApiKeyRepository;
+import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
 import org.icij.datashare.web.StatusResource;
@@ -217,6 +218,7 @@ public abstract class CommonMode extends AbstractModule {
         routes.setIocAdapter(guiceAdapter)
                 .add(RootResource.class)
                 .add(SettingsResource.class)
+                .add(OpenApiResource.class)
                 .add(StatusResource.class)
                 .setExtensions(new Extensions() {
                     @Override
