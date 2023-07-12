@@ -2,12 +2,14 @@ package org.icij.datashare.web;
 
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Repository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mock;
 
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
@@ -16,7 +18,9 @@ import static java.net.URLEncoder.encode;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class PluginResourceTest extends AbstractProdWebServerTest {
+    @Mock Repository repository;
     @Rule public TemporaryFolder pluginFolder = new TemporaryFolder();
+
     @Test
     public void test_list_plugins() {
         get("/api/plugins").should().respond(200).
@@ -71,6 +75,6 @@ public class PluginResourceTest extends AbstractProdWebServerTest {
         configure(routes -> routes.add(new PluginResource(new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
         "{\"id\":\"my-plugin\",\"name\":\"My plugin\",\"description\":\"Description of my plugin\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin.tgz")+ "\"}," +
         "{\"id\":\"my-other-plugin\",\"name\":\"My other plugin\",\"description\":\"Description of my other plugin  \", \"url\": \"https://dummy.url\"}" +
-        "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider())));
+        "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider(), repository)));
     }
 }

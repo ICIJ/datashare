@@ -47,7 +47,10 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        configure(routes -> routes.add(new DocumentResource(repository, indexer)).filter(new LocalUserFilter(new PropertiesProvider())));
+        configure(routes -> {
+            routes.add(new DocumentResource(repository, indexer))
+                    .filter(new LocalUserFilter(new PropertiesProvider(), repository));
+        });
     }
 
     @Test
