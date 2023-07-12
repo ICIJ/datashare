@@ -5,8 +5,10 @@ import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Repository;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 
 import java.util.HashMap;
 
@@ -16,6 +18,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 public class LocalUserFilterTest {
+    @Mock Repository repository;
     private Payload next = Payload.ok();
     private PayloadSupplier nextFilter = () -> next;
     private Context context = mock(Context.class);
@@ -23,9 +26,10 @@ public class LocalUserFilterTest {
 
     @Test
     public void test_matches() {
-        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put("protectedUrPrefix", "test");
-        }}));
+        }});
+        LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, repository);
 
         assertThat(localUserFilter.matches("foo", null)).isFalse();
         assertThat(localUserFilter.matches("/foo", null)).isFalse();
@@ -37,7 +41,7 @@ public class LocalUserFilterTest {
 
     @Test
     public void test_adds_local_user_to_context() throws Exception {
-        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider());
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), repository);
         Payload payload = localUserFilter.apply("url", context, nextFilter);
 
         assertThat(payload).isSameAs(next);
@@ -48,9 +52,10 @@ public class LocalUserFilterTest {
 
     @Test
     public void test_adds_custom_user_to_context() throws Exception {
-        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put("defaultUserName", "foo");
-        }}));
+        }});
+        LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, repository);
         Payload payload = localUserFilter.apply("url", context, nextFilter);
 
         assertThat(payload).isSameAs(next);
@@ -60,7 +65,7 @@ public class LocalUserFilterTest {
 
     @Test
     public void test_adds_cookie() throws Exception {
-        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider());
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), repository);
         Payload payload = localUserFilter.apply("url", context, nextFilter);
 
         assertThat(payload.cookies().size()).isEqualTo(1);

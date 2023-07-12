@@ -28,7 +28,7 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        configure(routes -> routes.add(new UserResource(repository)).filter(new LocalUserFilter(new PropertiesProvider())));
+        configure(routes -> routes.add(new UserResource(repository)).filter(new LocalUserFilter(new PropertiesProvider(), repository)));
     }
 
     @Test

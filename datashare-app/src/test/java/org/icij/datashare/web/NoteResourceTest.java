@@ -49,6 +49,6 @@ public class NoteResourceTest extends AbstractProdWebServerTest {
     public void setUp() {
         initMocks(this);
         configure(routes -> routes.add(new NoteResource(repository)).
-                filter(new LocalUserFilter(new PropertiesProvider())));
+                filter(new LocalUserFilter(new PropertiesProvider(), repository)));
     }
 }

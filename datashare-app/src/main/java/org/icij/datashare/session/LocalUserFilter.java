@@ -6,24 +6,30 @@ import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
+import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Repository;
 
 import static org.icij.datashare.session.DatashareUser.*;
 
 public class LocalUserFilter extends CookieAuthFilter {
     private final String userName;
+    private final Repository repository;
 
     @Inject
-    public LocalUserFilter(final PropertiesProvider propertiesProvider) {
+    public LocalUserFilter(final PropertiesProvider propertiesProvider, final Repository repository) {
         super(propertiesProvider.get("protectedUrPrefix").orElse("/"),
-                singleUser(propertiesProvider.get("defaultUserName").orElse("local")), SessionIdStore.inMemory());
-        userName = propertiesProvider.get("defaultUserName").orElse("local");
+                singleUser(propertiesProvider.get("defaultUserName").orElse("local")),
+                SessionIdStore.inMemory());
+        this.userName = propertiesProvider.get("defaultUserName").orElse("local");
+        this.repository = repository;
     }
 
     @Override
     public Payload otherUri(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
         String sessionId = readSessionIdInCookie(context);
-        context.setCurrentUser(users.find(userName));
+        User user = users.find(userName);
+        context.setCurrentUser(user);
         if (sessionId == null) {
             return nextFilter.get().withCookie(this.authCookie(this.buildCookie(users.find("local"), "/")));
         } else {
@@ -31,7 +37,7 @@ public class LocalUserFilter extends CookieAuthFilter {
         }
     }
 
-    @Override protected String cookieName() { return "_ds_session_id";}
-    @Override protected int expiry() { return Integer.MAX_VALUE;}
-    @Override protected boolean redirectToLogin(String uri) { return false;}
+    @Override protected String cookieName() { return "_ds_session_id"; }
+    @Override protected int expiry() { return Integer.MAX_VALUE; }
+    @Override protected boolean redirectToLogin(String uri) { return false; }
 }

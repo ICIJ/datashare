@@ -41,7 +41,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             }});
 
             ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider);
-            routes.filter(new LocalUserFilter(propertiesProvider)).add(projectResource);
+            routes.filter(new LocalUserFilter(propertiesProvider, repository)).add(projectResource);
         });
     }
 
