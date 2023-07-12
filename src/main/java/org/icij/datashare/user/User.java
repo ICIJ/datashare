@@ -114,7 +114,15 @@ public class User implements Entity {
     }
 
     @JsonIgnore
-    public User addProjects(List<String> newProjects) {
+    public User addProjectNames(List<String> newProjectNames) {
+        // We add each project one by one to ensure that even if `newProjects` contains
+        // duplicates, they are only added once
+        newProjectNames.forEach(this::addProject);
+        return this;
+    }
+
+    @JsonIgnore
+    public User addProjects(List<Project> newProjects) {
         // We add each project one by one to ensure that even if `newProjects` contains
         // duplicates, they are only added once
         newProjects.forEach(this::addProject);
@@ -122,7 +130,12 @@ public class User implements Entity {
     }
 
     @JsonIgnore
-    public User setProjects(List<String> newProjects) {
+    public User setProjectNames(List<String> newProjectNames) {
+        return clearProjects().addProjectNames(newProjectNames);
+    }
+
+    @JsonIgnore
+    public User setProjects(List<Project> newProjects) {
         return clearProjects().addProjects(newProjects);
     }
 

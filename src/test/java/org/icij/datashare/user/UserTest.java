@@ -117,7 +117,7 @@ public class UserTest {
     @Test
     public void test_can_set_one_project() {
         User user = new User("id", "name", "email", "provider", "{}");
-        user.setProjects(Collections.singletonList("foo"));
+        user.setProjectNames(Collections.singletonList("foo"));
         assertThat(user.getProjectNames()).hasSize(1);
         assertThat(user.getProjectNames()).contains("foo");
     }
@@ -125,7 +125,7 @@ public class UserTest {
     @Test
     public void test_can_set_several_projects() {
         User user = new User("id", "name", "email", "provider", "{}");
-        user.setProjects(Arrays.asList("foo", "bar"));
+        user.setProjectNames(Arrays.asList("foo", "bar"));
         assertThat(user.getProjectNames()).hasSize(2);
         assertThat(user.getProjectNames()).contains("foo");
         assertThat(user.getProjectNames()).contains("bar");
@@ -134,7 +134,7 @@ public class UserTest {
     @Test
     public void test_can_set_several_duplicated_projects() {
         User user = new User("id", "name", "email", "provider", "{}");
-        user.setProjects(Arrays.asList("foo", "bar", "foo"));
+        user.setProjectNames(Arrays.asList("foo", "bar", "foo"));
         assertThat(user.getProjectNames()).hasSize(2);
         assertThat(user.getProjectNames()).contains("foo");
         assertThat(user.getProjectNames()).contains("bar");
@@ -143,7 +143,7 @@ public class UserTest {
     @Test
     public void test_can_set_several_projects_in_addition_to_json_detail() {
         User user = new User("id", "name", "email", "provider", "{ \"groups_by_applications\": { \"datashare\": [\"foo\"] } }");
-        user.setProjects(Collections.singletonList("bar"));
+        user.setProjectNames(Collections.singletonList("bar"));
         assertThat(user.getProjectNames()).hasSize(2);
         assertThat(user.getProjectNames()).contains("foo");
         assertThat(user.getProjectNames()).contains("bar");
@@ -152,7 +152,7 @@ public class UserTest {
     @Test
     public void test_clear_projects_but_details() {
         User user = new User("id", "name", "email", "provider", "{ \"groups_by_applications\": { \"datashare\": [\"foo\"] } }");
-        user.setProjects(Collections.singletonList("bar"));
+        user.setProjectNames(Collections.singletonList("bar"));
         assertThat(user.getProjectNames()).hasSize(2);
         user.clearProjects();
         assertThat(user.getProjectNames()).hasSize(1);
@@ -162,7 +162,7 @@ public class UserTest {
     @Test
     public void test_clear_projects() {
         User user = new User("id", "name", "email", "provider");
-        user.setProjects(Collections.singletonList("bar"));
+        user.setProjectNames(Collections.singletonList("bar"));
         assertThat(user.getProjectNames()).hasSize(1);
         user.clearProjects();
         assertThat(user.getProjectNames()).hasSize(0);
