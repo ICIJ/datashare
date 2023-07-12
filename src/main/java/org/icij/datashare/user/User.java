@@ -23,7 +23,7 @@ public class User implements Entity {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
-    private List<String> projects = new ArrayList<>();
+    private final List<String> projects = new ArrayList<>();
 
     public User(final String id, String name, String email, String provider, String jsonDetails) {
         this.id = id;
