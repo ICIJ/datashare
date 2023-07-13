@@ -6,6 +6,7 @@ parameters:
     default: false
 
 jobs:
+
   build_back:
     docker:
       - image: cimg/openjdk:11.0.16
@@ -201,6 +202,7 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}-all.jar&label=datashare-dist-${CIRCLE_TAG}-all.jar"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-back.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.jar&label=datashare-dist-${CIRCLE_TAG}.jar"
 
+
   build_front:
     resource_class: large
     docker:
@@ -288,6 +290,7 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/zip" --data-binary "@/tmp/datashare/datashare-client-${CIRCLE_TAG}.zip" "$upload_url?name=datashare-client-${CIRCLE_TAG}.zip&label=datashare-client-${CIRCLE_TAG}.zip"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-client-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-client-${CIRCLE_TAG}.tgz&label=datashare-client-${CIRCLE_TAG}.tgz"
 
+
   build_docker:
     docker:
       - image: docker:20.10.22-git
@@ -313,6 +316,7 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               -t icij/datashare:${CIRCLE_TAG} \
               --push .
+
 
   build_installers:
     resource_class: large
@@ -398,6 +402,7 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.deb" "$upload_url?name=datashare-${CIRCLE_TAG}.deb&label=datashare-${CIRCLE_TAG}.deb"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-${CIRCLE_TAG}.tgz&label=datashare-${CIRCLE_TAG}.tgz"
 
+
 workflows:
   version: 2
   build_workflow:
@@ -459,6 +464,6 @@ workflows:
                   ignore: /.*/
 
   publish_doc_workflow:
-    when: << pipeline.parameters.publish_backend_doc >>
+    when: false # << pipeline.parameters.publish_backend_doc >>
     jobs:
       - publish_doc
