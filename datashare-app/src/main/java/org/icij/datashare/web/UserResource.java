@@ -30,6 +30,18 @@ import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 public class UserResource {
     private final Repository repository;
 
+    private List<Project> getDatashareUserProjects (DatashareUser datashareUser) {
+        List<String> projectNames =  datashareUser.getProjectNames();
+        List<Project> projects = datashareUser.getProjects();
+        List<Project> repositoryProjects = repository.getProjects(projectNames.toArray(new String[0]));
+        return projects.stream().map(project -> {
+                    return repositoryProjects.stream()
+                            .filter(p -> p.name.equals(project.name))
+                            .findFirst()
+                            .orElse(project);
+                }).collect(Collectors.toList());
+    }
+
     @Inject
     public UserResource(Repository repository) {
         this.repository = repository;
@@ -47,7 +59,7 @@ public class UserResource {
     public Map<String, Object> getUser(Context context) {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
         Map<String, Object> details = datashareUser.getDetails();
-        details.put("projects", datashareUser.getProjects());
+        details.put("projects", getDatashareUserProjects(datashareUser));
         return details;
     }
 
