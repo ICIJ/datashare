@@ -16,14 +16,13 @@ public class PayloadFormatterTest {
 
     @Test
     public void test_error_should_create_payload_with_error_message_and_status() {
-        PayloadFormatter payloadFormatter = new PayloadFormatter();
         String message = "Error message";
         int status = 400;
 
         Map<String, String> expectedBody = Collections.singletonMap("error", message);
         Payload expectedPayload = new Payload(expectedBody).withCode(status);
 
-        Payload result = payloadFormatter.error(message, status);
+        Payload result = PayloadFormatter.error(message, status);
 
         assertTrue(result.isError());
         assertEquals(result.rawContent(), expectedPayload.rawContent());
@@ -31,47 +30,41 @@ public class PayloadFormatterTest {
 
     @Test
     public void test_allow_single_method() {
-        PayloadFormatter payloadFormatter = new PayloadFormatter();
-        Payload payload = payloadFormatter.allowMethods("GET");
+        Payload payload = PayloadFormatter.allowMethods("GET");
 
         assertThat(payload.headers()).includes(entry("Access-Control-Allow-Methods", "GET"));
     }
 
     @Test
     public void test_allow_multiple_methods() {
-        PayloadFormatter payloadFormatter = new PayloadFormatter();
-        Payload payload = payloadFormatter.allowMethods("GET", "POST");
+        Payload payload = PayloadFormatter.allowMethods("GET", "POST");
 
         assertThat(payload.headers()).includes(entry("Access-Control-Allow-Methods", "GET, POST"));
     }
 
     @Test
     public void test_allow_multiple_comma_separated_methods() {
-        PayloadFormatter payloadFormatter = new PayloadFormatter();
-        Payload payload = payloadFormatter.allowMethods("GET,POST");
+        Payload payload = PayloadFormatter.allowMethods("GET,POST");
 
         assertThat(payload.headers()).includes(entry("Access-Control-Allow-Methods", "GET, POST"));
     }
 
     @Test
     public void test_allow_multiple_comma_separated_trimmed_methods() {
-        PayloadFormatter payloadFormatter = new PayloadFormatter();
-        Payload payload = payloadFormatter.allowMethods("GET,  POST", "PATCH");
+        Payload payload = PayloadFormatter.allowMethods("GET,  POST", "PATCH");
 
         assertThat(payload.headers()).includes(entry("Access-Control-Allow-Methods", "GET, POST, PATCH"));
     }
 
     @Test
     public void test_create_json_payload_with_string() {
-        PayloadFormatter payloadFormatter = new PayloadFormatter();
-        Payload payload = payloadFormatter.json("Foo");
+        Payload payload = PayloadFormatter.json("Foo");
         assertThat(payload.rawContentType()).isEqualTo("application/json");
     }
 
     @Test
     public void test_create_json_payload_with_list_of_string() {
-        PayloadFormatter payloadFormatter = new PayloadFormatter();
-        Payload payload = payloadFormatter.json(new String[]{"Foo", "Bar"});
+        Payload payload = PayloadFormatter.json(new String[]{"Foo", "Bar"});
         assertThat(payload.rawContentType()).isEqualTo("application/json");
     }
 }

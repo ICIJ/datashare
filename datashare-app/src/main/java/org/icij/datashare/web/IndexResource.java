@@ -27,14 +27,10 @@ import static net.codestory.http.payload.Payload.ok;
 @Prefix("/api/index")
 public class IndexResource {
     private final Indexer indexer;
-    private final PayloadFormatter payloadFormatter;
-    private final IndexAccessVerifier indexAccessVerifier;
 
     @Inject
     public IndexResource(Indexer indexer) {
         this.indexer = indexer;
-        this.payloadFormatter = new PayloadFormatter();
-        this.indexAccessVerifier = new IndexAccessVerifier();
     }
 
     /**
@@ -48,9 +44,9 @@ public class IndexResource {
     @Put("/:index")
     public Payload createIndex(final String index) throws IOException {
         try{
-            return indexer.createIndex(indexAccessVerifier.checkIndices(index)) ? created() : ok();
+            return indexer.createIndex(IndexAccessVerifier.checkIndices(index)) ? created() : ok();
         }catch (IllegalArgumentException e){
-            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -63,10 +59,10 @@ public class IndexResource {
     @Options("/:index")
     public Payload createIndexPreflight(final String index) {
         try{
-            indexAccessVerifier.checkIndices(index);
-            return payloadFormatter.allowMethods("OPTIONS", "PUT");
+            IndexAccessVerifier.checkIndices(index);
+            return PayloadFormatter.allowMethods("OPTIONS", "PUT");
         }catch (IllegalArgumentException e){
-            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -81,7 +77,7 @@ public class IndexResource {
         try {
             return new Payload(indexer.executeRaw("HEAD", path, null));
         } catch (IllegalArgumentException e){
-            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -106,9 +102,9 @@ public class IndexResource {
     @Post("/search/:path:")
     public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
-            return payloadFormatter.json(indexer.executeRaw("POST", indexAccessVerifier.checkPath(path, context), new String(request.contentAsBytes())));
+            return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.checkPath(path, context), new String(request.contentAsBytes())));
         } catch ( IllegalArgumentException e){
-            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -129,9 +125,9 @@ public class IndexResource {
     @Get("/search/:path:")
     public Payload esGet(final String path, Context context) throws IOException {
         try {
-            return payloadFormatter.json(indexer.executeRaw("GET", indexAccessVerifier.checkPath(path, context), ""));
+            return PayloadFormatter.json(indexer.executeRaw("GET", IndexAccessVerifier.checkPath(path, context), ""));
         } catch (IllegalArgumentException e){
-            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -144,10 +140,10 @@ public class IndexResource {
     @Options("/search/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
         try {
-            indexAccessVerifier.checkIndices(index);
-            return payloadFormatter.allowMethods(indexer.executeRaw("OPTIONS", path, null));
+            IndexAccessVerifier.checkIndices(index);
+            return PayloadFormatter.allowMethods(indexer.executeRaw("OPTIONS", path, null));
         } catch (IllegalArgumentException e){
-            return payloadFormatter.error(e, HttpStatus.BAD_REQUEST);
+            return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }
 }

@@ -10,33 +10,28 @@ public class IndexAccessVerifierTest {
 
     private IndexAccessVerifier indexAccessVerifier;
 
-    @Before
-    public void setUp() {
-        indexAccessVerifier = new IndexAccessVerifier();
-    }
-
     @Test
     public void test_check_single_index() {
-        assertThat(indexAccessVerifier.checkIndices("foo")).isEqualTo("foo");
+        assertThat(IndexAccessVerifier.checkIndices("foo")).isEqualTo("foo");
     }
 
 
     @Test
     public void test_check_invalid_single_index() {
         assertThrows(IllegalArgumentException.class, () -> {
-            indexAccessVerifier.checkIndices("foo?");
+            IndexAccessVerifier.checkIndices("foo?");
         });
     }
 
     @Test
     public void test_check_multiple_indices() {
-        assertThat(indexAccessVerifier.checkIndices("bar,foo")).isEqualTo("bar,foo");
+        assertThat(IndexAccessVerifier.checkIndices("bar,foo")).isEqualTo("bar,foo");
     }
 
     @Test
     public void test_check_invalid_multiple_indices() {
         assertThrows(IllegalArgumentException.class, () -> {
-            indexAccessVerifier.checkIndices("bar,foo!");
+            IndexAccessVerifier.checkIndices("bar,foo!");
         });
     }
 }

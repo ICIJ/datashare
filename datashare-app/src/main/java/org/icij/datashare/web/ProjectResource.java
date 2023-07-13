@@ -32,7 +32,6 @@
         private final Indexer indexer;
         private final DataDirVerifier dataDirVerifier;
         private final ModeVerifier modeVerifier;
-        private final PayloadFormatter payloadFormatter;
 
 
         @Inject
@@ -41,7 +40,6 @@
             this.indexer = indexer;
             this.dataDirVerifier = new DataDirVerifier(propertiesProvider);;
             this.modeVerifier = new ModeVerifier(propertiesProvider);
-            this.payloadFormatter = new PayloadFormatter();
         }
 
         String[] getUserProjectIds(DatashareUser user) {
@@ -89,13 +87,13 @@
             Project project = context.extract(Project.class);
 
             if (projectExists(project)) {
-                return payloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
+                return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
             } else if (isProjectNameEmpty(project)) {
-                return payloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
+                return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
             } else if (isProjectSourcePathNull(project) || !dataDirVerifier.allowed(project.getSourcePath())) {
-                return payloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
+                return PayloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
             } else if (!repository.save(project) || !this.indexer.createIndex(project.getId())) {
-                return payloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
+                return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             return new Payload(project).withCode(HttpStatus.CREATED);
@@ -106,10 +104,10 @@
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             Project project = context.extract(Project.class);
             if (!projectExists(project) || !Objects.equals(project.getId(), id)) {
-                return payloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
+                return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
             if (!project.getId().equals(id) || !repository.save(project)) {
-                return payloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
+                return PayloadFormatter.error("Unable to save the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
             return new Payload(project).withCode(HttpStatus.OK);
         }
@@ -129,7 +127,7 @@
         public Payload getProject(String id, Context context) {
             Project project = getUserProject((DatashareUser) context.currentUser(), id);
             if (project == null) {
-                return payloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
+                return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
             return new Payload(project).withCode(HttpStatus.OK);
         }
@@ -163,7 +161,7 @@
             Project project = repository.getProject(projectId);
 
             if (project != null && !isAllowed(project, context.request().clientAddress()))  {
-                return payloadFormatter.error("Download not allowed", HttpStatus.FORBIDDEN);
+                return PayloadFormatter.error("Download not allowed", HttpStatus.FORBIDDEN);
             }
 
             return ok();
