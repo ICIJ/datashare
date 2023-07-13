@@ -28,21 +28,32 @@ public class IndexAccessVerifier {
 
     public String checkPath(String path, Context context) {
         String[] pathParts = path.split("/");
-        if(pathParts.length < 2){
+        if (pathParts.length < 2) {
             throw new IllegalArgumentException(String.format("Invalid path: '%s'", path));
         }
-        if ("_search".equals(pathParts[0]) && "scroll".equals(pathParts[1])) {
+        if (isSearchScrollPath(path)) {
             return getUrlString(context, path);
         }
         String[] indexes = this.checkIndices(pathParts[0]).split(",");
-        if (stream(indexes).allMatch(index -> ((DatashareUser)context.currentUser()).isGranted(index)) &&
-                ("GET".equalsIgnoreCase(context.method()) ||
-                        "_search".equals(pathParts[1]) ||
-                        "_count".equals(pathParts[1]) ||
-                        (pathParts.length >=3 && "_search".equals(pathParts[2])))) {
+        if (isAuthorizedRequest(context, pathParts, indexes)) {
             return getUrlString(context, path);
         }
         throw new UnauthorizedException();
+    }
+
+    private boolean isSearchScrollPath(String path) {
+        String[] pathParts = path.split("/");
+        return "_search".equals(pathParts[0]) && "scroll".equals(pathParts[1]);
+    }
+
+    private boolean isAuthorizedRequest(Context context, String[] pathParts, String[] indexes) {
+        DatashareUser currentUser = (DatashareUser) context.currentUser();
+        boolean isMethodGet = "GET".equalsIgnoreCase(context.method());
+        boolean isSearchPath = "_search".equals(pathParts[1]);
+        boolean isCountPath = "_count".equals(pathParts[1]);
+        boolean isSearchPathAtThirdPosition = (pathParts.length >= 3 && "_search".equals(pathParts[2]));
+        boolean areAllIndexesGranted = stream(indexes).allMatch(currentUser::isGranted);
+        return areAllIndexesGranted && (isMethodGet || isSearchPath || isCountPath || isSearchPathAtThirdPosition);
     }
 
     static String getUrlString(Context context, String s) {
