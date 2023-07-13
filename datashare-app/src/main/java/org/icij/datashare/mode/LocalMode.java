@@ -1,8 +1,9 @@
 package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.web.*;
 
 import java.util.Map;
@@ -12,12 +13,18 @@ public class LocalMode extends CommonMode {
     LocalMode(Properties properties) { super(properties);}
     LocalMode(Map<String, String> properties) { super(properties);}
 
+    protected LocalUserFilter getLocalUserFilter() {
+        RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
+        JooqRepository jooqRepository = (JooqRepository) repositoryFactory.createRepository();
+        return new LocalUserFilter(propertiesProvider, jooqRepository);
+    }
+
     @Override
     protected void configure() {
         super.configure();
         bind(IndexWaiterFilter.class).asEagerSingleton();
         bind(StatusResource.class).asEagerSingleton();
-
+        bind(LocalUserFilter.class).toInstance(getLocalUserFilter());
         configurePersistence();
     }
 
