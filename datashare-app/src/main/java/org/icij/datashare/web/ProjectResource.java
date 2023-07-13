@@ -6,7 +6,6 @@
     import net.codestory.http.annotations.*;
     import net.codestory.http.constants.HttpStatus;
     import net.codestory.http.payload.Payload;
-    import net.codestory.http.security.User;
     import org.icij.datashare.PropertiesProvider;
     import org.icij.datashare.Repository;
     import org.icij.datashare.cli.Mode;
@@ -21,9 +20,7 @@
 
     import java.io.IOException;
     import java.util.*;
-    import java.util.stream.Stream;
 
-    import static java.util.Optional.ofNullable;
     import static net.codestory.http.payload.Payload.ok;
     import static org.apache.tika.utils.StringUtils.isEmpty;
     import static org.icij.datashare.text.Project.isAllowed;
@@ -33,7 +30,6 @@
     public class ProjectResource {
         private final Repository repository;
         private final Indexer indexer;
-        private final PropertiesProvider propertiesProvider;
         private final DataDirVerifier dataDirVerifier;
         private final ModeVerifier modeVerifier;
         private final PayloadFormatter payloadFormatter;
@@ -43,28 +39,13 @@
         public ProjectResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider) {
             this.repository = repository;
             this.indexer = indexer;
-            this.propertiesProvider = propertiesProvider;
             this.dataDirVerifier = new DataDirVerifier(propertiesProvider);;
             this.modeVerifier = new ModeVerifier(propertiesProvider);
             this.payloadFormatter = new PayloadFormatter();
         }
 
-        String[] getServerModeUserProjectIds(DatashareUser user) {
-            return user.getProjects().toArray(String[]::new);
-        }
-
-        String[] getAllProjectIds () {
-            return repository.getProjects().stream().map(Project::getId).toArray(String[]::new);
-        }
-
         String[] getUserProjectIds(DatashareUser user) {
-            String modeName = this.propertiesProvider.get("mode").orElse(null);
-            if (!Mode.SERVER.name().equals(modeName)) {
-                return Stream.of(this.getServerModeUserProjectIds(user), this.getAllProjectIds())
-                        .flatMap(Stream::of)
-                        .toArray(String[]::new);
-            }
-            return this.getServerModeUserProjectIds(user);
+            return user.getProjectNames().toArray(String[]::new);
         }
 
         List<Project> getUserProjects(DatashareUser user) {
@@ -174,7 +155,7 @@
          */
         @Get("/isDownloadAllowed/:id")
         public Payload isDownloadAllowed(String id, Context context) {
-            List<String> projects = ((DatashareUser) context.currentUser()).getProjects();
+            List<String> projects = ((DatashareUser) context.currentUser()).getProjectNames();
             String projectId = projects.stream()
                     .filter(i -> i.equals(id))
                     .findAny()

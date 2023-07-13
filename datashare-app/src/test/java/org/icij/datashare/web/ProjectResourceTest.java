@@ -5,6 +5,7 @@ import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.YesBasicAuthFilter;
@@ -28,12 +29,14 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
+    @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
     PropertiesProvider propertiesProvider;
 
     @Before
     public void setUp() {
         initMocks(this);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {
             propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
                 put("dataDir", "/vault");
@@ -41,7 +44,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             }});
 
             ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider);
-            routes.filter(new LocalUserFilter(propertiesProvider, repository)).add(projectResource);
+            routes.filter(new LocalUserFilter(propertiesProvider, jooqRepository)).add(projectResource);
         });
     }
 
@@ -110,8 +113,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     public void test_get_all_project_in_local_mode() {
         Project foo = new Project("foo");
         Project bar = new Project("bar");
-        when(repository.getProjects(new String[]{"local-datashare", "foo", "bar"})).thenReturn(asList(foo, bar));
-        when(repository.getProjects()).thenReturn(asList(foo, bar));
+        when(repository.getProjects(any())).thenReturn(asList(foo, bar));
         get("/api/project/").should().respond(200)
                 .contain("\"name\":\"foo\"")
                 .contain("\"name\":\"bar\"");
@@ -131,7 +133,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
         Project foo = new Project("foo");
         Project bar = new Project("bar");
-        when(repository.getProjects(new String[]{ "foo", "biz"})).thenReturn(List.of(foo));
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
         when(repository.getProjects()).thenReturn(asList(foo, bar));
         get("/api/project/")
                 .withPreemptiveAuthentication("local", "")
