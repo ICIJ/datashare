@@ -36,7 +36,6 @@ public class BatchSearchResource {
     private final BatchSearchRepository batchSearchRepository;
     private final BlockingQueue<String> batchSearchQueue;
     private final PropertiesProvider propertiesProvider;
-    private final PayloadFormatter payloadFormatter;
     private final int MAX_BATCH_SIZE = 60000;
 
     @Inject
@@ -44,7 +43,6 @@ public class BatchSearchResource {
         this.batchSearchRepository = batchSearchRepository;
         this.batchSearchQueue = batchSearchQueue;
         this.propertiesProvider = propertiesProvider;
-        this.payloadFormatter = new PayloadFormatter();
     }
 
     /**
@@ -107,7 +105,7 @@ public class BatchSearchResource {
     public Object getBatch(String batchId, Context context) {
         boolean withQueries = Boolean.parseBoolean(context.get("withQueries"));
         BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId, withQueries);
-        return batchSearch == null ? payloadFormatter.error("Batch search not found.", HttpStatus.NOT_FOUND) : batchSearch;
+        return batchSearch == null ? PayloadFormatter.error("Batch search not found.", HttpStatus.NOT_FOUND) : batchSearch;
     }
 
     /**
