@@ -353,7 +353,8 @@ public class JooqRepository implements Repository {
             int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
             int deleteUserRecommendationResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId)).execute();
             int deleteUserHistoryResult = inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).execute();
-            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult + deleteUserHistoryResult > 0;
+            int deleteProject = inner.deleteFrom(PROJECT).where(PROJECT.ID.eq(projectId)).execute();
+            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult + deleteUserHistoryResult + deleteProject > 0;
         });
     }
 
