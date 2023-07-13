@@ -1,8 +1,9 @@
 package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
+import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Repository;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -17,14 +18,17 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class IndexResourceTest extends AbstractProdWebServerTest {
-    @Mock Repository repository;
+    @Mock JooqRepository jooqRepository;
     @ClassRule public static ElasticsearchRule esRule = new ElasticsearchRule(TEST_INDEXES);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(esRule.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
     private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
@@ -33,36 +37,36 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_no_auth_get_forward_request_to_elastic() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, repository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
         get("/api/index/search/test-datashare/_search").should().respond(200).contain("\"successful\":1");
     }
 
     @Test
     public void test_no_auth_get_forward_request_to_elastic_if_granted_to_read_index() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, repository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
         get("/api/index/search/unauthorized/_search").should().respond(401);
     }
     @Test
     public void test_no_auth_get_forward_request_to_elastic_with_empty_indice() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, repository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
         get("/api/index/search/    /_search").should().respond(400);
         get("/api/index/search/!!/_search").should().respond(400);
     }
     @Test
     public void test_no_auth_get_unauthorized_on_unknown_index() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(LocalUserFilter.class));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
         get("/api/index/search/hacker/bar/baz").should().respond(401);
     }
     @Test
     public void test_put_create_local_index_in_local_mode() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(LocalUserFilter.class));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
         put("/api/index/index_name").should().respond(201);
         put("/api/index/ !!").should().respond(400);
         put("/api/index/  /").should().respond(404);
     }
     @Test
     public void test_no_auth_post_forward_request_to_elastic_with_body() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, repository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
         post("/api/index/search/test-datashare/_search", "{}").should().respond(200).contain("\"successful\":1");
         post("/api/index/search/  \\").should().respond(400);
         post("/api/index/search/  /  ").should().respond(400);
@@ -71,7 +75,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_no_auth_options_forward_request_to_elastic() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, repository)));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
         options("/api/index/search/test-datashare").should().respond(200);
         options("/api/index/search/  /").should().respond(400);
         options("/api/index/search/  \\").should().respond(400);
@@ -79,7 +83,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_delete_should_return_method_not_allowed() {
-        configure(routes -> routes.add(new IndexResource(indexer)).filter(LocalUserFilter.class));
+        configure(routes -> routes.add(new IndexResource(indexer)).filter(new LocalUserFilter(propertiesProvider, jooqRepository)));
         delete("/api/index/search/foo/bar").should().respond(405);
     }
 
@@ -171,9 +175,14 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
 
     @Before
     public void setUp() {
-        configure(routes ->
-                routes.add(new IndexResource(indexer)).
-                filter(new BasicAuthFilter("/", "icij", DatashareUser.singleUser("cecile"))));
+        initMocks(this);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        configure(routes -> {
+            Users users =  DatashareUser.singleUser("cecile");
+            routes
+                    .add(new IndexResource(indexer))
+                    .filter(new BasicAuthFilter("/", "icij", users));
+        });
     }
 
     @After

@@ -1,6 +1,9 @@
 package org.icij.datashare.web;
 
+import liquibase.pro.packaged.J;
 import net.codestory.http.filters.basic.BasicAuthFilter;
+import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.NamedEntity;
@@ -24,6 +27,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class NamedEntityResourceTest extends AbstractProdWebServerTest {
     @Mock Indexer indexer;
+    @Mock JooqRepository jooqRepository;
+
     @Test
     public void test_get_standalone_named_entity_should_return_not_found() {
         get("/api/index/namedEntity/my_id").should().respond(404);
@@ -70,6 +75,8 @@ public class NamedEntityResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(LocalUserFilter.class));
+        PropertiesProvider propertiesProvider = new PropertiesProvider();
+        LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
+        configure(routes -> routes.add(new NamedEntityResource(indexer)).filter(localUserFilter));
     }
 }

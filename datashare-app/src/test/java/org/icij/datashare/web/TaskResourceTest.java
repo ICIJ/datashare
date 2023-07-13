@@ -1,11 +1,11 @@
 package org.icij.datashare.web;
 
-import net.codestory.http.filters.Filter;
 import net.codestory.http.routes.Routes;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.nlp.EmailPipeline;
@@ -21,6 +21,7 @@ import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.*;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,19 +37,24 @@ import static org.icij.datashare.session.DatashareUser.local;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
+    @Mock JooqRepository jooqRepository;
     private static final TaskFactory taskFactory = mock(TaskFactory.class);
     private static final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider());
 
     @Before
     public void setUp() {
+        initMocks(this);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("mode", "LOCAL");
         }});
         PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);
+        LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
         configure(new CommonMode(propertiesProvider.getProperties()) {
                     @Override
                     protected void configure() {
@@ -56,7 +62,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                         bind(Indexer.class).toInstance(mock(Indexer.class));
                         bind(TaskManager.class).toInstance(taskManager);
                         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
-                        bind(Filter.class).to(LocalUserFilter.class).asEagerSingleton();
+                        bind(LocalUserFilter.class).toInstance(localUserFilter);
                         bind(PropertiesProvider.class).toInstance(new PropertiesProvider(getDefaultProperties()));
                     }
             @Override protected Routes addModeConfiguration(Routes routes) {

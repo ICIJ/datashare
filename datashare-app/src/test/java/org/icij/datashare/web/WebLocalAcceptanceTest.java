@@ -3,27 +3,38 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.codestory.rest.Response;
+import org.icij.datashare.Repository;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.mode.LocalMode;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static java.lang.String.format;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
+    @Mock Repository jooqRepository;
+
     @Before
     public void setUp() throws Exception {
-        configure(CommonMode.create(new HashMap<>() {{
+        initMocks(this);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+        HashMap<String, String> properties = new HashMap<>() {{
             put("mode", "LOCAL");
             put("dataDir", WebLocalAcceptanceTest.class.getResource("/data").getPath());
             put("extensionsDir", WebLocalAcceptanceTest.class.getResource("/extensions").getPath());
             put("pluginsDir", WebLocalAcceptanceTest.class.getResource("/plugins").getPath());
-        }}).createWebConfiguration());
+        }};
+        configure(CommonMode.create(properties).createWebConfiguration());
         waitForDatashare();
     }
 
