@@ -6,7 +6,6 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.text.Project;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;

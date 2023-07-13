@@ -5,6 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.UserEvent;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 
 import java.net.URI;
 
+import static com.google.inject.util.Types.listOf;
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.session.DatashareUser.singleUser;
@@ -24,6 +26,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class UserResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
+    PropertiesProvider propertiesProvider = new PropertiesProvider();
 
     @Before
     public void setUp() {
@@ -32,12 +35,36 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void get_user_information_test() {
+    public void test_user_information() {
         configure(routes -> routes.add(new UserResource(jooqRepository)).
                         filter(new BasicAuthFilter("/", "icij", singleUser("pierre"))));
 
-        get("/api/users/me").withPreemptiveAuthentication("pierre", "pass").
-                should().respond(200).contain("\"uid\":\"pierre\"");
+        get("/api/users/me")
+                .withPreemptiveAuthentication("pierre", "pass")
+                .should()
+                    .respond(200)
+                    .contain("\"uid\":\"pierre\"")
+                    .contain("\"pierre-datashare\"");
+    }
+
+    @Test
+    public void test_user_information_with_local_user_filter() {
+        Project foo = new Project("foo");
+        when(jooqRepository.getProjects()).thenReturn(singletonList(foo));
+
+        configure(routes -> {
+            LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
+            routes
+                    .filter(localUserFilter)
+                    .add(new UserResource(jooqRepository));
+        });
+
+        get("/api/users/me")
+                .should()
+                    .respond(200)
+                    .contain("\"uid\":\"local\"")
+                    .contain("\"foo\"")
+                    .contain("\"local-datashare\"");
     }
 
     @Test

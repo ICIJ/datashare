@@ -45,7 +45,10 @@ public class UserResource {
      */
     @Get("/me")
     public Map<String, Object> getUser(Context context) {
-        return ((DatashareUser) context.currentUser()).getDetails();
+        DatashareUser datashareUser = (DatashareUser) context.currentUser();
+        Map<String, Object> details = datashareUser.getDetails();
+        details.put("projects", datashareUser.getProjects());
+        return details;
     }
 
     /**
