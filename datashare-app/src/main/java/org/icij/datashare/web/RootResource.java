@@ -12,6 +12,7 @@ import org.icij.datashare.text.Language;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -55,7 +56,7 @@ public class RootResource {
         } else {
             content = new String(Files.readAllBytes(index), Charset.defaultCharset());
         }
-        List<String> projects = context.currentUser() == null ? new LinkedList<String>() : ((DatashareUser)context.currentUser()).getProjects();
+        List<String> projects = context.currentUser() == null ? new LinkedList<String>() : ((DatashareUser)context.currentUser()).getProjectNames();
         return propertiesProvider.get(PLUGINS_DIR).isPresent() ?
                 new PluginService(propertiesProvider).addPlugins(content, projects):
                 content;
@@ -91,7 +92,10 @@ public class RootResource {
     public Properties getVersion() {
         try {
             Properties properties = new Properties();
-            properties.load(getClass().getResourceAsStream("/git.properties"));
+            InputStream gitProperties = getClass().getResourceAsStream("/git.properties");
+            if (gitProperties != null) {
+                properties.load(gitProperties);
+            }
             return properties;
         } catch (IOException e) {
             throw new RuntimeException(e);
