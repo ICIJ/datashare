@@ -97,8 +97,7 @@ public class DocumentResource {
     public Payload getExtractedText(
             final String project, final String id,  final String routing,
             final Integer offset, final Integer limit, final String targetLanguage, final Context context) throws IOException {
-        if ( ((DatashareUser)context.currentUser()).isGranted(project) &&
-                isAllowed(repository.getProject(project), context.request().clientAddress())) {
+        if (((DatashareUser) context.currentUser()).isGranted(project)) {
             try {
                 ExtractedText extractedText;
                 if(offset == null && limit == null ){
@@ -155,8 +154,7 @@ public class DocumentResource {
     public Payload searchOccurrences(
             final String project, final String id,  final String routing,
             final String query, final String targetLanguage, final Context context) throws IOException {
-        if (((DatashareUser)context.currentUser()).isGranted(project) &&
-                isAllowed(repository.getProject(project), context.request().clientAddress())) {
+        if (((DatashareUser)context.currentUser()).isGranted(project)) {
             try {
                 SearchedText searchedText;
                 if(routing == null){
