@@ -7,7 +7,7 @@ import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
 import org.apache.commons.io.FileUtils;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Repository;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
@@ -17,13 +17,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import static java.nio.file.Files.copy;
 import static java.util.Arrays.asList;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class RootResourcePluginTest implements FluentRestTest {
-    @Mock Repository repository;
+    @Mock JooqRepository jooqRepository;
     @ClassRule public static TemporaryFolder appFolder = new TemporaryFolder();
     @Rule public TemporaryFolder folder = new TemporaryFolder();
     private static WebServer server;
@@ -44,13 +47,15 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Before
     public void setUp() {
+        initMocks(this);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put("pluginsDir", folder.getRoot().toString());
         }});
         server.configure(routes -> {
             routes.add(new RootResource(propertiesProvider))
                     .bind("/plugins", folder.getRoot())
-                    .filter(new LocalUserFilter(new PropertiesProvider(), repository));
+                    .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository));
         });
     }
 

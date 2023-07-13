@@ -2,7 +2,7 @@ package org.icij.datashare.web;
 
 import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Repository;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -14,12 +14,15 @@ import org.mockito.Mock;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 
 import static java.net.URLEncoder.encode;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ExtensionResourceTest extends AbstractProdWebServerTest  {
-    @Mock Repository repository;
+    @Mock JooqRepository jooqRepository;
     @Rule public TemporaryFolder extensionFolder = new TemporaryFolder();
 
     @Test
@@ -83,9 +86,11 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
 
     @Before
     public void setUp() {
+        initMocks(this);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> routes.add(new ExtensionResource(new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-extension\",\"name\":\"My extension\",\"description\":\"Description of my extension\",\"version\":\"1.0.1\",\"type\":\"WEB\",\"url\": \"" + ClassLoader.getSystemResource(("my-extension-1.0.1.jar")) + "\"}," +
                 "{\"id\":\"my-other-extension\",\"name\":\"My other extension\",\"description\":\"Description of my other extension\",\"type\":\"WEB\",\"url\": \"https://dummy.url/foo.jar\"}" +
-                "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider(), repository)));
+                "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 }

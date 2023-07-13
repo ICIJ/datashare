@@ -2,7 +2,7 @@ package org.icij.datashare.web;
 
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Repository;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
@@ -20,7 +20,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     @Mock public TaskFactory taskFactory;
-    @Mock Repository repository;
+    @Mock JooqRepository jooqRepository;
 
     @Test
     public void test_generate_key() throws Exception {
@@ -62,6 +62,6 @@ public class ApiKeyResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        configure(routes -> routes.add(new ApiKeyResource(taskFactory)).filter(new LocalUserFilter(new PropertiesProvider(), repository)));
+        configure(routes -> routes.add(new ApiKeyResource(taskFactory)).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 }

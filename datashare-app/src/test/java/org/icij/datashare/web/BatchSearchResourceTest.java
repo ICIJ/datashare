@@ -2,11 +2,12 @@ package org.icij.datashare.web;
 
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Repository;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchResult;
+import org.icij.datashare.batch.WebQueryBuilder;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.session.LocalUserFilter;
@@ -40,7 +41,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
-    @Mock Repository repository;
+    @Mock JooqRepository jooqRepository;
     BlockingQueue<String> batchSearchQueue = new ArrayBlockingQueue<>(5);
 
     @Test
@@ -334,7 +335,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 put("rootHost", "http://foo.com:12345");
             }});
             routes.add(new BatchSearchResource(batchSearchRepository, batchSearchQueue, propertiesProvider)).
-                    filter(new LocalUserFilter(propertiesProvider, repository));
+                    filter(new LocalUserFilter(propertiesProvider, jooqRepository));
         });
         when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(singletonList(project("prj")), "name", "desc", asSet("q"), User.local()));
         when(batchSearchRepository.getResults(User.local(), "batchSearchId",WebQueryBuilder.createWebQuery().queryAll().build())).thenReturn(singletonList(
@@ -474,7 +475,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     public void setUp() {
         initMocks(this);
         configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository, batchSearchQueue, new PropertiesProvider())).
-                filter(new LocalUserFilter(new PropertiesProvider(), repository)));
+                filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 
     private static class MultipartContentBuilder {

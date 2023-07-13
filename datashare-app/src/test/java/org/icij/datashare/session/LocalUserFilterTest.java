@@ -5,31 +5,40 @@ import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Repository;
+import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.text.Project;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentCaptor.forClass;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class LocalUserFilterTest {
-    @Mock Repository repository;
+    @Mock JooqRepository jooqRepository;
     private Payload next = Payload.ok();
     private PayloadSupplier nextFilter = () -> next;
     private Context context = mock(Context.class);
     private ArgumentCaptor<User> user = forClass(User.class);
+
+    @Before
+    public void setUp() {
+        initMocks(this);
+        when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
+    }
 
     @Test
     public void test_matches() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put("protectedUrPrefix", "test");
         }});
-        LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, repository);
+        LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
 
         assertThat(localUserFilter.matches("foo", null)).isFalse();
         assertThat(localUserFilter.matches("/foo", null)).isFalse();
@@ -41,7 +50,7 @@ public class LocalUserFilterTest {
 
     @Test
     public void test_adds_local_user_to_context() throws Exception {
-        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), repository);
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
         Payload payload = localUserFilter.apply("url", context, nextFilter);
 
         assertThat(payload).isSameAs(next);
@@ -55,7 +64,7 @@ public class LocalUserFilterTest {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
             put("defaultUserName", "foo");
         }});
-        LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, repository);
+        LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
         Payload payload = localUserFilter.apply("url", context, nextFilter);
 
         assertThat(payload).isSameAs(next);
@@ -65,7 +74,7 @@ public class LocalUserFilterTest {
 
     @Test
     public void test_adds_cookie() throws Exception {
-        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), repository);
+        LocalUserFilter localUserFilter = new LocalUserFilter(new PropertiesProvider(), jooqRepository);
         Payload payload = localUserFilter.apply("url", context, nextFilter);
 
         assertThat(payload.cookies().size()).isEqualTo(1);

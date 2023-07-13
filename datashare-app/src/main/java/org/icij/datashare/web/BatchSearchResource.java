@@ -54,7 +54,7 @@ public class BatchSearchResource {
     @Get("/search")
     public List<BatchSearchRecord> getSearches(Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
-        return batchSearchRepository.getRecords(user, user.getProjects());
+        return batchSearchRepository.getRecords(user, user.getProjectNames());
     }
 
     /**
@@ -84,8 +84,8 @@ public class BatchSearchResource {
     @Post("/search")
     public WebResponse<BatchSearchRecord> getSearchesFiltered(BatchSearchRepository.WebQuery webQuery, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
-        return new WebResponse<>(batchSearchRepository.getRecords(user, user.getProjects(), webQuery),
-                batchSearchRepository.getTotal(user, user.getProjects(), webQuery));
+        return new WebResponse<>(batchSearchRepository.getRecords(user, user.getProjectNames(), webQuery),
+                batchSearchRepository.getTotal(user, user.getProjectNames(), webQuery));
     }
 
     /**
