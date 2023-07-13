@@ -14,7 +14,7 @@ import static java.util.stream.Collectors.toList;
 
 public class IndexAccessVerifier {
 
-    public String checkIndices(String indices) {
+    static public String checkIndices(String indices) {
         if( indices == null) {
             throw new IllegalArgumentException("indices is null");
         }
@@ -26,7 +26,7 @@ public class IndexAccessVerifier {
         return indices;
     }
 
-    public String checkPath(String path, Context context) {
+    static public String checkPath(String path, Context context) {
         String[] pathParts = path.split("/");
         if (pathParts.length < 2) {
             throw new IllegalArgumentException(String.format("Invalid path: '%s'", path));
@@ -34,19 +34,19 @@ public class IndexAccessVerifier {
         if (isSearchScrollPath(path)) {
             return getUrlString(context, path);
         }
-        String[] indexes = this.checkIndices(pathParts[0]).split(",");
+        String[] indexes = checkIndices(pathParts[0]).split(",");
         if (isAuthorizedRequest(context, pathParts, indexes)) {
             return getUrlString(context, path);
         }
         throw new UnauthorizedException();
     }
 
-    private boolean isSearchScrollPath(String path) {
+    static private boolean isSearchScrollPath(String path) {
         String[] pathParts = path.split("/");
         return "_search".equals(pathParts[0]) && "scroll".equals(pathParts[1]);
     }
 
-    private boolean isAuthorizedRequest(Context context, String[] pathParts, String[] indexes) {
+    static private boolean isAuthorizedRequest(Context context, String[] pathParts, String[] indexes) {
         DatashareUser currentUser = (DatashareUser) context.currentUser();
         boolean isMethodGet = "GET".equalsIgnoreCase(context.method());
         boolean isSearchPath = "_search".equals(pathParts[1]);
