@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
@@ -156,7 +157,10 @@ public class DatashareCli {
 
     public String getVersion() throws IOException {
         Properties versions = new Properties();
-        versions.load(getClass().getResourceAsStream("/git.properties"));
+        InputStream gitProperties = getClass().getResourceAsStream("/git.properties");
+        if (gitProperties != null) {
+            versions.load(gitProperties);
+        }
         return versions.getProperty("git.build.version");
     }
 
