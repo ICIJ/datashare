@@ -4,6 +4,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
@@ -47,14 +51,8 @@ public class UserResource {
         this.repository = repository;
     }
 
-    /**
-     * Gets the user's session information
-     *
-     * @return 200 and the user map
-     *
-     * Example :
-     * $(curl -i localhost:8080/api/users/me)
-     */
+    @Operation(description = "Gets the user's session information.")
+    @ApiResponse(responseCode = "200", description = "returns the user map", useReturnTypeSchema = true)
     @Get("/me")
     public Map<String, Object> getUser(Context context) {
         DatashareUser datashareUser = (DatashareUser) context.currentUser();
@@ -63,32 +61,23 @@ public class UserResource {
         return details;
     }
 
-    /**
-     * Preflight for history.
-     *
-     * @return 200 with OPTIONS, GET, PUT and DELETE
-     */
+    @Operation(description = "Preflight request for history")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS, GET, PUT and DELETE")
     @Options("/me/history")
     public Payload getUserHistory(String userId) {
         return ok().withAllowMethods("OPTIONS", "GET", "PUT", "DELETE");
     }
 
-    /**
-     * Gets the user's history by type
-     *
-     * @param type String included in 'document' or 'search'
-     * @param from the offset of the list, starting from 0
-     * @param size the number of element retrieved
-     * @param sort the name of the parameter to sort on (default: modificationDate)
-     * @param desc the list is sorted in descending order (default: true)
-     * @param projects projectIds separated by comma to filter by projects (default: none)
-     * @return 200, the user's list of events and the total number of events
-     * <p>
-     * Example :
-     * $(curl -i localhost:8080/api/users/me/history?type=document&from=0&size=10&sort=modificationDate&desc=true&projects=project1,project2)
-     */
+    @Operation(description = "Gets the user's history by type",
+            parameters = {@Parameter(name = "from", description = "the offset of the list, starting from 0", in = ParameterIn.QUERY),
+                    @Parameter(name = "size", description = "the number of element retrieved", in = ParameterIn.QUERY),
+                    @Parameter(name = "type", description = "string included in 'document' or 'search'", in = ParameterIn.QUERY),
+                    @Parameter(name = "sort", description = "the name of the parameter to sort on (default: modificationDate)", in = ParameterIn.QUERY),
+                    @Parameter(name = "desc", description = "the list is sorted in descending order (default: true)", in = ParameterIn.QUERY),
+                    @Parameter(name = "projects", description = "projectIds separated by comma to filter by projects (default: none)", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", description = "returns the user's list of events and the total number of events")
     @Get("/me/history?type=:type&from=:from&size=:size&sort=:sort&desc=:desc&projects=:projects")
-    public Payload getUserHistory(String type, int from, int size, String sort, String desc, String projects, Context context) throws Exception{
+    public Payload getUserHistory(String type, int from, int size, String sort, String desc, String projects, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         Type eventType = Type.valueOf(type.toUpperCase());
         String sortBy = getStringValue(sort).orElse( USER_HISTORY.MODIFICATION_DATE.getName());
@@ -114,66 +103,34 @@ public class UserResource {
         return parseBoolean(desc) || getStringValue(desc).isEmpty() || !desc.equalsIgnoreCase("false");
     }
 
-    /**
-     * Add event to history. The event's type, the project ids and the uri are passed in the request body.
-     * The project list related to the event is stored in database but is never queried (no filters on project)
-     *
-     * It answers 200 when event is added or updated.
-     *
-     * @param query
-     * @return 200
-     *
-     * Example :
-     * $(curl -i -XPUT  -H "Content-Type: application/json"  localhost:8080/api/users/me/history -d '{"type": "SEARCH", "projectIds": ["apigen-datashare","local-datashare"], "name": "foo AND bar", "uri": "?q=foo%20AND%20bar&from=0&size=100&sort=relevance&index=luxleaks&field=all&stamp=cotgpe"}')
-     */
+    @Operation(description = "Add event to history. The event's type, the project ids and the uri are passed in the request body.<br>" +
+            "The project list related to the event is stored in database but is never queried (no filters on project)")
+    @ApiResponse(responseCode = "200", description = "returns 200 when event is added or updated.")
     @Put("/me/history")
-    public Payload addToUserHistory(UserHistoryQuery query, Context context) {
+    public Payload addToUserHistory(@Parameter(name = "query", description = "query to perform", in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
         repository.addToUserHistory(query.projects, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
         return ok();
     }
 
-    /**
-     * Delete user history by type.
-     *
-     * Returns 204 (No Content) : idempotent
-     *
-     * @param type
-     * @return 204
-     *
-     * Example :
-     * $(curl -i -XDELETE localhost:8080/api/users/me/history?type=search)
-     *
-     */
+    @Operation(description = "Delete user history by type.")
+    @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent", useReturnTypeSchema = true)
     @Delete("/me/history?type=:type")
-    public Payload deleteUserHistory(String type, Context context) {
+    public Payload deleteUserHistory(@Parameter(name = "type", description = "type of user element", in = ParameterIn.QUERY) String type, Context context) {
         repository.deleteUserHistory((DatashareUser) context.currentUser(), Type.valueOf(type.toUpperCase()));
         return new Payload(204);
     }
 
-    /**
-     * Preflight for history.
-     *
-     * @return 200 with OPTIONS, DELETE
-     */
+    @Operation(description = "Preflight request for history")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS and DELETE")
     @Options("/me/history/event")
     public Payload deleteUserEvent(String userId) {
         return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
-    /**
-     * Delete user event by id.
-     *
-     * Returns 204 (No Content) : idempotent
-     *
-     * @param eventId
-     * @return 204
-     *
-     * Example :
-     * $(curl -i -XDELETE localhost:8080/api/users/me/history/event?id=1)
-     *
-     */
+    @Operation(description = "Delete user event by id.")
+    @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent")
     @Delete("/me/history/event?id=:eventId")
-    public Payload deleteUserEvent(String eventId, Context context) {
+    public Payload deleteUserEvent(@Parameter(name = "query", description = "query to perform", in = ParameterIn.QUERY) String eventId, Context context) {
         repository.deleteUserHistoryEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
         return new Payload(204);
     }
