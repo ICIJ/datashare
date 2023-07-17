@@ -4,8 +4,11 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.StringToClassMapItem;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -162,50 +165,60 @@ public class BatchSearchResource {
         return notFound();
     }
 
-    /**
-     * Creates a new batch search. This is a multipart form with 8 fields :
-     * name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches
-     *
-     * No matter the order. The name and csv file are mandatory else it will return 400 (bad request)
-     * Csv file must have under 60 000 lines else it will return 413 (payload too large)
-     * Queries with less than two characters are filtered
-     *
-     * To do so with bash you can create a text file like :
-     * ```
-     * --BOUNDARY
-     * Content-Disposition: form-data; name="name"
-     *
-     * my batch search
-     * --BOUNDARY
-     * Content-Disposition: form-data; name="description"
-     *
-     * search description
-     * --BOUNDARY
-     * Content-Disposition: form-data; name="csvFile"; filename="search.csv"
-     * Content-Type: text/csv
-     *
-     * Obama
-     * skype
-     * test
-     * query three
-     * --BOUNDARY--
-     * Content-Disposition: form-data; name="published"
-     *
-     * true
-     * --BOUNDARY--
-     * ```
-     * Then replace `\n` with `\r\n` with a sed like this:
-     *
-     * `sed -i 's/$/^M/g' ~/multipart.txt`
-     *
-     * Then make a curl request with this file :
-     * ```
-     * curl -i -XPOST localhost:8080/api/batch/search/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt
-     * ```
-     * @param comaSeparatedProjects
-     * @param context : the request body
-     * @return 200 or 400 or 413
-     */
+    @Operation(description = "Creates a new batch search. This is a multipart form with 8 fields:<br/>" +
+            "name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches<br>" +
+            "<br/>" +
+            "Queries with less than two characters are filtered.<br>" +
+            "<br>" +
+            "To make a request manually, you can create a file like:<br>" +
+            "<pre>"+
+            "--BOUNDARY<br/>\"" +
+            "Content-Disposition: form-data; name=\"name\"<br/>" +
+            "<br/>" +
+            "my batch search<br/>" +
+            " --BOUNDARY<br/>" +
+            "Content-Disposition: form-data; name=\"description\"<br/>" +
+            "<br/>" +
+            "search description<br/>" +
+            " --BOUNDARY<br/>" +
+            "Content-Disposition: form-data; name=\"csvFile\"; filename=\"search.csv\"<br/>" +
+            "Content-Type: text/csv<br/>" +
+            "<br/>" +
+            "Obama<br/>" +
+            "skype<br/>" +
+            "test<br/>" +
+            "query three<br/>" +
+            "--BOUNDARY--<br/>" +
+            "Content-Disposition: form-data; name=\"published\"<br/>" +
+            "<br/>" +
+            "true<br/>" +
+            "--BOUNDARY--<br/>" +
+            "</pre><br/>" +
+            "<br/>Then curl with" +
+            "<pre>curl -i -XPOST localhost:8080/api/batch/search/prj1,prj2 -H 'Content-Type: multipart/form-data; boundary=BOUNDARY' --data-binary @/home/dev/multipart.txt</pre>" +
+            "you'll maybe have to replace \\n with \\n\\r with <pre>sed -i 's/$/^M/g' ~/multipart.txt</pre>",
+            requestBody = @RequestBody(description = "multipart form", required = true,
+                    content = @Content(mediaType = "multipart/form-data",
+                            contentSchema = @Schema(requiredProperties = {"name", "csvFile"},
+                                    properties = {
+                                        @StringToClassMapItem(key = "name", value = String.class),
+                                        @StringToClassMapItem(key = "description", value = String.class),
+                                        @StringToClassMapItem(key = "csvFile", value = String.class),
+                                        @StringToClassMapItem(key = "published", value = Boolean.class),
+                                        @StringToClassMapItem(key = "fileTypes", value = List.class),
+                                        @StringToClassMapItem(key = "tags", value = List.class),
+                                        @StringToClassMapItem(key = "paths", value = List.class),
+                                        @StringToClassMapItem(key = "fuzziness", value = Integer.class),
+                                        @StringToClassMapItem(key = "phrase_matches", value = Boolean.class)
+                                    }
+                            )
+                    )
+            ),
+            parameters = {@Parameter(description = "list of projects separated with comas",
+                    in = ParameterIn.PATH, examples = @ExampleObject(value = "prj1,prj2"))}
+    )
+    @ApiResponse(responseCode = "413", description = "if the CSV file is more than 60K lines")
+    @ApiResponse(responseCode = "400", description = "if either name or CSV file is missing")
     @Post("/search/:coma_separated_projects")
     public Payload search(String comaSeparatedProjects, Context context) throws Exception {
         List<Part> parts = context.parts();
@@ -236,28 +249,22 @@ public class BatchSearchResource {
         return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
     }
 
-    /**
-     * preflight request
-     *
-     * @return 200 POST
-     */
+    @Operation(description = "preflight request", method = "OPTION")
+    @ApiResponse(description = "returns POST")
     @Options("/search/copy/:sourcebatchid")
     public Payload optionsCopy(String sourceBatchId, Context context) {
         return ok().withAllowMethods("OPTIONS", "POST");
     }
 
-    /**
-     * Create a new batch search based on a previous one given its id, and enqueue it for running
-     *
-     * it returns 404 if the source BatchSearch object is not found in the repository.
-     *
-     * @param sourceBatchId: the id of BatchSearch to copy
-     * @param context : the context of request (containing body)
-     * @return 200 or 404
-     *
-     * Example:
-     * $(curl localhost:8080/api/batch/search/copy/b7bee2d8-5ede-4c56-8b69-987629742146 -H 'Content-Type: application/json' -d "{\"name\": \"my new batch\", \"description\":\"desc\"}"
-     */
+    @Operation( description = "Create a new batch search based on a previous one given its id, and enqueue it for running",
+                parameters = {@Parameter(name = "sourcebatchid", in = ParameterIn.PATH, description = "source batch id")},
+                requestBody = @RequestBody(description = "batch parameters", required = true,
+                        content = @Content( mediaType = "application/json",
+                                            examples = {@ExampleObject(value = "{\"name\": \"my new batch\", \"description\":\"desc\"}")})
+                )
+    )
+    @ApiResponse(responseCode = "404", description = "if the source batchsearch is not found in database")
+    @ApiResponse(responseCode = "200", description = "returns batch id created", useReturnTypeSchema = true)
     @Post("/search/copy/:sourcebatchid")
     public String copySearch(String sourceBatchId, Context context) throws Exception {
         BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
@@ -270,44 +277,24 @@ public class BatchSearchResource {
         return copy.uuid;
     }
 
-    /**
-     * Retrieve the results of a batch search as JSON.
-     *
-     * It needs a Query json body with the parameters :
-     *
-     * - from : index offset of the first document to return (mandatory)
-     * - size : window size of the results (mandatory)
-     * - queries: list of queries to be downloaded (default null)
-     * - sort: field to sort ("doc_nb", "doc_id", "root_id", "doc_path", "creation_date", "content_type", "content_length", "creation_date") (default "doc_nb")
-     * - order: "asc" or "desc" (default "asc")
-     *
-     * If from/size are not given their default values are 0, meaning that all the results are returned.
-     * @param batchId
-     * @param webQuery
-     * @return 200
-     *
-     * Example :
-     * $(curl -XPOST localhost:8080/api/batch/search/result/b7bee2d8-5ede-4c56-8b69-987629742146 -d "{\"from\":0, \"size\": 2}")
-     */
+    @Operation( description = "Retrieve the results of a batch search as JSON.<br/>" +
+            "If from/size are not given their default values are 0, meaning that all the results are returned.",
+                requestBody = @RequestBody(
+                        required = true,
+                        description = "filter ",
+                        content = @Content(schema = @Schema(implementation = BatchSearchRepository.WebQuery.class))
+                ),
+                parameters = { @Parameter(name = "batchId", description = "id of the batchsearch") }
+    )
     @Post("/search/result/:batchid")
     public List<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {
         return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
     }
 
-    //@Get("/search/result/:batchid/query?from=&to=")
-
-
-    /**
-     * Retrieve the results of a batch search as a CSV file.
-     *
-     * The search request is by default all results of the batch search.
-     *
-     * @param batchId
-     * @return 200 and the CSV file as attached file
-     *
-     * Example :
-     * $(curl -i localhost:8080/api/batch/search/result/csv/f74432db-9ae8-401d-977c-5c44a124f2c8)
-     */
+    @Operation( description = "Retrieve the results of a batch search as an attached CSV file.",
+                parameters = {@Parameter(name = "batchid")}
+    )
+    @ApiResponse(responseCode = "200", description = "returns the results of the batch search as CSV attached file.")
     @Get("/search/result/csv/:batchid")
     public Payload getResultAsCsv(String batchId, Context context) {
         StringBuilder builder = new StringBuilder("\"query\", \"documentUrl\", \"documentId\",\"rootId\",\"contentType\",\"contentLength\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
@@ -330,16 +317,8 @@ public class BatchSearchResource {
                 withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
     }
 
-    /**
-     * Delete batch searches and results for the current user.
-     *
-     * Returns 204 (No Content): idempotent 
-     *
-     * @return 204
-     *
-     * Example :
-     * $(curl -XDELETE localhost:8080/api/batch/search)
-     */
+    @Operation(description = "Delete batch searches and results for the current user.")
+    @ApiResponse(responseCode = "204", description = "no content: idempotent")
     @Delete("/search")
     public Payload deleteSearches(Context context) {
         batchSearchRepository.deleteAll((User) context.currentUser());
