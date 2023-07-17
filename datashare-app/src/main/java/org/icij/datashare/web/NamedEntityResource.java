@@ -2,6 +2,10 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Options;
 import net.codestory.http.annotations.Prefix;
@@ -30,43 +34,27 @@ public class NamedEntityResource {
         this.indexer = indexer;
     }
 
-    /**
-     * Returns the named entity with given id and document id.
-     *
-     * @param id
-     * @param documentId the root document
-     * @return 200
-     *
-     * Example :
-     * $($ curl "localhost:8080/api/apigen-datashare/namedEntities/4c262715b69f33e9ba69c794cc37ce6a90081fa124ca2ef67ab4f0654c72cb250e08f1f8455fbf8e4331f8955300c83a?routing=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f")
-     */
+    @Operation(description = "Returns the named entity with given id and document id.")
+    @ApiResponse(responseCode = "200", description = "returns the pipeline set", useReturnTypeSchema = true)
     @Get("/:project/namedEntities/:id?routing=:documentId")
-    public NamedEntity getById(final String project, final String id, final String documentId) {
+    public NamedEntity getById(@Parameter(name = "project", description = "current project", in = ParameterIn.PATH) final String project,
+                               @Parameter(name = "id", description = "name entity id", in = ParameterIn.PATH) final String id,
+                               @Parameter(name = "documentId", description = "documentId the root document", in = ParameterIn.PATH) final String documentId) {
         return notFoundIfNull(indexer.get(project, id, documentId));
     }
 
-    /**
-     * preflight request for hide
-     * @param mentionNorm
-     * @return 200 PUT
-     */
+    @Operation(description = "Preflight request for hide")
+    @ApiResponse(responseCode = "200", description = "returns PUT")
     @Options("/:project/namedEntities/hide/:mentionNorm")
     public Payload hidePreflight(final String project, final String mentionNorm) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
-    /**
-     * hide all named entities with the given normalized mention
-     *
-     * @param mentionNorm
-     * @param project
-     * @return 200
-     *
-     * Example :
-     * $(curl -i -XPUT localhost:8080/api/namedEntities/hide/xlsx)
-     */
+    @Operation(description = "Hide all named entities with the given normalized mention")
+    @ApiResponse(responseCode = "200", description = "returns 200 OK")
     @Put("/:project/namedEntities/hide/:mentionNorm")
-    public Payload hide(final String project, final String mentionNorm) throws IOException {
+    public Payload hide(@Parameter(name = "project", description = "current project", in = ParameterIn.PATH) final String project,
+                        @Parameter(name = "mentionNorm", description = "normalized mention", in = ParameterIn.PATH) final String mentionNorm) throws IOException {
         List<? extends Entity> nes = indexer.search(singletonList(project), NamedEntity.class).
                 thatMatchesFieldValue("mentionNorm", mentionNorm).execute().map(ne -> ((NamedEntity)ne).hide()).collect(toList());
         indexer.bulkUpdate(project, nes);
