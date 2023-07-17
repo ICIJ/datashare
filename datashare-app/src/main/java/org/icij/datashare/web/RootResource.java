@@ -61,17 +61,10 @@ public class RootResource {
                 content;
     }
 
-    /**
-     * Gets the public (i.e. without user's information) datashare settings parameters.
-     * These parameters are used for the client app for the init process.
-     *
-     * The endpoint is removing all fields that contain Address or Secret or Url or Key
-     *
-     * @return 200
-     *
-     * Example :
-     * $(curl -i localhost:8080/settings)
-     */
+    @Operation(description = "Gets the public (i.e. without user's information) datashare settings parameters.<br>" +
+            "These parameters are used for the client app for the init process.<br>" +
+            "The endpoint is removing all fields that contain Address or Secret or Url or Key")
+    @ApiResponse(responseCode = "200", description = "returns the list of public settings", useReturnTypeSchema = true)
     @Get("settings")
     public Map<String, Object> getPublicSettings() {
         Map<String, Object> filteredProperties = propertiesProvider.getFilteredProperties(".*Address.*", ".*Secret.*", ".*Url.*", ".*Key.*");
@@ -79,14 +72,8 @@ public class RootResource {
         return filteredProperties;
     }
 
-    /**
-     * Gets the versions (front/back/docker) of datashare.
-     *
-     * @return 200
-     *
-     * Example :
-     * $(curl -i localhost:8080/version)
-     */
+    @Operation(description = "Gets the versions (front/back/docker) of datashare.")
+    @ApiResponse(responseCode = "200", description = "returns the list of versions of datashare", useReturnTypeSchema = true)
     @Get("version")
     public Properties getVersion() {
         try {
