@@ -2,6 +2,10 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
@@ -32,17 +36,12 @@ public class IndexResource {
     public IndexResource(Indexer indexer) {
         this.indexer = indexer;
     }
-
-    /**
-     * Create the index for the current user if it doesn't exist.
-     *
-     * @return 201 (Created) or 200 if it already exists
-     *
-     * Example :
-     * $(curl -i -XPUT localhost:8080/api/index/apigen-datashare)
-     */
+    
+    @Operation(description = "Create the index for the current user if it doesn't exist.")
+    @ApiResponse(responseCode = "200", description = "returns 200 if the index already exists")
+    @ApiResponse(responseCode = "201", description = "returns 200 if the index has been created")
     @Put("/:index")
-    public Payload createIndex(final String index) throws IOException {
+    public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index) throws IOException {
         try{
             return indexer.createIndex(IndexAccessVerifier.checkIndices(index)) ? created() : ok();
         }catch (IllegalArgumentException e){
@@ -50,12 +49,9 @@ public class IndexResource {
         }
     }
 
-    /**
-     * Preflight for index creation.
-     *
-     * @param index
-     * @return 200 with PUT
-     */
+    @Operation(description = "Preflight for index creation.")
+    @ApiResponse(responseCode = "200", description = "returns PUT")
+    @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Options("/:index")
     public Payload createIndexPreflight(final String index) {
         try{
@@ -66,12 +62,9 @@ public class IndexResource {
         }
     }
 
-    /**
-     * Head request useful for JS api (for example to test if an index exists)
-     *
-     * @param path
-     * @return 200
-     */
+    @Operation(description = "Head request useful for JS api (for example to test if an index exists)")
+    @ApiResponse(responseCode = "200", description = "returns 200")
+    @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Head("/search/:path:")
     public Payload esHead(final String path) throws IOException {
         try {
@@ -81,26 +74,19 @@ public class IndexResource {
         }
     }
 
-    /**
-      * The search endpoint is just a proxy in front of Elasticsearch, everything sent is forwarded to Elasticsearch. DELETE method is not allowed.
-      *
-      * Path can be of the form :
-      * * _search/scroll
-      * * index_name/_search
-      * * index_name1,index_name2/_search
-      * * index_name/_count
-      * * index_name1,index_name2/_count
-      * * index_name/doc/_search
-      * * index_name1,index_name2/doc/_search
-      *
-      * @param path
-     *  @return 200 or http error from Elasticsearch
-      *
-      * Example :
-     * $(curl -XPOST -H 'Content-Type: application/json' http://dsenv:8080/api/index/search/apigen-datashare/_search -d '{}')
-      */
+    @Operation(description = "The search endpoint is just a proxy in front of Elasticsearch, everything sent is forwarded to Elasticsearch.<br>" +
+            "DELETE method is not allowed.<br>Path can be of the form :<br>" +
+            "- _search/scroll<br>" +
+            "- index_name/_search<br>" +
+            "- index_name1,index_name2/_search<br>" +
+            "- index_name/_count<br>" +
+            "- index_name1,index_name2/_count<br>" +
+            "- index_name/doc/_search<br>" +
+            "- index_name1,index_name2/doc/_search")
+    @ApiResponse(responseCode = "200", description = "returns 200")
+    @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Post("/search/:path:")
-    public Payload esPost(final String path, Context context, final net.codestory.http.Request request) throws IOException {
+    public Payload esPost(@Parameter(name = "index", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context, final net.codestory.http.Request request) throws IOException {
         try {
             return PayloadFormatter.json(indexer.executeRaw("POST", IndexAccessVerifier.checkPath(path, context), new String(request.contentAsBytes())));
         } catch ( IllegalArgumentException e){
@@ -108,22 +94,13 @@ public class IndexResource {
         }
     }
 
-    /**
-     * Search GET request to Elasticsearch
-     *
-     * As it is a GET method, all paths are accepted.
-     *
-     * if a body is provided, the body will be sent to ES as source=urlencoded(body)&source_content_type=application%2Fjson
-     * in that case, request parameters are not taken into account.
-     *
-     * @param path
-     * @return 200 or http error from Elasticsearch
-     *
-     * Example :
-     *  $(curl -H 'Content-Type: application/json' 'http://dsenv:8080/api/index/search/apigen-datashare/_search?q=type:NamedEntity&size=1')
-     */
+    @Operation(description = "Search GET request to Elasticsearch. As it is a GET method, all paths are accepted.<br>" +
+            "if a body is provided, the body will be sent to ES as source=urlencoded(body)&source_content_type=application%2Fjson<br>" +
+            "In that case, request parameters are not taken into account.")
+    @ApiResponse(responseCode = "200", description = "returns 200")
+    @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Get("/search/:path:")
-    public Payload esGet(final String path, Context context) throws IOException {
+    public Payload esGet(@Parameter(name = "path", description = "elasticsearch path", in = ParameterIn.PATH) final String path, Context context) throws IOException {
         try {
             return PayloadFormatter.json(indexer.executeRaw("GET", IndexAccessVerifier.checkPath(path, context), ""));
         } catch (IllegalArgumentException e){
@@ -131,12 +108,9 @@ public class IndexResource {
         }
     }
 
-    /**
-     * Prefligth option request
-     *
-     * @param path
-     * @return 200
-     */
+    @Operation(description = "Preflight for option request.")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS")
+    @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Options("/search/:path:")
     public Payload esOptions(final String index, final String path, Context context) throws IOException {
         try {
