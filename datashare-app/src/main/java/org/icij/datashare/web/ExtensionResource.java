@@ -2,6 +2,10 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
@@ -27,47 +31,30 @@ public class ExtensionResource {
     @Inject
     public ExtensionResource(ExtensionService extensionService) {this.extensionService = extensionService;}
 
-    /**
-     * Gets the extension set in JSON
-     *
-     * If a request parameter "filter" is provided, the regular expression will be applied to the list.
-     *
-     * see https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
-     * for pattern syntax.
-     *
-     * Example:
-     * $(curl localhost:8080/api/extensions?filter=.*paginator)
-     * @return
-     */
+    @Operation(description = "Gets the extension set in JSON.<br>" +
+            "If a request parameter \"filter\" is provided, the regular expression will be applied to the list.<br>" +
+            "See https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html for pattern syntax.",
+            parameters = {@Parameter(name = "filter", description = "regular expression to apply", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", description = "returns the extensions set", useReturnTypeSchema = true)
     @Get()
     public Set<DeliverablePackage> getExtensionList(Context context) {
         return extensionService.list(ofNullable(context.request().query().get("filter")).orElse(".*"));
     }
 
-    /**
-     * Preflight request
-     *
-     * @return OPTIONS,PUT
-     */
+    @Operation(description = "Preflight request")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS and PUT")
     @Options("/install")
     public Payload installExtensionPreflight() {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
-    /**
-     * Download (if necessary) and install extension specified by its id or url
-     *
-     * request parameter `id` or `url` must be present.
-     *
-     * @return  200 if the extension is installed
-     * @return  404 if the extension is not found by the provided id or url
-     * @return  400 if neither id nor url is provided
-     *
-     * @throws IOException
-     *
-     * Example:
-     * $(curl -i -XPUT localhost:8080/api/extensions/install?id=https://github.com/ICIJ/datashare-extension-nlp-ixapipe/releases/download/7.0.0/datashare-nlp-ixapipe-7.0.0-jar-with-dependencies.jar)
-     */
+    @Operation(description = "Download (if necessary) and install extension specified by its id or url." +
+            "Request parameter `id` or `url` must be present.",
+            parameters = {@Parameter(name = "id", description = "id of the extension", in = ParameterIn.QUERY),
+                    @Parameter(name = "url", description = "url of the extension", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", description = "returns 200 if the extension is installed")
+    @ApiResponse(responseCode = "400", description = "returns 400 if neither id nor url is provided")
+    @ApiResponse(responseCode = "404", description = "returns 404 if the extension is not found by the provided id or url")
     @Put("/install")
     public Payload installExtension(Context context) throws IOException, ArchiveException {
         String extensionUrlString = context.request().query().get("url");
@@ -88,27 +75,15 @@ public class ExtensionResource {
         }
     }
 
-    /**
-     * Preflight request
-     *
-     * @return OPTIONS,DELETE
-     */
+    @Operation(description = "Preflight request")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS and DELETE")
     @Options("/uninstall")
     public Payload uninstallExtensionPreflight() { return ok().withAllowMethods("OPTIONS", "DELETE");}
 
-    /**
-     * Uninstall extension specified by its id
-     *
-     * @param extensionId
-     * @return 204 if the extension is uninstalled (idempotent)
-     *
-     * @throws IOException if there is a filesystem error
-     *
-     * Example:
-     * $(curl -i -XDELETE localhost:8080/api/extensions/uninstall?id=https://github.com/ICIJ/datashare-extension-nlp-ixapipe/releases/download/7.0.0/datashare-nlp-ixapipe-7.0.0-jar-with-dependencies.jar)
-     */
+    @Operation(description = "Uninstall extension specified by its id.")
+    @ApiResponse(responseCode = "204", description = "returns 204 if the extension is uninstalled (idempotent)")
     @Delete("/uninstall?id=:extensionId")
-    public Payload uninstallExtension(String extensionId) throws IOException {
+    public Payload uninstallExtension(@Parameter(name = "extensionId", description = "id of the extension to uninstall", in = ParameterIn.QUERY) String extensionId) throws IOException {
         try {
             extensionService.delete(extensionId);
         } catch (DeliverableRegistry.UnknownDeliverableException | NoSuchElementException unknownDeliverableException) {
