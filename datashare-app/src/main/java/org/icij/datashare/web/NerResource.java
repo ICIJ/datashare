@@ -2,6 +2,10 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Post;
 import net.codestory.http.annotations.Prefix;
@@ -30,30 +34,19 @@ public class NerResource {
         this.languageGuesser = languageGuesser;
     }
 
-    /**
-     * Get the list of registered pipelines.
-     *
-     * @return pipeline set
-     * Example:
-     * $(curl http://dsenv:8080/api/ner/pipelines)
-     */
+    @Operation(description = "Get the list of registered pipelines.")
+    @ApiResponse(responseCode = "200", description = "returns the pipeline set", useReturnTypeSchema = true)
     @Get("/pipelines")
     public Set<Pipeline.Type> getRegisteredPipelines() {
         return pipelineRegistry.getPipelineTypes();
     }
 
-    /**
-     * When datashare is launched in NER mode (without index) it exposes a name finding HTTP API. The text is sent with the HTTP body.
-     *
-     * @param pipeline to use
-     * @param text to analyse in the request body
-     * @return list of NamedEntities annotations
-     *
-     * Example :
-     * $(curl -XPOST http://dsenv:8080/api/ner/findNames/CORENLP -d "Please find attached a PDF copy of the advance tax clearance obtained for our client John Doe.")
-     */
+    @Operation(description = "When datashare is launched in NER mode (without index) it exposes a name finding HTTP API.<br>" +
+            "The text is sent with the HTTP body.")
+    @ApiResponse(responseCode = "200", description = "returns the list of NamedEntities annotations", useReturnTypeSchema = true)
     @Post("/findNames/:pipeline")
-    public List<NamedEntity> getAnnotations(final String pipeline, String text) throws Exception {
+    public List<NamedEntity> getAnnotations(@Parameter(name = "pipeline", description = "pipeline to use", in = ParameterIn.PATH) final String pipeline,
+                                            @Parameter(name = "text", description = "text to analyse in the request body", in = ParameterIn.QUERY) String text) throws Exception {
         LoggerFactory.getLogger(getClass()).info(String.valueOf(getClass().getClassLoader()));
         Pipeline p = pipelineRegistry.get(Pipeline.Type.parse(pipeline));
         Language language = languageGuesser.guess(text);
