@@ -95,7 +95,7 @@ public class BatchSearchResource {
                 batchSearchRepository.getTotal(user, user.getProjectNames(), webQuery));
     }
 
-    @Operation(description = "Retrieve the batch search with the given id. The query param \"withQueries\" accepts a boolean value." +
+    @Operation(description = "Retrieves the batch search with the given id. The query param \"withQueries\" accepts a boolean value." +
             "When \"withQueries\" is set to false, the list of queries is empty and nbQueries contains the number of queries.")
     @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json", schema = @Schema(implementation = BatchSearch.class)))
     @ApiResponse(responseCode = "404", description = "if batchsearch is not found")
