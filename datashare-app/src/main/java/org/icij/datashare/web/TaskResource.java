@@ -230,7 +230,7 @@ public class TaskResource {
     }
 
     @Operation(description = "Preflight request to stop all tasks.")
-    @ApiResponse(responseCode = "200", description = "returns OPTIONS and PUT")
+    @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and PUT")
     @Options("/stopAll")
     public Payload stopAllTasksPreflight() {
         return ok().withAllowMethods("OPTIONS", "PUT");
