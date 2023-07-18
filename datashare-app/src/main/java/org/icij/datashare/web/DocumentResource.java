@@ -285,7 +285,7 @@ public class DocumentResource {
         return Payload.ok();
     }
 
-    @Operation(description = "preflight request for document untagging",
+    @Operation(description = "Preflight request for document untagging",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
