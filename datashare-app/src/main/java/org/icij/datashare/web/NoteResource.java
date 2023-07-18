@@ -44,10 +44,19 @@ public class NoteResource {
             "- `GET /api/p1/notes/a/b/doc1` will return note A and B<br/>" +
             "- `GET /api/p1/notes/a/c/doc2` will return note A<br/>" +
             "- `GET /api/p1/notes/d/doc3` will return an empty list<br/>" +
-            "</pre>",
+            "</pre>" +
+            "<br/>" +
+            "Note the <code>:path:</code> it is a greedy parameter at the end of the url<br/>" +
+            "<code>@Get(\"/start/with/:parameter\")</code>" +
+            "will match <code>/start/with/myparameter</code>" +
+            "but not /start/with/myparameter/with/slashes<br/>" +
+            "<br/>" +
+            "<code>@Get(\"/start/with/:parameter:\")</code>" +
+            " will match <code>/start/with/myparameter/with/slashes</code>" +
+            " and the parameter variable will contain <code>myparameter/with/slashes</code>",
             parameters = {
                 @Parameter(name = "project", description = "the project id"),
-                @Parameter(name = "path", description = "the path of the document. It is a greedy parameter at the end of the url"),
+                @Parameter(name = "path", description = "the path of the document."),
             }
     )
     @ApiResponse(responseCode = "403", description = "if the user is not granted for the project")
