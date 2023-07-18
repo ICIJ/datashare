@@ -109,7 +109,7 @@ public class BatchSearchResource {
     @Operation(description = "Retrieves the batch search queries with the given batch id and returns a list of strings UTF-8 encoded",
                 parameters = {@Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
                               @Parameter(name = "size", description = "if not provided all queries are returned from the \"from\" parameter", in = ParameterIn.QUERY),
-                              @Parameter(name = "format", description = "if set to csv, answer with content-disposition attachment (file downloading)", in = ParameterIn.QUERY),
+                              @Parameter(name = "format", description = "if set to csv, it answers with content-disposition attachment (file downloading)", in = ParameterIn.QUERY),
                               @Parameter(name = "search", description = "if provided it will filter the queries accordingly", in = ParameterIn.QUERY),
                               @Parameter(name = "orderBy", description = "field name to order by asc, \"query_number\" by default (if it does not exist it will return a 500 error)", in = ParameterIn.QUERY),
                               @Parameter(name = "maxResult", description = "number of maximum results for each returned query (-1 means no maxResults)", in = ParameterIn.QUERY)})
