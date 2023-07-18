@@ -291,7 +291,7 @@ public class DocumentResource {
                     @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
             }
     )
-    @ApiResponse(responseCode = "200", description = "returns PUT")
+    @ApiResponse(responseCode = "200", description = "returns 200 with PUT")
     @Options("/:project/documents/untag/:docId")
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
