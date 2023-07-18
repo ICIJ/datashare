@@ -266,7 +266,7 @@ public class BatchSearchResource {
                                             examples = {@ExampleObject(value = "{\"name\": \"my new batch\", \"description\":\"desc\"}")})
                 )
     )
-    @ApiResponse(responseCode = "404", description = "if the source batchsearch is not found in database")
+    @ApiResponse(responseCode = "404", description = "if the source batch search is not found in database")
     @ApiResponse(responseCode = "200", description = "returns batch id created", useReturnTypeSchema = true)
     @Post("/search/copy/:sourcebatchid")
     public String copySearch(String sourceBatchId, Context context) throws Exception {
