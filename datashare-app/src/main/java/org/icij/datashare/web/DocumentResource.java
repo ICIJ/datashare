@@ -166,7 +166,7 @@ public class DocumentResource {
         return new Result<>(repository.star(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
-    @Operation( description = "Group unstar the documents. The id list is passed in the request body as a json list.",
+    @Operation( description = "'Unstars' documents in batch. The list of ids is passed in the request body as a JSON list.",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)
             },
