@@ -75,7 +75,7 @@ public class BatchSearchResource {
     }
 
 
-    @Operation(description = "Retrieve the batch search list for the user issuing the request")
+    @Operation(description = "Retrieves the batch search list for the user issuing the request")
     @ApiResponse(description = "200 and the list of batch search")
     @Get("/search")
     public List<BatchSearchRecord> getSearches(Context context) {
