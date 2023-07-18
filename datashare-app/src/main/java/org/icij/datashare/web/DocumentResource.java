@@ -351,7 +351,7 @@ public class DocumentResource {
         return repository.getRecommentationsBy(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
     }
 
-    @Operation(description = "Group mark the documents as recommended. The id list is passed in the request body as a json list.",
+    @Operation(description = "Marks the documents as recommended in batch. The id list is passed in the request body as a json list.",
             parameters = {@Parameter(name = "project", in = ParameterIn.PATH)},
             requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
     )
