@@ -38,7 +38,7 @@ public class NamedEntityResource {
     @ApiResponse(responseCode = "200", description = "returns the pipeline set", useReturnTypeSchema = true)
     @Get("/:project/namedEntities/:id?routing=:documentId")
     public NamedEntity getById(@Parameter(name = "project", description = "current project", in = ParameterIn.PATH) final String project,
-                               @Parameter(name = "id", description = "name entity id", in = ParameterIn.PATH) final String id,
+                               @Parameter(name = "id", description = "named entity id", in = ParameterIn.PATH) final String id,
                                @Parameter(name = "documentId", description = "documentId the root document", in = ParameterIn.PATH) final String documentId) {
         return notFoundIfNull(indexer.get(project, id, documentId));
     }
