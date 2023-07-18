@@ -4,6 +4,15 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.StringToClassMapItem;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.errors.ForbiddenException;
@@ -50,24 +59,19 @@ public class DocumentResource {
         this.indexer = indexer;
     }
 
-    /**
-     * Returns the file from the index with the index id and the root document (if embedded document).
-     *
-     * The routing can be omitted if it is a top level document, or it can be the same as the id.
-     *
-     * Returns 404 if it doesn't exist
-     *
-     * Returns 403 if the user has no access to the requested index.
-     *
-     * @param project
-     * @param id
-     * @param routing
-     * @return 200 or 404 or 403 (Forbidden)
-     *
-     * Example :
-     *
-     * $(curl -i http://localhost:8080/api/apigen-datashare/documents/src/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f
-     */
+    @Operation( description = " Returns the file from the index with the index id and the root document (if embedded document).",
+                parameters = {
+                    @Parameter(name = "project", description = "project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "hash of the document", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
+                    @Parameter(name = "inline", description = "if true returns the document as attachment", in = ParameterIn.QUERY),
+                    @Parameter(name = "filter_metadata", description = "if true, do not send document metadata", in = ParameterIn.QUERY),
+                }
+    )
+    @ApiResponse(responseCode = "200", content = {@Content(mediaType = "document mime type (from the contentType field or file extension).")},
+                 description = "returns the source of the document.")
+    @ApiResponse(responseCode = "404", description = "if no document is found")
+    @ApiResponse(responseCode = "403", description = "forbidden if the user doesn't have access to the project")
     @Get("/:project/documents/src/:id?routing=:routing&filter_metadata=:filter_metadata")
     public Payload getSourceFile(final String project, final String id,
                                  final String routing, final String filterMetadata, final Context context) throws IOException {
@@ -79,20 +83,17 @@ public class DocumentResource {
         throw new ForbiddenException();
     }
 
-    /**
-     * Fetch extracted text by slice (pagination)
-     * @param project Project id
-     * @param id Document id
-     * @param offset Starting byte (starts at 0)
-     * @param limit Size of the extracted text slice in bytes
-     * @param targetLanguage Target language (like "ENGLISH") to get slice from translated content
-     * @return 200 and a JSON containing the extracted text content ("content":text), the max offset as last rank index ("maxOffset":number), start ("start":number) and size ("size":number) parameters.
-     * @throws IOException
-     *
-     * Example :
-     * $(curl -XGET -H 'Content-Type: application/json' localhost:8080/api/apigen-datashare/documents/content/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f?offset=1&limit=300)
-     *
-     */
+    @Operation(description = "Fetch extracted text by slice (pagination)",
+                parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
+                    @Parameter(name = "offset", description = "starting byte (starts at 0)", in = ParameterIn.QUERY),
+                    @Parameter(name = "limit", description = "Size of the extracted text slice in bytes", in = ParameterIn.QUERY),
+                    @Parameter(name = "targetLanguage", description = "Target language (like \"ENGLISH\") to get slice from translated content", in = ParameterIn.QUERY)
+                }
+    )
+    @ApiResponse(responseCode = "200", description = "SON containing the extracted text content (\"content\":text), the max offset as last rank index (\"maxOffset\":number), start (\"start\":number) and size (\"size\":number) parameters")
     @Get("/:project/documents/content/:id?routing=:routing&offset=:offset&limit=:limit&targetLanguage=:targetLanguage")
     public Payload getExtractedText(
             final String project, final String id,  final String routing,
@@ -117,39 +118,16 @@ public class DocumentResource {
         throw new ForbiddenException();
     }
 
-    private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws IllegalArgumentException {
-        //original content (no targetLanguage specified)
-        if(targetLanguage == null || targetLanguage.isBlank()){
-            String content = repository.getDocument(id).getContent();
-            return new ExtractedText(content,0,content.length(),content.length());
-        }
-        //translated content with targetLanguage
-        Iterator<Map<String, String>> translationsIterator = repository.getDocument(id).getContentTranslated().iterator();
-        while (translationsIterator.hasNext() ){
-            Map<String, String > translation = translationsIterator.next();
-            if(translation.get("target_language").equals(targetLanguage)){
-                String content=translation.get("content");
-                int contentLength = content.length();
-                return new ExtractedText(content,0,contentLength,contentLength, targetLanguage);
-            }
-        }
-        // targetLanguage not found
-        throw new IllegalArgumentException("Target language not found");
-    }
-
-    /**
-     * Search query occurrences in content or translated content (pagination)
-     * @param project Project id
-     * @param id Document id
-     * @param query Query string to search occurrences (starts at 0)
-     * @param targetLanguage Target language (like "ENGLISH") to search in translated content
-     * @return 200 and a JSON containing the occurrences offsets in the text, and the count of occurrences.
-     * @throws IOException
-     *
-     * Example :
-     * $(curl -XGET -H 'Content-Type: application/json' localhost:8080/api/apigen-datashare/documents/searchContent/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f?query=test&targetLanguage=ENGLISH)
-     *
-     */
+    @Operation( description = "Search query occurrences in content or translated content (pagination)",
+                parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
+                    @Parameter(name = "query", description = "query string to search occurrences", in = ParameterIn.QUERY),
+                    @Parameter(name = "targetLanguage", description = "Target language (like \"ENGLISH\") to search in translated content", in = ParameterIn.QUERY)
+                }
+    )
+    @ApiResponse(responseCode = "200", description = "JSON containing the occurrences offsets in the text, and the count of occurrences.")
     @Get("/:project/documents/searchContent/:id?routing=:routing&query=:query&targetLanguage=:targetLanguage")
     public Payload searchOccurrences(
             final String project, final String id,  final String routing,
@@ -174,94 +152,74 @@ public class DocumentResource {
         }
         throw new ForbiddenException();
     }
-    /**
-     * Group star the documents. The id list is passed in the request body as a json list.
-     *
-     * It answers 200 if the change has been done and the number of documents updated in the response body.
-     * @param projectId
-     * @param docIds as json
-     * @return 200 and the number of documents updated
-     *
-     * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/star -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
-     *
-     */
+
+    @Operation( description = "Group star the documents. The id list is passed in the request body as a json list.",
+                parameters = {
+                        @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                },
+                requestBody = @RequestBody(content = @Content(mediaType = "application/json", examples = {@ExampleObject(value = "[\"docId1\",\"docId2\"]")}))
+    )
+    @ApiResponse(responseCode = "200", description = "returns the number of stared documents")
     @Post("/:project/documents/batchUpdate/star")
     public Result<Integer> groupStarProject(final String projectId, final List<String> docIds, Context context) {
         Result<Integer> res = new Result(repository.star(project(projectId), (DatashareUser)context.currentUser(), docIds));
         return new Result<>(repository.star(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
-    /**
-     * Group unstar the documents. The id list is passed in the request body as a json list.
-     *
-     * It answers 200 if the change has been done and the number of documents updated in the response body.
-     *
-     * @param projectId
-     * @param docIds as json in body
-     * @return 200 and the number of documents unstarred
-     *
-     * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unstar -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "unknownId"]')
-     */
+    @Operation( description = "Group unstar the documents. The id list is passed in the request body as a json list.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)
+            },
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json", examples = {@ExampleObject(value = "[\"docId1\",\"docId2\"]")}))
+    )
+    @ApiResponse(responseCode = "200", description = "returns the number of unstared documents")
     @Post("/:project/documents/batchUpdate/unstar")
     public Result<Integer> groupUnstarProject(final String projectId, final List<String> docIds, Context context) {
         return new Result<>(repository.unstar(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
-    /**
-     * Retrieves the list of starred document for a given project.
-     *
-     * @param projectId
-     * @return 200
-     *
-     * Example :
-     * $(curl -i localhost:8080/api/apigen-datashare/documents/starred)
-     */
+    @Operation(description = "Retrieves the list of starred document for a given project.",
+                parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)}
+    )
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:project/documents/starred")
     public List<String> getProjectStarredDocuments(final String projectId, Context context) {
         return repository.getStarredDocuments(project(projectId), (DatashareUser)context.currentUser());
     }
 
-    /**
-     * Retrieves the list of tagged document with tag "tag" for the given project id.
-     *
-     * This service doesn't need to have the document stored in the database (no join is made)
-     *
-     * @param projectId
-     * @param comaSeparatedTags
-     * @return 200
-     *
-     * Example :
-     * $(curl -i localhost:8080/api/apigen-datashare/documents/tagged/tag_01,tag_02)
-     */
+    @Operation(description = "Retrieves the list of tagged document with tag \"tag\" for the given project id.",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "comaSeparatedTags", description = "comma separated tags", in = ParameterIn.PATH)
+            }
+    )
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:projects/documents/tagged/:coma_separated_tags")
     public List<String> getProjectTaggedDocuments(final String projectId, final String comaSeparatedTags) {
         return repository.getDocuments(project(projectId),
                 stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
     }
 
-    /**
-     * preflight request
-     *
-     * @param projectId
-     * @param docId
-     * @return 200 PUT
-     */
+    @Operation(description = "preflight request for document tagging",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "returns PUT")
     @Options("/:project/documents/tags/:docId")
     public Payload tagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
-    /**
-     *
-     * @param projectId
-     * @param docId
-     * @param routing
-     * @param tags
-     * @return 201 if created else 200
-     *
-     * Example :
-     * $(curl -XPUT -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/tags/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f -d '["tag1","tag2"]')
-     */
+    @Operation(description = "document tagging request",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "document routing if not a root document", in = ParameterIn.QUERY)
+            },
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
+    )
+    @ApiResponse(responseCode = "200", description = "if tag was already in database")
+    @ApiResponse(responseCode = "201", description = "if tag was created")
     @Put("/:project/documents/tags/:docId?routing=:routing")
     public Payload tagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean tagSaved = repository.tag(project(projectId), docId, tags);
@@ -269,32 +227,34 @@ public class DocumentResource {
         return tagSaved ? Payload.created(): Payload.ok();
     }
 
-    /**
-     * Gets all the tags from a document with the user and timestamp.
-     * @param projectId
-     * @param docId
-     * @return 200 and the list of tags
-     *
-     * Example :
-     * $(curl  http://localhost:8080/api/apigen-datashare/documents/tags/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
-     */
+    @Operation(description = "request for getting tags from a document id",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
+            }
+    )
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/:project/documents/tags/:docId")
     public List<Tag> getDocumentTags(final String projectId, final String docId) {
         return repository.getTags(project(projectId), docId);
     }
 
-    /**
-     * Group tag the documents. The document id list and the tag list are passed in the request body.
-     *
-     * It answers 200 if the change has been done.
-     *
-     * @param projectId
-     * @param query
-     * @return 200
-     *
-     * Example :
-     * $(curl -i -XPOST  -H "Content-Type: application/json"  localhost:8080/api/apigen-datashare/documents/batchUpdate/tag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
-     */
+    @Operation(description = "Group tag the documents. The document id list and the tag list are passed in the request body.",
+               parameters = {
+
+               },
+               requestBody = @RequestBody(
+                       content = @Content(mediaType = "application/json",
+                       contentSchema = @Schema(requiredProperties = {"docIds", "tags"},
+                            properties = {
+                               @StringToClassMapItem(key = "docIds", value = List.class),
+                               @StringToClassMapItem(key = "tags", value = List.class)
+                            }
+                       ),
+                       examples = {@ExampleObject(value = "{\"docIds\": [\"bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f\", \"7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61\"], \"tags\": [\"foo\", \"bar\"]}")}
+               ))
+    )
+    @ApiResponse(responseCode = "200")
     @Post("/:project/documents/batchUpdate/tag")
     public Payload groupTagDocument(final String projectId, BatchTagQuery query, Context context) throws IOException {
         repository.tag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
@@ -302,18 +262,22 @@ public class DocumentResource {
         return Payload.ok();
     }
 
-    /**
-     * Group untag the documents. The document id list and the tag list are passed in the request body.
-     *
-     * It answers 200 if the change has been done.
-     *
-     * @param projectId
-     * @param query
-     * @return 200
-     *
-     * Example :
-     * $(curl -i -XPOST  -H "Content-Type: application/json"  localhost:8080/api/documents/apigen-datashare/batchUpdate/untag -d '{"docIds": ["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f", "7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"], "tags": ["foo", "bar"]}')
-     */
+    @Operation(description = "Group untag the documents. The document id list and the tag list are passed in the request body.",
+            parameters = {
+
+            },
+            requestBody = @RequestBody(
+                    content = @Content(mediaType = "application/json",
+                            contentSchema = @Schema(requiredProperties = {"docIds", "tags"},
+                                    properties = {
+                                            @StringToClassMapItem(key = "docIds", value = List.class),
+                                            @StringToClassMapItem(key = "tags", value = List.class)
+                                    }
+                            ),
+                            examples = {@ExampleObject(value = "{\"docIds\": [\"bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f\", \"7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61\"], \"tags\": [\"foo\", \"bar\"]}")}
+                    ))
+    )
+    @ApiResponse(responseCode = "200")
     @Post("/:project/documents/batchUpdate/untag")
     public Payload groupUntagDocument(final String projectId, BatchTagQuery query,  Context context) throws IOException {
         repository.untag(project(projectId), query.docIds, query.tagsAsArray((User)context.currentUser()));
@@ -321,27 +285,26 @@ public class DocumentResource {
         return Payload.ok();
     }
 
-    /**
-     * preflight request
-     *
-     * @param projectId
-     * @param docId
-     * @return 200 PUT
-     */
+    @Operation(description = "preflight request for document untagging",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
+            }
+    )
+    @ApiResponse(responseCode = "200", description = "returns PUT")
     @Options("/:project/documents/untag/:docId")
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
-    /**
-     * Untag one document
-     *
-     * @param projectId
-     * @param docId
-     * @param routing
-     * @param tags
-     * @return 201 if untagged else 200
-     *
-     * $(curl -i -XPUT -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/untag/bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f -d '["tag1"]')
-     */
+    @Operation(description = "document untagging request",
+            parameters = {
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                    @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH),
+                    @Parameter(name = "routing", description = "document routing if not a root document", in = ParameterIn.QUERY)
+            },
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
+    )
+    @ApiResponse(responseCode = "200", description = "if tag was not in database")
+    @ApiResponse(responseCode = "201", description = "if tag was deleted")
     @Put("/:project/documents/untag/:docId?routing=:routing")
     public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean untagSaved = repository.untag(project(projectId), docId, tags);
@@ -349,102 +312,83 @@ public class DocumentResource {
         return untagSaved ? Payload.created(): Payload.ok();
     }
 
-    /**
-     * Retrieves the list of starred document for all projects.
-     *
-     * This service needs to have the document stored in the database.
-     *
-     * @return 200 and the list of Documents
-     *
-     * $(curl localhost:8080/api/documents/starred)
-     */
+    @Operation(description = "Retrieves the list of starred document for all projects for the current user.")
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/documents/starred")
     public List<Document> getStarredDocuments(Context context) {
         return repository.getStarredDocuments((DatashareUser)context.currentUser());
     }
 
-    /**
-     * Retrieves the list of users who recommended a document with the total count of recommended documents
-     * for the given project id
-     *
-     *
-     * @param projectId
-     * @return 200
-     *
-     * Example :
-     * $(curl -i localhost:8080/api/users/recommendations?project=apigen-datashare)
-     */
+    @Operation(description = "Retrieves the list of users who recommended a document with the total count of recommended documents for the given project id",
+            parameters = {@Parameter(name = "project", description = "project id")}
+    )
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/users/recommendations?project=:project")
     public AggregateList<User> getProjectRecommendations(final String projectId) {
         return repository.getRecommendations(project(projectId));
     }
 
-    /**
-     * Get all users who recommended a document with the count of all recommended documents
-     * for project and documents ids.
-     *
-     * @param projectId
-     * @param comaSeparatedDocIds
-     * @return 200 and the list of tags
-     *
-     * Example :
-     * $(curl  http://localhost:8080/api/users/recommendations?project=apigen-datashare&docIds=bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f)
-     */
+    @Operation(description = "Get all users who recommended a document with the count of all recommended documents for project and documents ids.",
+            parameters = {
+                @Parameter(name = "project", in = ParameterIn.QUERY),
+                @Parameter(name = "docIds", in = ParameterIn.QUERY, description = "comma separated document ids")
+            }
+    )
+    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
     @Get("/users/recommendationsby?project=:project&docIds=:coma_separated_docIds")
     public AggregateList<User> getProjectRecommendations(final String projectId, final String comaSeparatedDocIds) {
         return repository.getRecommendations(project(projectId),stream(comaSeparatedDocIds.split(",")).map(String::new).collect(Collectors.toList()));
     }
 
-    /**
-     * Retrieves the set of marked read documents for the given project id and a list of users
-     * provided in the url.
-     *
-     * This service doesn't need to have the document stored in the database (no join is made)
-     *
-     * @param projectId
-     * @param comaSeparatedUsers
-     * @return 200
-     *
-     * Example :
-     * $(curl -i localhost:8080/api/apigen-datashare/documents/recommendations?userids=apigen)
-     */
+    @Operation(description = "Retrieves the set of recommended documents for the given project id and a list of users",
+            parameters = {
+                    @Parameter(name = "project", in = ParameterIn.PATH),
+                    @Parameter(name = "userids", in = ParameterIn.QUERY, description = "comma separated users")
+            }
+    )
     @Get("/:project/documents/recommendations?userids=:coma_separated_users")
     public Set<String> getProjectRecommentationsBy(final String projectId, final String comaSeparatedUsers) {
         return repository.getRecommentationsBy(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
     }
 
-
-    /**
-     * Group mark the documents "read". The id list is passed in the request body as a json list.
-     *
-     * It answers 200 if the change has been done and the number of documents updated in the response body.
-     * @param projectId
-     * @param docIds as json
-     * @return 200 and the number of documents marked
-     *
-     * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/recommend -d '["7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61"]')
-     */
+    @Operation(description = "Group mark the documents as recommended. The id list is passed in the request body as a json list.",
+            parameters = {@Parameter(name = "project", in = ParameterIn.PATH)},
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
+    )
+    @ApiResponse(responseCode = "200", description = "the number of marked documents", useReturnTypeSchema = true)
     @Post("/:project/documents/batchUpdate/recommend")
     public Result<Integer> groupRecommend(final String projectId, final List<String> docIds, Context context) {
         return new Result<>(repository.recommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
-    /**
-     * Group unmark the documents. The id list is passed in the request body as a json list.
-     *
-     * It answers 200 if the change has been done and the number of documents updated in the response body.
-     *
-     * @param projectId
-     * @param docIds as json
-     * @return 200 and the number of documents unmarked
-     *
-     * Example :
-     * $(curl -i -XPOST -H "Content-Type: application/json" localhost:8080/api/apigen-datashare/documents/batchUpdate/unrecommend -d '["bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f"]')
-     */
+    @Operation(description = "Group unmark the documents as recommended. The id list is passed in the request body as a json list.",
+            parameters = {@Parameter(name = "project", in = ParameterIn.PATH)},
+            requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
+    )
+    @ApiResponse(responseCode = "200", description = "the number of unmarked documents", useReturnTypeSchema = true)
     @Post("/:project/documents/batchUpdate/unrecommend")
     public Result<Integer> groupUnrecommend(final String projectId, final List<String> docIds, Context context) {
         return new Result<>(repository.unrecommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
+    }
+
+    private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws IllegalArgumentException {
+        //original content (no targetLanguage specified)
+        if(targetLanguage == null || targetLanguage.isBlank()){
+            String content = repository.getDocument(id).getContent();
+            return new ExtractedText(content,0,content.length(),content.length());
+        }
+        //translated content with targetLanguage
+        Iterator<Map<String, String>> translationsIterator = repository.getDocument(id).getContentTranslated().iterator();
+        while (translationsIterator.hasNext() ){
+            Map<String, String > translation = translationsIterator.next();
+            if(translation.get("target_language").equals(targetLanguage)){
+                String content=translation.get("content");
+                int contentLength = content.length();
+                return new ExtractedText(content,0,contentLength,contentLength, targetLanguage);
+            }
+        }
+        // targetLanguage not found
+        throw new IllegalArgumentException("Target language not found");
     }
 
     private Payload getPayload(Document doc, String index, boolean inline, boolean filterMetadata) throws IOException {
