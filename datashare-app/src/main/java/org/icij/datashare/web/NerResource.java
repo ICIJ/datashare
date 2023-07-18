@@ -34,7 +34,7 @@ public class NerResource {
         this.languageGuesser = languageGuesser;
     }
 
-    @Operation(description = "Get the list of registered pipelines.")
+    @Operation(description = "Gets the list of registered pipelines.")
     @ApiResponse(responseCode = "200", description = "returns the pipeline set", useReturnTypeSchema = true)
     @Get("/pipelines")
     public Set<Pipeline.Type> getRegisteredPipelines() {
