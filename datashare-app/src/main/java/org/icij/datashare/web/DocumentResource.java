@@ -361,7 +361,7 @@ public class DocumentResource {
         return new Result<>(repository.recommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
-    @Operation(description = "Group unmark the documents as recommended. The id list is passed in the request body as a json list.",
+    @Operation(description = "Unmarks the documents as recommended in batch. The id list is passed in the request body as a JSON list.",
             parameters = {@Parameter(name = "project", in = ParameterIn.PATH)},
             requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
     )
