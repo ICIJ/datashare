@@ -210,7 +210,7 @@ public class DocumentResource {
     @Options("/:project/documents/tags/:docId")
     public Payload tagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
-    @Operation(description = "document tagging request",
+    @Operation(description = "Sets tags for a given document id",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH),
