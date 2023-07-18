@@ -217,7 +217,7 @@ public class BatchSearchResource {
                             )
                     )
             ),
-            parameters = {@Parameter(description = "list of projects separated with comas",
+            parameters = {@Parameter(description = "Coma-separated list of projects",
                     in = ParameterIn.PATH, examples = @ExampleObject(value = "prj1,prj2"))}
     )
     @ApiResponse(responseCode = "413", description = "if the CSV file is more than 60K lines")
