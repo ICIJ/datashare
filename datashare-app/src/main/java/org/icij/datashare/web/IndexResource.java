@@ -62,7 +62,7 @@ public class IndexResource {
         }
     }
 
-    @Operation(description = "Head request useful for JS api (for example to test if an index exists)")
+    @Operation(description = "Head request useful for JavaScript API (for example to test if an index exists)")
     @ApiResponse(responseCode = "200", description = "returns 200")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Head("/search/:path:")
