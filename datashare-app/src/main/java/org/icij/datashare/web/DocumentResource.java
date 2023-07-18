@@ -89,7 +89,7 @@ public class DocumentResource {
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
                     @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
                     @Parameter(name = "offset", description = "starting byte (starts at 0)", in = ParameterIn.QUERY),
-                    @Parameter(name = "limit", description = "Size of the extracted text slice in bytes", in = ParameterIn.QUERY),
+                    @Parameter(name = "limit", description = "size of the extracted text slice in bytes", in = ParameterIn.QUERY),
                     @Parameter(name = "targetLanguage", description = "Target language (like \"ENGLISH\") to get slice from translated content", in = ParameterIn.QUERY)
                 }
     )
