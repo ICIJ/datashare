@@ -62,7 +62,7 @@ public class UserResource {
     }
 
     @Operation(description = "Preflight request for history")
-    @ApiResponse(responseCode = "200", description = "returns OPTIONS, GET, PUT and DELETE")
+    @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS, GET, PUT and DELETE")
     @Options("/me/history")
     public Payload getUserHistory(String userId) {
         return ok().withAllowMethods("OPTIONS", "GET", "PUT", "DELETE");
