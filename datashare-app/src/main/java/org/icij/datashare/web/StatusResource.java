@@ -40,7 +40,7 @@ public class StatusResource {
     }
 
     @Operation(description = "Retrieve the status of databus connection, database connection, shared queues and index.",
-            parameters = { @Parameter(name = "format=openmetrics", description = "if provided in the url it will return the status witn openmetrics format", in = ParameterIn.QUERY) })
+            parameters = { @Parameter(name = "format=openmetrics", description = "if provided in the URL it will return the status in openmetrics format", in = ParameterIn.QUERY) })
     @ApiResponse(responseCode = "200", description = "returns the status of datashare elements", useReturnTypeSchema = true)
     @Get("/status")
     public Payload getStatus(Context context) {
