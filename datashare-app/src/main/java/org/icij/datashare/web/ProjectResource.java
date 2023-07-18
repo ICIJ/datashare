@@ -129,7 +129,7 @@
             return new Payload(project).withCode(HttpStatus.OK);
         }
 
-        @Operation(description = "get the project information for the given id",
+        @Operation(description = "Gets the project information for the given id",
                 parameters = @Parameter(name = "id", in = ParameterIn.QUERY)
         )
         @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
