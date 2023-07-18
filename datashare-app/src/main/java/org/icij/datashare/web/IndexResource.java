@@ -108,7 +108,7 @@ public class IndexResource {
         }
     }
 
-    @Operation(description = "Preflight for option request.")
+    @Operation(description = "Preflight request with OPTIONS")
     @ApiResponse(responseCode = "200", description = "returns OPTIONS")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Options("/search/:path:")
