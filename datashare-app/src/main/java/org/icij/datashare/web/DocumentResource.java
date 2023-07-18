@@ -262,7 +262,7 @@ public class DocumentResource {
         return Payload.ok();
     }
 
-    @Operation(description = "Group untag the documents. The document id list and the tag list are passed in the request body.",
+    @Operation(description = "Untags documents in batch. The document id list and the tag list are passed in the request body.",
             parameters = {
 
             },
