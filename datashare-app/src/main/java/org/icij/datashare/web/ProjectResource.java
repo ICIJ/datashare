@@ -164,7 +164,7 @@
         @Operation(description = "Preflight option request",
                 parameters = {@Parameter(name = "id", description = "project id")}
         )
-        @ApiResponse(responseCode = "200", description = "DELETE method")
+        @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and DELETE")
         @Options("/:id")
         public Payload deleteProjectOpt(String id) {return ok().withAllowMethods("OPTIONS", "DELETE");}
 
