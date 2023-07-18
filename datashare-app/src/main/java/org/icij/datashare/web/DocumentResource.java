@@ -304,7 +304,7 @@ public class DocumentResource {
             requestBody = @RequestBody(content = @Content(mediaType = "application/json", schema = @Schema(implementation = List.class)))
     )
     @ApiResponse(responseCode = "200", description = "Document untagged")
-    @ApiResponse(responseCode = "201", description = "if tag was deleted")
+    @ApiResponse(responseCode = "201", description = "Document had tags; Document tag was deleted")
     @Put("/:project/documents/untag/:docId?routing=:routing")
     public Payload untagDocument(final String projectId, final String docId, String routing, Tag[] tags) throws IOException {
         boolean untagSaved = repository.untag(project(projectId), docId, tags);
