@@ -36,6 +36,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 
+import javax.annotation.CheckForNull;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -96,11 +97,13 @@ public class BatchSearchResource {
 
     @Operation(description = "Retrieve the batch search with the given id. The query param \"withQueries\" accepts a boolean value." +
             "When \"withQueries\" is set to false, the list of queries is empty and nbQueries contains the number of queries.")
-    @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json", schema = @Schema(implementation = BatchSearch.class)))
+    @ApiResponse(responseCode = "404", description = "if batchsearch is not found")
     @Get("/search/:batchid")
-    public BatchSearch getBatch(@Parameter(name = "batchId", in = ParameterIn.PATH) String batchId, Context context) {
+    public Payload getBatch(@Parameter(name = "batchId", in = ParameterIn.PATH) String batchId, Context context) {
         boolean withQueries = Boolean.parseBoolean(context.get("withQueries"));
-        return notFoundIfNull(batchSearchRepository.get((User) context.currentUser(), batchId, withQueries));
+        BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId, withQueries);
+        return batchSearch == null ? PayloadFormatter.error("Batch search not found.", HttpStatus.NOT_FOUND) : new Payload(batchSearch);
     }
 
     @Operation(description = "Retrieve the batch search queries with the given batch id and returns a list of strings UTF-8 encoded",
