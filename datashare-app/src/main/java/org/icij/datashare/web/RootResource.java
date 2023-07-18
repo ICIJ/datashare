@@ -41,7 +41,7 @@ public class RootResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    @Operation(description = "Gets the root of the front-end app ie: ./app/index.html<br>" +
+    @Operation(description = "Gets the root of the front-end app, e.g. : <code>./app/index.html</code><br/>" +
             "If pluginsDir is set, it will add in the index the tag <code><script src=\"plugins/my_plugin/index.js\"></script></code> else it will return the index.html content as is")
     @ApiResponse(responseCode = "200", description = "returns the content of index.html file", useReturnTypeSchema = true)
     @Get()
