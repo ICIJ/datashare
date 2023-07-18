@@ -239,7 +239,7 @@ public class DocumentResource {
         return repository.getTags(project(projectId), docId);
     }
 
-    @Operation(description = "Group tag the documents. The document id list and the tag list are passed in the request body.",
+    @Operation(description = "Tags documents in batch. The document id list and the tag list are passed in the request body.",
                parameters = {
 
                },
