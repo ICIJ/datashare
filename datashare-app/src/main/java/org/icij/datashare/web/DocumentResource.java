@@ -295,7 +295,7 @@ public class DocumentResource {
     @Options("/:project/documents/untag/:docId")
     public Payload untagDocument(final String projectId, final String docId) {return ok().withAllowMethods("OPTIONS", "PUT");}
 
-    @Operation(description = "document untagging request",
+    @Operation(description = "Removes tags from a document id in a given project",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH),
