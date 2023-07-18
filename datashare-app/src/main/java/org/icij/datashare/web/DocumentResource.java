@@ -328,7 +328,7 @@ public class DocumentResource {
         return repository.getRecommendations(project(projectId));
     }
 
-    @Operation(description = "Get all users who recommended a document with the count of all recommended documents for project and documents ids.",
+    @Operation(description = "Gets all users who recommended a document with the count of all recommended documents for project and documents ids.",
             parameters = {
                 @Parameter(name = "project", in = ParameterIn.QUERY),
                 @Parameter(name = "docIds", in = ParameterIn.QUERY, description = "comma separated document ids")
