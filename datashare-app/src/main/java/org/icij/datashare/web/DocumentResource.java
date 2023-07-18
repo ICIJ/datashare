@@ -93,7 +93,7 @@ public class DocumentResource {
                     @Parameter(name = "targetLanguage", description = "target language (like \"ENGLISH\") to get slice from translated content", in = ParameterIn.QUERY)
                 }
     )
-    @ApiResponse(responseCode = "200", description = "SON containing the extracted text content (\"content\":text), the max offset as last rank index (\"maxOffset\":number), start (\"start\":number) and size (\"size\":number) parameters")
+    @ApiResponse(responseCode = "200", description = "JSON containing the extracted text content (\"content\":text), the max offset as last rank index (\"maxOffset\":number), start (\"start\":number) and size (\"size\":number) parameters")
     @Get("/:project/documents/content/:id?routing=:routing&offset=:offset&limit=:limit&targetLanguage=:targetLanguage")
     public Payload getExtractedText(
             final String project, final String id,  final String routing,
