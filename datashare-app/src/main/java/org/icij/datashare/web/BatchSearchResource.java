@@ -142,7 +142,7 @@ public class BatchSearchResource {
     }
 
     @Operation(description = "Preflight request")
-    @ApiResponse(responseCode = "200", description = "returns DELETE")
+    @ApiResponse(responseCode = "200", description = "returns 200 with DELETE")
     @Options("/search/:batchid")
     public Payload optionsDelete(String batchId, Context context) {
         return ok().withAllowMethods("OPTIONS", "DELETE", "PATCH");
