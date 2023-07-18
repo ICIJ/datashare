@@ -280,7 +280,7 @@ public class BatchSearchResource {
         return copy.uuid;
     }
 
-    @Operation( description = "Retrieve the results of a batch search as JSON.<br/>" +
+    @Operation( description = "Retrieves the results of a batch search as JSON.<br/>" +
             "If from/size are not given their default values are 0, meaning that all the results are returned.",
                 requestBody = @RequestBody(
                         required = true,
