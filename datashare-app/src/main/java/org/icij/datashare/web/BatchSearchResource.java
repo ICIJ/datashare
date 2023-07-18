@@ -320,7 +320,7 @@ public class BatchSearchResource {
                 withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
     }
 
-    @Operation(description = "Delete batch searches and results for the current user.")
+    @Operation(description = "Deletes batch searches and results for the current user.")
     @ApiResponse(responseCode = "204", description = "no content: idempotent")
     @Delete("/search")
     public Payload deleteSearches(Context context) {
