@@ -37,7 +37,7 @@ public class TreeResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    @Operation(description = "List all files and directory for the given path. This endpoint returns a JSON using the same specification than the `tree` command on UNIX. It is roughly the equivalent of:<br>" +
+    @Operation(description = "Lists all files and directory for the given path. This endpoint returns a JSON using the same specification than the `tree` command on UNIX. It is roughly the equivalent of:<br>" +
             "<pre>tree -L 1 -spJ --noreport /home/datashare/data</pre>")
     @ApiResponse(responseCode = "200", description = "returns the list of files and directory", useReturnTypeSchema = true)
     @Get(":dirPath:")
