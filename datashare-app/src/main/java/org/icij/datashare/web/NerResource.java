@@ -46,7 +46,7 @@ public class NerResource {
     @ApiResponse(responseCode = "200", description = "returns the list of NamedEntities annotations", useReturnTypeSchema = true)
     @Post("/findNames/:pipeline")
     public List<NamedEntity> getAnnotations(@Parameter(name = "pipeline", description = "pipeline to use", in = ParameterIn.PATH) final String pipeline,
-                                            @Parameter(name = "text", description = "text to analyse in the request body", in = ParameterIn.QUERY) String text) throws Exception {
+                                            @Parameter(name = "text", description = "text to analyze in the request body", in = ParameterIn.QUERY) String text) throws Exception {
         LoggerFactory.getLogger(getClass()).info(String.valueOf(getClass().getClassLoader()));
         Pipeline p = pipelineRegistry.get(Pipeline.Type.parse(pipeline));
         Language language = languageGuesser.guess(text);
