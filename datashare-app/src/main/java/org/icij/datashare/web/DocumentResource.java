@@ -227,7 +227,7 @@ public class DocumentResource {
         return tagSaved ? Payload.created(): Payload.ok();
     }
 
-    @Operation(description = "request for getting tags from a document id",
+    @Operation(description = "Gets tags by document id",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
