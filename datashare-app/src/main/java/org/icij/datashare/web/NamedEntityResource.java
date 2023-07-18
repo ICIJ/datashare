@@ -34,7 +34,7 @@ public class NamedEntityResource {
         this.indexer = indexer;
     }
 
-    @Operation(description = "Returns the named entity with given id and document id.")
+    @Operation(description = "Returns the named entity given an id and a document id.")
     @ApiResponse(responseCode = "200", description = "returns the pipeline set", useReturnTypeSchema = true)
     @Get("/:project/namedEntities/:id?routing=:documentId")
     public NamedEntity getById(@Parameter(name = "project", description = "current project", in = ParameterIn.PATH) final String project,
