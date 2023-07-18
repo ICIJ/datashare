@@ -50,7 +50,7 @@ public class IndexResource {
     }
 
     @Operation(description = "Preflight for index creation.")
-    @ApiResponse(responseCode = "200", description = "returns PUT")
+    @ApiResponse(responseCode = "200", description = "returns 200 with PUT")
     @ApiResponse(responseCode = "400", description = "returns 400 if there is an error from ElasticSearch")
     @Options("/:index")
     public Payload createIndexPreflight(final String index) {
