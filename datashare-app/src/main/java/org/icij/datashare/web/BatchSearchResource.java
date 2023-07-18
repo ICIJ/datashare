@@ -156,7 +156,7 @@ public class BatchSearchResource {
         return new Payload(204);
     }
 
-    @Operation(description = "Update batch search with the given id.",
+    @Operation(description = "Updates a batch search with the given id.",
             requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = JsonData.class))))
     @ApiResponse(responseCode = "404", description = "If the user issuing the request is not the same as the batch owner in database, it will do nothing (thus returning 404)")
     @ApiResponse(responseCode = "200", description = "If the batch has been updated")
