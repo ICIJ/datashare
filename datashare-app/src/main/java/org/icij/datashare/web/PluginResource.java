@@ -76,7 +76,7 @@ public class PluginResource {
     }
 
     @Operation(description = "Preflight request")
-    @ApiResponse(responseCode = "200", description = "returns OPTIONS and DELETE")
+    @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and DELETE")
     @Options("/uninstall")
     public Payload uninstallPluginPreflight() { return ok().withAllowMethods("OPTIONS", "DELETE");}
 
