@@ -259,7 +259,7 @@ public class BatchSearchResource {
         return ok().withAllowMethods("OPTIONS", "POST");
     }
 
-    @Operation( description = "Create a new batch search based on a previous one given its id, and enqueue it for running",
+    @Operation( description = "Creates a new batch search based on a previous one given its id, and enqueue it for running",
                 parameters = {@Parameter(name = "sourcebatchid", in = ParameterIn.PATH, description = "source batch id")},
                 requestBody = @RequestBody(description = "batch parameters", required = true,
                         content = @Content( mediaType = "application/json",
