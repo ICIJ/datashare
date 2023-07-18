@@ -267,7 +267,7 @@ public class BatchSearchResource {
                 )
     )
     @ApiResponse(responseCode = "404", description = "if the source batch search is not found in database")
-    @ApiResponse(responseCode = "200", description = "returns batch id created", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "200", description = "returns the id of the created batch search", useReturnTypeSchema = true)
     @Post("/search/copy/:sourcebatchid")
     public String copySearch(String sourceBatchId, Context context) throws Exception {
         BatchSearch sourceBatchSearch = batchSearchRepository.get((User) context.currentUser(), sourceBatchId);
