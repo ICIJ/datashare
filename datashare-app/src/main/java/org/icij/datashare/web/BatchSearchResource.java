@@ -83,7 +83,7 @@ public class BatchSearchResource {
         return batchSearchRepository.getRecords(user, user.getProjectNames());
     }
 
-    @Operation(description = "Retrieve the batch search list for the user issuing the request filter with the given criteria, and the total of batch searches matching the criteria.<br>" +
+    @Operation(description = "Retrieves the batch search list for the user issuing the request filter with the given criteria, and the total of batch searches matching the criteria.<br>" +
             "If from/size are not given their default values are 0, meaning that all the results are returned. BatchDate must be a list of 2 items (the first one for the starting date and the second one for the ending date) If defined publishState is a string equals to \"0\" or \"1\"",
             requestBody = @RequestBody(description = "the json webQuery request body", required = true,  content = @Content(schema = @Schema(implementation = BatchSearchRepository.WebQuery.class)))
     )
