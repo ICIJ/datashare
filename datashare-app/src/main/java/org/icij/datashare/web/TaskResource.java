@@ -105,7 +105,7 @@ public class TaskResource {
     }
 
     @Operation(description = "Preflight request for batch download.")
-    @ApiResponse(responseCode = "200", description = "returns OPTIONS and POST")
+    @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and POST")
     @Options("/batchDownload")
     public Payload batchDownloadPreflight(final Context context) {
         return ok().withAllowMethods("OPTIONS", "POST").withAllowHeaders("Content-Type");
