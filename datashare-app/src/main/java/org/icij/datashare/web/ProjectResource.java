@@ -139,7 +139,7 @@
             return notFoundIfNull(getUserProject((DatashareUser) context.currentUser(), id));
         }
 
-        @Operation(description = "Returns if the project is allowed with this network route : in datashare database there is the project table that can specify an IP mask that is allowed per project. If the client IP is not in the range, then the file download will be forbidden. In that project table there is a field called `allow_from_mask` that can have a mask with IP and star wildcard.<br/>" +
+        @Operation(description = "Returns 200 if the project is allowed with this network route : in Datashare database there is the project table that can specify an IP mask that is allowed per project. If the client IP is not in the range, then the file download will be forbidden. In that project table there is a field called `allow_from_mask` that can have a mask with IP and star wildcard.<br/>" +
                 "Ex : <pre>192.168.*.*</pre> will match all subnetwork 192.168.0.0 IP's and only users with an IP in.",
                 parameters = {@Parameter(name = "id", description = "project id")}
         )
