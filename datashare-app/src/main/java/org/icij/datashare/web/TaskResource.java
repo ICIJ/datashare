@@ -3,6 +3,13 @@ package org.icij.datashare.web;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.errors.ForbiddenException;
@@ -58,16 +65,10 @@ public class TaskResource {
         this.propertiesProvider = propertiesProvider;
         this.pipelineRegistry = pipelineRegistry;
     }
-
-    /**
-     * gets all the user tasks
-     * a filter can be added with a pattern contained in the task name.
-     *
-     * @return 200 and the list of tasks
-     *
-     * Example :
-     * $(curl localhost:8080/api/task/all?filter=BatchDownloadRunner)
-     */
+    @Operation(description = "Gets all the user tasks.<br>" +
+            "A filter can be added with a pattern contained in the task name.",
+            parameters = {@Parameter(name = "filter", description = "pattern contained in the task name", in = ParameterIn.QUERY)})
+    @ApiResponse(responseCode = "200", description = "returns the list of tasks", useReturnTypeSchema = true)
     @Get("/all")
     public List<TaskView<?>> tasks(Context context) {
         Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
@@ -77,34 +78,20 @@ public class TaskResource {
                 collect(toList());
     }
 
-    /**
-     * gets one task with its id
-     *
-     * @param id
-     * @return 200
-     *
-     * Example :
-     * $(curl localhost:8080/api/task/21148262)
-     */
+    @Operation(description = "Gets one task with its id.")
+    @ApiResponse(responseCode = "200", description = "returns the task from its id", useReturnTypeSchema = true)
     @Get("/:id")
-    public TaskView<?> getTask(String id) {
+    public TaskView<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) {
         return notFoundIfNull(taskManager.get(id));
     }
 
-    /**
-     * gets task result with its id
-     *
-     * @param id
-     * @return 200 and the result,
-     *         204 if there is no result
-     *         404 if the tasks doesn't exist
-     *         403 if the task is not belonging to current user
-     *
-     * Example :
-     * $(curl localhost:8080/api/task/21148262/result)
-     */
+    @Operation(description = "Gets task result with its id")
+    @ApiResponse(responseCode = "200", description = "returns 200 and the result")
+    @ApiResponse(responseCode = "204", description = "returns 204 if there is no result")
+    @ApiResponse(responseCode = "403", description = "returns 403 if the task is not belonging to current user")
+    @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id/result")
-    public Payload getTaskResult(String id, Context context) {
+    public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) {
         TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.get(id)));
         Object result = task.getResult();
         if (result instanceof File) {
@@ -117,27 +104,19 @@ public class TaskResource {
         return result == null ? new Payload(204) : new Payload(result);
     }
 
+    @Operation(description = "Preflight request for batch download.")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS and POST")
     @Options("/batchDownload")
     public Payload batchDownloadPreflight(final Context context) {
         return ok().withAllowMethods("OPTIONS", "POST").withAllowHeaders("Content-Type");
     }
 
-    /**
-     * download files from a search query. Expected parameters are :
-     *
-     * * project: string
-     * * query: string or elasticsearch JSON query
-     *
-     * if the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part)
-     * @see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query
-     *
-     * @param optionsWrapper wrapper for options json
-     *
-     * @return 200 and json task
-     *
-     * Example :
-     * $(curl -XPOST -H 'Content-Type: application/json' localhost:8080/api/task/batchDownload -d '{"options": {"projectIds": ["genapi-datashare"], "query": "*", "uri": "/?q=&from=0&size=25&indices=genapi-datashare" }}')
-     */
+    @Operation(description = "Download files from a search query.<br>Expected parameters are :<br>" +
+            "- project: string<br>- query: string or elasticsearch JSON query<br>" +
+            "If the query is a string it is taken as an ES query string, else it is a raw JSON query (without the query part)," +
+            "see org.elasticsearch.index.query.WrapperQueryBuilder that is used to wrap the query",
+            requestBody = @RequestBody(description = "the json used to wrap the query", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+    @ApiResponse(responseCode = "200", description = "returns 200 and the json task", useReturnTypeSchema = true)
     @Post("/batchDownload")
     public TaskView<File> batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws JsonProcessingException {
         Map<String, Object> options = optionsWrapper.getOptions();
@@ -152,15 +131,9 @@ public class TaskResource {
         return taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}});
     }
 
-    /**
-     * index files from the queue
-     *
-     * @param optionsWrapper wrapper for options json
-     * @return 200 and json task
-     *
-     * Example :
-     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index -d '{}')
-     */
+    @Operation(description = "Index files from the queue.",
+            requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+    @ApiResponse(responseCode = "200", description = "returns 200 and the json task", useReturnTypeSchema = true)
     @Post("/batchUpdate/index")
     public TaskView<Long> indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) {
         IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(),
@@ -168,31 +141,19 @@ public class TaskResource {
         return taskManager.startTask(indexTask);
     }
 
-    /**
-     * Indexes files in a directory (with docker, it is the mounted directory that is scanned)
-     *
-     * @param optionsWrapper
-     * @return 200 and the list of tasks created
-     *
-     * Example :
-     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/file -d '{}')
-     */
+    @Operation(description = "Indexes files in a directory (with docker, it is the mounted directory that is scanned).",
+            requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+    @ApiResponse(responseCode = "200", description = "returns 200 and the list of tasks created", useReturnTypeSchema = true)
     @Post("/batchUpdate/index/file")
     public List<TaskView<Long>> indexDefault(final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
         return indexFile(propertiesProvider.get("dataDir").orElse("/home/datashare/data"), optionsWrapper, context);
     }
 
-    /**
-     * Indexes all files of a directory with the given path.
-     *
-     * @param filePath
-     * @param optionsWrapper
-     * @return 200 and the list of created tasks
-     *
-     * Example $(curl -XPOST localhost:8080/api/task/batchUpdate/index/home/dev/myfile.txt)
-     */
+    @Operation(description = "Indexes all files of a directory with the given path.",
+            requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+    @ApiResponse(responseCode = "200", description = "returns 200 and the list of tasks created", useReturnTypeSchema = true)
     @Post("/batchUpdate/index/:filePath:")
-    public List<TaskView<Long>> indexFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
+    public List<TaskView<Long>> indexFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
         TaskView<Long> scanResponse = scanFile(filePath, optionsWrapper, context);
         Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         User user = (User) context.currentUser();
@@ -204,48 +165,28 @@ public class TaskResource {
         return asList(scanResponse, taskManager.startTask(taskFactory.createIndexTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), properties)));
     }
 
-    /**
-     * Scans recursively a directory with the given path
-     *
-     * @param filePath
-     * @param optionsWrapper
-     * @return 200 and the task created
-     *
-     * Example :
-     * $(mkdir -p /tmp/apigen)
-     * $(curl -XPOST localhost:8080/api/task/batchUpdate/index/tmp/apigen -d '{}')
-     */
+    @Operation(description = "Scans recursively a directory with the given path.",
+            requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+    @ApiResponse(responseCode = "200", description = "returns 200 and the created task", useReturnTypeSchema = true)
     @Post("/batchUpdate/scan/:filePath:")
-    public TaskView<Long> scanFile(final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
+    public TaskView<Long> scanFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
         Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
         return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
                 propertiesProvider.createOverriddenWith(optionsWrapper.getOptions())));
     }
 
-    /**
-     * Cleans all DONE tasks.
-     *
-     * @return 200 and the list of removed tasks
-     *
-     * Example :
-     * $(curl -XPOST -d '{}' http://dsenv:8080/api/task/clean/
-     */
+    @Operation(description = "Cleans all DONE tasks.")
+    @ApiResponse(responseCode = "200", description = "returns 200 and the list of removed tasks", useReturnTypeSchema = true)
     @Post("/clean")
     public List<TaskView<?>> cleanDoneTasks() {
         return taskManager.clearDoneTasks();
     }
 
-    /**
-     * Cleans a specific task.
-     *
-     * @param taskName
-     * @return
-     *
-     * Example :
-     * $(curl -XDELETE -d '{}' http://dsenv:8080/api/task/clean/TASK_NAME
-     */
+    @Operation(description = "Cleans a specific task.")
+    @ApiResponse(responseCode = "200", description = "returns 200 if the task is removed")
+    @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
     @Delete("/clean/:taskName:")
-    public Payload cleanTask(final String taskName, Context context) {
+    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskName, Context context) {
         TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.get(taskName)));
         if (task.getState() == TaskView.State.RUNNING) {
             return forbidden();
@@ -255,36 +196,30 @@ public class TaskResource {
         }
     }
 
+    @Operation(description = "Preflight request for task cleaning.")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS and DELETE")
     @Options("/clean/:taskName:")
     public Payload cleanTaskPreflight(final String taskName) {
         return ok().withAllowMethods("OPTIONS", "DELETE");
     }
 
-    /**
-     * Cancels the task with the given name. It answers 200 with the cancellation status `true|false`
-     *
-     * @param taskId
-     * @return
-     */
+    @Operation(description = "Cancels the task with the given name.")
+    @ApiResponse(responseCode = "200", description = "returns 200 with the cancellation status (true/false)", useReturnTypeSchema = true)
     @Put("/stop/:taskId:")
-    public boolean stopTask(final String taskId) {
+    public boolean stopTask(@Parameter(name = "taskName", description = "name of the task to cancel", in = ParameterIn.PATH) final String taskId) {
         return taskManager.stopTask(notFoundIfNull(taskManager.get(taskId)).name);
     }
 
+    @Operation(description = "Preflight request to stop tasks.")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS and PUT")
     @Options("/stop/:taskName:")
     public Payload stopTaskPreflight(final String taskName) {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
-    /**
-     * Cancels the running tasks. It returns a map with task name/stop statuses.
-     * If the status is false, it means that the thread has not been stopped.
-     *
-     * @return 200 and the tasks stop result map
-     *
-     * Example :
-     * curl -XPUT localhost:8080/api/task/stopAll
-     */
+    @Operation(description = "Cancels the running tasks. It returns a map with task name/stop statuses.<br>" +
+            "If the status is false, it means that the thread has not been stopped.")
+    @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) {
         Map<String, Boolean> collect = taskManager.get().stream().
@@ -294,32 +229,24 @@ public class TaskResource {
         return collect;
     }
 
+    @Operation(description = "Preflight request to stop all tasks.")
+    @ApiResponse(responseCode = "200", description = "returns OPTIONS and PUT")
     @Options("/stopAll")
     public Payload stopAllTasksPreflight() {
         return ok().withAllowMethods("OPTIONS", "PUT");
     }
 
-    /**
-     * Find names using the given pipeline :
-     *
-     * - OPENNLP
-     * - CORENLP
-     * - IXAPIPE
-     * - GATENLP
-     * - MITIE
-     *
-     * This endpoint is going to find all Documents that are not taggued with the given pipeline,
-     * and extract named entities for all these documents.
-     *
-     * @param pipelineName
-     * @param optionsWrapper
-     * @return 200 and the list of created tasks
-     *
-     * Example :
-     * $(curl -XPOST http://dsenv:8080/api/task/findNames/CORENLP -d {})
-     */
+    @Operation(description = "Find names using the given pipeline :<br><br>" +
+            "- OPENNLP<br>" +
+            "- CORENLP<br>" +
+            "- IXAPIPE<br>" +
+            "- GATENLP<br>" +
+            "- MITIE<br><br>" +
+            "This endpoint is going to find all Documents that are not taggued with the given pipeline and extract named entities for all these documents.",
+            requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
+    @ApiResponse(responseCode = "200", description = "returns 200 and the created task", useReturnTypeSchema = true)
     @Post("/findNames/:pipeline")
-    public List<TaskView<?>> extractNlp(final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
+    public List<TaskView<?>> extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
 
