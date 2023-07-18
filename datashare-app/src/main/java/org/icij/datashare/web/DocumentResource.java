@@ -90,7 +90,7 @@ public class DocumentResource {
                     @Parameter(name = "routing", description = "routing key if not a root document", in = ParameterIn.QUERY),
                     @Parameter(name = "offset", description = "starting byte (starts at 0)", in = ParameterIn.QUERY),
                     @Parameter(name = "limit", description = "size of the extracted text slice in bytes", in = ParameterIn.QUERY),
-                    @Parameter(name = "targetLanguage", description = "Target language (like \"ENGLISH\") to get slice from translated content", in = ParameterIn.QUERY)
+                    @Parameter(name = "targetLanguage", description = "target language (like \"ENGLISH\") to get slice from translated content", in = ParameterIn.QUERY)
                 }
     )
     @ApiResponse(responseCode = "200", description = "SON containing the extracted text content (\"content\":text), the max offset as last rank index (\"maxOffset\":number), start (\"start\":number) and size (\"size\":number) parameters")
