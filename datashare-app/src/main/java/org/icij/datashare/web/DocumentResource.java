@@ -153,7 +153,7 @@ public class DocumentResource {
         throw new ForbiddenException();
     }
 
-    @Operation( description = "Group star the documents. The id list is passed in the request body as a json list.",
+    @Operation( description = "'Stars' documents in batch. The list of ids is passed in the request body as a JSON list.",
                 parameters = {
                         @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                 },
