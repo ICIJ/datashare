@@ -252,7 +252,7 @@ public class BatchSearchResource {
         return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
     }
 
-    @Operation(description = "preflight request", method = "OPTION")
+    @Operation(description = "Preflight request", method = "OPTION")
     @ApiResponse(description = "returns POST")
     @Options("/search/copy/:sourcebatchid")
     public Payload optionsCopy(String sourceBatchId, Context context) {
