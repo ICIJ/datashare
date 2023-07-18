@@ -43,7 +43,7 @@ public class NamedEntityResource {
         return notFoundIfNull(indexer.get(project, id, documentId));
     }
 
-    @Operation(description = "Preflight request for hide")
+    @Operation(description = "Preflight request for hide endpoint")
     @ApiResponse(responseCode = "200", description = "returns PUT")
     @Options("/:project/namedEntities/hide/:mentionNorm")
     public Payload hidePreflight(final String project, final String mentionNorm) {

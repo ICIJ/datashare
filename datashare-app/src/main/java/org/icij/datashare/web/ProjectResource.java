@@ -92,11 +92,11 @@
         @Operation(description = "Creates a project",
                 requestBody = @RequestBody(content = @Content(mediaType = "application/json", contentSchema = @Schema(implementation = Project.class)))
         )
-        @ApiResponse(responseCode = "409", description = "if project exists")
+        @ApiResponse(responseCode = "201", description = "if project and index have been created")
         @ApiResponse(responseCode = "400", description = "if project name is empty")
         @ApiResponse(responseCode = "400", description = "if project path is null or not allowed for the project")
+        @ApiResponse(responseCode = "409", description = "if project exists")
         @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
-        @ApiResponse(responseCode = "201", description = "if project and index have been created")
         @Post("/")
         public Payload createProject(Project project, Context context) throws IOException {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
