@@ -118,7 +118,7 @@ public class DocumentResource {
         throw new ForbiddenException();
     }
 
-    @Operation( description = "Search query occurrences in content or translated content (pagination)",
+    @Operation( description = "Searches for query occurrences in content or translated content (pagination)",
                 parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
