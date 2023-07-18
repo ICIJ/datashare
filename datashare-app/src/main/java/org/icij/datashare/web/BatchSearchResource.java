@@ -106,7 +106,7 @@ public class BatchSearchResource {
         return batchSearch == null ? PayloadFormatter.error("Batch search not found.", HttpStatus.NOT_FOUND) : new Payload(batchSearch);
     }
 
-    @Operation(description = "Retrieve the batch search queries with the given batch id and returns a list of strings UTF-8 encoded",
+    @Operation(description = "Retrieves the batch search queries with the given batch id and returns a list of strings UTF-8 encoded",
                 parameters = {@Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
                               @Parameter(name = "size", description = "if not provided all queries are returned from the \"from\" parameter", in = ParameterIn.QUERY),
                               @Parameter(name = "format", description = "if set to csv, answer with content-disposition attachment (file downloading)", in = ParameterIn.QUERY),
