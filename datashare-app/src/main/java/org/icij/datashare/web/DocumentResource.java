@@ -178,7 +178,7 @@ public class DocumentResource {
         return new Result<>(repository.unstar(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
-    @Operation(description = "Retrieves the list of starred document for a given project.",
+    @Operation(description = "Retrieves the list of starred documents for a given project.",
                 parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)}
     )
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
