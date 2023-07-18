@@ -172,7 +172,7 @@
                 parameters = {@Parameter(name = "id", description = "project id")}
         )
         @ApiResponse(responseCode = "204", description = "if project is deleted")
-        @ApiResponse(responseCode = "401", description = "if project id is not in the current user projects")
+        @ApiResponse(responseCode = "401", description = "if project id is not in the current user's projects")
         @Delete("/:id")
         public Payload deleteProject(String id, Context context) throws Exception {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
