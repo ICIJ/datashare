@@ -148,7 +148,7 @@ public class BatchSearchResource {
         return ok().withAllowMethods("OPTIONS", "DELETE", "PATCH");
     }
 
-    @Operation(description = "Delete batch search with the given id and its results. It won't delete running batch searches, because results are added and would be orphans.")
+    @Operation(description = "Deletes a batch search and its results with the given id. It won't delete running batch searches, because results would be orphans.")
     @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent")
     @Delete("/search/:batchid")
     public Payload deleteBatch(String batchId, Context context) {
