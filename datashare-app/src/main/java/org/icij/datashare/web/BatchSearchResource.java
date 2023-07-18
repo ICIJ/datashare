@@ -294,7 +294,7 @@ public class BatchSearchResource {
         return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
     }
 
-    @Operation( description = "Retrieve the results of a batch search as an attached CSV file.",
+    @Operation( description = "Retrieves the results of a batch search as an attached CSV file.",
                 parameters = {@Parameter(name = "batchid")}
     )
     @ApiResponse(responseCode = "200", description = "returns the results of the batch search as CSV attached file.")
