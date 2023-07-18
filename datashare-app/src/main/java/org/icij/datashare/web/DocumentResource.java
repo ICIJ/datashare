@@ -187,7 +187,7 @@ public class DocumentResource {
         return repository.getStarredDocuments(project(projectId), (DatashareUser)context.currentUser());
     }
 
-    @Operation(description = "Retrieves the list of tagged document with tag \"tag\" for the given project id.",
+    @Operation(description = "Retrieves the list of tagged documents for a given project id filtered by a given string of coma-separated list of tags.",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "comaSeparatedTags", description = "comma separated tags", in = ParameterIn.PATH)
