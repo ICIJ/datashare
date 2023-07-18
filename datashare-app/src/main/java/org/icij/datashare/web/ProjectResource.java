@@ -2,6 +2,13 @@
 
     import com.google.inject.Inject;
     import com.google.inject.Singleton;
+    import io.swagger.v3.oas.annotations.Operation;
+    import io.swagger.v3.oas.annotations.Parameter;
+    import io.swagger.v3.oas.annotations.enums.ParameterIn;
+    import io.swagger.v3.oas.annotations.media.Content;
+    import io.swagger.v3.oas.annotations.media.Schema;
+    import io.swagger.v3.oas.annotations.parameters.RequestBody;
+    import io.swagger.v3.oas.annotations.responses.ApiResponse;
     import net.codestory.http.Context;
     import net.codestory.http.annotations.*;
     import net.codestory.http.constants.HttpStatus;
@@ -21,6 +28,7 @@
     import java.io.IOException;
     import java.util.*;
 
+    import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
     import static org.apache.tika.utils.StringUtils.isEmpty;
     import static org.icij.datashare.text.Project.isAllowed;
@@ -81,10 +89,17 @@
             return getUserProjects(user);
         }
 
+        @Operation(description = "Creates a project",
+                requestBody = @RequestBody(content = @Content(mediaType = "application/json", contentSchema = @Schema(implementation = Project.class)))
+        )
+        @ApiResponse(responseCode = "409", description = "if project exists")
+        @ApiResponse(responseCode = "400", description = "if project name is empty")
+        @ApiResponse(responseCode = "400", description = "if project path is null or not allowed for the project")
+        @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
+        @ApiResponse(responseCode = "201", description = "if project and index have been created")
         @Post("/")
-        public Payload createProject(Context context) throws IOException {
+        public Payload createProject(Project project, Context context) throws IOException {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-            Project project = context.extract(Project.class);
 
             if (projectExists(project)) {
                 return PayloadFormatter.error("Project already exists.", HttpStatus.CONFLICT);
@@ -99,10 +114,12 @@
             return new Payload(project).withCode(HttpStatus.CREATED);
         }
 
+        @Operation(description = "Updates a project",
+                requestBody = @RequestBody(content = @Content(mediaType = "application/json", contentSchema = @Schema(implementation = Project.class)))
+        )
         @Put("/:id")
-        public Payload updateProject(String id, @NotNull Context context) throws IOException {
+        public Payload updateProject(String id, Project project, @NotNull Context context) throws IOException {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-            Project project = context.extract(Project.class);
             if (!projectExists(project) || !Objects.equals(project.getId(), id)) {
                 return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
             }
@@ -112,45 +129,22 @@
             return new Payload(project).withCode(HttpStatus.OK);
         }
 
-        /**
-         * Gets the project information for the given project id.
-         *
-         * @param id
-         * @return 200 and the project from database if it exists
-         * <p>
-         * Example :
-         * <p>
-         * $(curl -H 'Content-Type:application/json' localhost:8080/api/project/apigen-datashare
-         * )
-         */
+        @Operation(description = "get the project information for the given id",
+                parameters = @Parameter(name = "id", in = ParameterIn.QUERY)
+        )
+        @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+        @ApiResponse(responseCode = "404", description = "if the project is not found in database")
         @Get("/:id")
-        public Payload getProject(String id, Context context) {
-            Project project = getUserProject((DatashareUser) context.currentUser(), id);
-            if (project == null) {
-                return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
-            }
-            return new Payload(project).withCode(HttpStatus.OK);
+        public Project getProject(String id, Context context) {
+            return notFoundIfNull(getUserProject((DatashareUser) context.currentUser(), id));
         }
 
-        /**
-         * Returns if the project is allowed with this network route : in datashare database
-         * there is the project table that can specify an IP mask that is allowed per project.
-         * If the client IP is not in the range, then the file download will be forbidden.
-         *
-         * in that project table there is a field called `allow_from_mask` that can have a mask
-         * with IP and star wildcard.
-         *
-         * Ex : `192.168.*.*` will match all subnetwork 192.168.0.0 IP's and only users with an IP in
-         * this range will be granted for downloading documents.
-         *
-         * @param id
-         * @return 200 or 403 (Forbidden)
-         *
-         * Example :
-         * $(curl -i -H 'Content-Type:application/json' localhost:8080/api/project/isDownloadAllowed/apigen-datashare)
-         * Example :
-         * $(curl -i -H 'Content-Type:application/json' localhost:8080/api/project/isDownloadAllowed/disallowed-project)
-         */
+        @Operation(description = "Returns if the project is allowed with this network route : in datashare database there is the project table that can specify an IP mask that is allowed per project. If the client IP is not in the range, then the file download will be forbidden. In that project table there is a field called `allow_from_mask` that can have a mask with IP and star wildcard.<br/>" +
+                "Ex : <pre>192.168.*.*</pre> will match all subnetwork 192.168.0.0 IP's and only users with an IP in.",
+                parameters = {@Parameter(name = "id", description = "project id")}
+        )
+        @ApiResponse(responseCode = "200", description = "if project download is allowed for this project and IP")
+        @ApiResponse(responseCode = "403", description = "if project download is not allowed")
         @Get("/isDownloadAllowed/:id")
         public Payload isDownloadAllowed(String id, Context context) {
             List<String> projects = ((DatashareUser) context.currentUser()).getProjectNames();
@@ -167,28 +161,18 @@
             return ok();
         }
 
-        /**
-         * Preflight option request
-         * @param id
-         * @return 200 DELETE
-         */
+        @Operation(description = "Preflight option request",
+                parameters = {@Parameter(name = "id", description = "project id")}
+        )
+        @ApiResponse(responseCode = "200", description = "DELETE method")
         @Options("/:id")
         public Payload deleteProjectOpt(String id) {return ok().withAllowMethods("OPTIONS", "DELETE");}
 
-        /**
-         * Delete the project from database and elasticsearch indices.
-         *
-         * It always returns 204 (no content) or 500 if an error occurs.
-         *
-         * If the project id is not the current user project (local-datashare in local mode),
-         * then it will return 401 (unauthorized)
-         *
-         * @param id
-         * @return 204
-         *
-         * Example :
-         * $(curl -I -XDELETE -H 'Content-Type:application/json' localhost:8080/api/project/unknown-project)
-         */
+        @Operation(description = "Deletes the project from database and elasticsearch index.",
+                parameters = {@Parameter(name = "id", description = "project id")}
+        )
+        @ApiResponse(responseCode = "204", description = "if project is deleted")
+        @ApiResponse(responseCode = "401", description = "if project id is not in the current user projects")
         @Delete("/:id")
         public Payload deleteProject(String id, Context context) throws Exception {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
