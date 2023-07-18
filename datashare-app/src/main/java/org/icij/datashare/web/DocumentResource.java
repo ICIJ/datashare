@@ -83,7 +83,7 @@ public class DocumentResource {
         throw new ForbiddenException();
     }
 
-    @Operation(description = "Fetch extracted text by slice (pagination)",
+    @Operation(description = "Fetches extracted text by slice (pagination)",
                 parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "id", description = "the document id", in = ParameterIn.PATH),
