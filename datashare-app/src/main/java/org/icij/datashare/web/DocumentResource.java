@@ -200,7 +200,7 @@ public class DocumentResource {
                 stream(comaSeparatedTags.split(",")).map(Tag::tag).toArray(Tag[]::new));
     }
 
-    @Operation(description = "preflight request for document tagging",
+    @Operation(description = "Preflight request for document tagging",
             parameters = {
                     @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
                     @Parameter(name = "docId", description = "document id", in = ParameterIn.PATH)
