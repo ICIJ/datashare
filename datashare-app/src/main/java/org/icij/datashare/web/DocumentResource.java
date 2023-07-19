@@ -6,15 +6,19 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.StringToClassMapItem;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.*;
+import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Options;
+import net.codestory.http.annotations.Post;
+import net.codestory.http.annotations.Prefix;
+import net.codestory.http.annotations.Put;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
@@ -241,16 +245,14 @@ public class DocumentResource {
 
     @Operation(description = "Tags documents in batch. The document id list and the tag list are passed in the request body.",
                parameters = {
-
+                       @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)
                },
                requestBody = @RequestBody(
                        content = @Content(mediaType = "application/json",
-                       contentSchema = @Schema(requiredProperties = {"docIds", "tags"},
-                            properties = {
-                               @StringToClassMapItem(key = "docIds", value = List.class),
-                               @StringToClassMapItem(key = "tags", value = List.class)
-                            }
-                       ),
+                       schemaProperties = {
+                               @SchemaProperty(name = "docIds", schema = @Schema(implementation = List.class)),
+                               @SchemaProperty(name = "tags", schema = @Schema(implementation = List.class))
+                        },
                        examples = {@ExampleObject(value = "{\"docIds\": [\"bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f\", \"7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61\"], \"tags\": [\"foo\", \"bar\"]}")}
                ))
     )
@@ -264,18 +266,17 @@ public class DocumentResource {
 
     @Operation(description = "Untags documents in batch. The document id list and the tag list are passed in the request body.",
             parameters = {
-
+                    @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)
             },
             requestBody = @RequestBody(
                     content = @Content(mediaType = "application/json",
-                            contentSchema = @Schema(requiredProperties = {"docIds", "tags"},
-                                    properties = {
-                                            @StringToClassMapItem(key = "docIds", value = List.class),
-                                            @StringToClassMapItem(key = "tags", value = List.class)
-                                    }
-                            ),
+                            schemaProperties = {
+                                @SchemaProperty(name = "docIds", schema = @Schema(implementation = List.class)),
+                                @SchemaProperty(name = "tags", schema =@Schema(implementation = List.class))
+                            },
                             examples = {@ExampleObject(value = "{\"docIds\": [\"bd2ef02d39043cc5cd8c5050e81f6e73c608cafde339c9b7ed68b2919482e8dc7da92e33aea9cafec2419c97375f684f\", \"7473df320bee9919abe3dc179d7d2861e1ba83ee7fe42c9acee588d886fe9aef0627df6ae26b72f075120c2c9d1c9b61\"], \"tags\": [\"foo\", \"bar\"]}")}
-                    ))
+                    )
+            )
     )
     @ApiResponse(responseCode = "200")
     @Post("/:project/documents/batchUpdate/untag")
