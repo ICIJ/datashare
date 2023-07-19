@@ -4,12 +4,11 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.StringToClassMapItem;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
@@ -36,7 +35,6 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 
-import javax.annotation.CheckForNull;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -53,7 +51,6 @@ import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.badRequest;
 import static net.codestory.http.payload.Payload.notFound;
 import static net.codestory.http.payload.Payload.ok;
@@ -202,19 +199,17 @@ public class BatchSearchResource {
             "you'll maybe have to replace \\n with \\n\\r with <pre>sed -i 's/$/^M/g' ~/multipart.txt</pre>",
             requestBody = @RequestBody(description = "multipart form", required = true,
                     content = @Content(mediaType = "multipart/form-data",
-                            contentSchema = @Schema(requiredProperties = {"name", "csvFile"},
-                                    properties = {
-                                        @StringToClassMapItem(key = "name", value = String.class),
-                                        @StringToClassMapItem(key = "description", value = String.class),
-                                        @StringToClassMapItem(key = "csvFile", value = String.class),
-                                        @StringToClassMapItem(key = "published", value = Boolean.class),
-                                        @StringToClassMapItem(key = "fileTypes", value = List.class),
-                                        @StringToClassMapItem(key = "tags", value = List.class),
-                                        @StringToClassMapItem(key = "paths", value = List.class),
-                                        @StringToClassMapItem(key = "fuzziness", value = Integer.class),
-                                        @StringToClassMapItem(key = "phrase_matches", value = Boolean.class)
-                                    }
-                            )
+                            schemaProperties = {
+                                    @SchemaProperty(name = "name", schema = @Schema(implementation = String.class)),
+                                    @SchemaProperty(name = "description", schema = @Schema(implementation = String.class)),
+                                    @SchemaProperty(name = "csvFile", schema = @Schema(implementation = String.class)),
+                                    @SchemaProperty(name = "published", schema = @Schema(implementation = Boolean.class)),
+                                    @SchemaProperty(name = "fileTypes", schema = @Schema(implementation = List.class)),
+                                    @SchemaProperty(name = "tags", schema = @Schema(implementation = List.class)),
+                                    @SchemaProperty(name = "paths", schema = @Schema(implementation = List.class)),
+                                    @SchemaProperty(name = "fuzziness", schema = @Schema(implementation = Integer.class)),
+                                    @SchemaProperty(name = "phrase_matches", schema = @Schema(implementation = Boolean.class))
+                            }
                     )
             ),
             parameters = {@Parameter(description = "Coma-separated list of projects",
