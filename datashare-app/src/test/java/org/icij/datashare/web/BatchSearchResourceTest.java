@@ -2,13 +2,9 @@ package org.icij.datashare.web;
 
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.db.JooqRepository;
-import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearchRecord;
-import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.batch.SearchResult;
-import org.icij.datashare.batch.WebQueryBuilder;
+import org.icij.datashare.batch.*;
 import org.icij.datashare.db.JooqBatchSearchRepository;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.user.User;
@@ -236,14 +232,14 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         post("/api/batch/search", "{\"from\":0, \"size\":2, \"query\":\"*\", \"field\":\"all\"}").should().respond(200).haveType("application/json").
                 contain("\"name\":\"name0\"").
                 contain("\"name\":\"name1\"").
-                contain("\"total\":10").
+                contain("\"pagination\":{\"count\":2,\"from\":0,\"size\":2,\"total\":10}").
                 should().not().contain("name2");
 
         post("/api/batch/search", "{\"from\":4, \"size\":3, \"query\":\"*\", \"field\":\"all\"}").should().respond(200).haveType("application/json").
                 contain("\"name\":\"name5\"").
                 contain("\"name\":\"name6\"").
                 contain("\"name\":\"name7\"").
-                contain("\"total\":10").
+                contain("\"pagination\":{\"count\":3,\"from\":4,\"size\":3,\"total\":10}").
                 should().not().contain("name8").
                 should().not().contain("name4");
     }

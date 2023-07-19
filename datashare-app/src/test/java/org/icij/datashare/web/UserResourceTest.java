@@ -2,8 +2,8 @@ package org.icij.datashare.web;
 
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.UserEvent;
+import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
@@ -14,7 +14,6 @@ import org.mockito.Mock;
 
 import java.net.URI;
 
-import static com.google.inject.util.Types.listOf;
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
 import static org.icij.datashare.session.DatashareUser.singleUser;
@@ -73,7 +72,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
         when(jooqRepository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
-        get("/api/users/me/history?type=document&from=0&size=10&sort=modification_date&desc=true").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&sort=modification_date&desc=true").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
     }
     @Test
     public void test_get_user_history_with_default_sort_and_order() {
@@ -81,9 +81,12 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
         when(jooqRepository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
-        get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
-        get("/api/users/me/history?type=document&from=0&size=10&sort=").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
-        get("/api/users/me/history?type=document&from=0&size=10&desc=").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&sort=").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&desc=").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
     }
     @Test
     public void test_get_user_history_with_sort_field() {
@@ -91,7 +94,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getUserHistory(User.local(), DOCUMENT, 0, 10, "name",true)).thenReturn(singletonList(userEvent));
         when(jooqRepository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
-        get("/api/users/me/history?type=document&from=0&size=10&sort=name").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&sort=name").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
     }
     @Test
     public void test_get_user_history_with_sort_and_order() {
@@ -99,7 +103,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getUserHistory(User.local(), DOCUMENT, 0, 10, "uri",false)).thenReturn(singletonList(userEvent));
         when(jooqRepository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
-        get("/api/users/me/history?type=document&from=0&size=10&sort=uri&desc=false").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&sort=uri&desc=false").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
     }
 
     @Test
@@ -114,9 +119,15 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
         when(jooqRepository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
-        get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
-        get("/api/users/me/history?type=document&from=0&size=10&desc=TOTO").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
-        get("/api/users/me/history?type=document&from=0&size=10&desc=true").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"pagination\":{\"count\":1,\"from\":0,\"size\":10,\"total\":1}")
+                .respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&desc=TOTO").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"pagination\":{\"count\":1,\"from\":0,\"size\":10,\"total\":1}")
+                .respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&desc=true").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"pagination\":{\"count\":1,\"from\":0,\"size\":10,\"total\":1}")
+                .respond(200);
     }
     @Test
     public void test_get_user_history_with__false_desc_order() {
@@ -124,8 +135,10 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",false)).thenReturn(singletonList(userEvent));
         when(jooqRepository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
-        get("/api/users/me/history?type=document&from=0&size=10&desc=false").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
-        get("/api/users/me/history?type=document&from=0&size=10&desc=FALSE").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&desc=false").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&desc=FALSE").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
     }
 
     @Test
@@ -134,8 +147,10 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         when(jooqRepository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true)).thenReturn(singletonList(userEvent));
         when(jooqRepository.getUserHistorySize(User.local(), DOCUMENT)).thenReturn(1);
 
-        get("/api/users/me/history?type=document&from=0&size=10&projects=").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
-        get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&projects=").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
     }
 
     @Test
@@ -143,7 +158,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
         when(jooqRepository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true, "toto")).thenReturn(singletonList(userEvent));
         when(jooqRepository.getUserHistorySize(User.local(), DOCUMENT, "toto")).thenReturn(1);
-        get("/api/users/me/history?type=document&from=0&size=10&projects=toto").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&projects=toto").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
     }
 
     @Test
@@ -151,7 +167,8 @@ public class UserResourceTest extends AbstractProdWebServerTest {
         UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", URI.create("doc_uri"));
         when(jooqRepository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date",true, "toto","titi")).thenReturn(singletonList(userEvent));
         when(jooqRepository.getUserHistorySize(User.local(), DOCUMENT, "toto","titi")).thenReturn(1);
-        get("/api/users/me/history?type=document&from=0&size=10&projects=toto,titi").should().contain(userEvent.uri.toString()).contain(User.local().id).contain("\"total\":1").respond(200);
+        get("/api/users/me/history?type=document&from=0&size=10&projects=toto,titi").should().contain(userEvent.uri.toString()).contain(User.local().id)
+                .contain("\"total\":1").respond(200);
     }
 
     @Test
