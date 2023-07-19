@@ -44,7 +44,7 @@ public class IndexResource {
     public Payload createIndex(@Parameter(name = "index", description = "index to create", in = ParameterIn.PATH) final String index) throws IOException {
         try{
             return indexer.createIndex(IndexAccessVerifier.checkIndices(index)) ? created() : ok();
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e){
             return PayloadFormatter.error(e, HttpStatus.BAD_REQUEST);
         }
     }

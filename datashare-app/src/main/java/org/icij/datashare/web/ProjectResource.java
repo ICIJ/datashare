@@ -19,6 +19,7 @@
     import org.icij.datashare.session.DatashareUser;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
+    import org.icij.datashare.utils.IndexAccessVerifier;
     import org.icij.datashare.utils.DataDirVerifier;
     import org.icij.datashare.utils.ModeVerifier;
     import org.icij.datashare.utils.PayloadFormatter;
@@ -67,6 +68,15 @@
                     .orElse(null);
         }
 
+        boolean createIndexOnce(String name) {
+            try {
+                this.indexer.createIndex(IndexAccessVerifier.checkIndices(name));
+                return true;
+            } catch (IllegalArgumentException | IOException e){
+                return false;
+            }
+        }
+
         boolean projectExists(Project project) {
             return projectExists(project.getName());
         }
@@ -107,7 +117,7 @@
                 return PayloadFormatter.error("`name` field is required.", HttpStatus.BAD_REQUEST);
             } else if (isProjectSourcePathNull(project) || !dataDirVerifier.allowed(project.getSourcePath())) {
                 return PayloadFormatter.error(String.format("`sourcePath` is required and must not be outside %s.", dataDirVerifier.value()), HttpStatus.BAD_REQUEST);
-            } else if (!repository.save(project) || !this.indexer.createIndex(project.getId())) {
+            } else if (!repository.save(project) || !this.createIndexOnce(project.getId())) {
                 return PayloadFormatter.error("Unable to create the project", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
