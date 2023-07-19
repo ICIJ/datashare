@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
@@ -55,8 +56,8 @@ public class NoteResource {
             " will match <code>/start/with/myparameter/with/slashes</code>" +
             " and the parameter variable will contain <code>myparameter/with/slashes</code>",
             parameters = {
-                @Parameter(name = "project", description = "the project id"),
-                @Parameter(name = "path", description = "the path of the document."),
+                @Parameter(name = "project", description = "the project id", in = ParameterIn.PATH),
+                @Parameter(name = "path", description = "the path of the document.", in = ParameterIn.PATH),
             }
     )
     @ApiResponse(responseCode = "403", description = "if the user is not granted for the project")
@@ -71,7 +72,7 @@ public class NoteResource {
     }
 
     @Operation(description = "Gets the list of notes for a project.",
-            parameters = {@Parameter(name = "project", description = "the project id"),}
+            parameters = {@Parameter(name = "project", description = "the project id", in = ParameterIn.PATH)}
     )
     @ApiResponse(responseCode = "403", description = "if the user is not granted for the project")
     @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
