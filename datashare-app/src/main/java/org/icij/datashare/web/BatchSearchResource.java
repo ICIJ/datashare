@@ -13,22 +13,13 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.Part;
-import net.codestory.http.annotations.Delete;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Patch;
-import net.codestory.http.annotations.Post;
-import net.codestory.http.annotations.Prefix;
+import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.NotFoundException;
 import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearchRecord;
-import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.batch.SearchResult;
-import org.icij.datashare.batch.WebQueryBuilder;
+import org.icij.datashare.batch.*;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
@@ -36,24 +27,16 @@ import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
-import static java.lang.Boolean.parseBoolean;
+import static java.lang.Boolean.*;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-import static net.codestory.http.payload.Payload.badRequest;
-import static net.codestory.http.payload.Payload.notFound;
-import static net.codestory.http.payload.Payload.ok;
+import static net.codestory.http.payload.Payload.*;
 import static org.icij.datashare.CollectionUtils.asSet;
 
 @Singleton
@@ -88,7 +71,7 @@ public class BatchSearchResource {
     @Post("/search")
     public WebResponse<BatchSearchRecord> getSearchesFiltered(BatchSearchRepository.WebQuery webQuery, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
-        return new WebResponse<>(batchSearchRepository.getRecords(user, user.getProjectNames(), webQuery),
+        return new WebResponse<>(batchSearchRepository.getRecords(user, user.getProjectNames(), webQuery), webQuery.from, webQuery.size,
                 batchSearchRepository.getTotal(user, user.getProjectNames(), webQuery));
     }
 

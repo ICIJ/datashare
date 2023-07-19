@@ -84,6 +84,7 @@ public class UserResource {
         try {
             WebResponse<UserEvent> userEventWebResponse = new WebResponse<>(
                     repository.getUserHistory(user, eventType, from, size, sortBy, parseBooleanQueryArg(desc), parseProjectIdsQueryArg(projects)),
+                    from,size,
                     repository.getUserHistorySize(user, eventType, parseProjectIdsQueryArg(projects)));
             return new Payload(userEventWebResponse);
         } catch (IllegalArgumentException e){
