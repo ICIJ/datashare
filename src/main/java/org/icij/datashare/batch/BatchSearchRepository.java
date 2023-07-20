@@ -28,6 +28,7 @@ public interface BatchSearchRepository extends Closeable {
     List<String> getQueued();
     List<SearchResult> getResults(User user, String batchSearchId);
     List<SearchResult> getResults(User user, String batchId, WebQuery webQuery);
+    int getResultsTotal(User user, String batchId, WebQuery webQuery);
 
     boolean publish(User user, String batchId, boolean published);
 
@@ -41,14 +42,10 @@ public interface BatchSearchRepository extends Closeable {
 
     boolean reset(String batchId);
     @JsonIgnoreProperties(ignoreUnknown = true)
-    class WebQuery {
+    class WebQuery extends WebQueryPagination{
         public static final String DEFAULT_SORT_FIELD = "doc_nb";
-        public final String sort;
-        public final String order;
         public final String query;
         public final String field;
-        public final int from;
-        public final int size;
         public final List<String> queries;
         public final boolean queriesExcluded;
         public final List<String> contentTypes;
@@ -67,12 +64,9 @@ public interface BatchSearchRepository extends Closeable {
                         @JsonProperty("batchDate") List<String> batchDate, @JsonProperty("state") List<String> state,
                         @JsonProperty("publishState") String publishState, @JsonProperty("withQueries") boolean withQueries,
                         @JsonProperty("queriesExcluded") boolean queriesExcluded, @JsonProperty("contentTypes") List<String> contentTypes) {
-            this.size = size;
-            this.from = from;
-            this.sort = sort == null ? DEFAULT_SORT_FIELD : sort;
+            super(sort == null ? DEFAULT_SORT_FIELD : sort, sort == null ? "asc": order,from,size);
             this.query = query;
             this.field = field;
-            this.order = sort == null ? "asc": order;
             this.queries = queries == null ? null: unmodifiableList(queries);
             this.queriesExcluded = queriesExcluded;
             this.contentTypes = contentTypes == null ? null: unmodifiableList(contentTypes);
