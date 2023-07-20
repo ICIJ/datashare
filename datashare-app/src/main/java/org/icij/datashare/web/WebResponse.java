@@ -1,13 +1,14 @@
 package org.icij.datashare.web;
 
+import java.util.Collections;
 import java.util.List;
 
 class WebResponse<T> {
-    private final List<T> items;
-    private final Pagination pagination;
+    public final List<T> items;
+    public final Pagination pagination;
 
     public WebResponse(List<T> items, final int from, final int size, final int total) {
-        this.items = items;
+        this.items = Collections.unmodifiableList(items);
         this.pagination = new Pagination(items.size(), from, size, total);
     }
 

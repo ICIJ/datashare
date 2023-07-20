@@ -268,10 +268,13 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 new SearchResult("q2", "docId2", "rootId2", Paths.get("/path/to/doc2"), new Date(), "content/type", 123L, 2)
         ));
 
+        when(batchSearchRepository.getResultsTotal(eq(User.local()), eq("batchSearchId"), any())).thenReturn(2);
+
         post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\"}").
                 should().respond(200).haveType("application/json").
                 contain("\"documentId\":\"docId1\"").
-                contain("\"documentId\":\"docId2\"");
+                contain("\"documentId\":\"docId2\"").
+                contain("\"pagination\":{\"count\":2,\"from\":0,\"size\":0,\"total\":2}");
     }
 
     @Test
