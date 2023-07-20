@@ -327,6 +327,20 @@ public class JooqBatchSearchRepositoryTest {
     }
 
     @Test
+    public void test_get_results_total() {
+        BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("my query", "my other query"), User.local());
+        repository.save(batchSearch);
+
+        assertThat(repository.saveResults(batchSearch.uuid, "my query", asList(createDoc("doc1").build(), createDoc("doc2").build()))).isTrue();
+        assertThat(repository.saveResults(batchSearch.uuid, "my query2", asList(createDoc("doc3").build(), createDoc("doc2").build()))).isTrue();
+        assertThat(repository.get(User.local(), batchSearch.uuid).nbResults).isEqualTo(4);
+        int resultsTotal = repository.getResultsTotal(User.local(), batchSearch.uuid, WebQueryBuilder.createWebQuery().withQuery("*").withRange(0, 1).build());
+        assertThat(resultsTotal).isEqualTo(4);
+
+       assertThat(repository.getResultsTotal(User.local(), batchSearch.uuid, WebQueryBuilder.createWebQuery().queryAll().withQueries(singletonList("my query2")).withRange(0, 1).build())).isEqualTo(2);
+    }
+
+    @Test
     public void test_save_results_multiple_times() {
         BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "description", asSet("my query", "my other query"), User.local());
         repository.save(batchSearch);

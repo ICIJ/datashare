@@ -258,7 +258,7 @@ public class BatchSearchResource {
         return copy.uuid;
     }
 
-    @Operation( description = "Retrieves the results of a batch search as JSON.<br/>" +
+    @Operation( description = "Retrieves the results of a batch search as JSON with a list of items and a pagination metadata.<br/>" +
             "If from/size are not given their default values are 0, meaning that all the results are returned.",
                 requestBody = @RequestBody(
                         required = true,
@@ -268,7 +268,7 @@ public class BatchSearchResource {
                 parameters = { @Parameter(name = "batchId", description = "id of the batchsearch") }
     )
     @Post("/search/result/:batchid")
-    public List<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {
+    public WebResponse<SearchResult> getResult(String batchId, BatchSearchRepository.WebQuery webQuery, Context context) {
         return getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
     }
 
@@ -282,7 +282,7 @@ public class BatchSearchResource {
         BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId);
         String url = propertiesProvider.get("rootHost").orElse(context.header("Host"));
 
-        getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), WebQueryBuilder.createWebQuery().queryAll().build()).forEach(result -> builder.
+        getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), WebQueryBuilder.createWebQuery().queryAll().build()).items.forEach(result -> builder.
                 append("\"").append(result.query).append("\"").append(",").
                 append("\"").append(docUrl(url, batchSearch.projects, result.documentId, result.rootId)).append("\"").append(",").
                 append("\"").append(result.documentId).append("\"").append(",").
@@ -314,9 +314,10 @@ public class BatchSearchResource {
         return asSet(stream(csv.split("\r?\n")).filter(q -> q.length() >= 2).toArray(String[]::new));
     }
 
-    private List<SearchResult> getResultsOrThrowUnauthorized(String batchId, User user, BatchSearchRepository.WebQuery webQuery) {
+    private WebResponse<SearchResult> getResultsOrThrowUnauthorized(String batchId, User user, BatchSearchRepository.WebQuery webQuery) {
         try {
-            return batchSearchRepository.getResults(user, batchId, webQuery);
+            return new WebResponse<>(batchSearchRepository.getResults(user, batchId, webQuery), webQuery.from,webQuery.size,
+                    batchSearchRepository.getResultsTotal(user,batchId,webQuery));
         } catch (JooqBatchSearchRepository.UnauthorizedUserException unauthorized) {
             throw new UnauthorizedException();
         }

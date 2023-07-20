@@ -262,25 +262,23 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         SelectConditionStep<Record> query = create.select().from(BATCH_SEARCH_RESULT).
                 join(BATCH_SEARCH).on(BATCH_SEARCH.UUID.equal(BATCH_SEARCH_RESULT.SEARCH_UUID)).
                 where(BATCH_SEARCH_RESULT.SEARCH_UUID.eq(batchSearchId));
-        if (webQuery.hasFilteredQueries()) {
-            if(webQuery.queriesExcluded){
-                query.and(BATCH_SEARCH_RESULT.QUERY.notIn(webQuery.queries));
-            }else{
-                query.and(BATCH_SEARCH_RESULT.QUERY.in(webQuery.queries));
-            }
-        }
-        if(webQuery.hasFilteredContentTypes()){
-            query.and(BATCH_SEARCH_RESULT.CONTENT_TYPE.in(webQuery.contentTypes));
-        }
-        if (webQuery.isSorted()) {
-            query.orderBy(field(webQuery.sort + " " + webQuery.order));
-        } else {
-            query.orderBy(field("query " + webQuery.order), field(DEFAULT_SORT_FIELD + " " + webQuery.order));
-        }
+        addFiltersToBatchSearchResultQuery(webQuery, query);
         if (webQuery.size > 0) query.limit(webQuery.size);
         if (webQuery.from > 0) query.offset(webQuery.from);
 
         return query.fetch().stream().map(r -> createSearchResult(user, r)).collect(toList());
+    }
+
+    @Override
+    public int getResultsTotal(User user, String batchSearchId, WebQuery webQuery) {
+        DSLContext create = DSL.using(dataSource, dialect);
+        SelectConditionStep<Record1<String>> query = create.
+                select(BATCH_SEARCH_RESULT.SEARCH_UUID).
+                from(BATCH_SEARCH_RESULT).
+                join(BATCH_SEARCH).on(BATCH_SEARCH.UUID.equal(BATCH_SEARCH_RESULT.SEARCH_UUID)).
+                where(BATCH_SEARCH_RESULT.SEARCH_UUID.eq(batchSearchId));
+        addFiltersToBatchSearchResultQuery(webQuery, query);
+        return create.fetchCount(query);
     }
 
     @Override
@@ -304,6 +302,24 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         batchSearches.get(0).fileTypes, batchSearches.get(0).tags, batchSearches.get(0).paths, batchSearches.get(0).fuzziness,
                         batchSearches.get(0).phraseMatches, batchSearches.get(0).errorMessage, batchSearches.get(0).errorQuery)).
                 sorted(comparing(BatchSearch::getDate).reversed()).collect(toList());
+    }
+
+    private static void addFiltersToBatchSearchResultQuery(WebQuery webQuery, SelectConditionStep<?> query) {
+        if (webQuery.hasFilteredQueries()) {
+            if(webQuery.queriesExcluded){
+                query.and(BATCH_SEARCH_RESULT.QUERY.notIn(webQuery.queries));
+            }else{
+                query.and(BATCH_SEARCH_RESULT.QUERY.in(webQuery.queries));
+            }
+        }
+        if(webQuery.hasFilteredContentTypes()){
+            query.and(BATCH_SEARCH_RESULT.CONTENT_TYPE.in(webQuery.contentTypes));
+        }
+        if (webQuery.isSorted()) {
+            query.orderBy(field(webQuery.sort + " " + webQuery.order));
+        } else {
+            query.orderBy(field("query " + webQuery.order), field(DEFAULT_SORT_FIELD + " " + webQuery.order));
+        }
     }
 
     private SelectJoinStep<Record19<String, String, String, String, Timestamp, String, Integer, String, String, String,Integer, Integer, Integer, String, String, String, String, Integer, Integer>>
