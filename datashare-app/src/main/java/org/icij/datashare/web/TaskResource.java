@@ -136,8 +136,9 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task", useReturnTypeSchema = true)
     @Post("/batchUpdate/index")
     public TaskView<Long> indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) {
-        IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(),
-                propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), optionsWrapper.asProperties());
+        Properties properties = optionsWrapper.asProperties();
+        String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
+        IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), queueName, properties);
         return taskManager.startTask(indexTask);
     }
 
@@ -156,13 +157,15 @@ public class TaskResource {
     public List<TaskView<Long>> indexFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
         TaskView<Long> scanResponse = scanFile(filePath, optionsWrapper, context);
         Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
+        String reportName = properties.getOrDefault(MAP_NAME_OPTION, "extract:report").toString();
+        String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
         User user = (User) context.currentUser();
+        // Use a report map only if the request's body contains a "filter" attribute
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
-            String reportName = propertiesProvider.get(MAP_NAME_OPTION).orElse("extract:report");
             taskFactory.createScanIndexTask(user, reportName).call();
             properties.put(MAP_NAME_OPTION, reportName);
         }
-        return asList(scanResponse, taskManager.startTask(taskFactory.createIndexTask(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), properties)));
+        return asList(scanResponse, taskManager.startTask(taskFactory.createIndexTask(user, queueName, properties)));
     }
 
     @Operation(description = "Scans recursively a directory with the given path.",
@@ -171,8 +174,9 @@ public class TaskResource {
     @Post("/batchUpdate/scan/:filePath:")
     public TaskView<Long> scanFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
         Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
-        return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), path,
-                propertiesProvider.createOverriddenWith(optionsWrapper.getOptions())));
+        Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
+        String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
+        return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), queueName, path, properties));
     }
 
     @Operation(description = "Cleans all DONE tasks.")
