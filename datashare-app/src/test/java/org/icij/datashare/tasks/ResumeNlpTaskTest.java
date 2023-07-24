@@ -11,8 +11,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
@@ -33,10 +32,8 @@ public class ResumeNlpTaskTest {
             indexer.add(TEST_INDEX, createDoc("doc" + i).with(Pipeline.Type.CORENLP).build());
         }
         Publisher publisher = mock(Publisher.class);
-        ResumeNlpTask resumeNlpTask = new ResumeNlpTask(publisher, indexer,
-                new PropertiesProvider(new HashMap<String, String>() {{
-                    put("defaultProject", "test-datashare");
-                }}), new User("test"), new HashSet<Pipeline.Type>() {{add(Pipeline.Type.OPENNLP);}});
+        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("defaultProject", "test-datashare"));
+        ResumeNlpTask resumeNlpTask = new ResumeNlpTask(publisher, indexer, propertiesProvider, new User("test"), Set.of(Pipeline.Type.OPENNLP), new Properties());
         resumeNlpTask.call();
         verify(publisher, times(22)).publish(any(), any());
     }

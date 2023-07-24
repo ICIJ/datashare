@@ -126,7 +126,7 @@ class CliApp {
                 taskManager.startTask(taskFactory.createNlpTask(nullUser(), pipelineClass));
             }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), nlpPipelines));
+                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), nlpPipelines, properties));
             }
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);

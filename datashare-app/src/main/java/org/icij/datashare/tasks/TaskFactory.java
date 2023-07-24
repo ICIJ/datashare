@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 public interface TaskFactory {
-    ResumeNlpTask createResumeNlpTask(final User user, Set<Pipeline.Type> pipelines);
+    ResumeNlpTask createResumeNlpTask(final User user, Set<Pipeline.Type> pipelines, Properties taskProperties);
     NlpApp createNlpTask(User user, Pipeline pipeline, Properties properties, Runnable subscribedCb);
     NlpApp createNlpTask(User user, Pipeline pipeline);
     BatchSearchLoop createBatchSearchLoop();

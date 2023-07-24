@@ -252,15 +252,12 @@ public class TaskResource {
     @Post("/findNames/:pipeline")
     public List<TaskView<?>> extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
-        syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
-
         Pipeline pipeline = pipelineRegistry.get(Pipeline.Type.parse(pipelineName));
-
         TaskView<Void> nlpTask = createNlpApp(context, mergedProps, pipeline);
+        syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            TaskView<Long> resumeNlpTask = taskManager.startTask(
-                    taskFactory.createResumeNlpTask((User) context.currentUser(),
-                            new HashSet<Pipeline.Type>() {{add(Pipeline.Type.parse(pipelineName));}}));
+            Set<Pipeline.Type> pipelines = Set.of(Pipeline.Type.parse(pipelineName));
+            TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), pipelines, mergedProps));
             return asList(resumeNlpTask, nlpTask);
         }
         return singletonList(nlpTask);
