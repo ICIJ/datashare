@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
@@ -35,12 +36,12 @@ public class ResumeNlpTask implements Callable<Long>, UserTask {
 
     @Inject
     public ResumeNlpTask(final Publisher publisher, final Indexer indexer, final PropertiesProvider propertiesProvider,
-                         @Assisted final User user, @Assisted final Set<Pipeline.Type> nlpPipelines) {
+                         @Assisted final User user, @Assisted final Set<Pipeline.Type> nlpPipelines, @Assisted final Properties taskProperties) {
         this.publisher = publisher;
         this.indexer = indexer;
         this.nlpPipelines = nlpPipelines;
         this.user = user;
-        this.projectName = propertiesProvider.get("defaultProject").orElse("local-datashare");
+        this.projectName = propertiesProvider.overrideWith(taskProperties).get("defaultProject").orElse("local-datashare");
     }
 
     @Override
