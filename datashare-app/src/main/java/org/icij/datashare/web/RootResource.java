@@ -2,9 +2,9 @@ package org.icij.datashare.web;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
@@ -12,7 +12,6 @@ import net.codestory.http.annotations.Prefix;
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.text.Language;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,12 +24,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Stream;
 
 import static org.apache.commons.io.IOUtils.copy;
 import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR;
 
 @Singleton
+@OpenAPIDefinition(info = @Info(title = "Datashare HTTP API", version = "v1"))
 @Prefix("/")
 public class RootResource {
     public static final String INDEX_HTML = "index.html";
@@ -41,10 +40,7 @@ public class RootResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-    @Operation(description = "Gets the root of the front-end app, e.g. : <code>./app/index.html</code><br/>" +
-            "If pluginsDir is set, it will add in the index the tag <code><script src=\"plugins/my_plugin/index.js\"></script></code> else it will return the index.html content as is")
-    @ApiResponse(responseCode = "200", description = "returns the content of index.html file", useReturnTypeSchema = true)
-    @Get()
+    @Get
     public String getRoot(Context context) throws IOException {
         Path index = new File(context.env().workingDir(), context.env().appFolder()).toPath().resolve(INDEX_HTML);
         String content;
@@ -75,10 +71,14 @@ public class RootResource {
     @Operation(description = "Gets the versions (front/back/docker) of datashare.")
     @ApiResponse(responseCode = "200", description = "returns the list of versions of datashare", useReturnTypeSchema = true)
     @Get("version")
-    public Properties getVersion() {
+    public Properties getGitVersions() {
+        return getVersionProperties();
+    }
+
+    static Properties getVersionProperties() {
         try {
             Properties properties = new Properties();
-            InputStream gitProperties = getClass().getResourceAsStream("/git.properties");
+            InputStream gitProperties = RootResource.class.getResourceAsStream("/git.properties");
             if (gitProperties != null) {
                 properties.load(gitProperties);
             }
