@@ -90,7 +90,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_index_file_and_filter() {
-        RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), "{\"options\":{\"filter\": true}}");
+        String body ="{\"options\":{\"filter\": true}}";
+        RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
         ShouldChain responseBody = response.should().haveType("application/json");
 
@@ -99,6 +100,34 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
 
         verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report"));
+    }
+
+    @Test
+    public void test_index_file_and_filter_with_custom_report_map() {
+        String body = "{\"options\":{\"filter\": true, \"reportName\": \"extract:report:foo\"}}";
+        RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
+
+        ShouldChain responseBody = response.should().haveType("application/json");
+
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.name).collect(toList());
+        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
+        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
+
+        verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report:foo"));
+    }
+
+    @Test
+    public void test_index_file_and_filter_with_custom_queue() {
+        String body = "{\"options\":{\"filter\": true, \"queueName\": \"extract:queue:foo\"}}";
+        RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
+
+        ShouldChain responseBody = response.should().haveType("application/json");
+
+        List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.name).collect(toList());
+        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
+        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
+
+        verify(taskFactory).createIndexTask(eq(local()), eq("extract:queue:foo"), any());
     }
 
     @Test
