@@ -114,6 +114,55 @@ public class SourceExtractorTest {
         assertThat(getBytes(source).length).isNotEqualTo(49779);
     }
 
+    @Test
+    public void test_get_source_for_embedded_doc_in_zip_archive() throws Exception {
+        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+            put("idDigestMethod", Document.HASHER.toString());
+        }}));
+        Path path = get(getClass().getResource("/docs/lorem-ipsum.zip").getPath());
+        Extractor extractor = new Extractor(tikaFactory);
+        extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.HASHER.toString()));
+        final TikaDocument document = extractor.extract(path);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
+                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
+        spewer.write(document);
+
+        Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).
+                get(TEST_INDEX, "67c3f34a1d87aabe8d38330be25941cc6c7d2252587cfc6dbb1322feb6bf5bd934e0ecee0096a815dfcf4a6512232f88",
+                        "978b9bb0a4fd5c76616e19f9fde017b82be0a30ae2fb5e2b990111dfa6d3fb72bbf5c9564a40d1717b0159896c07702d");
+
+        assertThat(attachedPdf).isNotNull();
+        assertThat(attachedPdf.getContentType()).isEqualTo("application/pdf");
+        InputStream source = new SourceExtractor().getSource(project(TEST_INDEX), attachedPdf);
+        assertThat(source).isNotNull();
+        assertThat(getBytes(source)).hasSize(77123);
+    }
+
+    @Test
+    public void test_get_source_for_embedded_doc_in_tar_gz_archive() throws Exception {
+        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+            put("idDigestMethod", Document.HASHER.toString());
+        }}));
+        Path path = get(getClass().getResource("/docs/lorem-ipsum.tar.gz").getPath());
+        Extractor extractor = new Extractor(tikaFactory);
+        extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.HASHER.toString()));
+        final TikaDocument document = extractor.extract(path);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
+                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
+        spewer.write(document);
+
+        Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).
+                get(TEST_INDEX, "58a0f089a5d511b52838aa4f0737d6bf3a033e4d566f88fe01b8a37e1d69e3f66cb07365f4fa0afac4522e726b5ac361",
+                        "63a43ea0728ce393e09e0c2afdceafd1db5e5d0c3451edca0cfba8e0a70b7e24c9a7e89ef7cd593a937a08cbeb7cad4a");
+
+        assertThat(attachedPdf).isNotNull();
+        assertThat(attachedPdf.getContentType()).isEqualTo("application/pdf");
+        InputStream source = new SourceExtractor().getSource(project(TEST_INDEX), attachedPdf);
+        assertThat(source).isNotNull();
+        assertThat(getBytes(source)).hasSize(77123);
+    }
+
+
     private byte[] getBytes(InputStream source) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int nbTmpBytesRead;
