@@ -8,7 +8,19 @@ import org.icij.datashare.db.tables.records.BatchSearchResultRecord;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
-import org.jooq.*;
+import org.jooq.DSLContext;
+import org.jooq.InsertValuesStep10;
+import org.jooq.InsertValuesStep2;
+import org.jooq.InsertValuesStep4;
+import org.jooq.Record;
+import org.jooq.Record1;
+import org.jooq.Record12;
+import org.jooq.Record17;
+import org.jooq.Record19;
+import org.jooq.SQLDialect;
+import org.jooq.SelectConditionStep;
+import org.jooq.SelectJoinStep;
+import org.jooq.SelectOnConditionStep;
 import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
@@ -58,7 +70,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             InsertValuesStep4<BatchSearchQueryRecord, String, String, Integer, Integer> insertQuery = inner.insertInto(BATCH_SEARCH_QUERY, BATCH_SEARCH_QUERY.SEARCH_UUID, BATCH_SEARCH_QUERY.QUERY, BATCH_SEARCH_QUERY.QUERY_NUMBER, BATCH_SEARCH_QUERY.QUERY_RESULTS);
             List<String> queries = new ArrayList<>(batchSearch.queries.keySet());
             IntStream.range(0, queries.size()).forEach(i -> insertQuery.values(batchSearch.uuid, queries.get(i), i, 0));
-            InsertValuesStep2<BatchSearchProjectRecord, String, String> insertProject = inner.insertInto(BATCH_SEARCH_PROJECT, BATCH_SEARCH_PROJECT.SEARCH_UUID, BATCH_SEARCH_PROJECT.PRJ_ID);
+            InsertValuesStep2<BatchSearchProjectRecord, String, String>
+                insertProject = inner.insertInto(BATCH_SEARCH_PROJECT, BATCH_SEARCH_PROJECT.SEARCH_UUID, BATCH_SEARCH_PROJECT.PRJ_ID);
             batchSearch.projects.forEach(project -> insertProject.values(batchSearch.uuid, project.getId()));
             return insertQuery.execute() + insertProject.execute() > 0;
         });
@@ -77,7 +90,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                     BATCH_SEARCH.BATCH_RESULTS.plus(documents.size())).
                     where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute();
 
-            InsertValuesStep10<BatchSearchResultRecord, String, String, Integer, String, String, String, Timestamp, String, Long, String> insertQuery =
+            InsertValuesStep10<BatchSearchResultRecord, String, String, Integer, String, String, String, Timestamp, String, Long, String>
+                insertQuery =
                     inner.insertInto(BATCH_SEARCH_RESULT, BATCH_SEARCH_RESULT.SEARCH_UUID, BATCH_SEARCH_RESULT.QUERY, BATCH_SEARCH_RESULT.DOC_NB,
                     BATCH_SEARCH_RESULT.DOC_ID, BATCH_SEARCH_RESULT.ROOT_ID, BATCH_SEARCH_RESULT.DOC_PATH, BATCH_SEARCH_RESULT.CREATION_DATE,
                     BATCH_SEARCH_RESULT.CONTENT_TYPE, BATCH_SEARCH_RESULT.CONTENT_LENGTH, BATCH_SEARCH_RESULT.PRJ_ID);
