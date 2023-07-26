@@ -22,7 +22,7 @@ import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.com.DataBus;
 import org.icij.datashare.com.MemoryDataBus;
 import org.icij.datashare.com.Publisher;
-import org.icij.datashare.com.RedisDataBus;
+import org.icij.datashare.com.bus.RedisDataBus;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;

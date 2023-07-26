@@ -1,6 +1,10 @@
-package org.icij.datashare.com;
+package org.icij.datashare.com.bus;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.com.Channel;
+import org.icij.datashare.com.Message;
+import org.icij.datashare.com.ShutdownMessage;
+import org.icij.datashare.com.bus.RedisDataBus;
 import org.junit.After;
 import org.junit.Test;
 
