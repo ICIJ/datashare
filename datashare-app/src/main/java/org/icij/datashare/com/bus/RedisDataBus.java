@@ -1,8 +1,12 @@
-package org.icij.datashare.com;
+package org.icij.datashare.com.bus;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.com.Channel;
+import org.icij.datashare.com.DataBus;
+import org.icij.datashare.com.Message;
+import org.icij.datashare.com.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;

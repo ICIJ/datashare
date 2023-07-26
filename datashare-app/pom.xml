@@ -94,6 +94,26 @@
             <artifactId>fluent-swagger-apigen</artifactId>
             <version>0.2.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.qpid</groupId>
+            <artifactId>qpid-broker-core</artifactId>
+            <version>9.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.qpid</groupId>
+            <artifactId>qpid-broker-plugins-amqp-0-8-protocol</artifactId>
+            <version>9.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.qpid</groupId>
+            <artifactId>qpid-broker-plugins-memory-store</artifactId>
+            <version>9.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.rabbitmq</groupId>
+            <artifactId>amqp-client</artifactId>
+            <version>5.18.0</version>
+        </dependency>
 
         <!-- Logging -->
         <dependency>
