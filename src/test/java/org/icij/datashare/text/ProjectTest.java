@@ -18,7 +18,7 @@ public class ProjectTest {
         Project project = new Project("local-datashare");
         assertThat(project.name).isEqualTo("local-datashare");
         assertThat(project.label).isEqualTo("local-datashare");
-        assertThat(project.allowFromMask).isEqualTo("*");
+        assertThat(project.allowFromMask).isEqualTo("*.*.*.*");
     }
     @Test()
     public void test_constructor_with_all_values() {
@@ -31,7 +31,7 @@ public class ProjectTest {
                 "Jane Doe",
                 "ICIJ",
                 null,
-                "*",
+                "*.*.*.*",
                 new Date(),
                 new Date());
         assertThat(project.name).isEqualTo("local-datashare");
@@ -40,6 +40,6 @@ public class ProjectTest {
         assertThat(project.sourceUrl).isEqualTo("https://icij.org");
         assertThat(project.maintainerName).isEqualTo("Jane Doe");
         assertThat(project.publisherName).isEqualTo("ICIJ");
-        assertThat(project.allowFromMask).isEqualTo("*");
+        assertThat(project.allowFromMask).isEqualTo("*.*.*.*");
     }
 }

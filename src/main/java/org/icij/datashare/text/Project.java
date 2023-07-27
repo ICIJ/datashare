@@ -37,12 +37,12 @@ public class Project implements Entity {
 
     @JsonCreator(mode = DELEGATING)
     public Project(String name) {
-        this(name, Paths.get("/vault").resolve(name), "*");
+        this(name, Paths.get("/vault").resolve(name), "*.*.*.*");
     }
     @JsonCreator(mode = PROPERTIES)
     public Project( @JsonProperty("name") String name,
                     @JsonProperty("sourcePath") Path sourcePath) {
-        this(name, sourcePath, "*");
+        this(name, sourcePath, "*.*.*.*");
     }
 
     public Project(String name, Path sourcePath, String allowFromMask) {
