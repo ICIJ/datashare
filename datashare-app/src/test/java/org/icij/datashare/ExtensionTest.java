@@ -8,6 +8,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.AbstractMap.SimpleEntry;
 
+import static org.apache.commons.io.FilenameUtils.getBaseName;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class ExtensionTest {
@@ -99,12 +100,13 @@ public class ExtensionTest {
 
     @Test
     public void test_has_previous_version() throws Exception {
-        File[] files = new File[] {extensionsDir.newFile("extension-1.0.0.jar")};
-        assertThat(Extension.getPreviousVersionInstalled(files, "extension-0.1.0")).hasSize(1);
-        assertThat(Extension.getPreviousVersionInstalled(files, "extension-1.1.0")).hasSize(1);
-        assertThat(Extension.getPreviousVersionInstalled(files, "extension-1.1")).hasSize(1);
-        assertThat(Extension.getPreviousVersionInstalled(files, "extension")).hasSize(1);
+        File[] files = new File[] {extensionsDir.newFile("ext3nsion-1.0.0.jar")};
+        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion-0.1.0")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion-1.1.0")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion-1.1")).hasSize(1);
+        assertThat(Extension.getPreviousVersionInstalled(files, "ext3nsion")).hasSize(1);
 
+        assertThat(Extension.getPreviousVersionInstalled(files, "ext_3nsion-1.1")).isEmpty();
         assertThat(Extension.getPreviousVersionInstalled(files, "other-extension")).isEmpty();
         assertThat(Extension.getPreviousVersionInstalled(files, "extension-other-1.2.3")).isEmpty();
     }
