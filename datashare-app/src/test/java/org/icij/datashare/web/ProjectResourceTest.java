@@ -273,4 +273,14 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         delete("/api/project/hacker-datashare").withPreemptiveAuthentication("hacker", "pass").should().respond(403);
         delete("/api/project/projectId").should().respond(401);
     }
+
+    @Test
+    public void test_delete_all_projects() throws SQLException {
+        Project foo = new Project("foo");
+        Project bar = new Project("bar");
+        when(repository.getProjects(any())).thenReturn(asList(foo, bar));
+        when(repository.deleteAll("foo")).thenReturn(true).thenReturn(false);
+        when(repository.deleteAll("bar")).thenReturn(true).thenReturn(false);
+        delete("/api/project/").should().respond(204);
+    }
 }

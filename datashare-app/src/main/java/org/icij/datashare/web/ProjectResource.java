@@ -191,4 +191,21 @@
             LoggerFactory.getLogger(getClass()).info("deleted project {} index (deleted={}) and db (deleted={})", id, indexDeleted, isDeleted);
             return new Payload(204);
         }
+
+
+        @Operation(description = "Deletes all user's projects from database and elasticsearch index.")
+        @ApiResponse(responseCode = "204", description = "if projects are deleted")
+        @Delete("/")
+        public Payload deleteProjects(Context context) {
+            DatashareUser user = (DatashareUser) context.currentUser();
+            getUserProjects(user).forEach(project -> {
+                try {
+                    deleteProject(project.name, context);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            return new Payload(204);
+        }
+
     }
