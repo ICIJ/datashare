@@ -93,6 +93,16 @@
             return project.getSourcePath() == null;
         }
 
+
+        @Operation(description = "Preflight option request")
+        @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS, POST, GET and DELETE")
+        @Options("/")
+        public Payload rootProjectOpt(String id) {return ok().withAllowMethods("OPTIONS", "POST", "GET", "DELETE");}
+
+        @Operation(description = "Get all user's projects",
+                requestBody = @RequestBody(content = @Content(mediaType = "application/json", contentSchema = @Schema(implementation = Project[].class)))
+        )
+        @ApiResponse(responseCode = "200", useReturnTypeSchema = true)
         @Get("/")
         public List<Project> getProjects(Context context) {
             DatashareUser user = (DatashareUser) context.currentUser();
@@ -177,6 +187,7 @@
         @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS and DELETE")
         @Options("/:id")
         public Payload deleteProjectOpt(String id) {return ok().withAllowMethods("OPTIONS", "DELETE");}
+
 
         @Operation(description = "Deletes the project from database and elasticsearch index.",
                 parameters = {@Parameter(name = "id", description = "project id")}
