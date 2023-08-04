@@ -17,17 +17,21 @@
     import org.icij.datashare.Repository;
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.session.DatashareUser;
+    import org.icij.datashare.tasks.DocumentCollectionFactory;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
     import org.icij.datashare.utils.IndexAccessVerifier;
     import org.icij.datashare.utils.DataDirVerifier;
     import org.icij.datashare.utils.ModeVerifier;
     import org.icij.datashare.utils.PayloadFormatter;
+    import org.icij.extract.queue.DocumentQueue;
+    import org.icij.extract.report.ReportMap;
     import org.jetbrains.annotations.NotNull;
     import org.slf4j.LoggerFactory;
 
     import java.io.IOException;
     import java.util.*;
+    import java.util.function.Predicate;
 
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
@@ -41,14 +45,19 @@
         private final Indexer indexer;
         private final DataDirVerifier dataDirVerifier;
         private final ModeVerifier modeVerifier;
+        private final DocumentCollectionFactory documentCollectionFactory;
+
+        private final PropertiesProvider propertiesProvider:
 
 
         @Inject
-        public ProjectResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider) {
+        public ProjectResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider, DocumentCollectionFactory documentCollectionFactory) {
             this.repository = repository;
             this.indexer = indexer;
-            this.dataDirVerifier = new DataDirVerifier(propertiesProvider);;
+            this.propertiesProvider = propertiesProvider;
+            this.dataDirVerifier = new DataDirVerifier(propertiesProvider);
             this.modeVerifier = new ModeVerifier(propertiesProvider);
+            this.documentCollectionFactory = documentCollectionFactory;
         }
 
         String[] getUserProjectIds(DatashareUser user) {
@@ -66,6 +75,25 @@
                     .filter((Project p) -> p.getId().equals(id))
                     .findAny()
                     .orElse(null);
+        }
+
+
+        DocumentQueue getDocumentQueue(String queueName) {
+            return documentCollectionFactory.createQueue(propertiesProvider, queueName);
+        }
+
+        DocumentQueue getDocumentQueue(Project project) {
+            String queueName = "extract:queue:" + project.getName();
+            return getDocumentQueue(queueName);
+        }
+
+        ReportMap getReportMap(String reportMapName) {
+            return documentCollectionFactory.createMap(propertiesProvider, reportMapName);
+        }
+
+        ReportMap getReportMap(Project project) {
+            String reportMapName = "extract:reports:" + project.getName();
+            return getReportMap(reportMapName);
         }
 
         boolean createIndexOnce(String name) {
@@ -197,8 +225,11 @@
         @Delete("/:id")
         public Payload deleteProject(String id, Context context) throws Exception {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
+            Project project = getUserProject((DatashareUser) context.currentUser(), id);
             boolean isDeleted = repository.deleteAll(id);
             boolean indexDeleted = indexer.deleteAll(id);
+            boolean queueIsDeleted = getDocumentQueue(project).delete();
+            boolean reportMapIsDeleted = getReportMap(project).delete();
             LoggerFactory.getLogger(getClass()).info("deleted project {} index (deleted={}) and db (deleted={})", id, indexDeleted, isDeleted);
             return new Payload(204);
         }
