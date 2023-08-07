@@ -47,7 +47,7 @@
         private final ModeVerifier modeVerifier;
         private final DocumentCollectionFactory documentCollectionFactory;
 
-        private final PropertiesProvider propertiesProvider:
+        private final PropertiesProvider propertiesProvider;
 
 
         @Inject
@@ -92,7 +92,7 @@
         }
 
         ReportMap getReportMap(Project project) {
-            String reportMapName = "extract:reports:" + project.getName();
+            String reportMapName = "extract:report:" + project.getName();
             return getReportMap(reportMapName);
         }
 
@@ -225,12 +225,14 @@
         @Delete("/:id")
         public Payload deleteProject(String id, Context context) throws Exception {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
-            Project project = getUserProject((DatashareUser) context.currentUser(), id);
+            DatashareUser user = (DatashareUser) context.currentUser();
+            Project project = getUserProject(user, id);
             boolean isDeleted = repository.deleteAll(id);
             boolean indexDeleted = indexer.deleteAll(id);
-            boolean queueIsDeleted = getDocumentQueue(project).delete();
-            boolean reportMapIsDeleted = getReportMap(project).delete();
-            LoggerFactory.getLogger(getClass()).info("deleted project {} index (deleted={}) and db (deleted={})", id, indexDeleted, isDeleted);
+            boolean queueDeleted = getDocumentQueue(project).delete();
+            boolean reportMapDeleted = getReportMap(project).delete();
+            LoggerFactory.getLogger(getClass()).info("deleted project {} index ({}), db ({}), queue ({}) and report map ({})",
+                    id, indexDeleted, isDeleted, queueDeleted, reportMapDeleted);
             return new Payload(204);
         }
 

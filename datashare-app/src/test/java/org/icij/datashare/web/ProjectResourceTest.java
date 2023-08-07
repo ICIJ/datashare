@@ -9,10 +9,15 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.YesBasicAuthFilter;
+import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
+import org.icij.extract.extractor.ExtractionStatus;
+import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.report.Report;
+import org.icij.extract.report.ReportMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -23,6 +28,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static java.util.Arrays.asList;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -31,11 +37,13 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
+    MemoryDocumentCollectionFactory documentCollectionFactory;
     PropertiesProvider propertiesProvider;
 
     @Before
     public void setUp() {
         initMocks(this);
+        documentCollectionFactory = new MemoryDocumentCollectionFactory();
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {
             propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
@@ -43,7 +51,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
                 put("mode", "LOCAL");
             }});
 
-            ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider);
+            ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider, documentCollectionFactory);
             routes.filter(new LocalUserFilter(propertiesProvider, jooqRepository)).add(projectResource);
         });
     }
@@ -125,7 +133,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
             PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
                 put("mode", Mode.SERVER.name());
             }});
-            ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider);
+            ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider, documentCollectionFactory);
             Users datashareUsers = get_datashare_users(asList("foo", "biz"));
             BasicAuthFilter basicAuthFilter = new BasicAuthFilter("/", "icij", datashareUsers);
             routes.filter(basicAuthFilter).add(projectResource);
@@ -248,6 +256,8 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_delete_project() throws SQLException {
+        Project foo = new Project("local-datashare");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
         when(repository.deleteAll("local-datashare")).thenReturn(true).thenReturn(false);
         delete("/api/project/local-datashare").should().respond(204);
         delete("/api/project/local-datashare").should().respond(204);
@@ -255,6 +265,8 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_delete_project_only_delete_index() throws Exception {
+        Project foo = new Project("local-datashare");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
         when(repository.deleteAll("local-datashare")).thenReturn(false).thenReturn(false);
         when(indexer.deleteAll("local-datashare")).thenReturn(true).thenReturn(false);
         delete("/api/project/local-datashare").should().respond(204);
@@ -266,7 +278,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         configure(routes -> {
             PropertiesProvider propertiesProvider = new PropertiesProvider(Collections.singletonMap("mode", Mode.SERVER.name()));
             routes.filter(new YesBasicAuthFilter(propertiesProvider))
-                    .add(new ProjectResource(repository, indexer, propertiesProvider));
+                    .add(new ProjectResource(repository, indexer, propertiesProvider, documentCollectionFactory));
         });
         when(repository.deleteAll("hacker-datashare")).thenReturn(true);
         when(repository.deleteAll("projectId")).thenReturn(true);
@@ -282,5 +294,29 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         when(repository.deleteAll("foo")).thenReturn(true).thenReturn(false);
         when(repository.deleteAll("bar")).thenReturn(true).thenReturn(false);
         delete("/api/project/").should().respond(204);
+    }
+
+    @Test
+    public void test_delete_project_and_its_queue() {
+        Project foo = new Project("foo");
+        DocumentQueue queue = documentCollectionFactory.createQueue(propertiesProvider, "extract:queue:foo");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        queue.add(Path.of("/"));
+        assertThat(queue.size()).isEqualTo(1);
+        delete("/api/project/foo").should().respond(204);
+        assertThat(queue.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_delete_project_and_its_report_map() {
+        Project foo = new Project("foo");
+        ReportMap reportMap = documentCollectionFactory.createMap(propertiesProvider, "extract:report:foo");
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        reportMap.put(Path.of("/"), new Report(ExtractionStatus.SUCCESS));
+        assertThat(reportMap.size()).isEqualTo(1);
+        delete("/api/project/foo").should().respond(204);
+        assertThat(reportMap.size()).isEqualTo(0);
     }
 }
