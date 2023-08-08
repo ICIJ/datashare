@@ -125,17 +125,6 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         return batchDownload.filename.toFile();
     }
 
-    private boolean isRootDocumentSizeAllowed(Document document) {
-        // Root documents have no download limit
-        if (document.isRootDocument()) {
-            return true;
-        }
-        String maxSize = propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE).orElse("1G");
-        long maxSizeBytes = HumanReadableSize.parse(maxSize);
-        Document rootDocument = indexer.get(document.getProjectId(), document.getRootDocument());
-        return rootDocument.getContentLength() < maxSizeBytes;
-    }
-
     private Zipper createZipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider, Function<URI, MailSender> mailSenderSupplier) throws URISyntaxException, IOException {
         if (batchDownload.encrypted) {
             String rootHost = propertiesProvider.get("rootHost").orElse(null);
