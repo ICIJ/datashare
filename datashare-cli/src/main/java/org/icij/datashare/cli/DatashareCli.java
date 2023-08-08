@@ -74,6 +74,7 @@ public class DatashareCli {
         DatashareCliOptions.nlpParallelism(parser);
         DatashareCliOptions.followSymlinks(parser);
         DatashareCliOptions.enableBrowserOpenLink(parser);
+        DatashareCliOptions.embeddedDocumentDownloadMaxSize(parser);
         DatashareCliOptions.batchSearchMaxTime(parser);
         DatashareCliOptions.batchThrottle(parser);
         DatashareCliOptions.batchQueueType(parser);
@@ -84,18 +85,13 @@ public class DatashareCli {
         DatashareCliOptions.batchDownloadEncrypt(parser);
         DatashareCliOptions.batchDownloadDir(parser);
         DatashareCliOptions.smtpUrl(parser);
-
         DatashareCliOptions.maxContentLength(parser);
-
         DatashareCliOptions.clusterName(parser);
         DatashareCliOptions.createIndex(parser);
-
         DatashareCliOptions.defaultUser(parser);
         DatashareCliOptions.defaultProject(parser);
-
         DatashareCliOptions.esHost(parser);
         DatashareCliOptions.queueName(parser);
-
         DatashareCliOptions.cors(parser);
         DatashareCliOptions.queueType(parser);
         DatashareCliOptions.busType(parser);
@@ -103,7 +99,6 @@ public class DatashareCli {
         DatashareCliOptions.redisAddress(parser);
         DatashareCliOptions.dataSourceUrl(parser);
         DatashareCliOptions.rootHost(parser);
-
         DatashareCliOptions.genApiKey(parser);
         DatashareCliOptions.delApiKey(parser);
         DatashareCliOptions.getApiKey(parser);

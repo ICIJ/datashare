@@ -17,7 +17,6 @@ public class DatashareCliTest {
     public void test_web_opt() {
         assertThat(cli.parseArguments(new String[] {"-o true"})).isNotNull();
         assertThat(cli.isWebServer()).isTrue();
-
         assertThat(cli.parseArguments(new String[] {"--mode=BATCH_SEARCH"})).isNotNull();
         assertThat(cli.isWebServer()).isFalse();
         assertThat(cli.parseArguments(new String[] {"--mode=CLI"})).isNotNull();
@@ -74,6 +73,20 @@ public class DatashareCliTest {
 
     @Test(expected = OptionException.class)
     public void test_max_batch_download_size_illegal_value() {
+        cli.asProperties(cli.createParser().parse("--embeddedDocumentDownloadMaxSize", "123A"), null);
+    }
+
+    @Test
+    public void test_embedded_document_download_max_size() {
+        cli.parseArguments(new String[] {"--embeddedDocumentDownloadMaxSize", "123"});
+        assertThat(cli.properties).includes(entry("embeddedDocumentDownloadMaxSize", "123"));
+
+        cli.parseArguments(new String[] {"--embeddedDocumentDownloadMaxSize", "123G"});
+        assertThat(cli.properties).includes(entry("embeddedDocumentDownloadMaxSize", "123G"));
+    }
+
+    @Test(expected = OptionException.class)
+    public void test_embedded_document_download_max_size_illegal_value() {
         cli.asProperties(cli.createParser().parse("--batchDownloadMaxSize", "123A"), null);
     }
 
