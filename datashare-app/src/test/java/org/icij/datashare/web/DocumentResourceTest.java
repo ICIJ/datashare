@@ -23,15 +23,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.stream.Stream.of;
+import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
@@ -44,12 +42,14 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder temp = new TemporaryFolder();
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
+    @Mock PropertiesProvider propertiesProvider;
 
     @Before
     public void setUp() {
         initMocks(this);
+        when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE)).thenReturn(Optional.of("1G"));
         configure(routes -> {
-            routes.add(new DocumentResource(jooqRepository, indexer))
+            routes.add(new DocumentResource(jooqRepository, indexer, propertiesProvider))
                     .filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository));
         });
     }
@@ -121,6 +121,16 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_source_file_forbidden_index() {
         get("/api/foo_index/documents/src/id").should().respond(403);
+    }
+
+    @Test
+    public void test_get_source_root_too_big() {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        Project index = new Project("local-datashare");
+        Document documentBar = DocumentBuilder.createDoc("bar").with(index).withContentLength(2L * 1024 * 1024 * 1024).build();
+        Document documentFoo = DocumentBuilder.createDoc("foo").with(index).with(path).withParentId("bar").withRootId("bar").build();
+        indexFile("local-datashare", documentBar, documentFoo);
+        get("/api/local-datashare/documents/src/foo?routing=bar").should().respond(413);
     }
 
     @Test
@@ -384,12 +394,29 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     private void indexFile(String index, String _id, Path path, String contentType, String routing) {
-        Document doc = DocumentBuilder.createDoc(_id).with(path).ofMimeType(contentType).withParentId(routing).withRootId(routing).build();
+        Document document = DocumentBuilder.createDoc(_id)
+                .with(path)
+                .with(new Project(index))
+                .ofMimeType(contentType)
+                .withParentId(routing)
+                .withRootId(routing)
+                .withContentLength(10)
+                .build();
         if (routing == null) {
-            when(indexer.get(index, _id)).thenReturn(doc);
+            indexFile(index, document);
         } else {
-            when(indexer.get(index, _id, routing)).thenReturn(doc);
+            Document rootDocument = DocumentBuilder.createDoc(routing).with(path).with(new Project(index)).build();
+            indexFile(index, rootDocument, document);
         }
+    }
+
+    private void indexFile(String index, Document rootDocument, Document document) {
+        when(indexer.get(index, rootDocument.getId())).thenReturn(rootDocument);
+        when(indexer.get(index, document.getId(), document.getRootDocument())).thenReturn(document);
+    }
+
+    private void indexFile(String index, Document document) {
+        when(indexer.get(index, document.getId())).thenReturn(document);
     }
 
     static void write(File file, String content) throws IOException {
