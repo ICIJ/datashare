@@ -24,9 +24,6 @@ import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
-import org.apache.http.ContentTooLongException;
-import org.apache.http.HttpException;
-import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.Repository.AggregateList;
@@ -39,6 +36,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
+import org.icij.datashare.utils.DocumentVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
 
 import java.io.FileNotFoundException;
@@ -63,13 +61,13 @@ import static org.icij.datashare.text.Project.project;
 public class DocumentResource {
     private final Repository repository;
     private final Indexer indexer;
-    private final PropertiesProvider propertiesProvider;
+    private final DocumentVerifier documentVerifier;
 
     @Inject
     public DocumentResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider) {
         this.repository = repository;
         this.indexer = indexer;
-        this.propertiesProvider = propertiesProvider;
+        this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }
 
     @Operation( description = " Returns the file from the index with the index id and the root document (if embedded document).",
@@ -93,7 +91,7 @@ public class DocumentResource {
         boolean isDownloadAllowed = isAllowed(repository.getProject(project), context.request().clientAddress());
         if (isProjectGranted && isDownloadAllowed) {
             Document document = routing == null ? indexer.get(project, id) : indexer.get(project, id, routing);
-            if(isRootDocumentSizeAllowed(document)) {
+            if(documentVerifier.isRootDocumentSizeAllowed(document)) {
                 return getPayload(document, project, inline, parseBoolean(filterMetadata));
             }
             return PayloadFormatter.error("The file or its parent is too large", HttpStatus.REQUEST_ENTITY_TOO_LARGE);
@@ -384,17 +382,6 @@ public class DocumentResource {
     @Post("/:project/documents/batchUpdate/unrecommend")
     public Result<Integer> groupUnrecommend(final String projectId, final List<String> docIds, Context context) {
         return new Result<>(repository.unrecommend(project(projectId), (DatashareUser)context.currentUser(), docIds));
-    }
-
-    private boolean isRootDocumentSizeAllowed(Document document) {
-        // Root documents have no download limit
-        if (document.isRootDocument()) {
-            return true;
-        }
-        String maxSize = propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE).orElse("1G");
-        long maxSizeBytes = HumanReadableSize.parse(maxSize);
-        Document rootDocument = indexer.get(document.getProjectId(), document.getRootDocument());
-        return rootDocument.getContentLength() < maxSizeBytes;
     }
 
     private ExtractedText getAllExtractedText(final String id, final String targetLanguage) throws IllegalArgumentException {
