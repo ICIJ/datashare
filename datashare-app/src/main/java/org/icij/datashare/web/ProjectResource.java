@@ -31,7 +31,6 @@
 
     import java.io.IOException;
     import java.util.*;
-    import java.util.function.Predicate;
 
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
@@ -46,7 +45,6 @@
         private final DataDirVerifier dataDirVerifier;
         private final ModeVerifier modeVerifier;
         private final DocumentCollectionFactory documentCollectionFactory;
-
         private final PropertiesProvider propertiesProvider;
 
 
