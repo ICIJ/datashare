@@ -22,6 +22,7 @@ import org.icij.datashare.text.indexing.elasticsearch.ExtractException;
 import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
+import org.icij.datashare.utils.DocumentVerifier;
 import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor.ContentNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -51,9 +52,9 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
+    private final DocumentVerifier documentVerifier;
     volatile long docsToProcessSize = 0;
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
-
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
     private final BatchDownload batchDownload;
@@ -72,6 +73,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         this.batchDownload = batchDownload;
         this.updateCallback = updateCallback;
         this.mailSenderSupplier = mailSenderSupplier;
+        this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }
 
     @Override
@@ -106,8 +108,8 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
             taskProperties.put("batchDownload", batchDownload);
             while (docsToProcess.size() != 0) {
                 for (int i = 0; i < docsToProcess.size() && numberOfResults.get() < maxResultSize && zippedFilesSize <= maxZipSizeBytes; i++) {
-                    Entity doc = docsToProcess.get(i);
-                    int addedBytes = zipper.add((Document) doc);
+                    Document document = (Document) docsToProcess.get(i);
+                    int addedBytes = documentVerifier.isRootDocumentSizeAllowed(document) ? zipper.add(document) : 0;
                     if (addedBytes > 0) {
                         zippedFilesSize += addedBytes;
                         numberOfResults.incrementAndGet();
@@ -121,6 +123,17 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         logger.info("created batch download file {} ({} bytes/{} entries) for user {}",
                 batchDownload.filename, Files.size(batchDownload.filename), numberOfResults, batchDownload.user.getId());
         return batchDownload.filename.toFile();
+    }
+
+    private boolean isRootDocumentSizeAllowed(Document document) {
+        // Root documents have no download limit
+        if (document.isRootDocument()) {
+            return true;
+        }
+        String maxSize = propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE).orElse("1G");
+        long maxSizeBytes = HumanReadableSize.parse(maxSize);
+        Document rootDocument = indexer.get(document.getProjectId(), document.getRootDocument());
+        return rootDocument.getContentLength() < maxSizeBytes;
     }
 
     private Zipper createZipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider, Function<URI, MailSender> mailSenderSupplier) throws URISyntaxException, IOException {
