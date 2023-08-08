@@ -29,13 +29,13 @@ public class DocumentVerifierTest {
     }
 
     @Test
-    public void testIsRootDocumentSizeAllowed_RootDocument() {
+    public void test_is_root_document_size_allowed_true_for_root_document() {
         Document doc = DocumentBuilder.createDoc("foo").withContentLength(2L * 1024 * 1024 * 1024).build();
         assertTrue(documentVerifier.isRootDocumentSizeAllowed(doc));
     }
 
     @Test
-    public void testIsRootDocumentSizeAllowed_SizeAllowed() {
+    public void test_is_root_document_size_allowed_true_for_small_root_document() {
         Project project = new Project("local-datashare");
         Document rootDoc = DocumentBuilder.createDoc("bar").with(project).withContentLength(1024).build();
         Document doc = DocumentBuilder.createDoc("foo").with(project).withParentId("bar").withRootId("bar").build();
@@ -47,7 +47,7 @@ public class DocumentVerifierTest {
     }
 
     @Test
-    public void testIsRootDocumentSizeAllowed_SizeNotAllowed() {
+    public void test_is_root_document_size_allowed_false_for_big_root_document() {
         Project project = new Project("local-datashare");
         Document rootDoc = DocumentBuilder.createDoc("bar").with(project).withContentLength(1024).build();
         Document doc = DocumentBuilder.createDoc("foo").with(project).withParentId("bar").withRootId("bar").build();
