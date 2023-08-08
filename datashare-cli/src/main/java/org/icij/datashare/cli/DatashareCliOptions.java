@@ -30,7 +30,6 @@ public final class DatashareCliOptions {
     public static final String BATCH_DOWNLOAD_MAX_NB_FILES = "batchDownloadMaxNbFiles";
     public static final String BATCH_DOWNLOAD_MAX_SIZE = "batchDownloadMaxSize";
     public static final String BATCH_DOWNLOAD_DIR = "batchDownloadDir";
-
     static final String MESSAGE_BUS_OPT = "messageBusAddress";
     static final String ROOT_HOST = "rootHost";
     public static final String RESUME_OPT = "resume";
@@ -47,6 +46,8 @@ public final class DatashareCliOptions {
     public static final String PARALLELISM = "parallelism";
     public static final String OPEN_LINK = "browserOpenLink";
     public static final String NLP_PARALLELISM_OPT = "nlpParallelism";
+    public static final String EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE = "embeddedDocumentDownloadMaxSize";
+    public static final String DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE = "1G";
     public static final String DEFAULT_USER_NAME = "defaultUserName";
     public static final String DEFAULT_BATCH_DOWNLOAD_DIR = Paths.get(System.getProperty("user.dir")).resolve("app/tmp").toString();
     public static final String DEFAULT_BATCH_DOWNLOAD_MAX_SIZE = "100M";
@@ -498,6 +499,15 @@ public final class DatashareCliOptions {
                 singletonList("smtpUrl"), "Smtp url to allow datashare to send emails (ex: smtp://localhost:25)")
                 .withRequiredArg()
                 .ofType(URI.class);
+    }
+
+    public static void embeddedDocumentDownloadMaxSize(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE), "Maximum download size of embedded documents. Human readable suffix K/M/G for KB/MB/GB (Default 1G)")
+                .withRequiredArg()
+                .withValuesConvertedBy(regex("[0-9]+[KMG]?"))
+                .defaultsTo(DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE);
+
     }
 
     public static void batchDownloadMaxSize(OptionParser parser) {

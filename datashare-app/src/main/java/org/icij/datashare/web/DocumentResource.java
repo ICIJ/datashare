@@ -80,9 +80,11 @@ public class DocumentResource {
     public Payload getSourceFile(final String project, final String id,
                                  final String routing, final String filterMetadata, final Context context) throws IOException {
         boolean inline = context.request().query().getBoolean("inline");
-        if (((DatashareUser)context.currentUser()).isGranted(project) &&
-                isAllowed(repository.getProject(project), context.request().clientAddress())) {
-            return routing == null ? getPayload(indexer.get(project, id), project, inline, parseBoolean(filterMetadata)) : getPayload(indexer.get(project, id, routing),project, inline, parseBoolean(filterMetadata));
+        boolean isProjectGranted = ((DatashareUser) context.currentUser()).isGranted(project);
+        boolean isDownloadAllowed = isAllowed(repository.getProject(project), context.request().clientAddress());
+        if (isProjectGranted && isDownloadAllowed) {
+            Document document = routing == null ? indexer.get(project, id) : indexer.get(project, id, routing);
+            return getPayload(document, project, inline, parseBoolean(filterMetadata));
         }
         throw new ForbiddenException();
     }
