@@ -7,7 +7,7 @@ import java.net.ConnectException;
 import java.util.concurrent.TimeoutException;
 
 public class AmqpServerRule extends ExternalResource {
-    private final QpidAmqpServer amqpServer;
+    public final QpidAmqpServer amqpServer;
     public  AmqpServerRule(int port) {
         amqpServer = new QpidAmqpServer(port);
     }

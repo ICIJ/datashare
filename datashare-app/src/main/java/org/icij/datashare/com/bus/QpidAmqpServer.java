@@ -7,13 +7,10 @@ import org.slf4j.LoggerFactory;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class QpidAmqpServer {
     private static final String INITIAL_CONFIGURATION = "qpid-config.json";
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    final SystemLauncher systemLauncher = new SystemLauncher();
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public QpidAmqpServer(int port) {
@@ -21,27 +18,16 @@ public class QpidAmqpServer {
     }
 
     public void start() throws Exception {
-        final SystemLauncher systemLauncher = new SystemLauncher();
         try {
-            executor.execute(() -> {
-                try {
-                    systemLauncher.startup(createSystemConfig());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        } finally {
-            systemLauncher.shutdown();
+            systemLauncher.startup(createSystemConfig());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
     public boolean stop() {
-        executor.shutdown();
-        try {
-            return executor.awaitTermination(3, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        systemLauncher.shutdown();
+        return true;
     }
 
     private Map<String, Object> createSystemConfig() {
