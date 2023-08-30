@@ -24,7 +24,7 @@ public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends Event
 	private final AmqpChannel channel;
 	private final AtomicReference<String> consumerTag = new AtomicReference<>();
 
-	public AbstractConsumer(EvtSaver eventSaver, AmqpQueue queue) throws IOException, TimeoutException {
+	public AbstractConsumer(EvtSaver eventSaver, AmqpQueue queue) throws IOException {
 		this(AmqpInterlocutor.getInstance(), eventSaver, queue);
 	}
 	
