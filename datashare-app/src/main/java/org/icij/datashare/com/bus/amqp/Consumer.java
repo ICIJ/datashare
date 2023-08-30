@@ -9,36 +9,35 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Base class for consumer implementation.
+ * Class for consumer implementation.
  * @param <Evt> The event class that are going to be consumed by the consumer
  * @param <EvtSaver> The class for handling the received event class
  */
-public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> implements Deserializer<Evt> {
+public class Consumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> implements Deserializer<Evt> {
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	protected final AmqpInterlocutor amqpInterlocutor;
 	public final EvtSaver eventSaver;
 	private final AmqpChannel channel;
 	private final AtomicReference<String> consumerTag = new AtomicReference<>();
 
-	public AbstractConsumer(EvtSaver eventSaver, AmqpQueue queue) throws IOException {
+	public Consumer(EvtSaver eventSaver, AmqpQueue queue) throws IOException {
 		this(AmqpInterlocutor.getInstance(), eventSaver, queue);
 	}
 	
-	protected AbstractConsumer(AmqpInterlocutor amqpInterlocutor,
-							   EvtSaver eventSaver, AmqpQueue queue) throws IOException {
+	protected Consumer(AmqpInterlocutor amqpInterlocutor,
+					   EvtSaver eventSaver, AmqpQueue queue) throws IOException {
 		this.amqpInterlocutor = amqpInterlocutor;
 		this.eventSaver = eventSaver;
 		this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue);
 	}
 
 	public void consumeEvents() {
-		launchConsumer(channel, AbstractConsumer.this::handle);}
+		launchConsumer(channel, Consumer.this::handle);}
 	public void consumeEvents(int nb) {
-		launchConsumer(channel, AbstractConsumer.this::handle, nb);}
+		launchConsumer(channel, Consumer.this::handle, nb);}
 
 	public void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, final int nbEventsToConsume) {
 		launchConsumer(channel, eventHandler, new Criteria() {
