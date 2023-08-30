@@ -1,8 +1,10 @@
 package org.icij.datashare.com.bus.amqp;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +66,7 @@ public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends Event
 				@Override
 				public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
 					try {
-						eventHandler.handle((Evt) deserialize(body));
+						eventHandler.handle(deserialize(body));
 						channel.rabbitMqChannel.basicAck(envelope.getDeliveryTag(), false);
 					} catch (RuntimeException rex) {
 						channel.rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
@@ -105,5 +107,9 @@ public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends Event
 	private interface Criteria {
 		void newEvent();
 		boolean isValid();
+	}
+
+	public Evt deserialize(byte[] rawJson) throws IOException {
+		 return JsonObjectMapper.MAPPER.readValue(rawJson, new TypeReference<>() {});
 	}
 }

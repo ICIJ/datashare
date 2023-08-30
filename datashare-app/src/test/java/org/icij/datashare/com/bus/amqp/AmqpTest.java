@@ -2,10 +2,7 @@ package org.icij.datashare.com.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.fest.assertions.Assertions;
-import org.icij.datashare.com.bus.amqp.AmqpServerRule;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -88,8 +85,6 @@ public class AmqpTest {
 
     static class TestConsumer extends AbstractConsumer<TestEvent, TestEventSaver> {
         public TestConsumer(TestEventSaver eventSaver, AmqpQueue queue) throws IOException, TimeoutException {super(eventSaver, queue);}
-        @Override
-        public TestEvent deserialize(byte[] rawJson) throws IOException {return JsonObjectMapper.MAPPER.readValue(rawJson, new TypeReference<>() {});}
     }
 
     static class TestEvent extends Event {
