@@ -29,7 +29,7 @@ public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends Event
 	}
 	
 	protected AbstractConsumer(AmqpInterlocutor amqpInterlocutor,
-							   EvtSaver eventSaver, AmqpQueue queue) throws IOException, TimeoutException {
+							   EvtSaver eventSaver, AmqpQueue queue) throws IOException {
 		this.amqpInterlocutor = amqpInterlocutor;
 		this.eventSaver = eventSaver;
 		this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue);
