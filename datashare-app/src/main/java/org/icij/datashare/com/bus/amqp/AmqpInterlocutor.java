@@ -83,8 +83,9 @@ public class AmqpInterlocutor {
         return connection.createChannel();
     }
 
-    public synchronized AmqpChannel createAmqpChannelForPublish(AmqpQueue queue) throws IOException {
-        return createChannelAndDeclareQueue(queue, false);
+    public synchronized AmqpInterlocutor createAmqpChannelForPublish(AmqpQueue queue) throws IOException {
+        createChannelAndDeclareQueue(queue, false);
+        return this;
     }
     public synchronized AmqpChannel createAmqpChannelForConsume(AmqpQueue queue) throws IOException {
         return createChannelAndDeclareQueue(queue, true);
