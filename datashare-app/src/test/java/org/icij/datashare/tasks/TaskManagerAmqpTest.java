@@ -1,6 +1,6 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.com.bus.AmqpServerRule;
+import org.icij.datashare.com.bus.amqp.AmqpServerRule;
 import org.junit.ClassRule;
 import org.junit.Test;
 

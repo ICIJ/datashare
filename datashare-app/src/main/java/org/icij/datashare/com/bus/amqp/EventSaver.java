@@ -1,4 +1,4 @@
-package org.icij.datashare.com.bus;
+package org.icij.datashare.com.bus.amqp;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

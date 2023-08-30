@@ -1,4 +1,4 @@
-package org.icij.datashare.com.bus;
+package org.icij.datashare.com.bus.amqp;
 
 import com.rabbitmq.client.ConnectionFactory;
 import org.junit.rules.ExternalResource;

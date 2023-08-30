@@ -1,7 +1,8 @@
-package org.icij.datashare.com.bus;
+package org.icij.datashare.com.bus.amqp;
 
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import org.icij.datashare.com.bus.amqp.AmqpServerRule;
 import org.junit.ClassRule;
 import org.junit.Test;
 
