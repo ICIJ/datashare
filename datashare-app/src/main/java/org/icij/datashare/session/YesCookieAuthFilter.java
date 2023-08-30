@@ -7,20 +7,28 @@ import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.text.Project;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 
 public class YesCookieAuthFilter extends CookieAuthFilter {
     private final Integer ttl;
-    private final String project;
+    private final String defaultProject;
+    private final JooqRepository jooqRepository;
 
     @Inject
-    public YesCookieAuthFilter(PropertiesProvider propertiesProvider) {
-        super(propertiesProvider.get("protectedUrPrefix").orElse("/"), new UsersInRedis(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
+    public YesCookieAuthFilter(final PropertiesProvider propertiesProvider, final JooqRepository jooqRepository) {
+        super(propertiesProvider.get("protectedUrlPrefix").orElse("/"), new UsersInRedis(propertiesProvider), new RedisSessionIdStore(propertiesProvider));
         this.ttl = Integer.valueOf(propertiesProvider.get("sessionTtlSeconds").orElse("1"));
-        this.project = propertiesProvider.get("defaultProject").orElse("local-datashare");
+        this.jooqRepository = jooqRepository;
+        this.defaultProject = propertiesProvider.get("defaultProject").orElse("local-datashare");
     }
 
     @Override
@@ -35,14 +43,36 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
     }
 
     private User createUser(String userName) {
-        DatashareUser user = new DatashareUser(new HashMap<String, Object>() {{
+        List<Project> projects = getProjects();
+        List<String> projectNames = getProjectNames();
+        // Build user properties
+        HashMap<String, Object> userProperties = new HashMap<String, Object>() {{
             put("uid", userName);
             put(DatashareUser.XEMX_APPLICATIONS_KEY, new HashMap<String, Object>() {{
-                put(DatashareUser.XEMX_DATASHARE_KEY, singletonList(project));
+                put(DatashareUser.XEMX_DATASHARE_KEY, projectNames);
             }});
-        }});
-        ((UsersInRedis)users).saveOrUpdate(user);
+        }};
+        // Build datashare user
+        DatashareUser user = new DatashareUser(userProperties);
+        user.setProjects(projects);
+        // Finally, store the user in redis so the session can be retrieved
+        ((UsersInRedis) users).saveOrUpdate(user);
         return user;
+    }
+
+    private List<Project> getProjects() {
+        // Get the project and create a new list
+        List<Project> projects = jooqRepository.getProjects();
+        // Check if the default project exists in db
+        if (projects.stream().noneMatch(project -> project.getName().equals(defaultProject))) {
+            // Then add the default project as a Project instance
+            projects.add(new Project(defaultProject));
+        }
+        return projects;
+    }
+
+    private List<String> getProjectNames() {
+        return this.getProjects().stream().map(Project::getName).collect(Collectors.toList());
     }
 
     @Override protected String cookieName() { return "_ds_session_id";}
