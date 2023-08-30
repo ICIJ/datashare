@@ -9,7 +9,10 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Date;
 
-
+/**
+ * Base event for AMQP.
+ * It provides creation timestamp and ttl that can be used for error handling and republishing/DLQ strategies.
+ */
 public class Event implements Serializable {
 	private static final long serialVersionUID = -2295266944323500399L;
 	protected int ttl = 3;

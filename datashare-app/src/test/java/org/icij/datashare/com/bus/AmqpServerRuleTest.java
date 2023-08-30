@@ -22,7 +22,8 @@ public class AmqpServerRuleTest {
 
     @Test
     public void test_restart_server() throws Exception {
-        assertThat(qpid.amqpServer.stop()).isTrue();
+        System.out.println(Thread.getAllStackTraces().keySet());
+        assertThat(qpid.amqpServer.shutdown()).isTrue();
         assertAmqpIsUp(false);
         qpid.amqpServer.start();
         assertAmqpIsUp(true);

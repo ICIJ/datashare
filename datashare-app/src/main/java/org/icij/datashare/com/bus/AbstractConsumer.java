@@ -1,7 +1,6 @@
 package org.icij.datashare.com.bus;
 
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import org.slf4j.Logger;
@@ -9,66 +8,81 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Base class for consumer implementation.
+ * @param <Evt> The event class that are going to be consumed by the consumer
+ * @param <EvtSaver> The class for handling the received event class
+ */
 public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> implements Deserializer<Evt> {
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	protected final AmqpInterlocutor amqpInterlocutor;
 	public final EvtSaver eventSaver;
-	private final AmqpQueue queue;
+	private final AmqpChannel channel;
+	private final AtomicReference<String> consumerTag = new AtomicReference<>();
 
 	public AbstractConsumer(EvtSaver eventSaver, AmqpQueue queue) throws IOException, TimeoutException {
-		this(AmqpInterlocutor.getInstance().createAmqpChannel(queue), eventSaver, queue);
+		this(AmqpInterlocutor.getInstance(), eventSaver, queue);
 	}
 	
 	protected AbstractConsumer(AmqpInterlocutor amqpInterlocutor,
-							   EvtSaver eventSaver, AmqpQueue queue) {
+							   EvtSaver eventSaver, AmqpQueue queue) throws IOException, TimeoutException {
 		this.amqpInterlocutor = amqpInterlocutor;
 		this.eventSaver = eventSaver;
-		this.queue = queue;
+		this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue);
 	}
 
-	public void consumeEvents() {consumingLoop(queue, AbstractConsumer.this::handle);}
-	public void consumeEvents(int nb) {consumingLoop(queue, AbstractConsumer.this::handle, nb);}
+	public void consumeEvents() {
+		launchConsumer(channel, AbstractConsumer.this::handle);}
+	public void consumeEvents(int nb) {
+		launchConsumer(channel, AbstractConsumer.this::handle, nb);}
 
-	public <Evt extends Event> void consumingLoop(AmqpQueue queue, EventHandler<Evt> eventHandler, final int nbEventsToConsume) {
-		consumingLoop(queue, eventHandler, new Criteria() {
+	public <Evt extends Event> void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, final int nbEventsToConsume) {
+		launchConsumer(channel, eventHandler, new Criteria() {
 			int nvReceivedEvents=0;
 			public void newEvent() { nvReceivedEvents++; }
 			public boolean isValid() { return nvReceivedEvents < nbEventsToConsume; }
 		});
 	}
 
-	public <Evt extends Event> void consumingLoop(AmqpQueue queue, EventHandler<Evt> eventHandler) {
-		consumingLoop(queue, eventHandler, new Criteria() {
+	public void cancel() throws IOException {
+		channel.rabbitMqChannel.basicCancel(consumerTag.getAndSet(null));
+	}
+
+	public <Evt extends Event> void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler) {
+		launchConsumer(channel, eventHandler, new Criteria() {
 			public void newEvent() {}
 			public boolean isValid() { return true; }
 		});
 	}
 
-
 	@SuppressWarnings("unchecked")
-	private <Evt extends Event> void consumingLoop(AmqpQueue queue, EventHandler<Evt> eventHandler, Criteria criteria) {
+	private <Evt extends Event> void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, Criteria criteria) {
 		try {
-			final Channel channel = amqpInterlocutor.createChannel();
-			channel.basicConsume(queue.name(), new DefaultConsumer(channel) {
+			logger.info("starting consuming events for {}", channel);
+			consumerTag.set(channel.rabbitMqChannel.basicConsume(channel.queue.name(), new DefaultConsumer(channel.rabbitMqChannel) {
 				@Override
 				public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+					try {
+						eventHandler.handle((Evt) deserialize(body));
+						channel.rabbitMqChannel.basicAck(envelope.getDeliveryTag(), false);
+					} catch (RuntimeException rex) {
+						channel.rabbitMqChannel.basicNack(envelope.getDeliveryTag(), true, false);
+					}
 					criteria.newEvent();
-					if (criteria.isValid()) {
-						try {
-							eventHandler.handle((Evt) deserialize(body));
-							channel.basicAck(envelope.getDeliveryTag(), false);
-						} catch (RuntimeException rex) {
-							channel.basicNack(envelope.getDeliveryTag(), true, false);
-						}
-					} else {
-						channel.basicCancel(consumerTag);
+					if (!criteria.isValid()) {
+						cancel();
 					}
 				}
-			});
+			}));
 		} catch (IOException ioe) {
 			logger.error("exception when creating channel or during basicConsume", ioe);
 		}
+	}
+
+	public boolean isCanceled() {
+		return consumerTag.get() == null;
 	}
 
 	interface EventHandler<Evt extends Event> {
@@ -81,9 +95,12 @@ public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends Event
 		}
 	}
 
-	public void shutdown() throws IOException, TimeoutException {
-		logger.info("shutting down consumer");
-		amqpInterlocutor.close();
+	public void shutdown() throws IOException {
+		logger.info("shutting down consumer channel");
+		if (!isCanceled()) {
+			cancel();
+		}
+		channel.close();
 	}
 
 	private interface Criteria {

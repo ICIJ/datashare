@@ -8,6 +8,9 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * AMQP memory server for embedded mode and tests.
+ */
 public class QpidAmqpServer {
     private static final String INITIAL_CONFIGURATION = "qpid-config.json";
     final SystemLauncher systemLauncher = new SystemLauncher();
@@ -25,7 +28,7 @@ public class QpidAmqpServer {
         }
     }
 
-    public boolean stop() {
+    public boolean shutdown() {
         systemLauncher.shutdown();
         return true;
     }
