@@ -31,7 +31,7 @@ public class AmqpTest {
 
     @Test
     public void test_publish_receive() throws Exception {
-        TestConsumer consumer = new TestConsumer(new TestEventSaver(), AmqpQueue.EVENT);
+        Consumer<TestEvent, TestEventSaver> consumer = new Consumer<>(new TestEventSaver(), AmqpQueue.EVENT);
         consumer.consumeEvents();
 
         amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello AMQP"));
@@ -42,7 +42,7 @@ public class AmqpTest {
 
     @Test
     public void test_publish_receive_2_events() throws Exception {
-        TestConsumer consumer = new TestConsumer(new TestEventSaver(), AmqpQueue.EVENT);
+        Consumer<TestEvent, TestEventSaver> consumer = new Consumer<>(new TestEventSaver(), AmqpQueue.EVENT);
         consumer.consumeEvents(2);
 
         amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello 1"));
@@ -62,7 +62,7 @@ public class AmqpTest {
     @Test
     public void test_publish_with_broker_down() throws Exception {
         AmqpInterlocutor amqpInterlocutor = AmqpInterlocutor.initWith(new Configuration("localhost", 12345, "admin", "admin", 10));
-        TestConsumer consumer = new TestConsumer(new TestEventSaver(), AmqpQueue.EVENT);
+        Consumer<TestEvent, TestEventSaver> consumer = new Consumer<>(new TestEventSaver(), AmqpQueue.EVENT);
         consumer.consumeEvents();
 
         assertThat(qpid.amqpServer.shutdown());
@@ -81,10 +81,6 @@ public class AmqpTest {
     @AfterClass
     static public void tearDownClass() throws IOException, TimeoutException {
         amqpInterlocutor.close();
-    }
-
-    static class TestConsumer extends AbstractConsumer<TestEvent, TestEventSaver> {
-        public TestConsumer(TestEventSaver eventSaver, AmqpQueue queue) throws IOException, TimeoutException {super(eventSaver, queue);}
     }
 
     static class TestEvent extends Event {
