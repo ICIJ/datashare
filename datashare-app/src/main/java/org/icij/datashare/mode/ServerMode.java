@@ -7,6 +7,8 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.cli.QueueType;
+import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.session.*;
 import org.icij.datashare.web.*;
 import org.slf4j.Logger;
@@ -50,15 +52,28 @@ public class ServerMode extends CommonMode {
         }
         bind(Filter.class).to(authFilterClass);
         if (authFilterClass.equals(BasicAuthAdaptorFilter.class)) {
-            bind(ApiKeyFilter.class).toInstance(new ApiKeyFilter(null, apiKey -> null) {
-                @Override
-                public Payload apply(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
-                    return nextFilter.get();
-                }
-            });
+            bind(ApiKeyFilter.class).toInstance(getApiKeyFilter());
+        } else if (authFilterClass.equals(YesCookieAuthFilter.class)) {
+            bind(YesCookieAuthFilter.class).toInstance(getYesCookieAuthFilter());
         }
         bind(StatusResource.class).asEagerSingleton();
         configurePersistence();
+    }
+
+
+    protected ApiKeyFilter getApiKeyFilter() {
+        return new ApiKeyFilter(null, apiKey -> null) {
+            @Override
+            public Payload apply(String uri, Context context, PayloadSupplier nextFilter) throws Exception {
+                return nextFilter.get();
+            }
+        };
+    }
+
+    protected YesCookieAuthFilter getYesCookieAuthFilter() {
+        RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
+        JooqRepository jooqRepository = (JooqRepository) repositoryFactory.createRepository();
+        return new YesCookieAuthFilter(propertiesProvider, jooqRepository);
     }
 
     @Override
