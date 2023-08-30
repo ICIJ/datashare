@@ -45,7 +45,7 @@ public class AmqpTest {
 
     @Test
     public void test_publish_receive_2_events() throws Exception {
-        AmqpInterlocutor consumer = new TestConsumer(new TestEventSaver(), AmqpQueue.EVENT);
+        TestConsumer consumer = new TestConsumer(new TestEventSaver(), AmqpQueue.EVENT);
         consumer.consumeEvents(2);
 
         amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello 1"));
