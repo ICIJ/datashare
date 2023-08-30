@@ -1,6 +1,5 @@
 package org.icij.datashare.com.bus.amqp;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
@@ -22,16 +21,18 @@ public class Consumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> imple
 	public final EvtSaver eventSaver;
 	private final AmqpChannel channel;
 	private final AtomicReference<String> consumerTag = new AtomicReference<>();
+	private final Class<Evt> evtClass;
 
-	public Consumer(EvtSaver eventSaver, AmqpQueue queue) throws IOException {
-		this(AmqpInterlocutor.getInstance(), eventSaver, queue);
+	public Consumer(EvtSaver eventSaver, AmqpQueue queue, Class<Evt> evtClass) throws IOException {
+		this(AmqpInterlocutor.getInstance(), eventSaver, queue, evtClass);
 	}
 	
 	protected Consumer(AmqpInterlocutor amqpInterlocutor,
-					   EvtSaver eventSaver, AmqpQueue queue) throws IOException {
+					   EvtSaver eventSaver, AmqpQueue queue, Class<Evt> evtClass) throws IOException {
 		this.amqpInterlocutor = amqpInterlocutor;
 		this.eventSaver = eventSaver;
 		this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue);
+		this.evtClass = evtClass;
 	}
 
 	public void consumeEvents() {
@@ -109,6 +110,6 @@ public class Consumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> imple
 	}
 
 	public Evt deserialize(byte[] rawJson) throws IOException {
-		 return JsonObjectMapper.MAPPER.readValue(rawJson, new TypeReference<>() {});
+		 return JsonObjectMapper.MAPPER.readValue(rawJson, evtClass);
 	}
 }
