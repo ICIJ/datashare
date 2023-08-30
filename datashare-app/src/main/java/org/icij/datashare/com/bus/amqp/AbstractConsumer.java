@@ -38,7 +38,7 @@ public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends Event
 	public void consumeEvents(int nb) {
 		launchConsumer(channel, AbstractConsumer.this::handle, nb);}
 
-	public <Evt extends Event> void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, final int nbEventsToConsume) {
+	public void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, final int nbEventsToConsume) {
 		launchConsumer(channel, eventHandler, new Criteria() {
 			int nvReceivedEvents=0;
 			public void newEvent() { nvReceivedEvents++; }
@@ -50,15 +50,14 @@ public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends Event
 		channel.rabbitMqChannel.basicCancel(consumerTag.getAndSet(null));
 	}
 
-	public <Evt extends Event> void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler) {
+	public void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler) {
 		launchConsumer(channel, eventHandler, new Criteria() {
 			public void newEvent() {}
 			public boolean isValid() { return true; }
 		});
 	}
 
-	@SuppressWarnings("unchecked")
-	private <Evt extends Event> void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, Criteria criteria) {
+	private void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, Criteria criteria) {
 		try {
 			logger.info("starting consuming events for {}", channel);
 			consumerTag.set(channel.rabbitMqChannel.basicConsume(channel.queue.name(), new DefaultConsumer(channel.rabbitMqChannel) {
@@ -68,7 +67,7 @@ public abstract class AbstractConsumer<Evt extends Event, EvtSaver extends Event
 						eventHandler.handle((Evt) deserialize(body));
 						channel.rabbitMqChannel.basicAck(envelope.getDeliveryTag(), false);
 					} catch (RuntimeException rex) {
-						channel.rabbitMqChannel.basicNack(envelope.getDeliveryTag(), true, false);
+						channel.rabbitMqChannel.basicNack(envelope.getDeliveryTag(), false, false);
 					}
 					criteria.newEvent();
 					if (!criteria.isValid()) {
