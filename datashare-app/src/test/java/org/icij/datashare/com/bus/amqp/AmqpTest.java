@@ -1,8 +1,10 @@
-package org.icij.datashare.com.bus;
+package org.icij.datashare.com.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.fest.assertions.Assertions;
+import org.icij.datashare.com.bus.amqp.AmqpServerRule;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -43,7 +45,7 @@ public class AmqpTest {
 
     @Test
     public void test_publish_receive_2_events() throws Exception {
-        TestConsumer consumer = new TestConsumer(new TestEventSaver(), AmqpQueue.EVENT);
+        AmqpInterlocutor consumer = new TestConsumer(new TestEventSaver(), AmqpQueue.EVENT);
         consumer.consumeEvents(2);
 
         amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello 1"));
@@ -54,7 +56,7 @@ public class AmqpTest {
         for (int i=0; i<30 && !consumer.isCanceled(); i++) {
             Thread.sleep(100);
         }
-        assertThat(consumer.isCanceled()).isTrue();
+        Assertions.assertThat(consumer.isCanceled()).isTrue();
     }
 
     @Ignore("throws com.rabbitmq.client.AlreadyClosedException " +

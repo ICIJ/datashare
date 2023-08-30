@@ -1,4 +1,4 @@
-package org.icij.datashare.com.bus;
+package org.icij.datashare.com.bus.amqp;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.DefaultConsumer;

@@ -1,4 +1,4 @@
-package org.icij.datashare.com.bus;
+package org.icij.datashare.com.bus.amqp;
 
 import org.apache.qpid.server.SystemLauncher;
 import org.slf4j.Logger;
