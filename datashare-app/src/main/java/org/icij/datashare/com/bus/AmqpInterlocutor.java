@@ -4,7 +4,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,14 +13,20 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
-
+/**
+ * AmpInterlocutor has the responsibility for creating connections and publish channels.
+ * <p>
+ * It keeps tracks of the publish channels and closes them when close() is called.
+ * </p>
+ * Consumer channels are kept inside AbstractConsumer and closed by the
+ */
 public class AmqpInterlocutor {
     private static final Logger logger = LoggerFactory.getLogger(AmqpInterlocutor.class);
     private static AmqpInterlocutor instance;
     final Configuration configuration;
     private final ConnectionFactory connectionFactory;
     private final Connection connection;
-    private final ConcurrentHashMap<AmqpQueue, AmqpChannel> channels = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<AmqpQueue, AmqpChannel> publishChannels = new ConcurrentHashMap<>();
 
     public static AmqpInterlocutor getInstance() throws IOException {
         if (instance == null)
@@ -60,20 +65,14 @@ public class AmqpInterlocutor {
     }
 
     public void publish(AmqpQueue queue, Event event) throws IOException {
-        AmqpChannel channel = getChannel(queue);
-        channel.rabbitMqChannel.basicPublish(queue.exchange, queue.routingKey, null, event.serialize());
-    }
-
-
-    Event deserialize(byte[] body) throws IOException {
-        return JsonObjectMapper.MAPPER.readValue(JsonObjectMapper.MAPPER.writeValueAsString(body), Event.class);
+        getChannel(queue).publish(event);
     }
 
     AmqpChannel getChannel(AmqpQueue queue) {
         if (queue == null) {
             throw new UnknownChannelException(queue);
         }
-        AmqpChannel channel = channels.get(queue);
+        AmqpChannel channel = publishChannels.get(queue);
         if (channel == null) {
             throw new UnknownChannelException(queue);
         }
@@ -84,26 +83,30 @@ public class AmqpInterlocutor {
         return connection.createChannel();
     }
 
-    public synchronized AmqpInterlocutor createAmqpChannel(AmqpQueue queue) throws IOException, TimeoutException {
-        createChannelAndDeclareQueue(queue);
-        // republishErrorEvents(queue);
-        return this;
+    public synchronized AmqpChannel createAmqpChannelForPublish(AmqpQueue queue) throws IOException {
+        return createChannelAndDeclareQueue(queue, false);
+    }
+    public synchronized AmqpChannel createAmqpChannelForConsume(AmqpQueue queue) throws IOException {
+        return createChannelAndDeclareQueue(queue, true);
     }
 
-    private void createChannelAndDeclareQueue(AmqpQueue queue) throws IOException, TimeoutException {
+    private AmqpChannel createChannelAndDeclareQueue(AmqpQueue queue, boolean forConsumer) throws IOException {
         logger.info("create channel and declare queue " + queue);
         Channel channel = createChannel();
         boolean durable = true;
         boolean exclusive = false;
         boolean autoDelete = false;
-        String exchangeType = "direct";
         Map<String, Object> queueParameters = new HashMap<>() {{ if (queue.deadLetterQueue != null) put("x-dead-letter-exchange", queue.deadLetterQueue.exchange);}};
-        channel.exchangeDeclare(queue.exchange, exchangeType, durable);
+        channel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
         channel.queueDeclare(queue.name(), durable, exclusive, autoDelete, queueParameters);
         channel.queueBind(queue.name(), queue.exchange, queue.routingKey);
         channel.basicQos(configuration.nbMaxMessages);
-        channels.put(queue, new AmqpChannel(channel, queue));
+        AmqpChannel amqpChannel = new AmqpChannel(channel, queue);
+        if (!forConsumer) {
+            publishChannels.put(queue, amqpChannel);
+        }
         logger.info("channel " + channel + " has been created for queue {}", queue.name());
+        return amqpChannel;
     }
 
     private ConnectionFactory createConnectionFactory(Configuration configuration) {
@@ -120,7 +123,7 @@ public class AmqpInterlocutor {
     }
 
     void closeChannelsAndConnection() throws IOException, TimeoutException {
-        for (AmqpChannel channel : channels.values()) {
+        for (AmqpChannel channel : publishChannels.values()) {
             if (channel.rabbitMqChannel.isOpen()) {
                 channel.rabbitMqChannel.close();
                 logger.info("channel " + channel + " was open it has been closed");

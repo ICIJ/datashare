@@ -20,7 +20,7 @@ public class AmqpServerRule extends ExternalResource {
 
     @Override
     protected void after() {
-        amqpServer.stop();
+        amqpServer.shutdown();
     }
 
     protected void waitForQpid() throws Exception {

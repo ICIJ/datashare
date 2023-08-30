@@ -4,6 +4,9 @@ import java.util.Properties;
 
 import static java.util.Optional.ofNullable;
 
+/**
+ * Registry of all Configuration parameters for AMQP
+ */
 public class Configuration {
 	private static final int DEFAULT_CONNECTION_RECOVERY_DELAY = 5000;
 	public final String host;
