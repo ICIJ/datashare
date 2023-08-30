@@ -16,12 +16,12 @@ import java.util.concurrent.TimeoutException;
  */
 public class AmqpChannel {
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
-	private final ConcurrentNavigableMap<Long, String> outstandingConfirms = new ConcurrentSkipListMap<>();
+	private final ConcurrentNavigableMap<Long, byte[]> outstandingConfirms = new ConcurrentSkipListMap<>();
 	final Channel rabbitMqChannel;
 	final AmqpQueue queue;
-	ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
+	private final ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
 		if (multiple) {
-			ConcurrentNavigableMap<Long, String> confirmed = outstandingConfirms.headMap(sequenceNumber, true);
+			ConcurrentNavigableMap<Long, byte[]> confirmed = outstandingConfirms.headMap(sequenceNumber, true);
 			confirmed.clear();
 		} else {
 			outstandingConfirms.remove(sequenceNumber);
@@ -31,8 +31,8 @@ public class AmqpChannel {
 	public AmqpChannel(Channel channel, AmqpQueue queue) {
 		this.rabbitMqChannel = channel;
 		channel.addConfirmListener(cleanOutstandingConfirms, (sequenceNumber, multiple) -> {
-			String body = outstandingConfirms.get(sequenceNumber);
-			logger.error("Message with body {} has been nack-ed. Sequence number: {}, multiple: {}", body, sequenceNumber, multiple);
+			byte[] body = outstandingConfirms.get(sequenceNumber);
+			logger.error("Message with body {} has been nack-ed. Sequence number: {}, multiple: {}", new String(body), sequenceNumber, multiple);
 			cleanOutstandingConfirms.handle(sequenceNumber, multiple);
 		});
 		this.queue = queue;
