@@ -125,10 +125,7 @@ public class AmqpInterlocutor {
 
     void closeChannelsAndConnection() throws IOException, TimeoutException {
         for (AmqpChannel channel : publishChannels.values()) {
-            if (channel.rabbitMqChannel.isOpen()) {
-                channel.rabbitMqChannel.close();
-                logger.info("channel " + channel + " was open it has been closed");
-            }
+            channel.close();
         }
         if (connection.isOpen()) {
             connection.close();

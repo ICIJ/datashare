@@ -31,7 +31,7 @@ public class AmqpTest {
 
     @Test
     public void test_publish_receive() throws Exception {
-        Consumer<TestEvent, TestEventSaver> consumer = new Consumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
+        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
         consumer.consumeEvents();
 
         amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello AMQP"));
@@ -42,7 +42,7 @@ public class AmqpTest {
 
     @Test
     public void test_publish_receive_2_events() throws Exception {
-        Consumer<TestEvent, TestEventSaver> consumer = new Consumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
+        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
         consumer.consumeEvents(2);
 
         amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello 1"));
@@ -62,7 +62,7 @@ public class AmqpTest {
     @Test
     public void test_publish_with_broker_down() throws Exception {
         AmqpInterlocutor amqpInterlocutor = AmqpInterlocutor.initWith(new Configuration("localhost", 12345, "admin", "admin", 10));
-        Consumer<TestEvent, TestEventSaver> consumer = new Consumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
+        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
         consumer.consumeEvents();
 
         assertThat(qpid.amqpServer.shutdown());
