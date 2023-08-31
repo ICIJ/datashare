@@ -47,10 +47,6 @@ public class AmqpChannel {
 		rabbitMqChannel.basicPublish(queue.exchange, queue.routingKey, null, event.serialize());
 	}
 
-	void cancel(String consumerTag) throws IOException {
-		this.rabbitMqChannel.basicCancel(consumerTag);
-	}
-
 	String consume(Consumer<byte[]> bodyHandler, ConsumerCriteria criteria, CancelFunction cancelCallback) throws IOException {
 		return this.rabbitMqChannel.basicConsume(queue.name(), new DefaultConsumer(rabbitMqChannel) {
 			@Override
@@ -67,6 +63,10 @@ public class AmqpChannel {
 				}
 			}
 		});
+	}
+
+	void cancel(String consumerTag) throws IOException {
+		this.rabbitMqChannel.basicCancel(consumerTag);
 	}
 
 	public void close() throws IOException {
