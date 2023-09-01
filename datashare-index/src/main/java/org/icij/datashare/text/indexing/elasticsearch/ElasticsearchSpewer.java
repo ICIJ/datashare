@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.text.Normalizer;
 import java.util.*;
 
 import static java.lang.System.currentTimeMillis;
@@ -132,7 +133,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("contentLength", Long.valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")));
         jsonDocument.put("contentEncoding", ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN));
         jsonDocument.put("title", ofNullable(getTitle(document.getMetadata())).orElse(DEFAULT_VALUE_UNKNOWN));
-        jsonDocument.put("titleNorm", Optional.of(getTitle(document.getMetadata()).toLowerCase()).orElse(DEFAULT_VALUE_UNKNOWN));
+        jsonDocument.put("titleNorm", ofNullable(normalize(getTitle(document.getMetadata()))).orElse(DEFAULT_VALUE_UNKNOWN));
 
         String content = toString(document.getReader()).trim();
         if (maxContentLength != -1 && content.length() > maxContentLength) {
@@ -172,6 +173,12 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     public ElasticsearchSpewer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
         this.esCfg.withRefresh(refreshPolicy);
         return this;
+    }
+
+    public static String normalize(String input) {
+        // Normalize special characters to their ASCII equivalents
+        // and convert to lowercase
+        return Normalizer.normalize(input, Normalizer.Form.NFD).toLowerCase();
     }
 
     int getMaxContentLength(PropertiesProvider propertiesProvider) {
