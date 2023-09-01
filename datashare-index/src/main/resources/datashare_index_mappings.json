@@ -9,29 +9,6 @@
       "properties": {
         "tika_metadata_resourcename": {
           "type": "text",
-          "fielddata": "true",
-          "analyzer": "folding",
-          "fields": {
-            "keyword": {
-              "type": "keyword",
-              "ignore_above": 256
-            }
-          }
-        },
-        "tika_metadata_dc_title": {
-          "type": "text",
-          "fielddata": "true",
-          "analyzer": "folding",
-          "fields": {
-            "keyword": {
-              "type": "keyword",
-              "ignore_above": 256
-            }
-          }
-        },
-        "tika_metadata_dc_subject": {
-          "type": "text",
-          "fielddata": "true",
           "analyzer": "folding",
           "fields": {
             "keyword": {
