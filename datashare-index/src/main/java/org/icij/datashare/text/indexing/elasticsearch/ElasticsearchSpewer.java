@@ -1,6 +1,9 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import com.google.inject.Inject;
+import org.apache.tika.metadata.DublinCore;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
@@ -24,10 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Paths.get;
@@ -131,6 +131,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("contentType", ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0]);
         jsonDocument.put("contentLength", Long.valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")));
         jsonDocument.put("contentEncoding", ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN));
+        jsonDocument.put("title", ofNullable(getTitle(document.getMetadata())).orElse(DEFAULT_VALUE_UNKNOWN));
+        jsonDocument.put("titleNorm", Optional.of(getTitle(document.getMetadata()).toLowerCase()).orElse(DEFAULT_VALUE_UNKNOWN));
 
         String content = toString(document.getReader()).trim();
         if (maxContentLength != -1 && content.length() > maxContentLength) {
@@ -155,6 +157,16 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         jsonDocument.put("documentId", document.getId());
 
         return jsonDocument;
+    }
+
+    String getTitle(Metadata metadata) {
+        if (metadata.get(DublinCore.SUBJECT) != null) {
+            return metadata.get(DublinCore.SUBJECT);
+        } else if (metadata.get(DublinCore.TITLE) != null) {
+            return metadata.get(DublinCore.TITLE);
+        } else {
+            return metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY);
+        }
     }
 
     public ElasticsearchSpewer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
