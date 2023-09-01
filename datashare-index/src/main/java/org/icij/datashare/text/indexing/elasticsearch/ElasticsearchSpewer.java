@@ -160,9 +160,9 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     String getTitle(Metadata metadata) {
-        if (metadata.get(DublinCore.SUBJECT) != null) {
+        if (metadata.get(DublinCore.SUBJECT) != null && !metadata.get(DublinCore.SUBJECT).isEmpty()) {
             return metadata.get(DublinCore.SUBJECT);
-        } else if (metadata.get(DublinCore.TITLE) != null) {
+        } else if (metadata.get(DublinCore.TITLE) != null && !metadata.get(DublinCore.TITLE).isEmpty()) {
             return metadata.get(DublinCore.TITLE);
         } else {
             return metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY);
