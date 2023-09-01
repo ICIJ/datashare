@@ -29,6 +29,13 @@
     "path": {
       "type": "keyword"
     },
+    "title": {
+      "type": "keyword"
+    },
+    "titleNorm": {
+      "type": "text",
+      "fielddata": "true"
+    },
     "dirname": {
       "type": "keyword",
       "fields": {
