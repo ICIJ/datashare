@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.apache.tika.metadata.DublinCore;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParsingReader;
 import org.elasticsearch.action.get.GetRequest;
@@ -185,6 +186,48 @@ public class ElasticsearchSpewerTest {
 
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
         assertThat(documentFields.getSourceAsMap()).includes(entry("contentLength", 7862117376L));
+    }
+
+    @Test
+    public void test_title_and_title_norm() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("T-File.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+        document.setReader(reader);
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "T-File.txt"));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "t-file.txt"));
+    }
+
+    @Test
+    public void test_title_and_title_norm_for_an_email() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("E-File.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+        document.setReader(reader);
+        document.getMetadata().set(DublinCore.TITLE, "Email Title");
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "Email Title"));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "email title"));
+    }
+
+    @Test
+    public void test_title_and_title_norm_for_a_tweet() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("Tweet-File.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+        document.setReader(reader);
+        document.getMetadata().set(DublinCore.TITLE, "Email Title");
+        document.getMetadata().set(DublinCore.SUBJECT, "Tweet Title");
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "Tweet Title"));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "tweet title"));
     }
 
     @Test
