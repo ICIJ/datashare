@@ -160,14 +160,29 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return jsonDocument;
     }
 
-    String getTitle(Metadata metadata) {
-        if (metadata.get(DublinCore.SUBJECT) != null && !metadata.get(DublinCore.SUBJECT).isEmpty()) {
-            return metadata.get(DublinCore.SUBJECT);
-        } else if (metadata.get(DublinCore.TITLE) != null && !metadata.get(DublinCore.TITLE).isEmpty()) {
-            return metadata.get(DublinCore.TITLE);
-        } else {
-            return metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY);
+    protected boolean isEmail(Metadata metadata) {
+        String contentType = ofNullable(metadata.get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN);
+        return contentType.startsWith("message/") || contentType.equals("application/vnd.ms-outlook");
+    }
+
+    protected boolean isTweet(Metadata metadata) {
+        return ofNullable(metadata.get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).equals("application/json; twint");
+    }
+
+    protected String getTitle(Metadata metadata) {
+        if (isEmail(metadata)) {
+            if (metadata.get(DublinCore.SUBJECT) != null && !metadata.get(DublinCore.SUBJECT).isEmpty()) {
+                return metadata.get(DublinCore.SUBJECT);
+            } else if (metadata.get(DublinCore.TITLE) != null && !metadata.get(DublinCore.TITLE).isEmpty()) {
+                return metadata.get(DublinCore.TITLE);
+            }
         }
+        if (isTweet(metadata)) {
+            if (metadata.get(DublinCore.TITLE) != null && !metadata.get(DublinCore.TITLE).isEmpty()) {
+                return metadata.get(DublinCore.TITLE);
+            }
+        }
+        return metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY);
     }
 
     public ElasticsearchSpewer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {

@@ -1,14 +1,21 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.apache.tika.metadata.DublinCore;
+import org.apache.tika.metadata.HttpHeaders;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParsingReader;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.QueryStringQueryBuilder;
+import org.elasticsearch.index.query.SimpleQueryStringBuilder;
+import org.elasticsearch.index.reindex.DeleteByQueryRequest;
+import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
@@ -28,6 +35,7 @@ import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.UpdatableDigester;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -42,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static java.nio.file.Paths.get;
+import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -202,32 +211,77 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
-    public void test_title_and_title_norm_for_an_email() throws Exception {
-        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("E-File.txt"));
+    public void test_title_and_title_norm_for_an_tweet() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("Tweet-File.json"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
         document.setReader(reader);
-        document.getMetadata().set(DublinCore.TITLE, "Email Title");
+        document.getMetadata().set(CONTENT_TYPE, "application/json; twint");
 
         spewer.write(document);
 
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
-        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "Email Title"));
-        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "email title"));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "Tweet-File.json"));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "tweet-file.json"));
     }
 
     @Test
-    public void test_title_and_title_norm_for_a_tweet() throws Exception {
-        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("Tweet-File.txt"));
+    public void test_title_and_title_norm_for_an_tweet_with_dc_title() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("Tweet-File.json"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
         document.setReader(reader);
-        document.getMetadata().set(DublinCore.TITLE, "Email Title");
-        document.getMetadata().set(DublinCore.SUBJECT, "Tweet Title");
+        document.getMetadata().set(CONTENT_TYPE, "application/json; twint");
+        document.getMetadata().set(DublinCore.TITLE, "This is a tweet.");
 
         spewer.write(document);
 
         GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
-        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "Tweet Title"));
-        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "tweet title"));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "This is a tweet."));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "this is a tweet."));
+    }
+
+    @Test
+    public void test_title_and_title_norm_for_an_email() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("Email-File.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+        document.setReader(reader);
+        document.getMetadata().set(CONTENT_TYPE, "message/http");
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "Email-File.txt"));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "email-file.txt"));
+    }
+
+    @Test
+    public void test_title_and_title_norm_for_an_email_with_dc_title() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("Email-File.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+        document.setReader(reader);
+        document.getMetadata().set(CONTENT_TYPE, "message/http");
+        document.getMetadata().set(DublinCore.TITLE, "This is an email.");
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "This is an email."));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "this is an email."));
+    }
+
+    @Test
+    public void test_title_and_title_norm_for_an_email_with_dc_subject() throws Exception {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("Email-File.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+        document.setReader(reader);
+        document.getMetadata().set(CONTENT_TYPE, "message/http");
+        document.getMetadata().set(DublinCore.TITLE, "This is an email.");
+        document.getMetadata().set(DublinCore.SUBJECT, "This is a more detailed email.");
+
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap()).includes(entry("title", "This is a more detailed email."));
+        assertThat(documentFields.getSourceAsMap()).includes(entry("titleNorm", "this is a more detailed email."));
     }
 
     @Test
@@ -332,6 +386,17 @@ public class ElasticsearchSpewerTest {
                 .isEqualTo(20);
         assertThat((long)spewer.getMaxContentLength(new PropertiesProvider(new HashMap<String, String>() {{ put("maxContentLength", "2G");}})))
                 .isEqualTo(HumanReadableSize.parse("2G")-1); // Integer.MAX_VALUE
+    }
+
+    @After
+    public void after() {
+        try {
+            DeleteByQueryRequest deleteByQueryRequest = new DeleteByQueryRequest("test-datashare");
+            deleteByQueryRequest.setQuery(QueryBuilders.matchAllQuery());
+            es.client.deleteByQuery(deleteByQueryRequest, RequestOptions.DEFAULT).getDeleted();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private Map<String, Object> convert(Metadata metadata) {
