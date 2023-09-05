@@ -33,8 +33,7 @@
       "type": "keyword"
     },
     "titleNorm": {
-      "type": "text",
-      "fielddata": "true"
+      "type": "keyword"
     },
     "dirname": {
       "type": "keyword",
