@@ -61,4 +61,21 @@ public class NamedEntityTest {
         assertThat(withMeta.getId()).isEqualTo(withSameMeta.getId());
         assertThat(withMeta.getId()).isNotEqualTo(withOtherMeta.getId());
     }
+
+    @Test
+    public void test_id_with_metadata_should_be_backward_compatible() {
+        // Given
+        final NamedEntity ent = NamedEntity.create(
+                NamedEntity.Category.PERSON,
+            "mention",
+            List.of(123L),
+            "docId",
+            "rootId",
+            Pipeline.Type.CORENLP,
+            Language.ENGLISH
+        );
+        // Then
+        String idBeforeMetadataAddition = "00a4edf271b22560567021466076e23ce1a1cf9000225692c5a88545491115c28b49fdd56ae30af9ae3065ec9f06541f";
+        assertThat(ent.getId()).isEqualTo(idBeforeMetadataAddition);
+    }
 }
