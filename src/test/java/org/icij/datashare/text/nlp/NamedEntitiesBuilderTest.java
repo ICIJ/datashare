@@ -1,5 +1,6 @@
 package org.icij.datashare.text.nlp;
 
+import java.util.Map;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntitiesBuilder;
 import org.icij.datashare.text.NamedEntity;
@@ -53,5 +54,13 @@ public class NamedEntitiesBuilderTest {
         NamedEntity namedEntity = new NamedEntitiesBuilder(CORENLP, "docId", Language.ENGLISH).
                 add(PERSON, "mention1", 12L).withRoot("rootId").build().get(0);
         assertThat(namedEntity.getRootDocument()).isEqualTo("rootId");
+    }
+
+    @Test
+    public void test_ne_with_metadata() {
+        Map<String, Object> meta = Map.of("some", "metadata");
+        NamedEntity namedEntity = new NamedEntitiesBuilder(CORENLP, "docId", Language.ENGLISH).
+                add(PERSON, "mention1", 12L).withMetadata(meta).build().get(0);
+        assertThat(namedEntity.getMetadata()).isEqualTo(meta);
     }
 }

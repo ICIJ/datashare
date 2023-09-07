@@ -14,18 +14,26 @@ public class NamedEntitiesBuilder {
     private final String docId;
     private final Language language;
     private final Map<Pair<String, NamedEntity.Category>, List<Long>> mentionIndicesMap = new LinkedHashMap<>();
+    private Map<String, Object> metadata;
+
     private String rootId;
 
-    public NamedEntitiesBuilder(Pipeline.Type type, String docId, Language language) {
+
+    public NamedEntitiesBuilder(Pipeline.Type type, String docId, Language language, Map<String, Object> metadata) {
         this.type = type;
         this.docId = docId;
         this.language = language;
         this.rootId = docId;
+        this.metadata = metadata;
+    }
+
+    public NamedEntitiesBuilder(Pipeline.Type type, String docId, Language language) {
+        this(type, docId, language, null);
     }
 
     public List<NamedEntity> build() {
         return mentionIndicesMap.entrySet().stream().map(e ->
-                NamedEntity.create(e.getKey()._2(), e.getKey()._1(), e.getValue(), docId, rootId, type, language)).
+                NamedEntity.create(e.getKey()._2(), e.getKey()._1(), e.getValue(), docId, rootId, type, language, metadata)).
                 collect(Collectors.toList());
     }
 
@@ -37,6 +45,10 @@ public class NamedEntitiesBuilder {
 
     public NamedEntitiesBuilder withRoot(String rootId) {
         this.rootId = rootId;
+        return this;
+    }
+    public NamedEntitiesBuilder withMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
         return this;
     }
 }

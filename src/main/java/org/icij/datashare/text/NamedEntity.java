@@ -47,6 +47,10 @@ public final class NamedEntity implements Entity {
     private final Pipeline.Type extractor;
     private final Language extractorLanguage;
     private final String partsOfSpeech;
+
+    // TODO: we could generics here, but that would break the API
+    private final Map<String, Object> metadata;
+
     private Boolean hidden;
 
     public enum Category implements Serializable {
@@ -101,7 +105,19 @@ public final class NamedEntity implements Entity {
                                      String rootDocument,
                                      Pipeline.Type extr,
                                      Language extrLang) {
-        return new NamedEntity(cat, mention, offsets, doc, rootDocument, extr, extrLang, false, null);
+        return new NamedEntity(cat, mention, offsets, doc, rootDocument, extr, extrLang, false, null, null);
+    }
+
+    public static NamedEntity create(Category cat,
+                                     String mention,
+                                     List<Long> offsets,
+                                     String doc,
+                                     String rootDocument,
+                                     Pipeline.Type extr,
+                                     Language extrLang,
+                                     Map<String, Object> metadata
+                                     ) {
+        return new NamedEntity(cat, mention, offsets, doc, rootDocument, extr, extrLang, false, null, metadata);
     }
 
     public static List<NamedEntity> allFrom(String text, Annotations annotations) {
@@ -133,7 +149,9 @@ public final class NamedEntity implements Entity {
                         @JsonProperty("extractor") Pipeline.Type extractor,
                         @JsonProperty("extractorLanguage") Language extractorLanguage,
                         @JsonProperty("isHidden") Boolean hidden,
-                        @JsonProperty("partOfSpeech") String partsOfSpeech) {
+                        @JsonProperty("partOfSpeech") String partsOfSpeech,
+                        @JsonProperty("metadata") Map<String, Object> metadata
+    ) {
         if (mention == null || mention.isEmpty()) {
             throw new IllegalArgumentException("Mention is undefined");
         }
@@ -153,6 +171,7 @@ public final class NamedEntity implements Entity {
         this.extractorLanguage = extractorLanguage;
         this.hidden = hidden;
         this.partsOfSpeech = partsOfSpeech;
+        this.metadata = metadata;
     }
 
     @Override
@@ -168,6 +187,7 @@ public final class NamedEntity implements Entity {
     public List<Long> getOffsets() { return offsets; }
     public Pipeline.Type getExtractor() { return extractor; }
     public Language getExtractorLanguage() { return extractorLanguage; }
+    public Map<String, Object> getMetadata() { return metadata; }
     @JsonGetter("isHidden")
     public Boolean isHidden() { return hidden; }
     public NamedEntity hide() { this.hidden = true; return this;}
