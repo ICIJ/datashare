@@ -5,6 +5,7 @@
     "content",
     "mentionNorm",
     "content_translated.content",
+    "metadata.emailHeaderField",
     "metadata.tika_metadata_author",
     "metadata.tika_metadata_creator",
     "metadata.tika_metadata_dc_creator",

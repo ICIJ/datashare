@@ -7,6 +7,9 @@
     },
     "metadata" : {
       "properties": {
+        "emailHeaderField": {
+          "type": "keyword"
+        },
         "tika_metadata_resourcename": {
           "type": "text",
           "analyzer": "folding",
