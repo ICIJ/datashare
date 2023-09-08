@@ -140,7 +140,7 @@ public class DocumentBuilder {
         }
         return new Document(project, id, path, content, content_translated, language,
                 charset, mimeType, metadata, documentStatus,
-                pipelines, extractionDate, rootId, parentId, extractionLevel,
+                pipelines, extractionDate, parentId, rootId, extractionLevel,
                 contentLength, tags);
     }
 
