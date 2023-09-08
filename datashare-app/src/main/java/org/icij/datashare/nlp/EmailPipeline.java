@@ -1,13 +1,13 @@
 package org.icij.datashare.nlp;
 
 import com.google.inject.Inject;
+import java.util.stream.Collectors;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntitiesBuilder;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.nlp.AbstractPipeline;
-import org.icij.datashare.text.nlp.Annotations;
 import org.icij.datashare.text.nlp.NlpStage;
 
 import java.nio.charset.Charset;
@@ -17,18 +17,16 @@ import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableSet;
-import static java.util.stream.Collectors.joining;
-import static org.icij.datashare.text.NamedEntity.allFrom;
 import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
 
 
 /**
  * this is a fake NLP pipeline. It just uses syntactic methods to find
  * emails in document contents.
- * <p>
+ *
  * it uses the regexp mentioned here :
  * https://stackoverflow.com/questions/201323/how-to-validate-an-email-address-using-a-regular-expression
- * <p>
+ *
  * It implements the same API as the NLP pipelines to integrate seamlessly to datashare.
  *
  * if the the document is an rfc822 email
@@ -37,12 +35,12 @@ import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
  *
  * These fields are supposed to contain email addresses that we want to
  * save as named entities.
- *
  */
 public class EmailPipeline extends AbstractPipeline {
     private static final String DEFAULT_METADATA_FIELD_PREFIX = "tika_metadata_";
     private static final String RAW_HEADER_FIELD_PREFIX = "Message-Raw-Header-";
     private static final String MESSAGE_FIELD_PREFIX = "Message-";
+    private static final String MESSAGE_HEADER_FIELD = "emailHeaderField";
     final Pattern pattern = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b" +
             "\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@" +
             "(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|" +
@@ -96,15 +94,35 @@ public class EmailPipeline extends AbstractPipeline {
             int start = matcher.start();
             namedEntitiesBuilder.add(NamedEntity.Category.EMAIL, email, start + contentOffset);
         }
+        List<NamedEntity> entities = namedEntitiesBuilder.build();
         if ("message/rfc822".equals(doc.getContentType())) {
-            String metadataString = parsedEmailHeaders.stream().map(key -> doc.getMetadata().getOrDefault(key, "").toString()).collect(joining(" "));
-            Matcher metaMatcher = pattern.matcher(metadataString);
-            while (metaMatcher.find()) {
-                namedEntitiesBuilder.add(NamedEntity.Category.EMAIL, metaMatcher.group(0), -1);
-            }
+            entities.addAll(processMetadata(doc));
         }
-        return namedEntitiesBuilder.build();
+        return entities;
     }
+
+    protected List<NamedEntity> processMetadata(Document doc) {
+        return parsedEmailHeaders
+            .stream()
+            .flatMap(k -> Optional.ofNullable(doc.getMetadata().get(k))
+                .map(m -> {
+                    Map<String, Object> meta = Map.of(MESSAGE_HEADER_FIELD, k);
+                    NamedEntitiesBuilder builder = new NamedEntitiesBuilder(
+                        EMAIL, doc.getId(), doc.getLanguage())
+                        .withRoot(doc.getRootDocument())
+                        .withMetadata(meta);
+                    Matcher metaMatcher = pattern.matcher(m.toString());
+                    while (metaMatcher.find()) {
+                        builder.add(NamedEntity.Category.EMAIL, metaMatcher.group(0),
+                            -1);
+                    }
+                    return builder.build();
+                }).stream()
+            )
+            .flatMap(Collection::stream)
+            .collect(Collectors.toList());
+    }
+
 
     public static String tikaRawHeader(String s) {
         return tika(RAW_HEADER_FIELD_PREFIX + s);
