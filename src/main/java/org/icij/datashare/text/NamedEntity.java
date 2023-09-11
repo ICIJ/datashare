@@ -158,6 +158,7 @@ public final class NamedEntity implements Entity {
         }
         this.mentionNorm = normalize(mention);
         ArrayList<String> hashed = Stream.of(
+            "|",
             documentId,
             String.valueOf(offsets),
             extractor.toString(),
