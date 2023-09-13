@@ -23,10 +23,10 @@ import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
 /**
  * this is a fake NLP pipeline. It just uses syntactic methods to find
  * emails in document contents.
- *
+ * <p>
  * it uses the regexp mentioned here :
  * https://stackoverflow.com/questions/201323/how-to-validate-an-email-address-using-a-regular-expression
- *
+ * <p>
  * It implements the same API as the NLP pipelines to integrate seamlessly to datashare.
  *
  * if the the document is an rfc822 email
@@ -35,6 +35,7 @@ import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
  *
  * These fields are supposed to contain email addresses that we want to
  * save as named entities.
+ *
  */
 public class EmailPipeline extends AbstractPipeline {
     private static final String DEFAULT_METADATA_FIELD_PREFIX = "tika_metadata_";
