@@ -5,10 +5,11 @@
       "index_options": "offsets",
       "analyzer": "folding"
     },
-    "metadata" : {
+    "metadata": {
       "properties": {
         "emailHeaderField": {
-          "type": "keyword"
+          "type": "keyword",
+          "enabled": false
         },
         "tika_metadata_resourcename": {
           "type": "text",
