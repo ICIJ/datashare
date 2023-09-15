@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import org.icij.datashare.ExtensionService;
+import org.icij.datashare.ExtensionServiceTest;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
@@ -88,7 +89,8 @@ public class ExtensionResourceTest extends AbstractProdWebServerTest  {
     public void setUp() {
         initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        configure(routes -> routes.add(new ExtensionResource(new ExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+        configure(routes -> routes.add(new ExtensionResource(
+            ExtensionServiceTest.createExtensionService(extensionFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                 "{\"id\":\"my-extension\",\"name\":\"My extension\",\"description\":\"Description of my extension\",\"version\":\"1.0.1\",\"type\":\"WEB\",\"url\": \"" + ClassLoader.getSystemResource(("my-extension-1.0.1.jar")) + "\"}," +
                 "{\"id\":\"my-other-extension\",\"name\":\"My other extension\",\"description\":\"Description of my other extension\",\"type\":\"WEB\",\"url\": \"https://dummy.url/foo.jar\"}" +
                 "]}").getBytes())))).filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));

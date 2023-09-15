@@ -1,5 +1,7 @@
 package org.icij.datashare;
 
+import java.io.InputStream;
+import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -20,6 +22,11 @@ import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR;
 public class ExtensionServiceTest {
     @Rule public TemporaryFolder extensionFolder = new TemporaryFolder();
     @Rule public TemporaryFolder otherFolder = new TemporaryFolder();
+
+    public static ExtensionService createExtensionService(Path extensionsDir,
+                                                          InputStream inputStream) {
+        return new ExtensionService(extensionsDir, inputStream);
+    }
 
     @Test
     public void test_get_list() {

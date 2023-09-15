@@ -1,6 +1,7 @@
 package org.icij.datashare;
 
 
+import java.net.URISyntaxException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -246,13 +247,37 @@ public class PluginServiceTest {
     }
 
     @Test
-    public void test_delete_previous_extension_if_version_differs_with_url() throws Exception {
-        pluginFolder.newFolder("my-plugin-1.0.0");
-        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath());
-
-        pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin-1.1.0.tgz"));
-
-        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-1.0.0").toFile()).doesNotExist();
+    public void test_install_plugin_with_extension() throws IOException {
+        // Given
+        File extensionDir = pluginFolder.newFolder("my-extension-dir");
+        String extensionRegistry = ""
+            + "{"
+            + "    \"deliverableList\": ["
+            + "        {"
+            + "            \"id\":\"my-extension\","
+            + "            \"url\": \"" + ClassLoader.getSystemResource("my-extension-1.0.1.jar") + "\""
+            + "        }"
+            + "     ]"
+            + "}";
+        ExtensionService extensionService = new ExtensionService(extensionDir.toPath(), new ByteArrayInputStream(extensionRegistry.getBytes()));
+        String pluginRegistry = ""
+            + "{"
+            + "    \"deliverableList\": ["
+            + "        {"
+            + "            \"id\":\"my-plugin-with-extension\", "
+            + "            \"url\": \"" + ClassLoader.getSystemResource("my-plugin-1.1.0.tgz") + "\","
+            + "            \"extensions\": [\"my-extension\"]"
+            + "        }"
+            + "     ]"
+            + "}";
+        PluginService pluginService = new PluginService(
+            pluginFolder.getRoot().toPath(),
+            new ByteArrayInputStream(pluginRegistry.getBytes()), extensionService
+        );
+        // When
+        pluginService.downloadAndInstall("my-plugin-with-extension");
+        // Then
+        assertThat(extensionDir.toPath().resolve("my-extension-1.0.1.jar").toFile()).exists();
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-1.1.0").toFile()).exists();
     }
 

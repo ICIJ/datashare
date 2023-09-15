@@ -34,8 +34,9 @@ class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
     static void start(Properties properties) throws Exception {
-        process(new PluginService(new PropertiesProvider(properties)), properties);
-        process(new ExtensionService(new PropertiesProvider(properties)), properties);
+        ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
+        process(extensionService, properties);
+        process(new PluginService(new PropertiesProvider(properties), extensionService), properties);
         CommonMode commonMode = CommonMode.create(properties);
         runTaskRunner(commonMode, properties);
     }

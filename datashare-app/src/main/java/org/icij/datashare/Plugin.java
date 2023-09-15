@@ -22,6 +22,7 @@ import static org.apache.commons.io.FilenameUtils.getBaseName;
 
 public class Plugin extends Extension {
     private static final Pattern versionBeginsWithV = Pattern.compile("v[0-9.]*");
+    public final List<String> extensions;
 
     @JsonCreator
     public Plugin(@JsonProperty("id") String id,
@@ -29,12 +30,20 @@ public class Plugin extends Extension {
                   @JsonProperty("version") String version,
                   @JsonProperty("description") String description,
                   @JsonProperty("url") URL url,
-                  @JsonProperty("homepage") URL homepage){
+                  @JsonProperty("homepage") URL homepage,
+                  @JsonProperty("extensions") List<String> extensions
+    ){
         super(id, name, version, description, url, homepage, Type.PLUGIN);
+        this.extensions = extensions == null ? List.of() : extensions;
+    }
+
+    public Plugin(String id, String name, String version, String description, URL url, URL homepage){
+        this(id, name, version, description, url, homepage, null);
     }
 
     Plugin(URL url) {
         super(url,Type.PLUGIN);
+        this.extensions = List.of();
     }
 
     @Override
