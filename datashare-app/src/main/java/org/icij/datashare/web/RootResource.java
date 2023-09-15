@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
+import org.icij.datashare.ExtensionService;
 import org.icij.datashare.PluginService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.session.DatashareUser;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.apache.commons.io.IOUtils.copy;
+import static org.icij.datashare.PropertiesProvider.EXTENSIONS_DIR;
 import static org.icij.datashare.PropertiesProvider.PLUGINS_DIR;
 
 @Singleton
@@ -36,9 +38,7 @@ public class RootResource {
     private final PropertiesProvider propertiesProvider;
 
     @Inject
-    public RootResource(PropertiesProvider propertiesProvider) {
-        this.propertiesProvider = propertiesProvider;
-    }
+    public RootResource(PropertiesProvider propertiesProvider) {this.propertiesProvider = propertiesProvider;}
 
     @Get
     public String getRoot(Context context) throws IOException {
@@ -51,10 +51,13 @@ public class RootResource {
         } else {
             content = new String(Files.readAllBytes(index), Charset.defaultCharset());
         }
-        List<String> projects = context.currentUser() == null ? new LinkedList<String>() : ((DatashareUser)context.currentUser()).getProjectNames();
-        return propertiesProvider.get(PLUGINS_DIR).isPresent() ?
-                new PluginService(propertiesProvider).addPlugins(content, projects):
-                content;
+        List<String> projects = context.currentUser() == null ? new LinkedList<>() : ((DatashareUser)context.currentUser()).getProjectNames();
+        if (propertiesProvider.get(PLUGINS_DIR).isPresent()) {
+            ExtensionService extensionService = propertiesProvider.get(EXTENSIONS_DIR).isPresent() ? new ExtensionService(propertiesProvider): null;
+            return new PluginService(propertiesProvider, extensionService)
+                .addPlugins(content, projects);
+        }
+        return content;
     }
 
     @Operation(description = "Gets the public (i.e. without user's information) datashare settings parameters.<br>" +

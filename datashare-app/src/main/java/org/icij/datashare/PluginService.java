@@ -22,17 +22,23 @@ import static org.icij.datashare.cli.DatashareCliOptions.*;
 public class PluginService extends DeliverableService<Plugin> {
     public static final String DEFAULT_PLUGIN_REGISTRY_FILENAME = "plugins.json";
     public static final String PLUGINS_BASE_URL = "/plugins";
+    private final ExtensionService extensionService;
 
     public PluginService() { this(Paths.get("." + PLUGINS_BASE_URL));}
 
     @Inject
-    public PluginService(PropertiesProvider propertiesProvider) {
-        this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse("." + PLUGINS_BASE_URL)));
+    public PluginService(PropertiesProvider propertiesProvider, ExtensionService  extensionService) {
+        this(Paths.get(propertiesProvider.get(PropertiesProvider.PLUGINS_DIR).orElse("." + PLUGINS_BASE_URL)), extensionService);
     }
 
     public PluginService(Path pluginsDir) { this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME));}
-    public PluginService(Path pluginsDir, InputStream inputStream) {
+    public PluginService(Path pluginsDir, ExtensionService extensionService) { this(pluginsDir, ClassLoader.getSystemResourceAsStream(DEFAULT_PLUGIN_REGISTRY_FILENAME), extensionService);}
+    public PluginService(Path pluginsDir, InputStream inputStream, ExtensionService extensionService) {
         super(pluginsDir, inputStream);
+        this.extensionService = extensionService;
+    }
+    public PluginService(Path pluginsDir, InputStream inputStream) {
+        this(pluginsDir, inputStream, null);
     }
 
     @Override
@@ -45,6 +51,27 @@ public class PluginService extends DeliverableService<Plugin> {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void downloadAndInstall(String extensionId) throws IOException {
+        downloadAndInstallWithExtension(deliverableRegistry.get(extensionId));
+    }
+
+    @Override
+    public void downloadAndInstall(URL url) throws IOException {
+        downloadAndInstallWithExtension(newDeliverable(url));
+    }
+
+    private void downloadAndInstallWithExtension(Plugin plugin) throws IOException {
+        if (!plugin.extensions.isEmpty() && extensionService == null) {
+            throw new NullPointerException("extensionService is required to install plugin with extensions");
+        }
+        for (String extension : plugin.extensions) {
+            extensionService.downloadAndInstall(extension);
+        }
+        File tmpFile = plugin.download();
+        plugin.install(tmpFile, deliverablesDir);
     }
 
     public String addPlugins(String stringContent, List<String> userProjects) {
