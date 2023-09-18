@@ -34,7 +34,7 @@ public class Plugin extends Extension {
                   @JsonProperty("extensions") List<String> extensions
     ){
         super(id, name, version, description, url, homepage, Type.PLUGIN);
-        this.extensions = extensions == null ? List.of() : extensions;
+        this.extensions = ofNullable(extensions).orElse(List.of());
     }
 
     public Plugin(String id, String name, String version, String description, URL url, URL homepage){
