@@ -2,6 +2,7 @@ package org.icij.datashare.web;
 
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
@@ -21,8 +22,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Singleton
 public class IndexWaiterFilter implements Filter {
-    private Logger LOGGER = LoggerFactory.getLogger(getClass());
-    private static int TIMEOUT_SECONDS = 45;
+    private final Logger LOGGER = LoggerFactory.getLogger(getClass());
+    private static final int TIMEOUT_SECONDS = 45;
     private static final String WAIT_CONTENT = "<!DOCTYPE html>" +
             "<head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"2\"><title>Datashare</title></head>" +
             "<body>waiting for Datashare to be up...</body>";
@@ -37,9 +38,9 @@ public class IndexWaiterFilter implements Filter {
     }
 
     @Override
-    public Payload apply(String s, Context context, PayloadSupplier payloadSupplier) throws Exception {
-        if (!indexOk.get()) {
-            return new Payload("text/html", WAIT_CONTENT);
+    public Payload apply(String uri, Context context, PayloadSupplier payloadSupplier) throws Exception {
+        if (!indexOk.get() && !"/api/status".equals(uri)) {
+            return new Payload("text/html", WAIT_CONTENT, HttpStatus.SERVICE_UNAVAILABLE);
         }
         return payloadSupplier.get();
     }
