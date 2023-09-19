@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
 import net.codestory.http.annotations.Prefix;
+import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
@@ -42,6 +44,8 @@ public class StatusResource {
     @Operation(description = "Retrieve the status of databus connection, database connection, shared queues and index.",
             parameters = { @Parameter(name = "format=openmetrics", description = "if provided in the URL it will return the status in openmetrics format", in = ParameterIn.QUERY) })
     @ApiResponse(responseCode = "200", description = "returns the status of datashare elements", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "504", description = "proxy error when elasticsearch is down", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "503", description = "service unavailable when other services are down", useReturnTypeSchema = true)
     @Get("/status")
     public Payload getStatus(Context context) {
         boolean queueStatus = false;
@@ -57,7 +61,7 @@ public class StatusResource {
             return new Payload("text/plain;version=0.0.4",
                     new StatusMapper("datashare", status, propertiesProvider.get("platform").orElse(null)).toString());
         } else {
-            return new Payload(status);
+            return new Payload("application/json", status, status.getHttpStatus());
         }
     }
 
@@ -74,6 +78,16 @@ public class StatusResource {
             this.databus = databus;
             this.document_queue_status = queue;
             this.document_queue_size = queueSize;
+        }
+
+        @JsonIgnore
+        int getHttpStatus() {
+            if (!index) {
+                return HttpStatus.GATEWAY_TIMEOUT;
+            } else if (!databus || !database) {
+                return HttpStatus.SERVICE_UNAVAILABLE;
+            }
+            return HttpStatus.OK;
         }
     }
 }
