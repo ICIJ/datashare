@@ -39,21 +39,48 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_database_status() {
+    public void test_get_status_ok() {
         when(repository.getHealth()).thenReturn(true);
-        get("/api/status").should().respond(200).contain("\"database\":true");
+        when(indexer.getHealth()).thenReturn(true);
+        when(dataBus.getHealth()).thenReturn(true);
+        get("/api/status").should().respond(200).
+                contain("\"database\":true").
+                contain("\"index\":true").
+                contain("\"database\":true");
     }
 
     @Test
     public void test_get_index_status() {
         when(indexer.getHealth()).thenReturn(true);
-        get("/api/status").should().respond(200).contain("\"index\":true");
+        get("/api/status").should().respond(503).contain("\"index\":true");
     }
 
     @Test
-    public void test_get_dataBus_status() {
+    public void test_get_database_status_when_down() {
+        when(repository.getHealth()).thenReturn(false);
+        when(indexer.getHealth()).thenReturn(true);
+        get("/api/status").should().respond(503).contain("\"database\":false").haveType("application/json");
+    }
+
+    @Test
+    public void test_get_index_status_when_down() {
         when(dataBus.getHealth()).thenReturn(true);
-        get("/api/status").should().respond(200).contain("\"databus\":true");
+        when(indexer.getHealth()).thenReturn(false);
+        when(repository.getHealth()).thenReturn(true);
+        get("/api/status").should().respond(504).contain("\"index\":false").haveType("application/json");
+    }
+
+    @Test
+    public void test_get_index_status_prevails_on_others() {
+        when(indexer.getHealth()).thenReturn(false);
+        get("/api/status").should().respond(504).contain("\"index\":false").haveType("application/json");
+    }
+
+    @Test
+    public void test_get_dataBus_status_when_down() {
+        when(dataBus.getHealth()).thenReturn(false);
+        when(indexer.getHealth()).thenReturn(true);
+        get("/api/status").should().respond(503).contain("\"databus\":false").haveType("application/json");
     }
 
     @Test
@@ -87,7 +114,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_queue_status() {
-        get("/api/status").should().respond(200).
+        get("/api/status").should().respond(504).
                 contain("\"document_queue_status\":true").
                 contain("\"document_queue_size\":0");
     }
@@ -96,8 +123,9 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     public void test_get_queue_with_io_exception() {
         DocumentQueue mockQueue = mock(DocumentQueue.class);
         when(mockQueue.size()).thenThrow(new RuntimeException("test"));
+        when(indexer.getHealth()).thenReturn(true);
         when(documentCollectionFactory.createQueue(any(),eq(new PropertiesProvider().get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue")))).thenReturn(mockQueue);
         configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,dataBus,documentCollectionFactory)));
-        get("/api/status").should().respond(200).contain("\"document_queue_status\":false");
+        get("/api/status").should().respond(503).contain("\"document_queue_status\":false");
     }
 }
