@@ -404,9 +404,10 @@ public class DocumentResource {
     }
 
     private Payload getPayload(Document doc, String index, boolean inline, boolean filterMetadata) throws IOException {
-        try (InputStream from = new SourceExtractor(filterMetadata).getSource(project(index), doc)) {
+        try {
+            InputStream from = new SourceExtractor(filterMetadata).getSource(project(index), doc);
             String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
-            Payload payload = new Payload(contentType, InputStreams.readBytes(from));
+            Payload payload = new Payload(contentType, from);
             String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
             return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
         } catch (FileNotFoundException fnf) {
