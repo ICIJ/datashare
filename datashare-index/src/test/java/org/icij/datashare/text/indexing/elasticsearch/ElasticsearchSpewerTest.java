@@ -94,7 +94,7 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_write_with_correct_iso1_language() throws Exception {
         Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
-        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("language", "zho");
         }}));
         TikaDocument document = new Extractor(documentFactory).extract(path);
@@ -110,7 +110,7 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_write_with_correct_iso2_language() throws Exception {
         Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/jpn.txt")).getPath());
-        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("language", "jpn");
         }}));
         TikaDocument document = new Extractor(documentFactory).extract(path);
@@ -126,7 +126,7 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_write_with_correct_language_name() throws Exception {
         Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/maltese.txt")).getPath());
-        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("language", "Maltese");
         }}));
         TikaDocument document = new Extractor(documentFactory).extract(path);
@@ -143,7 +143,7 @@ public class ElasticsearchSpewerTest {
     public void test_write_with_incorrect_language() throws Exception {
         Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
 
-        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+        DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("language", "foo");
         }}));
         TikaDocument document = new Extractor(documentFactory).extract(path);
@@ -307,7 +307,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_extract_id_should_be_equal_to_datashare_id() throws IOException {
-        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("idDigestMethod", Document.HASHER.toString());
         }}));
         Extractor extractor = new Extractor(tikaFactory);
@@ -328,7 +328,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_duplicate_file() throws Exception {
-        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
+        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("idDigestMethod", Document.HASHER.toString());
         }}));
         Extractor extractor = new Extractor(tikaFactory);
@@ -351,8 +351,8 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_truncated_content() throws Exception {
         ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(es.client,
-                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<String, String>() {{
-                    put("maxContentLength", "20");
+                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<>() {{
+            put("maxContentLength", "20");
         }})).withRefresh(IMMEDIATE).withIndex("test-datashare");
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("fake-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content should be truncated".getBytes()));
@@ -367,8 +367,8 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_truncated_content_if_document_is_smaller_than_limit() throws Exception {
         ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(es.client,
-                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<String, String>() {{
-                    put("maxContentLength", "20");
+                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<>() {{
+            put("maxContentLength", "20");
         }})).withRefresh(IMMEDIATE).withIndex("test-datashare");
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("ok-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content is ok".getBytes()));
@@ -382,9 +382,9 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_get_max_content_length_is_limited_to_2G() {
-        assertThat(spewer.getMaxContentLength(new PropertiesProvider(new HashMap<String, String>() {{ put("maxContentLength", "20");}})))
+        assertThat(spewer.getMaxContentLength(new PropertiesProvider(new HashMap<>() {{put("maxContentLength", "20");}})))
                 .isEqualTo(20);
-        assertThat((long)spewer.getMaxContentLength(new PropertiesProvider(new HashMap<String, String>() {{ put("maxContentLength", "2G");}})))
+        assertThat((long)spewer.getMaxContentLength(new PropertiesProvider(new HashMap<>() {{put("maxContentLength", "2G");}})))
                 .isEqualTo(HumanReadableSize.parse("2G")-1); // Integer.MAX_VALUE
     }
 
