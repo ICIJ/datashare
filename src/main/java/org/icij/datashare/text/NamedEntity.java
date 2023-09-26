@@ -156,7 +156,7 @@ public final class NamedEntity implements Entity {
             throw new IllegalArgumentException("Mention is undefined");
         }
         this.mentionNorm = normalize(mention);
-        this.id = HASHER.hash( String.join("|",
+        this.id = DEFAULT_DIGESTER.hash( String.join("|",
                 documentId,
                 String.valueOf(offsets),
                 extractor.toString(),

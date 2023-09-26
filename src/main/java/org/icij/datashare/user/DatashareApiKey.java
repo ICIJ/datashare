@@ -20,7 +20,7 @@ public class DatashareApiKey implements ApiKey {
     }
 
     public DatashareApiKey(SecretKey secretKey, User user) {
-        this(HASHER.hash(getBase64Encoded(secretKey)), user);
+        this(DEFAULT_DIGESTER.hash(getBase64Encoded(secretKey)), user);
     }
 
     public DatashareApiKey(String hashedKey, User user) {
@@ -35,7 +35,7 @@ public class DatashareApiKey implements ApiKey {
 
     @Override
     public boolean match(String base64Key) {
-        return HASHER.hash(base64Key).equals(hashedKey);
+        return DEFAULT_DIGESTER.hash(base64Key).equals(hashedKey);
     }
 
     public static String getBase64Encoded(SecretKey secretKey) {

@@ -14,7 +14,7 @@ import java.util.Optional;
 /**
  * DataShare Source File Path
  *
- * id = {@link org.icij.datashare.Entity#HASHER}({@code path})
+ * id = {@link org.icij.datashare.Entity#DEFAULT_DIGESTER}({@code path})
  *
  * Created by julien on 2/3/17.
  */
@@ -58,7 +58,7 @@ public class SourcePath implements Entity {
         if ( ! Files.isReadable(path))
             throw new IllegalArgumentException("File " + path + " is not readable.");
         this.path = path;
-        this.hash = HASHER.hash(getPath().toString());
+        this.hash = DEFAULT_DIGESTER.hash(getPath().toString());
         this.asOf = new Date();
     }
 

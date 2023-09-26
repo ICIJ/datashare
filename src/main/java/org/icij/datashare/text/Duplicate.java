@@ -14,7 +14,7 @@ public class Duplicate implements Entity {
     private final String id;
 
     public Duplicate(final Path path, final String docId) {
-        this.id = HASHER.hash(path);
+        this.id = DEFAULT_DIGESTER.hash(path);
         this.path = path;
         this.documentId = docId;
     }

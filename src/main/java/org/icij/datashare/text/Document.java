@@ -126,7 +126,7 @@ public class Document implements Entity {
     }
 
     static String getHash(Project project, Path path) {
-        return HASHER.hash(path, project.getId());
+        return DEFAULT_DIGESTER.hash(path, project.getId());
     }
 
     @Override
