@@ -79,7 +79,7 @@ public class DatashareExtractIntegrationTest {
 
     Extractor createExtractor() {
         Extractor extractor = new Extractor(new DocumentFactory().withIdentifier(new DigestIdentifier("SHA-384", Charset.defaultCharset())));
-        extractor.setDigester(new UpdatableDigester("test", Entity.HASHER.toString()));
+        extractor.setDigester(new UpdatableDigester("test", Entity.DEFAULT_DIGESTER.toString()));
         return extractor;
     }
 }

@@ -53,6 +53,8 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_BATCH_DOWNLOAD_MAX_SIZE = "100M";
     public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
     public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
+    public static final String DIGEST_ALGORITHM_OPT = "digestAlgorithm";
+    public static final String DIGEST_PROJECT_NAME = "digestProjectName";
 
     static void stages(OptionParser parser) {
         parser.acceptsAll(
@@ -540,5 +542,18 @@ public final class DatashareCliOptions {
                 singletonList("sessionStoreType"), "Type of session store")
                 .withRequiredArg()
                 .ofType(QueueType.class).defaultsTo(QueueType.MEMORY);
+    }
+
+    public static void digestMethod(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(DIGEST_ALGORITHM_OPT))
+                .withRequiredArg().ofType(DigestAlgorithm.class)
+                .defaultsTo(DigestAlgorithm.SHA_384).withValuesConvertedBy(new DigestAlgorithm.DigestAlgorithmConverter());
+    }
+
+    public static void digestProjectName(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(DIGEST_PROJECT_NAME))
+                        .withRequiredArg().ofType(String.class);
     }
 }

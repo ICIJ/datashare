@@ -28,7 +28,7 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
     public ApiKey get(String base64Key) {
         return createApiKey(DSL.using(connectionProvider, dialect).
                 selectFrom(API_KEY).
-                where(API_KEY.ID.eq(ApiKey.HASHER.hash(base64Key))).fetchOne());
+                where(API_KEY.ID.eq(ApiKey.DEFAULT_DIGESTER.hash(base64Key))).fetchOne());
     }
 
     @Override

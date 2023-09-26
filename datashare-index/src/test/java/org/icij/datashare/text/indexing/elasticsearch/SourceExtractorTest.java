@@ -71,11 +71,11 @@ public class SourceExtractorTest {
     @Test
     public void test_get_source_for_embedded_doc() throws Exception {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
-            put("idDigestMethod", Document.HASHER.toString());
+            put("idDigestMethod", Document.DEFAULT_DIGESTER.toString());
         }}));
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         Extractor extractor = new Extractor(tikaFactory);
-        extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.HASHER.toString()));
+        extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.DEFAULT_DIGESTER.toString()));
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
                 l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
@@ -95,11 +95,11 @@ public class SourceExtractorTest {
     @Test
     public void test_get_source_for_embedded_doc_without_metadata() throws Exception {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<String, String>() {{
-            put("idDigestMethod", Document.HASHER.toString());
+            put("idDigestMethod", Document.DEFAULT_DIGESTER.toString());
         }}));
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         Extractor extractor = new Extractor(tikaFactory);
-        extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.HASHER.toString()));
+        extractor.setDigester(new UpdatableDigester(TEST_INDEX, Document.DEFAULT_DIGESTER.toString()));
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
                 l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
