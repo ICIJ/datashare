@@ -76,7 +76,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
 
-        <datashare-api.version>11.2.0</datashare-api.version>
+        <datashare-api.version>12.0.0</datashare-api.version>
 
         <datashare-cli.version>${project.version}</datashare-cli.version>
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
@@ -85,7 +85,7 @@
         <guice.version>4.1.0</guice.version>
         <amazon.version>1.11.327</amazon.version>
 
-        <extract.version>5.2.1</extract.version>
+        <extract.version>6.0.0</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
         <elasticsearch.version>7.10.2</elasticsearch.version>
         <lucene.version>8.7.0</lucene.version>

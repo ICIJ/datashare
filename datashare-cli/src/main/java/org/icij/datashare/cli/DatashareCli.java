@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DIGEST_PROJECT_NAME;
 
 
 public class DatashareCli {
@@ -112,6 +113,8 @@ public class DatashareCli {
         DatashareCliOptions.oauthTokenUrl(parser);
         DatashareCliOptions.authFilter(parser);
         DatashareCliOptions.oauthCallbackPath(parser);
+        DatashareCliOptions.digestMethod(parser);
+        DatashareCliOptions.digestProjectName(parser);
         return parser;
     }
 

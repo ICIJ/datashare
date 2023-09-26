@@ -308,10 +308,10 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_extract_id_should_be_equal_to_datashare_id() throws IOException {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
-            put("idDigestMethod", Document.HASHER.toString());
+            put("idDigestMethod", Document.DEFAULT_DIGESTER.toString());
         }}));
         Extractor extractor = new Extractor(tikaFactory);
-        extractor.setDigester(new UpdatableDigester("project", Document.HASHER.toString()));
+        extractor.setDigester(new UpdatableDigester("project", Document.DEFAULT_DIGESTER.toString()));
 
         final TikaDocument extractDocument = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()));
         Document document = createDoc(Project.project("project"),get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()))
@@ -329,10 +329,10 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_duplicate_file() throws Exception {
         DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
-            put("idDigestMethod", Document.HASHER.toString());
+            put("idDigestMethod", Document.DEFAULT_DIGESTER.toString());
         }}));
         Extractor extractor = new Extractor(tikaFactory);
-        extractor.setDigester(new UpdatableDigester("project", Document.HASHER.toString()));
+        extractor.setDigester(new UpdatableDigester("project", Document.DEFAULT_DIGESTER.toString()));
 
         final TikaDocument document = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
         final TikaDocument document2 = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc-duplicate.txt")).getPath()));

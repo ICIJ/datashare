@@ -59,7 +59,7 @@ public class IndexerHelper {
     File indexEmbeddedFile(String project, String docPath) throws IOException {
         Path path = get(getClass().getResource(docPath).getPath());
         Extractor extractor = new Extractor(new DocumentFactory().withIdentifier(new DigestIdentifier("SHA-384", Charset.defaultCharset())));
-        extractor.setDigester(new UpdatableDigester(project, Entity.HASHER.toString()));
+        extractor.setDigester(new UpdatableDigester(project, Entity.DEFAULT_DIGESTER.toString()));
         TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer elasticsearchSpewer = new ElasticsearchSpewer(client, l -> ENGLISH,
                 new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");

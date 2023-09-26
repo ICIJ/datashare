@@ -2,7 +2,6 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.com.Channel;
@@ -12,11 +11,9 @@ import org.icij.datashare.com.ShutdownMessage;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.user.User;
-import org.icij.extract.document.DigestIdentifier;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
-import org.icij.extract.extractor.UpdatableDigester;
 import org.icij.extract.queue.DocumentQueueDrainer;
 import org.icij.extract.report.Reporter;
 import org.icij.task.Options;
@@ -24,7 +21,6 @@ import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.Charset;
 import java.util.Properties;
 
 import static java.lang.Math.max;
@@ -58,9 +54,8 @@ public class IndexTask extends PipelineTask implements Monitorable{
         spewer.createIndex();
 
         Options<String> allTaskOptions = options().createFrom(Options.from(properties));
-        DocumentFactory documentFactory = new DocumentFactory().withIdentifier(new DigestIdentifier(Entity.HASHER.toString(), Charset.defaultCharset()));
+        DocumentFactory documentFactory = new DocumentFactory().configure(allTaskOptions);
         Extractor extractor = new Extractor(documentFactory).configure(allTaskOptions);
-        extractor.setDigester(new UpdatableDigester(indexName, Entity.HASHER.toString()));
 
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
         if (propertiesProvider.getProperties().get(MAP_NAME_OPTION) != null) {
