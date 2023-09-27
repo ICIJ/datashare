@@ -460,10 +460,14 @@ public class ElasticsearchIndexer implements Indexer {
     @Override
     public boolean getHealth() {
         try {
-            return client.ping(RequestOptions.DEFAULT);
+            return ping();
         } catch (IOException e) {
             LOGGER.error("Index Health Error : ", e);
             return false;
         }
+    }
+
+    public boolean ping() throws IOException {
+        return client.ping(RequestOptions.DEFAULT);
     }
 }

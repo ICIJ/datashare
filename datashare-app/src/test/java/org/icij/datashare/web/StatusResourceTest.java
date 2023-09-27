@@ -69,7 +69,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
         when(repository.getHealth()).thenReturn(true);
         get("/api/status").should().respond(504).contain("\"index\":false").haveType("application/json");
     }
-
+    
     @Test
     public void test_get_index_status_prevails_on_others() {
         when(indexer.getHealth()).thenReturn(false);

@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.apache.http.ConnectionClosedException;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
@@ -48,6 +49,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.junit.Assert.assertArrayEquals;
+import static org.mockito.Mockito.*;
 
 public class ElasticsearchIndexerTest {
     @ClassRule
@@ -423,6 +425,13 @@ public class ElasticsearchIndexerTest {
     @Test
     public void test_es_index_status() {
         assertThat(indexer.getHealth()).isTrue();
+    }
+
+    @Test
+    public void test_es_index_status_connection_closed() throws IOException {
+        ElasticsearchIndexer indexerSpy = spy(indexer);
+        when(indexerSpy.ping()).thenThrow(new ConnectionClosedException());
+        assertThat(indexerSpy.getHealth()).isFalse();
     }
 
     @Test
