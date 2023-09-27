@@ -101,4 +101,27 @@ public class DatashareCliTest {
         cli.parseArguments(new String[] {"--language", "ENGLISH"});
         assertThat(cli.properties).includes(entry("language", "ENGLISH"));
     }
+
+    @Test
+    public void test_digest_project_name_should_be_the_same_as_default_project() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("defaultProject", "local-datashare"));
+        assertThat(cli.properties).includes(entry("digestProjectName", "local-datashare"));
+    }
+
+    @Test
+    public void test_digest_project_name_should_be_emptied_if_no_digest_project_flag() {
+        cli.parseArguments(new String[] {"--noDigestProject", "true"});
+        assertThat(cli.properties).includes(entry("defaultProject", "local-datashare"));
+        assertThat(cli.properties).includes(entry("noDigestProject", "true"));
+        assertThat(cli.properties.getProperty("digestProjectName")).isNull();
+    }
+
+    @Test
+    public void test_digest_project_name_should_be_left_as_is_if_provided() {
+        cli.parseArguments(new String[] {"--digestProjectName", "foo"});
+        assertThat(cli.properties).includes(entry("defaultProject", "local-datashare"));
+        assertThat(cli.properties).includes(entry("digestProjectName", "foo"));
+        assertThat(cli.properties).includes(entry("noDigestProject", "false"));
+    }
 }
