@@ -97,7 +97,7 @@
         <commons-beanutils.version>1.7.0</commons-beanutils.version>
         <jna.version>4.2.2</jna.version>
         <bouncycastle.version>1.66</bouncycastle.version>
-        <httpcomponents.version>4.5.14</httpcomponents.version>
+        <httpcomponents.version>4.5.13</httpcomponents.version>
         <joptsimple.version>6.0-alpha-3</joptsimple.version>
         <slf4j.version>2.0.7</slf4j.version>
         <logback.version>1.4.8</logback.version>
@@ -240,6 +240,38 @@
                 <groupId>org.elasticsearch.client</groupId>
                 <artifactId>elasticsearch-rest-high-level-client</artifactId>
                 <version>${elasticsearch.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpclient</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpcore</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.httpcomponents</groupId>
+                        <artifactId>httpcore-nio</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.5.12</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore-nio</artifactId>
+                <version>4.4.13</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>4.4.13</version>
             </dependency>
 
             <dependency>
