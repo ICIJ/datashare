@@ -1,21 +1,15 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import org.apache.tika.metadata.DublinCore;
-import org.apache.tika.metadata.HttpHeaders;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParsingReader;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryStringQueryBuilder;
-import org.elasticsearch.index.query.SimpleQueryStringBuilder;
 import org.elasticsearch.index.reindex.DeleteByQueryRequest;
-import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
@@ -32,7 +26,6 @@ import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
-import org.icij.extract.extractor.UpdatableDigester;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.junit.After;
@@ -307,11 +300,12 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_extract_id_should_be_equal_to_datashare_id() throws IOException {
-        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
-            put("idDigestMethod", Document.DEFAULT_DIGESTER.toString());
-        }}));
-        Extractor extractor = new Extractor(tikaFactory);
-        extractor.setDigester(new UpdatableDigester("project", Document.DEFAULT_DIGESTER.toString()));
+        Options<String> digestAlgorithm = Options.from(new HashMap<>() {{
+            put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());
+            put("digestProjectName", "project");
+        }});
+        DocumentFactory tikaFactory = new DocumentFactory().configure(digestAlgorithm);
+        Extractor extractor = new Extractor(tikaFactory).configure(digestAlgorithm);
 
         final TikaDocument extractDocument = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()));
         Document document = createDoc(Project.project("project"),get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()))
@@ -328,11 +322,12 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_duplicate_file() throws Exception {
-        DocumentFactory tikaFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
-            put("idDigestMethod", Document.DEFAULT_DIGESTER.toString());
-        }}));
-        Extractor extractor = new Extractor(tikaFactory);
-        extractor.setDigester(new UpdatableDigester("project", Document.DEFAULT_DIGESTER.toString()));
+        Options<String> from = Options.from(new HashMap<>() {{
+            put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());
+            put("digestProjectName", "project");
+        }});
+        DocumentFactory tikaFactory = new DocumentFactory().configure(from);
+        Extractor extractor = new Extractor(tikaFactory).configure(from);
 
         final TikaDocument document = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
         final TikaDocument document2 = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc-duplicate.txt")).getPath()));
