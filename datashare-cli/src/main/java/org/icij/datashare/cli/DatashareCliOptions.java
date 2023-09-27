@@ -55,6 +55,8 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
     public static final String DIGEST_ALGORITHM_OPT = "digestAlgorithm";
     public static final String DIGEST_PROJECT_NAME = "digestProjectName";
+    public static final String DEFAULT_PROJECT = "defaultProject";
+    public static final String NO_DIGEST_PROJECT = "noDigestProject";
 
     static void stages(OptionParser parser) {
         parser.acceptsAll(
@@ -385,7 +387,7 @@ public final class DatashareCliOptions {
 
     static void defaultProject(OptionParser parser) {
         parser.acceptsAll(
-                asList("defaultProject", "p"), "Default project name")
+                asList(DEFAULT_PROJECT, "p"), "Default project name")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo("local-datashare");
@@ -553,7 +555,14 @@ public final class DatashareCliOptions {
 
     public static void digestProjectName(OptionParser parser) {
         parser.acceptsAll(
-                        singletonList(DIGEST_PROJECT_NAME))
+                        singletonList(DIGEST_PROJECT_NAME), "Includes the project name in the hash of documents when indexing. " +
+                                "It is set by default to the defaultProject value. See noDigestProject option to disable it.")
                         .withRequiredArg().ofType(String.class);
+    }
+
+    public static void noDigestProject(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList(NO_DIGEST_PROJECT), "Disable the project name in document hash processing (only using binary contents).")
+                        .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
     }
 }

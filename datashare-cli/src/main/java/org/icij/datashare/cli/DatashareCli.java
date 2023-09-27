@@ -12,7 +12,9 @@ import java.io.InputStream;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT;
 import static org.icij.datashare.cli.DatashareCliOptions.DIGEST_PROJECT_NAME;
+import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT;
 
 
 public class DatashareCli {
@@ -35,6 +37,10 @@ public class DatashareCli {
                 System.exit(0);
             }
             properties = asProperties(options, null);
+            if (!Boolean.parseBoolean(properties.getProperty(NO_DIGEST_PROJECT))
+                    && properties.getProperty(DIGEST_PROJECT_NAME) == null) {
+                properties.setProperty(DIGEST_PROJECT_NAME, properties.getProperty(DEFAULT_PROJECT));
+            }
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);
             printHelp(parser);
@@ -115,6 +121,7 @@ public class DatashareCli {
         DatashareCliOptions.oauthCallbackPath(parser);
         DatashareCliOptions.digestMethod(parser);
         DatashareCliOptions.digestProjectName(parser);
+        DatashareCliOptions.noDigestProject(parser);
         return parser;
     }
 
