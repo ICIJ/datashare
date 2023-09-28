@@ -93,7 +93,7 @@
         <joda-time.version>2.9.5</joda-time.version>
         <httpclient.version>4.5.13</httpclient.version>
         <httpcore.version>4.4.13</httpcore.version>
-        <guava.version>30.0-jre</guava.version>
+        <guava.version>32.0.0-jre</guava.version>
         <xalan.version>2.7.2</xalan.version>
         <xerces.version>2.12.2</xerces.version>
         <commons-beanutils.version>1.7.0</commons-beanutils.version>
