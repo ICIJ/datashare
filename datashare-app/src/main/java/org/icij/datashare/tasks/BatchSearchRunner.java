@@ -91,7 +91,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                         with(query, batchSearch.fuzziness, batchSearch.phraseMatches).
                         withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{})).
                         withFieldValues("tags", batchSearch.tags.toArray(new String[]{})).
-                        withPrefixQuery("dirname", batchSearch.paths.toArray(new String[]{})).
+                        withPrefixQuery("path", batchSearch.paths.toArray(new String[]{})).
                         withoutSource("content").limit(scrollSize);
                 List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
 
