@@ -1,0 +1,7 @@
+tika_metadata_unknown_tag_*
+tika_metadata_custom_*
+tika_metadata_mboxparser_*
+tika_metadata_xmpmm_*
+tika_metadata_message_raw_header_?_*
+tika_metadata_message_raw_header_[123456789]*
+tika_metadata_message_raw_header__

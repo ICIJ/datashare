@@ -278,6 +278,26 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
+    public void test_tika_metadata_unknown_tag_is_blocked() throws IOException {
+        final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("doc.txt"));
+        final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("test".getBytes()));
+        document.setReader(reader);
+        document.getMetadata().set("foo", "bar");
+        document.getMetadata().set("unknown_tag_0x", "unknown");
+        spewer.write(document);
+
+        GetResponse documentFields = es.client.get(new GetRequest(TEST_INDEX, document.getId()), RequestOptions.DEFAULT);
+        assertThat(documentFields.getSourceAsMap().containsKey("metadata")).isTrue();
+        @SuppressWarnings("unchecked")
+        HashMap<String, Object> metadata = (HashMap<String, Object>) documentFields.getSourceAsMap().get("metadata");
+        // Those values should be here
+        assertThat(metadata).includes(entry("tika_metadata_resourcename", "doc.txt"));
+        assertThat(metadata).includes(entry("tika_metadata_foo", "bar"));
+        // This value should be blocked
+        assertThat(metadata).excludes(entry("tika_metadata_unknown_tag_0x", "unknown"));
+    }
+
+    @Test
     public void test_embedded_document() throws Exception {
         Path path = get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
         final TikaDocument document = new Extractor().extract(path);
