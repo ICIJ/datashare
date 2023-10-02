@@ -19,7 +19,7 @@ import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Duplicate;
+import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
 import org.icij.extract.document.DocumentFactory;
@@ -322,25 +322,29 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_duplicate_file() throws Exception {
-        Options<String> from = Options.from(new HashMap<>() {{
-            put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());
+        HashMap<String, String> digestProperties = new HashMap<>() {{
+            put("digestAlgorithm", "SHA-256");
             put("digestProjectName", "project");
-        }});
+        }};
+        ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(es.client,
+                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(digestProperties)).withRefresh(IMMEDIATE).withIndex("test-datashare");
+        Options<String> from = Options.from(digestProperties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
         Extractor extractor = new Extractor(tikaFactory).configure(from);
 
         final TikaDocument document = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
         final TikaDocument document2 = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc-duplicate.txt")).getPath()));
 
-        spewer.write(document);
-        spewer.write(document2);
+        spewer256.write(document);
+        spewer256.write(document2);
 
         GetResponse actualDocument = es.client.get(new GetRequest(TEST_INDEX, document.getId()),RequestOptions.DEFAULT);
-        GetResponse actualDocument2 = es.client.get(new GetRequest(TEST_INDEX, new Duplicate(document2.getPath(), document.getId()).getId()), RequestOptions.DEFAULT);
+        GetResponse actualDocument2 = es.client.get(new GetRequest(TEST_INDEX, Hasher.SHA_256.hash(document2.getPath())), RequestOptions.DEFAULT);
         assertThat(actualDocument.isExists()).isTrue();
         assertThat(actualDocument.getSourceAsMap()).includes(entry("type", "Document"));
         assertThat(actualDocument2.isExists()).isTrue();
         assertThat(actualDocument2.getSourceAsMap()).includes(entry("type", "Duplicate"));
+        assertThat(actualDocument2.getId().length()).isEqualTo(Hasher.SHA_256.digestLength);
     }
 
     @Test
