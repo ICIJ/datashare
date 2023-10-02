@@ -13,10 +13,14 @@ public class Duplicate implements Entity {
     private final String documentId;
     private final String id;
 
-    public Duplicate(final Path path, final String docId) {
-        this.id = DEFAULT_DIGESTER.hash(path);
+    public Duplicate(final Path path, final String docId, Hasher hasher) {
+        this.id = hasher.hash(path);
         this.path = path;
         this.documentId = docId;
+    }
+
+    public Duplicate(final Path path, final String docId) {
+        this(path, docId, DEFAULT_DIGESTER);
     }
 
     @Override
