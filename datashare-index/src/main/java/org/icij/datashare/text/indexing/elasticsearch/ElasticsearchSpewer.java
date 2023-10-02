@@ -16,6 +16,7 @@ import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.TikaDocument;
@@ -48,6 +49,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final Publisher publisher;
     private final LanguageGuesser languageGuesser;
     private final int maxContentLength;
+    private final Hasher digestAlgorithm;
     private String indexName;
 
     @Inject
@@ -59,6 +61,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         this.publisher = publisher;
         this.esCfg = new ElasticsearchConfiguration(propertiesProvider);
         this.maxContentLength = getMaxContentLength(propertiesProvider);
+        this.digestAlgorithm = getDigestAlgorithm(propertiesProvider);
         logger.info("spewer defined with {}", esCfg);
     }
 
@@ -91,7 +94,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         Map<String, Object> jsonDocument = getDocumentMap(document);
 
         if (parent == null && isDuplicate(document.getId())) {
-            IndexRequest indexRequest = new IndexRequest(indexName).id(Entity.DEFAULT_DIGESTER.hash(document.getPath()));
+            IndexRequest indexRequest = new IndexRequest(indexName).id(digestAlgorithm.hash(document.getPath()));
             indexRequest.source(getDuplicateMap(document));
             indexRequest.setRefreshPolicy(esCfg.refreshPolicy);
             return indexRequest;
@@ -198,5 +201,10 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     int getMaxContentLength(PropertiesProvider propertiesProvider) {
         return (int) Math.min(HumanReadableSize.parse(propertiesProvider.get("maxContentLength").orElse("-1")), Integer.MAX_VALUE);
+    }
+
+    private Hasher getDigestAlgorithm(PropertiesProvider propertiesProvider) {
+        return Hasher.parse(propertiesProvider.get("digestAlgorithm")
+                .orElse(Entity.DEFAULT_DIGESTER.name())).orElse(Entity.DEFAULT_DIGESTER);
     }
 }
