@@ -33,7 +33,7 @@ public class ExtensionService extends DeliverableService<Extension> {
     @Override
     DeliverableRegistry<Extension> createRegistry(InputStream pluginJsonContent) {
         try {
-            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<DeliverableRegistry<Extension>>() {});
+            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<>() {});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
