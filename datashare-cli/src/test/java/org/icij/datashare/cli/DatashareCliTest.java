@@ -1,17 +1,19 @@
 package org.icij.datashare.cli;
 
 import joptsimple.OptionException;
-import joptsimple.OptionSet;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
 import java.io.IOException;
-import java.util.Properties;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
 public class DatashareCliTest {
     private DatashareCli cli = new DatashareCli();
+    @Rule
+    public final ExpectedSystemExit exit = ExpectedSystemExit.none();
 
     @Test
     public void test_web_opt() {
@@ -129,5 +131,18 @@ public class DatashareCliTest {
     public void test_foo_extension_loaded() {
         cli.parseArguments(new String[] {"--foo", "bar"});
         assertThat(cli.properties).includes(entry("foo", "bar"));
+    }
+
+    @Test
+    public void test_foo_extension_loaded_help() {
+        cli.parseArguments(new String[] {"--ext", "foo", "--fooCommand"});
+        assertThat(cli.properties).excludes(entry("defaultProject", "local-datashare"));
+    }
+
+    @Test
+    public void test_foo_extension_should_exit_with_3_for_unknown_extension_id() {
+        exit.expectSystemExitWithStatus(3);
+        cli.parseArguments(new String[] {"--ext", "bar"});
+        assertThat(cli.properties).excludes(entry("defaultProject", "local-datashare"));
     }
 }
