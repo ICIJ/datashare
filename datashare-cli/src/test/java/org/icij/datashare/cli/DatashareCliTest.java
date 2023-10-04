@@ -124,4 +124,10 @@ public class DatashareCliTest {
         assertThat(cli.properties).includes(entry("digestProjectName", "foo"));
         assertThat(cli.properties).includes(entry("noDigestProject", "false"));
     }
+
+    @Test
+    public void test_foo_extension_loaded() {
+        cli.parseArguments(new String[] {"--foo", "bar"});
+        assertThat(cli.properties).includes(entry("foo", "bar"));
+    }
 }

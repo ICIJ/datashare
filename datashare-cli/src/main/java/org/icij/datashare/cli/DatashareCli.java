@@ -4,6 +4,7 @@ package org.icij.datashare.cli;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.icij.datashare.cli.spi.CliExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,10 @@ public class DatashareCli {
 
     public DatashareCli parseArguments(String[] args) {
         OptionParser parser = createParser();
+
+        for (CliExtension extension: CliExtensionService.getInstance().getExtensions()) {
+            extension.addOptions(parser);
+        }
 
         OptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
         OptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);

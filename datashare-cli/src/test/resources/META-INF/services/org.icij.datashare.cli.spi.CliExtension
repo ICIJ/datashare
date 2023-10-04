@@ -1,0 +1,3 @@
+# in your extension module you must add a src/main/resources/META-INF/services directory
+# with a org.icij.datashare.cli.spi.CliExtension text file and the implementation class(es) listed:
+org.icij.datashare.cli.CliExtensionFoo
