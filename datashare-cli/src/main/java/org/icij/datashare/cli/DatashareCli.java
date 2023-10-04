@@ -25,8 +25,30 @@ public class DatashareCli {
     public DatashareCli parseArguments(String[] args) {
         OptionParser parser = createParser();
 
-        for (CliExtension extension: CliExtensionService.getInstance().getExtensions()) {
-            extension.addOptions(parser);
+        List<CliExtension> extensions  = CliExtensionService.getInstance().getExtensions();
+        OptionSpec<String> extOption = DatashareCliOptions.extOption(parser);
+        if (extensions.size() > 1) {
+            System.out.println("For now we only allow one CLI extension");
+            System.exit(2);
+        } else if (extensions.size() == 1) {
+            extensions.get(0).addOptions(parser);
+            OptionSet options = parser.parse(args);
+            if (options.has(extOption)) {
+                String extId = options.valueOf(extOption);
+                if (!extId.equals(extensions.get(0).identifier())) {
+                    System.out.println("Unknown extension: " + extId);
+                    System.exit(3);
+                }
+                OptionParser extParser = createExtParser(extensions.get(0));
+                OptionSet extOptions = extParser.parse(args);
+                OptionSpec<Void> helpOpt = DatashareCliOptions.help(extParser);
+                if (extOptions.has(helpOpt)) {
+                    printHelp(extParser);
+                    System.exit(0);
+                }
+                properties = asProperties(extOptions, null);
+                return this;
+            }
         }
 
         OptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
@@ -52,6 +74,13 @@ public class DatashareCli {
             System.exit(1);
         }
         return this;
+    }
+
+    private static OptionParser createExtParser(CliExtension cliExtension) {
+        OptionParser parser = new OptionParser();
+        DatashareCliOptions.extOption(parser);
+        cliExtension.addOptions(parser);
+        return parser;
     }
 
     OptionParser createParser() {

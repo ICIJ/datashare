@@ -1,7 +1,9 @@
 package org.icij.datashare;
 
+import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
+import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
@@ -17,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -38,6 +41,11 @@ class CliApp {
         process(extensionService, properties);
         process(new PluginService(new PropertiesProvider(properties), extensionService), properties);
         CommonMode commonMode = CommonMode.create(properties);
+        List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
+        if (extensions.size() == 1 && properties.get("ext") != extensions.get(0).identifier()) {
+            extensions.get(0).run(properties);
+            System.exit(0);
+        }
         runTaskRunner(commonMode, properties);
     }
 

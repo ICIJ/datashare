@@ -565,4 +565,9 @@ public final class DatashareCliOptions {
                         singletonList(NO_DIGEST_PROJECT), "Disable the project name in document hash processing (only using binary contents).")
                         .withRequiredArg().ofType(Boolean.class).defaultsTo(false);
     }
+
+    public static OptionSpec<String> extOption(OptionParser parser) {
+        return parser.acceptsAll(
+                singletonList("ext"), "Run CLI extension").withRequiredArg().ofType(String.class);
+    }
 }
