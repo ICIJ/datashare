@@ -13,3 +13,4 @@ datashare-web/src/main/resources/secret.properties
 .project
 .settings
 .classpath
+datashare-cli/doc/
