@@ -63,6 +63,8 @@ public class SourceExtractor {
         digesters.add(new CommonsDigester(20 * 1024 * 1024, algorithm.replace("-", "")));
         digesters.add(new UpdatableDigester(project.getId(), algorithm));
 
+        // Try each digester to find embedded doc and ensure we 
+        // used every available digesters to find it.
         for (DigestingParser.Digester digester : digesters) {
             Identifier identifier = new DigestIdentifier(hasher.toString(), Charset.defaultCharset());
             TikaDocument rootDocument = new DocumentFactory().withIdentifier(identifier).create(document.getPath());
