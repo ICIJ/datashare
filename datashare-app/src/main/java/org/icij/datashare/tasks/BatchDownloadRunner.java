@@ -28,10 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -175,7 +172,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                 }
                 zipOutputStream.closeEntry();
                 return zippedSize;
-            } catch (ExtractException|ZipException|ContentNotFoundException zex) {
+            } catch (ExtractException | ZipException | FileNotFoundException | ContentNotFoundException zex) {
                 logger.warn("exception during extract/zip. skipping entry for doc " + doc.getId(), zex);
                 return 0;
             }
