@@ -24,6 +24,8 @@ public class DatashareCli {
 
     public DatashareCli parseArguments(String[] args) {
         OptionParser parser = createParser();
+        OptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
+        OptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);
 
         List<CliExtension> extensions  = CliExtensionService.getInstance().getExtensions();
         OptionSpec<String> extOption = DatashareCliOptions.extOption(parser);
@@ -40,8 +42,8 @@ public class DatashareCli {
                     System.exit(3);
                 }
                 OptionParser extParser = createExtParser(extensions.get(0));
+                helpOpt = DatashareCliOptions.help(extParser);
                 OptionSet extOptions = extParser.parse(args);
-                OptionSpec<Void> helpOpt = DatashareCliOptions.help(extParser);
                 if (extOptions.has(helpOpt)) {
                     printHelp(extParser);
                     System.exit(0);
@@ -51,8 +53,6 @@ public class DatashareCli {
             }
         }
 
-        OptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
-        OptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);
         try {
             OptionSet options = parser.parse(args);
             if (options.has(helpOpt)) {
@@ -79,6 +79,7 @@ public class DatashareCli {
     private static OptionParser createExtParser(CliExtension cliExtension) {
         OptionParser parser = new OptionParser();
         DatashareCliOptions.extOption(parser);
+        DatashareCliOptions.mode(parser);
         cliExtension.addOptions(parser);
         return parser;
     }
