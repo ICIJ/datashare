@@ -37,12 +37,13 @@ class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
     static void start(Properties properties) throws Exception {
+        Thread.sleep(10000);
         ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
         process(extensionService, properties);
         process(new PluginService(new PropertiesProvider(properties), extensionService), properties);
         CommonMode commonMode = CommonMode.create(properties);
         List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
-        if (extensions.size() == 1 && properties.get("ext") != extensions.get(0).identifier()) {
+        if (extensions.size() == 1 && extensions.get(0).identifier().equals(properties.get("ext"))) {
             extensions.get(0).run(properties);
             System.exit(0);
         }
