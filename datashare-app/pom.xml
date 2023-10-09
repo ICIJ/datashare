@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.icij.datashare</groupId>
         <artifactId>datashare</artifactId>
-        <version>13.2.4</version>
+        <version>13.2.3</version>
     </parent>
 
     <artifactId>datashare-app</artifactId>
@@ -180,7 +180,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>commons-test</artifactId>
-            <version>13.2.4</version>
+            <version>13.2.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
