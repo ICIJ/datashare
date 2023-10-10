@@ -332,7 +332,9 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 should().respond(200).haveType("text/csv").
                 haveHeader("Content-Disposition", "attachment;filename=\"batchSearchId.csv\"").
                 contain(format("\"localhost:%d/#/d/prj/docId1/rootId1\",\"docId1\",\"rootId1\"", port())).
-                contain(format("\"localhost:%d/#/d/prj/docId2/rootId2\",\"docId2\",\"rootId2\"", port()));
+                contain(format("\"localhost:%d/#/d/prj/docId2/rootId2\",\"docId2\",\"rootId2\"", port())).
+                contain("\"/path/to/doc1\"").
+                contain("\"/path/to\"");
     }
 
     @Test
