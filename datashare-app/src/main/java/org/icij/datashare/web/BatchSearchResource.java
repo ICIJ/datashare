@@ -26,7 +26,9 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
@@ -278,25 +280,41 @@ public class BatchSearchResource {
     @ApiResponse(responseCode = "200", description = "returns the results of the batch search as CSV attached file.")
     @Get("/search/result/csv/:batchid")
     public Payload getResultAsCsv(String batchId, Context context) {
-        StringBuilder builder = new StringBuilder("\"query\", \"documentUrl\", \"documentId\",\"rootId\",\"contentType\",\"contentLength\",\"documentPath\",\"creationDate\",\"documentNumber\"\n");
-        BatchSearch batchSearch = batchSearchRepository.get((User) context.currentUser(), batchId);
+        // Define the CSV header
+        final String CSV_HEADER = "query,documentUrl,documentId,rootId,contentType,contentLength,documentPath,documentDirname,creationDate,documentNumber";
+
+        // Create a StringBuilder to build the CSV content
+        StringBuilder builder = new StringBuilder();
+        builder.append(CSV_HEADER).append("\n");
+
+        // Get the current user and batch search information
+        User currentUser = (User) context.currentUser();
+        BatchSearch batchSearch = batchSearchRepository.get(currentUser, batchId);
         String url = propertiesProvider.get("rootHost").orElse(context.header("Host"));
+        BatchSearchRepository.WebQuery webQuery = WebQueryBuilder.createWebQuery().queryAll().build();
+        WebResponse<SearchResult> results = getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), webQuery);
 
-        getResultsOrThrowUnauthorized(batchId, (User) context.currentUser(), WebQueryBuilder.createWebQuery().queryAll().build()).items.forEach(result -> builder.
-                append("\"").append(result.query).append("\"").append(",").
-                append("\"").append(docUrl(url, batchSearch.projects, result.documentId, result.rootId)).append("\"").append(",").
-                append("\"").append(result.documentId).append("\"").append(",").
-                append("\"").append(result.rootId).append("\"").append(",").
-                append("\"").append(result.contentType).append("\"").append(",").
-                append("\"").append(result.contentLength).append("\"").append(",").
-                append("\"").append(result.documentPath).append("\"").append(",").
-                append("\"").append(result.creationDate).append("\"").append(",").
-                append("\"").append(result.documentNumber).append("\"").append("\n")
-        );
+        // Iterate through the results and construct CSV lines
+        results.items.forEach(result -> {
+            String docUrl = docUrl(url, batchSearch.projects, result.documentId, result.rootId);
+            String dirname = dirname(result.documentPath);
 
-        return new Payload("text/csv", builder.toString()).
-                withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
+            builder.append("\"").append(result.query).append("\",");
+            builder.append("\"").append(docUrl).append("\",");
+            builder.append("\"").append(result.documentId).append("\",");
+            builder.append("\"").append(result.rootId).append("\",");
+            builder.append("\"").append(result.contentType).append("\",");
+            builder.append("\"").append(result.contentLength).append("\",");
+            builder.append("\"").append(result.documentPath).append("\",");
+            builder.append("\"").append(dirname).append("\",");
+            builder.append("\"").append(result.creationDate).append("\",");
+            builder.append("\"").append(result.documentNumber).append("\"\n");
+        });
+
+        return new Payload("text/csv", builder.toString())
+                .withHeader("Content-Disposition", "attachment;filename=\"" + batchId + ".csv\"");
     }
+
 
     @Operation(description = "Deletes batch searches and results for the current user.")
     @ApiResponse(responseCode = "204", description = "no content: idempotent")
@@ -308,6 +326,10 @@ public class BatchSearchResource {
 
     private String docUrl(String uri, List<Project> projects, String documentId, String rootId) {
         return format("%s/#/d/%s/%s/%s", uri, projects.stream().map(Project::getId).collect(Collectors.joining(",")), documentId, rootId);
+    }
+
+    private String dirname(Path path) {
+        return path.getParent().toString();
     }
 
     private LinkedHashSet<String> getQueries(String csv) {
