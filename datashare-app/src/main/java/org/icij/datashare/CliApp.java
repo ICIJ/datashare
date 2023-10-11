@@ -37,7 +37,6 @@ class CliApp {
     private static final Logger logger = LoggerFactory.getLogger(CliApp.class);
 
     static void start(Properties properties) throws Exception {
-        Thread.sleep(10000);
         ExtensionService extensionService = new ExtensionService(new PropertiesProvider(properties));
         process(extensionService, properties);
         process(new PluginService(new PropertiesProvider(properties), extensionService), properties);
