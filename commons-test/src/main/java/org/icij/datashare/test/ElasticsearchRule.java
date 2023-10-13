@@ -14,7 +14,7 @@ import java.util.Objects;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static org.apache.http.HttpHost.create;
-import static org.elasticsearch.common.xcontent.XContentType.JSON;
+import static org.elasticsearch.xcontent.XContentType.JSON;
 
 public class ElasticsearchRule extends ExternalResource {
     public static final String[] TEST_INDEXES = {"test-datashare", "test-index1", "test-index2"};
