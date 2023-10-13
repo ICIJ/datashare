@@ -6,7 +6,7 @@
 
     <groupId>org.icij.datashare</groupId>
     <artifactId>datashare-api</artifactId>
-    <version>12.1.1</version>
+    <version>12.2.0</version>
     <packaging>jar</packaging>
 
     <name>ICIJ Datashare API</name>
@@ -61,7 +61,7 @@
         <java.version>11</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
-        <jackson.version>2.14.2</jackson.version>
+        <jackson.version>2.12.2</jackson.version>
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     </properties>
 
