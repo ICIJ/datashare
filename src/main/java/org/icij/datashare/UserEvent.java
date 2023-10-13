@@ -41,12 +41,15 @@ public class UserEvent {
         this.uri = uri;
     }
 
+    public UserEvent(User user, Type type, String name, URI uri, Date creationDate, Date modificationDate, int eventId) {
+        this(eventId, user, type, name, uri, creationDate, modificationDate);
+    }
     public UserEvent(User user, Type type, String name, URI uri, Date creationDate, Date modificationDate) {
-        this(0, user, type, name, uri, creationDate, modificationDate);
+        this(user, type, name, uri, creationDate, modificationDate, -1);
     }
 
     public UserEvent(User user, Type type, String name, URI uri) {
-        this(user, type, name, uri, DatashareTime.getInstance().now(), DatashareTime.getInstance().now());
+        this(user, type, name, uri, DatashareTime.getInstance().now(), DatashareTime.getInstance().now(), -1);
     }
 
     @Override
