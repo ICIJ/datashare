@@ -574,6 +574,24 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_rename_single_user_event_by_id() {
+        repository.addToUserHistory(singletonList(project("project")), new UserEvent(User.local(), SEARCH, "search1", Paths.get("search_uri").toUri()));
+        List<UserEvent> userSearchEvents = repository.getUserHistory(User.local(), SEARCH, 0, 10, "modification_date", true);
+        assertThat(userSearchEvents.get(0).name).isEqualTo("search1");
+        boolean renamed =  repository.renameSavedSearch(User.local(),userSearchEvents.get(0).id, "search_renamed");
+        assertThat(renamed).isTrue();
+        List<UserEvent> userSearchEvents2 = repository.getUserHistory(User.local(), SEARCH, 0, 10, "modification_date", true);
+        assertThat(userSearchEvents2.get(0).name).isEqualTo("search_renamed");
+
+        repository.addToUserHistory(singletonList(project("project")), new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri()));
+        List<UserEvent> userDocEvents = repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true);
+        assertThat(userDocEvents.get(0).name).isEqualTo("doc_name1");
+        boolean renamedDoc =  repository.renameSavedSearch(User.local(),userDocEvents.get(0).id, "search_renamed");
+        assertThat(renamedDoc).isFalse();
+        List<UserEvent> userDocEvents2 = repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true);
+        assertThat(userDocEvents2.get(0).name).isEqualTo("doc_name1");
+    }
+    @Test
     public void test_db_status(){
         assertThat(repository.getHealth()).isTrue();
     }
