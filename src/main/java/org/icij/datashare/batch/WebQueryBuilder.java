@@ -1,6 +1,8 @@
 package org.icij.datashare.batch;
 
 
+import org.icij.datashare.text.ProjectProxy;
+
 import java.util.List;
 
 public class WebQueryBuilder {
@@ -30,59 +32,59 @@ public class WebQueryBuilder {
     }
 
     public WebQueryBuilder queryAll(){
-        this.query="*";
-        this.field="all";
+        this.query = "*";
+        this.field = "all";
         return this;
     }
     public WebQueryBuilder withRange(int from, int size){
-        this.from=from;
-        this.size=size;
+        this.from = from;
+        this.size = size;
         return this;
     }
     public WebQueryBuilder withQuery(String query){
-        this.query=query;
+        this.query = query;
         return this;
     }
     public WebQueryBuilder withField(String field){
-        this.field=field;
+        this.field = field;
         return this;
     }
     public WebQueryBuilder withSortOrder(String sort, String order){
-        this.sort=sort;
-        this.order=order;
+        this.sort = sort;
+        this.order = order;
         return this;
     }
     public WebQueryBuilder withQueries(List<String> queries){
-        this.queries=queries;
+        this.queries = queries;
         return this;
     }
     public WebQueryBuilder withBatchDate(List<String> batchDate){
-        this.batchDate=batchDate;
+        this.batchDate = batchDate;
         return this;
     }
     public WebQueryBuilder withProjects(List<String> projects){
-        this.project=projects;
+        this.project = projects;
         return this;
     }
     public WebQueryBuilder withState(List<String> state){
-        this.state=state;
+        this.state = state;
         return this;
     }
     public WebQueryBuilder withPublishState(String publishDate){
-        this.publishState=publishDate;
+        this.publishState = publishDate;
         return this;
     }
     public WebQueryBuilder withContentTypes(List<String> contentTypes){
-        this.contentTypes=contentTypes;
+        this.contentTypes = contentTypes;
         return this;
     }
 
     public WebQueryBuilder queriesExcluded(boolean queriesExcluded){
-        this.queriesExcluded=queriesExcluded;
+        this.queriesExcluded = queriesExcluded;
         return this;
     }
     public WebQueryBuilder queriesRetrieved(boolean withQueries){
-        this.withQueries=withQueries;
+        this.withQueries = withQueries;
         return this;
     }
     public BatchSearchRepository.WebQuery build() {

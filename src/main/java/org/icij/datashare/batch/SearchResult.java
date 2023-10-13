@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.icij.datashare.text.PathSerializer;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
 
 import java.nio.file.Path;
 import java.util.Date;
@@ -13,7 +14,7 @@ import java.util.Objects;
 
 public class SearchResult {
     public final String query;
-    public final Project project;
+    public final ProjectProxy project;
     public final String documentId;
     public final String rootId;
     @JsonSerialize(using = PathSerializer.class)
@@ -28,7 +29,7 @@ public class SearchResult {
     }
 
     @JsonCreator
-    public SearchResult(@JsonProperty("query") String query, @JsonProperty("project") final Project project, @JsonProperty("documentId") String documentId, @JsonProperty("rootId") String rootId,
+    public SearchResult(@JsonProperty("query") String query, @JsonProperty("project") final ProjectProxy project, @JsonProperty("documentId") String documentId, @JsonProperty("rootId") String rootId,
                         @JsonProperty("documentPath") Path documentPath, @JsonProperty("creationDate") Date creationDate,
                         @JsonProperty("contentType") String contentType, @JsonProperty("contentLength") long contentLength,
                         @JsonProperty("documentNumber") int documentNumber) {

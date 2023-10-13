@@ -16,10 +16,8 @@ import static com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING;
 import static com.fasterxml.jackson.annotation.JsonCreator.Mode.PROPERTIES;
 
 
-public class Project implements Entity {
+public class Project extends ProjectProxy {
     private static final long serialVersionUID = 2568979856231459L;
-
-    public final String name;
     public final Path sourcePath;
     @JsonIgnore
     public final String allowFromMask;
@@ -55,8 +53,8 @@ public class Project implements Entity {
             null,
             null,
             allowFromMask,
-            new Date(),
-            new Date()
+            null,
+            null
         );
     }
 
@@ -95,7 +93,7 @@ public class Project implements Entity {
                    String allowFromMask,
                    Date creationDate,
                    Date updateDate) {
-        this.name = name;
+        super(name);
         this.label = label;
         this.description = description;
         this.sourcePath = sourcePath;
@@ -167,19 +165,6 @@ public class Project implements Entity {
 
     public static Project project(final String projectName) {
         return new Project(projectName);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Project project = (Project) o;
-        return name.equals(project.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name);
     }
 
     @Override

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonUtils;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,6 +15,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonUtils.deserialize;
+import static org.icij.datashare.text.ProjectProxy.proxy;
 
 public class User implements Entity {
     public static final String LOCAL = "local";

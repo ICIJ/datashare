@@ -1,6 +1,7 @@
 package org.icij.datashare.batch;
 
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 
 import java.util.*;
@@ -13,7 +14,7 @@ public class BatchSearchRecord {
     public enum State {QUEUED, RUNNING, SUCCESS, FAILURE}
     public final String uuid;
     public final boolean published;
-    public final List<Project> projects;
+    public final List<ProjectProxy> projects;
     public final String name;
     public final String description;
     public final User user;
@@ -25,12 +26,12 @@ public class BatchSearchRecord {
     public final String errorQuery;
 
     // for tests
-    public BatchSearchRecord(final List<Project> projects, final String name, final String description, final int nbQueries, Date date) {
+    public BatchSearchRecord(final List<ProjectProxy> projects, final String name, final String description, final int nbQueries, Date date) {
         this(UUID.randomUUID().toString(), projects, name, description, nbQueries, date, State.QUEUED, User.local(),
                 0, false,null, null);
     }
 
-    public BatchSearchRecord(String uuid, List<Project> projects, String name, String description, int nbQueries, Date date, State state, User user,
+    public BatchSearchRecord(String uuid, List<ProjectProxy> projects, String name, String description, int nbQueries, Date date, State state, User user,
                              int nbResults, boolean published, String errorMessage, String errorQuery){
         assert date != null && uuid != null;
         this.uuid = uuid;

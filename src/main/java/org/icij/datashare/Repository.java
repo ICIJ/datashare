@@ -46,7 +46,7 @@ public interface Repository {
     boolean deleteAll(String projectId);
     Project getProject(String projectId);
     List<Project> getProjects();
-    List<Project> getProjects(String[] projectIds);
+    List<Project> getProjects(List<String> projectIds);
     boolean save(Project project);
 
     List<Note> getNotes(Project prj, String pathPrefix);

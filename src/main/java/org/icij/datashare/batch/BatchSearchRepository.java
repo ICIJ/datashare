@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 
 import java.io.Closeable;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static java.util.Collections.unmodifiableList;
+import static org.icij.datashare.text.ProjectProxy.fromNameStringList;
 
 public interface BatchSearchRepository extends Closeable {
     boolean save(BatchSearch batchSearch);
@@ -50,7 +52,7 @@ public interface BatchSearchRepository extends Closeable {
         public final boolean queriesExcluded;
         public final List<String> contentTypes;
 
-        public final List<String> project;
+        public final List<ProjectProxy> project;
         public final List<String> batchDate;
         public final List<String> state;
         public final String publishState;
@@ -70,7 +72,7 @@ public interface BatchSearchRepository extends Closeable {
             this.queries = queries == null ? null: unmodifiableList(queries);
             this.queriesExcluded = queriesExcluded;
             this.contentTypes = contentTypes == null ? null: unmodifiableList(contentTypes);
-            this.project = project == null ? null: unmodifiableList(project);
+            this.project = project == null ? null: unmodifiableList(fromNameStringList(project));
             this.batchDate = batchDate == null ? null: unmodifiableList(batchDate);
             this.state = state == null ? null: unmodifiableList(state);
             this.publishState = publishState;

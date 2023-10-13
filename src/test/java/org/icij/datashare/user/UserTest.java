@@ -1,9 +1,6 @@
 package org.icij.datashare.user;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.icij.datashare.batch.BatchDownload;
-import org.icij.datashare.time.DatashareTime;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -13,9 +10,8 @@ import java.util.LinkedList;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.ProjectProxy.proxy;
 import static org.icij.datashare.user.User.fromJson;
-import static org.icij.datashare.user.User.local;
 
 public class UserTest {
     @Test

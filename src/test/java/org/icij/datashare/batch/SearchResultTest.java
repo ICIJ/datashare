@@ -20,7 +20,7 @@ public class SearchResultTest {
             .contains("\"sourcePath\":\"file:///vault/prj\"")
             .contains("\"documentPath\":\"/path/to/doc1\"");
         SearchResult searchResultFromJson = JsonObjectMapper.MAPPER.readValue(("{\"query\":\"q1\"," +
-                        "\"project\":{\"name\":\"prj\",\"sourcePath\":\"file:///vault/prj\"}," +
+                        "\"project\":\"prj\"," +
                         "\"documentId\":\"docId1\"," +
                         "\"documentPath\":\"/path/to/doc1\"," +
                         "\"creationDate\":\"1608049139794\"," +
