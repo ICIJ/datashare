@@ -19,6 +19,7 @@ import org.icij.datashare.text.Project;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,6 +27,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.parseBoolean;
+import static java.util.Objects.isNull;
 import static net.codestory.http.payload.Payload.ok;
 import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 
@@ -104,11 +106,16 @@ public class UserResource {
         return parseBoolean(desc) || getStringValue(desc).isEmpty() || !desc.equalsIgnoreCase("false");
     }
 
-    @Operation(description = "Add event to history. The event's type, the project ids and the uri are passed in the request body.<br>" +
+    @Operation(description = "Add or update an event to user's history. The event's type, the project ids and the uri are passed in the request body.<br>" +
+            "To update the event's name, the eventId is required to retrieve the corresponding event." +
             "The project list related to the event is stored in database but is never queried (no filters on project)")
     @ApiResponse(responseCode = "200", description = "returns 200 when event is added or updated.")
     @Put("/me/history")
-    public Payload addToUserHistory(@Parameter(name = "query", description = "query to perform", in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
+    public Payload addToUserHistory(@Parameter(name = "query", description = "user history query to save", in = ParameterIn.QUERY) UserHistoryQuery query, Context context) {
+        if(!isNull(query.eventId)){
+            boolean updated = repository.renameSavedSearch((DatashareUser) context.currentUser(), query.eventId, query.name);
+            return updated? ok():new Payload(400);
+        }
         repository.addToUserHistory(query.projects, new UserEvent((DatashareUser) context.currentUser(), query.type, query.name, query.uri));
         return ok();
     }
@@ -116,7 +123,7 @@ public class UserResource {
     @Operation(description = "Delete user history by type.")
     @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent", useReturnTypeSchema = true)
     @Delete("/me/history?type=:type")
-    public Payload deleteUserHistory(@Parameter(name = "type", description = "type of user element", in = ParameterIn.QUERY) String type, Context context) {
+    public Payload deleteUserHistory(@Parameter(name = "type", description = "type of user history event", in = ParameterIn.QUERY) String type, Context context) {
         repository.deleteUserHistory((DatashareUser) context.currentUser(), Type.valueOf(type.toUpperCase()));
         return new Payload(204);
     }
@@ -131,7 +138,7 @@ public class UserResource {
     @Operation(description = "Delete user event by id.")
     @ApiResponse(responseCode = "204", description = "Returns 204 (No Content) : idempotent")
     @Delete("/me/history/event?id=:eventId")
-    public Payload deleteUserEvent(@Parameter(name = "query", description = "query to perform", in = ParameterIn.QUERY) String eventId, Context context) {
+    public Payload deleteUserEvent(@Parameter(name = "eventId", description = "user history event id to delete", in = ParameterIn.QUERY) String eventId, Context context) {
         repository.deleteUserHistoryEvent((DatashareUser) context.currentUser(), Integer.parseInt(eventId));
         return new Payload(204);
     }
@@ -142,12 +149,15 @@ public class UserResource {
         final String name;
         final URI uri;
 
+        final Integer eventId;
+
         @JsonCreator
-        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("name") String name, @JsonProperty("projectIds") List<String> projectIds, @JsonProperty("uri") String uri) {
+        private UserHistoryQuery(@JsonProperty("type") String type, @JsonProperty("name") String name, @JsonProperty("projectIds") List<String> projectIds,  @JsonProperty("uri") String uri, @JsonProperty("eventId") Integer id) {
             this.type = Type.valueOf(type);
-            this.projects = projectIds.stream().map(Project::project).collect(Collectors.toList());
+            this.projects = projectIds == null ? Collections.emptyList() : projectIds.stream().map(Project::project).collect(Collectors.toList());
             this.name = name;
-            this.uri = URI.create(uri);
+            this.uri = uri == null ? null : URI.create(uri);
+            this.eventId = id;
         }
     }
 }

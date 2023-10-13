@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import static java.util.Collections.singletonList;
 import static org.icij.datashare.UserEvent.Type.DOCUMENT;
@@ -172,12 +173,16 @@ public class UserResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_put_user_event_to_history() {
-        when(jooqRepository.addToUserHistory(eq(singletonList(project("prj"))),any(UserEvent.class))).thenReturn(true);
-
-        put("/api/users/me/history", "{\"type\": \"SEARCH\", \"projectIds\": [\"prj\"], \"name\": \"foo AND bar\", \"uri\": \"search_uri\"}").should().respond(200);
+    public void test_put_user_new_event_to_history() throws URISyntaxException {
+        when(jooqRepository.addToUserHistory(eq(singletonList(project("prj"))), any(UserEvent.class))).thenReturn(true);
+        put("/api/users/me/history", "{\"type\": \"SEARCH\", \"name\": \"TOTOTOTO AND bar\", \"uri\": \"search_uri\"}").should().respond(200);
     }
-
+    @Test
+    public void test_put_user_existing_event_to_history() {
+        when(jooqRepository.renameSavedSearch(User.local(),12,"test")).thenReturn(true);
+        put("/api/users/me/history", "{\"type\": \"SEARCH\", \"name\": \"test\", \"eventId\":12}").should().respond(200);
+        put("/api/users/me/history", "{\"type\": \"SEARCH\", \"name\": \"test\", \"eventId\":14}").should().respond(400);
+    }
     @Test
     public void test_delete_user_history_by_type() {
         when(jooqRepository.deleteUserHistory(User.local(), DOCUMENT)).thenReturn(true).thenReturn(false);

@@ -9,18 +9,7 @@ import org.icij.datashare.json.JsonUtils;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.InsertValuesStep2;
-import org.jooq.InsertValuesStep3;
-import org.jooq.InsertValuesStep5;
-import org.jooq.InsertValuesStep6;
-import org.jooq.InsertValuesStep9;
-import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.SQLDialect;
-import org.jooq.SelectConditionStep;
-import org.jooq.SortField;
+import org.jooq.*;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.slf4j.LoggerFactory;
@@ -52,7 +41,7 @@ import static org.icij.datashare.db.tables.Note.NOTE;
 import static org.icij.datashare.db.tables.Project.PROJECT;
 import static org.icij.datashare.db.tables.UserHistory.USER_HISTORY;
 import static org.icij.datashare.db.tables.UserInventory.USER_INVENTORY;
-import static org.icij.datashare.json.JsonObjectMapper.*;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
 import static org.icij.datashare.text.Project.project;
@@ -270,6 +259,20 @@ public class JooqRepository implements Repository {
                     where(USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(eventId)).execute();
             return inner.deleteFrom(USER_HISTORY).
                     where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute() > 0;
+        });
+    }
+
+    @Override
+    public boolean renameSavedSearch(User user, int eventId, String newName) {
+        return using(connectionProvider, dialect).transactionResult(configuration -> {
+            DSLContext inner = using(configuration);
+            UpdateConditionStep<UserHistoryRecord> updatedTuple = inner.update(USER_HISTORY)
+                    .set(USER_HISTORY.NAME, newName)
+                    .where(USER_HISTORY.USER_ID.eq(user.id))
+                    .and(USER_HISTORY.ID.eq(eventId))
+                    .and(USER_HISTORY.TYPE.eq(UserEvent.Type.SEARCH.id));
+
+            return updatedTuple.execute() > 0;
         });
     }
 
