@@ -42,6 +42,7 @@ class CliApp {
         process(new PluginService(new PropertiesProvider(properties), extensionService), properties);
         CommonMode commonMode = CommonMode.create(properties);
         List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
+        logger.info("found {} CLI extension(s)", extensions.size());
         if (extensions.size() == 1 && extensions.get(0).identifier().equals(properties.get("ext"))) {
             extensions.get(0).run(properties);
             System.exit(0);
