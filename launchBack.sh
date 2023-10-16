@@ -2,8 +2,14 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 VERSION=$(cat $DIR/pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9a-z.\-]\+\)<\/version>/\1/g' | tr -d '[:space:]')
-CLASSPATH=$DIR/datashare-dist/target/datashare-dist-${VERSION}-all.jar
+CLASSPATH=${CLASSPATH:-$DIR/datashare-dist/target/datashare-dist-${VERSION}-all.jar}
 JDWP_TRANSPORT_PORT=${JDWP_TRANSPORT_PORT:-8000}
+
+if [[ $@ == *"SERVER"* ]]; then
+  OAUTH_LOCAL_OPTIONS="--oauthAuthorizeUrl http://xemx:3001/oauth/authorize --oauthTokenUrl http://xemx:3001/oauth/token --oauthApiUrl http://xemx:3001/api/v1/me.json"
+else
+  OAUTH_LOCAL_OPTIONS=""
+fi
 
 if [ -z "$JAVA_HOME" ]; then
   JAVA=java
@@ -31,7 +37,4 @@ $JAVA -agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,s
  -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
  -Djavax.net.ssl.trustStorePassword=changeit \
  -Ddatashare.loghost=udp:localhost -Dlogback.configurationFile=logback.xml \
- -Xmx4g -DPROD_MODE=true -cp "$DIR/dist/:${CLASSPATH}" org.icij.datashare.Main --cors '*' \
- --oauthAuthorizeUrl http://xemx:3001/oauth/authorize \
- --oauthTokenUrl http://xemx:3001/oauth/token \
- --oauthApiUrl http://xemx:3001/api/v1/me.json "$@"
+ -Xmx4g -DPROD_MODE=true -cp "$DIR/dist/:${CLASSPATH}" org.icij.datashare.Main $OAUTH_LOCAL_OPTIONS "$@"
