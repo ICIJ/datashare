@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 61
+      author: cdesprat
+      changes:
+        - addColumn:
+            tableName: batch_search
+            column:
+              name: nb_queries
+              type: int
+              defaultValue: 0

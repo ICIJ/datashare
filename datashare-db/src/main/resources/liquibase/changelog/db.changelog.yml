@@ -98,3 +98,6 @@ databaseChangeLog:
   - include:
       file: changes/032-batch-search-adds-tags-column.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/033-adds-column-batch-search-nb-queries.yml
+      relativeToChangelogFile: true

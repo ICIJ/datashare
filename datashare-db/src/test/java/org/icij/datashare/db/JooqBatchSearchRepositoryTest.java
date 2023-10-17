@@ -7,7 +7,10 @@ import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
+import org.jooq.DSLContext;
+import org.jooq.Record1;
 import org.jooq.exception.DataAccessException;
+import org.jooq.impl.DSL;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -23,6 +26,7 @@ import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.CollectionUtils.asSet;
+import static org.icij.datashare.db.Tables.BATCH_SEARCH;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 
@@ -66,6 +70,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(batchSearchFromGet.nbResults).isEqualTo(batchSearch.nbResults);
         assertThat(batchSearchFromGet.phraseMatches).isEqualTo(batchSearch.phraseMatches);
         assertThat(batchSearchFromGet.queries).isEqualTo(batchSearch.queries);
+        assertThat(batchSearchFromGet.nbQueries).isEqualTo(batchSearch.nbQueries);
         assertThat(batchSearchFromGet.projects).isEqualTo(batchSearch.projects);
         assertThat(batchSearchFromGet.user).isEqualTo(User.local());
     }
@@ -136,7 +141,7 @@ public class JooqBatchSearchRepositoryTest {
         List<BatchSearchRecord> batchSearchRecords = repository.getRecords(User.local(), singletonList("prj"));
         assertThat(batchSearchRecords).hasSize(1);
         BatchSearchRecord actual = batchSearchRecords.get(0);
-        assertThat(actual.getNbQueries()).isEqualTo(2);
+        assertThat(actual.nbQueries).isEqualTo(2);
         assertThat(actual.name).isEqualTo(batchSearch.name);
         assertThat(actual.description).isEqualTo(batchSearch.description);
         assertThat(actual.projects).isEqualTo(batchSearch.projects);
@@ -530,7 +535,7 @@ public class JooqBatchSearchRepositoryTest {
         BatchSearch batchSearch = repository.get(User.local(), search.uuid, false);
         assertThat(batchSearch).isNotNull();
         assertThat(batchSearch.queries).hasSize(0);
-        assertThat(batchSearch.getNbQueries()).isEqualTo(2);
+        assertThat(batchSearch.nbQueries).isEqualTo(2);
     }
 
     @Test
@@ -726,6 +731,22 @@ public class JooqBatchSearchRepositoryTest {
         Iterator<Entry<String, Integer>> entrySetIterator = queries.entrySet().iterator();
         assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q1", 0));
         assertThat(entrySetIterator.next()).isEqualTo(new AbstractMap.SimpleEntry<>("q2", 1));
+    }
+
+    @Test
+    public void test_save_batch_search_nb_queries_is_stored_in_db() {
+        BatchSearch batchSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name1", "description1",
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), singletonList("tag"),
+                asList("/path/to/docs", "/path/to/pdfs"), 3,true);
+
+        repository.save(batchSearch);
+
+        try (DSLContext dsl = DSL.using(repository.dataSource, repository.dialect)) {
+            Optional<Record1<Integer>> record = dsl.select(BATCH_SEARCH.NB_QUERIES).from(BATCH_SEARCH)
+                    .where(BATCH_SEARCH.UUID.eq(batchSearch.uuid)).stream().findFirst();
+            assertThat(record.isPresent()).isTrue();
+            assertThat(record.get().getValue(0)).isEqualTo(2);
+        }
     }
 
     static public Entry<String, Integer> GetEntry(Map<String,Integer> queries, int position){
