@@ -73,7 +73,7 @@ public class BatchSearch extends BatchSearchRecord {
     public BatchSearch(String uuid, List<Project> projects, String name, String description, LinkedHashMap<String, Integer> queries, Date date, State state, User user,
                        int nbResults, boolean published, List<String> fileTypes, List<String> tags,List<String> paths, int fuzziness, boolean phraseMatches, String errorMessage, String errorQuery) {
         super(uuid,projects,name,description,queries.size(),date,state,user,nbResults,published,errorMessage, errorQuery);
-        if (getNbQueries() == 0) throw new IllegalArgumentException("queries cannot be empty");
+        if (this.nbQueries == 0) throw new IllegalArgumentException("queries cannot be empty");
         this.queries = queries;
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
         this.tags = unmodifiableList(ofNullable(tags).orElse(new ArrayList<>()));

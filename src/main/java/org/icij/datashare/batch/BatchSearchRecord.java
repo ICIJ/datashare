@@ -19,7 +19,7 @@ public class BatchSearchRecord {
     public final User user;
     public final State state;
     public final Date date;
-    private final int nbQueries;
+    public final int nbQueries;
     public final int nbResults;
     public final String errorMessage;
     public final String errorQuery;
@@ -45,12 +45,6 @@ public class BatchSearchRecord {
         this.state = state;
         this.errorMessage = errorMessage;
         this.errorQuery = errorQuery;
-    }
-
-    public Date getDate() { return date;}
-
-    public int getNbQueries(){
-        return nbQueries;
     }
 
     @Override
