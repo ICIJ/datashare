@@ -6,6 +6,9 @@ import org.icij.datashare.user.ApiKey;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.DatashareApiKey;
 import org.icij.datashare.user.User;
+// Keep these imports explicit otherwise the wildcard import of import org.jooq.Record will end up
+// in a "reference to Record is ambiguous" depending on your JRE since it will conflict with
+// java.util.Record
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 
