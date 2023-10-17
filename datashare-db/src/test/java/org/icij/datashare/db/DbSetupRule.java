@@ -53,7 +53,7 @@ public class DbSetupRule extends ExternalResource {
     }
 
     private static DataSource createDatasource(final String jdbcUrl) {
-        return new RepositoryFactoryImpl(new PropertiesProvider(new HashMap<String, String>() {{
+        return new RepositoryFactoryImpl(new PropertiesProvider(new HashMap<>() {{
             put("dataSourceUrl", ofNullable(jdbcUrl).orElse("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared"));
         }})).createDatasource();
     }

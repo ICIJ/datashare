@@ -580,6 +580,18 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         }
     }
 
+    int getNbQueries(String batchSearchUUID){
+        try (DSLContext context = DSL.using(dataSource, dialect)) {
+            Record1<Integer> record = context.select(BATCH_SEARCH.NB_QUERIES).from(BATCH_SEARCH)
+                    .where(BATCH_SEARCH.UUID.eq(batchSearchUUID)).fetchOne();
+            return (int) record.getValue(0);
+        }
+    }
+    boolean setNbQueries(String batchSearchUuid, int nbQueries){
+        try (DSLContext context = DSL.using(dataSource, dialect)) {
+            return context.update(BATCH_SEARCH).set(BATCH_SEARCH.NB_QUERIES,nbQueries).where(BATCH_SEARCH.UUID.eq(batchSearchUuid)).execute() > 0;
+        }
+    }
     @Override
     public void close() throws IOException {
         if (dataSource instanceof Closeable) {

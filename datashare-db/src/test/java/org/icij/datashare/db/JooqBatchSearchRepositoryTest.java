@@ -740,13 +740,21 @@ public class JooqBatchSearchRepositoryTest {
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true);
 
         repository.save(batchSearch);
+        int nbQueries = repository.getNbQueries(batchSearch.uuid);
+        assertThat(nbQueries).isEqualTo(2);
+    }
 
-        try (DSLContext dsl = DSL.using(repository.dataSource, repository.dialect)) {
-            Optional<Record1<Integer>> record = dsl.select(BATCH_SEARCH.NB_QUERIES).from(BATCH_SEARCH)
-                    .where(BATCH_SEARCH.UUID.eq(batchSearch.uuid)).stream().findFirst();
-            assertThat(record.isPresent()).isTrue();
-            assertThat(record.get().getValue(0)).isEqualTo(2);
-        }
+    @Test
+    public void test_use_computed_nb_queries_when_nb_queries_attribute_is_equal_to_0() {
+        BatchSearch batchSearch = new BatchSearch(asList(project("prj1"), project("prj2")), "name1", "description1",
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), singletonList("tag"),
+                asList("/path/to/docs", "/path/to/pdfs"), 3,true);
+
+        repository.save(batchSearch);
+        boolean ok = repository.setNbQueries(batchSearch.uuid,0);
+        assertThat(ok).isTrue();
+        BatchSearch bs = repository.get(batchSearch.uuid);
+        assertThat(bs.nbQueries).isEqualTo(2);
     }
 
     static public Entry<String, Integer> GetEntry(Map<String,Integer> queries, int position){
