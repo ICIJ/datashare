@@ -9,3 +9,10 @@ databaseChangeLog:
               name: nb_queries
               type: int
               defaultValue: 0
+        - createIndex:
+            indexName: batch_search_nb_queries
+            tableName: batch_search
+            columns:
+              - column:
+                  name: nb_queries
+                  type: int

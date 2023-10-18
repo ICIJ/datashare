@@ -1,32 +1,14 @@
 package org.icij.datashare.db;
 
-import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearchRecord;
+import org.icij.datashare.batch.*;
 import org.icij.datashare.batch.BatchSearchRecord.State;
-import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.batch.SearchException;
-import org.icij.datashare.batch.SearchResult;
-import org.icij.datashare.batch.WebQueryBuilder;
 import org.icij.datashare.db.tables.records.BatchSearchProjectRecord;
 import org.icij.datashare.db.tables.records.BatchSearchQueryRecord;
 import org.icij.datashare.db.tables.records.BatchSearchResultRecord;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
-import org.jooq.DSLContext;
-import org.jooq.InsertValuesStep10;
-import org.jooq.InsertValuesStep2;
-import org.jooq.InsertValuesStep4;
-import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.Record12;
-import org.jooq.Record17;
-import org.jooq.Record19;
-import org.jooq.SQLDialect;
-import org.jooq.SelectConditionStep;
-import org.jooq.SelectJoinStep;
-import org.jooq.SelectOnConditionStep;
-import org.jooq.SelectSelectStep;
+import org.jooq.*;
 import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
@@ -34,14 +16,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.IntStream;
 
 import static java.lang.String.join;
@@ -49,20 +24,14 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.*;
 import static org.icij.datashare.batch.BatchSearchRepository.WebQuery.DEFAULT_SORT_FIELD;
 import static org.icij.datashare.db.Tables.BATCH_SEARCH_PROJECT;
 import static org.icij.datashare.db.tables.BatchSearch.BATCH_SEARCH;
 import static org.icij.datashare.db.tables.BatchSearchQuery.BATCH_SEARCH_QUERY;
 import static org.icij.datashare.db.tables.BatchSearchResult.BATCH_SEARCH_RESULT;
 import static org.icij.datashare.text.Project.project;
-import static org.jooq.impl.DSL.count;
-import static org.jooq.impl.DSL.countDistinct;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.groupConcat;
-import static org.jooq.impl.DSL.select;
+import static org.jooq.impl.DSL.*;
 
 public class JooqBatchSearchRepository implements BatchSearchRepository {
     private static final String LIST_SEPARATOR = ",";
@@ -216,8 +185,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
-        try(DSLContext context = DSL.using(dataSource, dialect)){
-            SelectConditionStep<Record12<String, String, String, String, Timestamp, String, Integer, Integer, String, String, String, Object>> query = createBatchSearchRecordWithQueriesSelectStatement(context)
+        try(DSLContext context = DSL.using(dataSource, dialect)) {
+            cacheNbQueries(webQuery, context);
+
+            SelectConditionStep<Record12<String, String, String, String, Timestamp, String, Integer, Integer, String, String, String, Integer>> query = createBatchSearchRecordWithQueriesSelectStatement(context)
                     .where(BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0)));
             List<String> filteredProjects = webQuery.hasFilteredProjects() ? webQuery.project : projectsIds;
             addFilterToSelectCondition(webQuery, query);
@@ -234,7 +205,6 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                     )).orderBy(BATCH_SEARCH.BATCH_DATE.desc()).
                     fetch().stream().map(this::createBatchSearchRecordFrom).collect(toList());
         }
-
     }
 
     @Override
@@ -436,16 +406,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         BATCH_SEARCH.ERROR_MESSAGE,
                         BATCH_SEARCH.ERROR_QUERY,
                         groupConcat(BATCH_SEARCH_PROJECT.PRJ_ID).as(field("projects")),
-                        field(create.selectCount()
-                                .from(BATCH_SEARCH_QUERY)
-                                .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(BATCH_SEARCH.UUID)))
-                                .as(field("nb_queries")))
+                        BATCH_SEARCH.NB_QUERIES)
                 .from(BATCH_SEARCH
                         .join(BATCH_SEARCH_PROJECT)
                         .on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_PROJECT.SEARCH_UUID)));
     }
 
-    private SelectOnConditionStep<Record12<String, String, String, String, Timestamp, String, Integer, Integer, String, String, String, Object>>
+    private SelectOnConditionStep<Record12<String, String, String, String, Timestamp, String, Integer, Integer, String, String, String, Integer>>
     createBatchSearchRecordWithQueriesSelectStatement(DSLContext create) {
         return create.select(
                 BATCH_SEARCH.UUID,
@@ -459,7 +426,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 BATCH_SEARCH.ERROR_MESSAGE,
                 BATCH_SEARCH.ERROR_QUERY,
                 groupConcat(BATCH_SEARCH_PROJECT.PRJ_ID).as(field("projects")),
-                create.selectCount().from(BATCH_SEARCH_QUERY).where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(BATCH_SEARCH.UUID)).asField("nbQueries")).
+                BATCH_SEARCH.NB_QUERIES).
                 from(BATCH_SEARCH).join(BATCH_SEARCH_PROJECT).on(BATCH_SEARCH.UUID.eq(BATCH_SEARCH_PROJECT.SEARCH_UUID));
     }
 
@@ -516,7 +483,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     private BatchSearchRecord createBatchSearchRecordFrom(final Record record) {
-        Object nbQueries = record.getValue("nbQueries");
+        Object nbQueries = record.getValue(BATCH_SEARCH.NB_QUERIES);
         String projects = (String) record.get("projects");
         org.icij.datashare.db.tables.records.BatchSearchRecord batchSearch = record.into(BATCH_SEARCH);
         return new BatchSearchRecord(batchSearch.getUuid(),
@@ -580,6 +547,33 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         }
     }
 
+    private SelectConditionStep<Record1<String>>  selectBatchSearchWithZeroNbQueries(DSLContext create) {
+        return create.select(BATCH_SEARCH.UUID).from(BATCH_SEARCH).where(BATCH_SEARCH.NB_QUERIES.eq(0));
+    }
+
+    private void updateBatchSearchNbQueries(DSLContext context, List<String> uuids) {
+        if (uuids.isEmpty()){
+            return;
+        }
+
+        context.select(BATCH_SEARCH.UUID, count())
+                .from(BATCH_SEARCH_QUERY)
+                .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(BATCH_SEARCH.UUID).and(BATCH_SEARCH.UUID.in(uuids)))
+                .fetch().forEach(record2-> setNbQueries(context,record2.value1(),record2.value2()) );
+    }
+
+    /**
+     * This method allows retrocompatibility from the times when
+     * the nbQueries were not cached into the database. Each record
+     * without the cache is updated on the fly.
+     */
+    private void cacheNbQueries(WebQuery webQuery, DSLContext context) {
+        SelectConditionStep<Record1<String>> zeroNbQueries = selectBatchSearchWithZeroNbQueries(context);
+        addFilterToSelectCondition(webQuery, zeroNbQueries);
+        List<String> uuids = zeroNbQueries.fetch(BATCH_SEARCH.UUID, String.class);
+        updateBatchSearchNbQueries(context, uuids);
+    }
+
     int getNbQueries(String batchSearchUUID){
         try (DSLContext context = DSL.using(dataSource, dialect)) {
             Record1<Integer> record = context.select(BATCH_SEARCH.NB_QUERIES).from(BATCH_SEARCH)
@@ -587,11 +581,17 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             return (int) record.getValue(0);
         }
     }
+
+    boolean setNbQueries(DSLContext context, String batchSearchUuid, int nbQueries){
+        return context.update(BATCH_SEARCH).set(BATCH_SEARCH.NB_QUERIES,nbQueries).where(BATCH_SEARCH.UUID.eq(batchSearchUuid)).execute() > 0;
+    }
+
     boolean setNbQueries(String batchSearchUuid, int nbQueries){
         try (DSLContext context = DSL.using(dataSource, dialect)) {
-            return context.update(BATCH_SEARCH).set(BATCH_SEARCH.NB_QUERIES,nbQueries).where(BATCH_SEARCH.UUID.eq(batchSearchUuid)).execute() > 0;
+            return setNbQueries(context, batchSearchUuid, nbQueries);
         }
     }
+
     @Override
     public void close() throws IOException {
         if (dataSource instanceof Closeable) {
