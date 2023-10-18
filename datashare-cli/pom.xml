@@ -8,6 +8,48 @@
     <packaging>jar</packaging>
     <groupId>org.icij.datashare</groupId>
     <version>13.3.0</version>
+
+    <name>ICIJ Datashare CLI</name>
+    <url>https://github.com/ICIJ/datashare</url>
+    <description>Datashare CLI library to build datashare CLI extensions</description>
+
+    <organization>
+        <name>ICIJ</name>
+        <url>https://www.icij.org/</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <name>ICIJ</name>
+            <email>datashare@icij.org</email>
+            <organization>ICIJ</organization>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/ICIJ/datashare</url>
+        <connection>scm:git:https://github.com/ICIJ/datashare.git</connection>
+        <developerConnection>scm:git:https://github.com/ICIJ/datashare.git</developerConnection>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.en.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+        </repository>
+    </distributionManagement>
+
     <properties>
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
