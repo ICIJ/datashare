@@ -29,6 +29,7 @@ import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.ProjectProxy.proxy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
@@ -223,7 +224,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_batch_searches_records_json_paginated() {
-        List<BatchSearchRecord> batchSearches = IntStream.range(0, 10).mapToObj(i -> new BatchSearchRecord(singletonList(project("local-datashare")), "name" + i, "description" + i, 2, new Date())).collect(toList());
+        List<BatchSearchRecord> batchSearches = IntStream.range(0, 10).mapToObj(i -> new BatchSearchRecord(singletonList(proxy("local-datashare")), "name" + i, "description" + i, 2, new Date())).collect(toList());
         when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"), WebQueryBuilder.createWebQuery().queryAll().withRange(0,2).build())).thenReturn(batchSearches.subList(0, 2));
         when(batchSearchRepository.getTotal(User.local(), singletonList("local-datashare"), WebQueryBuilder.createWebQuery().queryAll().withRange(0,2).build())).thenReturn(batchSearches.size());
         when(batchSearchRepository.getRecords(User.local(), singletonList("local-datashare"),WebQueryBuilder.createWebQuery().queryAll().withRange(4,3).build())).thenReturn(batchSearches.subList(5, 8));

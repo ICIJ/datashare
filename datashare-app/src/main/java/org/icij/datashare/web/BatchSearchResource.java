@@ -23,10 +23,10 @@ import org.icij.datashare.batch.*;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.PayloadFormatter;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
@@ -324,8 +324,8 @@ public class BatchSearchResource {
         return new Payload(204);
     }
 
-    private String docUrl(String uri, List<Project> projects, String documentId, String rootId) {
-        return format("%s/#/d/%s/%s/%s", uri, projects.stream().map(Project::getId).collect(Collectors.joining(",")), documentId, rootId);
+    private String docUrl(String uri, List<ProjectProxy> projects, String documentId, String rootId) {
+        return format("%s/#/d/%s/%s/%s", uri, projects.stream().map(ProjectProxy::getId).collect(Collectors.joining(",")), documentId, rootId);
     }
 
     private String dirname(Path path) {

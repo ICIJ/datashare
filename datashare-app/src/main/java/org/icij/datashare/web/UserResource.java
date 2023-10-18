@@ -39,13 +39,11 @@ public class UserResource {
     private List<Project> getDatashareUserProjects (DatashareUser datashareUser) {
         List<String> projectNames =  datashareUser.getProjectNames();
         List<Project> projects = datashareUser.getProjects();
-        List<Project> repositoryProjects = repository.getProjects(projectNames.toArray(new String[0]));
-        return projects.stream().map(project -> {
-                    return repositoryProjects.stream()
-                            .filter(p -> p.name.equals(project.name))
-                            .findFirst()
-                            .orElse(project);
-                }).collect(Collectors.toList());
+        List<Project> repositoryProjects = repository.getProjects(projectNames);
+        return projects.stream().map(project -> repositoryProjects.stream()
+                .filter(p -> p.name.equals(project.name))
+                .findFirst()
+                .orElse(project)).collect(Collectors.toList());
     }
 
     @Inject

@@ -51,11 +51,11 @@ public class RootResource {
         } else {
             content = new String(Files.readAllBytes(index), Charset.defaultCharset());
         }
-        List<String> projects = context.currentUser() == null ? new LinkedList<>() : ((DatashareUser)context.currentUser()).getProjectNames();
+        List<String> projectNames = context.currentUser() == null ? new LinkedList<>() : ((DatashareUser)context.currentUser()).getProjectNames();
         if (propertiesProvider.get(PLUGINS_DIR).isPresent()) {
             ExtensionService extensionService = propertiesProvider.get(EXTENSIONS_DIR).isPresent() ? new ExtensionService(propertiesProvider): null;
             return new PluginService(propertiesProvider, extensionService)
-                .addPlugins(content, projects);
+                .addPlugins(content, projectNames);
         }
         return content;
     }

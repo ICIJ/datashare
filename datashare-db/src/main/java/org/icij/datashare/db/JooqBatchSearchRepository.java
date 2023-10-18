@@ -6,7 +6,7 @@ import org.icij.datashare.db.tables.records.BatchSearchProjectRecord;
 import org.icij.datashare.db.tables.records.BatchSearchQueryRecord;
 import org.icij.datashare.db.tables.records.BatchSearchResultRecord;
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
 import org.jooq.*;
 import org.jooq.impl.DSL;
@@ -30,7 +30,8 @@ import static org.icij.datashare.db.Tables.BATCH_SEARCH_PROJECT;
 import static org.icij.datashare.db.tables.BatchSearch.BATCH_SEARCH;
 import static org.icij.datashare.db.tables.BatchSearchQuery.BATCH_SEARCH_QUERY;
 import static org.icij.datashare.db.tables.BatchSearchResult.BATCH_SEARCH_RESULT;
-import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.ProjectProxy.asNameList;
+import static org.icij.datashare.text.ProjectProxy.proxy;
 import static org.jooq.impl.DSL.*;
 
 public class JooqBatchSearchRepository implements BatchSearchRepository {
@@ -185,12 +186,12 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
-        try(DSLContext context = DSL.using(dataSource, dialect)) {
+        try(DSLContext context = using(dataSource, dialect)) {
             cacheNbQueries(webQuery, context);
 
             SelectConditionStep<Record12<String, String, String, String, Timestamp, String, Integer, Integer, String, String, String, Integer>> query = createBatchSearchRecordWithQueriesSelectStatement(context)
                     .where(BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0)));
-            List<String> filteredProjects = webQuery.hasFilteredProjects() ? webQuery.project : projectsIds;
+            List<String> filteredProjects = webQuery.hasFilteredProjects() ? asNameList(webQuery.project) : projectsIds;
             addFilterToSelectCondition(webQuery, query);
             if (webQuery.isSorted()) {
                 query.orderBy(field(webQuery.sort + " " + webQuery.order));
@@ -435,7 +436,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         Integer nb_queries = query_results == null ? 0: query_results;
         boolean phraseMatches= record.get(BATCH_SEARCH.PHRASE_MATCHES) != 0;
         return new BatchSearch(record.get(BATCH_SEARCH.UUID).trim(),
-                singletonList(project(record.get(BATCH_SEARCH_PROJECT.PRJ_ID))),
+                singletonList(proxy(record.get(BATCH_SEARCH_PROJECT.PRJ_ID))),
                 record.getValue(BATCH_SEARCH.NAME),
                 record.getValue(BATCH_SEARCH.DESCRIPTION),
                 new LinkedHashMap<>() {{
@@ -456,14 +457,13 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     private BatchSearch createBatchSearchWithoutQueries(final Record record) {
-        Integer nb_queries = record.get("nb_queries", Integer.class);
         String projects = (String) record.get("projects");
         boolean phraseMatches= record.get(BATCH_SEARCH.PHRASE_MATCHES) != 0;
         return new BatchSearch(record.get(BATCH_SEARCH.UUID).trim(),
                 getProjects(projects),
                 record.getValue(BATCH_SEARCH.NAME),
                 record.getValue(BATCH_SEARCH.DESCRIPTION),
-                nb_queries,
+                record.get(BATCH_SEARCH.NB_QUERIES),
                 Date.from(record.get(BATCH_SEARCH.BATCH_DATE).toInstant()),
                 State.valueOf(record.get(BATCH_SEARCH.STATE)),
                 new User(record.get(BATCH_SEARCH.USER_ID)),
@@ -500,8 +500,8 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 batchSearch.getErrorQuery());
     }
 
-    private static List<Project> getProjects(String prj) {
-        return prj == null || prj.isEmpty() ? null : stream(prj.split(LIST_SEPARATOR)).sorted().map(Project::project).collect(toList());
+    private static List<ProjectProxy> getProjects(String prj) {
+        return prj == null || prj.isEmpty() ? null : stream(prj.split(LIST_SEPARATOR)).sorted().map(ProjectProxy::new).collect(toList());
     }
 
     private SearchResult createSearchResult(final User actualUser, final Record record) {
@@ -513,7 +513,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         }
         Timestamp creationDate = record.get(BATCH_SEARCH_RESULT.CREATION_DATE);
         return new SearchResult(record.get(BATCH_SEARCH_RESULT.QUERY),
-                prj == null || prj.isEmpty() ? null : project(prj),
+                prj == null || prj.isEmpty() ? null : proxy(prj),
                 record.get(BATCH_SEARCH_RESULT.DOC_ID),
                 record.getValue(BATCH_SEARCH_RESULT.ROOT_ID),
                 Paths.get(record.getValue(BATCH_SEARCH_RESULT.DOC_PATH)),

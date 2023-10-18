@@ -142,7 +142,7 @@ public class JooqRepositoryTest {
     public void test_get_list_project_by_ids() {
         repository.save(new Project("foo"));
         repository.save(new Project("bar"));
-        String[] projectIds = {"foo", "bar"};
+        List<String> projectIds = new ArrayList<>(List.of("foo","bar"));
         List<Project> projects = repository.getProjects(projectIds);
         assertThat(projects).hasSize(2);
         List<String> projectNames = projects.stream().map(Project::getName).collect(Collectors.toList());

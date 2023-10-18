@@ -7,12 +7,11 @@ import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
-
 import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.function.TerFunction;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -21,18 +20,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
 public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -80,14 +78,14 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         callThread = Thread.currentThread();
         callWaiterLatch.countDown(); // for tests
         logger.info("running {} queries for batch search {} on projects {} with throttle {}ms and scroll size of {}",
-                batchSearch.queries.size(), batchSearch.uuid, batchSearch.projects.stream().map(Project::getId).collect(Collectors.joining(", "))
+                batchSearch.queries.size(), batchSearch.uuid,  asCommaConcatNames(batchSearch.projects)
                 , throttleMs, scrollSize);
 
         String query = null;
         try {
             for (String s : batchSearch.queries.keySet()) {
                 query = s;
-                Indexer.Searcher searcher = indexer.search(batchSearch.projects.stream().map(Project::getId).collect(toList()), Document.class).
+                Indexer.Searcher searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class).
                         with(query, batchSearch.fuzziness, batchSearch.phraseMatches).
                         withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{})).
                         withFieldValues("tags", batchSearch.tags.toArray(new String[]{})).

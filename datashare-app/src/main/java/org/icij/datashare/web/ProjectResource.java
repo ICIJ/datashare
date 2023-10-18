@@ -20,8 +20,8 @@
     import org.icij.datashare.tasks.DocumentCollectionFactory;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
-    import org.icij.datashare.utils.IndexAccessVerifier;
     import org.icij.datashare.utils.DataDirVerifier;
+    import org.icij.datashare.utils.IndexAccessVerifier;
     import org.icij.datashare.utils.ModeVerifier;
     import org.icij.datashare.utils.PayloadFormatter;
     import org.icij.extract.queue.DocumentQueue;
@@ -30,7 +30,8 @@
     import org.slf4j.LoggerFactory;
 
     import java.io.IOException;
-    import java.util.*;
+    import java.util.List;
+    import java.util.Objects;
 
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
@@ -58,12 +59,12 @@
             this.documentCollectionFactory = documentCollectionFactory;
         }
 
-        String[] getUserProjectIds(DatashareUser user) {
-            return user.getProjectNames().toArray(String[]::new);
+        List<String> getUserProjectIds(DatashareUser user) {
+            return user.getProjectNames();
         }
 
         List<Project> getUserProjects(DatashareUser user) {
-            String[] projectIds = this.getUserProjectIds(user);
+            List<String> projectIds = this.getUserProjectIds(user);
             return repository.getProjects(projectIds);
         }
 
@@ -193,12 +194,16 @@
         @ApiResponse(responseCode = "403", description = "if project download is not allowed")
         @Get("/isDownloadAllowed/:id")
         public Payload isDownloadAllowed(String id, Context context) {
-            List<String> projects = ((DatashareUser) context.currentUser()).getProjectNames();
-            String projectId = projects.stream()
+            List<String> projectIds = ((DatashareUser) context.currentUser()).getProjectNames();
+            String retrievedProjectId = projectIds.stream()
                     .filter(i -> i.equals(id))
                     .findAny()
                     .orElse(null);
-            Project project = repository.getProject(projectId);
+
+            if (retrievedProjectId == null){
+                return ok(); // unknown is allowed
+            }
+            Project project = repository.getProject(retrievedProjectId);
 
             if (project != null && !isAllowed(project, context.request().clientAddress()))  {
                 return PayloadFormatter.error("Download not allowed", HttpStatus.FORBIDDEN);

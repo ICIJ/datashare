@@ -374,7 +374,7 @@ public class JooqRepository implements Repository {
     }
 
     @Override
-    public List<Project> getProjects(String[] projectIds) {
+    public List<Project> getProjects(List<String> projectIds) {
         return DSL.using(connectionProvider, dialect).selectFrom(PROJECT).
                 where(PROJECT.ID.in(projectIds)).
                 stream().map(this::createProjectFrom).collect(toList());
@@ -402,6 +402,8 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean save(Project project) {
+        Timestamp projectCreationDate =  project.creationDate == null ? null: new Timestamp(project.creationDate.getTime());
+        Timestamp projectUpdateDate =  project.updateDate == null ? null: new Timestamp(project.updateDate.getTime());
         return DSL.using(connectionProvider, dialect).
                 insertInto(
                         PROJECT, PROJECT.ID, PROJECT.LABEL, PROJECT.DESCRIPTION, PROJECT.PATH, PROJECT.SOURCE_URL,
@@ -412,7 +414,7 @@ public class JooqRepository implements Repository {
                         project.name, project.label, project.description, project.sourcePath.toString(), project.sourceUrl,
                         project.maintainerName, project.publisherName, project.logoUrl,
                         project.allowFromMask,
-                        new Timestamp(project.creationDate.getTime()), new Timestamp(project.updateDate.getTime())).
+                        projectCreationDate, projectUpdateDate).
                 onConflict(PROJECT.ID).
                     doUpdate().
                         set(PROJECT.LABEL, project.label).
@@ -422,7 +424,7 @@ public class JooqRepository implements Repository {
                         set(PROJECT.PUBLISHER_NAME, project.publisherName).
                         set(PROJECT.LOGO_URL, project.logoUrl).
                         set(PROJECT.ALLOW_FROM_MASK, project.allowFromMask).
-                        set(PROJECT.UPDATE_DATE, new Timestamp(project.updateDate.getTime())).
+                        set(PROJECT.UPDATE_DATE, projectUpdateDate).
                 execute() > 0;
     }
 
@@ -499,6 +501,9 @@ public class JooqRepository implements Repository {
         if (record == null) {
             return null;
         }
+        Timestamp projectCreationDate =  record.getCreationDate() == null ? null: new Timestamp(record.getCreationDate().getTime());
+        Timestamp projectUpdateDate =  record.getUpdateDate() == null ? null: new Timestamp(record.getCreationDate().getTime());
+
         return new Project(record.getId(),
                 record.getLabel(),
                 record.getDescription(),
@@ -508,8 +513,8 @@ public class JooqRepository implements Repository {
                 record.getPublisherName(),
                 record.getLogoUrl(),
                 record.getAllowFromMask(),
-                new Timestamp(record.getCreationDate().getTime()),
-                new Timestamp(record.getUpdateDate().getTime()));
+                projectCreationDate,
+                projectUpdateDate);
     }
 
     private NamedEntity createFrom(NamedEntityRecord record) {
