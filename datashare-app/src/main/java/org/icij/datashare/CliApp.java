@@ -1,9 +1,10 @@
 package org.icij.datashare;
 
+import com.google.inject.Guice;
+import org.icij.datashare.cli.Cli;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
-import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
@@ -41,10 +42,11 @@ class CliApp {
         process(extensionService, properties);
         process(new PluginService(new PropertiesProvider(properties), extensionService), properties);
         CommonMode commonMode = CommonMode.create(properties);
-        List<CliExtension> extensions = CliExtensionService.getInstance().getExtensions();
+        CliExtensionService cliExtensionService = CliExtensionService.getInstance();
+        List<Cli.CliExtender> extensions = cliExtensionService.getExtensions();
         logger.info("found {} CLI extension(s)", extensions.size());
         if (extensions.size() == 1 && extensions.get(0).identifier().equals(properties.get("ext"))) {
-            extensions.get(0).run(properties);
+            cliExtensionService.getExtensionRunners(Guice.createInjector(commonMode)).get(0).run(properties);
             System.exit(0);
         }
         runTaskRunner(commonMode, properties);

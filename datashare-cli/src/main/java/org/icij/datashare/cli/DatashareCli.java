@@ -4,7 +4,6 @@ package org.icij.datashare.cli;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import org.icij.datashare.cli.spi.CliExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +26,7 @@ public class DatashareCli {
         OptionSpec<Void> helpOpt = DatashareCliOptions.help(parser);
         OptionSpec<Void> versionOpt = DatashareCliOptions.version(parser);
 
-        List<CliExtension> extensions  = CliExtensionService.getInstance().getExtensions();
+        List<Cli.CliExtender> extensions = CliExtensionService.getInstance().getExtensions();
         OptionSpec<String> extOption = DatashareCliOptions.extOption(parser);
         if (extensions.size() > 1) {
             System.out.println("For now we only allow one CLI extension");
@@ -76,11 +75,11 @@ public class DatashareCli {
         return this;
     }
 
-    private static OptionParser createExtParser(CliExtension cliExtension) {
+    private static OptionParser createExtParser(Cli.CliExtender cliExtender) {
         OptionParser parser = new OptionParser();
         DatashareCliOptions.extOption(parser);
         DatashareCliOptions.mode(parser);
-        cliExtension.addOptions(parser);
+        cliExtender.addOptions(parser);
         return parser;
     }
 

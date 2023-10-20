@@ -27,6 +27,12 @@
             <version>${slf4j.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+
         <!-- tests dependencies -->
         <dependency>
             <groupId>junit</groupId>
@@ -50,6 +56,10 @@
             <artifactId>s3mock</artifactId>
             <version>1.0.1</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.extract</groupId>
+            <artifactId>extract-lib</artifactId>
         </dependency>
     </dependencies>
 

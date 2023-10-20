@@ -1,12 +1,6 @@
 package org.icij.datashare.cli.spi;
 
-import joptsimple.OptionParser;
+import org.icij.datashare.cli.Cli;
 
-import java.util.Properties;
-
-public interface CliExtension {
-    void addOptions(OptionParser parser);
-    String identifier();
-
-    void run(Properties properties) throws Exception;
+public interface CliExtension extends Cli.CliRunner, Cli.CliExtender {
 }
