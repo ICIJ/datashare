@@ -31,11 +31,14 @@ public interface Repository {
     List<String> getStarredDocuments(Project project, User user);
     Set<String> getRecommentationsBy(Project project, List<User> users);
 
+    // document user recommendations
+    List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size);
+    int recommend(Project project, User user, List<String> documentIds);
+    int unrecommend(Project project, User user, List<String> documentIds);
+
     // standalone (to remove later ?)
     int star(Project project, User user, List<String> documentIds);
     int unstar(Project project, User user, List<String> documentIds);
-    int recommend(Project project, User user, List<String> documentIds);
-    int unrecommend(Project project, User user, List<String> documentIds);
     boolean tag(Project prj, String documentId, Tag... tags);
     boolean untag(Project prj, String documentId, Tag... tags);
     boolean tag(Project prj, List<String> documentIds, Tag... tags);
