@@ -22,16 +22,23 @@
   "analysis": {
     "analyzer": {
       "path_analyzer": {
+        "type":"custom",
         "tokenizer": "path_tokenizer"
       },
       "folding": {
+        "type":"custom",
         "tokenizer": "standard",
         "filter":  [ "lowercase", "asciifolding" ]
       }
     },
     "tokenizer": {
       "path_tokenizer": {
-        "type": "path_hierarchy"
+        "type": "path_hierarchy",
+        "delimiter": "/",
+        "replacement": "/",
+        "buffer_size": 1024,
+        "reverse": false,
+        "skip": 0
       }
     },
     "normalizer": {
