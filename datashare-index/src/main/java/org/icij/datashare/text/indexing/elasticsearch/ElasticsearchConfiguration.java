@@ -1,23 +1,27 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.ExistsRequest;
+import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.elasticsearch.action.support.WriteRequest;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -25,7 +29,6 @@ import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.String.format;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.apache.http.HttpHost.create;
-import static org.elasticsearch.xcontent.XContentType.JSON;
 
 public class ElasticsearchConfiguration {
     static final String MAPPING_RESOURCE_NAME = "datashare_index_mappings.json";
@@ -57,7 +60,7 @@ public class ElasticsearchConfiguration {
 
     final String indexJoinField;
     final String docTypeField;
-    WriteRequest.RefreshPolicy refreshPolicy = WriteRequest.RefreshPolicy.NONE;
+    Refresh refreshPolicy = Refresh.False;
 
     final int shards = 1;
     final int replicas = 1;
@@ -67,7 +70,7 @@ public class ElasticsearchConfiguration {
         docTypeField = propertiesProvider.get(INDEX_TYPE_FIELD_NAME_PROP).orElse(DEFAULT_DOC_TYPE_FIELD);
     }
 
-    public static RestHighLevelClient createESClient(final PropertiesProvider propertiesProvider) {
+    public static ElasticsearchClient createESClient(final PropertiesProvider propertiesProvider) {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
         try {
             URL indexUrl = new URL(propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS));
@@ -82,11 +85,12 @@ public class ElasticsearchConfiguration {
 
                 httpClientConfigCallback = httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
             }
-            RestHighLevelClient client = new RestHighLevelClient(RestClient.builder(httpHost)
+            RestClientTransport transport = new RestClientTransport(RestClient.builder(httpHost)
                     .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                             .setConnectTimeout(5000)
                             .setSocketTimeout(60000))
-                    .setHttpClientConfigCallback(httpClientConfigCallback));
+                    .setHttpClientConfigCallback(httpClientConfigCallback).build(), new JacksonJsonpMapper());
+            ElasticsearchClient client = new ElasticsearchClient(transport);
             String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
             return client;
         } catch (MalformedURLException e) {
@@ -94,19 +98,19 @@ public class ElasticsearchConfiguration {
         }
     }
 
-    public static boolean createIndex(RestHighLevelClient client, String indexName) {
-        GetIndexRequest request = new GetIndexRequest(indexName);
+    public static boolean createIndex(ElasticsearchClient client, String indexName) {
+        ExistsRequest existsRequest = ExistsRequest.of(er -> er.index(indexName));
         try {
-            if (!client.indices().exists(request, RequestOptions.DEFAULT)) {
+            if (!client.indices().exists(existsRequest).value()) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
-                CreateIndexRequest createReq = new CreateIndexRequest(indexName);
+                CreateIndexRequest.Builder createReq = new CreateIndexRequest.Builder().index(indexName);
                 if (IS_OS_WINDOWS) {
-                    createReq.settings(getResourceContent(SETTINGS_RESOURCE_NAME_WINDOWS), JSON);
+                    createReq.settings(IndexSettings.of(is -> is.withJson(new StringReader(getResourceContent(SETTINGS_RESOURCE_NAME_WINDOWS)))));
                 } else {
-                    createReq.settings(getResourceContent(SETTINGS_RESOURCE_NAME), JSON);
+                    createReq.settings(IndexSettings.of(is -> is.withJson(new StringReader(getResourceContent(SETTINGS_RESOURCE_NAME)))));
                 }
-                createReq.mapping(getResourceContent(MAPPING_RESOURCE_NAME), JSON);
-                client.indices().create(createReq, RequestOptions.DEFAULT);
+                createReq.mappings(TypeMapping.of(tm -> tm.withJson(new StringReader(getResourceContent(MAPPING_RESOURCE_NAME)))));
+                client.indices().create(createReq.build());
                 return true;
             }
         } catch (IOException e) {
@@ -115,7 +119,7 @@ public class ElasticsearchConfiguration {
         return false;
     }
 
-    ElasticsearchConfiguration withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
+    ElasticsearchConfiguration withRefresh(Refresh refreshPolicy) {
         this.refreshPolicy = refreshPolicy;
         return this;
     }
