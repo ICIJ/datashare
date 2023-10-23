@@ -1,14 +1,11 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch.core.GetRequest;
-import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.junit.ClassRule;
