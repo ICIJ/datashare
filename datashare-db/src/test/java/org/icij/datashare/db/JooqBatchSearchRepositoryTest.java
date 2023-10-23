@@ -749,8 +749,9 @@ public class JooqBatchSearchRepositoryTest {
         repository.save(batchSearch);
         boolean ok = repository.setNbQueries(batchSearch.uuid,0);
         assertThat(ok).isTrue();
-        BatchSearch bs = repository.get(batchSearch.uuid);
-        assertThat(bs.nbQueries).isEqualTo(2);
+        List<BatchSearchRecord> batchSearchList = repository.getRecords(User.local(), asList("prj1", "prj2"));
+        assertThat(batchSearchList).hasSize(1);
+        assertThat(batchSearchList.get(0).nbQueries).isEqualTo(2);
     }
 
     static public Entry<String, Integer> GetEntry(Map<String,Integer> queries, int position){

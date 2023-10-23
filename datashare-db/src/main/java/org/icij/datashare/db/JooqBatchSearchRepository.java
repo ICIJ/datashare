@@ -572,9 +572,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             return;
         }
 
-        context.select(BATCH_SEARCH.UUID, count())
+        context.select(BATCH_SEARCH_QUERY.SEARCH_UUID, count())
                 .from(BATCH_SEARCH_QUERY)
-                .where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(BATCH_SEARCH.UUID).and(BATCH_SEARCH.UUID.in(uuids)))
+                .where(BATCH_SEARCH_QUERY.SEARCH_UUID.in(uuids))
+                .groupBy(BATCH_SEARCH_QUERY.SEARCH_UUID)
                 .fetch().forEach(record2-> setNbQueries(context,record2.value1(),record2.value2()) );
     }
 
