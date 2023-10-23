@@ -8,8 +8,6 @@ import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
-import co.elastic.clients.util.ApiTypeHelper;
-import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.entity.ContentType;
@@ -22,7 +20,6 @@ import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.Collections;
 import java.util.Objects;
 
 import static com.google.common.io.ByteStreams.toByteArray;
