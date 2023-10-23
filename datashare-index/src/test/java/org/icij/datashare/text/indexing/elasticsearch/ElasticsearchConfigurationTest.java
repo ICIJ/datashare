@@ -1,8 +1,13 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.GetRequest;
+import co.elastic.clients.elasticsearch.core.GetResponse;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.util.EntityUtils;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -22,7 +27,8 @@ public class ElasticsearchConfigurationTest {
     public void test_create_client_creates_mapping() throws Exception {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
-        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        Response response = restClient.performRequest(new Request("GET", TEST_INDEX));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("mapping");
     }
@@ -31,18 +37,20 @@ public class ElasticsearchConfigurationTest {
     public void test_create_client_creates_settings() throws Exception {
         ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
-        Response response = es.client.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        Response response = restClient.performRequest(new Request("GET", TEST_INDEX));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }
 
     @Test
     public void test_create_client_with_user_pass() throws Exception {
-        RestHighLevelClient esClient = ElasticsearchConfiguration.createESClient(new PropertiesProvider(new HashMap<String, String>() {{
+        ElasticsearchClient esClient = ElasticsearchConfiguration.createESClient(new PropertiesProvider(new HashMap<String, String>() {{
             put("elasticsearchAddress", "http://user:pass@elasticsearch:9200");
         }}));
 
-        Response response = esClient.getLowLevelClient().performRequest(new Request("GET", TEST_INDEX));
+        RestClient restClient = ((RestClientTransport) esClient._transport()).restClient();
+        Response response = restClient.performRequest(new Request("GET", TEST_INDEX));
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }
