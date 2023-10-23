@@ -51,16 +51,6 @@
             <version>1.19.0</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.adobe.testing</groupId>
-            <artifactId>s3mock</artifactId>
-            <version>1.0.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.icij.extract</groupId>
-            <artifactId>extract-lib</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
