@@ -1,16 +1,14 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch.core.IndexRequest;
+import co.elastic.clients.elasticsearch.core.IndexResponse;
+import co.elastic.clients.elasticsearch.core.search.SourceConfigParam;
 import com.google.inject.Inject;
 import org.apache.tika.metadata.DublinCore;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.support.WriteRequest;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
@@ -29,7 +27,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Serializable;
 import java.text.Normalizer;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Paths.get;
@@ -44,7 +45,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
     public static final String DEFAULT_VALUE_UNKNOWN = "unknown";
 
-    private final RestHighLevelClient client;
+    private final ElasticsearchClient client;
     private final ElasticsearchConfiguration esCfg;
     private final Publisher publisher;
     private final LanguageGuesser languageGuesser;
@@ -53,7 +54,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private String indexName;
 
     @Inject
-    public ElasticsearchSpewer(final RestHighLevelClient client, LanguageGuesser languageGuesser, final FieldNames fields,
+    public ElasticsearchSpewer(final ElasticsearchClient client, LanguageGuesser languageGuesser, final FieldNames fields,
                                Publisher publisher, final PropertiesProvider propertiesProvider) {
         super(fields);
         this.client = client;
@@ -69,13 +70,13 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     protected void writeDocument(TikaDocument doc, TikaDocument parent, TikaDocument root, int level) throws IOException {
         final IndexRequest req = prepareRequest(doc, parent, root, level);
         long before = currentTimeMillis();
-        IndexResponse indexResponse = client.index(req, RequestOptions.DEFAULT);
+        IndexResponse indexResponse = client.index(req);
         logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
-                shorten(indexResponse.getId(), 4), currentTimeMillis() - before, doc);
+                shorten(indexResponse.id(), 4), currentTimeMillis() - before, doc);
         synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads
             publisher.publish(NLP, new Message(EXTRACT_NLP)
                     .add(Message.Field.INDEX_NAME, indexName)
-                    .add(Message.Field.DOC_ID, indexResponse.getId())
+                    .add(Message.Field.DOC_ID, indexResponse.id())
                     .add(Message.Field.R_ID, parent == null ? doc.getId() : root.getId()));
         }
     }
@@ -90,14 +91,14 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     private IndexRequest prepareRequest(final TikaDocument document, final TikaDocument parent, TikaDocument root, final int level) throws IOException {
-        IndexRequest req = new IndexRequest(indexName).id(document.getId());
+        IndexRequest.Builder req = new IndexRequest.Builder().index(indexName).id(document.getId());
         Map<String, Object> jsonDocument = getDocumentMap(document);
 
         if (parent == null && isDuplicate(document.getId())) {
-            IndexRequest indexRequest = new IndexRequest(indexName).id(digestAlgorithm.hash(document.getPath()));
-            indexRequest.source(getDuplicateMap(document));
-            indexRequest.setRefreshPolicy(esCfg.refreshPolicy);
-            return indexRequest;
+            IndexRequest.Builder indexRequest = new IndexRequest.Builder().index(indexName).id(digestAlgorithm.hash(document.getPath()));
+            indexRequest.document(getDuplicateMap(document));
+            indexRequest.refresh(esCfg.refreshPolicy);
+            return indexRequest.build();
         }
 
         if (parent != null) {
@@ -106,16 +107,16 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             req.routing(root.getId());
         }
         jsonDocument.put("extractionLevel", level);
-        req = req.source(jsonDocument);
-        req.setRefreshPolicy(esCfg.refreshPolicy);
-        return req;
+        req = req.document(jsonDocument);
+        req.refresh(esCfg.refreshPolicy);
+        return req.build();
     }
 
     private boolean isDuplicate(String docId) throws IOException {
-        GetRequest getRequest = new GetRequest(indexName, docId);
-        getRequest.fetchSourceContext(new FetchSourceContext(false));
+        co.elastic.clients.elasticsearch.core.ExistsRequest.Builder getRequest = new co.elastic.clients.elasticsearch.core.ExistsRequest.Builder().index(indexName).id(docId);
+        getRequest.source(SourceConfigParam.of(scp -> scp.fetch(false)));
         getRequest.storedFields("_none_");
-        return client.exists(getRequest, RequestOptions.DEFAULT);
+        return client.exists(getRequest.build()).value();
     }
 
     Map<String, Object> getDocumentMap(TikaDocument document) throws IOException {
@@ -188,7 +189,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY);
     }
 
-    public ElasticsearchSpewer withRefresh(WriteRequest.RefreshPolicy refreshPolicy) {
+    public ElasticsearchSpewer withRefresh(Refresh refreshPolicy) {
         this.esCfg.withRefresh(refreshPolicy);
         return this;
     }
