@@ -76,7 +76,6 @@
                     .orElse(null);
         }
 
-
         DocumentQueue getDocumentQueue(String queueName) {
             return documentCollectionFactory.createQueue(propertiesProvider, queueName);
         }
