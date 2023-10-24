@@ -1,10 +1,9 @@
 package org.icij.datashare.cli;
 
-import org.icij.datashare.cli.spi.CliExtension;
-
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+import org.icij.datashare.cli.spi.CliExtension;
 
 public class CliExtensionService {
     private static CliExtensionService service;
