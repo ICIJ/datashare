@@ -3,8 +3,11 @@ package org.icij.datashare.web;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
+<<<<<<< HEAD
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+=======
+>>>>>>> 9463377c (feat: add endpoints to retrieve document user recommendations)
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.Get;
@@ -17,6 +20,10 @@ import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.Repository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.Project;
+<<<<<<< HEAD
+=======
+import org.icij.datashare.text.ProjectProxy;
+>>>>>>> 9463377c (feat: add endpoints to retrieve document user recommendations)
 import org.icij.datashare.utils.PayloadFormatter;
 
 import java.util.List;
@@ -24,9 +31,16 @@ import java.util.stream.Collectors;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
+<<<<<<< HEAD
 
 @Singleton
 @Prefix("/api/document-user-recommendation")
+=======
+import static net.codestory.http.payload.Payload.ok;
+
+@Singleton
+@Prefix("/api/document-user-recommendations")
+>>>>>>> 9463377c (feat: add endpoints to retrieve document user recommendations)
 public class DocumentUserRecommendationResource {
     private final Repository repository;
 
@@ -48,10 +62,14 @@ public class DocumentUserRecommendationResource {
         return PayloadFormatter.allowMethods("OPTIONS", "GET");
     }
 
+<<<<<<< HEAD
     @Operation(description = "Gets all user's document recommendations.",
                 parameters = {@Parameter(name = "from", description = "if not provided it starts from 0", in = ParameterIn.QUERY),
                               @Parameter(name = "size", description = "if not provided, the 50 first record from the \"from\" parameter", in = ParameterIn.QUERY),
                               @Parameter(name = "project", description = "if not provided, return every recommendations for every project", in = ParameterIn.QUERY)})
+=======
+    @Operation(description = "Gets all user's document recommendations.")
+>>>>>>> 9463377c (feat: add endpoints to retrieve document user recommendations)
     @ApiResponse(responseCode = "200", description = "returns the user's document recommendations", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "400", description = "if either `from` or `size` are present and cannot be parsed")
     @Get("/")
