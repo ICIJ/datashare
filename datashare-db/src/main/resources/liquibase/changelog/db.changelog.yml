@@ -101,3 +101,6 @@ databaseChangeLog:
   - include:
       file: changes/033-adds-column-batch-search-nb-queries.yml
       relativeToChangelogFile: true
+  - include:
+      file: changes/034-adds-creation-date-column-to-document-user-recommendation.yml
+      relativeToChangelogFile: true
