@@ -47,7 +47,7 @@ public class DocumentUserRecommendationTest  extends AbstractProdWebServerTest {
         when(jooqRepository.getProjects(any())).thenReturn(projects);
         when(jooqRepository.getDocumentUserRecommendations(0, 50, projects)).thenReturn(List.of(recommendation));
 
-        get("/api/document-user-recommendations/").should()
+        get("/api/document-user-recommendation/").should()
                 .respond(200)
                 // Get nested project name
                 .contain("\"name\":\"bar\"")
@@ -67,7 +67,7 @@ public class DocumentUserRecommendationTest  extends AbstractProdWebServerTest {
         when(jooqRepository.getProjects(any())).thenReturn(projects);
         when(jooqRepository.getDocumentUserRecommendations(0, 50, projects)).thenReturn(List.of(barRecommendation, fooRecommendation));
 
-        get("/api/document-user-recommendations/").should()
+        get("/api/document-user-recommendation/").should()
                 // Get nested document ids
                 .contain("\"id\":\"bar-0\"")
                 .contain("\"id\":\"foo-0\"");
@@ -81,7 +81,7 @@ public class DocumentUserRecommendationTest  extends AbstractProdWebServerTest {
         when(jooqRepository.getProjects(any())).thenReturn(projects);
         when(jooqRepository.getDocumentUserRecommendations(0, 1, projects)).thenReturn(List.of(recommendation));
 
-        get("/api/document-user-recommendations/?size=1").should()
+        get("/api/document-user-recommendation/?size=1").should()
                 .respond(200)
                 // Get nested project name
                 .contain("\"name\":\"bar\"")
@@ -99,7 +99,7 @@ public class DocumentUserRecommendationTest  extends AbstractProdWebServerTest {
         when(jooqRepository.getProjects(any())).thenReturn(projects);
         when(jooqRepository.getDocumentUserRecommendations(0, 50, List.of(projectBar))).thenReturn(List.of(recommendation));
 
-        get("/api/document-user-recommendations/?project=bar").should().respond(200).contain("\"name\":\"bar\"");
+        get("/api/document-user-recommendation/?project=bar").should().respond(200).contain("\"name\":\"bar\"");
     }
 
     @Test
@@ -112,6 +112,6 @@ public class DocumentUserRecommendationTest  extends AbstractProdWebServerTest {
         when(jooqRepository.getDocumentUserRecommendations(0, 50, List.of(projectBar))).thenReturn(List.of(recommendation));
         when(jooqRepository.getDocumentUserRecommendations(0, 50, projects)).thenReturn(List.of(recommendation));
 
-        get("/api/document-user-recommendations/?project=foo").should().respond(200).not().contain("\"name\":\"bar\"");
+        get("/api/document-user-recommendation/?project=foo").should().respond(200).not().contain("\"name\":\"bar\"");
     }
 }
