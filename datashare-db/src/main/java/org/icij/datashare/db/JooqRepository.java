@@ -24,6 +24,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -158,9 +159,10 @@ public class JooqRepository implements Repository {
 
     @Override
     public int recommend(Project project, User user, List<String> documentIds) {
-        InsertValuesStep3<DocumentUserRecommendationRecord, String, String, String> query = using(connectionProvider, dialect).
-                insertInto(DOCUMENT_USER_RECOMMENDATION, DOCUMENT_USER_RECOMMENDATION.DOC_ID, DOCUMENT_USER_RECOMMENDATION.USER_ID, DOCUMENT_USER_RECOMMENDATION.PRJ_ID);
-        documentIds.forEach(t -> query.values(t, user.id, project.getId()));
+        InsertValuesStep4<DocumentUserRecommendationRecord, String, String, String, Timestamp> query = DSL.using(connectionProvider, dialect).
+                insertInto(DOCUMENT_USER_RECOMMENDATION, DOCUMENT_USER_RECOMMENDATION.DOC_ID, DOCUMENT_USER_RECOMMENDATION.USER_ID, DOCUMENT_USER_RECOMMENDATION.PRJ_ID, DOCUMENT_USER_RECOMMENDATION.CREATION_DATE);
+        Timestamp now = Timestamp.from(Instant.now());
+        documentIds.forEach(t -> query.values(t, user.id, project.getId(), now));
         return query.execute();
     }
 
@@ -404,6 +406,7 @@ public class JooqRepository implements Repository {
         try (DSLContext dsl = DSL.using(connectionProvider, dialect)) {
             return createSelectDocumentUserRecommendations(dsl)
                     .where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.in(projectIds))
+                    .orderBy(DOCUMENT_USER_RECOMMENDATION.CREATION_DATE.desc())
                     .limit(size)
                     .offset(from)
                     .stream()
