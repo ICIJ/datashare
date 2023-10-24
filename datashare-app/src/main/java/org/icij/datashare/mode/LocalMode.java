@@ -1,6 +1,7 @@
 package org.icij.datashare.mode;
 
 import net.codestory.http.routes.Routes;
+import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.session.LocalUserFilter;
@@ -37,6 +38,7 @@ public class LocalMode extends CommonMode {
                 add(UserResource.class).
                 add(NamedEntityResource.class).
                 add(DocumentResource.class).
+                add(DocumentUserRecommendationResource.class).
                 add(BatchSearchResource.class).
                 add(PluginResource.class).
                 add(ExtensionResource.class).

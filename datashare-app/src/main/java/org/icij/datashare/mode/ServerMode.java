@@ -83,6 +83,8 @@ public class ServerMode extends CommonMode {
                 add(IndexResource.class).
                 add(UserResource.class).
                 add(NamedEntityResource.class).
+                add(DocumentResource.class).
+                add(DocumentUserRecommendationResource.class).
                 add(BatchSearchResource.class).
                 add(NoteResource.class).
                 add(PluginResource.class).
@@ -90,7 +92,6 @@ public class ServerMode extends CommonMode {
                 add(NerResource.class).
                 add(ApiKeyResource.class).
                 add(ProjectResource.class).
-                add(DocumentResource.class).
                 filter(ApiKeyFilter.class).
                 filter(Filter.class);
     }
