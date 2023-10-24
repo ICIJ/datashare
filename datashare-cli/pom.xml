@@ -4,27 +4,72 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <artifactId>datashare</artifactId>
-        <groupId>org.icij.datashare</groupId>
-        <version>13.3.2</version>
-    </parent>
-
     <artifactId>datashare-cli</artifactId>
     <packaging>jar</packaging>
+    <groupId>org.icij.datashare</groupId>
+    <version>13.4.0</version>
+
+    <name>ICIJ Datashare CLI</name>
+    <url>https://github.com/ICIJ/datashare</url>
+    <description>Datashare CLI library to build datashare CLI extensions</description>
+
+    <organization>
+        <name>ICIJ</name>
+        <url>https://www.icij.org/</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <name>ICIJ</name>
+            <email>datashare@icij.org</email>
+            <organization>ICIJ</organization>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/ICIJ/datashare</url>
+        <connection>scm:git:https://github.com/ICIJ/datashare.git</connection>
+        <developerConnection>scm:git:https://github.com/ICIJ/datashare.git</developerConnection>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.en.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+        </repository>
+    </distributionManagement>
+
+    <properties>
+        <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>net.sf.jopt-simple</groupId>
             <artifactId>jopt-simple</artifactId>
-            <version>${joptsimple.version}</version>
+            <version>6.0-alpha-3</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
+            <version>2.0.7</version>
         </dependency>
 
         <dependency>
@@ -37,6 +82,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <version>4.13.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -52,9 +98,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.adobe.testing</groupId>
-            <artifactId>s3mock</artifactId>
-            <version>1.0.1</version>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.4.8</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -63,6 +109,8 @@
         <plugins>
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <version>3.2.1</version>
                 <configuration>
                     <shadedArtifactAttached>true</shadedArtifactAttached>
                     <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
@@ -75,7 +123,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire.version}</version>
+                <version>3.0.0-M3</version>
             </plugin>
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>

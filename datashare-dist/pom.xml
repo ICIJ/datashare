@@ -42,7 +42,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-cli</artifactId>
-            <version>${project.version}</version>
+            <version>${datashare-cli.version}</version>
             <type>jar</type>
             <classifier>jar-with-dependencies</classifier>
             <scope>runtime</scope>
