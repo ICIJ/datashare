@@ -20,7 +20,10 @@ validate:
 		mvn validate
 
 package:
-		mvn -Dmaven.test.skip=true package 
+		mvn -Dmaven.test.skip=true package
+
+generate-db:
+        mvn clean generate-sources
 
 update-db:
 		mvn -pl commons-test -am install
