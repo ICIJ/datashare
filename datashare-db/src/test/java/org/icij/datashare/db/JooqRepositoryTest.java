@@ -245,6 +245,19 @@ public class JooqRepositoryTest {
     }
 
     @Test
+    public void test_get_all_document_user_recommendations_without_user_inventory() {
+        final User janeDoe = new User("jdoe" , "Jane Doe", "jdoe@icij.org");
+        final Project projectFoo = new Project("foo");
+        repository.save(projectFoo);
+        repository.recommend(projectFoo, janeDoe, asList("id5", "id6"));
+        List<DocumentUserRecommendation> recommendations = repository.getDocumentUserRecommendations(0, 50);
+        assertThat(recommendations).hasSize(2);
+        assertThat(recommendations.get(0).project.name).isEqualTo("foo");
+        assertThat(recommendations.get(0).user.id).isEqualTo("jdoe");
+        assertThat(recommendations.get(0).user.name).isEqualTo(null);
+    }
+
+    @Test
     public void test_get_all_document_user_recommendations_with_size() {
         final User janeDoe = new User("jdoe" , "Jane Doe", "jdoe@icij.org");
         final Project projectFoo = new Project("foo");

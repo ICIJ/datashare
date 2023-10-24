@@ -509,7 +509,7 @@ public class JooqRepository implements Repository {
         return dsl
             .select()
             .from(DOCUMENT_USER_RECOMMENDATION)
-            .join(USER_INVENTORY)
+            .leftJoin(USER_INVENTORY)
                 .on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))
             .join(PROJECT)
                 .on(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(PROJECT.ID));
@@ -564,7 +564,14 @@ public class JooqRepository implements Repository {
         DocumentUserRecommendationRecord recommendation = record.into(DOCUMENT_USER_RECOMMENDATION);
         Document document = DocumentBuilder.createDoc().withId(recommendation.getDocId()).build();
         ProjectProxy project = new ProjectProxy(createProjectFrom(record.into(PROJECT)).getName());
-        User user = createUserFrom(record.into(USER_INVENTORY));
+        UserInventoryRecord userHistoryRecord = record.into(USER_INVENTORY);
+        // Since the userHistoryRecord is queried through a left join, it can be empty.
+        // In that case, we need to override id manually to avoid build an empty User instance.
+        if (userHistoryRecord.get(USER_INVENTORY.ID) == null) {
+            userHistoryRecord.setValue(USER_INVENTORY.ID, recommendation.getUserId());
+            userHistoryRecord.setValue(USER_INVENTORY.DETAILS, "{}");
+        }
+        User user = createUserFrom(userHistoryRecord);
         Timestamp creationDate =  recommendation.getCreationDate() == null ? null : new Timestamp(recommendation.getCreationDate().getTime());
         return new DocumentUserRecommendation(document, project, user, creationDate);
     }
