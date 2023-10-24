@@ -8,7 +8,6 @@ import co.elastic.clients.elasticsearch.core.DeleteByQueryRequest;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.tika.metadata.DublinCore;
 import org.apache.tika.metadata.Metadata;
@@ -50,6 +49,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
+import static org.icij.datashare.utils.JsonUtils.nodeToMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -78,7 +78,7 @@ public class ElasticsearchSpewerTest {
         assertThat(documentFields.id()).isEqualTo(document.getId());
         assertEquals(new HashMap<String, String>() {{
             put("name", "Document");
-        }}, new ObjectMapper().convertValue(documentFields.source(), Map.class).get("join"));
+        }}, nodeToMap(documentFields.source()).get("join"));
         ArgumentCaptor<Message> argument = ArgumentCaptor.forClass(Message.class);
         verify(publisher).publish(eq(Channel.NLP), argument.capture());
         assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
@@ -95,7 +95,7 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(
+        assertThat(nodeToMap(documentFields.source())).includes(
                 entry("language", "CHINESE")
         );
     }
@@ -111,7 +111,7 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(
+        assertThat(nodeToMap(documentFields.source())).includes(
                 entry("language", "JAPANESE")
         );
     }
@@ -127,7 +127,7 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(
+        assertThat(nodeToMap(documentFields.source())).includes(
                 entry("language", "MALTESE")
         );
     }
@@ -151,7 +151,7 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(
+        assertThat(nodeToMap(documentFields.source())).includes(
                 entry("language", "ENGLISH")
         );
     }
@@ -165,7 +165,7 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(
+        assertThat(nodeToMap(documentFields.source())).includes(
                 entry("contentEncoding", "ISO-8859-1"),
                 entry("contentType", "text/plain"),
                 entry("nerTags", new ArrayList<>()),
@@ -187,7 +187,7 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("contentLength", 7862117376L));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("contentLength", 7862117376L));
     }
 
     @Test
@@ -199,8 +199,8 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("title", "T-File.txt"));
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("titleNorm", "t-file.txt"));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("title", "T-File.txt"));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("titleNorm", "t-file.txt"));
     }
 
     @Test
@@ -213,8 +213,8 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("title", "Tweet-File.json"));
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("titleNorm", "tweet-file.json"));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("title", "Tweet-File.json"));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("titleNorm", "tweet-file.json"));
     }
 
     @Test
@@ -228,8 +228,8 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("title", "This is a tweet."));
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("titleNorm", "this is a tweet."));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("title", "This is a tweet."));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("titleNorm", "this is a tweet."));
     }
 
     @Test
@@ -242,8 +242,8 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("title", "Email-File.txt"));
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("titleNorm", "email-file.txt"));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("title", "Email-File.txt"));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("titleNorm", "email-file.txt"));
     }
 
     @Test
@@ -257,8 +257,8 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("title", "This is an email."));
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("titleNorm", "this is an email."));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("title", "This is an email."));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("titleNorm", "this is an email."));
     }
 
     @Test
@@ -273,8 +273,8 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("title", "This is a more detailed email."));
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("titleNorm", "this is a more detailed email."));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("title", "This is a more detailed email."));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("titleNorm", "this is a more detailed email."));
     }
 
     @Test
@@ -287,9 +287,9 @@ public class ElasticsearchSpewerTest {
         spewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class).containsKey("metadata")).isTrue();
+        assertThat(nodeToMap(documentFields.source()).containsKey("metadata")).isTrue();
         @SuppressWarnings("unchecked")
-        HashMap<String, Object> metadata = (HashMap<String, Object>) new ObjectMapper().convertValue(documentFields.source(), Map.class).get("metadata");
+        HashMap<String, Object> metadata = (HashMap<String, Object>) nodeToMap(documentFields.source()).get("metadata");
         // Those values should be here
         assertThat(metadata).includes(entry("tika_metadata_resourcename", "doc.txt"));
         assertThat(metadata).includes(entry("tika_metadata_foo", "bar"));
@@ -360,9 +360,9 @@ public class ElasticsearchSpewerTest {
         GetResponse<ObjectNode> actualDocument = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
         GetResponse<ObjectNode> actualDocument2 = es.client.get(doc -> doc.index(TEST_INDEX).id(Hasher.SHA_256.hash(document2.getPath())), ObjectNode.class);
         assertThat(actualDocument.found()).isTrue();
-        assertThat(new ObjectMapper().convertValue(actualDocument.source(), Map.class)).includes(entry("type", "Document"));
+        assertThat(nodeToMap(actualDocument.source())).includes(entry("type", "Document"));
         assertThat(actualDocument2.found()).isTrue();
-        assertThat(new ObjectMapper().convertValue(actualDocument2.source(), Map.class)).includes(entry("type", "Duplicate"));
+        assertThat(nodeToMap(actualDocument2.source())).includes(entry("type", "Duplicate"));
         assertThat(actualDocument2.id().length()).isEqualTo(Hasher.SHA_256.digestLength);
     }
 
@@ -379,7 +379,7 @@ public class ElasticsearchSpewerTest {
         limitedContentSpewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("content", "this content should"));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("content", "this content should"));
     }
 
     @Test
@@ -395,7 +395,7 @@ public class ElasticsearchSpewerTest {
         limitedContentSpewer.write(document);
 
         GetResponse<ObjectNode> documentFields = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        assertThat(new ObjectMapper().convertValue(documentFields.source(), Map.class)).includes(entry("content", "this content is ok"));
+        assertThat(nodeToMap(documentFields.source())).includes(entry("content", "this content is ok"));
     }
 
     @Test
