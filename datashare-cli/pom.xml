@@ -7,7 +7,7 @@
     <artifactId>datashare-cli</artifactId>
     <packaging>jar</packaging>
     <groupId>org.icij.datashare</groupId>
-    <version>13.3.0</version>
+    <version>13.4.0</version>
 
     <name>ICIJ Datashare CLI</name>
     <url>https://github.com/ICIJ/datashare</url>
@@ -95,6 +95,12 @@
             <groupId>com.github.stefanbirkner</groupId>
             <artifactId>system-rules</artifactId>
             <version>1.19.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.4.8</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
