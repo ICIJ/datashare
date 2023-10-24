@@ -562,8 +562,9 @@ public class JooqRepository implements Repository {
         }
 
         DocumentUserRecommendationRecord recommendation = record.into(DOCUMENT_USER_RECOMMENDATION);
-        Document document = DocumentBuilder.createDoc().withId(recommendation.getDocId()).build();
-        ProjectProxy project = new ProjectProxy(createProjectFrom(record.into(PROJECT)).getName());
+        Project project = createProjectFrom(record.into(PROJECT));
+        ProjectProxy projectProxy = new ProjectProxy(project.getName());
+        Document document = DocumentBuilder.createDoc().withId(recommendation.getDocId()).with(project).build();
         UserInventoryRecord userHistoryRecord = record.into(USER_INVENTORY);
         // Since the userHistoryRecord is queried through a left join, it can be empty.
         // In that case, we need to override id manually to avoid build an empty User instance.
@@ -573,7 +574,7 @@ public class JooqRepository implements Repository {
         }
         User user = createUserFrom(userHistoryRecord);
         Timestamp creationDate =  recommendation.getCreationDate() == null ? null : new Timestamp(recommendation.getCreationDate().getTime());
-        return new DocumentUserRecommendation(document, project, user, creationDate);
+        return new DocumentUserRecommendation(document, projectProxy, user, creationDate);
     }
 
     private NamedEntity createFrom(NamedEntityRecord record) {
