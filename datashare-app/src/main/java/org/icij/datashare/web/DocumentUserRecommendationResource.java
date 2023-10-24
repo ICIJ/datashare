@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
-import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
 @Prefix("/api/document-user-recommendation")
