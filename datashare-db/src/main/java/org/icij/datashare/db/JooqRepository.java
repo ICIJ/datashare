@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
@@ -12,19 +13,7 @@ import org.icij.datashare.user.User;
 // Keep these imports explicit otherwise the wildcard import of import org.jooq.Record will end up
 // in a "reference to Record is ambiguous" depending on your JRE since it will conflict with
 // java.util.Record
-import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.InsertValuesStep2;
-import org.jooq.InsertValuesStep3;
-import org.jooq.InsertValuesStep5;
-import org.jooq.InsertValuesStep6;
-import org.jooq.InsertValuesStep9;
-import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.SQLDialect;
-import org.jooq.SelectConditionStep;
-import org.jooq.SortField;
-import org.jooq.UpdateConditionStep;
+import org.jooq.*;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 import org.slf4j.LoggerFactory;
@@ -410,6 +399,32 @@ public class JooqRepository implements Repository {
     }
 
     @Override
+    public List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size, List<Project> projects) {
+        List<String> projectIds = projects.stream().map(Project::getId).collect(toList());
+        try (DSLContext dsl = DSL.using(connectionProvider, dialect)) {
+            return createSelectDocumentUserRecommendations(dsl)
+                    .where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.in(projectIds))
+                    .limit(size)
+                    .offset(from)
+                    .stream()
+                    .map(this::createDocumentUserRecommendationFrom)
+                    .collect(toList());
+        }
+    }
+
+    @Override
+    public List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size) {
+        try (DSLContext dsl = DSL.using(connectionProvider, dialect)) {
+            return createSelectDocumentUserRecommendations(dsl)
+                    .limit(size)
+                    .offset(from)
+                    .stream()
+                    .map(this::createDocumentUserRecommendationFrom)
+                    .collect(toList());
+        }
+    }
+
+    @Override
     public boolean save(Note note) {
         return DSL.using(connectionProvider, dialect).insertInto(NOTE, NOTE.PROJECT_ID, NOTE.PATH, NOTE.NOTE_, NOTE.VARIANT).
                 values(note.project.name, note.path.toString(), note.note, note.variant.name()).execute() > 0;
@@ -490,7 +505,16 @@ public class JooqRepository implements Repository {
                 where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()));
     }
 
-    // ---------------------------
+    private SelectJoinStep<Record> createSelectDocumentUserRecommendations(DSLContext dsl) {
+        return dsl
+            .select()
+            .from(DOCUMENT_USER_RECOMMENDATION)
+            .join(USER_INVENTORY)
+                .on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))
+            .join(PROJECT)
+                .on(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(PROJECT.ID));
+    }
+
     private User createUserFrom(Record record) {
         if (record == null) {
             return null;
@@ -530,6 +554,19 @@ public class JooqRepository implements Repository {
                 record.getAllowFromMask(),
                 projectCreationDate,
                 projectUpdateDate);
+    }
+
+    private DocumentUserRecommendation createDocumentUserRecommendationFrom(Record record) {
+        if (record == null) {
+            return null;
+        }
+
+        DocumentUserRecommendationRecord recommendation = record.into(DOCUMENT_USER_RECOMMENDATION);
+        Document document = DocumentBuilder.createDoc().withId(recommendation.getDocId()).build();
+        ProjectProxy project = new ProjectProxy(createProjectFrom(record.into(PROJECT)).getName());
+        User user = createUserFrom(record.into(USER_INVENTORY));
+        Timestamp creationDate =  recommendation.getCreationDate() == null ? null : new Timestamp(recommendation.getCreationDate().getTime());
+        return new DocumentUserRecommendation(document, project, user, creationDate);
     }
 
     private NamedEntity createFrom(NamedEntityRecord record) {

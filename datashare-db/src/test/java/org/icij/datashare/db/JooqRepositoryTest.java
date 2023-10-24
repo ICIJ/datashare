@@ -1,6 +1,7 @@
 package org.icij.datashare.db;
 
 
+import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
@@ -227,6 +228,51 @@ public class JooqRepositoryTest {
         assertThat(recommendationEntry.item.name).isEqualTo("test");
         assertThat(recommendationEntry.item.email).isEqualTo("bar@bar.org");
         assertThat(recommendationEntry.count).isEqualTo(2);
+    }
+
+    @Test
+    public void test_get_all_document_user_recommendations() {
+        final User janeDoe = new User("jdoe" , "Jane Doe", "jdoe@icij.org");
+        final Project projectFoo = new Project("foo");
+        repository.save(janeDoe);
+        repository.save(projectFoo);
+        repository.recommend(projectFoo, janeDoe, asList("id5", "id6"));
+        List<DocumentUserRecommendation> recommendations = repository.getDocumentUserRecommendations(0, 50);
+        assertThat(recommendations).hasSize(2);
+        assertThat(recommendations.get(0).project.name).isEqualTo("foo");
+        assertThat(recommendations.get(0).user.id).isEqualTo("jdoe");
+        assertThat(recommendations.get(0).user.name).isEqualTo("Jane Doe");
+    }
+
+    @Test
+    public void test_get_all_document_user_recommendations_with_size() {
+        final User janeDoe = new User("jdoe" , "Jane Doe", "jdoe@icij.org");
+        final Project projectFoo = new Project("foo");
+        repository.save(janeDoe);
+        repository.save(projectFoo);
+        repository.recommend(projectFoo, janeDoe, asList("id5", "id6"));
+        List<DocumentUserRecommendation> recommendations = repository.getDocumentUserRecommendations(0, 1);
+        assertThat(recommendations).hasSize(1);
+    }
+
+    @Test
+    public void test_get_all_document_user_recommendations_with_project() {
+        final User janeDoe = new User("jdoe" , "Jane Doe", "jdoe@icij.org");
+        final Project projectFoo = new Project("foo");
+        final Project projectBar = new Project("bar");
+        repository.save(janeDoe);
+        repository.save(projectFoo);
+        repository.save(projectBar);
+        repository.recommend(projectFoo, janeDoe, asList("id5", "id6"));
+        repository.recommend(projectBar, janeDoe, asList("id7", "id8"));
+
+        List<DocumentUserRecommendation> fooRecommendations = repository.getDocumentUserRecommendations(0, 50, List.of(projectFoo));
+        assertThat(fooRecommendations).hasSize(2);
+        assertThat(fooRecommendations.get(0).project.name).isEqualTo("foo");
+
+        List<DocumentUserRecommendation> barRecommendations = repository.getDocumentUserRecommendations(0, 50, List.of(projectBar));
+        assertThat(barRecommendations).hasSize(2);
+        assertThat(barRecommendations.get(0).project.name).isEqualTo("bar");
     }
 
     @Test
