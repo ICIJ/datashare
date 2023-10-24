@@ -2,6 +2,9 @@ package org.icij.datashare.mode;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
@@ -70,13 +73,13 @@ public abstract class CommonMode extends AbstractModule {
     public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
-    private final GuiceAdapter guiceAdapter;
+    private final Injector injector;
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
                 new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).mergeWith(properties);
         this.mode = getMode(properties);
-        this.guiceAdapter = new GuiceAdapter(this);
+        this.injector = Guice.createInjector(this);
     }
 
     CommonMode(final Map<String, String> map) {
@@ -106,8 +109,10 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     public Mode getMode() {return mode;}
-    public <T> T get(Class<T> type) {return guiceAdapter.get(type);}
-
+    public <T> T get(Class<T> type) {return injector.getInstance(type);}
+    public Injector createChildInjector(Module... modules) {
+        return injector.createChildInjector(modules);
+    }
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
@@ -215,7 +220,7 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
-        routes.setIocAdapter(guiceAdapter)
+        routes.setIocAdapter(new GuiceAdapter(injector))
                 .add(RootResource.class)
                 .add(SettingsResource.class)
                 .add(OpenApiResource.class)
