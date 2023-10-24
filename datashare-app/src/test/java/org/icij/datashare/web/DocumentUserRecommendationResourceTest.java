@@ -20,7 +20,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
-public class DocumentUserRecommendationTest  extends AbstractProdWebServerTest {
+public class DocumentUserRecommendationResourceTest extends AbstractProdWebServerTest {
     @Mock
     PropertiesProvider propertiesProvider;
     @Mock
