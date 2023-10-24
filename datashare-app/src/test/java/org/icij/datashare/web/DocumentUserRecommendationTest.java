@@ -58,6 +58,22 @@ public class DocumentUserRecommendationTest  extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_get_document_user_recommendations_for_all_projects() {
+        Document bar0 = DocumentBuilder.createDoc("bar-0").build();
+        Document foo0 = DocumentBuilder.createDoc("foo-0").build();
+        DocumentUserRecommendation barRecommendation = new DocumentUserRecommendation(bar0, projectBar, janeDoe);
+        DocumentUserRecommendation fooRecommendation = new DocumentUserRecommendation(foo0, projectFoo, janeDoe);
+        List<Project> projects = List.of(projectBar, projectFoo);
+        when(jooqRepository.getProjects(any())).thenReturn(projects);
+        when(jooqRepository.getDocumentUserRecommendations(0, 50, projects)).thenReturn(List.of(barRecommendation, fooRecommendation));
+
+        get("/api/document-user-recommendations/").should()
+                // Get nested document ids
+                .contain("\"id\":\"bar-0\"")
+                .contain("\"id\":\"foo-0\"");
+    }
+
+    @Test
     public void test_get_document_user_recommendations_with_size() {
         Document document = DocumentBuilder.createDoc("bar-0").build();
         DocumentUserRecommendation recommendation = new DocumentUserRecommendation(document, projectBar, janeDoe);
