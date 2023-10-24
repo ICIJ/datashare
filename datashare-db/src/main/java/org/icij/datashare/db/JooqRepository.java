@@ -419,6 +419,7 @@ public class JooqRepository implements Repository {
     public List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size) {
         try (DSLContext dsl = DSL.using(connectionProvider, dialect)) {
             return createSelectDocumentUserRecommendations(dsl)
+                    .orderBy(DOCUMENT_USER_RECOMMENDATION.CREATION_DATE.desc())
                     .limit(size)
                     .offset(from)
                     .stream()
