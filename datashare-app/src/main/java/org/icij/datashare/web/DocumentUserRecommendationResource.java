@@ -27,7 +27,7 @@ import static java.util.Optional.ofNullable;
 import static net.codestory.http.payload.Payload.ok;
 
 @Singleton
-@Prefix("/api/document-user-recommendations")
+@Prefix("/api/document-user-recommendation")
 public class DocumentUserRecommendationResource {
     private final Repository repository;
 
