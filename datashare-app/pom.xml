@@ -83,6 +83,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-cli</artifactId>
+            <version>${datashare-cli.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
