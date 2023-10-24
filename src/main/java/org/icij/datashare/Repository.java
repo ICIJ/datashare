@@ -33,6 +33,7 @@ public interface Repository {
 
     // document user recommendations
     List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size);
+    List<DocumentUserRecommendation> getDocumentUserRecommendations(int from, int size, List<Project> projects);
     int recommend(Project project, User user, List<String> documentIds);
     int unrecommend(Project project, User user, List<String> documentIds);
 
