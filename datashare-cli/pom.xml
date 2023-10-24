@@ -27,6 +27,12 @@
             <version>${slf4j.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+
         <!-- tests dependencies -->
         <dependency>
             <groupId>junit</groupId>
