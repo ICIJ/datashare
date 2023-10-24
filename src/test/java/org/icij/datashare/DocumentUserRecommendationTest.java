@@ -31,7 +31,7 @@ public class DocumentUserRecommendationTest {
 
     @Test
     public void deserialize_document_user_recommendation() throws IOException {
-        String json = "{\"project\":{\"name\":\"uber-files\"},\"user\":{\"id\":\"bar\",\"name\":\"Jane Doe\",\"details\":{}},\"document\":{\"id\":\"foo\"}}";
+        String json = "{\"project\":\"uber-files\",\"user\":{\"id\":\"bar\",\"name\":\"Jane Doe\",\"details\":{}},\"document\":{\"id\":\"foo\"}}";
         DocumentUserRecommendation recomendation = JsonObjectMapper.MAPPER.readValue(json, DocumentUserRecommendation.class);
         assertThat(recomendation.project.getId()).isEqualTo("uber-files");
         assertThat(recomendation.document.getId()).isEqualTo("foo");
