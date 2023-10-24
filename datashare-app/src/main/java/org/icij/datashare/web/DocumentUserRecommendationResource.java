@@ -26,7 +26,7 @@ import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
 
 @Singleton
-@Prefix("/api/document-user-recommendations")
+@Prefix("/api/document-user-recommendation")
 public class DocumentUserRecommendationResource {
     private final Repository repository;
 
