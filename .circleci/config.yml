@@ -137,7 +137,7 @@ jobs:
       - run:
           name: Generate db doc
           environment:
-            PGDB: datashare
+            PGDB: datashare_liquibase
             PGUSER: dstest
             PGPASSWORD: test
           command: |
