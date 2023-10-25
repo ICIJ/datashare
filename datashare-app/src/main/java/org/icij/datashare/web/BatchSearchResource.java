@@ -33,13 +33,16 @@ import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
-import static java.lang.Boolean.*;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static net.codestory.http.payload.Payload.*;
 import static org.icij.datashare.CollectionUtils.asSet;
+import static org.icij.datashare.function.ThrowingFunctions.parseBoolean;
 
 @Singleton
 @Prefix("/api/batch")
@@ -56,26 +59,72 @@ public class BatchSearchResource {
         this.propertiesProvider = propertiesProvider;
     }
 
-
-    @Operation(description = "Retrieves the batch search list for the user issuing the request")
-    @ApiResponse(description = "200 and the list of batch search")
-    @Get("/search")
-    public List<BatchSearchRecord> getSearches(Context context) {
-        DatashareUser user = (DatashareUser) context.currentUser();
-        return batchSearchRepository.getRecords(user, user.getProjectNames());
-    }
-
     @Operation(description = "Retrieves the batch search list for the user issuing the request filter with the given criteria, and the total of batch searches matching the criteria.<br>" +
             "If from/size are not given their default values are 0, meaning that all the results are returned. BatchDate must be a list of 2 items (the first one for the starting date and the second one for the ending date) If defined publishState is a string equals to \"0\" or \"1\"",
             requestBody = @RequestBody(description = "the json webQuery request body", required = true,  content = @Content(schema = @Schema(implementation = BatchSearchRepository.WebQuery.class)))
     )
     @ApiResponse(responseCode = "200", description = "the list of batch searches with the total batch searches for the query", useReturnTypeSchema = true)
     @Post("/search")
-    public WebResponse<BatchSearchRecord> getSearchesFiltered(BatchSearchRepository.WebQuery webQuery, Context context) {
+    public WebResponse<BatchSearchRecord> getBatchSearchesFiltered(BatchSearchRepository.WebQuery webQuery, Context context) {
         DatashareUser user = (DatashareUser) context.currentUser();
         return new WebResponse<>(batchSearchRepository.getRecords(user, user.getProjectNames(), webQuery), webQuery.from, webQuery.size,
                 batchSearchRepository.getTotal(user, user.getProjectNames(), webQuery));
     }
+    @Operation(description = "Retrieves the list of batch searches",
+            parameters ={
+                    @Parameter(name = "query", in = ParameterIn.QUERY, description = "'freetext' search filter. Empty string or '*' to select all. Default is '*'"),
+                    @Parameter(name = "field", in = ParameterIn.QUERY, description = "specifies field on query filter ('all','author'...). Default is 'all' "),
+                    @Parameter(name = "queries", in = ParameterIn.QUERY, description = "list of selected queries in the batch search (to invert selection put 'queriesExcluded' parameter to true)"),
+                    @Parameter(name = "queriesExcluded", in = ParameterIn.QUERY, description = "Associated with 'queries', if true it excludes the listed queries from the results"),
+                    @Parameter(name = "contentTypes", in = ParameterIn.QUERY, description = "filters by contentTypes"),
+                    @Parameter(name = "project", in = ParameterIn.QUERY, description = "filters by projects. Empty array corresponds to no projects"),
+                    @Parameter(name = "batchDate", in = ParameterIn.QUERY, description = "filters by date range timestamps with [dateStart, dateEnd]"),
+                    @Parameter(name = "state", in = ParameterIn.QUERY, description = "filters by task status (RUNNING, QUEUED, DONE, FAILED)"),
+                    @Parameter(name = "publishState", in = ParameterIn.QUERY, description = "filters by published state (0: private to the user, 1: public on the plateform)"),
+                    @Parameter(name = "withQueries", in = ParameterIn.QUERY, description = "boolean, if true it includes list of queries"),
+                    @Parameter(name = "size", in = ParameterIn.QUERY, description = "if not provided default is 100"),
+                    @Parameter(name = "from", in = ParameterIn.QUERY, description = "if not provided it starts from 0"),
+            })
+    @Get("/search")
+    public WebResponse<BatchSearchRecord> getSearchesFiltered(Context context) {
+        DatashareUser user = (DatashareUser) context.currentUser();
+        int from = Integer.parseInt(ofNullable(context.get("from")).orElse("0"));
+        int size = Integer.parseInt(ofNullable(context.get("size")).orElse("100"));
+        List<String> queries = ofNullable(context.get("queries")).map(q-> List.of(q.split(","))).orElse(null);
+        List<String> project = ofNullable(context.get("project")).map(q-> List.of(q.split(","))).orElse(null);
+        List<String> batchDate = ofNullable(context.get("batchDate")).map(q-> List.of(q.split(","))).orElse(null);
+        List<String> state =ofNullable(context.get("state")).map(q->  List.of(q.split(","))).orElse(null);
+        List<String> contentTypes = ofNullable(context.get("contentTypes")).map(q-> List.of(q.split(","))).orElse(null);
+        String query = ofNullable(context.get("query")).orElse("*");
+        String field = ofNullable(context.get("field")).orElse("all");
+        String sort = ofNullable(context.get("sort")).orElse("doc_nb");
+        String order = ofNullable(context.get("order")).orElse("asc");
+        String publishState = ofNullable(context.get("publishState")).filter(q -> q.equals("0") || q.equals("1")).orElse(null);
+        boolean withQueries = ofNullable(context.get("withQueries")).map(parseBoolean).orElse(false);
+        boolean queriesExcluded = ofNullable(context.get("queriesExcluded")).map(parseBoolean).orElse(false);
+
+        BatchSearchRepository.WebQuery webQuery = new BatchSearchRepository.WebQuery(
+                size,
+                from,
+                sort,
+                order,
+                query,
+                field,
+                queries,
+                project,
+                batchDate,
+                state,
+                publishState,
+                withQueries,
+                queriesExcluded,
+                contentTypes
+        );
+
+        return new WebResponse<>(
+                batchSearchRepository.getRecords(user, user.getProjectNames(), webQuery), webQuery.from, webQuery.size,
+                batchSearchRepository.getTotal(user, user.getProjectNames(), webQuery));
+    }
+
 
     @Operation(description = "Retrieves the batch search with the given id. The query param \"withQueries\" accepts a boolean value." +
             "When \"withQueries\" is set to false, the list of queries is empty and nbQueries contains the number of queries.")
