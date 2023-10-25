@@ -108,19 +108,18 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-shade-plugin</artifactId>
-                <groupId>org.apache.maven.plugins</groupId>
-                <version>3.2.1</version>
+                <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <shadedArtifactAttached>true</shadedArtifactAttached>
-                    <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>make-shade</id>
+                        <id>make-assembly</id>
                         <phase>package</phase>
                         <goals>
-                            <goal>shade</goal>
+                            <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>
