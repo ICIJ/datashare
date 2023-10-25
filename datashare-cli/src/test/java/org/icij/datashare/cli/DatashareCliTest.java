@@ -135,8 +135,8 @@ public class DatashareCliTest {
 
     @Test
     public void test_foo_extension_loaded_help() {
-        cli.parseArguments(new String[] {"--ext", "foo", "--fooCommand"});
-        assertThat(cli.properties).excludes(entry("defaultProject", "local-datashare"));
+        cli.parseArguments(new String[] {"-s", "someSettingsPath", "--ext", "foo", "--fooCommand"});
+        assertThat(cli.properties).includes(entry("settings", "someSettingsPath"));
     }
 
     @Test
