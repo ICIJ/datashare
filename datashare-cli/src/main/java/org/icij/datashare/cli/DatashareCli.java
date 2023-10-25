@@ -41,10 +41,9 @@ public class DatashareCli {
                     System.out.println("Unknown extension: " + extId);
                     System.exit(3);
                 }
-                OptionParser extParser = createExtParser(extensions.get(0));
-                helpOpt = DatashareCliOptions.help(extParser);
-                OptionSet extOptions = extParser.parse(args);
+                OptionSet extOptions = parser.parse(args);
                 if (extOptions.has(helpOpt)) {
+                    OptionParser extParser = createExtParser(extensions.get(0));
                     printHelp(extParser);
                     System.exit(0);
                 }
