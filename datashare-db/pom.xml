@@ -172,6 +172,11 @@
                 </executions>
             </plugin>
             <plugin>
+                <!--
+                    shade is necessary here to avoid java.sql.SQLException: No suitable driver
+                    https://stackoverflow.com/questions/12297376/no-suitable-driver-found-when-including-the-needed-drivers-with-maven-assembly-p
+                    because information about drivers are stored in /META-INF thus can be overriden between drivers (sqlite, postgresql)
+                -->
                 <artifactId>maven-shade-plugin</artifactId>
                 <configuration>
                     <shadedArtifactAttached>true</shadedArtifactAttached>
