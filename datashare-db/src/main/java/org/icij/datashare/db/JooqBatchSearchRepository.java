@@ -8,23 +8,7 @@ import org.icij.datashare.db.tables.records.BatchSearchResultRecord;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
-// Keep these imports explicit otherwise the wildcard import of import org.jooq.Record will end up
-// in a "reference to Record is ambiguous" depending on your JRE since it will conflict with
-// java.util.Record
-import org.jooq.DSLContext;
-import org.jooq.InsertValuesStep10;
-import org.jooq.InsertValuesStep2;
-import org.jooq.InsertValuesStep4;
-import org.jooq.Record;
-import org.jooq.Record1;
-import org.jooq.Record12;
-import org.jooq.Record17;
-import org.jooq.Record19;
-import org.jooq.SQLDialect;
-import org.jooq.SelectConditionStep;
-import org.jooq.SelectJoinStep;
-import org.jooq.SelectOnConditionStep;
-import org.jooq.SelectSelectStep;
+import org.jooq.*;
 import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
@@ -499,14 +483,14 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     private BatchSearchRecord createBatchSearchRecordFrom(final Record record) {
-        Object nbQueries = record.getValue(BATCH_SEARCH.NB_QUERIES);
+        int nbQueries = Optional.ofNullable(record.getValue(BATCH_SEARCH.NB_QUERIES)).orElse(0);
         String projects = (String) record.get("projects");
         org.icij.datashare.db.tables.records.BatchSearchRecord batchSearch = record.into(BATCH_SEARCH);
         return new BatchSearchRecord(batchSearch.getUuid(),
                 getProjects(projects),
                 batchSearch.getName(),
                 batchSearch.getDescription(),
-                (int) nbQueries,
+                nbQueries,
                 Date.from(batchSearch.getBatchDate().toInstant()),
                 State.valueOf(batchSearch.getState()),
                 new User(batchSearch.getUserId()),
