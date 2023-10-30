@@ -6,7 +6,6 @@ import liquibase.Contexts;
 import liquibase.Liquibase;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
-import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
@@ -43,10 +42,14 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
 
     void initDatabase(final DataSource dataSource) {
         try (Connection connection = dataSource.getConnection()){
-            Liquibase liquibase = new liquibase.Liquibase("liquibase/changelog/db.changelog.yml", new ClassLoaderResourceAccessor(),
-                            DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection)));
-            liquibase.update(new Contexts());
-        } catch (LiquibaseException | SQLException e) {
+            try (Liquibase liquibase = new Liquibase("liquibase/changelog/db.changelog.yml",
+                    new ClassLoaderResourceAccessor(),
+                    DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection)))) {
+                liquibase.update(new Contexts());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } catch ( SQLException e) {
             throw new RuntimeException(e);
         }
     }
