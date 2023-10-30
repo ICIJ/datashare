@@ -77,7 +77,7 @@
         <maven.compiler.target>11</maven.compiler.target>
 
         <datashare-api.version>12.4.0</datashare-api.version>
-        <datashare-cli.version>13.4.0</datashare-cli.version>
+        <datashare-cli.version>13.5.0</datashare-cli.version>
 
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
