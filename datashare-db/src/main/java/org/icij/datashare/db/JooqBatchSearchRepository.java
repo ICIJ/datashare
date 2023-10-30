@@ -186,7 +186,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<BatchSearchRecord> getRecords(User user, List<String> projectsIds, WebQuery webQuery) {
-        try(DSLContext context = using(dataSource, dialect)) {
+        try(DSLContext context = DSL.using(dataSource, dialect)) {
             cacheNbQueries(webQuery, context);
 
             SelectConditionStep<Record12<String, String, String, String, Timestamp, String, Integer, Integer, String, String, String, Integer>> query = createBatchSearchRecordWithQueriesSelectStatement(context)
@@ -587,9 +587,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         return context.update(BATCH_SEARCH).set(BATCH_SEARCH.NB_QUERIES,nbQueries).where(BATCH_SEARCH.UUID.eq(batchSearchUuid)).execute() > 0;
     }
 
-    boolean setNbQueries(String batchSearchUuid, int nbQueries){
+    boolean resetNbQueries(String batchSearchUuid){
         try (DSLContext context = DSL.using(dataSource, dialect)) {
-            return setNbQueries(context, batchSearchUuid, nbQueries);
+            return setNbQueries(context, batchSearchUuid, 0);
         }
     }
 

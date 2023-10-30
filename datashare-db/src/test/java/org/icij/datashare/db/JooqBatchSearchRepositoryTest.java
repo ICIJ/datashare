@@ -747,7 +747,7 @@ public class JooqBatchSearchRepositoryTest {
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true);
 
         repository.save(batchSearch);
-        boolean ok = repository.setNbQueries(batchSearch.uuid,0);
+        boolean ok = repository.resetNbQueries(batchSearch.uuid);
         assertThat(ok).isTrue();
         List<BatchSearchRecord> batchSearchList = repository.getRecords(User.local(), asList("prj1", "prj2"));
         assertThat(batchSearchList).hasSize(1);
