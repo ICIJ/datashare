@@ -50,7 +50,7 @@ import static org.jooq.impl.DSL.*;
 
 public class JooqRepository implements Repository {
     private final DataSource connectionProvider;
-    private SQLDialect dialect;
+    private final SQLDialect dialect;
 
     JooqRepository(final DataSource connectionProvider, final SQLDialect dialect) {
         this.connectionProvider = connectionProvider;
@@ -189,19 +189,23 @@ public class JooqRepository implements Repository {
                             USER_HISTORY.USER_ID, USER_HISTORY.TYPE, USER_HISTORY.NAME, USER_HISTORY.URI);
             insertHistory.values(new Timestamp(userEvent.creationDate.getTime()), new Timestamp(userEvent.modificationDate.getTime()),
                     userEvent.user.id, userEvent.type.id, userEvent.name, userEvent.uri.toString());
-            UserHistoryRecord insertHistoryRecord = insertHistory.onConflict(USER_HISTORY.USER_ID, USER_HISTORY.URI)
+            try(InsertOnDuplicateSetMoreStep<UserHistoryRecord> innerSet = insertHistory.onConflict(USER_HISTORY.USER_ID, USER_HISTORY.URI)
                     .doUpdate()
-                    .set(USER_HISTORY.MODIFICATION_DATE, new Timestamp(userEvent.modificationDate.getTime()))
-                    .returning(USER_HISTORY.ID).fetchOne();
+                    .set(USER_HISTORY.MODIFICATION_DATE, new Timestamp(userEvent.modificationDate.getTime()))){
 
-            if (insertHistoryRecord == null) {
-                return false;
+                UserHistoryRecord insertHistoryRecord = innerSet
+                        .returning(USER_HISTORY.ID).fetchOne();
+
+                if (insertHistoryRecord == null) {
+                    return false;
+                }
+
+                InsertValuesStep2<UserHistoryProjectRecord, Integer, String> insertProject = inner.
+                        insertInto(USER_HISTORY_PROJECT, USER_HISTORY_PROJECT.USER_HISTORY_ID, USER_HISTORY_PROJECT.PRJ_ID);
+                projects.forEach(project -> insertProject.values(insertHistoryRecord.getValue(USER_HISTORY.ID), project.getId()));
+                return insertProject.onConflictDoNothing().execute() >= 0;
             }
 
-            InsertValuesStep2<UserHistoryProjectRecord, Integer, String> insertProject = inner.
-                    insertInto(USER_HISTORY_PROJECT, USER_HISTORY_PROJECT.USER_HISTORY_ID, USER_HISTORY_PROJECT.PRJ_ID);
-            projects.forEach(project -> insertProject.values(insertHistoryRecord.getValue(USER_HISTORY.ID), project.getId()));
-            return insertProject.onConflictDoNothing().execute() >= 0;
         });
     }
 
@@ -211,13 +215,15 @@ public class JooqRepository implements Repository {
         Field<?> sortBy =  Optional.ofNullable(USER_HISTORY.field(sortName)).orElseThrow(() -> new IllegalArgumentException(String.format("Invalid sort attribute: %s", sortName)));
         SortField<?> order  = desc ? sortBy.desc() : sortBy.asc();
         if (projectIds.length>0) {
-            return using(connectionProvider, dialect)
+            try(SelectConditionStep<Record1<Integer>> innerSelect = select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds))){
+                return using(connectionProvider, dialect)
                     .selectFrom(USER_HISTORY)
                     .where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
                     .and(USER_HISTORY.ID
-                            .in(select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds)))
+                            .in(innerSelect)
                     )
                     .orderBy(order).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
+            }
         } else {
             return using(connectionProvider, dialect).selectFrom(USER_HISTORY).
                     where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
@@ -241,15 +247,16 @@ public class JooqRepository implements Repository {
     @Override
     public boolean deleteUserHistory(User user, UserEvent.Type type) {
         return using(connectionProvider, dialect).transactionResult(configuration -> {
-            DSLContext inner = using(configuration);
-            inner.deleteFrom(USER_HISTORY_PROJECT).
-                    where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
-                            select(USER_HISTORY.ID)
-                                    .from(USER_HISTORY)
-                                    .where(USER_HISTORY.TYPE.eq(type.id)).and(USER_HISTORY.USER_ID.eq(user.id))
-                    )).execute();
-            return inner.deleteFrom(USER_HISTORY).
-                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute() > 0;
+            try (SelectSelectStep<Record1<Integer>> innerSelect = select(USER_HISTORY.ID)){
+                DSLContext inner = using(configuration);
+                inner.deleteFrom(USER_HISTORY_PROJECT).
+                        where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
+                                    innerSelect.from(USER_HISTORY)
+                                            .where(USER_HISTORY.TYPE.eq(type.id)).and(USER_HISTORY.USER_ID.eq(user.id))
+                        )).execute();
+                return inner.deleteFrom(USER_HISTORY).
+                        where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute() > 0;
+            }
         });
     }
 
@@ -267,20 +274,19 @@ public class JooqRepository implements Repository {
     @Override
     public boolean renameSavedSearch(User user, int eventId, String newName) {
         return using(connectionProvider, dialect).transactionResult(configuration -> {
-            DSLContext inner = using(configuration);
-            UpdateConditionStep<UserHistoryRecord> updatedTuple = inner.update(USER_HISTORY)
-                    .set(USER_HISTORY.NAME, newName)
-                    .where(USER_HISTORY.USER_ID.eq(user.id))
-                    .and(USER_HISTORY.ID.eq(eventId))
-                    .and(USER_HISTORY.TYPE.eq(UserEvent.Type.SEARCH.id));
-
-            return updatedTuple.execute() > 0;
+            try(UpdateSetMoreStep<UserHistoryRecord> setName = using(configuration).update(USER_HISTORY).set(USER_HISTORY.NAME, newName)){
+                UpdateConditionStep<UserHistoryRecord> updatedTuple =  setName
+                        .where(USER_HISTORY.USER_ID.eq(user.id))
+                        .and(USER_HISTORY.ID.eq(eventId))
+                        .and(USER_HISTORY.TYPE.eq(UserEvent.Type.SEARCH.id));
+                return updatedTuple.execute() > 0;
+            }
         });
     }
 
     @Override
     public AggregateList<User> getRecommendations(Project project) {
-        try(DSLContext context = using(connectionProvider, dialect)) {
+        try(DSLContext context = DSL.using(connectionProvider, dialect)) {
             return new AggregateList<>(
                     createAggregateFromSelect(createSelectRecommendationLeftJoinInventory(context, project)),
                     selectCount(context, project).fetchOne(0, int.class)
@@ -434,7 +440,7 @@ public class JooqRepository implements Repository {
     public boolean save(Project project) {
         Timestamp projectCreationDate =  project.creationDate == null ? null: new Timestamp(project.creationDate.getTime());
         Timestamp projectUpdateDate =  project.updateDate == null ? null: new Timestamp(project.updateDate.getTime());
-        return DSL.using(connectionProvider, dialect).
+        try(InsertOnDuplicateSetMoreStep<ProjectRecord> innerSet = using(connectionProvider, dialect).
                 insertInto(
                         PROJECT, PROJECT.ID, PROJECT.LABEL, PROJECT.DESCRIPTION, PROJECT.PATH, PROJECT.SOURCE_URL,
                         PROJECT.MAINTAINER_NAME, PROJECT.PUBLISHER_NAME, PROJECT.LOGO_URL,
@@ -446,31 +452,37 @@ public class JooqRepository implements Repository {
                         project.allowFromMask,
                         projectCreationDate, projectUpdateDate).
                 onConflict(PROJECT.ID).
-                    doUpdate().
-                        set(PROJECT.LABEL, project.label).
-                        set(PROJECT.DESCRIPTION, project.description).
-                        set(PROJECT.SOURCE_URL, project.sourceUrl).
-                        set(PROJECT.MAINTAINER_NAME, project.maintainerName).
-                        set(PROJECT.PUBLISHER_NAME, project.publisherName).
-                        set(PROJECT.LOGO_URL, project.logoUrl).
-                        set(PROJECT.ALLOW_FROM_MASK, project.allowFromMask).
-                        set(PROJECT.UPDATE_DATE, projectUpdateDate).
-                execute() > 0;
+                doUpdate().
+                set(PROJECT.LABEL, project.label)) {
+            return innerSet.
+                            set(PROJECT.DESCRIPTION, project.description).
+                            set(PROJECT.SOURCE_URL, project.sourceUrl).
+                            set(PROJECT.MAINTAINER_NAME, project.maintainerName).
+                            set(PROJECT.PUBLISHER_NAME, project.publisherName).
+                            set(PROJECT.LOGO_URL, project.logoUrl).
+                            set(PROJECT.ALLOW_FROM_MASK, project.allowFromMask).
+                            set(PROJECT.UPDATE_DATE, projectUpdateDate).
+                    execute() > 0;
+        }
+
     }
 
     public boolean save(User user) {
-        return DSL.using(connectionProvider, dialect).
+        try (InsertOnDuplicateSetMoreStep<UserInventoryRecord> innerSet = using(connectionProvider, dialect).
                 insertInto(
                         USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL,
                         USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER, USER_INVENTORY.DETAILS).
                 values(user.id, user.email, user.name, user.provider, JsonUtils.serialize(user.details)).
                 onConflict(USER_INVENTORY.ID).
-                    doUpdate().
-                        set(USER_INVENTORY.EMAIL, user.email).
-                        set(USER_INVENTORY.DETAILS, JsonUtils.serialize(user.details)).
-                        set(USER_INVENTORY.NAME, user.name).
-                        set(USER_INVENTORY.PROVIDER, user.provider).
-                execute() > 0;
+                doUpdate().
+                set(USER_INVENTORY.EMAIL, user.email)) {
+            return innerSet.
+                    set(USER_INVENTORY.DETAILS, JsonUtils.serialize(user.details)).
+                    set(USER_INVENTORY.NAME, user.name).
+                    set(USER_INVENTORY.PROVIDER, user.provider).
+                    execute() > 0;
+        }
+
     }
 
     public User getUser(String uid) {
@@ -506,13 +518,15 @@ public class JooqRepository implements Repository {
     }
 
     private SelectJoinStep<Record> createSelectDocumentUserRecommendations(DSLContext dsl) {
-        return dsl
-            .select()
-            .from(DOCUMENT_USER_RECOMMENDATION)
-            .leftJoin(USER_INVENTORY)
-                .on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))
-            .join(PROJECT)
-                .on(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(PROJECT.ID));
+        try (SelectOnConditionStep<Record> onDocumentUserId = dsl
+                .select()
+                .from(DOCUMENT_USER_RECOMMENDATION)
+                .leftJoin(USER_INVENTORY)
+                .on(DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(USER_INVENTORY.ID))){
+            return onDocumentUserId
+                    .join(PROJECT)
+                    .on(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(PROJECT.ID));
+        }
     }
 
     private User createUserFrom(Record record) {

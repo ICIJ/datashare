@@ -74,14 +74,18 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
         try (DSLContext context = DSL.using(dataSource, dialect)) {
             return context.transactionResult(configuration -> {
                 try (DSLContext inner = DSL.using(configuration)) {
-                    inner.update(BATCH_SEARCH_QUERY).set(BATCH_SEARCH_QUERY.QUERY_RESULTS,
-                                    BATCH_SEARCH_QUERY.QUERY_RESULTS.plus(documents.size())).
-                            where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchSearchId).
-                                    and(BATCH_SEARCH_QUERY.QUERY.eq(query))).execute();
+                    try(UpdateSetMoreStep<BatchSearchQueryRecord> updateBatchSearchQuery = inner.update(BATCH_SEARCH_QUERY).set(BATCH_SEARCH_QUERY.QUERY_RESULTS,
+                            BATCH_SEARCH_QUERY.QUERY_RESULTS.plus(documents.size()))){
+                        updateBatchSearchQuery.
+                                where(BATCH_SEARCH_QUERY.SEARCH_UUID.eq(batchSearchId).
+                                        and(BATCH_SEARCH_QUERY.QUERY.eq(query))).execute();
+                    }
 
-                    inner.update(BATCH_SEARCH).set(BATCH_SEARCH.BATCH_RESULTS,
-                                    BATCH_SEARCH.BATCH_RESULTS.plus(documents.size())).
-                            where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute();
+                    try(UpdateSetMoreStep<org.icij.datashare.db.tables.records.BatchSearchRecord> updateBatchSearch = inner.update(BATCH_SEARCH).set(BATCH_SEARCH.BATCH_RESULTS,
+                            BATCH_SEARCH.BATCH_RESULTS.plus(documents.size()))){
+                        updateBatchSearch.
+                                where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute();
+                    }
 
                     InsertValuesStep10<BatchSearchResultRecord, String, String, Integer, String, String, String, Timestamp, String, Long, String>
                             insertQuery =
@@ -100,18 +104,18 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public boolean setState(String batchSearchId, State state) {
-        try (DSLContext context = DSL.using(dataSource, dialect)) {
-            return context.update(BATCH_SEARCH).
-                    set(BATCH_SEARCH.STATE, state.name()).
+        try (UpdateSetMoreStep<org.icij.datashare.db.tables.records.BatchSearchRecord> updateBatchSearch = DSL.using(dataSource, dialect).update(BATCH_SEARCH).
+                set(BATCH_SEARCH.STATE, state.name())) {
+            return updateBatchSearch.
                     where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute() > 0;
         }
     }
 
     @Override
     public boolean setState(String batchSearchId, SearchException error) {
-        try (DSLContext context = DSL.using(dataSource, dialect)) {
-            return context.update(BATCH_SEARCH).
-                    set(BATCH_SEARCH.STATE, State.FAILURE.name()).
+        try (UpdateSetMoreStep<org.icij.datashare.db.tables.records.BatchSearchRecord> updateBatchSearch = using(dataSource, dialect).update(BATCH_SEARCH).
+                set(BATCH_SEARCH.STATE, State.FAILURE.name())) {
+            return updateBatchSearch.
                     set(BATCH_SEARCH.ERROR_MESSAGE, error.toString()).
                     set(BATCH_SEARCH.ERROR_QUERY, error.query).
                     where(BATCH_SEARCH.UUID.eq(batchSearchId)).execute() > 0;
@@ -167,9 +171,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public int getTotal(User user, List<String> projectsIds, WebQuery webQuery) {
-        try(DSLContext context = DSL.using(dataSource, dialect)){
-            SelectConditionStep<Record1<Integer>> query = context.select(countDistinct(BATCH_SEARCH_PROJECT.SEARCH_UUID)).
-                    from(BATCH_SEARCH_PROJECT).join(BATCH_SEARCH).on(BATCH_SEARCH_PROJECT.SEARCH_UUID.equal(BATCH_SEARCH.UUID)).
+        try(DSLContext context = DSL.using(dataSource, dialect);
+            SelectOnConditionStep<Record1<Integer>> selectBatchSearchUUID = context.select(countDistinct(BATCH_SEARCH_PROJECT.SEARCH_UUID)).
+                    from(BATCH_SEARCH_PROJECT).join(BATCH_SEARCH).on(BATCH_SEARCH_PROJECT.SEARCH_UUID.equal(BATCH_SEARCH.UUID))){
+            SelectConditionStep<Record1<Integer>> query = selectBatchSearchUUID.
                     where(BATCH_SEARCH.USER_ID.eq(user.id).or(BATCH_SEARCH.PUBLISHED.greaterThan(0)));
             addFilterToSelectCondition(webQuery, query);
             return query.groupBy(BATCH_SEARCH.UUID).having(count().eq(
@@ -269,8 +274,10 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     public boolean reset(String batchId) {
         try(DSLContext context = DSL.using(dataSource, dialect)) {
             return context.transactionResult(configuration -> {
-                try (DSLContext inner = DSL.using(configuration)) {
-                    inner.update(BATCH_SEARCH).set(BATCH_SEARCH.STATE, State.QUEUED.name()).where(BATCH_SEARCH.UUID.eq(batchId)).execute();
+                try (DSLContext inner = DSL.using(configuration);
+                     UpdateSetMoreStep<org.icij.datashare.db.tables.records.BatchSearchRecord> updateBatchSearch = inner.update(BATCH_SEARCH).set(BATCH_SEARCH.STATE, State.QUEUED.name())
+                ) {
+                    updateBatchSearch.where(BATCH_SEARCH.UUID.eq(batchId)).execute();
                     return inner.deleteFrom(BATCH_SEARCH_RESULT).where(BATCH_SEARCH_RESULT.SEARCH_UUID.eq(batchId)).execute() > 0;
                 }
             });
@@ -293,9 +300,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public List<SearchResult> getResults(User user, String batchSearchId, WebQuery webQuery) {
-        try(DSLContext create = DSL.using(dataSource, dialect)){
-            SelectConditionStep<Record> query = create.select().from(BATCH_SEARCH_RESULT).
-                    join(BATCH_SEARCH).on(BATCH_SEARCH.UUID.equal(BATCH_SEARCH_RESULT.SEARCH_UUID)).
+        try(SelectOnConditionStep<Record> batchSearchUUIDs = using(dataSource, dialect).select().from(BATCH_SEARCH_RESULT).
+                join(BATCH_SEARCH).on(BATCH_SEARCH.UUID.equal(BATCH_SEARCH_RESULT.SEARCH_UUID))){
+            SelectConditionStep<Record> query = batchSearchUUIDs.
                     where(BATCH_SEARCH_RESULT.SEARCH_UUID.eq(batchSearchId));
             addFiltersToBatchSearchResultQuery(webQuery, query);
             if (webQuery.size > 0) query.limit(webQuery.size);
@@ -307,11 +314,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public int getResultsTotal(User user, String batchSearchId, WebQuery webQuery) {
-        try(DSLContext create = DSL.using(dataSource, dialect)){
-            SelectConditionStep<Record1<String>> query = create.
-                    select(BATCH_SEARCH_RESULT.SEARCH_UUID).
-                    from(BATCH_SEARCH_RESULT).
-                    join(BATCH_SEARCH).on(BATCH_SEARCH.UUID.equal(BATCH_SEARCH_RESULT.SEARCH_UUID)).
+        try(DSLContext create = DSL.using(dataSource, dialect); SelectOnConditionStep<Record1<String>> batchSearchUUIDs = create.
+                select(BATCH_SEARCH_RESULT.SEARCH_UUID).
+                from(BATCH_SEARCH_RESULT).
+                join(BATCH_SEARCH).on(BATCH_SEARCH.UUID.equal(BATCH_SEARCH_RESULT.SEARCH_UUID))){
+            SelectConditionStep<Record1<String>> query = batchSearchUUIDs.
                     where(BATCH_SEARCH_RESULT.SEARCH_UUID.eq(batchSearchId));
             addFiltersToBatchSearchResultQuery(webQuery, query);
             return create.fetchCount(query);
@@ -320,9 +327,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
 
     @Override
     public boolean publish(User user, String batchId, boolean published) {
-        try(DSLContext context = DSL.using(dataSource, dialect)){
-             return context.update(BATCH_SEARCH).
-                    set(BATCH_SEARCH.PUBLISHED, published?1:0).
+        try( UpdateSetMoreStep<org.icij.datashare.db.tables.records.BatchSearchRecord> updatePublish =  DSL.using(dataSource, dialect).update(BATCH_SEARCH).
+                set(BATCH_SEARCH.PUBLISHED, published ? 1 : 0)){
+            return updatePublish.
                     where(BATCH_SEARCH.UUID.eq(batchId).
                     and(BATCH_SEARCH.USER_ID.eq(user.id))).execute() > 0;
 
@@ -584,7 +591,9 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
     }
 
     boolean setNbQueries(DSLContext context, String batchSearchUuid, int nbQueries){
-        return context.update(BATCH_SEARCH).set(BATCH_SEARCH.NB_QUERIES,nbQueries).where(BATCH_SEARCH.UUID.eq(batchSearchUuid)).execute() > 0;
+        try(UpdateSetMoreStep<org.icij.datashare.db.tables.records.BatchSearchRecord> updateNbQueries = context.update(BATCH_SEARCH).set(BATCH_SEARCH.NB_QUERIES, nbQueries)){
+            return updateNbQueries.where(BATCH_SEARCH.UUID.eq(batchSearchUuid)).execute() > 0;
+        }
     }
 
     boolean resetNbQueries(String batchSearchUuid){
