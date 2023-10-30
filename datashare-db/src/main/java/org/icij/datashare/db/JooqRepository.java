@@ -44,7 +44,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
@@ -317,10 +316,10 @@ public class JooqRepository implements Repository {
     @Override
     public Set<String> getRecommentationsBy(Project project, List<User> users){
         try(DSLContext create = DSL.using(connectionProvider,dialect)) {
-            return create.select(DOCUMENT_USER_RECOMMENDATION.DOC_ID).from(DOCUMENT_USER_RECOMMENDATION)
+            return new HashSet<>(create.select(DOCUMENT_USER_RECOMMENDATION.DOC_ID).from(DOCUMENT_USER_RECOMMENDATION)
                     .where(DOCUMENT_USER_RECOMMENDATION.USER_ID.in(users.stream().map(x -> x.id).collect(toList())))
                     .and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()))
-                    .fetch().getValues(DOCUMENT_USER_RECOMMENDATION.DOC_ID).stream().collect(Collectors.toSet());
+                    .fetch().getValues(DOCUMENT_USER_RECOMMENDATION.DOC_ID));
         }
     }
 
