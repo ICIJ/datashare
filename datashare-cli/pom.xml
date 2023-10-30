@@ -7,7 +7,7 @@
     <artifactId>datashare-cli</artifactId>
     <packaging>jar</packaging>
     <groupId>org.icij.datashare</groupId>
-    <version>13.4.0</version>
+    <version>13.5.0</version>
 
     <name>ICIJ Datashare CLI</name>
     <url>https://github.com/ICIJ/datashare</url>
