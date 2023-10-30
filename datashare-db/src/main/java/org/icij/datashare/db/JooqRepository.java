@@ -5,14 +5,26 @@ import org.icij.datashare.DocumentUserRecommendation;
 import org.icij.datashare.Note;
 import org.icij.datashare.Repository;
 import org.icij.datashare.UserEvent;
-import org.icij.datashare.db.tables.records.*;
+import org.icij.datashare.db.tables.records.DocumentRecord;
+import org.icij.datashare.db.tables.records.DocumentTagRecord;
+import org.icij.datashare.db.tables.records.DocumentUserRecommendationRecord;
+import org.icij.datashare.db.tables.records.DocumentUserStarRecord;
+import org.icij.datashare.db.tables.records.NamedEntityRecord;
+import org.icij.datashare.db.tables.records.NoteRecord;
+import org.icij.datashare.db.tables.records.ProjectRecord;
+import org.icij.datashare.db.tables.records.UserHistoryProjectRecord;
+import org.icij.datashare.db.tables.records.UserHistoryRecord;
+import org.icij.datashare.db.tables.records.UserInventoryRecord;
 import org.icij.datashare.json.JsonUtils;
-import org.icij.datashare.text.*;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.Language;
+import org.icij.datashare.text.NamedEntity;
+import org.icij.datashare.text.Project;
+import org.icij.datashare.text.ProjectProxy;
+import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-// Keep these imports explicit otherwise the wildcard import of import org.jooq.Record will end up
-// in a "reference to Record is ambiguous" depending on your JRE since it will conflict with
-// java.util.Record
 import org.jooq.*;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
@@ -25,7 +37,12 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -50,7 +67,12 @@ import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.text.Document.Status.fromCode;
 import static org.icij.datashare.text.Language.parse;
 import static org.icij.datashare.text.Project.project;
-import static org.jooq.impl.DSL.*;
+import static org.jooq.impl.DSL.condition;
+import static org.jooq.impl.DSL.count;
+import static org.jooq.impl.DSL.countDistinct;
+import static org.jooq.impl.DSL.select;
+import static org.jooq.impl.DSL.using;
+import static org.jooq.impl.DSL.value;
 
 public class JooqRepository implements Repository {
     private final DataSource connectionProvider;
