@@ -10,9 +10,6 @@ import org.icij.datashare.json.JsonUtils;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-// Keep these imports explicit otherwise the wildcard import of import org.jooq.Record will end up
-// in a "reference to Record is ambiguous" depending on your JRE since it will conflict with
-// java.util.Record
 import org.jooq.*;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
@@ -27,7 +24,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static java.nio.charset.Charset.forName;
 import static java.util.Arrays.asList;
@@ -295,10 +291,10 @@ public class JooqRepository implements Repository {
     @Override
     public Set<String> getRecommentationsBy(Project project, List<User> users){
         try(DSLContext create = DSL.using(connectionProvider,dialect)) {
-            return create.select(DOCUMENT_USER_RECOMMENDATION.DOC_ID).from(DOCUMENT_USER_RECOMMENDATION)
+            return new HashSet<>(create.select(DOCUMENT_USER_RECOMMENDATION.DOC_ID).from(DOCUMENT_USER_RECOMMENDATION)
                     .where(DOCUMENT_USER_RECOMMENDATION.USER_ID.in(users.stream().map(x -> x.id).collect(toList())))
                     .and(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId()))
-                    .fetch().getValues(DOCUMENT_USER_RECOMMENDATION.DOC_ID).stream().collect(Collectors.toSet());
+                    .fetch().getValues(DOCUMENT_USER_RECOMMENDATION.DOC_ID));
         }
     }
 
