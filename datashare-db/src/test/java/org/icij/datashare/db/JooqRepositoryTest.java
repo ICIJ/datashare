@@ -37,7 +37,7 @@ import static org.icij.datashare.user.User.nullUser;
 public class JooqRepositoryTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-06-30T12:13:14Z");
     @Rule public DbSetupRule dbRule;
-    private JooqRepository repository;
+    private final JooqRepository repository;
 
     @Parameters
     public static Collection<Object[]> dataSources() {
@@ -53,7 +53,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_create_document() throws Exception {
+    public void test_create_document() {
         Document document = DocumentBuilder.createDoc("id")
                 .with(project("prj"))
                 .with(Paths.get("/path/to/doc"))
@@ -79,7 +79,7 @@ public class JooqRepositoryTest {
     }
 
     @Test
-    public void test_get_untagged_documents() throws Exception {
+    public void test_get_untagged_documents() {
         Document coreAndOpenNlp = DocumentBuilder.createDoc("idCore")
                 .with(project("prj"))
                 .with(Paths.get("/path/to/coreAndOpenNlp"))
@@ -112,8 +112,8 @@ public class JooqRepositoryTest {
     @Test
     public void test_create_named_entity_list() {
         List<NamedEntity> namedEntities = Arrays.asList(
-                NamedEntity.create(PERSON, "mention 1", asList(123L), "doc_id", "root", CORENLP, GERMAN),
-                NamedEntity.create(PERSON, "mention 2", asList(321L), "doc_id", "root", CORENLP, ENGLISH));
+                NamedEntity.create(PERSON, "mention 1", List.of(123L), "doc_id", "root", CORENLP, GERMAN),
+                NamedEntity.create(PERSON, "mention 2", List.of(321L), "doc_id", "root", CORENLP, ENGLISH));
 
         repository.create(namedEntities);
 
@@ -172,7 +172,7 @@ public class JooqRepositoryTest {
         User user2 = new User("user2");
 
         assertThat(repository.recommend(project("prj"), user1, asList("id1", "id2", "id3"))).isEqualTo(3);
-        assertThat(repository.recommend(project("prj"), user2, asList("id1"))).isEqualTo(1);
+        assertThat(repository.recommend(project("prj"), user2, List.of("id1"))).isEqualTo(1);
 
         Repository.AggregateList<User> recommendations = repository.getRecommendations(project("prj"), asList("id1", "id2", "id4"));
         assertThat(recommendations.aggregates).contains(new Repository.Aggregate<>(user1, 2), new Repository.Aggregate<>(user2, 1));
@@ -207,9 +207,9 @@ public class JooqRepositoryTest {
         final User userFoo = new User("foo" , "test", "foo@bar.org");
         repository.save(userFoo);
 
-        repository.recommend(project("prj"), userFoo, asList("id4"));
+        repository.recommend(project("prj"), userFoo, List.of("id4"));
 
-        final Repository.Aggregate<User> recommendationEntry = repository.getRecommendations(project("prj"), asList("id4")).aggregates.iterator().next();
+        final Repository.Aggregate<User> recommendationEntry = repository.getRecommendations(project("prj"), List.of("id4")).aggregates.iterator().next();
         assertThat(recommendationEntry.item.id).isEqualTo("foo");
         assertThat(recommendationEntry.item.name).isEqualTo("test");
         assertThat(recommendationEntry.item.email).isEqualTo("foo@bar.org");
@@ -295,7 +295,7 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_save_get_user() {
-        final User expected = new User(new HashMap<String, Object>() {{
+        final User expected = new User(new HashMap<>() {{
             put("uid", "bar");
             put("provider", "test");
             put("name", "Bar Baz");
@@ -315,14 +315,14 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_save_or_update_user() {
-        final User fistSave = new User(new HashMap<String, Object>() {{
+        final User fistSave = new User(new HashMap<>() {{
             put("uid", "baz");
             put("provider", "test");
             put("name", "Bar Baz");
             put("email", "baz@foo.com");
         }});
         repository.save(fistSave);
-        final User updatedUser = new User(new HashMap<String, Object>() {{
+        final User updatedUser = new User(new HashMap<>() {{
             put("uid", "baz");
             put("provider", "prov");
             put("name", "Baz");
@@ -392,14 +392,14 @@ public class JooqRepositoryTest {
         User user = new User("userid");
         repository.star(project("prj"), user, singletonList("doc_id"));
         repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"));
-        repository.recommend(project("prj"), user, asList("doc_id"));
+        repository.recommend(project("prj"), user, List.of("doc_id"));
 
         assertThat(repository.deleteAll("prj")).isTrue();
         assertThat(repository.deleteAll("prj")).isFalse();
 
         assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).isEmpty();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
-        assertThat(repository.getRecommentationsBy(project("prj"), asList(user))).isEmpty();
+        assertThat(repository.getRecommentationsBy(project("prj"), List.of(user))).isEmpty();
     }
 
     @Test
@@ -578,9 +578,10 @@ public class JooqRepositoryTest {
         Date date1 = new Date(new Date().getTime());
         Date date2 = new Date(new Date().getTime() + 100);
 
-        UserEvent userEvent = new UserEvent(user, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri(), date1, date1);
+        Path docUri1 = Paths.get("doc_uri1");
+        UserEvent userEvent = new UserEvent(user, DOCUMENT, "doc_name1", docUri1.toUri(), date1, date1);
         UserEvent userEvent2 = new UserEvent(user, DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri(), date2, date2);
-        UserEvent userEvent3 = new UserEvent(user2, DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri());
+        UserEvent userEvent3 = new UserEvent(user2, DOCUMENT, "doc_name1", docUri1.toUri());
 
         assertThat(repository.addToUserHistory(asList(project("project1"),project("project2")), userEvent)).isTrue();
         assertThat(repository.addToUserHistory(singletonList(project("project")), userEvent2)).isTrue();
@@ -597,8 +598,10 @@ public class JooqRepositoryTest {
     public void test_update_user_event() {
         Date date1 = new Date(new Date().getTime());
         Date date2 = new Date(new Date().getTime() + 100);
-        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri(), date1, date1);
-        UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name", Paths.get("doc_uri").toUri(), date2, date2);
+        Path docUri = Paths.get("doc_uri");
+        UserEvent userEvent = new UserEvent(User.local(), DOCUMENT, "doc_name", 
+                docUri.toUri(), date1, date1);
+        UserEvent userEvent2 = new UserEvent(User.local(), DOCUMENT, "doc_name", docUri.toUri(), date2, date2);
 
         assertThat(repository.addToUserHistory(singletonList(project("project")), userEvent)).isTrue();
         assertThat(repository.addToUserHistory(singletonList(project("project")), userEvent2)).isTrue();
@@ -622,7 +625,6 @@ public class JooqRepositoryTest {
 
     @Test
     public void test_delete_single_user_event_by_id() {
-        Date date = new Date(new Date().getTime());
         repository.addToUserHistory(singletonList(project("project")), new UserEvent(User.local(), DOCUMENT, "doc_name1", Paths.get("doc_uri1").toUri()));
         repository.addToUserHistory(singletonList(project("project")), new UserEvent(User.local(), DOCUMENT, "doc_name2", Paths.get("doc_uri2").toUri()));
         List<UserEvent> userEvents = repository.getUserHistory(User.local(), DOCUMENT, 0, 10, "modification_date", true);
