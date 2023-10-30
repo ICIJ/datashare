@@ -15,7 +15,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 
-import static java.lang.Long.valueOf;
 import static java.util.Optional.ofNullable;
 import static org.apache.tika.metadata.HttpHeaders.*;
 
@@ -37,7 +36,7 @@ public class DatabaseSpewer extends Spewer {
         String content = toString(tikaDocument.getReader()).trim();
         Charset charset = Charset.forName(ofNullable(tikaDocument.getMetadata().get(CONTENT_ENCODING)).orElse("utf-8"));
         String contentType = ofNullable(tikaDocument.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0];
-        Long contentLength = valueOf(ofNullable(tikaDocument.getMetadata().get(CONTENT_LENGTH)).orElse("-1"));
+        long contentLength = Long.parseLong(ofNullable(tikaDocument.getMetadata().get(CONTENT_LENGTH)).orElse("-1"));
         String parentId = parent == null ? null: parent.getId();
         String rootId = root == null ? null: root.getId();
 
