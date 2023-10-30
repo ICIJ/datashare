@@ -84,41 +84,43 @@ public class JooqRepository implements Repository {
 
     @Override
     public NamedEntity getNamedEntity(String id) {
-        return createFrom(DSL.using(connectionProvider, dialect).
-                selectFrom(NAMED_ENTITY).where(NAMED_ENTITY.ID.eq(id)).fetchOne());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return createFrom(ctx.selectFrom(NAMED_ENTITY).where(NAMED_ENTITY.ID.eq(id)).fetchOne());
+        }
     }
 
     @Override
     public void create(List<NamedEntity> neList) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        InsertValuesStep9<NamedEntityRecord, String, String, String, Short, String, String, String, String, Boolean>
-                insertQuery = create.insertInto(NAMED_ENTITY,
-                NAMED_ENTITY.ID, NAMED_ENTITY.MENTION, NAMED_ENTITY.OFFSETS, NAMED_ENTITY.EXTRACTOR,
-                NAMED_ENTITY.CATEGORY, NAMED_ENTITY.DOC_ID, NAMED_ENTITY.ROOT_ID,
-                NAMED_ENTITY.EXTRACTOR_LANGUAGE, NAMED_ENTITY.HIDDEN);
-        neList.forEach(ne -> {
-            try {
-                insertQuery.values(
-                        ne.getId(), ne.getMention(), MAPPER.writeValueAsString(ne.getOffsets()), ne.getExtractor().code,
-                        ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
-                        ne.getExtractorLanguage().iso6391Code(), ne.isHidden());
-            } catch (JsonProcessingException e) {
-                LOGGER.error("cannot serialize offsets {}", ne.getOffsets());
-            }
-        });
-        insertQuery.execute();
+        try (DSLContext create = DSL.using(connectionProvider, dialect)) {
+            InsertValuesStep9<NamedEntityRecord, String, String, String, Short, String, String, String, String, Boolean>
+                    insertQuery = create.insertInto(NAMED_ENTITY,
+                    NAMED_ENTITY.ID, NAMED_ENTITY.MENTION, NAMED_ENTITY.OFFSETS, NAMED_ENTITY.EXTRACTOR,
+                    NAMED_ENTITY.CATEGORY, NAMED_ENTITY.DOC_ID, NAMED_ENTITY.ROOT_ID,
+                    NAMED_ENTITY.EXTRACTOR_LANGUAGE, NAMED_ENTITY.HIDDEN);
+            neList.forEach(ne -> {
+                try {
+                    insertQuery.values(
+                            ne.getId(), ne.getMention(), MAPPER.writeValueAsString(ne.getOffsets()), ne.getExtractor().code,
+                            ne.getCategory().getAbbreviation(), ne.getDocumentId(), ne.getRootDocument(),
+                            ne.getExtractorLanguage().iso6391Code(), ne.isHidden());
+                } catch (JsonProcessingException e) {
+                    LOGGER.error("cannot serialize offsets {}", ne.getOffsets());
+                }
+            });
+            insertQuery.execute();
+        }
     }
 
     @Override
     public Document getDocument(final String id) {
-        return createDocumentFrom(DSL.using(connectionProvider, dialect).
-                selectFrom(DOCUMENT).where(DOCUMENT.ID.eq(id)).fetchOne());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return createDocumentFrom(ctx.selectFrom(DOCUMENT).where(DOCUMENT.ID.eq(id)).fetchOne());
+        }
     }
 
     @Override
     public void create(Document doc) {
-        DSLContext ctx = DSL.using(connectionProvider, dialect);
-        try {
+        try (DSLContext ctx = DSL.using(connectionProvider, dialect)) {
             ctx.insertInto(DOCUMENT, DOCUMENT.PROJECT_ID,
                     DOCUMENT.ID, DOCUMENT.PATH, DOCUMENT.CONTENT, DOCUMENT.STATUS,
                     DOCUMENT.CHARSET, DOCUMENT.LANGUAGE, DOCUMENT.CONTENT_TYPE,
@@ -136,17 +138,19 @@ public class JooqRepository implements Repository {
 
     @Override
     public List<Document> getDocumentsNotTaggedWithPipeline(Project project, Pipeline.Type type) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.selectFrom(DOCUMENT).where(
-                condition("(ner_mask & ?) = 0", type.mask)).
-                fetch().stream().map(this::createDocumentFrom).collect(toList());
+        try (DSLContext create = using(connectionProvider, dialect)) {
+            return create.selectFrom(DOCUMENT).where(
+                            condition("(ner_mask & ?) = 0", type.mask)).
+                    fetch().stream().map(this::createDocumentFrom).collect(toList());
+        }
     }
 
     @Override
     public List<Document> getStarredDocuments(User user) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.selectFrom(DOCUMENT.join(DOCUMENT_USER_STAR).on(DOCUMENT.ID.eq(DOCUMENT_USER_STAR.DOC_ID))).
-                where(DOCUMENT_USER_STAR.USER_ID.eq(user.id)).fetch().stream().map(this::createDocumentFrom).collect(toList());
+        try (DSLContext create = using(connectionProvider, dialect)) {
+            return create.selectFrom(DOCUMENT.join(DOCUMENT_USER_STAR).on(DOCUMENT.ID.eq(DOCUMENT_USER_STAR.DOC_ID))).
+                    where(DOCUMENT_USER_STAR.USER_ID.eq(user.id)).fetch().stream().map(this::createDocumentFrom).collect(toList());
+        }
     }
 
     // ------------- functions that don't need document migration/indexing
@@ -154,159 +158,181 @@ public class JooqRepository implements Repository {
     // this could be removed later
     @Override
     public int star(Project project, User user, List<String> documentIds) {
-        InsertValuesStep3<DocumentUserStarRecord, String, String, String>
-            query = using(connectionProvider, dialect).
-                insertInto(DOCUMENT_USER_STAR, DOCUMENT_USER_STAR.DOC_ID, DOCUMENT_USER_STAR.USER_ID, DOCUMENT_USER_STAR.PRJ_ID);
-        documentIds.forEach(t -> query.values(t, user.id, project.getId()));
-        return query.onConflictDoNothing().execute();
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            InsertValuesStep3<DocumentUserStarRecord, String, String, String>
+                    query = ctx.insertInto(DOCUMENT_USER_STAR, DOCUMENT_USER_STAR.DOC_ID, DOCUMENT_USER_STAR.USER_ID, DOCUMENT_USER_STAR.PRJ_ID);
+            documentIds.forEach(t -> query.values(t, user.id, project.getId()));
+            return query.onConflictDoNothing().execute();
+        }
     }
 
     @Override
     public int unstar(Project project, User user, List<String> documentIds) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_STAR).
-                where(DOCUMENT_USER_STAR.DOC_ID.in(documentIds),
-                        DOCUMENT_USER_STAR.USER_ID.eq(user.id),
-                        DOCUMENT_USER_STAR.PRJ_ID.eq(project.getId())).execute();
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.deleteFrom(DOCUMENT_USER_STAR).
+                    where(DOCUMENT_USER_STAR.DOC_ID.in(documentIds),
+                            DOCUMENT_USER_STAR.USER_ID.eq(user.id),
+                            DOCUMENT_USER_STAR.PRJ_ID.eq(project.getId())).execute();
+        }
     }
 
     @Override
     public List<String> getStarredDocuments(Project project, User user) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.select(DOCUMENT_USER_STAR.DOC_ID).from(DOCUMENT_USER_STAR).
-                where(DOCUMENT_USER_STAR.USER_ID.eq(user.id)).
-                and(DOCUMENT_USER_STAR.PRJ_ID.eq(project.getId())).
-                fetch().getValues(DOCUMENT_USER_STAR.DOC_ID);
+        try (DSLContext create = DSL.using(connectionProvider, dialect)) {
+            return create.select(DOCUMENT_USER_STAR.DOC_ID).from(DOCUMENT_USER_STAR).
+                    where(DOCUMENT_USER_STAR.USER_ID.eq(user.id)).
+                    and(DOCUMENT_USER_STAR.PRJ_ID.eq(project.getId())).
+                    fetch().getValues(DOCUMENT_USER_STAR.DOC_ID);
+        }
     }
 
     @Override
     public int recommend(Project project, User user, List<String> documentIds) {
-        InsertValuesStep4<DocumentUserRecommendationRecord, String, String, String, Timestamp> query = DSL.using(connectionProvider, dialect).
-                insertInto(DOCUMENT_USER_RECOMMENDATION, DOCUMENT_USER_RECOMMENDATION.DOC_ID, DOCUMENT_USER_RECOMMENDATION.USER_ID, DOCUMENT_USER_RECOMMENDATION.PRJ_ID, DOCUMENT_USER_RECOMMENDATION.CREATION_DATE);
-        Timestamp now = Timestamp.from(Instant.now());
-        documentIds.forEach(t -> query.values(t, user.id, project.getId(), now));
-        return query.execute();
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            InsertValuesStep4<DocumentUserRecommendationRecord, String, String, String, Timestamp> query = ctx.
+                    insertInto(DOCUMENT_USER_RECOMMENDATION, DOCUMENT_USER_RECOMMENDATION.DOC_ID, DOCUMENT_USER_RECOMMENDATION.USER_ID, DOCUMENT_USER_RECOMMENDATION.PRJ_ID, DOCUMENT_USER_RECOMMENDATION.CREATION_DATE);
+            Timestamp now = Timestamp.from(Instant.now());
+            documentIds.forEach(t -> query.values(t, user.id, project.getId(), now));
+            return query.execute();
+        }
     }
 
     @Override
     public int unrecommend(Project project, User user, List<String> documentIds) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_USER_RECOMMENDATION).
-                where(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds),
-                        DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(user.id),
-                        DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).execute();
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.deleteFrom(DOCUMENT_USER_RECOMMENDATION).
+                    where(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds),
+                            DOCUMENT_USER_RECOMMENDATION.USER_ID.eq(user.id),
+                            DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(project.getId())).execute();
+        }
     }
 
     @Override
     public AggregateList<User> getRecommendations(Project project, List<String> documentIds) {
-        DSLContext context = using(connectionProvider, dialect);
-        return new AggregateList<>(
-                createAggregateFromSelect(createSelectRecommendationLeftJoinInventory(context, project).and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds))),
-                selectCount(context, project).and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)).fetchOne(0, int.class)
-        );
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return new AggregateList<>(
+                    createAggregateFromSelect(createSelectRecommendationLeftJoinInventory(ctx, project).and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds))),
+                    selectCount(ctx, project).and(DOCUMENT_USER_RECOMMENDATION.DOC_ID.in(documentIds)).fetchOne(0, int.class)
+            );
+        }
     }
 
     @Override
     public boolean addToUserHistory(List<Project> projects, UserEvent userEvent) {
-        return using(connectionProvider, dialect).transactionResult(configuration -> {
-            DSLContext inner = using(configuration);
-            InsertValuesStep6<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String>
-                insertHistory = inner.
-                    insertInto(USER_HISTORY, USER_HISTORY.CREATION_DATE, USER_HISTORY.MODIFICATION_DATE,
-                            USER_HISTORY.USER_ID, USER_HISTORY.TYPE, USER_HISTORY.NAME, USER_HISTORY.URI);
-            insertHistory.values(new Timestamp(userEvent.creationDate.getTime()), new Timestamp(userEvent.modificationDate.getTime()),
-                    userEvent.user.id, userEvent.type.id, userEvent.name, userEvent.uri.toString());
-            try(InsertOnDuplicateSetMoreStep<UserHistoryRecord> innerSet = insertHistory.onConflict(USER_HISTORY.USER_ID, USER_HISTORY.URI)
-                    .doUpdate()
-                    .set(USER_HISTORY.MODIFICATION_DATE, new Timestamp(userEvent.modificationDate.getTime()))){
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.transactionResult(configuration -> {
+                try (DSLContext inner = using(configuration)) {
+                    InsertValuesStep6<UserHistoryRecord, Timestamp, Timestamp, String, Short, String, String>
+                            insertHistory = inner.
+                            insertInto(USER_HISTORY, USER_HISTORY.CREATION_DATE, USER_HISTORY.MODIFICATION_DATE,
+                                    USER_HISTORY.USER_ID, USER_HISTORY.TYPE, USER_HISTORY.NAME, USER_HISTORY.URI);
+                    insertHistory.values(new Timestamp(userEvent.creationDate.getTime()), new Timestamp(userEvent.modificationDate.getTime()),
+                            userEvent.user.id, userEvent.type.id, userEvent.name, userEvent.uri.toString());
+                    try (InsertOnDuplicateSetMoreStep<UserHistoryRecord> innerSet = insertHistory.onConflict(USER_HISTORY.USER_ID, USER_HISTORY.URI)
+                            .doUpdate()
+                            .set(USER_HISTORY.MODIFICATION_DATE, new Timestamp(userEvent.modificationDate.getTime()))) {
 
-                UserHistoryRecord insertHistoryRecord = innerSet
-                        .returning(USER_HISTORY.ID).fetchOne();
+                        UserHistoryRecord insertHistoryRecord = innerSet
+                                .returning(USER_HISTORY.ID).fetchOne();
 
-                if (insertHistoryRecord == null) {
-                    return false;
+                        if (insertHistoryRecord == null) {
+                            return false;
+                        }
+
+                        InsertValuesStep2<UserHistoryProjectRecord, Integer, String> insertProject = inner.
+                                insertInto(USER_HISTORY_PROJECT, USER_HISTORY_PROJECT.USER_HISTORY_ID, USER_HISTORY_PROJECT.PRJ_ID);
+                        projects.forEach(project -> insertProject.values(insertHistoryRecord.getValue(USER_HISTORY.ID), project.getId()));
+                        return insertProject.onConflictDoNothing().execute() >= 0;
+                    }
                 }
-
-                InsertValuesStep2<UserHistoryProjectRecord, Integer, String> insertProject = inner.
-                        insertInto(USER_HISTORY_PROJECT, USER_HISTORY_PROJECT.USER_HISTORY_ID, USER_HISTORY_PROJECT.PRJ_ID);
-                projects.forEach(project -> insertProject.values(insertHistoryRecord.getValue(USER_HISTORY.ID), project.getId()));
-                return insertProject.onConflictDoNothing().execute() >= 0;
-            }
-
-        });
+            });
+        }
     }
 
     @Override
     public List<UserEvent> getUserHistory(User user, UserEvent.Type type, int from, int size, String sort, boolean desc, String... projectIds) {
-        String sortName = Optional.ofNullable(sort).filter(Predicate.not(String::isBlank)).orElse(USER_HISTORY.MODIFICATION_DATE.getName());
-        Field<?> sortBy =  Optional.ofNullable(USER_HISTORY.field(sortName)).orElseThrow(() -> new IllegalArgumentException(String.format("Invalid sort attribute: %s", sortName)));
-        SortField<?> order  = desc ? sortBy.desc() : sortBy.asc();
-        if (projectIds.length>0) {
-            try(SelectConditionStep<Record1<Integer>> innerSelect = select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds))){
-                return using(connectionProvider, dialect)
-                    .selectFrom(USER_HISTORY)
-                    .where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
-                    .and(USER_HISTORY.ID
-                            .in(innerSelect)
-                    )
-                    .orderBy(order).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
-            }
-        } else {
-            return using(connectionProvider, dialect).selectFrom(USER_HISTORY).
-                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
-                    .orderBy(order).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
-        }
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            String sortName = Optional.ofNullable(sort).filter(Predicate.not(String::isBlank)).orElse(USER_HISTORY.MODIFICATION_DATE.getName());
+            Field<?> sortBy = Optional.ofNullable(USER_HISTORY.field(sortName)).orElseThrow(() -> new IllegalArgumentException(String.format("Invalid sort attribute: %s", sortName)));
+            SortField<?> order = desc ? sortBy.desc() : sortBy.asc();
+            if (projectIds.length > 0) {
 
+                SelectConditionStep<Record1<Integer>> innerSelect = ctx.select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds));
+                return ctx.selectFrom(USER_HISTORY)
+                        .where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
+                        .and(USER_HISTORY.ID
+                                .in(innerSelect)
+                        )
+                        .orderBy(order).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
+
+            } else {
+                return ctx.selectFrom(USER_HISTORY).
+                        where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id))
+                        .orderBy(order).offset(from).limit(size).stream().map(this::createUserEventFrom).collect(toList());
+
+            }
+        }
     }
 
     @Override
     public int getUserHistorySize(User user, UserEvent.Type type, String... projectIds) {
-        SelectConditionStep<Record1<Integer>>
-            query = using(connectionProvider, dialect).selectCount().from(USER_HISTORY).
-                where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id));
-        if(projectIds.length>0){
-            query.and(USER_HISTORY.ID.in(select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds))));
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            SelectConditionStep<Record1<Integer>>
+                    query = ctx.selectCount().from(USER_HISTORY).
+                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id));
+            if (projectIds.length > 0) {
+                query.and(USER_HISTORY.ID.in(ctx.select(USER_HISTORY_PROJECT.USER_HISTORY_ID).from(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.in(projectIds))));
+            }
+            return query.fetchOne(0, int.class);
         }
-        return query.fetchOne(0, int.class);
-
     }
 
     @Override
     public boolean deleteUserHistory(User user, UserEvent.Type type) {
-        return using(connectionProvider, dialect).transactionResult(configuration -> {
-            try (SelectSelectStep<Record1<Integer>> innerSelect = select(USER_HISTORY.ID)){
-                DSLContext inner = using(configuration);
-                inner.deleteFrom(USER_HISTORY_PROJECT).
-                        where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.transactionResult(configuration -> {
+                try (DSLContext inner = using(connectionProvider, dialect)) {
+                    SelectSelectStep<Record1<Integer>> innerSelect = inner.select(USER_HISTORY.ID);
+                    inner.deleteFrom(USER_HISTORY_PROJECT).
+                            where(USER_HISTORY_PROJECT.USER_HISTORY_ID.in(
                                     innerSelect.from(USER_HISTORY)
                                             .where(USER_HISTORY.TYPE.eq(type.id)).and(USER_HISTORY.USER_ID.eq(user.id))
-                        )).execute();
-                return inner.deleteFrom(USER_HISTORY).
-                        where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute() > 0;
-            }
-        });
+                            )).execute();
+                    return inner.deleteFrom(USER_HISTORY).
+                            where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.TYPE.eq(type.id)).execute() > 0;
+                }
+            });
+        }
     }
 
     @Override
     public boolean deleteUserHistoryEvent(User user, int eventId) {
-        return using(connectionProvider, dialect).transactionResult(configuration -> {
-            DSLContext inner = using(configuration);
-            inner.deleteFrom(USER_HISTORY_PROJECT).
-                    where(USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(eventId)).execute();
-            return inner.deleteFrom(USER_HISTORY).
-                    where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute() > 0;
-        });
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.transactionResult(configuration -> {
+                try (DSLContext inner = using(configuration)) {
+                    inner.deleteFrom(USER_HISTORY_PROJECT).
+                            where(USER_HISTORY_PROJECT.USER_HISTORY_ID.eq(eventId)).execute();
+                    return inner.deleteFrom(USER_HISTORY).
+                            where(USER_HISTORY.USER_ID.eq(user.id)).and(USER_HISTORY.ID.eq(eventId)).execute() > 0;
+                }
+            });
+        }
     }
 
     @Override
     public boolean renameSavedSearch(User user, int eventId, String newName) {
-        return using(connectionProvider, dialect).transactionResult(configuration -> {
-            try(UpdateSetMoreStep<UserHistoryRecord> setName = using(configuration).update(USER_HISTORY).set(USER_HISTORY.NAME, newName)){
-                UpdateConditionStep<UserHistoryRecord> updatedTuple =  setName
-                        .where(USER_HISTORY.USER_ID.eq(user.id))
-                        .and(USER_HISTORY.ID.eq(eventId))
-                        .and(USER_HISTORY.TYPE.eq(UserEvent.Type.SEARCH.id));
-                return updatedTuple.execute() > 0;
-            }
-        });
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.transactionResult(configuration -> {
+                try (DSLContext inner = using(configuration)) {
+                    UpdateSetMoreStep<UserHistoryRecord> setName = inner.update(USER_HISTORY).set(USER_HISTORY.NAME, newName);
+                    UpdateConditionStep<UserHistoryRecord> updatedTuple = setName
+                            .where(USER_HISTORY.USER_ID.eq(user.id))
+                            .and(USER_HISTORY.ID.eq(eventId))
+                            .and(USER_HISTORY.TYPE.eq(UserEvent.Type.SEARCH.id));
+                    return updatedTuple.execute() > 0;
+                }
+            });
+        }
     }
 
     @Override
@@ -331,100 +357,124 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean tag(Project prj, String documentId, Tag... tags) {
-        InsertValuesStep5<DocumentTagRecord, String, String, String, Timestamp, String> query = using(connectionProvider, dialect).insertInto(
-                DOCUMENT_TAG, DOCUMENT_TAG.DOC_ID, DOCUMENT_TAG.LABEL, DOCUMENT_TAG.PRJ_ID,
-                DOCUMENT_TAG.CREATION_DATE, DOCUMENT_TAG.USER_ID);
-        List<Tag> tagList = asList(tags);
-        tagList.forEach(t -> query.values(documentId, t.label, prj.getId(), new Timestamp(t.creationDate.getTime()), t.user.id));
-        return query.onConflictDoNothing().execute() > 0;
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            InsertValuesStep5<DocumentTagRecord, String, String, String, Timestamp, String> query = ctx.insertInto(
+                    DOCUMENT_TAG, DOCUMENT_TAG.DOC_ID, DOCUMENT_TAG.LABEL, DOCUMENT_TAG.PRJ_ID,
+                    DOCUMENT_TAG.CREATION_DATE, DOCUMENT_TAG.USER_ID);
+            List<Tag> tagList = asList(tags);
+            tagList.forEach(t -> query.values(documentId, t.label, prj.getId(), new Timestamp(t.creationDate.getTime()), t.user.id));
+            return query.onConflictDoNothing().execute() > 0;
+        }
     }
 
     @Override
     public boolean untag(Project prj, String documentId, Tag... tags) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_TAG).
-                where(DOCUMENT_TAG.DOC_ID.eq(documentId),
-                        DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
-                        DOCUMENT_TAG.PRJ_ID.eq(prj.getId())).execute() > 0;
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.deleteFrom(DOCUMENT_TAG).
+                    where(DOCUMENT_TAG.DOC_ID.eq(documentId),
+                            DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
+                            DOCUMENT_TAG.PRJ_ID.eq(prj.getId())).execute() > 0;
+        }
     }
 
     @Override
     public boolean tag(Project prj, List<String> documentIds, Tag... tags) {
-        InsertValuesStep5<DocumentTagRecord, String, String, String, Timestamp, String> query = using(connectionProvider, dialect).insertInto(
-                DOCUMENT_TAG, DOCUMENT_TAG.DOC_ID, DOCUMENT_TAG.LABEL, DOCUMENT_TAG.PRJ_ID,
-                DOCUMENT_TAG.CREATION_DATE, DOCUMENT_TAG.USER_ID);
-        List<Tag> tagList = asList(tags);
-        documentIds.forEach(d -> tagList.forEach(t -> query.values(d, t.label, prj.getId(), new Timestamp(t.creationDate.getTime()), t.user.id)));
-        return query.onConflictDoNothing().execute() > 0;
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            InsertValuesStep5<DocumentTagRecord, String, String, String, Timestamp, String> query = ctx.insertInto(
+                    DOCUMENT_TAG, DOCUMENT_TAG.DOC_ID, DOCUMENT_TAG.LABEL, DOCUMENT_TAG.PRJ_ID,
+                    DOCUMENT_TAG.CREATION_DATE, DOCUMENT_TAG.USER_ID);
+            List<Tag> tagList = asList(tags);
+            documentIds.forEach(d -> tagList.forEach(t -> query.values(d, t.label, prj.getId(), new Timestamp(t.creationDate.getTime()), t.user.id)));
+            return query.onConflictDoNothing().execute() > 0;
+        }
     }
 
     @Override
     public boolean untag(Project prj, List<String> documentIds, Tag... tags) {
-        return DSL.using(connectionProvider, dialect).deleteFrom(DOCUMENT_TAG).
-                where(DOCUMENT_TAG.DOC_ID.in(documentIds),
-                        DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
-                        DOCUMENT_TAG.PRJ_ID.eq(prj.getId())).execute() > 0;
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.deleteFrom(DOCUMENT_TAG).
+                    where(DOCUMENT_TAG.DOC_ID.in(documentIds),
+                            DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet())),
+                            DOCUMENT_TAG.PRJ_ID.eq(prj.getId())).execute() > 0;
+        }
     }
 
     @Override
     public List<String> getDocuments(Project project, Tag... tags) {
-        DSLContext create = DSL.using(connectionProvider, dialect);
-        return create.selectDistinct(DOCUMENT_TAG.DOC_ID).from(DOCUMENT_TAG).
-                where(DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet()))).
-                and(DOCUMENT_TAG.PRJ_ID.eq(project.getId())).
-                fetch().getValues(DOCUMENT_TAG.DOC_ID);
+        try (DSLContext create = DSL.using(connectionProvider, dialect)) {
+            return create.selectDistinct(DOCUMENT_TAG.DOC_ID).from(DOCUMENT_TAG).
+                    where(DOCUMENT_TAG.LABEL.in(stream(tags).map(t -> t.label).collect(toSet()))).
+                    and(DOCUMENT_TAG.PRJ_ID.eq(project.getId())).
+                    fetch().getValues(DOCUMENT_TAG.DOC_ID);
+        }
     }
 
     @Override
     public List<Tag> getTags(Project project, String documentId) {
-        return DSL.using(connectionProvider, dialect).selectFrom(DOCUMENT_TAG).
-                where(DOCUMENT_TAG.DOC_ID.eq(documentId)).and(DOCUMENT_TAG.PRJ_ID.eq(project.getId())).
-                stream().map(this::createTagFrom).collect(toList());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.selectFrom(DOCUMENT_TAG).
+                    where(DOCUMENT_TAG.DOC_ID.eq(documentId)).and(DOCUMENT_TAG.PRJ_ID.eq(project.getId())).
+                    stream().map(this::createTagFrom).collect(toList());
+        }
     }
 
     @Override
     public boolean deleteAll(String projectId) {
-        return DSL.using(connectionProvider, dialect).transactionResult(configuration -> {
-            DSLContext inner = using(configuration);
-            int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
-            int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
-            int deleteUserRecommendationResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId)).execute();
-            int deleteUserHistoryResult = inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).execute();
-            int deleteProject = inner.deleteFrom(PROJECT).where(PROJECT.ID.eq(projectId)).execute();
-            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult + deleteUserHistoryResult + deleteProject > 0;
-        });
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.transactionResult(configuration -> {
+                try (DSLContext inner = using(configuration)) {
+                    int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
+                    int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
+                    int deleteUserRecommendationResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId)).execute();
+                    int deleteUserHistoryResult = inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).execute();
+                    int deleteProject = inner.deleteFrom(PROJECT).where(PROJECT.ID.eq(projectId)).execute();
+                    return deleteStarResult + deleteTagResult + deleteUserRecommendationResult + deleteUserHistoryResult + deleteProject > 0;
+                }
+            });
+        }
     }
 
     @Override
     public Project getProject(String projectId) {
-        return createProjectFrom(DSL.using(connectionProvider, dialect).selectFrom(PROJECT).
-                where(PROJECT.ID.eq(projectId)).fetchOne());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return createProjectFrom(ctx.selectFrom(PROJECT).
+                    where(PROJECT.ID.eq(projectId)).fetchOne());
+        }
     }
 
     @Override
     public List<Project> getProjects() {
-        return DSL.using(connectionProvider, dialect).selectFrom(PROJECT).
-                stream().map(this::createProjectFrom).collect(toList());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.selectFrom(PROJECT).
+                    stream().map(this::createProjectFrom).collect(toList());
+        }
     }
 
     @Override
     public List<Project> getProjects(List<String> projectIds) {
-        return DSL.using(connectionProvider, dialect).selectFrom(PROJECT).
-                where(PROJECT.ID.in(projectIds)).
-                stream().map(this::createProjectFrom).collect(toList());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.selectFrom(PROJECT).
+                    where(PROJECT.ID.in(projectIds)).
+                    stream().map(this::createProjectFrom).collect(toList());
+        }
     }
 
     @Override
     public List<Note> getNotes(Project prj, String documentPath) {
-        return DSL.using(connectionProvider, dialect).selectFrom(NOTE).
-                where(NOTE.PROJECT_ID.eq(prj.getId())).and(value(documentPath).like(NOTE.PATH.concat('%'))).
-                stream().map(this::createNoteFrom).collect(toList());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.selectFrom(NOTE).
+                    where(NOTE.PROJECT_ID.eq(prj.getId())).and(value(documentPath).like(NOTE.PATH.concat('%'))).
+                    stream().map(this::createNoteFrom).collect(toList());
+        }
     }
 
     @Override
     public List<Note> getNotes(Project prj) {
-        return DSL.using(connectionProvider, dialect).selectFrom(NOTE).
-                where(NOTE.PROJECT_ID.eq(prj.getId())).
-                stream().map(this::createNoteFrom).collect(toList());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.selectFrom(NOTE).
+                    where(NOTE.PROJECT_ID.eq(prj.getId())).
+                    stream().map(this::createNoteFrom).collect(toList());
+        }
     }
 
     @Override
@@ -457,16 +507,18 @@ public class JooqRepository implements Repository {
 
     @Override
     public boolean save(Note note) {
-        return DSL.using(connectionProvider, dialect).insertInto(NOTE, NOTE.PROJECT_ID, NOTE.PATH, NOTE.NOTE_, NOTE.VARIANT).
-                values(note.project.name, note.path.toString(), note.note, note.variant.name()).execute() > 0;
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.insertInto(NOTE, NOTE.PROJECT_ID, NOTE.PATH, NOTE.NOTE_, NOTE.VARIANT).
+                    values(note.project.name, note.path.toString(), note.note, note.variant.name()).execute() > 0;
+        }
     }
 
     @Override
     public boolean save(Project project) {
         Timestamp projectCreationDate =  project.creationDate == null ? null: new Timestamp(project.creationDate.getTime());
         Timestamp projectUpdateDate =  project.updateDate == null ? null: new Timestamp(project.updateDate.getTime());
-        try(InsertOnDuplicateSetMoreStep<ProjectRecord> innerSet = using(connectionProvider, dialect).
-                insertInto(
+        try(DSLContext ctx = using(connectionProvider, dialect)) {
+            InsertOnDuplicateSetMoreStep<ProjectRecord> innerSet = ctx.insertInto(
                         PROJECT, PROJECT.ID, PROJECT.LABEL, PROJECT.DESCRIPTION, PROJECT.PATH, PROJECT.SOURCE_URL,
                         PROJECT.MAINTAINER_NAME, PROJECT.PUBLISHER_NAME, PROJECT.LOGO_URL,
                         PROJECT.ALLOW_FROM_MASK,
@@ -478,7 +530,7 @@ public class JooqRepository implements Repository {
                         projectCreationDate, projectUpdateDate).
                 onConflict(PROJECT.ID).
                 doUpdate().
-                set(PROJECT.LABEL, project.label)) {
+                set(PROJECT.LABEL, project.label);
             return innerSet.
                             set(PROJECT.DESCRIPTION, project.description).
                             set(PROJECT.SOURCE_URL, project.sourceUrl).
@@ -489,18 +541,17 @@ public class JooqRepository implements Repository {
                             set(PROJECT.UPDATE_DATE, projectUpdateDate).
                     execute() > 0;
         }
-
     }
 
     public boolean save(User user) {
-        try (InsertOnDuplicateSetMoreStep<UserInventoryRecord> innerSet = using(connectionProvider, dialect).
-                insertInto(
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+        InsertOnDuplicateSetMoreStep<UserInventoryRecord> innerSet = ctx.insertInto(
                         USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL,
                         USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER, USER_INVENTORY.DETAILS).
                 values(user.id, user.email, user.name, user.provider, JsonUtils.serialize(user.details)).
                 onConflict(USER_INVENTORY.ID).
                 doUpdate().
-                set(USER_INVENTORY.EMAIL, user.email)) {
+                set(USER_INVENTORY.EMAIL, user.email);
             return innerSet.
                     set(USER_INVENTORY.DETAILS, JsonUtils.serialize(user.details)).
                     set(USER_INVENTORY.NAME, user.name).
@@ -511,13 +562,15 @@ public class JooqRepository implements Repository {
     }
 
     public User getUser(String uid) {
-        return createUserFrom(DSL.using(connectionProvider, dialect).selectFrom(USER_INVENTORY).where(USER_INVENTORY.ID.eq(uid)).fetchOne());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return createUserFrom(ctx.selectFrom(USER_INVENTORY).where(USER_INVENTORY.ID.eq(uid)).fetchOne());
+        }
     }
 
     @Override
     public boolean getHealth(){
-        try {
-            return DSL.using(connectionProvider, dialect).select().fetchOne().toString().contains("1");
+        try (DSLContext ctx = DSL.using(connectionProvider, dialect)) {
+            return ctx.select().fetchOne().toString().contains("1");
         } catch (DataAccessException ex){
             LoggerFactory.getLogger(getClass()).error("Database Health error : ",ex);
             return false;
