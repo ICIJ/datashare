@@ -294,9 +294,9 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
 
         List<SearchResult> searchResultsContentType = asList(searchResult1, searchResult2);
         List<SearchResult> searchResultsAllContentType = asList(searchResult1, searchResult2,searchResult3);
-        when(batchSearchRepository.getResults(User.local(), "batchSearchId", WebQueryBuilder.createWebQuery().queryAll().withContentTypes(asList("content/type")).build()))
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", WebQueryBuilder.createWebQuery().queryAll().withContentTypes(List.of("content/type")).build()))
                 .thenReturn(searchResultsContentType);
-        when(batchSearchRepository.getResults(User.local(), "batchSearchId", WebQueryBuilder.createWebQuery().queryAll().withContentTypes(asList()).build()))
+        when(batchSearchRepository.getResults(User.local(), "batchSearchId", WebQueryBuilder.createWebQuery().queryAll().withContentTypes(List.of()).build()))
                 .thenReturn(searchResultsAllContentType);
         post("/api/batch/search/result/batchSearchId", "{\"from\":0, \"size\":0, \"query\":\"*\", \"field\":\"all\",\"contentTypes\":[\"content/type\"]}").
                 should().respond(200).haveType("application/json").
@@ -423,7 +423,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_batch_search_without_queries() {
         BatchSearch search = new BatchSearch("uuid", singletonList(project("prj")), "name", "desc", 2, new Date(), BatchSearchRecord.State.SUCCESS, User.local(),
-                                        3, true, singletonList("application/pdf"), null, asList("/path"), 0, false, null, null);
+                                        3, true, singletonList("application/pdf"), null, List.of("/path"), 0, false, null, null);
         when(batchSearchRepository.get(User.local(), search.uuid, false)).thenReturn(search);
 
         get("/api/batch/search/uuid?withQueries=false").should().
