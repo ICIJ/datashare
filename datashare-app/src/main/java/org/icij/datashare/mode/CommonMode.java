@@ -1,11 +1,8 @@
 package org.icij.datashare.mode;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.AbstractModule;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 import com.google.inject.Module;
-import com.google.inject.TypeLiteral;
+import com.google.inject.*;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
@@ -197,16 +194,14 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     public Configuration createWebConfiguration() {
-        return routes -> {
-            addModeConfiguration(
-                    defaultRoutes(
-                                addCorsFilter(routes,
-                                        propertiesProvider
-                                ),
-                                propertiesProvider
-                    )
-            );
-        };
+        return routes -> addModeConfiguration(
+                defaultRoutes(
+                            addCorsFilter(routes,
+                                    propertiesProvider
+                            ),
+                            propertiesProvider
+                )
+        );
     }
 
     protected abstract Routes addModeConfiguration(final Routes routes);
