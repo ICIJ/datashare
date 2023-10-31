@@ -8,21 +8,21 @@ import net.codestory.http.payload.Payload;
 import net.codestory.http.security.SessionIdStore;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.db.JooqRepository;
+import org.icij.datashare.Repository;
 
 import static org.icij.datashare.session.DatashareUser.*;
 
 public class LocalUserFilter extends CookieAuthFilter {
     private final String userName;
-    private final JooqRepository jooqRepository;
+    private final Repository repository;
 
     @Inject
-    public LocalUserFilter(final PropertiesProvider propertiesProvider, final JooqRepository jooqRepository) {
+    public LocalUserFilter(final PropertiesProvider propertiesProvider, final Repository repository) {
         super(propertiesProvider.get("protectedUrPrefix").orElse("/"),
                 singleUser(propertiesProvider.get("defaultUserName").orElse("local")),
                 SessionIdStore.inMemory());
         this.userName = propertiesProvider.get("defaultUserName").orElse("local");
-        this.jooqRepository = jooqRepository;
+        this.repository = repository;
     }
 
     @Override
@@ -43,7 +43,7 @@ public class LocalUserFilter extends CookieAuthFilter {
     protected User getUserWithEveryProjects () {
         // We must cast back to DatashareUser to be able to use the `setProjects` method
         DatashareUser datashareUser = (DatashareUser) users.find(userName);
-        datashareUser.setProjects(jooqRepository.getProjects());
+        datashareUser.setProjects(repository.getProjects());
         return datashareUser;
     }
 }
