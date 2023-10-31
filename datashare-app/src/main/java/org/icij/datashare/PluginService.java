@@ -47,7 +47,7 @@ public class PluginService extends DeliverableService<Plugin> {
     @Override
     DeliverableRegistry<Plugin> createRegistry(InputStream pluginJsonContent) {
         try {
-            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<DeliverableRegistry<Plugin>>() {});
+            return new ObjectMapper().readValue(pluginJsonContent, new TypeReference<>() {});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
