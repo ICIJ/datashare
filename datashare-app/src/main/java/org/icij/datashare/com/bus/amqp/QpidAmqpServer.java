@@ -36,6 +36,7 @@ public class QpidAmqpServer {
     private Map<String, Object> createSystemConfig() {
         Map<String, Object> attributes = new HashMap<>();
         URL initialConfig = QpidAmqpServer.class.getClassLoader().getResource(INITIAL_CONFIGURATION);
+        assert initialConfig != null;
         logger.info("initial config : {}", initialConfig.toExternalForm());
         attributes.put("type", "Memory");
         attributes.put("initialConfigurationLocation", initialConfig.toExternalForm());
