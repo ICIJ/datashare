@@ -46,6 +46,7 @@ public class NlpConsumer implements DatashareListener {
         int nbMessages = 0;
         while (! exitAsked) {
             try {
+                assert messageQueue != null;
                 Message message = messageQueue.poll(30, TimeUnit.SECONDS);
                 if (message != null) {
                     switch (message.type) {
