@@ -12,7 +12,7 @@ public class NameGenerator {
     public static void main(String[] args) {
         System.out.println(generate());
     }
-    private static Random random = new Random();
+    private static final Random random = new Random();
     public static String generate() {
         return left.get(random.nextInt(left.size())) + "_" + right.get(random.nextInt(right.size()));
     }
