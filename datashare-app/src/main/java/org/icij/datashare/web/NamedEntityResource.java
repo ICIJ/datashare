@@ -16,10 +16,9 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.Indexer;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
-import static java.util.Collections.*;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.ok;
