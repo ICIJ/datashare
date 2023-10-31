@@ -1,7 +1,6 @@
 package org.icij.datashare.nlp;
 
 import com.google.inject.Inject;
-import java.util.stream.Collectors;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -14,6 +13,7 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableSet;
@@ -29,7 +29,7 @@ import static org.icij.datashare.text.nlp.Pipeline.Type.EMAIL;
  * <p>
  * It implements the same API as the NLP pipelines to integrate seamlessly to datashare.
  *
- * if the the document is an rfc822 email
+ * if the document is an rfc822 email
  * then we also parse a list of headers coming from https://tools.ietf.org/html/rfc2076
  * and transformed by tika/extract (for the keys).
  *
