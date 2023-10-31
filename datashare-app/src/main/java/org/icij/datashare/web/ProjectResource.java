@@ -144,7 +144,7 @@
         @ApiResponse(responseCode = "409", description = "if project exists")
         @ApiResponse(responseCode = "500", description = "project creation in DB or index creation failed")
         @Post("/")
-        public Payload createProject(Project project, Context context) throws IOException {
+        public Payload createProject(Project project, Context context) {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
 
             if (projectExists(project)) {
@@ -164,7 +164,7 @@
                 requestBody = @RequestBody(content = @Content(mediaType = "application/json", contentSchema = @Schema(implementation = Project.class)))
         )
         @Put("/:id")
-        public Payload updateProject(String id, Project project, @NotNull Context context) throws IOException {
+        public Payload updateProject(String id, Project project, @NotNull Context context) {
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             if (!projectExists(project) || !Objects.equals(project.getId(), id)) {
                 return PayloadFormatter.error("Project not found", HttpStatus.NOT_FOUND);
