@@ -467,6 +467,18 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(String.class);
     }
+    static void oauthDefaultProject(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("oauthDefaultProject"), "Default project to use for Oauth2 users")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+    static void oauthScope(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList("oauthScope"), "Set scope in oauth2 callback url, needed for OIDC providers")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
 
     public static void batchQueueType(OptionParser parser) {
         parser.acceptsAll(

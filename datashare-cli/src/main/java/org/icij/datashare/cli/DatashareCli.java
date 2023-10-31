@@ -153,6 +153,8 @@ public class DatashareCli {
         DatashareCliOptions.oauthTokenUrl(parser);
         DatashareCliOptions.authFilter(parser);
         DatashareCliOptions.oauthCallbackPath(parser);
+        DatashareCliOptions.oauthScope(parser);
+        DatashareCliOptions.oauthDefaultProject(parser);
         DatashareCliOptions.digestMethod(parser);
         DatashareCliOptions.digestProjectName(parser);
         DatashareCliOptions.noDigestProject(parser);
