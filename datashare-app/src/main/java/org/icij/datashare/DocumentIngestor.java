@@ -13,7 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,7 +37,7 @@ public class DocumentIngestor {
         String elasticsearchUrl = (String) optionSet.valueOf("elasticsearchAddress");
         String indexName = (String) optionSet.valueOf("indexName");
         Integer nbDocuments = (Integer) optionSet.valueOf("nbDocuments");
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(INDEX_ADDRESS_PROP, elasticsearchUrl);
         }});
         Indexer indexer = new ElasticsearchIndexer(ElasticsearchConfiguration.createESClient(propertiesProvider), propertiesProvider);
