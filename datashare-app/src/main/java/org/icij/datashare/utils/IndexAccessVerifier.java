@@ -7,10 +7,9 @@ import org.icij.datashare.session.DatashareUser;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import static java.lang.String.join;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
 
 public class IndexAccessVerifier {
 
@@ -64,6 +63,6 @@ public class IndexAccessVerifier {
     }
 
     static String getQueryAsString(final Query query) {
-        return join("&", query.keyValues().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(toList()));
+        return query.keyValues().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining("&"));
     }
 }
