@@ -1,7 +1,6 @@
 package org.icij.datashare.utils;
 
 import org.junit.Test;
-import org.junit.Before;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
