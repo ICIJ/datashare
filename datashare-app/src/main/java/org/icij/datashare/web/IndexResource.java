@@ -7,23 +7,15 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
-import net.codestory.http.Query;
 import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
-import net.codestory.http.errors.UnauthorizedException;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.utils.IndexAccessVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
 
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static java.lang.String.join;
-import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
 import static net.codestory.http.payload.Payload.created;
 import static net.codestory.http.payload.Payload.ok;
 
