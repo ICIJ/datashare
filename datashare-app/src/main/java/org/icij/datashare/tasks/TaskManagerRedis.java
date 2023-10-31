@@ -195,7 +195,7 @@ public class TaskManagerRedis implements TaskManager {
                 isGetterVisibility = JsonAutoDetect.Visibility.NONE)
         public static class ThrowableMixIn {}
 
-        private final Decoder<Object> decoder = new Decoder<Object>() {
+        private final Decoder<Object> decoder = new Decoder<>() {
             @Override
             public Object decode(ByteBuf buf, State state) throws IOException {
                 return mapObjectMapper.readValue((InputStream) new ByteBufInputStream(buf), Object.class);
