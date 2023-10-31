@@ -23,7 +23,9 @@ import com.fasterxml.jackson.databind.node.*;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.HashMap;
 import java.util.Arrays;
@@ -154,15 +156,11 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
 
     @Override
     protected Payload signin(Context context) {
-        try {
-            String oauthAuthorizeQS = format("?client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(getCallbackUrl(context), "utf-8"), createState());
-            if (oauthScope != "") {
-                oauthAuthorizeQS = oauthAuthorizeQS + "&scope=" + oauthScope;
-            }
-            return Payload.seeOther(oauthAuthorizeUrl + oauthAuthorizeQS);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
+        String oauthAuthorizeQS = format("?client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(getCallbackUrl(context), StandardCharsets.UTF_8), createState());
+        if (!Objects.equals(oauthScope, "")) {
+            oauthAuthorizeQS = oauthAuthorizeQS + "&scope=" + oauthScope;
         }
+        return Payload.seeOther(oauthAuthorizeUrl + oauthAuthorizeQS);
     }
 
     private String getCallbackUrl(Context context) {
