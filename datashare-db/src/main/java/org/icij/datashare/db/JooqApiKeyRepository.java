@@ -9,6 +9,7 @@ import org.icij.datashare.user.User;
 // Keep these imports explicit otherwise the wildcard import of import org.jooq.Record will end up
 // in a "reference to Record is ambiguous" depending on your JRE since it will conflict with
 // java.util.Record
+import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 
@@ -17,6 +18,7 @@ import java.sql.Timestamp;
 import java.util.Date;
 
 import static org.icij.datashare.db.tables.ApiKey.API_KEY;
+import static org.jooq.impl.DSL.using;
 
 public class JooqApiKeyRepository implements ApiKeyRepository {
     private final DataSource connectionProvider;
@@ -29,32 +31,38 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
 
     @Override
     public ApiKey get(String base64Key) {
-        return createApiKey(DSL.using(connectionProvider, dialect).
-                selectFrom(API_KEY).
-                where(API_KEY.ID.eq(ApiKey.DEFAULT_DIGESTER.hash(base64Key))).fetchOne());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return createApiKey(ctx.selectFrom(API_KEY).
+                    where(API_KEY.ID.eq(ApiKey.DEFAULT_DIGESTER.hash(base64Key))).fetchOne());
+        }
     }
 
     @Override
     public ApiKey get(User user) {
-        return createApiKey(DSL.using(connectionProvider, dialect).
-                selectFrom(API_KEY).
-                where(API_KEY.USER_ID.eq(user.id)).fetchOne());
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return createApiKey(ctx.selectFrom(API_KEY).
+                    where(API_KEY.USER_ID.eq(user.id)).fetchOne());
+        }
     }
 
     @Override
     public boolean delete(User user) {
-        return DSL.using(connectionProvider,dialect).deleteFrom(API_KEY)
-                .where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.deleteFrom(API_KEY)
+                    .where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
+        }
     }
 
     @Override
     public boolean save(ApiKey apiKey) {
-        return DSL.using(connectionProvider, dialect).insertInto(API_KEY).
-                values(apiKey.getId(), apiKey.getUser().id, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
-                onConflict(API_KEY.USER_ID).doUpdate().
+        try (DSLContext ctx = using(connectionProvider, dialect)) {
+            return ctx.insertInto(API_KEY).
+                    values(apiKey.getId(), apiKey.getUser().id, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
+                    onConflict(API_KEY.USER_ID).doUpdate().
                     set(API_KEY.ID, apiKey.getId()).
                     set(API_KEY.CREATION_DATE, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
                     where(API_KEY.USER_ID.eq(apiKey.getUser().id)).execute() > 0;
+        }
     }
 
     // ----------------
