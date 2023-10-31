@@ -17,7 +17,9 @@ public class ReportExtractor {
             System.exit(1);
         }
 
-        try (RedisUserReportMap reportMap = new RedisUserReportMap(new PropertiesProvider(new HashMap<String, String>() {{ put("redisAddress", args[0]);}}), args[1])) {
+        try (RedisUserReportMap reportMap = new RedisUserReportMap(new PropertiesProvider(new HashMap<>() {{
+            put("redisAddress", args[0]);
+        }}), args[1])) {
             reportMap.forEach((path, report) -> {
                 if (report.getException().isPresent()) {
                     StringWriter sw = new StringWriter();

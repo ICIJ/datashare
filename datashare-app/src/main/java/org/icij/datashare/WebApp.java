@@ -1,6 +1,5 @@
 package org.icij.datashare;
 
-import com.google.inject.Injector;
 import net.codestory.http.WebServer;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
