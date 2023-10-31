@@ -11,8 +11,6 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.session.*;
 import org.icij.datashare.web.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Properties;
