@@ -39,6 +39,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,7 +70,6 @@ import static org.icij.datashare.text.Project.project;
 import static org.jooq.impl.DSL.condition;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.countDistinct;
-import static org.jooq.impl.DSL.select;
 import static org.jooq.impl.DSL.using;
 import static org.jooq.impl.DSL.value;
 
