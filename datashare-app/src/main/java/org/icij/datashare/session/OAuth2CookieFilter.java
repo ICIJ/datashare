@@ -36,7 +36,7 @@ import static org.icij.datashare.session.DatashareUser.fromJson;
 @Singleton
 public class OAuth2CookieFilter extends CookieAuthFilter {
     private final DefaultApi20 defaultOauthApi;
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String REQUEST_CODE_KEY = "code";
     public static final String REQUEST_STATE_KEY = "state";
