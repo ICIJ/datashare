@@ -27,7 +27,7 @@ import static java.util.Arrays.stream;
 import static org.icij.datashare.com.Message.Type.SHUTDOWN;
 
 public class RedisDataBus implements Publisher, DataBus, Closeable {
-    private static Logger logger = LoggerFactory.getLogger(RedisDataBus.class);
+    private static final Logger logger = LoggerFactory.getLogger(RedisDataBus.class);
     private final JedisPool redis;
     private final Map<Consumer<Message>, JedisListener> subscribers = new ConcurrentHashMap<>();
 
