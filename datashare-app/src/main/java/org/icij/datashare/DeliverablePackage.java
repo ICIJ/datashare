@@ -3,7 +3,6 @@ package org.icij.datashare;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.jetbrains.annotations.NotNull;
 
-import java.net.URL;
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -32,8 +31,6 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
     public Deliverable reference() {return ofNullable(installedDeliverable).orElse(deliverableFromRegistry);}
 
     public Deliverable getInstalledDeliverable() {return installedDeliverable;}
-
-    public Deliverable getDeliverableFromRegistry() {return deliverableFromRegistry;}
 
     public void displayInformation() {
         Deliverable deliverable = ofNullable(deliverableFromRegistry).orElse(installedDeliverable);
