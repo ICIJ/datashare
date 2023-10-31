@@ -14,18 +14,12 @@ public class LocalMode extends CommonMode {
     LocalMode(Properties properties) { super(properties);}
     LocalMode(Map<String, String> properties) { super(properties);}
 
-    protected LocalUserFilter getLocalUserFilter() {
-        RepositoryFactoryImpl repositoryFactory = new RepositoryFactoryImpl(propertiesProvider);
-        JooqRepository jooqRepository = (JooqRepository) repositoryFactory.createRepository();
-        return new LocalUserFilter(propertiesProvider, jooqRepository);
-    }
-
     @Override
     protected void configure() {
         super.configure();
         bind(IndexWaiterFilter.class).asEagerSingleton();
         bind(StatusResource.class).asEagerSingleton();
-        bind(LocalUserFilter.class).toInstance(getLocalUserFilter());
+        bind(LocalUserFilter.class).asEagerSingleton();
         configurePersistence();
     }
 

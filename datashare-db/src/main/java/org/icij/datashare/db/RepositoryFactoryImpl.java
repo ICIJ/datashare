@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 
 public class RepositoryFactoryImpl implements RepositoryFactory {
     private final PropertiesProvider propertiesProvider;
+    private final DataSource dataSource;
 
     RepositoryFactoryImpl() {
         this(new PropertiesProvider());
@@ -27,6 +28,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     public RepositoryFactoryImpl(final PropertiesProvider propertiesProvider) {
         this.propertiesProvider = propertiesProvider;
         System.getProperties().setProperty("org.jooq.no-logo", "true");
+        this.dataSource = createDatasource();
     }
 
     public Repository createRepository() {
@@ -55,13 +57,11 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     }
 
     public void initDatabase() {
-        try (HikariDataSource datasource = (HikariDataSource) createDatasource()) {
-            initDatabase(datasource);
-        }
+        initDatabase(dataSource);
     }
 
     private <T> T createRepository(BiFunction<DataSource, SQLDialect, T> constructor) {
-        return constructor.apply(createDatasource(), guessSqlDialectFrom(getDataSourceUrl()));
+        return constructor.apply(dataSource, guessSqlDialectFrom(getDataSourceUrl()));
     }
 
     static SQLDialect guessSqlDialectFrom(String dataSourceUrl) {
