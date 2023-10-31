@@ -323,8 +323,7 @@ public class JooqRepository implements Repository {
     public boolean renameSavedSearch(User user, int eventId, String newName) {
         try (DSLContext ctx = using(connectionProvider, dialect)) {
             return ctx.transactionResult(configuration -> {
-                try (DSLContext inner = using(configuration)) {
-                    UpdateSetMoreStep<UserHistoryRecord> setName = inner.update(USER_HISTORY).set(USER_HISTORY.NAME, newName);
+                try (UpdateSetMoreStep<UserHistoryRecord> setName = using(configuration).update(USER_HISTORY).set(USER_HISTORY.NAME, newName)) {
                     UpdateConditionStep<UserHistoryRecord> updatedTuple = setName
                             .where(USER_HISTORY.USER_ID.eq(user.id))
                             .and(USER_HISTORY.ID.eq(eventId))
@@ -517,8 +516,7 @@ public class JooqRepository implements Repository {
     public boolean save(Project project) {
         Timestamp projectCreationDate =  project.creationDate == null ? null: new Timestamp(project.creationDate.getTime());
         Timestamp projectUpdateDate =  project.updateDate == null ? null: new Timestamp(project.updateDate.getTime());
-        try(DSLContext ctx = using(connectionProvider, dialect)) {
-            InsertOnDuplicateSetMoreStep<ProjectRecord> innerSet = ctx.insertInto(
+        try(InsertOnDuplicateSetMoreStep<ProjectRecord> innerSet  = using(connectionProvider, dialect).insertInto(
                         PROJECT, PROJECT.ID, PROJECT.LABEL, PROJECT.DESCRIPTION, PROJECT.PATH, PROJECT.SOURCE_URL,
                         PROJECT.MAINTAINER_NAME, PROJECT.PUBLISHER_NAME, PROJECT.LOGO_URL,
                         PROJECT.ALLOW_FROM_MASK,
@@ -530,7 +528,7 @@ public class JooqRepository implements Repository {
                         projectCreationDate, projectUpdateDate).
                 onConflict(PROJECT.ID).
                 doUpdate().
-                set(PROJECT.LABEL, project.label);
+                set(PROJECT.LABEL, project.label)) {
             return innerSet.
                             set(PROJECT.DESCRIPTION, project.description).
                             set(PROJECT.SOURCE_URL, project.sourceUrl).
@@ -544,14 +542,13 @@ public class JooqRepository implements Repository {
     }
 
     public boolean save(User user) {
-        try (DSLContext ctx = using(connectionProvider, dialect)) {
-        InsertOnDuplicateSetMoreStep<UserInventoryRecord> innerSet = ctx.insertInto(
+        try (InsertOnDuplicateSetMoreStep<UserInventoryRecord> innerSet = using(connectionProvider, dialect).insertInto(
                         USER_INVENTORY, USER_INVENTORY.ID, USER_INVENTORY.EMAIL,
                         USER_INVENTORY.NAME, USER_INVENTORY.PROVIDER, USER_INVENTORY.DETAILS).
                 values(user.id, user.email, user.name, user.provider, JsonUtils.serialize(user.details)).
                 onConflict(USER_INVENTORY.ID).
                 doUpdate().
-                set(USER_INVENTORY.EMAIL, user.email);
+                set(USER_INVENTORY.EMAIL, user.email)) {
             return innerSet.
                     set(USER_INVENTORY.DETAILS, JsonUtils.serialize(user.details)).
                     set(USER_INVENTORY.NAME, user.name).
