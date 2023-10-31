@@ -72,6 +72,7 @@ public class BatchSearchLoop {
                 logger.warn("batch was not executed : {}", notFound.toString());
             } catch (BatchSearchRunner.CancelException cancelEx) {
                 logger.info("cancelling batch search {}", currentBatchId);
+                assert currentBatchId != null;
                 batchSearchQueue.offer(currentBatchId);
                 repository.reset(currentBatchId);
             } catch (SearchException sex) {
