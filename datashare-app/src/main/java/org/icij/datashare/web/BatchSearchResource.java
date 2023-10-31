@@ -80,7 +80,7 @@ public class BatchSearchResource {
                     @Parameter(name = "project", in = ParameterIn.QUERY, description = "filters by projects. Empty array corresponds to no projects"),
                     @Parameter(name = "batchDate", in = ParameterIn.QUERY, description = "filters by date range timestamps with [dateStart, dateEnd]"),
                     @Parameter(name = "state", in = ParameterIn.QUERY, description = "filters by task status (RUNNING, QUEUED, DONE, FAILED)"),
-                    @Parameter(name = "publishState", in = ParameterIn.QUERY, description = "filters by published state (0: private to the user, 1: public on the plateform)"),
+                    @Parameter(name = "publishState", in = ParameterIn.QUERY, description = "filters by published state (0: private to the user, 1: public on the platform)"),
                     @Parameter(name = "withQueries", in = ParameterIn.QUERY, description = "boolean, if true it includes list of queries"),
                     @Parameter(name = "size", in = ParameterIn.QUERY, description = "if not provided default is 100"),
                     @Parameter(name = "from", in = ParameterIn.QUERY, description = "if not provided it starts from 0"),
