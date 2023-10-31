@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutionException;
 public class TaskView<V> {
     final Map<String, Object> properties;
 
-    public enum State {RUNNING, ERROR, DONE, CANCELLED;}
+    public enum State {RUNNING, ERROR, DONE, CANCELLED}
 
     public final String name;
 
