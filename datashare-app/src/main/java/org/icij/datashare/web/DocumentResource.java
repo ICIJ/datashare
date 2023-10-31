@@ -114,6 +114,7 @@ public class DocumentResource {
                 if(offset == null && limit == null ){
                     extractedText = getAllExtractedText(id, targetLanguage);
                 }else{
+                    assert offset != null && limit != null;
                     extractedText = indexer.getExtractedText(project, id, routing, offset, limit, targetLanguage);
                 }
                 return new Payload(extractedText).withCode(200);
