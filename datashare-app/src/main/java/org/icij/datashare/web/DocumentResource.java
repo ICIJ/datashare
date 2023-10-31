@@ -173,7 +173,6 @@ public class DocumentResource {
     @ApiResponse(responseCode = "200", description = "returns the number of stared documents")
     @Post("/:project/documents/batchUpdate/star")
     public Result<Integer> groupStarProject(final String projectId, final List<String> docIds, Context context) {
-        Result<Integer> res = new Result(repository.star(project(projectId), (DatashareUser)context.currentUser(), docIds));
         return new Result<>(repository.star(project(projectId), (DatashareUser)context.currentUser(), docIds));
     }
 
