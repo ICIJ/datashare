@@ -99,7 +99,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                         throw new CancelException();
                     }
                     resultConsumer.apply(batchSearch.uuid, query, (List<Document>) docsToProcess);
-                    if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds * 1000) {
+                    if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds * 1000L) {
                         DatashareTime.getInstance().sleep(throttleMs);
                     } else {
                         throw new SearchException(query, new TimeoutException("Batch timed out after " + maxTimeSeconds + "s"));
