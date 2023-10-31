@@ -30,7 +30,7 @@ public class ResumeNlpTask implements Callable<Long>, UserTask {
     Logger logger = LoggerFactory.getLogger(getClass());
     private final Set<Pipeline.Type> nlpPipelines;
     private final User user;
-    private String projectName;
+    private final String projectName;
     private final Publisher publisher;
     private final Indexer indexer;
 
