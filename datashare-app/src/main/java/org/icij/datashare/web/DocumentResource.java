@@ -14,14 +14,9 @@ import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.Get;
-import net.codestory.http.annotations.Options;
-import net.codestory.http.annotations.Post;
-import net.codestory.http.annotations.Prefix;
-import net.codestory.http.annotations.Put;
+import net.codestory.http.annotations.*;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.errors.ForbiddenException;
-import net.codestory.http.io.InputStreams;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.types.ContentTypes;
 import org.icij.datashare.PropertiesProvider;
@@ -359,7 +354,7 @@ public class DocumentResource {
             }
     )
     @Get("/:project/documents/recommendations?userids=:coma_separated_users")
-    public Set<String> getProjectRecommentationsBy(final String projectId, final String comaSeparatedUsers) {
+    public Set<String> getProjectRecommendationsBy(final String projectId, final String comaSeparatedUsers) {
         return repository.getRecommentationsBy(project(projectId), stream(comaSeparatedUsers.split(",")).map(User::new).collect(Collectors.toList()));
     }
 
