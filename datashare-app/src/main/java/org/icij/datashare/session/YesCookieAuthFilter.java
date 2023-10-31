@@ -10,13 +10,9 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.text.Project;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static java.util.Collections.singletonList;
 
 public class YesCookieAuthFilter extends CookieAuthFilter {
     private final Integer ttl;
@@ -46,7 +42,7 @@ public class YesCookieAuthFilter extends CookieAuthFilter {
         List<Project> projects = getProjects();
         List<String> projectNames = getProjectNames();
         // Build user properties
-        HashMap<String, Object> userProperties = new HashMap<String, Object>() {{
+        HashMap<String, Object> userProperties = new HashMap<>() {{
             put("uid", userName);
             put(DatashareUser.XEMX_APPLICATIONS_KEY, new HashMap<String, Object>() {{
                 put(DatashareUser.XEMX_DATASHARE_KEY, projectNames);
