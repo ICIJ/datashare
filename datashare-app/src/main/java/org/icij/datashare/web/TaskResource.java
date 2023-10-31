@@ -128,7 +128,9 @@ public class TaskResource {
         List<String> projectIds = (List<String>) options.get("projectIds");
         BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, uri, downloadDir, batchDownloadEncrypt);
         BatchDownloadRunner downloadTask = taskFactory.createDownloadRunner(batchDownload, v -> null);
-        return taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}});
+        return taskManager.startTask(downloadTask, new HashMap<>() {{
+            put("batchDownload", batchDownload);
+        }});
     }
 
     @Operation(description = "Indexes files from the queue.",
@@ -226,11 +228,10 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) {
-        Map<String, Boolean> collect = taskManager.get().stream().
+        return taskManager.get().stream().
                 filter(t -> context.currentUser().equals(t.getUser())).
                 filter(t -> t.getState() == TaskView.State.RUNNING).collect(
                 toMap(t -> t.name, t -> taskManager.stopTask(t.name)));
-        return collect;
     }
 
     @Operation(description = "Preflight request to stop all tasks.")
