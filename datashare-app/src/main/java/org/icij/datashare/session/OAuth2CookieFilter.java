@@ -20,8 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
@@ -130,12 +130,8 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
 
     @Override
     protected Payload signin(Context context) {
-        try {
-            return Payload.seeOther(oauthAuthorizeUrl + "?" +
-                    format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(getCallbackUrl(context), "utf-8"), createState()));
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return Payload.seeOther(oauthAuthorizeUrl + "?" +
+                format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(getCallbackUrl(context), StandardCharsets.UTF_8), createState()));
     }
 
     private String getCallbackUrl(Context context) {
