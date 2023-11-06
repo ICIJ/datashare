@@ -1,13 +1,12 @@
 package org.icij.datashare.web;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import net.codestory.http.Context;
 import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration;
-import org.icij.datashare.web.IndexWaiterFilter;
 import org.junit.After;
 import org.junit.Test;
 
@@ -19,10 +18,10 @@ public class IndexWaiterFilterTest {
     private Payload next = Payload.ok();
     private PayloadSupplier nextFilter = () -> next;
     private Context context = mock(Context.class);
-    private final RestHighLevelClient esClient = ElasticsearchConfiguration.createESClient(new PropertiesProvider());
+    private final ElasticsearchClient esClient = ElasticsearchConfiguration.createESClient(new PropertiesProvider());
 
     @After
-    public void tearDown() throws Exception { esClient.close();}
+    public void tearDown() throws Exception { esClient._transport().close();}
 
     @Test
     public void test_wait_for_index() throws Exception {

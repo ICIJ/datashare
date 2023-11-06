@@ -9,10 +9,12 @@ import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.message.BasicHeader;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.common.settings.Settings;
@@ -28,6 +30,7 @@ import java.net.URL;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.String.format;
+import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.apache.http.HttpHost.create;
 
@@ -78,6 +81,18 @@ public class ElasticsearchConfiguration {
             HttpHost httpHost = create(format("%s://%s:%d", indexUrl.getProtocol(), indexUrl.getHost(), indexUrl.getPort()));
 
             RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback = httpClientBuilder -> httpClientBuilder;
+            RestClientBuilder.HttpClientConfigCallback xElasticProductCallback = httpAsyncClientBuilder -> {
+                httpAsyncClientBuilder.disableAuthCaching();
+                httpAsyncClientBuilder.setDefaultHeaders(
+                        singletonList(new BasicHeader("Content-type", "application/json")));
+                httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
+                        (response, context) ->
+                                // This header is expected from the client, versions of ES server below 7.14 don't provide it
+                                // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
+                                response.addHeader("X-Elastic-Product", "Elasticsearch"));
+                return httpAsyncClientBuilder;
+            };
+
             if (indexUrl.getUserInfo() != null) {
                 String[] userInfo = indexUrl.getUserInfo().split(":");
                 LOGGER.info("using credentials from url (user={})", userInfo[0]);
@@ -90,7 +105,8 @@ public class ElasticsearchConfiguration {
                     .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                             .setConnectTimeout(5000)
                             .setSocketTimeout(60000))
-                    .setHttpClientConfigCallback(httpClientConfigCallback).build(), new JacksonJsonpMapper(JsonObjectMapper.MAPPER));
+                    .setHttpClientConfigCallback(httpClientConfigCallback)
+                    .setHttpClientConfigCallback(xElasticProductCallback).build(), new JacksonJsonpMapper(JsonObjectMapper.MAPPER));
             ElasticsearchClient client = new ElasticsearchClient(transport);
             String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
             return client;
