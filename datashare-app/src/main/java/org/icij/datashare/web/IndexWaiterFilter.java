@@ -7,8 +7,6 @@ import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.payload.Payload;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
