@@ -3,11 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.apache.http.ConnectionClosedException;
-import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 import org.icij.datashare.Entity;
@@ -20,10 +16,8 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.SearchedText;
-import org.icij.datashare.text.nlp.Pipeline;
 import org.junit.After;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -51,9 +45,12 @@ import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.NamedEntity.create;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
-import static org.icij.datashare.text.nlp.Pipeline.Type.*;
+import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
+import static org.icij.datashare.text.nlp.Pipeline.Type.IXAPIPE;
+import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
 import static org.junit.Assert.assertArrayEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class ElasticsearchIndexerTest {
     @ClassRule
