@@ -1,7 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchAllQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.DeleteByQueryRequest;
@@ -410,7 +409,7 @@ public class ElasticsearchSpewerTest {
     public void after() {
         try {
             DeleteByQueryRequest.Builder deleteByQueryRequest = new DeleteByQueryRequest.Builder().index("test-datashare");
-            deleteByQueryRequest.query(Query.of(q -> q.matchAll(MatchAllQuery.of(maq -> maq))));
+            deleteByQueryRequest.query(Query.of(q -> q.matchAll(ma -> ma)));
             es.client.deleteByQuery(deleteByQueryRequest.build()).deleted();
         } catch (IOException e) {
             e.printStackTrace();
