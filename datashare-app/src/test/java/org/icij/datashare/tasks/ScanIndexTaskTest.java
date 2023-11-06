@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.DocumentBuilder;
@@ -16,7 +17,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
@@ -27,7 +27,7 @@ public class ScanIndexTaskTest {
     private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
         put("defaultProject", TEST_INDEX);
     }});
-    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
+    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private MemoryDocumentCollectionFactory documentCollectionFactory = new MemoryDocumentCollectionFactory();
 
     @Test

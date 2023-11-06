@@ -1,8 +1,9 @@
 package org.icij.datashare.tasks;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.function.TerFunction;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -20,7 +21,6 @@ import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
@@ -34,7 +34,7 @@ public class BatchSearchRunnerIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
 
-    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
+    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     @After public void tearDown() throws IOException { es.removeAll();}
     @Mock TerFunction<String, String, List<Document>, Boolean> resultConsumer;
 
@@ -168,9 +168,9 @@ public class BatchSearchRunnerIntTest {
         indexer.add(TEST_INDEX, mydoc);
         BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("AND mydoc"), User.local());
 
-        SearchException sex = assertThrows(SearchException.class,() -> new BatchSearchRunner(indexer, new PropertiesProvider(), search, resultConsumer).call());
+        ElasticsearchException eex = assertThrows(ElasticsearchException.class,() -> new BatchSearchRunner(indexer, new PropertiesProvider(), search, resultConsumer).call());
 
-        assertThat(sex.toString()).contains("Failed to parse query [AND mydoc]");
+        assertThat(eex.error().toString()).contains("Failed to parse query [AND mydoc]");
     }
 
     @Before
