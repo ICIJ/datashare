@@ -16,6 +16,7 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.rules.ExternalResource;
 
@@ -44,18 +45,19 @@ public class ElasticsearchRule extends ExternalResource {
     public ElasticsearchRule(final String[] indexesName, HttpHost elasticHost) {
         this.indexesNames = indexesName;
         System.setProperty("es.set.netty.runtime.available.processors", "false");
+        RestClientBuilder.HttpClientConfigCallback xElasticProductCallback = httpAsyncClientBuilder -> {
+            httpAsyncClientBuilder.disableAuthCaching();
+            httpAsyncClientBuilder.setDefaultHeaders(
+                    singletonList(new BasicHeader("Content-type", "application/json")));
+            httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
+                    (response, context) ->
+                            // This header is expected from the client, versions of ES server below 7.14 don't provide it
+                            // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
+                            response.addHeader("X-Elastic-Product", "Elasticsearch"));
+            return httpAsyncClientBuilder;
+        };
         RestClient rest = RestClient.builder(elasticHost)
-                .setHttpClientConfigCallback(httpAsyncClientBuilder -> {
-                    httpAsyncClientBuilder.disableAuthCaching();
-                    httpAsyncClientBuilder.setDefaultHeaders(
-                            singletonList(new BasicHeader("Content-type", "application/json")));
-                    httpAsyncClientBuilder.addInterceptorLast((HttpResponseInterceptor)
-                            (response, context) ->
-                                    // This header is expected from the client, versions of ES server below 7.14 don't provide it
-                                    // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
-                                    response.addHeader("X-Elastic-Product", "Elasticsearch"));
-                    return httpAsyncClientBuilder;
-                })
+                .setHttpClientConfigCallback(xElasticProductCallback)
                 .build();
         client = new ElasticsearchClient(new RestClientTransport(rest, new JacksonJsonpMapper(JsonObjectMapper.MAPPER)));
     }
