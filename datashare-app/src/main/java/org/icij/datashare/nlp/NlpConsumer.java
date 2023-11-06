@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -44,9 +45,9 @@ public class NlpConsumer implements DatashareListener {
     public Integer call() {
         boolean exitAsked = false;
         int nbMessages = 0;
+        Objects.requireNonNull(messageQueue,"messageQueue cannot be null");
         while (! exitAsked) {
             try {
-                assert messageQueue != null;
                 Message message = messageQueue.poll(30, TimeUnit.SECONDS);
                 if (message != null) {
                     switch (message.type) {

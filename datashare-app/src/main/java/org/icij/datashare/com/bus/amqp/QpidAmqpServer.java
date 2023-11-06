@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * AMQP memory server for embedded mode and tests.
@@ -36,8 +37,7 @@ public class QpidAmqpServer {
     private Map<String, Object> createSystemConfig() {
         Map<String, Object> attributes = new HashMap<>();
         URL initialConfig = QpidAmqpServer.class.getClassLoader().getResource(INITIAL_CONFIGURATION);
-        assert initialConfig != null;
-        logger.info("initial config : {}", initialConfig.toExternalForm());
+        logger.info("initial config : {}", Objects.requireNonNull(initialConfig," initialConfig cannot be null").toExternalForm());
         attributes.put("type", "Memory");
         attributes.put("initialConfigurationLocation", initialConfig.toExternalForm());
         attributes.put("startupLoggedToSystemOut", true);
