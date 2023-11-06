@@ -37,10 +37,7 @@ import org.icij.datashare.utils.PayloadFormatter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.parseBoolean;
@@ -114,8 +111,9 @@ public class DocumentResource {
                 if(offset == null && limit == null ){
                     extractedText = getAllExtractedText(id, targetLanguage);
                 }else{
-                    assert offset != null && limit != null;
-                    extractedText = indexer.getExtractedText(project, id, routing, offset, limit, targetLanguage);
+                    extractedText = indexer.getExtractedText(project, id, routing,
+                            Objects.requireNonNull(offset, "offset parameter cannot be null"),
+                            Objects.requireNonNull(limit, "limit parameter cannot be null"), targetLanguage);
                 }
                 return new Payload(extractedText).withCode(200);
             }
