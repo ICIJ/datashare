@@ -13,6 +13,7 @@ import sun.misc.Signal;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -71,8 +72,8 @@ public class BatchSearchLoop {
             } catch (JooqBatchSearchRepository.BatchNotFoundException notFound) {
                 logger.warn("batch was not executed : {}", notFound.toString());
             } catch (BatchSearchRunner.CancelException cancelEx) {
+                Objects.requireNonNull(currentBatchId,"BatchSearch Id cannot be null");
                 logger.info("cancelling batch search {}", currentBatchId);
-                assert currentBatchId != null;
                 batchSearchQueue.offer(currentBatchId);
                 repository.reset(currentBatchId);
             } catch (SearchException sex) {
