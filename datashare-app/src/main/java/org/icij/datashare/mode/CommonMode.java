@@ -1,5 +1,6 @@
 package org.icij.datashare.mode;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.TypeLiteral;
@@ -11,7 +12,6 @@ import net.codestory.http.extensions.Extensions;
 import net.codestory.http.injection.GuiceAdapter;
 import net.codestory.http.misc.Env;
 import net.codestory.http.routes.Routes;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.TesseractOCRParserWrapper;
@@ -127,8 +127,8 @@ public abstract class CommonMode extends AbstractModule {
             bind(TaskManager.class).to(TaskManagerMemory.class).asEagerSingleton();
         }
 
-        RestHighLevelClient esClient = createESClient(propertiesProvider);
-        bind(RestHighLevelClient.class).toInstance(esClient);
+        ElasticsearchClient esClient = createESClient(propertiesProvider);
+        bind(ElasticsearchClient.class).toInstance(esClient);
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
 
         bind(TesseractOCRParserWrapper.class).toInstance(new TesseractOCRParserWrapper());

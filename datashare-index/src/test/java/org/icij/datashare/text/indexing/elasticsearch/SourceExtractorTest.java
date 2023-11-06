@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -9,7 +10,6 @@ import org.icij.datashare.text.Language;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.extractor.Extractor;
-import org.icij.extract.extractor.UpdatableDigester;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.junit.ClassRule;
@@ -24,7 +24,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 
 import static java.nio.file.Paths.get;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Project.project;
@@ -80,7 +79,7 @@ public class SourceExtractorTest {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
+                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(Refresh.True).withIndex(TEST_INDEX);
         spewer.write(document);
 
         Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).
@@ -106,7 +105,7 @@ public class SourceExtractorTest {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex(TEST_INDEX);
+                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(Refresh.True).withIndex(TEST_INDEX);
         spewer.write(document);
 
         Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).

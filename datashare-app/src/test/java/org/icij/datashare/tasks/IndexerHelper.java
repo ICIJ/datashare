@@ -1,7 +1,8 @@
 package org.icij.datashare.tasks;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.Refresh;
 import org.apache.commons.io.FilenameUtils;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
@@ -27,17 +28,16 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 import static java.nio.file.Paths.get;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.mockito.Mockito.mock;
 
 public class IndexerHelper {
-    private final RestHighLevelClient client;
+    private final ElasticsearchClient client;
     private final ElasticsearchIndexer indexer;
 
-    public IndexerHelper(RestHighLevelClient elasticsearch) {
+    public IndexerHelper(ElasticsearchClient elasticsearch) {
         this.client = elasticsearch;
-        this.indexer = new ElasticsearchIndexer(elasticsearch, new PropertiesProvider()).withRefresh(IMMEDIATE);
+        this.indexer = new ElasticsearchIndexer(elasticsearch, new PropertiesProvider()).withRefresh(Refresh.True);
     }
 
     File indexFile(String fileName, String content, TemporaryFolder fs) throws IOException {
@@ -62,7 +62,7 @@ public class IndexerHelper {
         extractor.setDigester(new UpdatableDigester(project, Entity.DEFAULT_DIGESTER.toString()));
         TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer elasticsearchSpewer = new ElasticsearchSpewer(client, l -> ENGLISH,
-                new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");
+                new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(Refresh.True).withIndex("test-datashare");
         elasticsearchSpewer.write(document);
         return path.toFile();
     }
