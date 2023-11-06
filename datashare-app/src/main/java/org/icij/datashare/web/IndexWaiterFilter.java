@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
 import net.codestory.http.constants.HttpStatus;
@@ -27,12 +28,12 @@ public class IndexWaiterFilter implements Filter {
     private static final String WAIT_CONTENT = "<!DOCTYPE html>" +
             "<head><meta HTTP-EQUIV=\"refresh\" CONTENT=\"2\"><title>Datashare</title></head>" +
             "<body>waiting for Datashare to be up...</body>";
-    private final RestHighLevelClient client;
+    private final ElasticsearchClient client;
     private final AtomicBoolean indexOk = new AtomicBoolean(false);
     final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Inject
-    public IndexWaiterFilter(final RestHighLevelClient client) {
+    public IndexWaiterFilter(final ElasticsearchClient client) {
         this.client = client;
         waitForIndexAsync();
     }
@@ -49,7 +50,7 @@ public class IndexWaiterFilter implements Filter {
         executor.submit(() -> {
             for (int i = 0; i < TIMEOUT_SECONDS; i++) {
                 try {
-                    if (client.ping(RequestOptions.DEFAULT)) {
+                    if (client.ping().value()) {
                         this.indexOk.set(true);
                         LOGGER.info("Ping elasticsearch succeeded");
                         break;
