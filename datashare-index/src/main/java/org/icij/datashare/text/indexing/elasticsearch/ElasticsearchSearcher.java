@@ -6,6 +6,7 @@ import co.elastic.clients.elasticsearch._types.Time;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.*;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.ResponseBody;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.icij.datashare.Entity;
@@ -26,17 +27,19 @@ import java.util.stream.StreamSupport;
 
 import static co.elastic.clients.elasticsearch.core.SearchRequest.*;
 import static java.util.Arrays.stream;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
 
 class ElasticsearchSearcher implements Indexer.Searcher {
     static final Time KEEP_ALIVE = Time.of(t -> t.time("60000ms"));
-    private BoolQuery.Builder boolQuery;
+    private final BoolQuery.Builder boolQueryBuilder;
     private final ElasticsearchClient client;
     private final List<String> indexesNames;
     private final Class<? extends Entity> cls;
-    private Builder sourceBuilder;
+    private final Builder sourceBuilder;
     private String scrollId;
+    private SearchRequest scrollSearchRequest;
     private long totalHits;
 
     ElasticsearchSearcher(ElasticsearchClient client, ElasticsearchConfiguration config, final List<String> indexesNames, final Class<? extends Entity> cls) {
@@ -44,7 +47,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         this.indexesNames = indexesNames;
         this.cls = cls;
         sourceBuilder = new Builder().size(DEFAULT_SEARCH_SIZE).timeout("30m");
-        this.boolQuery = new BoolQuery.Builder().must(must -> must.match(m -> m.field("type").query(JsonObjectMapper.getType(cls))));
+        this.boolQueryBuilder = new BoolQuery.Builder().must(must -> must.match(m -> m.field("type").query(JsonObjectMapper.getType(cls))));
     }
 
     static Stream<Hit<ObjectNode>> searchHitStream(Iterable<Hit<ObjectNode>> searchHitIterable) {
@@ -61,15 +64,14 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     
     @Override
     public Indexer.Searcher ofStatus(Document.Status status) {
-        this.boolQuery.must(must -> must.match(mq -> mq.field("status").query(status.toString())));
+        this.boolQueryBuilder.must(must -> must.match(mq -> mq.field("status").query(status.toString())));
         return this;
     }
 
     @Override
     public Stream<? extends Entity> execute() throws IOException {
-        BoolQuery boolQueryToBuild = boolQuery.build();
+        BoolQuery boolQueryToBuild = boolQueryBuilder.build();
         sourceBuilder.index(indexesNames).query(q -> q.bool(boolQueryToBuild));
-        this.boolQuery = new BoolQuery.Builder().must(boolQueryToBuild.must()).mustNot(boolQueryToBuild.mustNot());
         SearchRequest searchRequest = sourceBuilder.build();
         SearchResponse<ObjectNode> search = client.search(searchRequest, ObjectNode.class);
         return resultStream(this.cls, () -> search.hits().hits().iterator());
@@ -82,25 +84,22 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public Stream<? extends Entity> scroll(int numSlice, int nbSlices) throws IOException {
-        BoolQuery boolQueryToBuild = boolQuery.build();
-        sourceBuilder.index(indexesNames).query(q -> q.bool(boolQueryToBuild));
-        this.boolQuery = new BoolQuery.Builder().must(boolQueryToBuild.must()).mustNot(boolQueryToBuild.mustNot());
-        if (nbSlices > 1) {
-            sourceBuilder.slice(s -> s.id(String.valueOf(numSlice)).max(nbSlices));
-        }
-        if (scrollId == null) {
-            SearchRequest searchRequest = sourceBuilder.scroll(KEEP_ALIVE).build();
-            this.sourceBuilder = new Builder().size(DEFAULT_SEARCH_SIZE).timeout("30m")
-                    .index(searchRequest.index()).slice(searchRequest.slice()).source(searchRequest.source()).size(searchRequest.size());
-            SearchResponse<ObjectNode> search = client.search(searchRequest, ObjectNode.class);
-            scrollId = search.scrollId();
-            totalHits = search.hits().total().value();
-            return resultStream(this.cls, () -> search.hits().hits().iterator());
+        ResponseBody<ObjectNode> response;
+        if (scrollSearchRequest == null) {
+            sourceBuilder.index(indexesNames).query(q -> q.bool(boolQueryBuilder.build()));
+            if (nbSlices > 1) {
+                sourceBuilder.slice(s -> s.id(String.valueOf(numSlice)).max(nbSlices));
+            }
+            scrollSearchRequest = sourceBuilder.scroll(KEEP_ALIVE).build();
+            response = client.search(scrollSearchRequest, ObjectNode.class);
+            totalHits = response.hits().total().value();
         } else {
-            ScrollResponse<ObjectNode> search = client.scroll(ScrollRequest.of(s -> s.scroll(KEEP_ALIVE).scrollId(scrollId)), ObjectNode.class);
-            scrollId = search.scrollId();
-            return resultStream(this.cls, () -> search.hits().hits().iterator());
+            response = client.scroll(ScrollRequest.of(s -> s.scroll(KEEP_ALIVE)
+                            .scrollId(ofNullable(scrollId)
+                                    .orElseThrow(() -> new IllegalStateException("ScrollId must have been cleared")))), ObjectNode.class);
         }
+        scrollId = response.scrollId();
+        return resultStream(this.cls, () -> response.hits().hits().iterator());
     }
 
     @Override
@@ -122,7 +121,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public Indexer.Searcher without(Pipeline.Type... nlpPipelines) {
-        this.boolQuery.mustNot(q -> q.constantScore(cs -> cs.filter(qt -> qt.terms(t -> t.field("nerTags").terms(tqf -> tqf.value(
+        this.boolQueryBuilder.mustNot(q -> q.constantScore(cs -> cs.filter(qt -> qt.terms(t -> t.field("nerTags").terms(tqf -> tqf.value(
                 stream(nlpPipelines).map(Pipeline.Type::toString).map(FieldValue::of).collect(toList()))
         )))));
         return this;
@@ -130,7 +129,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public Indexer.Searcher with(Pipeline.Type... nlpPipelines) {
-        this.boolQuery.must(q -> q.constantScore(cs -> cs.filter(qt -> qt.terms(t -> t.field("nerTags").terms(tqf -> tqf.value(
+        this.boolQueryBuilder.must(q -> q.constantScore(cs -> cs.filter(qt -> qt.terms(t -> t.field("nerTags").terms(tqf -> tqf.value(
                 stream(nlpPipelines).map(Pipeline.Type::toString).map(FieldValue::of).collect(toList()))
         )))));
         return this;
@@ -138,7 +137,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public Indexer.Searcher with(Tag... tags) {
-        this.boolQuery.must(q -> q.constantScore(cs -> cs.filter(qt -> qt.terms(t -> t.field("tags").terms(tqf -> tqf.value(
+        this.boolQueryBuilder.must(q -> q.constantScore(cs -> cs.filter(qt -> qt.terms(t -> t.field("tags").terms(tqf -> tqf.value(
                 stream(tags).map(tag -> FieldValue.of(tag.label)).collect(toList()))
         )))));
         return this;
@@ -151,7 +150,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public Indexer.Searcher set(JsonNode jsonQuery) {
-        this.boolQuery = new BoolQuery.Builder().must(m -> m.withJson(new StringReader(jsonQuery.toString())));
+        this.boolQueryBuilder.must(m -> m.withJson(new StringReader(jsonQuery.toString())));
         return this;
     }
 
@@ -165,8 +164,8 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         } else {
             queryString = query;
         }
-        this.boolQuery.must(m -> m.matchAll(ma -> ma));
-        this.boolQuery.must(m -> m.queryString(qs -> qs.query(queryString)));
+        this.boolQueryBuilder.must(m -> m.matchAll(ma -> ma));
+        this.boolQueryBuilder.must(m -> m.queryString(qs -> qs.query(queryString)));
         return this;
     }
 
@@ -179,7 +178,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     @Override
     public Indexer.Searcher withFieldValues(String key, String... values) {
         if (values.length > 0) {
-            this.boolQuery.must(m -> m.terms(t -> t.field(key).terms(tqf -> tqf.value(stream(values).map(FieldValue::of).collect(toList())))));
+            this.boolQueryBuilder.must(m -> m.terms(t -> t.field(key).terms(tqf -> tqf.value(stream(values).map(FieldValue::of).collect(toList())))));
         }
         return this;
     }
@@ -190,12 +189,12 @@ class ElasticsearchSearcher implements Indexer.Searcher {
             return this;
         }
         if (values.length == 1) {
-            this.boolQuery.must(m -> m.prefix(p -> p.field(key).value(values[0])));
+            this.boolQueryBuilder.must(m -> m.prefix(p -> p.field(key).value(values[0])));
             return this;
         }
         BoolQuery.Builder innerQuery = new BoolQuery.Builder();
         Arrays.stream(values).forEach(v -> innerQuery.must(m -> m.prefix(p -> p.field(key).value(v))));
-        this.boolQuery.must(m -> m.bool(innerQuery.build()));
+        this.boolQueryBuilder.must(m -> m.bool(innerQuery.build()));
         return this;
     }
 
@@ -204,7 +203,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         if (value == null) {
             throw new IllegalArgumentException("[ match ] requires query value");
         }
-        this.boolQuery.must(m -> m.match(q -> q.field(name).query(FieldValue.of(value.toString()))));
+        this.boolQueryBuilder.must(m -> m.match(q -> q.field(name).query(FieldValue.of(value.toString()))));
         return this;
     }
 
@@ -222,6 +221,6 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public String toString() {
-        return "boolQuery : " + boolQuery;
+        return "boolQuery : " + boolQueryBuilder;
     }
 }

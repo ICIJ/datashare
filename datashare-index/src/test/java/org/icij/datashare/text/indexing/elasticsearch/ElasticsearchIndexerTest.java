@@ -356,10 +356,17 @@ public class ElasticsearchIndexerTest {
         assertThat(searcher.scroll().count()).isEqualTo(5);
         assertThat(searcher.scroll().count()).isEqualTo(2);
         assertThat(searcher.scroll().count()).isEqualTo(0);
+        searcher.clearScroll();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void test_searcher_scroll_is_not_usable_after_clear() throws IOException {
+        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class).limit(5);
+        assertThat(searcher.scroll().count()).isEqualTo(0);
 
         searcher.clearScroll();
-        assertThat(searcher.scroll().count()).isEqualTo(5);
-        searcher.clearScroll();
+
+        searcher.scroll();
     }
 
     @Test
