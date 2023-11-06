@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static co.elastic.clients.elasticsearch.core.SearchRequest.*;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
@@ -34,7 +35,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     private final ElasticsearchClient client;
     private final List<String> indexesNames;
     private final Class<? extends Entity> cls;
-    private co.elastic.clients.elasticsearch.core.SearchRequest.Builder sourceBuilder;
+    private Builder sourceBuilder;
     private String scrollId;
     private long totalHits;
 
@@ -42,7 +43,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         this.client = client;
         this.indexesNames = indexesNames;
         this.cls = cls;
-        sourceBuilder = new co.elastic.clients.elasticsearch.core.SearchRequest.Builder().size(DEFAULT_SEARCH_SIZE).timeout("30m");
+        sourceBuilder = new Builder().size(DEFAULT_SEARCH_SIZE).timeout("30m");
         this.boolQuery = new BoolQuery.Builder().must(must -> must.match(m -> m.field("type").query(JsonObjectMapper.getType(cls))));
     }
 
@@ -89,7 +90,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         }
         if (scrollId == null) {
             SearchRequest searchRequest = sourceBuilder.scroll(KEEP_ALIVE).build();
-            this.sourceBuilder = new SearchRequest.Builder().size(DEFAULT_SEARCH_SIZE).timeout("30m")
+            this.sourceBuilder = new Builder().size(DEFAULT_SEARCH_SIZE).timeout("30m")
                     .index(searchRequest.index()).slice(searchRequest.slice()).source(searchRequest.source()).size(searchRequest.size());
             SearchResponse<ObjectNode> search = client.search(searchRequest, ObjectNode.class);
             scrollId = search.scrollId();
