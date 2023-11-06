@@ -96,7 +96,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
                 while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
                     if (cancelAsked) {
-                        throw new CancelException();
+                        throw new CancelException(batchSearch.uuid);
                     }
                     resultConsumer.apply(batchSearch.uuid, query, (List<Document>) docsToProcess);
                     if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds * 1000L) {
@@ -142,5 +142,13 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
             logger.warn("batch search interrupted during cancel check status for {}", batchSearch.uuid);
         }
     }
-    public static class CancelException extends RuntimeException { }
+    public static class CancelException extends RuntimeException {
+        public CancelException() {
+        }
+
+        public CancelException(String batchSearchId) {
+            super(batchSearchId);
+        }
+
+    }
 }

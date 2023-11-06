@@ -13,7 +13,6 @@ import sun.misc.Signal;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -51,10 +50,11 @@ public class BatchSearchLoop {
 
     public void run() {
         logger.info("Datashare running in batch mode. Waiting batch from ds:batchsearch:queue ({})", batchSearchQueue.getClass());
-        String currentBatchId = null;
         waitForMainLoopCalled.countDown();
         loopThread = Thread.currentThread();
-        while (!POISON.equals(currentBatchId) && !exitAsked) {
+        String currentBatchId = null;
+
+        do {
             try {
                 currentBatchId = batchSearchQueue.poll(60, TimeUnit.SECONDS);
                 if (currentBatchId != null && !POISON.equals(currentBatchId)) {
@@ -72,17 +72,17 @@ public class BatchSearchLoop {
             } catch (JooqBatchSearchRepository.BatchNotFoundException notFound) {
                 logger.warn("batch was not executed : {}", notFound.toString());
             } catch (BatchSearchRunner.CancelException cancelEx) {
-                Objects.requireNonNull(currentBatchId,"BatchSearch Id cannot be null");
-                logger.info("cancelling batch search {}", currentBatchId);
-                batchSearchQueue.offer(currentBatchId);
-                repository.reset(currentBatchId);
+                String cancelledBatchSearch = cancelEx.getMessage();
+                logger.info("cancelling batch search {}", cancelledBatchSearch);
+                batchSearchQueue.offer(cancelledBatchSearch);
+                repository.reset(cancelledBatchSearch);
             } catch (SearchException sex) {
                 logger.error("exception while running batch " + currentBatchId, sex);
                 repository.setState(currentBatchId, sex);
             } catch (InterruptedException e) {
                 logger.warn("main loop interrupted");
             }
-        }
+        } while (!POISON.equals(currentBatchId) && !exitAsked);
         logger.info("exiting main loop");
     }
 
