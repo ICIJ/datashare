@@ -16,6 +16,7 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
@@ -56,7 +57,7 @@ public class ElasticsearchRule extends ExternalResource {
                     return httpAsyncClientBuilder;
                 })
                 .build();
-        client = new ElasticsearchClient(new RestClientTransport(rest, new JacksonJsonpMapper()));
+        client = new ElasticsearchClient(new RestClientTransport(rest, new JacksonJsonpMapper(JsonObjectMapper.MAPPER)));
     }
 
     @Override
