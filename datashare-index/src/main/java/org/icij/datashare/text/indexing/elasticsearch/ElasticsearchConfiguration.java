@@ -17,6 +17,7 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +90,7 @@ public class ElasticsearchConfiguration {
                     .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                             .setConnectTimeout(5000)
                             .setSocketTimeout(60000))
-                    .setHttpClientConfigCallback(httpClientConfigCallback).build(), new JacksonJsonpMapper());
+                    .setHttpClientConfigCallback(httpClientConfigCallback).build(), new JacksonJsonpMapper(JsonObjectMapper.MAPPER));
             ElasticsearchClient client = new ElasticsearchClient(transport);
             String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
             return client;
