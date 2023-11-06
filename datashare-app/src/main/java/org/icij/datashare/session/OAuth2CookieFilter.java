@@ -1,5 +1,8 @@
 package org.icij.datashare.session;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.scribejava.core.builder.ServiceBuilder;
 import com.github.scribejava.core.builder.api.DefaultApi20;
 import com.github.scribejava.core.model.OAuth2AccessToken;
@@ -18,17 +21,13 @@ import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.node.*;
+
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.HashMap;
-import java.util.Arrays;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
