@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
@@ -19,7 +20,6 @@ import java.util.HashMap;
 import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Project.project;
@@ -31,7 +31,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
     @Rule public TemporaryFolder fs = new TemporaryFolder();
     @Mock Function<TaskView<File>, Void> updateCallback;
-    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
 
     @Test
     public void test_zip_with_password_should_encrypt_file_and_send_mail() throws Exception {

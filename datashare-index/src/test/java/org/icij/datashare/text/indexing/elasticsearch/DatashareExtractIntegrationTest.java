@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
@@ -20,7 +21,6 @@ import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 
 import static java.nio.file.Paths.get;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Language.ENGLISH;
@@ -32,7 +32,7 @@ public class DatashareExtractIntegrationTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
 
 	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client, l -> ENGLISH,
-            new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(IMMEDIATE).withIndex("test-datashare");
+            new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(Refresh.True).withIndex("test-datashare");
 	private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider());
 
     public DatashareExtractIntegrationTest() throws IOException {}

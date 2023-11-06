@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.test.DatashareTimeRule;
@@ -19,7 +20,6 @@ import java.util.function.Function;
 import java.util.zip.ZipFile;
 
 import static java.util.Arrays.asList;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
@@ -34,7 +34,7 @@ public class BatchDownloadRunnerIntTest {
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
     @Rule public TemporaryFolder fs = new TemporaryFolder();
     @Mock Function<TaskView<File>, Void> updateCallback;
-    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(IMMEDIATE);
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
 
     @Test
     public void test_empty_response() throws Exception {
