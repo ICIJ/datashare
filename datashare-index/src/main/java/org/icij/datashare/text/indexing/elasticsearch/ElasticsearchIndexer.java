@@ -123,7 +123,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     @Override
     public <T extends Entity> boolean bulkUpdate(String indexName, List<T> entities) throws IOException {
-        co.elastic.clients.elasticsearch.core.BulkRequest.Builder bulkRequest = new co.elastic.clients.elasticsearch.core.BulkRequest.Builder();
+        BulkRequest.Builder bulkRequest = new BulkRequest.Builder();
         for (T e : entities) {
             bulkRequest.operations(op -> op.update(createUpdateRequest(indexName, getType(e), e.getId(), getJson(e), getParent(e), getRoot(e))));
         }
@@ -468,7 +468,7 @@ public class ElasticsearchIndexer implements Indexer {
         return this;
     }
 
-    private boolean executeBulk(co.elastic.clients.elasticsearch.core.BulkRequest.Builder bulkRequest) throws IOException {
+    private boolean executeBulk(BulkRequest.Builder bulkRequest) throws IOException {
       bulkRequest.refresh(esCfg.refreshPolicy);
       BulkResponse bulkResponse = client.bulk(bulkRequest.build());
       if (bulkResponse.errors()) {

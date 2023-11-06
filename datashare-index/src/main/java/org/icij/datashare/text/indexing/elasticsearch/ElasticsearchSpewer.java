@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import static co.elastic.clients.elasticsearch.core.ExistsRequest.*;
 import static java.lang.System.currentTimeMillis;
 import static java.nio.file.Paths.get;
 import static java.util.Optional.ofNullable;
@@ -113,7 +114,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     private boolean isDuplicate(String docId) throws IOException {
-        co.elastic.clients.elasticsearch.core.ExistsRequest.Builder getRequest = new co.elastic.clients.elasticsearch.core.ExistsRequest.Builder().index(indexName).id(docId);
+        Builder getRequest = new Builder().index(indexName).id(docId);
         getRequest.source(SourceConfigParam.of(scp -> scp.fetch(false)));
         getRequest.storedFields("_none_");
         return client.exists(getRequest.build()).value();
