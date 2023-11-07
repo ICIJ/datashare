@@ -28,8 +28,8 @@ public class YesBasicAuthFilterTest {
 
     @Before
     public void create_filter() {
-      filter = new YesBasicAuthFilter(new PropertiesProvider(new HashMap<String, String>() {{
-          put("protectedUrPrefix", "secure");
+      filter = new YesBasicAuthFilter(new PropertiesProvider(new HashMap<>() {{
+          put("protectedUriPrefix", "secure");
       }}));
     }
 
