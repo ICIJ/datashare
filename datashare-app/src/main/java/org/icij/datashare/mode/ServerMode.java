@@ -3,6 +3,7 @@ package org.icij.datashare.mode;
 import net.codestory.http.Context;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.PayloadSupplier;
+import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.payload.Payload;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
@@ -49,8 +50,8 @@ public class ServerMode extends CommonMode {
             }
         }
         bind(Filter.class).to(authFilterClass);
-        if (authFilterClass.equals(BasicAuthAdaptorFilter.class)) {
-            bind(ApiKeyFilter.class).toInstance(getApiKeyFilter());
+        if (BasicAuthFilter.class.isAssignableFrom(authFilterClass)) {
+            bind(ApiKeyFilter.class).toInstance(getDummyApiKeyFilter());
         } else if (authFilterClass.equals(YesCookieAuthFilter.class)) {
             bind(YesCookieAuthFilter.class).toInstance(getYesCookieAuthFilter());
         }
@@ -58,8 +59,7 @@ public class ServerMode extends CommonMode {
         configurePersistence();
     }
 
-
-    protected ApiKeyFilter getApiKeyFilter() {
+    protected ApiKeyFilter getDummyApiKeyFilter() {
         return new ApiKeyFilter(null, apiKey -> null) {
             @Override
             public Payload apply(String uri, Context context, PayloadSupplier nextFilter) throws Exception {

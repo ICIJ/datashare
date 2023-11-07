@@ -6,14 +6,24 @@ import net.codestory.http.security.User;
 import net.codestory.http.security.Users;
 import org.icij.datashare.PropertiesProvider;
 
+import java.util.Arrays;
+import java.util.HashMap;
+
+import static java.util.Collections.singletonList;
+
 public class YesBasicAuthFilter extends BasicAuthFilter {
     @Inject
     public YesBasicAuthFilter(final PropertiesProvider propertiesProvider) {
-        super(propertiesProvider.get("protectedUrPrefix").orElse("/"), "datashare", new DummyUsers());
+        super(propertiesProvider.get("protectedUriPrefix").orElse("/"), "datashare", new DummyUsers());
     }
 
-    private static class DummyUsers implements Users {
+    static class DummyUsers implements Users {
         @Override public User find(String login, String password) { return find(login);}
-        @Override public User find(String login) { return new DatashareUser(login);}
+        @Override public User find(String login) { return new DatashareUser(new HashMap<>() {{
+            put("uid", login);
+            put("groups_by_applications", new HashMap<>() {{
+                put("datashare", singletonList("local-datashare"));
+            }});
+        }});}
     }
 }
