@@ -1,5 +1,8 @@
 package org.icij.datashare.session;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.scribejava.core.builder.ServiceBuilder;
 import com.github.scribejava.core.builder.api.DefaultApi20;
 import com.github.scribejava.core.model.OAuth2AccessToken;
@@ -23,6 +26,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import static java.lang.String.format;
@@ -46,6 +50,8 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     private final String oauthTokenUrl;
     private final String oauthClientId;
     private final String oauthClientSecret;
+    private final String oauthDefaultProject;
+    private final String oauthScope;
 
     @Inject
     public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore) {
@@ -58,6 +64,8 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         this.oauthCallbackPath = propertiesProvider.get("oauthCallbackPath").orElse("/auth/callback");
         this.oauthSigninPath = propertiesProvider.get("oauthSigninPath").orElse("/auth/signin");
         this.oauthTtl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
+        this.oauthDefaultProject = propertiesProvider.get("oauthDefaultProject").orElse("");
+        this.oauthScope = propertiesProvider.get("oauthScope").orElse("");
         logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
                 oauthAuthorizeUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthSigninPath);
         if (this.oauthCallbackPath.startsWith(this.oauthSigninPath)) {
@@ -122,21 +130,44 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         logger.info("sending request to user API signed with the token : {}", request);
         final Response oauthApiResponse = service.execute(request);
 
-        logger.info("received response from user API : {}", oauthApiResponse.getCode());
-        DatashareUser datashareUser = new DatashareUser(fromJson(oauthApiResponse.getBody(), "icij").details);
-        writableUsers().saveOrUpdate(datashareUser);
-        return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
+        logger.info("received response code from user API : {}", oauthApiResponse.getCode());
+        if (oauthDefaultProject != "") {
+            logger.info("received response body from user API : {}", oauthApiResponse.getBody());
+            String jsonBody = oauthApiResponse.getBody();
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode root = (ObjectNode) mapper.readTree(jsonBody);
+            ArrayNode arrayNode = mapper.createArrayNode();
+            arrayNode.add(oauthDefaultProject);
+            ObjectNode objectNode = mapper.createObjectNode();
+            objectNode.set("datashare",arrayNode);
+            root.put("groups_by_applications",objectNode);
+            logger.info("modified user: {}", root.toString());
+            org.icij.datashare.user.User user = fromJson(mapper.writeValueAsString(root), "icij");
+            DatashareUser datashareUser = new DatashareUser(user.details);
+            writableUsers().saveOrUpdate(datashareUser);
+	    return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
+        } else {
+            DatashareUser datashareUser = new DatashareUser(fromJson(oauthApiResponse.getBody(), "icij").details);
+            writableUsers().saveOrUpdate(datashareUser);
+	    return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
+        }
     }
 
     @Override
     protected Payload signin(Context context) {
-        return Payload.seeOther(oauthAuthorizeUrl + "?" +
-                format("client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(getCallbackUrl(context), StandardCharsets.UTF_8), createState()));
+        String oauthAuthorizeQS = format("?client_id=%s&redirect_uri=%s&response_type=code&state=%s", oauthClientId, URLEncoder.encode(getCallbackUrl(context), StandardCharsets.UTF_8), createState());
+        if (!Objects.equals(oauthScope, "")) {
+            oauthAuthorizeQS = oauthAuthorizeQS + "&scope=" + oauthScope;
+        }
+        return Payload.seeOther(oauthAuthorizeUrl + oauthAuthorizeQS);
     }
 
     private String getCallbackUrl(Context context) {
         String host = ofNullable(context.request().header("x-forwarded-host")).orElse(context.request().header("Host"));
-        return context.request().isSecure() ? "https://" : "http://" + host + this.oauthCallbackPath;
+        String proto = ofNullable(context.request().header("x-forwarded-proto")).orElse(context.request().isSecure() ? "https" : "http");
+        String url = proto + "://" + host + this.oauthCallbackPath;
+        logger.info("oauth callback url",url);
+        return url;
     }
 
     protected String createState() {
