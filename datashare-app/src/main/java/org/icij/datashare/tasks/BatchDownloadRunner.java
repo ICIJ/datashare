@@ -90,7 +90,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
             searcher.with(batchDownload.query);
         }
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
-        if (docsToProcess.size() == 0) {
+        if (docsToProcess.isEmpty()) {
             logger.warn("no results for batchDownload {}", batchDownload.uuid);
             return null;
         }
@@ -103,7 +103,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         try (Zipper zipper = createZipper(batchDownload, propertiesProvider, mailSenderSupplier)) {
             HashMap<String, Object> taskProperties = new HashMap<>();
             taskProperties.put("batchDownload", batchDownload);
-            while (docsToProcess.size() != 0) {
+            while (!docsToProcess.isEmpty()) {
                 for (int i = 0; i < docsToProcess.size() && numberOfResults.get() < maxResultSize && zippedFilesSize <= maxZipSizeBytes; i++) {
                     Document document = (Document) docsToProcess.get(i);
                     int addedBytes = documentVerifier.isRootDocumentSizeAllowed(document) ? zipper.add(document) : 0;
