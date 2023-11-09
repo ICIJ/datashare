@@ -19,8 +19,8 @@ public class TaskManagerMemoryTest {
     public void test_run_task() throws Exception {
         TaskView<String> t = taskManager.startTask(() -> "run");
         taskManager.waitTasksToBeDone(100, TimeUnit.MILLISECONDS);
-        assertThat(taskManager.get(t.name).getResult()).isEqualTo("run");
-        assertThat(taskManager.get(t.name).getState()).isEqualTo(TaskView.State.DONE);
+        assertThat(taskManager.getTask(t.id).getResult()).isEqualTo("run");
+        assertThat(taskManager.getTask(t.id).getState()).isEqualTo(TaskView.State.DONE);
     }
 
     @Test
@@ -32,9 +32,9 @@ public class TaskManagerMemoryTest {
                  return "interrupted";
             }
             return "run";});
-        taskManager.stopTask(t.name);
-        assertThat(taskManager.get(t.name).getState()).isEqualTo(TaskView.State.CANCELLED);
-        assertThat(taskManager.get(t.name).getResult()).isNull();
+        taskManager.stopTask(t.id);
+        assertThat(taskManager.getTask(t.id).getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.getTask(t.id).getResult()).isNull();
     }
 
     @Test
@@ -42,7 +42,7 @@ public class TaskManagerMemoryTest {
         TaskView<String> t1 = taskManager.startTask(() -> "task 1");
         TaskView<String> t2 = taskManager.startTask(() -> "task 2");
 
-        assertThat(taskManager.get()).hasSize(2);
+        assertThat(taskManager.getTasks()).hasSize(2);
     }
 
     @Test
@@ -52,7 +52,7 @@ public class TaskManagerMemoryTest {
         l.await(1, SECONDS);
 
         assertThat(l.getCount()).isEqualTo(0);
-        assertThat(taskManager.get(t1.name).getResult()).isEqualTo("task");
+        assertThat(taskManager.getTask(t1.id).getResult()).isEqualTo("task");
     }
 
     @Test
@@ -64,29 +64,29 @@ public class TaskManagerMemoryTest {
     @Test
     public void test_clear_the_only_task() {
         TaskView<String> task = taskManager.startTask(() -> "task 1");
-        assertThat(taskManager.get()).hasSize(1);
-        taskManager.clearTask(task.name);
-        assertThat(taskManager.get()).hasSize(0);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        taskManager.clearTask(task.id);
+        assertThat(taskManager.getTasks()).hasSize(0);
     }
 
     @Test
     public void test_clear_task_among_two_tasks() {
         TaskView<String> t1 = taskManager.startTask(() -> "task 1");
         TaskView<String> t2 = taskManager.startTask(() -> "task 2");
-        assertThat(taskManager.get()).hasSize(2);
-        taskManager.clearTask(t1.name);
-        assertThat(taskManager.get()).hasSize(1);
-        assertThat(taskManager.get(t1.name)).isNull();
-        assertThat(taskManager.get(t2.name)).isNotNull();
+        assertThat(taskManager.getTasks()).hasSize(2);
+        taskManager.clearTask(t1.id);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTask(t1.id)).isNull();
+        assertThat(taskManager.getTask(t2.id)).isNotNull();
     }
 
     @Test
     public void test_clear_and_return_the_same_task() {
         TaskView<String> t1 = taskManager.startTask(() -> "task 1");
-        assertThat(taskManager.get()).hasSize(1);
-        TaskView<?> t2 = taskManager.clearTask(t1.name);
-        assertThat(taskManager.get()).hasSize(0);
-        assertThat(t1.name).isEqualTo(t2.name);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        TaskView<?> t2 = taskManager.clearTask(t1.id);
+        assertThat(taskManager.getTasks()).hasSize(0);
+        assertThat(t1.id).isEqualTo(t2.id);
     }
 
     @After

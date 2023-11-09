@@ -6,7 +6,7 @@ import org.junit.Test;
 
 public class TaskManagerAmqpTest {
     @ClassRule static public AmqpServerRule qpid = new AmqpServerRule(5672);
-    TaskManagerAmqp taskManager = new TaskManagerAmqp("localhost", 5672);
+    TaskManagerAmqp taskManager = new TaskManagerAmqp();
 
     @Test
     public void test_new_task() {

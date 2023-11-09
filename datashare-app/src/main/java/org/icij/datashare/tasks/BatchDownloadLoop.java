@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.icij.datashare.tasks.BatchDownloadRunner.NULL_BATCH_DOWNLOAD;
 
 public class BatchDownloadLoop {
     private final Path downloadDir;
@@ -24,33 +23,33 @@ public class BatchDownloadLoop {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final BlockingQueue<BatchDownload> batchDownloadQueue;
     private final TaskFactory factory;
-    private final TaskManager manager;
+    private final TaskSupplier taskSupplier;
+    private static final BatchDownload NULL_BATCH_DOWNLOAD = BatchDownload.nullObject();
 
     @Inject
-    public BatchDownloadLoop(PropertiesProvider propertiesProvider, BlockingQueue<BatchDownload> batchDownloadQueue, TaskFactory factory, TaskManager manager) {
+    public BatchDownloadLoop(PropertiesProvider propertiesProvider, BlockingQueue<BatchDownload> batchDownloadQueue, TaskFactory factory, TaskSupplier taskSupplier) {
         this.batchDownloadQueue = batchDownloadQueue;
         this.factory = factory;
-        this.manager = manager;
+        this.taskSupplier = taskSupplier;
         downloadDir = Paths.get(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_DIR));
         ttlHour = Integer.parseInt(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL));
     }
 
     public void run() {
-        logger.info("Datashare running in batch mode. Waiting batch from ds:batchdownload.queue ({})", batchDownloadQueue.getClass());
-        BatchDownload currentBatch = null;
-        while (!NULL_BATCH_DOWNLOAD.equals(currentBatch)) {
+        logger.info("Datashare running in batch mode. Waiting batch from supplier ({})", taskSupplier.getClass());
+        BatchDownload currentTask = null;
+        while (!NULL_BATCH_DOWNLOAD.equals(currentTask)) {
             try {
-                currentBatch = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
+                currentTask = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
                 createDownloadCleaner(downloadDir, ttlHour).run();
 
                 HashMap<String, Object> taskProperties = new HashMap<>();
-                taskProperties.put("batchDownload", currentBatch);
+                taskProperties.put("batchDownload", currentTask);
 
-                if (currentBatch != null && !NULL_BATCH_DOWNLOAD.equals(currentBatch)) {
+                if (currentTask != null && !NULL_BATCH_DOWNLOAD.equals(currentTask)) {
                     MonitorableFutureTask<File> fileMonitorableFutureTask = new MonitorableFutureTask<>(
-                            factory.createDownloadRunner(currentBatch, manager::save), taskProperties);
+                            factory.createDownloadRunner(currentTask, taskSupplier), taskProperties);
                     fileMonitorableFutureTask.run();
-                    manager.save(new TaskView<>(fileMonitorableFutureTask));
                 }
             } catch (Exception ex) {
                 logger.error("error in loop", ex);

@@ -33,7 +33,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchDownloadRunnerTest {
     @Rule public TemporaryFolder fs = new TemporaryFolder();
-    @Mock Function<TaskView<File>, Void> updater;
+    @Mock TaskModifier updater;
     @Mock Indexer indexer;
     MockSearch mockSearch;
 
@@ -41,10 +41,10 @@ public class BatchDownloadRunnerTest {
     public void test_max_default_results() throws Exception {
         Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).build()).toArray(Document[]::new);
         mockSearch.willReturn(2, documents);
-        File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
-            put(BATCH_DOWNLOAD_MAX_NB_FILES, "3");
-            put(SCROLL_SIZE, "3");
-        }}), new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"), updater).call();
+        File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+                    put(BATCH_DOWNLOAD_MAX_NB_FILES, "3");
+                    put(SCROLL_SIZE, "3");
+                }}), updater, new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")).call();
 
         assertThat(new ZipFile(zip).size()).isEqualTo(3);
     }
@@ -54,9 +54,9 @@ public class BatchDownloadRunnerTest {
         Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).with("hello world " + i).build()).toArray(Document[]::new);
         mockSearch.willReturn(2, documents);
         File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
-            put(BATCH_DOWNLOAD_MAX_SIZE, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
-            put(SCROLL_SIZE, "3");
-        }}), new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"), updater).call();
+                    put(BATCH_DOWNLOAD_MAX_SIZE, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
+                    put(SCROLL_SIZE, "3");
+                }}), updater, new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")).call();
 
         assertThat(new ZipFile(zip).size()).isEqualTo(4);
     }
@@ -64,7 +64,7 @@ public class BatchDownloadRunnerTest {
     @Test(expected = ElasticsearchStatusException.class)
     public void test_elasticsearch_status_exception__should_be_sent() throws Exception {
         mockSearch.willThrow(new ElasticsearchStatusException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
-        new BatchDownloadRunner(indexer, new PropertiesProvider(), new BatchDownload(singletonList(project("test-datashare")), User.local(), "query"), updater).call();
+        new BatchDownloadRunner(indexer, new PropertiesProvider(), updater, new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")).call();
     }
 
     private Path createFile(int index) {

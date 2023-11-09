@@ -38,8 +38,8 @@ public class BatchDownloadLoopIntTest {
 
         batchDownloadLoop.run();
 
-        assertThat(taskManager.get()).hasSize(1);
-        assertThat(taskManager.get().get(0).properties).hasSize(1);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().get(0).properties).hasSize(1);
     }
 
     @After

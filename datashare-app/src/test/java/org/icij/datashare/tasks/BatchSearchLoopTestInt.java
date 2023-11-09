@@ -5,30 +5,21 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
-import org.icij.datashare.tasks.BatchSearchLoop;
-import org.icij.datashare.tasks.BatchSearchRunner;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.time.DatashareTime;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import sun.misc.Signal;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.concurrent.*;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
-import static org.icij.datashare.text.Project.*;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
 import static org.mockito.Mockito.*;
@@ -49,7 +40,7 @@ public class BatchSearchLoopTestInt {
         batchSearchQueue.add(batchSearch.uuid);
         app.enqueuePoison();
 
-        app.run();
+        app.call();
 
         verify(batchSearchRunner).call();
         verify(repository).setState(batchSearch.uuid, BatchSearch.State.RUNNING);
@@ -63,7 +54,7 @@ public class BatchSearchLoopTestInt {
 
         assertThat(app.requeueDatabaseBatches()).isEqualTo(2);
         app.enqueuePoison();
-        app.run();
+        app.call();
 
         verify(batchSearchRunner, times(2)).call();
     }
@@ -73,7 +64,7 @@ public class BatchSearchLoopTestInt {
         CountDownLatch countDownLatch = new CountDownLatch(1);
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory, countDownLatch);
 
-        executor.submit(app::run);
+        executor.submit(app::call);
         countDownLatch.await();
         Signal term = new Signal("TERM");
         Signal.raise(term);
@@ -92,7 +83,7 @@ public class BatchSearchLoopTestInt {
         batchSearchQueue.add(batchSearch.uuid);
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
 
-        executor.submit(app::run);
+        executor.submit(app::call);
         countDownLatch.await();
         Signal term = new Signal("TERM");
         Signal.raise(term);
@@ -111,7 +102,7 @@ public class BatchSearchLoopTestInt {
         batchSearchQueue.add(batchSearch.uuid);
         app.enqueuePoison();
 
-        app.run();
+        app.call();
 
         verify(repository).setState(batchSearch.uuid, BatchSearch.State.RUNNING);
         verify(repository).setState(eq(batchSearch.uuid), any(SearchException.class));
@@ -129,7 +120,7 @@ public class BatchSearchLoopTestInt {
         when(repository.get(bs1.uuid)).thenReturn(bs1);
         when(repository.get(bs2.uuid)).thenReturn(bs2);
 
-        executor.submit(app::run);
+        executor.submit(app::call);
         waitQueueToHaveSize(1);
         Signal term = new Signal("TERM");
         Signal.raise(term);
@@ -146,7 +137,7 @@ public class BatchSearchLoopTestInt {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
         batchSearchQueue.add(batchSearch.uuid);
-        executor.submit(app::run);
+        executor.submit(app::call);
         waitQueueToBeEmpty();
 
         Signal term = new Signal("TERM");

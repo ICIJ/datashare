@@ -54,21 +54,20 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
+    private final TaskModifier taskModifier;
     private final BatchDownload batchDownload;
-    public final static BatchDownload NULL_BATCH_DOWNLOAD = BatchDownload.nullObject();
-    private final Function<TaskView<File>, Void> updateCallback;
     private final Function<URI, MailSender> mailSenderSupplier;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted BatchDownload batchDownload, @Assisted Function<TaskView<File>, Void> updateCallback) {
-        this(indexer, propertiesProvider, batchDownload, updateCallback, MailSender::new);
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, TaskModifier modifier, @Assisted BatchDownload batchDownload) {
+        this(indexer, propertiesProvider, modifier, batchDownload, MailSender::new);
     }
 
-    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, BatchDownload batchDownload, Function<TaskView<File>, Void> updateCallback, Function<URI, MailSender> mailSenderSupplier) {
+    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, TaskModifier modifier, BatchDownload batchDownload, Function<URI, MailSender> mailSenderSupplier) {
         this.indexer = indexer;
         this.propertiesProvider = provider;
+        this.taskModifier = modifier;
         this.batchDownload = batchDownload;
-        this.updateCallback = updateCallback;
         this.mailSenderSupplier = mailSenderSupplier;
         this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }
@@ -111,7 +110,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                         zippedFilesSize += addedBytes;
                         numberOfResults.incrementAndGet();
                         batchDownload.setZipSize(zippedFilesSize);
-                        updateCallback.apply(new TaskView<>(new MonitorableFutureTask<>(this, taskProperties)));
+                        taskModifier.progress(TaskView.getId(this), getProgressRate());
                     }
                 }
                 docsToProcess = searcher.scroll().collect(toList());
@@ -119,6 +118,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         }
         logger.info("created batch download file {} ({} bytes/{} entries) for user {}",
                 batchDownload.filename, Files.size(batchDownload.filename), numberOfResults, batchDownload.user.getId());
+        taskModifier.result(TaskView.getId(this), batchDownload.filename.toFile());
         return batchDownload.filename.toFile();
     }
 

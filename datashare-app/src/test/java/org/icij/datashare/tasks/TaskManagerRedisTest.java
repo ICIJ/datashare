@@ -34,8 +34,8 @@ public class TaskManagerRedisTest {
 
         taskManager.save(task);
 
-        assertThat(taskManager.get()).hasSize(1);
-        assertThat(taskManager.get(task.name).name).isEqualTo(task.name);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTask(task.id)).isEqualTo(task.id);
     }
 
     @Test
@@ -51,7 +51,7 @@ public class TaskManagerRedisTest {
         } catch (ExecutionException rex) {
             taskManager.save(new TaskView<>(test_exception));
         }
-        List<TaskView<?>> actual = taskManager.get();
+        List<TaskView<?>> actual = taskManager.getTasks();
         assertThat(actual).hasSize(1);
         assertThat(actual.get(0).getState()).isEqualTo(TaskView.State.ERROR);
     }
@@ -65,7 +65,7 @@ public class TaskManagerRedisTest {
         futureTask.run();
 
         taskManager.save(new TaskView<>(futureTask));
-        assertThat(taskManager.get(task.name).getState()).isEqualTo(TaskView.State.DONE);
+        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(TaskView.State.DONE);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class TaskManagerRedisTest {
         taskManager.save(task);
 
         assertThat(taskManager.clearDoneTasks()).hasSize(0);
-        assertThat(taskManager.get()).hasSize(1);
+        assertThat(taskManager.getTasks()).hasSize(1);
 
         futureTask.run();
         taskManager.save(new TaskView<>(futureTask));
@@ -86,10 +86,10 @@ public class TaskManagerRedisTest {
     @Test
     public void test_start_task() {
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo", Paths.get("dir"), false);
-        BatchDownloadRunner downloadTask = new BatchDownloadRunner(mock(Indexer.class), propertiesProvider, batchDownload, t -> null);
+        BatchDownloadRunner downloadTask = new BatchDownloadRunner(mock(Indexer.class), propertiesProvider,  mock(TaskModifier.class), batchDownload);
 
         assertThat(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}})).isNotNull();
-        assertThat(taskManager.get()).hasSize(1);
+        assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(batchDownloadQueue).hasSize(1);
         assertThat(redis.hlen("test:task:manager")).isEqualTo(1);
     }
@@ -99,9 +99,9 @@ public class TaskManagerRedisTest {
         MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "task");
         TaskView<String> task = new TaskView<>(futureTask);
         taskManager.save(task);
-        assertThat(taskManager.get()).hasSize(1);
-        taskManager.clearTask(task.name);
-        assertThat(taskManager.get()).hasSize(0);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        taskManager.clearTask(task.id);
+        assertThat(taskManager.getTasks()).hasSize(0);
     }
 
     @Test
@@ -112,11 +112,11 @@ public class TaskManagerRedisTest {
         MonitorableFutureTask<String> futureTask2 = new MonitorableFutureTask<>(() -> "task 1");
         TaskView<String> t2 = new TaskView<>(futureTask2);
         taskManager.save(t2);
-        assertThat(taskManager.get()).hasSize(2);
-        taskManager.clearTask(t1.name);
-        assertThat(taskManager.get()).hasSize(1);
-        assertThat(taskManager.get(t1.name)).isNull();
-        assertThat(taskManager.get(t2.name)).isNotNull();
+        assertThat(taskManager.getTasks()).hasSize(2);
+        taskManager.clearTask(t1.id);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTask(t1.id)).isNull();
+        assertThat(taskManager.getTask(t2.id)).isNotNull();
     }
 
     @Test
@@ -124,10 +124,10 @@ public class TaskManagerRedisTest {
         MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "task");
         TaskView<String> t1 = new TaskView<>(futureTask);
         taskManager.save(t1);
-        assertThat(taskManager.get()).hasSize(1);
-        TaskView<?> t2 = taskManager.clearTask(t1.name);
-        assertThat(taskManager.get()).hasSize(0);
-        assertThat(t1.name).isEqualTo(t2.name);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        TaskView<?> t2 = taskManager.clearTask(t1.id);
+        assertThat(taskManager.getTasks()).hasSize(0);
+        assertThat(t1.id).isEqualTo(t2.id);
     }
 
 

@@ -14,10 +14,8 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -30,15 +28,16 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class BatchDownloadRunnerEncryptedIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
     @Rule public TemporaryFolder fs = new TemporaryFolder();
-    @Mock Function<TaskView<File>, Void> updateCallback;
+
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
+    @Mock TaskSupplier taskSupplier;
 
     @Test
     public void test_zip_with_password_should_encrypt_file_and_send_mail() throws Exception {
         new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
         BatchDownload batchDownload = createBatchDownload("*");
         MailSender mailSender = mock(MailSender.class);
-        new BatchDownloadRunner(indexer, createProvider(), batchDownload, updateCallback, (uri) -> mailSender).call();
+        new BatchDownloadRunner(indexer, createProvider(), taskSupplier,batchDownload, (uri) -> mailSender).call();
 
         assertThat(new net.lingala.zip4j.ZipFile(batchDownload.filename.toFile()).isEncrypted()).isTrue();
         ArgumentCaptor<Mail> mailCaptor = ArgumentCaptor.forClass(Mail.class);

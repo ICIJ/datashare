@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.errors.ForbiddenException;
@@ -57,13 +58,15 @@ public class TaskResource {
     private final TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
     private final PipelineRegistry pipelineRegistry;
+    private final TaskModifier taskModifier;
 
     @Inject
-    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
+    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry, TaskModifier taskModifier) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
         this.pipelineRegistry = pipelineRegistry;
+        this.taskModifier = taskModifier;
     }
     @Operation(description = "Gets all the user tasks.<br>" +
             "A filter can be added with a pattern contained in the task name.",
@@ -72,17 +75,14 @@ public class TaskResource {
     @Get("/all")
     public List<TaskView<?>> tasks(Context context) {
         Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
-        return taskManager.get().stream().
-                filter(t -> context.currentUser().equals(t.getUser())).
-                filter(t -> pattern.matcher(t.name).matches()).
-                collect(toList());
+        return taskManager.getTasks(context.currentUser(), pattern);
     }
 
     @Operation(description = "Gets one task with its id.")
     @ApiResponse(responseCode = "200", description = "returns the task from its id", useReturnTypeSchema = true)
     @Get("/:id")
     public TaskView<?> getTask(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id) {
-        return notFoundIfNull(taskManager.get(id));
+        return notFoundIfNull(taskManager.getTask(id));
     }
 
     @Operation(description = "Gets task result with its id")
@@ -92,7 +92,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id/result")
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) {
-        TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.get(id)));
+        TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
         Object result = task.getResult();
         if (result instanceof File) {
             final Path appPath = ((File) result).isAbsolute() ?
@@ -127,7 +127,7 @@ public class TaskResource {
         boolean batchDownloadEncrypt = parseBoolean(propertiesProvider.get("batchDownloadEncrypt").orElse("false"));
         List<String> projectIds = (List<String>) options.get("projectIds");
         BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, uri, downloadDir, batchDownloadEncrypt);
-        BatchDownloadRunner downloadTask = taskFactory.createDownloadRunner(batchDownload, v -> null);
+        BatchDownloadRunner downloadTask = taskFactory.createDownloadRunner(batchDownload, taskModifier);
         return taskManager.startTask(downloadTask, new HashMap<>() {{
             put("batchDownload", batchDownload);
         }});
@@ -192,12 +192,12 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 if the task is removed")
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is still in RUNNING state")
     @Delete("/clean/:taskName:")
-    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskName, Context context) {
-        TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.get(taskName)));
+    public Payload cleanTask(@Parameter(name = "taskName", description = "name of the task to delete", in = ParameterIn.PATH) final String taskId, Context context) {
+        TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(taskId)));
         if (task.getState() == TaskView.State.RUNNING) {
             return forbidden();
         } else {
-            taskManager.clearTask(task.name);
+            taskManager.clearTask(task.id);
             return ok();
         }
     }
@@ -213,7 +213,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 with the cancellation status (true/false)", useReturnTypeSchema = true)
     @Put("/stop/:taskId:")
     public boolean stopTask(@Parameter(name = "taskName", description = "name of the task to cancel", in = ParameterIn.PATH) final String taskId) {
-        return taskManager.stopTask(notFoundIfNull(taskManager.get(taskId)).name);
+        return taskManager.stopTask(notFoundIfNull(taskManager.getTask(taskId)).id);
     }
 
     @Operation(description = "Preflight request to stop tasks.")
@@ -228,10 +228,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) {
-        return taskManager.get().stream().
-                filter(t -> context.currentUser().equals(t.getUser())).
-                filter(t -> t.getState() == TaskView.State.RUNNING).collect(
-                toMap(t -> t.name, t -> taskManager.stopTask(t.name)));
+        return taskManager.stopAllTasks(context.currentUser());
     }
 
     @Operation(description = "Preflight request to stop all tasks.")
@@ -254,7 +251,7 @@ public class TaskResource {
     public List<TaskView<?>> extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         Pipeline pipeline = pipelineRegistry.get(Pipeline.Type.parse(pipelineName));
-        TaskView<Void> nlpTask = createNlpApp(context, mergedProps, pipeline);
+        TaskView<Integer> nlpTask = createNlpApp(context, mergedProps, pipeline);
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
             Set<Pipeline.Type> pipelines = Set.of(Pipeline.Type.parse(pipelineName));
@@ -264,9 +261,9 @@ public class TaskResource {
         return singletonList(nlpTask);
     }
 
-    private TaskView<Void> createNlpApp(Context context, Properties mergedProps, Pipeline pipeline) {
+    private TaskView<Integer> createNlpApp(Context context, Properties mergedProps, Pipeline pipeline) {
         CountDownLatch latch = new CountDownLatch(1);
-        TaskView<Void> taskView = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), pipeline, mergedProps, latch::countDown));
+        TaskView<Integer> taskView = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), pipeline, mergedProps, latch::countDown));
         if (parseBoolean(mergedProps.getProperty("waitForNlpApp", "true"))) {
             try {
                 logger.info("waiting for NlpApp {} to listen...", pipeline);
