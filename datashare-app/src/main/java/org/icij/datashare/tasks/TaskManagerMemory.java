@@ -1,6 +1,8 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
+import net.codestory.http.security.User;
+import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,12 +12,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
+import java.util.regex.Pattern;
 
 import static java.lang.Integer.parseInt;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
-public class TaskManagerMemory implements TaskManager {
+public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final ConcurrentMap<String, TaskView<?>> tasks = new ConcurrentHashMap<>();
@@ -28,18 +32,12 @@ public class TaskManagerMemory implements TaskManager {
     }
 
     @Override
-    public TaskView<Void> startTask(final Runnable task) {
-        MonitorableFutureTask<Void> futureTask = new MonitorableFutureTask<>(task, null);
-        TaskView<Void> taskView = new TaskView<>(futureTask);
-        executor.submit(futureTask);
-        save(taskView);
-        return taskView;
-    }
-
-    @Override
     public <V> TaskView<V> startTask(final Callable<V> task, final Runnable callback) {
-        MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<V>(task) {
-            @Override protected void done() { callback.run();}
+        MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task) {
+            @Override
+            protected void done() {
+                callback.run();
+            }
         };
         TaskView<V> taskView = new TaskView<>(futureTask);
         executor.submit(futureTask);
@@ -65,19 +63,32 @@ public class TaskManagerMemory implements TaskManager {
         return taskView;
     }
 
-    public TaskView<?> get(final String taskName) {
-        return tasks.get(taskName);
+    public <V> TaskView<V> getTask(final String taskId) {
+        return (TaskView<V>) tasks.get(taskId);
     }
 
     @Override
-    public List<TaskView<?>> get() {
+    public List<TaskView<?>> getTasks() {
         return new LinkedList<>(tasks.values());
     }
 
     @Override
-    public <V> Void save(TaskView<V> task) {
-        tasks.put(task.name, task);
-        return null;
+    public List<TaskView<?>> getTasks(User user, Pattern pattern) {
+        return TaskManager.getTasks(tasks.values().stream(), user, pattern);
+    }
+
+    @Override
+    public void progress(String taskId, double rate) {
+        tasks.get(taskId).setProgress(rate);
+    }
+
+    @Override
+    public <V> void result(String taskId, V result) {
+        getTask(taskId).setResult(result);
+    }
+
+    private void save(TaskView<?> taskView) {
+        tasks.put(taskView.id, taskView);
     }
 
     public List<Runnable> shutdownNow() {
@@ -100,16 +111,29 @@ public class TaskManagerMemory implements TaskManager {
     }
 
     public List<TaskView<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(taskView -> taskView.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.name)).collect(toList());
+        return tasks.values().stream().filter(taskView -> taskView.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
     }
 
     @Override
-    public TaskView<?> clearTask(String taskName) {
-        return tasks.remove(taskName);
+    public <V> TaskView<V> clearTask(String taskName) {
+        return (TaskView<V>) tasks.remove(taskName);
     }
 
     public boolean stopTask(String taskName) {
         logger.info("cancelling task {}", taskName);
         return tasks.get(taskName).task.cancel(true);
+    }
+
+    @Override
+    public Map<String, Boolean> stopAllTasks(User user) {
+        return getTasks().stream().
+                filter(t -> user.equals(t.getUser())).
+                filter(t -> t.getState() == TaskView.State.RUNNING).collect(
+                        toMap(t -> t.id, t -> stopTask(t.id)));
+    }
+
+    @Override
+    public <V> TaskView<V> get(int timeOut, TimeUnit timeUnit) {
+        throw new NotImplementedException("no need to wait for tasks with memory task manager");
     }
 }

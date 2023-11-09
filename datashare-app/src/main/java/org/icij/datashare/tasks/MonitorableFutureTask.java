@@ -10,23 +10,18 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
 public class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorable, UserTask {
-    private final Object runnableOrCallable;
+    private final Object callable;
     public final Map<String, Object> properties = new HashMap<>();
 
     public MonitorableFutureTask(Callable<V> callable) {
         super(callable);
-        runnableOrCallable = callable;
-    }
-
-    public MonitorableFutureTask(Runnable runnable, V result) {
-        super(runnable, result);
-        runnableOrCallable = runnable;
+        this.callable = callable;
     }
 
     public MonitorableFutureTask(Callable<V> task, Map<String, Object> properties) {
         super(task);
         this.properties.putAll(properties);
-        runnableOrCallable = task;
+        callable = task;
     }
 
     private Monitorable getMonitorable(Object runnableOrCallable) {
@@ -38,16 +33,16 @@ public class MonitorableFutureTask<V> extends FutureTask<V> implements Monitorab
 
     @Override
     public double getProgressRate() {
-        return getMonitorable(runnableOrCallable).getProgressRate();
+        return getMonitorable(callable).getProgressRate();
     }
 
     @Override
-    public String toString() { return runnableOrCallable.toString();}
+    public String toString() { return callable.toString();}
 
     @Override
     public User getUser() {
-        if (runnableOrCallable instanceof UserTask) {
-            return ((UserTask) runnableOrCallable).getUser();
+        if (callable instanceof UserTask) {
+            return ((UserTask) callable).getUser();
         }
         return User.local();
     }

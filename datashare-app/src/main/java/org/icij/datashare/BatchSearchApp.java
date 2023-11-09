@@ -14,7 +14,7 @@ public class BatchSearchApp {
         CommonMode mode = CommonMode.create(properties);
         BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
         batchSearchLoop.requeueDatabaseBatches();
-        batchSearchLoop.run();
+        batchSearchLoop.call();
         batchSearchLoop.close();
         mode.get(Indexer.class).close();// to avoid being blocked
         mode.get(RedissonClient.class).shutdown();

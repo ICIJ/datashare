@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -32,7 +33,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Stream.generate;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PARALLELISM_OPT;
 
-public class NlpApp implements Runnable, Monitorable, UserTask {
+public class NlpApp implements Callable<Integer>, Monitorable, UserTask {
     private static final long DEFAULT_TIMEOUT_MILLIS = 30 * 60 * 1000;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Pipeline pipeline;
@@ -69,19 +70,21 @@ public class NlpApp implements Runnable, Monitorable, UserTask {
         forwarder = new NlpForwarder(dataBus, queue, subscribedCb);
     }
 
-    public void run() {
+    public Integer call() {
+        int nbNlp = 0;
         try {
             logger.info("running NlpApp for {} pipeline with {} thread(s)", pipeline.getType(), parallelism);
             this.threadPool = Executors.newFixedThreadPool(parallelism,
                     new ThreadFactoryBuilder().setNameFormat(pipeline.getType().name() + "-%d").build());
             generate(() -> new NlpConsumer(pipeline, indexer, queue)).limit(parallelism).forEach(l -> threadPool.submit(l));
-            forwarder.call();
+            nbNlp = forwarder.call();
             logger.info("forwarder exited waiting for consumer(s) to finish");
             shutdown();
         } catch (Throwable throwable) {
             logger.error("error running NlpApp", throwable);
         }
-        logger.info("exiting run");
+        logger.info("exiting run processed {} messages", nbNlp);
+        return nbNlp;
     }
 
     private void shutdown() throws InterruptedException {

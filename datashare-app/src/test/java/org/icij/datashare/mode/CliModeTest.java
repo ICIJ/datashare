@@ -31,7 +31,7 @@ public class CliModeTest {
 
         BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
         batchSearchLoop.enqueuePoison();
-        batchSearchLoop.run();
+        batchSearchLoop.call();
         batchSearchLoop.close();
         mode.get(Indexer.class).close();
     }

@@ -128,7 +128,7 @@ public class NlpAppTest {
             return emptyList();
         });
         NlpApp nlpApp = new NlpApp(dataBus, indexer, pipeline, properties, latch::countDown, 1, true, local());
-        executor.execute(nlpApp);
+        executor.submit(nlpApp);
         latch.await(2, SECONDS);
         return nlpApp;
     }

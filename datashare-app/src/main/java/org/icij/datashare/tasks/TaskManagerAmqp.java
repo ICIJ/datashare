@@ -1,18 +1,14 @@
 package org.icij.datashare.tasks;
 
+import net.codestory.http.security.User;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 public class TaskManagerAmqp implements TaskManager {
-    public TaskManagerAmqp(String hostname, int port) {
-    }
-
-    @Override
-    public TaskView<Void> startTask(Runnable task) {
-        return null;
-    }
 
     @Override
     public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) {
@@ -30,12 +26,17 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public boolean stopTask(String taskName) {
+    public boolean stopTask(String taskId) {
         return false;
     }
 
     @Override
-    public <V> TaskView<?> clearTask(String taskName) {
+    public Map<String, Boolean> stopAllTasks(User user) {
+        return null;
+    }
+
+    @Override
+    public <V> TaskView<V> clearTask(String taskId) {
         return null;
     }
 
@@ -45,17 +46,17 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V> Void save(TaskView<V> task) {
+    public <V> TaskView<V> getTask(String taskId) {
         return null;
     }
 
     @Override
-    public TaskView<?> get(String id) {
+    public List<TaskView<?>> getTasks() {
         return null;
     }
 
     @Override
-    public List<TaskView<?>> get() {
+    public List<TaskView<?>> getTasks(User user, Pattern pattern) {
         return null;
     }
 

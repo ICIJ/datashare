@@ -29,14 +29,14 @@ public class BatchDownloadLoopTest {
     private final BlockingQueue<BatchDownload> batchDownloadQueue = new LinkedBlockingQueue<>();
     @Mock BatchDownloadRunner batchRunner;
     @Mock TaskFactory factory;
-    @Mock TaskManager manager;
+    @Mock TaskSupplier supplier;
     @Captor
     private ArgumentCaptor<TaskView<File>> argCaptor;
 
     @Test
     public void test_loop() throws Exception {
         BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
-        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), batchDownloadQueue, factory, manager) {
+        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), batchDownloadQueue, factory, supplier) {
             @Override
             public BatchDownloadCleaner createDownloadCleaner(Path downloadDir, int ttlHour) {
                 return batchDownloadCleaner;
@@ -48,7 +48,7 @@ public class BatchDownloadLoopTest {
         app.run();
 
         verify(batchRunner).call();
-        verify(manager).save(argCaptor.capture());
+        verify(supplier).result(anyString(), anyObject());
         verify(batchDownloadCleaner, times(2)).run();
         assertThat(argCaptor.getValue().getState()).isEqualTo(TaskView.State.DONE);
     }
@@ -56,7 +56,7 @@ public class BatchDownloadLoopTest {
     @Test
     public void test_ttl_property() {
         BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
-        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), batchDownloadQueue, factory, manager) {
+        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), batchDownloadQueue, factory, supplier) {
             @Override
             public BatchDownloadCleaner createDownloadCleaner(Path downloadDir, int ttlHour) {
                 assertThat(ttlHour).isEqualTo(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL);
@@ -72,7 +72,7 @@ public class BatchDownloadLoopTest {
     public void test_elasticsearch_exception__should_not_be_serialized() throws Exception {
         when(batchRunner.call()).thenThrow(new ElasticsearchStatusException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
         BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
-        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), batchDownloadQueue, factory, manager) {
+        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), batchDownloadQueue, factory, supplier) {
             @Override
             public BatchDownloadCleaner createDownloadCleaner(Path downloadDir, int ttlHour) {
                 return batchDownloadCleaner;
@@ -83,7 +83,7 @@ public class BatchDownloadLoopTest {
 
         app.run();
 
-        verify(manager).save(argCaptor.capture());
+        verify(supplier).result(anyString(), anyObject());
         assertThat(argCaptor.getValue().getState()).isEqualTo(TaskView.State.ERROR);
         assertThat(argCaptor.getValue().error.getClass()).isNotEqualTo(ElasticsearchStatusException.class);
     }

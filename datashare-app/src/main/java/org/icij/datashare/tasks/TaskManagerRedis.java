@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
@@ -9,8 +10,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -26,20 +29,25 @@ import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import javax.inject.Inject;
 import javax.xml.datatype.XMLGregorianCalendar;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.painless.api.Augmentation.asList;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 
-public class TaskManagerRedis implements TaskManager {
+public class TaskManagerRedis implements TaskManager, TaskSupplier {
     private final RedissonMap<String, TaskView<?>> tasks;
     private final BlockingQueue<BatchDownload> batchDownloadQueue;
 
@@ -61,32 +69,46 @@ public class TaskManagerRedis implements TaskManager {
         this.batchDownloadQueue = batchDownloadQueue;
     }
 
-    @Override
     public <V> Void save(TaskView<V> task) {
-        tasks.put(task.name, task);
+        tasks.put(task.id, task);
         return null;
     }
 
     @Override
-    public TaskView<?> get(String id) {
-        return tasks.get(id);
+    public <V> TaskView<V> getTask(String id) {return (TaskView<V>) tasks.get(id);}
+
+    @Override
+    public List<TaskView<?>> getTasks() {
+        return new LinkedList<>(tasks.values());
     }
 
     @Override
-    public List<TaskView<?>> get() {
-        return asList(tasks.values());
+    public List<TaskView<?>> getTasks(User user, Pattern pattern) {
+        return TaskManager.getTasks(tasks.values().stream(), user, pattern);
+    }
+
+    @Override
+    public TaskView<File> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
+        BatchDownload batchDownload = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
+        assert batchDownload != null;
+        try {
+            String json = MAPPER.writeValueAsString(batchDownload);
+            return new TaskView<File>(batchDownload.uuid, TaskView.State.INIT, 0, batchDownload.user, null, MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>(){}));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     @Override
     public List<TaskView<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.name)).collect(toList());
+        return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
     }
     @Override
     public TaskView<?> clearTask(String taskName) {
         return tasks.remove(taskName);
     }
 
-    @Override public TaskView<Void> startTask(Runnable task) { throw new IllegalStateException("not implemented"); }
     @Override public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
     @Override public <V> TaskView<V> startTask(Callable<V> task, Map<String, Object> properties) {
         MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task, properties);
@@ -97,7 +119,25 @@ public class TaskManagerRedis implements TaskManager {
     }
     @Override public <V> TaskView<V> startTask(Callable<V> task) { throw new IllegalStateException("not implemented"); }
     @Override public boolean stopTask(String taskName) { throw new IllegalStateException("not implemented"); }
+
+    @Override
+    public Map<String, Boolean> stopAllTasks(User user) { throw new IllegalStateException("not implemented"); }
+
     @Override public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException { throw new IllegalStateException("not implemented"); }
+
+    @Override
+    public void progress(String taskId, double rate) {
+        TaskView<?> taskView = tasks.get(taskId);
+        taskView.setProgress(rate);
+        tasks.put(taskId, taskView);
+    }
+
+    @Override
+    public <V> void result(String taskId, V result) {
+        TaskView<V> taskView = (TaskView<V>) tasks.get(taskId);
+        taskView.setResult(result);
+        tasks.put(taskId, taskView);
+    }
 
     static class TaskViewCodec extends BaseCodec {
         private final Encoder keyEncoder;

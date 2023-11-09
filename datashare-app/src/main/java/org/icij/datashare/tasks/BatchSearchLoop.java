@@ -48,12 +48,12 @@ public class BatchSearchLoop {
         });
     }
 
-    public void run() {
+    public Integer call() {
         logger.info("Datashare running in batch mode. Waiting batch from ds:batchsearch:queue ({})", batchSearchQueue.getClass());
         waitForMainLoopCalled.countDown();
         loopThread = Thread.currentThread();
         String currentBatchId = null;
-
+        int nbBatchSearch = 0;
         do {
             try {
                 currentBatchId = batchSearchQueue.poll(60, TimeUnit.SECONDS);
@@ -65,6 +65,7 @@ public class BatchSearchLoop {
                         currentBatchSearchRunner.get().call();
                         currentBatchSearchRunner.set(null);
                         repository.setState(batchSearch.uuid, BatchSearchRecord.State.SUCCESS);
+                        nbBatchSearch++;
                     } else {
                         logger.warn("batch search {} not ran because in state {}", batchSearch.uuid, batchSearch.state);
                     }
@@ -84,6 +85,7 @@ public class BatchSearchLoop {
             }
         } while (!POISON.equals(currentBatchId) && !exitAsked);
         logger.info("exiting main loop");
+        return nbBatchSearch;
     }
 
     public Integer requeueDatabaseBatches() {

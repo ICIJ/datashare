@@ -8,6 +8,7 @@ import org.icij.datashare.user.User;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -15,9 +16,13 @@ import java.util.concurrent.ExecutionException;
 public class TaskView<V> {
     final Map<String, Object> properties;
 
-    public enum State {RUNNING, ERROR, DONE, CANCELLED}
+    public static TaskView<String> nullObject() {
+        return new TaskView<>(null, State.INIT, 0, User.nullUser(), null, null);
+    }
 
-    public final String name;
+    public enum State {INIT, RUNNING, ERROR, DONE, CANCELLED}
+
+    public final String id;
 
     public final User user;
     volatile String error;
@@ -26,8 +31,10 @@ public class TaskView<V> {
     private volatile V result;
     @JsonIgnore
     final MonitorableFutureTask<V> task;
+
+    @Deprecated(since = "13.6.0")
     public TaskView(MonitorableFutureTask<V> task) {
-        this.name = task.toString();
+        this.id = task.toString();
         this.user = task.getUser();
         this.properties = task.properties.isEmpty() ? null: task.properties;
         this.task = task;
@@ -39,14 +46,16 @@ public class TaskView<V> {
             progress = task.getProgressRate();
         }
     }
+
+
     @JsonCreator
-    TaskView(@JsonProperty("name") String name,
+    TaskView(@JsonProperty("name") String id,
              @JsonProperty("state") State state,
              @JsonProperty("progress") double progress,
              @JsonProperty("user") User user,
              @JsonProperty("result") V result,
              @JsonProperty("properties") Map<String, Object> properties) {
-        this.name = name;
+        this.id = id;
         this.state = state;
         this.progress = progress;
         this.user = user;
@@ -79,6 +88,16 @@ public class TaskView<V> {
         }
     }
 
+    public void setResult(V result) {
+        this.result = result;
+        this.state = State.DONE;
+        this.progress = 1;
+    }
+
+    public void setProgress(double rate) {
+        this.progress = rate;
+    }
+
     public double getProgress() {
         if (task != null) {
             return task.isDone() ? 1 : task.getProgressRate();
@@ -96,5 +115,7 @@ public class TaskView<V> {
         return state;
     }
 
+    public boolean isNull() { return id == null;}
     public User getUser() { return user;}
+    public static <V> String getId(Callable<V> task) {return task.toString();}
 }

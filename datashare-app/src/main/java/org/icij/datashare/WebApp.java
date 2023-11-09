@@ -44,7 +44,7 @@ public class WebApp {
         if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
             BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
             TaskManager taskManager = mode.get(TaskManager.class);
-            taskManager.startTask(batchSearchLoop::run);
+            taskManager.startTask(batchSearchLoop::call);
         }
         webServerThread.join();
     }
