@@ -33,6 +33,9 @@ import org.icij.datashare.text.indexing.elasticsearch.SourceExtractor;
 import org.icij.datashare.user.User;
 import org.icij.datashare.utils.DocumentVerifier;
 import org.icij.datashare.utils.PayloadFormatter;
+import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -50,6 +53,7 @@ import static org.icij.datashare.text.Project.project;
 @Singleton
 @Prefix("/api")
 public class DocumentResource {
+    private Logger logger = LoggerFactory.getLogger(getClass());
     private final Repository repository;
     private final Indexer indexer;
     private final DocumentVerifier documentVerifier;
@@ -396,14 +400,15 @@ public class DocumentResource {
         throw new IllegalArgumentException("Target language not found");
     }
 
-    private Payload getPayload(Document doc, String index, boolean inline, boolean filterMetadata) throws IOException {
+    private Payload getPayload(Document doc, String index, boolean inline, boolean filterMetadata) {
         try {
             InputStream from = new SourceExtractor(filterMetadata).getSource(project(index), doc);
             String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
             Payload payload = new Payload(contentType, from);
             String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);
             return inline ? payload: payload.withHeader("Content-Disposition", "attachment;filename=\"" + fileName + "\"");
-        } catch (FileNotFoundException fnf) {
+        } catch (FileNotFoundException | EmbeddedDocumentMemoryExtractor.ContentNotFoundException fnf) {
+            logger.error("unable to read document source file", fnf);
             return Payload.notFound();
         }
     }
