@@ -56,7 +56,7 @@ public class SourceExtractor {
         }
     }
 
-    public InputStream getEmbeddedSource(final Project project, final Document document) throws FileNotFoundException {
+    public InputStream getEmbeddedSource(final Project project, final Document document) {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         String algorithm = hasher.toString();
         List<DigestingParser.Digester> digesters = new ArrayList<>(List.of());
@@ -77,14 +77,14 @@ public class SourceExtractor {
                     return new ByteArrayInputStream(metadataCleaner.clean(inputStream).getContent());
                 }
                 return inputStream;
-            } catch (FileNotFoundException | ContentNotFoundException _e) {
-                continue;
+            } catch (ContentNotFoundException _e) {
+                // will throw it later
             } catch (SAXException | TikaException | IOException exception) {
                 String message = String.format("extract error for embedded document in project %s / id : %s / routing_id : %s", document.getProject().getName(), document.getId(), document.getRootDocument());
                 throw new ExtractException(message, exception);
             }
         }
 
-        throw new FileNotFoundException();
+        throw new ContentNotFoundException(document.getRootDocument(), document.getId());
     }
 }

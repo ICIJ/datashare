@@ -1,9 +1,11 @@
 package org.icij.datashare.web;
 
+import ch.qos.logback.classic.Level;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.test.LogbackCapturingRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Project;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.stream.Stream.of;
+import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
@@ -40,6 +43,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder temp = new TemporaryFolder();
+    @Rule public LogbackCapturingRule logback = new LogbackCapturingRule();
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
     @Mock PropertiesProvider propertiesProvider;
@@ -113,9 +117,20 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_content_not_found_should_return_404() {
+        String path = getClass().getResource("/docs/embedded_doc.eml").getPath();
+        indexFile("local-datashare", "embedded_id_sha256_of_sixty_four_character_not_in_actual_content", Paths.get(path), "application/pdf", "id_eml");
+
+        get("/api/local-datashare/documents/src/embedded_id_sha256_of_sixty_four_character_not_in_actual_content?routing=id_eml").
+                should().respond(404);
+        assertThat(logback.logs(Level.ERROR)).contains("unable to read document source file");
+    }
+
+    @Test
     public void test_source_file_not_found_should_return_404() {
         indexFile("local-datashare", "missing_file", Paths.get("missing/file"), null, null);
         get("/api/local-datashare/documents/src/missing_file").should().respond(404);
+        assertThat(logback.logs(Level.ERROR)).contains("unable to read document source file");
     }
 
     @Test
@@ -346,6 +361,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
                 .respond(400)
                 .contain("Range [6-4] is out of document range ([0-10])");
     }
+
     @Test
     public void test_get_document_extracted_text_not_found() throws IOException {
         when(indexer.getExtractedText("local-datashare", "notFoundDoc", null,6, -2,null))

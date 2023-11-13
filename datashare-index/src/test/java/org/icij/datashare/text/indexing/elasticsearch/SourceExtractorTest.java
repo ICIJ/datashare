@@ -8,15 +8,19 @@ import org.icij.datashare.text.DocumentBuilder;
 import org.icij.datashare.text.Language;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.TikaDocument;
+import org.icij.extract.extractor.EmbeddedDocumentMemoryExtractor;
 import org.icij.extract.extractor.Extractor;
 import org.icij.extract.extractor.UpdatableDigester;
 import org.icij.spewer.FieldNames;
 import org.icij.task.Options;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -30,8 +34,30 @@ import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Project.project;
 
 public class SourceExtractorTest {
+    @ClassRule static public TemporaryFolder tmpDir = new TemporaryFolder();
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
+
+    @Test(expected = FileNotFoundException.class)
+    public void test_file_not_found() throws IOException {
+        File file = tmpDir.newFile("foo.bar");
+        Document document = DocumentBuilder.createDoc(project("project"), file.toPath()).build();
+        assertThat(file.delete()).isTrue();
+        new SourceExtractor().getSource(document);
+    }
+
+    @Test(expected = EmbeddedDocumentMemoryExtractor.ContentNotFoundException.class)
+    public void test_content_not_found() {
+        Document document = DocumentBuilder.createDoc(project("project"), get(getClass().getResource("/docs/embedded_doc.eml").getPath()))
+                .with("it has been parsed")
+                .with(Language.FRENCH)
+                .with(Charset.defaultCharset())
+                .ofMimeType("message/rfc822")
+                .with(new HashMap<>())
+                .with(Document.Status.INDEXED)
+                .withContentLength(45L).build();
+        new SourceExtractor().getEmbeddedSource(project("project"), document);
+    }
 
     @Test
     public void test_get_source_for_root_doc() throws IOException {
