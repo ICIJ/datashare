@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.user.User;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
@@ -14,7 +15,7 @@ import java.util.concurrent.ExecutionException;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> {
-    final Map<String, Object> properties;
+    public final Map<String, Object> properties;
 
     public static TaskView<String> nullObject() {
         return new TaskView<>(null, State.INIT, 0, User.nullUser(), null, null);
@@ -49,7 +50,7 @@ public class TaskView<V> {
 
 
     @JsonCreator
-    TaskView(@JsonProperty("name") String id,
+    TaskView(@JsonProperty("id") String id,
              @JsonProperty("state") State state,
              @JsonProperty("progress") double progress,
              @JsonProperty("user") User user,
@@ -94,6 +95,12 @@ public class TaskView<V> {
         this.progress = 1;
     }
 
+    public void setError(Throwable reason) {
+        this.error = reason.toString();
+        this.state = State.ERROR;
+        this.progress = 1;
+    }
+
     public void setProgress(double rate) {
         this.progress = rate;
     }
@@ -115,7 +122,10 @@ public class TaskView<V> {
         return state;
     }
 
+    @Override
+    public String toString() {return id;}
+    @JsonIgnore
     public boolean isNull() { return id == null;}
     public User getUser() { return user;}
-    public static <V> String getId(Callable<V> task) {return task.toString();}
+    public static <V> String getId(@NotNull Callable<V> task) {return task.toString();}
 }

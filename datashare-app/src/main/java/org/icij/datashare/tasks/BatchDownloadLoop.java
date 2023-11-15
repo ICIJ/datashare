@@ -38,6 +38,7 @@ public class BatchDownloadLoop {
     public void run() {
         logger.info("Datashare running in batch mode. Waiting batch from supplier ({})", taskSupplier.getClass());
         BatchDownload currentTask = null;
+        MonitorableFutureTask<File> fileMonitorableFutureTask = null;
         while (!NULL_BATCH_DOWNLOAD.equals(currentTask)) {
             try {
                 currentTask = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
@@ -47,12 +48,17 @@ public class BatchDownloadLoop {
                 taskProperties.put("batchDownload", currentTask);
 
                 if (currentTask != null && !NULL_BATCH_DOWNLOAD.equals(currentTask)) {
-                    MonitorableFutureTask<File> fileMonitorableFutureTask = new MonitorableFutureTask<>(
-                            factory.createDownloadRunner(currentTask, taskSupplier), taskProperties);
+                    fileMonitorableFutureTask = new MonitorableFutureTask<>(
+                            factory.createDownloadRunner(taskSupplier, currentTask), taskProperties);
                     fileMonitorableFutureTask.run();
+                    File file = fileMonitorableFutureTask.get();
+                    taskSupplier.result(currentTask.toString(), file);
                 }
             } catch (Exception ex) {
-                logger.error("error in loop", ex);
+                logger.error(String.format("error in loop for task %s", currentTask), ex);
+                if (currentTask != null) {
+                    taskSupplier.error(new TaskView<>(fileMonitorableFutureTask).id, ex);
+                }
             }
         }
     }

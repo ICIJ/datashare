@@ -62,6 +62,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                         bind(Indexer.class).toInstance(mock(Indexer.class));
                         bind(TaskManager.class).toInstance(taskManager);
                         bind(TaskSupplier.class).toInstance(taskManager);
+                        bind(TaskModifier.class).toInstance(taskManager);
                         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
                         bind(LocalUserFilter.class).toInstance(localUserFilter);
                         bind(PropertiesProvider.class).toInstance(new PropertiesProvider(getDefaultProperties()));
@@ -85,8 +86,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
     }
 
     @Test
@@ -97,8 +98,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
 
         verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report"));
     }
@@ -111,8 +112,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
 
         verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report:foo"));
     }
@@ -125,8 +126,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
 
         verify(taskFactory).createIndexTask(eq(local()), eq("extract:queue:foo"), any());
     }
@@ -138,8 +139,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         ShouldChain responseBody = response.should().haveType("application/json");
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(1)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
     }
 
     @Test
@@ -189,7 +190,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
         assertThat(taskNames.size()).isEqualTo(1);
-        responseBody.should().contain(format("{\"name\":\"%s\"", taskNames.get(0)));
+        responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
         HashMap<String, String> defaultProperties = getDefaultProperties();
         defaultProperties.put("key", "val");
         defaultProperties.put("foo", "qux");
@@ -251,7 +252,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().haveType("application/json").
                 should().contain("properties").
                 should().contain("filename");
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "*", Paths.get("app", "tmp"), false)), any());
+        verify(taskFactory).createDownloadRunner(any(), eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "*", Paths.get("app", "tmp"), false)));
     }
 
     @Test
@@ -260,7 +261,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().haveType("application/json").
                 should().contain("properties").
                 should().contain("filename");
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", Paths.get("app", "tmp"), false)), any());
+        verify(taskFactory).createDownloadRunner(any(), eq(new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", Paths.get("app", "tmp"), false)));
     }
 
     @Test
@@ -270,7 +271,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().contain("properties").
                 should().contain("filename");
         BatchDownload same = new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", "/an%20url-encoded%20uri", Paths.get("app", "tmp"), false);
-        verify(taskFactory).createDownloadRunner(eq(same), any());
+        verify(taskFactory).createDownloadRunner(any(), eq(same));
     }
 
 
@@ -281,7 +282,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().contain("properties").
                 should().contain("filename");
 
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"), false)), any());
+        verify(taskFactory).createDownloadRunner(any(), eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"), false)));
     }
 
     @Test

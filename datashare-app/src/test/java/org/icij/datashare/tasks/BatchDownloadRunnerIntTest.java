@@ -41,8 +41,7 @@ public class BatchDownloadRunnerIntTest {
         BatchDownload bd = createBatchDownload("query");
         new BatchDownloadRunner(indexer, createProvider(), taskModifier, bd).call();
         assertThat(bd.filename.toFile()).doesNotExist();
-        verify(taskModifier, never()).progress(any(), any());
-        verify(taskModifier).result(any(), any());
+        verify(taskModifier, never()).progress(any(), anyDouble());
     }
 
     @Test
@@ -57,8 +56,7 @@ public class BatchDownloadRunnerIntTest {
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(1);
         assertThat(new ZipFile(bd.filename.toFile()).getEntry(file.toString().substring(1))).isNotNull();
         assertThat(new ZipFile(bd.filename.toFile()).getEntry(file.toString().substring(1)).getSize()).isEqualTo(content.length());
-        verify(taskModifier).progress(any(), any());
-        verify(taskModifier).result(any(), any());
+        verify(taskModifier).progress(any(), anyDouble());
     }
 
     @Test
@@ -83,7 +81,7 @@ public class BatchDownloadRunnerIntTest {
 
         assertThat(bd.filename.toFile()).isFile();
         assertThat(new ZipFile(bd.filename.toFile()).size()).isEqualTo(2);
-        verify(taskModifier, times(2)).progress(any(), any());
+        verify(taskModifier, times(2)).progress(any(), anyDouble());
     }
 
     @Test

@@ -59,7 +59,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private final Function<URI, MailSender> mailSenderSupplier;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, TaskModifier modifier, @Assisted BatchDownload batchDownload) {
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted TaskModifier modifier, @Assisted BatchDownload batchDownload) {
         this(indexer, propertiesProvider, modifier, batchDownload, MailSender::new);
     }
 
@@ -118,7 +118,6 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         }
         logger.info("created batch download file {} ({} bytes/{} entries) for user {}",
                 batchDownload.filename, Files.size(batchDownload.filename), numberOfResults, batchDownload.user.getId());
-        taskModifier.result(TaskView.getId(this), batchDownload.filename.toFile());
         return batchDownload.filename.toFile();
     }
 

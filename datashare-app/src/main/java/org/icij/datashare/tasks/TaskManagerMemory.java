@@ -7,6 +7,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -83,8 +84,13 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V> void result(String taskId, V result) {
+    public <V extends Serializable> void result(String taskId, V result) {
         getTask(taskId).setResult(result);
+    }
+
+    @Override
+    public void error(String taskId, Throwable reason) {
+        throw new NotImplementedException("TODO");
     }
 
     private void save(TaskView<?> taskView) {

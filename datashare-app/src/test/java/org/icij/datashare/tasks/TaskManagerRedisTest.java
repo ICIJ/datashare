@@ -35,7 +35,7 @@ public class TaskManagerRedisTest {
         taskManager.save(task);
 
         assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTask(task.id)).isEqualTo(task.id);
+        assertThat(taskManager.getTask(task.id).toString()).isEqualTo(task.id);
     }
 
     @Test
