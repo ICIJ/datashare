@@ -22,6 +22,8 @@ public interface TaskManager {
     <V> TaskView<V> getTask(String taskId);
     List<TaskView<?>> getTasks();
     List<TaskView<?>> getTasks(User user, Pattern pattern);
+    // do we need getResult(taskId) getError(taskId) ?
+    // to avoid serializing/deserializing heavy results objects
     List<TaskView<?>> clearDoneTasks();
 
     static List<TaskView<?>> getTasks(Stream<TaskView<?>> stream, User user, Pattern pattern) {

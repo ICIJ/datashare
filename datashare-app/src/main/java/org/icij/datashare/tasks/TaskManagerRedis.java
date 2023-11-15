@@ -11,6 +11,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import net.codestory.http.security.User;
+import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -33,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -69,7 +71,7 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
         this.batchDownloadQueue = batchDownloadQueue;
     }
 
-    public <V> Void save(TaskView<V> task) {
+    <V> Void save(TaskView<V> task) {
         tasks.put(task.id, task);
         return null;
     }
@@ -133,9 +135,16 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V> void result(String taskId, V result) {
+    public <V extends Serializable> void result(String taskId, V result) {
         TaskView<V> taskView = (TaskView<V>) tasks.get(taskId);
         taskView.setResult(result);
+        tasks.put(taskId, taskView);
+    }
+
+    @Override
+    public void error(String taskId, Throwable reason) {
+        TaskView taskView = tasks.get(taskId);
+        taskView.setError(reason);
         tasks.put(taskId, taskView);
     }
 

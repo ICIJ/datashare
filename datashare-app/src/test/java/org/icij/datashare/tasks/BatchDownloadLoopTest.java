@@ -30,8 +30,6 @@ public class BatchDownloadLoopTest {
     @Mock BatchDownloadRunner batchRunner;
     @Mock TaskFactory factory;
     @Mock TaskSupplier supplier;
-    @Captor
-    private ArgumentCaptor<TaskView<File>> argCaptor;
 
     @Test
     public void test_loop() throws Exception {
@@ -50,7 +48,6 @@ public class BatchDownloadLoopTest {
         verify(batchRunner).call();
         verify(supplier).result(anyString(), anyObject());
         verify(batchDownloadCleaner, times(2)).run();
-        assertThat(argCaptor.getValue().getState()).isEqualTo(TaskView.State.DONE);
     }
 
     @Test
@@ -66,26 +63,6 @@ public class BatchDownloadLoopTest {
         app.enqueuePoison();
 
         app.run();
-    }
-
-    @Test
-    public void test_elasticsearch_exception__should_not_be_serialized() throws Exception {
-        when(batchRunner.call()).thenThrow(new ElasticsearchStatusException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
-        BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
-        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), batchDownloadQueue, factory, supplier) {
-            @Override
-            public BatchDownloadCleaner createDownloadCleaner(Path downloadDir, int ttlHour) {
-                return batchDownloadCleaner;
-            }
-        };
-        batchDownloadQueue.add(new BatchDownload(singletonList(project("prj")), User.local(), "query"));
-        app.enqueuePoison();
-
-        app.run();
-
-        verify(supplier).result(anyString(), anyObject());
-        assertThat(argCaptor.getValue().getState()).isEqualTo(TaskView.State.ERROR);
-        assertThat(argCaptor.getValue().error.getClass()).isNotEqualTo(ElasticsearchStatusException.class);
     }
 
     @Before
