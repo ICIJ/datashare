@@ -30,7 +30,7 @@ public class BatchDownloadLoopIntTest {
         TaskFactory factory = mock(TaskFactory.class);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
 
-        BatchDownloadRunner task = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskManager, batchDownload);
+        BatchDownloadRunner task = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskManager::progress, batchDownload);
         when(factory.createDownloadRunner(any(), any())).thenReturn(task);
 
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{

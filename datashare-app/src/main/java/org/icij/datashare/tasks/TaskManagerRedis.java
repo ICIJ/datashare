@@ -128,10 +128,11 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     @Override public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException { throw new IllegalStateException("not implemented"); }
 
     @Override
-    public void progress(String taskId, double rate) {
+    public Void progress(String taskId, double rate) {
         TaskView<?> taskView = tasks.get(taskId);
         taskView.setProgress(rate);
         tasks.put(taskId, taskView);
+        return null;
     }
 
     @Override

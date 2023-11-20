@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.zip.ZipException;
 
@@ -54,19 +55,19 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
-    private final TaskModifier taskModifier;
+    private final BiFunction<String, Double, Void> progressCallback;
     private final BatchDownload batchDownload;
     private final Function<URI, MailSender> mailSenderSupplier;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted TaskModifier modifier, @Assisted BatchDownload batchDownload) {
-        this(indexer, propertiesProvider, modifier, batchDownload, MailSender::new);
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted BiFunction<String, Double, Void> progressCallback, @Assisted BatchDownload batchDownload) {
+        this(indexer, propertiesProvider, progressCallback, batchDownload, MailSender::new);
     }
 
-    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, TaskModifier modifier, BatchDownload batchDownload, Function<URI, MailSender> mailSenderSupplier) {
+    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, BiFunction<String, Double, Void> progressCallback, BatchDownload batchDownload, Function<URI, MailSender> mailSenderSupplier) {
         this.indexer = indexer;
         this.propertiesProvider = provider;
-        this.taskModifier = modifier;
+        this.progressCallback = progressCallback;
         this.batchDownload = batchDownload;
         this.mailSenderSupplier = mailSenderSupplier;
         this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
@@ -110,7 +111,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                         zippedFilesSize += addedBytes;
                         numberOfResults.incrementAndGet();
                         batchDownload.setZipSize(zippedFilesSize);
-                        taskModifier.progress(TaskView.getId(this), getProgressRate());
+                        progressCallback.apply(TaskView.getId(this), getProgressRate());
                     }
                 }
                 docsToProcess = searcher.scroll().collect(toList());

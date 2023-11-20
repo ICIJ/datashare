@@ -79,8 +79,9 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void progress(String taskId, double rate) {
+    public Void progress(String taskId, double rate) {
         tasks.get(taskId).setProgress(rate);
+        return null;
     }
 
     @Override

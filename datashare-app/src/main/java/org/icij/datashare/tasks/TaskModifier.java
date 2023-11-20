@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+@FunctionalInterface
 public interface TaskModifier {
-    void progress(String taskId, double rate);
+    Void progress(String taskId, double rate);
 }

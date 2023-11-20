@@ -37,7 +37,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
         new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
         BatchDownload batchDownload = createBatchDownload("*");
         MailSender mailSender = mock(MailSender.class);
-        new BatchDownloadRunner(indexer, createProvider(), taskSupplier,batchDownload, (uri) -> mailSender).call();
+        new BatchDownloadRunner(indexer, createProvider(), taskSupplier::progress,batchDownload, (uri) -> mailSender).call();
 
         assertThat(new net.lingala.zip4j.ZipFile(batchDownload.filename.toFile()).isEncrypted()).isTrue();
         ArgumentCaptor<Mail> mailCaptor = ArgumentCaptor.forClass(Mail.class);

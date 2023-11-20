@@ -252,7 +252,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().haveType("application/json").
                 should().contain("properties").
                 should().contain("filename");
-        verify(taskFactory).createDownloadRunner(any(), eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "*", Paths.get("app", "tmp"), false)));
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "*", Paths.get("app", "tmp"), false)), any());
     }
 
     @Test
@@ -261,7 +261,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().haveType("application/json").
                 should().contain("properties").
                 should().contain("filename");
-        verify(taskFactory).createDownloadRunner(any(), eq(new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", Paths.get("app", "tmp"), false)));
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", Paths.get("app", "tmp"), false)), any());
     }
 
     @Test
@@ -271,7 +271,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().contain("properties").
                 should().contain("filename");
         BatchDownload same = new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", "/an%20url-encoded%20uri", Paths.get("app", "tmp"), false);
-        verify(taskFactory).createDownloadRunner(any(), eq(same));
+        verify(taskFactory).createDownloadRunner(eq(same), any());
     }
 
 
@@ -282,7 +282,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 should().contain("properties").
                 should().contain("filename");
 
-        verify(taskFactory).createDownloadRunner(any(), eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"), false)));
+        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"), false)), any());
     }
 
     @Test

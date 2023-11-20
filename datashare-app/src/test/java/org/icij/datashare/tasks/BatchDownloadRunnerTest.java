@@ -44,7 +44,7 @@ public class BatchDownloadRunnerTest {
         File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
                     put(BATCH_DOWNLOAD_MAX_NB_FILES, "3");
                     put(SCROLL_SIZE, "3");
-                }}), updater, new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")).call();
+                }}), updater::progress, new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")).call();
 
         assertThat(new ZipFile(zip).size()).isEqualTo(3);
     }
@@ -56,7 +56,7 @@ public class BatchDownloadRunnerTest {
         File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
                     put(BATCH_DOWNLOAD_MAX_SIZE, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
                     put(SCROLL_SIZE, "3");
-                }}), updater, new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")).call();
+                }}), updater::progress, new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")).call();
 
         assertThat(new ZipFile(zip).size()).isEqualTo(4);
     }
@@ -64,7 +64,7 @@ public class BatchDownloadRunnerTest {
     @Test(expected = ElasticsearchStatusException.class)
     public void test_elasticsearch_status_exception__should_be_sent() throws Exception {
         mockSearch.willThrow(new ElasticsearchStatusException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
-        new BatchDownloadRunner(indexer, new PropertiesProvider(), updater, new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")).call();
+        new BatchDownloadRunner(indexer, new PropertiesProvider(), updater::progress, new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")).call();
     }
 
     private Path createFile(int index) {
