@@ -49,7 +49,7 @@ public class BatchDownloadLoop {
 
                 if (currentTask != null && !NULL_BATCH_DOWNLOAD.equals(currentTask)) {
                     fileMonitorableFutureTask = new MonitorableFutureTask<>(
-                            factory.createDownloadRunner(taskSupplier, currentTask), taskProperties);
+                            factory.createDownloadRunner(currentTask, taskSupplier::progress), taskProperties);
                     fileMonitorableFutureTask.run();
                     File file = fileMonitorableFutureTask.get();
                     taskSupplier.result(currentTask.toString(), file);

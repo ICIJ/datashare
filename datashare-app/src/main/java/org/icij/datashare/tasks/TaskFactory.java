@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public interface TaskFactory {
@@ -22,7 +23,7 @@ public interface TaskFactory {
     BatchSearchLoop createBatchSearchLoop();
     BatchDownloadLoop createBatchDownloadLoop();
     BatchSearchRunner createBatchSearchRunner(BatchSearch batchSearch, TerFunction<String, String, List<Document>, Boolean> resultConsumer);
-    BatchDownloadRunner createDownloadRunner(TaskModifier taskModifier, BatchDownload batchDownload);
+    BatchDownloadRunner createDownloadRunner(BatchDownload batchDownload, BiFunction<String, Double, Void> updateCallback);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);

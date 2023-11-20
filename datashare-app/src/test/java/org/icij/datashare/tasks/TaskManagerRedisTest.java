@@ -86,7 +86,7 @@ public class TaskManagerRedisTest {
     @Test
     public void test_start_task() {
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo", Paths.get("dir"), false);
-        BatchDownloadRunner downloadTask = new BatchDownloadRunner(mock(Indexer.class), propertiesProvider,  mock(TaskModifier.class), batchDownload);
+        BatchDownloadRunner downloadTask = new BatchDownloadRunner(mock(Indexer.class), propertiesProvider,  (i, p) -> null, batchDownload);
 
         assertThat(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}})).isNotNull();
         assertThat(taskManager.getTasks()).hasSize(1);
