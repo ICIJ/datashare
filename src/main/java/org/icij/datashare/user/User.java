@@ -6,16 +6,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonUtils;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.text.ProjectProxy;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.json.JsonUtils.deserialize;
-import static org.icij.datashare.text.ProjectProxy.proxy;
 
 public class User implements Entity {
     public static final String LOCAL = "local";
@@ -26,14 +30,10 @@ public class User implements Entity {
     public final String email;
     public final String provider;
     public final Map<String, Object> details;
-    private final HashSet<Project> projects = new HashSet<Project>();
+    private final HashSet<Project> projects = new HashSet<>();
 
     public User(final String id, String name, String email, String provider, String jsonDetails) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.provider = provider;
-        this.details = unmodifiableMap(deserialize(jsonDetails));
+        this(id, name, email, provider, deserialize(jsonDetails));
     }
 
     @JsonCreator
@@ -44,7 +44,7 @@ public class User implements Entity {
         this.name = name;
         this.email = email;
         this.provider = provider;
-        this.details = unmodifiableMap(details);
+        this.details = unmodifiableMap(ofNullable(details).orElse(new HashMap<>()));
     }
 
     public User(final String id, String name, String email, String provider) {

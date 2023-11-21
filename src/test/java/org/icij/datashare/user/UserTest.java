@@ -1,6 +1,7 @@
 package org.icij.datashare.user;
 
 
+import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -10,7 +11,6 @@ import java.util.LinkedList;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
-import static org.icij.datashare.text.ProjectProxy.proxy;
 import static org.icij.datashare.user.User.fromJson;
 
 public class UserTest {
@@ -25,6 +25,13 @@ public class UserTest {
         User user = fromJson("{\"uid\": \"user_id\"}", "test");
         assertThat(user.provider).isEqualTo("test");
         assertThat(user.id).isEqualTo("user_id");
+    }
+
+    @Test
+    public void test_local_user_with_mapper() throws Exception {
+        User user = JsonObjectMapper.MAPPER.readValue("{\"id\":\"local\",\"name\":null,\"email\":null,\"provider\":\"test\"}", User.class);
+        assertThat(user.provider).isEqualTo("test");
+        assertThat(user.id).isEqualTo("local");
     }
 
     @Test
