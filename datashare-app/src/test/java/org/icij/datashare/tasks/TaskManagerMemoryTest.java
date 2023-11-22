@@ -2,7 +2,10 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
@@ -13,7 +16,8 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 
 public class TaskManagerMemoryTest {
-    private final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider());
+    @Mock TaskFactory factory;
+    private final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider(), factory);
 
     @Test
     public void test_run_task() throws Exception {
@@ -53,12 +57,6 @@ public class TaskManagerMemoryTest {
 
         assertThat(l.getCount()).isEqualTo(0);
         assertThat(taskManager.getTask(t1.id).getResult()).isEqualTo("task");
-    }
-
-    @Test
-    public void test_create_task_with_properties() {
-        TaskView<String> taskView = taskManager.startTask(() -> "task", new HashMap<String, Object>() {{ put("foo", "bar"); }});
-        assertThat(taskView.task.properties).includes(entry("foo", "bar"));
     }
 
     @Test

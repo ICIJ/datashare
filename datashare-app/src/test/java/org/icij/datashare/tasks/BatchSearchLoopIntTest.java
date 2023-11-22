@@ -26,9 +26,9 @@ import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 
-public class BatchSearchLoopTestInt {
+public class BatchSearchLoopIntTest {
     BlockingQueue<String> batchSearchQueue;
-    BatchSearch batchSearch = new BatchSearch(singletonList(project("prj")), "name", "desc", CollectionUtils.asSet("query") , local());
+    BatchSearch testBatchSearch = new BatchSearch(singletonList(project("prj")), "name", "desc", CollectionUtils.asSet("query") , local());
     @Mock BatchSearchRunner batchSearchRunner;
     @Mock TaskFactory factory;
     @Mock BatchSearchRepository repository;
@@ -37,14 +37,14 @@ public class BatchSearchLoopTestInt {
     @Test
     public void test_main_loop() {
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
-        batchSearchQueue.add(batchSearch.uuid);
+        batchSearchQueue.add(testBatchSearch.uuid);
         app.enqueuePoison();
 
         app.call();
 
         verify(batchSearchRunner).call();
-        verify(repository).setState(batchSearch.uuid, BatchSearch.State.RUNNING);
-        verify(repository).setState(batchSearch.uuid, BatchSearch.State.SUCCESS);
+        verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
+        verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.SUCCESS);
     }
 
     @Test
@@ -78,42 +78,42 @@ public class BatchSearchLoopTestInt {
         DatashareTime.setMockTime(true);
         Date beforeTest = DatashareTime.getInstance().now();
         CountDownLatch countDownLatch = new CountDownLatch(1);
-        SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100, countDownLatch);
+        SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100, countDownLatch, testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
-        batchSearchQueue.add(batchSearch.uuid);
+        batchSearchQueue.add(testBatchSearch.uuid);
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
 
         executor.submit(app::call);
         countDownLatch.await();
-        Signal term = new Signal("TERM");
-        Signal.raise(term);
+        Signal.raise(new Signal("TERM"));
         executor.shutdown();
 
         assertThat(executor.awaitTermination(1,TimeUnit.SECONDS)).isTrue();
         assertThat(DatashareTime.getInstance().now().getTime() - beforeTest.getTime()).isEqualTo(100);
-        assertThat(batchSearchQueue).containsOnly(batchSearch.uuid);
-        verify(repository).reset(batchSearch.uuid);
+        assertThat(batchSearchQueue).containsOnly(testBatchSearch.uuid);
+        verify(repository).reset(testBatchSearch.uuid);
     }
 
     @Test
-    public void test_run_batch_search_failure() throws Exception {
+    public void test_run_batch_search_failure() {
         when(factory.createBatchSearchRunner(any(), any())).thenThrow(new SearchException("query", new RuntimeException()));
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
-        batchSearchQueue.add(batchSearch.uuid);
+        batchSearchQueue.add(testBatchSearch.uuid);
         app.enqueuePoison();
 
         app.call();
 
-        verify(repository).setState(batchSearch.uuid, BatchSearch.State.RUNNING);
-        verify(repository).setState(eq(batchSearch.uuid), any(SearchException.class));
+        verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
+        verify(repository).setState(eq(testBatchSearch.uuid), any(SearchException.class));
     }
 
     @Test
     public void test_main_loop_exit_with_sigterm_and_queued_batches() throws InterruptedException {
-        SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100);
-        when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         BatchSearch bs1 = new BatchSearch(singletonList(project("prj")), "name1", "desc", CollectionUtils.asSet("query1") , local());
         BatchSearch bs2 = new BatchSearch(singletonList(project("prj")), "name2", "desc", CollectionUtils.asSet("query2") , local());
+        SleepingBatchSearchRunner bsr1 = new SleepingBatchSearchRunner(100, bs1);
+        SleepingBatchSearchRunner bsr2 = new SleepingBatchSearchRunner(100, bs2);
+        when(factory.createBatchSearchRunner(any(), any())).thenReturn(bsr1, bsr2);
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
         batchSearchQueue.add(bs1.uuid);
         batchSearchQueue.add(bs2.uuid);
@@ -122,8 +122,7 @@ public class BatchSearchLoopTestInt {
 
         executor.submit(app::call);
         waitQueueToHaveSize(1);
-        Signal term = new Signal("TERM");
-        Signal.raise(term);
+        Signal.raise(new Signal("TERM"));
         executor.shutdown();
         assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
 
@@ -133,10 +132,10 @@ public class BatchSearchLoopTestInt {
 
     @Test
     public void test_main_loop_exit_with_sigterm_when_running_batch() throws InterruptedException {
-        SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100);
+        SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100,testBatchSearch );
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         BatchSearchLoop app = new BatchSearchLoop(repository, batchSearchQueue, factory);
-        batchSearchQueue.add(batchSearch.uuid);
+        batchSearchQueue.add(testBatchSearch.uuid);
         executor.submit(app::call);
         waitQueueToBeEmpty();
 
@@ -146,13 +145,13 @@ public class BatchSearchLoopTestInt {
 
         assertThat(executor.awaitTermination(2,TimeUnit.SECONDS)).isTrue();
         assertThat(batchSearchRunner.cancelAsked).isTrue();
-        verify(repository).reset(batchSearch.uuid);
+        verify(repository).reset(testBatchSearch.uuid);
     }
 
     @Before
     public void setUp() {
         initMocks(this);
-        when(repository.get(anyString())).thenReturn(batchSearch);
+        when(repository.get(anyString())).thenReturn(testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         batchSearchQueue = new LinkedBlockingQueue<>();
     }
@@ -178,12 +177,12 @@ public class BatchSearchLoopTestInt {
         private final int sleepingMilliseconds;
         private final CountDownLatch countDownLatch;
 
-        public SleepingBatchSearchRunner(int sleepingMilliseconds) {
-            this(sleepingMilliseconds, new CountDownLatch(1));
+        public SleepingBatchSearchRunner(int sleepingMilliseconds, BatchSearch bs) {
+            this(sleepingMilliseconds, new CountDownLatch(1), bs);
         }
 
-        public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch) {
-            super(mock(Indexer.class), new PropertiesProvider(), mock(BatchSearch.class), (a, b, c) -> true);
+        public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch, BatchSearch bs) {
+            super(mock(Indexer.class), new PropertiesProvider(), bs, (a, b, c) -> true);
             this.sleepingMilliseconds = sleepingMilliseconds;
             this.countDownLatch = countDownLatch;
         }
@@ -200,7 +199,7 @@ public class BatchSearchLoopTestInt {
                     // nothing we throw a cancel later
                 }
             }
-            throw new BatchSearchRunner.CancelException();
+            throw new BatchSearchRunner.CancelException(batchSearch.uuid);
         }
     }
 }

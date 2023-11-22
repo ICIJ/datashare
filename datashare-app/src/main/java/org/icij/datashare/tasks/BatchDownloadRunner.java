@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import net.lingala.zip4j.io.outputstream.ZipOutputStream;
@@ -14,6 +15,7 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
 import org.icij.datashare.com.mail.MailException;
 import org.icij.datashare.com.mail.MailSender;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
@@ -60,15 +62,15 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     private final Function<URI, MailSender> mailSenderSupplier;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted BiFunction<String, Double, Void> progressCallback, @Assisted BatchDownload batchDownload) {
-        this(indexer, propertiesProvider, progressCallback, batchDownload, MailSender::new);
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted TaskView<?> task, @Assisted BiFunction<String, Double, Void> progressCallback) {
+        this(indexer, propertiesProvider, progressCallback, task, MailSender::new);
     }
 
-    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, BiFunction<String, Double, Void> progressCallback, BatchDownload batchDownload, Function<URI, MailSender> mailSenderSupplier) {
+    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, BiFunction<String, Double, Void> progressCallback, TaskView<?> task, Function<URI, MailSender> mailSenderSupplier) {
         this.indexer = indexer;
         this.propertiesProvider = provider;
         this.progressCallback = progressCallback;
-        this.batchDownload = batchDownload;
+        this.batchDownload = (BatchDownload) task.properties.get("batchDownload");
         this.mailSenderSupplier = mailSenderSupplier;
         this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }

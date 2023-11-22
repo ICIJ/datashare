@@ -22,10 +22,10 @@ import static org.mockito.Mockito.mock;
 
 public class TaskManagerRedisTest {
     private final Jedis redis = new Jedis("redis");
-    PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+    PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("redisAddress", "redis://redis:6379");
     }});
-    private final BlockingQueue<BatchDownload> batchDownloadQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<TaskView<?>> batchDownloadQueue = new LinkedBlockingQueue<>();
     private final TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, "test:task:manager", batchDownloadQueue);
 
     @Test
@@ -35,7 +35,7 @@ public class TaskManagerRedisTest {
         taskManager.save(task);
 
         assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTask(task.id).toString()).isEqualTo(task.id);
+        assertThat(taskManager.getTask(task.id)).isNotNull();
     }
 
     @Test
@@ -86,9 +86,10 @@ public class TaskManagerRedisTest {
     @Test
     public void test_start_task() {
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo", Paths.get("dir"), false);
-        BatchDownloadRunner downloadTask = new BatchDownloadRunner(mock(Indexer.class), propertiesProvider,  (i, p) -> null, batchDownload);
 
-        assertThat(taskManager.startTask(downloadTask, new HashMap<String, Object>() {{ put("batchDownload", batchDownload);}})).isNotNull();
+        assertThat(taskManager.startTask(BatchDownloadRunner.class.getName(), new HashMap<>() {{
+            put("batchDownload", batchDownload);
+        }})).isNotNull();
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(batchDownloadQueue).hasSize(1);
         assertThat(redis.hlen("test:task:manager")).isEqualTo(1);

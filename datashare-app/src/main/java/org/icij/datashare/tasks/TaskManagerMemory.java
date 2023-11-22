@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import net.codestory.http.security.User;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.batch.BatchDownload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,9 +25,11 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final ConcurrentMap<String, TaskView<?>> tasks = new ConcurrentHashMap<>();
+    private final TaskFactory factory;
 
     @Inject
-    public TaskManagerMemory(final PropertiesProvider provider) {
+    public TaskManagerMemory(final PropertiesProvider provider, final TaskFactory factory) {
+        this.factory = factory;
         Optional<String> parallelism = provider.get("parallelism");
         executor = parallelism.map(s -> newFixedThreadPool(parseInt(s))).
                    orElseGet( () -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
@@ -47,10 +50,11 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V> TaskView<V> startTask(final Callable<V> task, Map<String, Object> properties) {
-        MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<V>(task, properties);
-        TaskView<V> taskView = new TaskView<>(futureTask);
-        executor.submit(futureTask);
+    public <V> TaskView<V> startTask(String taskName, Map<String, Object> properties) {
+        BatchDownload batchDownload = (BatchDownload) properties.get("batchDownload");
+        TaskView<V> taskView = new TaskView<>(taskName, batchDownload.user, properties);
+        BatchDownloadRunner downloadRunner = factory.createDownloadRunner(taskView, this::progress);
+        executor.submit(downloadRunner);
         save(taskView);
         return taskView;
     }
@@ -110,7 +114,9 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public List<TaskView<?>> waitTasksToBeDone(int timeout, TimeUnit timeUnit) {
         return tasks.values().stream().peek(taskView -> {
             try {
-                taskView.task.get(timeout, timeUnit);
+                if (taskView.task != null) {
+                    taskView.task.get(timeout, timeUnit);
+                }
             } catch (InterruptedException|ExecutionException|TimeoutException|CancellationException e) {
                 logger.error("task interrupted while running", e);
             }
@@ -140,7 +146,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V> TaskView<V> get(int timeOut, TimeUnit timeUnit) {
+    public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) {
         throw new NotImplementedException("no need to wait for tasks with memory task manager");
     }
 }

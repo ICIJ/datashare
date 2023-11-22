@@ -1,6 +1,7 @@
 package org.icij.datashare.web;
 
 import net.codestory.http.routes.Routes;
+import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
@@ -23,6 +24,7 @@ import org.junit.*;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -33,6 +35,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.session.DatashareUser.local;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.eq;
@@ -43,7 +46,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     @Mock JooqRepository jooqRepository;
     private static final TaskFactory taskFactory = mock(TaskFactory.class);
-    private static final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider());
+    private static final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider(), taskFactory);
 
     @Before
     public void setUp() {
@@ -247,42 +250,40 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_batch_download() {
-        post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\" }}").
-                should().haveType("application/json").
-                should().contain("properties").
-                should().contain("filename");
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "*", Paths.get("app", "tmp"), false)), any());
+    public void test_batch_download() throws Exception {
+        Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\" }}").response();
+
+        assertThat(response.contentType()).startsWith("application/json");
+        TaskView<?> task = MAPPER.readValue(response.content(), TaskView.class);
+        verify(taskFactory).createDownloadRunner(eq(task), any());
     }
 
     @Test
-    public void test_batch_download_multiple_projects() {
-        post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"project1\", \"project2\"], \"query\": \"*\" }}").
-                should().haveType("application/json").
-                should().contain("properties").
-                should().contain("filename");
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", Paths.get("app", "tmp"), false)), any());
+    public void test_batch_download_multiple_projects() throws Exception {
+        Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"project1\", \"project2\"], \"query\": \"*\" }}").response();
+
+        assertThat(response.contentType()).startsWith("application/json");
+        TaskView<?> task = MAPPER.readValue(response.content(), TaskView.class);
+        verify(taskFactory).createDownloadRunner(eq(task), any());
     }
 
     @Test
-    public void test_batch_download_uri() {
-        post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\", \"uri\": \"/an%20url-encoded%20uri\" }}").
-                should().haveType("application/json").
-                should().contain("properties").
-                should().contain("filename");
-        BatchDownload same = new BatchDownload(Arrays.asList(project("project1"), project("project2")), local(), "*", "/an%20url-encoded%20uri", Paths.get("app", "tmp"), false);
-        verify(taskFactory).createDownloadRunner(eq(same), any());
+    public void test_batch_download_uri() throws Exception  {
+        Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": \"*\", \"uri\": \"/an%20url-encoded%20uri\" }}").response();
+
+        assertThat(response.contentType()).startsWith("application/json");
+        TaskView<?> task = MAPPER.readValue(response.content(), TaskView.class);
+        verify(taskFactory).createDownloadRunner(eq(task), any());
     }
 
 
     @Test
-    public void test_batch_download_json_query() {
-        post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": {\"match_all\":{}} }}").
-                should().haveType("application/json").
-                should().contain("properties").
-                should().contain("filename");
+    public void test_batch_download_json_query()  throws Exception {
+        Response response = post("/api/task/batchDownload", "{\"options\":{ \"projectIds\":[\"test-datashare\"], \"query\": {\"match_all\":{}} }}").response();
 
-        verify(taskFactory).createDownloadRunner(eq(new BatchDownload(Collections.singletonList(project("test-datashare")), local(), "{\"match_all\":{}}", Paths.get("app", "tmp"), false)), any());
+        assertThat(response.contentType()).startsWith("application/json");
+        TaskView<?> task = MAPPER.readValue(response.content(), TaskView.class);
+        verify(taskFactory).createDownloadRunner(eq(task), any());
     }
 
     @Test
@@ -392,6 +393,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
             put("foo", "bar");
             put("batchDownloadDir", "app/tmp");
         }};
+    }
+
+    private TaskView<?> taskView(BatchDownload batchDownload) {
+        return new TaskView<File>(batchDownload.uuid, batchDownload.user, new HashMap<>() {{
+            put("batchDownload", batchDownload);
+        }});
     }
 
     private void init(TaskFactory taskFactory) {

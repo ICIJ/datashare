@@ -13,7 +13,7 @@ import static java.util.stream.Collectors.toList;
 
 public interface TaskManager {
     <V> TaskView<V> startTask(Callable<V> task, Runnable callback);
-    <V> TaskView<V> startTask(Callable<V> task, Map<String, Object> properties);
+    <V> TaskView<V> startTask(String taskName, Map<String, Object> properties);
     <V> TaskView<V> startTask(Callable<V> task);
     boolean stopTask(String taskId);
     Map<String, Boolean> stopAllTasks(User user);

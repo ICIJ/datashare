@@ -14,7 +14,6 @@ public class BatchDownloadApp {
         CommonMode commonMode = CommonMode.create(properties);
         BatchDownloadLoop batchDownloadLoop = commonMode.get(TaskFactory.class).createBatchDownloadLoop();
         batchDownloadLoop.run();
-        batchDownloadLoop.close();
         commonMode.get(Indexer.class).close();
         commonMode.get(RedissonClient.class).shutdown();
     }

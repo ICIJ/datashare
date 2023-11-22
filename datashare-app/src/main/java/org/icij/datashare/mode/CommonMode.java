@@ -76,7 +76,12 @@ public abstract class CommonMode extends AbstractModule {
         propertiesProvider = properties == null ? new PropertiesProvider() :
                 new PropertiesProvider(properties.getProperty(PropertiesProvider.SETTINGS_FILE_PARAMETER_KEY)).mergeWith(properties);
         this.mode = getMode(properties);
-        this.injector = Guice.createInjector(this);
+        try {
+            this.injector = Guice.createInjector(this);
+        } catch (CreationException e) {
+            logger.error("cannot create injector: {}", e.getErrorMessages());
+            throw e;
+        }
     }
 
     CommonMode(final Map<String, String> map) {
@@ -113,6 +118,7 @@ public abstract class CommonMode extends AbstractModule {
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
+        install(new FactoryModuleBuilder().build(TaskFactory.class));
 
         RedissonClient redissonClient = null;
         if ( hasRedisProperty() ) {
@@ -138,8 +144,6 @@ public abstract class CommonMode extends AbstractModule {
         bind(Indexer.class).to(ElasticsearchIndexer.class).asEagerSingleton();
 
         bind(TesseractOCRParserWrapper.class).toInstance(new TesseractOCRParserWrapper());
-
-        install(new FactoryModuleBuilder().build(TaskFactory.class));
 
         configureIndexingQueues(propertiesProvider);
         configureDataBus(propertiesProvider);
@@ -172,12 +176,12 @@ public abstract class CommonMode extends AbstractModule {
 
     private void configureBatchQueuesMemory(PropertiesProvider propertiesProvider) {
         bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHSEARCH_QUEUE_NAME));
-        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
     private void configureBatchQueuesRedis(RedissonClient redissonClient) {
         bind(new TypeLiteral<BlockingQueue<String>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHSEARCH_QUEUE_NAME));
-        bind(new TypeLiteral<BlockingQueue<BatchDownload>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
     void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {

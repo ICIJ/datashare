@@ -5,19 +5,18 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.jsontype.DefaultBaseTypeLimitingValidator;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import net.codestory.http.security.User;
-import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.batch.BatchDownload;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
+import org.jetbrains.annotations.NotNull;
 import org.redisson.Redisson;
 import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
@@ -46,34 +45,32 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
-import static org.elasticsearch.painless.api.Augmentation.asList;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 
 public class TaskManagerRedis implements TaskManager, TaskSupplier {
     private final RedissonMap<String, TaskView<?>> tasks;
-    private final BlockingQueue<BatchDownload> batchDownloadQueue;
+    private final BlockingQueue<TaskView<?>> taskQueue;
 
     @Inject
-    public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, BlockingQueue<BatchDownload> batchDownloadQueue) {
+    public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, BlockingQueue<TaskView<?>> taskQueue) {
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
-        this.batchDownloadQueue = batchDownloadQueue;
+        this.taskQueue = taskQueue;
     }
 
-    public TaskManagerRedis(PropertiesProvider propertiesProvider, BlockingQueue<BatchDownload> batchDownloadQueue) {
+    public TaskManagerRedis(PropertiesProvider propertiesProvider, BlockingQueue<TaskView<?>> batchDownloadQueue) {
         this(propertiesProvider, CommonMode.DS_TASK_MANAGER_QUEUE_NAME, batchDownloadQueue);
     }
     
-    TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<BatchDownload> batchDownloadQueue) {
+    TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<TaskView<?>> taskQueue) {
         RedissonClient redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
-        this.batchDownloadQueue = batchDownloadQueue;
+        this.taskQueue = taskQueue;
     }
 
-    <V> Void save(TaskView<V> task) {
+    void save(TaskView<?> task) {
         tasks.put(task.id, task);
-        return null;
     }
 
     @Override
@@ -90,16 +87,8 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public TaskView<File> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        BatchDownload batchDownload = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
-        assert batchDownload != null;
-        try {
-            String json = MAPPER.writeValueAsString(batchDownload);
-            return new TaskView<File>(batchDownload.uuid, TaskView.State.INIT, 0, batchDownload.user, null, MAPPER.readValue(json, new TypeReference<HashMap<String, Object>>(){}));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-
+    public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
+        return (TaskView<V>) taskQueue.poll(60, TimeUnit.SECONDS);
     }
 
     @Override
@@ -112,11 +101,10 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     }
 
     @Override public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
-    @Override public <V> TaskView<V> startTask(Callable<V> task, Map<String, Object> properties) {
-        MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task, properties);
-        TaskView<V> taskView = new TaskView<>(futureTask);
+    @Override public <V> TaskView<V> startTask(String taskName, Map<String, Object> properties) {
+        TaskView<V> taskView = new TaskView<>(taskName, (org.icij.datashare.user.User) properties.get("user"), properties);
         save(taskView);
-        batchDownloadQueue.add((BatchDownload) properties.get("batchDownload"));
+        taskQueue.add(taskView);
         return taskView;
     }
     @Override public <V> TaskView<V> startTask(Callable<V> task) { throw new IllegalStateException("not implemented"); }
@@ -125,7 +113,10 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     @Override
     public Map<String, Boolean> stopAllTasks(User user) { throw new IllegalStateException("not implemented"); }
 
-    @Override public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException { throw new IllegalStateException("not implemented"); }
+    @Override public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) {
+        taskQueue.add(TaskView.nullObject());
+        return true;
+    }
 
     @Override
     public Void progress(String taskId, double rate) {
@@ -171,7 +162,7 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
                 return str;
             };
         }
-        protected void init(ObjectMapper objectMapper) {
+        protected void init(@NotNull ObjectMapper objectMapper) {
             objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             objectMapper.setVisibility(objectMapper.getSerializationConfig()
                     .getDefaultVisibilityChecker()
@@ -186,7 +177,7 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
             objectMapper.addMixIn(Throwable.class, ThrowableMixIn.class);
         }
 
-        protected void initTypeInclusion(ObjectMapper mapObjectMapper) {
+        protected void initTypeInclusion(@NotNull ObjectMapper mapObjectMapper) {
             TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.NON_FINAL) {
                 public boolean useForType(JavaType t) {
                     switch (_appliesFor) {
