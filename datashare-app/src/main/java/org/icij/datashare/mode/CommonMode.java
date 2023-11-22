@@ -129,14 +129,16 @@ public abstract class CommonMode extends AbstractModule {
         QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
         if ( batchQueueType == QueueType.REDIS ) {
             configureBatchQueuesRedis(redissonClient);
-            bind(TaskManager.class).to(TaskManagerRedis.class).asEagerSingleton();
-            bind(TaskModifier.class).to(TaskManagerRedis.class).asEagerSingleton();
-            bind(TaskSupplier.class).to(TaskManagerRedis.class).asEagerSingleton();
+            bind(TaskManagerRedis.class).in(Scopes.SINGLETON);
+            bind(TaskManager.class).to(TaskManagerRedis.class);
+            bind(TaskModifier.class).to(TaskManagerRedis.class);
+            bind(TaskSupplier.class).to(TaskManagerRedis.class);
         } else {
             configureBatchQueuesMemory(propertiesProvider);
-            bind(TaskManager.class).to(TaskManagerMemory.class).asEagerSingleton();
-            bind(TaskModifier.class).to(TaskManagerMemory.class).asEagerSingleton();
-            bind(TaskSupplier.class).to(TaskManagerMemory.class).asEagerSingleton();
+            bind(TaskManagerMemory.class).in(Scopes.SINGLETON);
+            bind(TaskManager.class).to(TaskManagerMemory.class);
+            bind(TaskModifier.class).to(TaskManagerMemory.class);
+            bind(TaskSupplier.class).to(TaskManagerMemory.class);
         }
 
         ElasticsearchClient esClient = createESClient(propertiesProvider);

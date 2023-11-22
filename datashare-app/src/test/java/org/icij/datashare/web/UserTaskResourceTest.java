@@ -19,6 +19,7 @@ import org.junit.Test;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
@@ -163,7 +164,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
             put("mode", "LOCAL");
         }});
         TaskFactory taskFactory = mock(TaskFactory.class);
-        taskManager = new TaskManagerMemory(propertiesProvider, taskFactory);
+        taskManager = new TaskManagerMemory(propertiesProvider, new ArrayBlockingQueue<>(3));
         configure(new CommonMode(propertiesProvider.getProperties()) {
             @Override
             protected void configure() {

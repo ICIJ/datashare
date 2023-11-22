@@ -49,7 +49,7 @@ public class BatchDownloadLoopIntTest {
         taskManager.startTask(BatchDownloadRunner.class.getName(), properties);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
-        batchDownloadLoop.run();
+        batchDownloadLoop.call();
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).error).isNotNull();

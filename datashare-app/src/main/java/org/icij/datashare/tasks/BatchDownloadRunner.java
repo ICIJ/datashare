@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import net.lingala.zip4j.io.outputstream.ZipOutputStream;
@@ -15,7 +14,6 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
 import org.icij.datashare.com.mail.MailException;
 import org.icij.datashare.com.mail.MailSender;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Project;
@@ -30,7 +28,11 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -45,20 +47,24 @@ import java.util.zip.ZipException;
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_MAX_NB_FILES;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_MAX_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
+import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
 
 public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
     private final DocumentVerifier documentVerifier;
+    private final TaskView<File> task;
     volatile long docsToProcessSize = 0;
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
     private final BiFunction<String, Double, Void> progressCallback;
-    private final BatchDownload batchDownload;
     private final Function<URI, MailSender> mailSenderSupplier;
 
     @Inject
@@ -67,10 +73,11 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     }
 
     BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, BiFunction<String, Double, Void> progressCallback, TaskView<?> task, Function<URI, MailSender> mailSenderSupplier) {
+        assert task.properties.get("batchDownload") != null : "'batchDownload' property in task shouldn't be null";
+        this.task = (TaskView<File>) task;
         this.indexer = indexer;
         this.propertiesProvider = provider;
         this.progressCallback = progressCallback;
-        this.batchDownload = (BatchDownload) task.properties.get("batchDownload");
         this.mailSenderSupplier = mailSenderSupplier;
         this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }
@@ -82,6 +89,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
         long maxZipSizeBytes = HumanReadableSize.parse(propertiesProvider.get(BATCH_DOWNLOAD_MAX_SIZE).orElse("100M"));
         long zippedFilesSize = 0;
+        BatchDownload batchDownload = getBatchDownload();
 
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
                 batchDownload.user.getId(), batchDownload.projects, throttleMs, scrollSize);
@@ -113,7 +121,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                         zippedFilesSize += addedBytes;
                         numberOfResults.incrementAndGet();
                         batchDownload.setZipSize(zippedFilesSize);
-                        progressCallback.apply(TaskView.getId(this), getProgressRate());
+                        progressCallback.apply(task.id, getProgressRate());
                     }
                 }
                 docsToProcess = searcher.scroll().collect(toList());
@@ -141,15 +149,19 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
 
     @Override
     public User getUser() {
-        return batchDownload.user;
+        return getBatchDownload().user;
     }
 
     @Override
     public String toString() {
-        return getClass().getName() + "@" + batchDownload.uuid;
+        return getClass().getSimpleName() + "@" + getBatchDownload().uuid;
     }
 
+    private BatchDownload getBatchDownload() {
+        return (BatchDownload) task.properties.get("batchDownload");
+    }
     private static class Zipper implements AutoCloseable {
+
         protected final BatchDownload batchDownload;
         protected final ZipOutputStream zipOutputStream;
 

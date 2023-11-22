@@ -4,6 +4,7 @@ import net.codestory.http.WebServer;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.BatchDownloadLoop;
 import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
@@ -43,8 +44,10 @@ public class WebApp {
         }
         if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
             BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
+            BatchDownloadLoop batchDownloadLoop = mode.get(TaskFactory.class).createBatchDownloadLoop();
             TaskManager taskManager = mode.get(TaskManager.class);
-            taskManager.startTask(batchSearchLoop::call);
+            taskManager.startTask(batchSearchLoop);
+            taskManager.startTask(batchDownloadLoop);
         }
         webServerThread.join();
     }
