@@ -16,6 +16,7 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,6 +38,11 @@ public class BatchDownloadRunnerTest {
     @Mock TaskModifier updater;
     @Mock Indexer indexer;
     MockSearch mockSearch;
+
+    @Test(expected = AssertionError.class)
+    public void test_task_with_no_batch_download() {
+        new BatchDownloadRunner(indexer, new PropertiesProvider(), new TaskView<Serializable>("name", User.local(), new HashMap<>()), null);
+    }
 
     @Test
     public void test_max_default_results() throws Exception {

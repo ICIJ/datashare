@@ -14,13 +14,14 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Optional.ofNullable;
 
-public class BatchSearchLoop {
+public class BatchSearchLoop implements Callable<Integer> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     final BlockingQueue<String> batchSearchQueue;
     private final TaskFactory factory;
@@ -49,7 +50,7 @@ public class BatchSearchLoop {
     }
 
     public Integer call() {
-        logger.info("Datashare running in batch mode. Waiting batch from ds:batchsearch:queue ({})", batchSearchQueue.getClass());
+        logger.info("Waiting batch downloads from supplier ({}) ds:batchsearch:queue", batchSearchQueue.getClass());
         waitForMainLoopCalled.countDown();
         loopThread = Thread.currentThread();
         String currentBatchId = null;

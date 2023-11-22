@@ -12,6 +12,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 
 import java.io.File;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
@@ -40,15 +41,16 @@ public class BatchDownloadLoopTest {
             }
         };
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "query");
-        when(supplier.get(anyInt(), any())).thenReturn(
-                new TaskView<>(BatchDownloadRunner.class.getName(), batchDownload.user, new HashMap<>() {{
-                    put("batchDownload", batchDownload);
-                }}), TaskView.nullObject());
+        TaskView<Serializable> task = new TaskView<>(BatchDownloadRunner.class.getName(), batchDownload.user, new HashMap<>() {{
+            put("batchDownload", batchDownload);
+        }});
+        when(supplier.get(anyInt(), any())).thenReturn(task, TaskView.nullObject());
 
-        app.run();
+        Integer nb = app.call();
 
+        assertThat(nb).isEqualTo(2);
         verify(batchRunner).call();
-        verify(supplier).result(anyString(), anyObject());
+        verify(supplier).result(eq(task.id), anyObject());
         verify(batchDownloadCleaner, times(2)).run();
     }
 
@@ -64,7 +66,7 @@ public class BatchDownloadLoopTest {
         };
         when(supplier.get(anyInt(), any())).thenReturn( TaskView.nullObject());
 
-        app.run();
+        assertThat(app.call()).isEqualTo(1);
     }
 
     @Before

@@ -13,7 +13,7 @@ public class BatchDownloadApp {
     public static void start(Properties properties) throws Exception {
         CommonMode commonMode = CommonMode.create(properties);
         BatchDownloadLoop batchDownloadLoop = commonMode.get(TaskFactory.class).createBatchDownloadLoop();
-        batchDownloadLoop.run();
+        batchDownloadLoop.call();
         commonMode.get(Indexer.class).close();
         commonMode.get(RedissonClient.class).shutdown();
     }

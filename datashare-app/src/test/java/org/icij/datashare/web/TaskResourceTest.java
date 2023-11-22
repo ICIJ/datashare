@@ -28,6 +28,8 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import static java.lang.String.format;
 import static java.util.Collections.singleton;
@@ -46,7 +48,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     @Mock JooqRepository jooqRepository;
     private static final TaskFactory taskFactory = mock(TaskFactory.class);
-    private static final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider(), taskFactory);
+    private static final BlockingQueue<TaskView<?>> taskQueue = new ArrayBlockingQueue<>(3);
+    private static final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider(), taskQueue);
 
     @Before
     public void setUp() {
@@ -255,7 +258,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(response.contentType()).startsWith("application/json");
         TaskView<?> task = MAPPER.readValue(response.content(), TaskView.class);
-        verify(taskFactory).createDownloadRunner(eq(task), any());
+        assertThat(taskQueue.contains(task));
     }
 
     @Test
@@ -264,7 +267,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(response.contentType()).startsWith("application/json");
         TaskView<?> task = MAPPER.readValue(response.content(), TaskView.class);
-        verify(taskFactory).createDownloadRunner(eq(task), any());
+        assertThat(taskQueue.contains(task));
     }
 
     @Test
@@ -273,7 +276,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(response.contentType()).startsWith("application/json");
         TaskView<?> task = MAPPER.readValue(response.content(), TaskView.class);
-        verify(taskFactory).createDownloadRunner(eq(task), any());
+        assertThat(taskQueue.contains(task));
     }
 
 
@@ -283,7 +286,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         assertThat(response.contentType()).startsWith("application/json");
         TaskView<?> task = MAPPER.readValue(response.content(), TaskView.class);
-        verify(taskFactory).createDownloadRunner(eq(task), any());
+        assertThat(taskQueue.contains(task));
     }
 
     @Test

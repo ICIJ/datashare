@@ -4,7 +4,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.tasks.BatchDownloadLoop;
-import org.icij.datashare.tasks.BatchDownloadRunner;
 import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
@@ -51,6 +50,6 @@ public class CliModeTest {
 
         BatchDownloadLoop batchDownloadLoop = mode.get(TaskFactory.class).createBatchDownloadLoop();
         mode.get(TaskManager.class).shutdownAndAwaitTermination(1, TimeUnit.SECONDS); // to enqueue poison
-        batchDownloadLoop.run();
+        batchDownloadLoop.call();
     }
 }

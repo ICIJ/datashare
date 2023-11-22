@@ -171,7 +171,7 @@ public class BatchDownloadRunnerIntTest {
         BatchDownload bd = createBatchDownload("*");
         BatchDownloadRunner batchDownloadRunner = new BatchDownloadRunner(indexer, createProvider(), createTaskView(bd), taskModifier::progress);
 
-        assertThat(batchDownloadRunner.toString()).startsWith("org.icij.datashare.tasks.BatchDownloadRunner@");
+        assertThat(batchDownloadRunner.toString()).startsWith("BatchDownloadRunner@");
         assertThat(batchDownloadRunner.toString()).contains(bd.uuid);
     }
 

@@ -17,6 +17,7 @@ import java.util.concurrent.*;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.parseInt;
+import static java.util.Optional.ofNullable;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -25,11 +26,11 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
     private final ConcurrentMap<String, TaskView<?>> tasks = new ConcurrentHashMap<>();
-    private final TaskFactory factory;
+    private final BlockingQueue<TaskView<?>> taskQueue;
 
     @Inject
-    public TaskManagerMemory(final PropertiesProvider provider, final TaskFactory factory) {
-        this.factory = factory;
+    public TaskManagerMemory(final PropertiesProvider provider, BlockingQueue<TaskView<?>> taskQueue) {
+        this.taskQueue = taskQueue;
         Optional<String> parallelism = provider.get("parallelism");
         executor = parallelism.map(s -> newFixedThreadPool(parseInt(s))).
                    orElseGet( () -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
@@ -53,9 +54,8 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     public <V> TaskView<V> startTask(String taskName, Map<String, Object> properties) {
         BatchDownload batchDownload = (BatchDownload) properties.get("batchDownload");
         TaskView<V> taskView = new TaskView<>(taskName, batchDownload.user, properties);
-        BatchDownloadRunner downloadRunner = factory.createDownloadRunner(taskView, this::progress);
-        executor.submit(downloadRunner);
         save(taskView);
+        taskQueue.offer(taskView);
         return taskView;
     }
 
@@ -84,13 +84,23 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public Void progress(String taskId, double rate) {
-        tasks.get(taskId).setProgress(rate);
+        TaskView<?> taskView = tasks.get(taskId);
+        if (taskView != null) {
+            taskView.setProgress(rate);
+        } else {
+            logger.warn("unknown task id <{}> for progress={} call", taskId, rate);
+        }
         return null;
     }
 
     @Override
     public <V extends Serializable> void result(String taskId, V result) {
-        getTask(taskId).setResult(result);
+        TaskView<V> taskView = (TaskView<V>) tasks.get(taskId);
+        if (taskView != null) {
+            taskView.setResult(result);
+        } else {
+            logger.warn("unknown task id <{}> for result={} call", taskId, result);
+        }
     }
 
     @Override
@@ -146,7 +156,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) {
-        throw new NotImplementedException("no need to wait for tasks with memory task manager");
+    public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
+        return (TaskView<V>) taskQueue.poll(timeOut, timeUnit);
     }
 }
