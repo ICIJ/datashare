@@ -46,7 +46,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith("foo");
         TaskView<String> t = taskManager.startTask(new DummyUserTask<>("foo"));
         get("/api/task/" + t.id).withPreemptiveAuthentication("foo", "qux").should().respond(200).
-            contain(format("{\"id\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}", t.id));
+            contain(format("{\"id\":\"%s\",\"name\":\"org.icij.datashare.tasks.MonitorableFutureTask\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}", t.id));
     }
 
     @Test
@@ -116,8 +116,8 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         TaskView<String> t2 = taskManager.startTask(new DummyUserTask<>("bar"));
 
         System.out.println(t1.properties);
-        get("/api/task/all").withPreemptiveAuthentication("foo", "qux").should().contain(format("[{\"id\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t1.id));
-        get("/api/task/all").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"id\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.id));
+        get("/api/task/all").withPreemptiveAuthentication("foo", "qux").should().contain(format("[{\"id\":\"%s\",\"name\":\"org.icij.datashare.tasks.MonitorableFutureTask\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t1.id));
+        get("/api/task/all").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"id\":\"%s\",\"name\":\"org.icij.datashare.tasks.MonitorableFutureTask\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.id));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith("bar");
         TaskView<String> t2 = taskManager.startTask(new DummyUserTask<>("bar"));
 
-        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"id\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.id));
+        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"id\":\"%s\",\"name\":\"org.icij.datashare.tasks.MonitorableFutureTask\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.id));
         get("/api/task/all?filter=foo").withPreemptiveAuthentication("bar", "qux").should().contain("[]");
     }
 
@@ -162,7 +162,8 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("mode", "LOCAL");
         }});
-        taskManager = new TaskManagerMemory(propertiesProvider);
+        TaskFactory taskFactory = mock(TaskFactory.class);
+        taskManager = new TaskManagerMemory(propertiesProvider, taskFactory);
         configure(new CommonMode(propertiesProvider.getProperties()) {
             @Override
             protected void configure() {
@@ -172,7 +173,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 bind(TaskManager.class).toInstance(taskManager);
                 bind(TaskModifier.class).toInstance(taskManager);
                 bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins)));
-                bind(TaskFactory.class).toInstance(mock(TaskFactory.class));
+                bind(TaskFactory.class).toInstance(taskFactory);
                 bind(Indexer.class).toInstance(mock(Indexer.class));
             }
             @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class).filter(Filter.class);}

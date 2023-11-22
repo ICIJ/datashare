@@ -2,33 +2,27 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
 import java.io.File;
-import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 
 public class BatchDownloadLoop {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Path downloadDir;
     private final int ttlHour;
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final BlockingQueue<BatchDownload> batchDownloadQueue;
     private final TaskFactory factory;
     private final TaskSupplier taskSupplier;
-    private static final BatchDownload NULL_BATCH_DOWNLOAD = BatchDownload.nullObject();
+    public static final TaskView<Serializable> POISON = TaskView.nullObject();
 
     @Inject
-    public BatchDownloadLoop(PropertiesProvider propertiesProvider, BlockingQueue<BatchDownload> batchDownloadQueue, TaskFactory factory, TaskSupplier taskSupplier) {
-        this.batchDownloadQueue = batchDownloadQueue;
+    public BatchDownloadLoop(PropertiesProvider propertiesProvider, TaskFactory factory, TaskSupplier taskSupplier) {
         this.factory = factory;
         this.taskSupplier = taskSupplier;
         downloadDir = Paths.get(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_DIR));
@@ -37,39 +31,23 @@ public class BatchDownloadLoop {
 
     public void run() {
         logger.info("Datashare running in batch mode. Waiting batch from supplier ({})", taskSupplier.getClass());
-        BatchDownload currentTask = null;
-        MonitorableFutureTask<File> fileMonitorableFutureTask = null;
-        while (!NULL_BATCH_DOWNLOAD.equals(currentTask)) {
+        TaskView<File> currentTask = null;
+        while (!POISON.equals(currentTask)) {
             try {
-                currentTask = batchDownloadQueue.poll(60, TimeUnit.SECONDS);
+                currentTask = taskSupplier.get(60, TimeUnit.SECONDS);
                 createDownloadCleaner(downloadDir, ttlHour).run();
 
-                HashMap<String, Object> taskProperties = new HashMap<>();
-                taskProperties.put("batchDownload", currentTask);
-
-                if (currentTask != null && !NULL_BATCH_DOWNLOAD.equals(currentTask)) {
-                    fileMonitorableFutureTask = new MonitorableFutureTask<>(
-                            factory.createDownloadRunner(currentTask, taskSupplier::progress), taskProperties);
-                    fileMonitorableFutureTask.run();
-                    File file = fileMonitorableFutureTask.get();
-                    taskSupplier.result(currentTask.toString(), file);
+                if (currentTask != null && !POISON.equals(currentTask)) {
+                    BatchDownloadRunner downloadRunner = factory.createDownloadRunner(currentTask, taskSupplier::progress);
+                    File zipResult = downloadRunner.call();
+                    taskSupplier.result(currentTask.toString(), zipResult);
                 }
             } catch (Exception ex) {
                 logger.error(String.format("error in loop for task %s", currentTask), ex);
-                if (currentTask != null) {
-                    taskSupplier.error(new TaskView<>(fileMonitorableFutureTask).id, ex);
+                if (currentTask != null && currentTask.id != null) {
+                    taskSupplier.error(currentTask.id, ex);
                 }
             }
-        }
-    }
-
-    public void enqueuePoison() {
-        batchDownloadQueue.add(NULL_BATCH_DOWNLOAD);
-    }
-
-    public void close() throws IOException {
-        if (batchDownloadQueue instanceof Closeable) {
-            ((Closeable) batchDownloadQueue).close();
         }
     }
 

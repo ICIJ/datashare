@@ -16,7 +16,7 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V> TaskView<V> startTask(Callable<V> task, Map<String, Object> properties) {
+    public <V> TaskView<V> startTask(String taskName, Map<String, Object> properties) {
         return null;
     }
 

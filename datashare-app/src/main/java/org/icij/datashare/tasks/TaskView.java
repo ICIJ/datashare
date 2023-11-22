@@ -4,27 +4,30 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.icij.datashare.Entity;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import static java.util.Optional.ofNullable;
+import static java.util.UUID.randomUUID;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class TaskView<V> {
+public class TaskView<V> implements Entity {
+    public enum State {INIT, RUNNING, ERROR, DONE, CANCELLED}
     public final Map<String, Object> properties;
 
-    public static TaskView<String> nullObject() {
-        return new TaskView<>(null, State.INIT, 0, User.nullUser(), null, null);
-    }
-
-    public enum State {INIT, RUNNING, ERROR, DONE, CANCELLED}
-
     public final String id;
-
+    public final String name;
     public final User user;
     volatile String error;
     private volatile State state;
@@ -36,6 +39,7 @@ public class TaskView<V> {
     @Deprecated(since = "13.6.0")
     public TaskView(MonitorableFutureTask<V> task) {
         this.id = task.toString();
+        this.name = task.getClass().getName();
         this.user = task.getUser();
         this.properties = task.properties.isEmpty() ? null: task.properties;
         this.task = task;
@@ -48,20 +52,26 @@ public class TaskView<V> {
         }
     }
 
+    public TaskView(String name, User user, Map<String, Object> properties) {
+        this(randomUUID().toString(), name, State.INIT, 0, user, null, properties);
+    }
 
     @JsonCreator
     TaskView(@JsonProperty("id") String id,
+             @JsonProperty("name") String name,
              @JsonProperty("state") State state,
              @JsonProperty("progress") double progress,
              @JsonProperty("user") User user,
              @JsonProperty("result") V result,
              @JsonProperty("properties") Map<String, Object> properties) {
         this.id = id;
+        this.name = name;
         this.state = state;
         this.progress = progress;
         this.user = user;
         this.result = result;
-        this.properties = properties;
+        // avoids "no default constructor found" for anonymous inline maps
+        this.properties = Collections.unmodifiableMap(ofNullable(properties).orElse(new HashMap<>()));
         this.task = null;
     }
 
@@ -123,9 +133,23 @@ public class TaskView<V> {
     }
 
     @Override
-    public String toString() {return id;}
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TaskView<?> taskView = (TaskView<?>) o;
+        return Objects.equals(id, taskView.id);
+    }
+    @Override
+    public int hashCode() {return Objects.hash(id);}
+    @Override
+    public String toString() {return getClass().getSimpleName() + "@" + id;}
     @JsonIgnore
     public boolean isNull() { return id == null;}
     public User getUser() { return user;}
     public static <V> String getId(@NotNull Callable<V> task) {return task.toString();}
+    @Override
+    public String getId() {return id;}
+    public static TaskView<Serializable> nullObject() {
+        return new TaskView<>(null, null, State.INIT, 0, User.nullUser(), null, new HashMap<>());
+    }
 }

@@ -73,10 +73,9 @@ public class BatchSearchLoop {
             } catch (JooqBatchSearchRepository.BatchNotFoundException notFound) {
                 logger.warn("batch was not executed : {}", notFound.toString());
             } catch (BatchSearchRunner.CancelException cancelEx) {
-                String cancelledBatchSearch = cancelEx.getMessage();
-                logger.info("cancelling batch search {}", cancelledBatchSearch);
-                batchSearchQueue.offer(cancelledBatchSearch);
-                repository.reset(cancelledBatchSearch);
+                logger.info("cancelling batch search {}", cancelEx.batchSearchId);
+                batchSearchQueue.offer(cancelEx.batchSearchId);
+                repository.reset(cancelEx.batchSearchId);
             } catch (SearchException sex) {
                 logger.error("exception while running batch " + currentBatchId, sex);
                 repository.setState(currentBatchId, sex);

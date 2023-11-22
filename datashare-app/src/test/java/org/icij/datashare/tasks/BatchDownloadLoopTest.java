@@ -26,22 +26,24 @@ import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchDownloadLoopTest {
-    private final BlockingQueue<BatchDownload> batchDownloadQueue = new LinkedBlockingQueue<>();
     @Mock BatchDownloadRunner batchRunner;
     @Mock TaskFactory factory;
     @Mock TaskSupplier supplier;
 
-    @Test
+    @Test(timeout = 2000)
     public void test_loop() throws Exception {
         BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
-        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), batchDownloadQueue, factory, supplier) {
+        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), factory, supplier) {
             @Override
             public BatchDownloadCleaner createDownloadCleaner(Path downloadDir, int ttlHour) {
                 return batchDownloadCleaner;
             }
         };
-        batchDownloadQueue.add(new BatchDownload(singletonList(project("prj")), User.local(), "query"));
-        app.enqueuePoison();
+        BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "query");
+        when(supplier.get(anyInt(), any())).thenReturn(
+                new TaskView<>(BatchDownloadRunner.class.getName(), batchDownload.user, new HashMap<>() {{
+                    put("batchDownload", batchDownload);
+                }}), TaskView.nullObject());
 
         app.run();
 
@@ -50,17 +52,17 @@ public class BatchDownloadLoopTest {
         verify(batchDownloadCleaner, times(2)).run();
     }
 
-    @Test
-    public void test_ttl_property() {
+    @Test(timeout = 2000)
+    public void test_ttl_property() throws Exception{
         BatchDownloadCleaner batchDownloadCleaner = mock(BatchDownloadCleaner.class);
-        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), batchDownloadQueue, factory, supplier) {
+        BatchDownloadLoop app = new BatchDownloadLoop(createProvider(), factory, supplier) {
             @Override
             public BatchDownloadCleaner createDownloadCleaner(Path downloadDir, int ttlHour) {
                 assertThat(ttlHour).isEqualTo(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL);
                 return batchDownloadCleaner;
             }
         };
-        app.enqueuePoison();
+        when(supplier.get(anyInt(), any())).thenReturn( TaskView.nullObject());
 
         app.run();
     }

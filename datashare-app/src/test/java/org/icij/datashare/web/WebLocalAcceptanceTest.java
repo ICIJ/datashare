@@ -56,7 +56,7 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
         assertThat(response.code()).isEqualTo(200);
         assertThat(response.contentType()).contains("application/json");
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, Object> map = mapper.readValue(response.content(), new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> map = mapper.readValue(response.content(), new TypeReference<>() {});
         assertThat(map.keySet()).contains("git.commit.id", "git.commit.id.abbrev");
     }
 

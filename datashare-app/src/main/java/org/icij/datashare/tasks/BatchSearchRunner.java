@@ -27,6 +27,7 @@ import java.util.concurrent.TimeoutException;
 
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
+import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
@@ -47,10 +48,10 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
 
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
-    private final BatchSearch batchSearch;
     private final TerFunction<String, String, List<Document>, Boolean> resultConsumer;
     private final CountDownLatch callWaiterLatch;
     private int totalProcessed = 0;
+    protected final BatchSearch batchSearch;
     protected volatile boolean cancelAsked = false;
     protected volatile Thread callThread;
 
@@ -143,12 +144,10 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         }
     }
     public static class CancelException extends RuntimeException {
-        public CancelException() {
-        }
-
+        final String batchSearchId;
         public CancelException(String batchSearchId) {
-            super(batchSearchId);
+            super(format("cancel %s", batchSearchId));
+            this.batchSearchId = batchSearchId;
         }
-
     }
 }

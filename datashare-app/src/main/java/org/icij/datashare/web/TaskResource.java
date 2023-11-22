@@ -127,8 +127,7 @@ public class TaskResource {
         boolean batchDownloadEncrypt = parseBoolean(propertiesProvider.get("batchDownloadEncrypt").orElse("false"));
         List<String> projectIds = (List<String>) options.get("projectIds");
         BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, uri, downloadDir, batchDownloadEncrypt);
-        BatchDownloadRunner downloadTask = taskFactory.createDownloadRunner(batchDownload, taskModifier::progress);
-        return taskManager.startTask(downloadTask, new HashMap<>() {{
+        return taskManager.startTask(BatchDownloadRunner.class.getName(), new HashMap<>() {{
             put("batchDownload", batchDownload);
         }});
     }
