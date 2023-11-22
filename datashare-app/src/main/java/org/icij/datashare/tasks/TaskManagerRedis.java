@@ -13,6 +13,7 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -102,7 +103,8 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
 
     @Override public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
     @Override public <V> TaskView<V> startTask(String taskName, Map<String, Object> properties) {
-        TaskView<V> taskView = new TaskView<>(taskName, (org.icij.datashare.user.User) properties.get("user"), properties);
+        BatchDownload batchDownload = (BatchDownload) properties.get("batchDownload");
+        TaskView<V> taskView = new TaskView<>(taskName, batchDownload.user, properties);
         save(taskView);
         taskQueue.add(taskView);
         return taskView;
