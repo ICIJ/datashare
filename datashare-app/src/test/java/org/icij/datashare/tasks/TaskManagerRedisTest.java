@@ -91,6 +91,7 @@ public class TaskManagerRedisTest {
             put("batchDownload", batchDownload);
         }})).isNotNull();
         assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().get(0).user).isEqualTo(User.local());
         assertThat(batchDownloadQueue).hasSize(1);
         assertThat(redis.hlen("test:task:manager")).isEqualTo(1);
     }
