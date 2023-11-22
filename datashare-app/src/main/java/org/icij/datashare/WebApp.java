@@ -14,6 +14,9 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
@@ -26,6 +29,7 @@ public class WebApp {
     }
 
     static void start(Properties properties) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
         CommonMode mode = CommonMode.create(properties);
 
         Thread webServerThread = new Thread(() ->
@@ -43,11 +47,8 @@ public class WebApp {
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }
         if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
-            BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
-            BatchDownloadLoop batchDownloadLoop = mode.get(TaskFactory.class).createBatchDownloadLoop();
-            TaskManager taskManager = mode.get(TaskManager.class);
-            taskManager.startTask(batchSearchLoop);
-            taskManager.startTask(batchDownloadLoop);
+            executor.submit(mode.get(TaskFactory.class).createBatchDownloadLoop());
+            executor.submit(mode.get(TaskFactory.class).createBatchSearchLoop());
         }
         webServerThread.join();
     }
