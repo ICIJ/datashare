@@ -50,7 +50,7 @@ public class BatchSearchLoop implements Callable<Integer> {
     }
 
     public Integer call() {
-        logger.info("Waiting batch downloads from supplier ({}) ds:batchsearch:queue", batchSearchQueue.getClass());
+        logger.info("Waiting batch searches from supplier ({}) ds:batchsearch:queue", batchSearchQueue.getClass());
         waitForMainLoopCalled.countDown();
         loopThread = Thread.currentThread();
         String currentBatchId = null;
