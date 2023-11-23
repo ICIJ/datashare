@@ -236,6 +236,7 @@ public class PluginServiceTest {
     @Test
     public void test_delete_previous_extension_if_version_differs_with_id() throws Exception {
         pluginFolder.newFolder("my-plugin-1.0.0");
+        pluginFolder.newFile("my-plugin-0.5.0.tar.gz");
         PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
                                         "{\"id\":\"my-plugin\", \"version\": \"1.1.0\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin-1.1.0.tgz") + "\"}" +
                                         "]}").getBytes()));
