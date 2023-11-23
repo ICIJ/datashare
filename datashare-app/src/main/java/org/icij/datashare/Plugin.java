@@ -55,7 +55,9 @@ public class Plugin extends Extension {
 
     @Override
     public void install(File pluginFile, Path pluginsDir) throws IOException {
-        File[] candidateFiles = ofNullable(pluginsDir.toFile().listFiles((file, s) -> file.isDirectory())).orElse(new File[0]);
+        File[] pluginDirDirectories = pluginsDir.toFile()
+            .listFiles((dir, fileName) -> dir.toPath().resolve(fileName).toFile().isDirectory());
+        File[] candidateFiles = ofNullable(pluginDirDirectories).orElse(new File[0]);
         List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
         if (previousVersionInstalled.size() > 0) {
             logger.info("removing previous versions {}", previousVersionInstalled);
