@@ -39,7 +39,7 @@ public class TaskView<V> implements Entity {
     @Deprecated(since = "13.6.0")
     public TaskView(MonitorableFutureTask<V> task) {
         this.id = task.toString();
-        this.name = task.getClass().getName();
+        this.name = task.toString();
         this.user = task.getUser();
         this.properties = task.properties.isEmpty() ? null: task.properties;
         this.task = task;
