@@ -47,7 +47,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith("foo");
         TaskView<String> t = taskManager.startTask(new DummyUserTask<>("foo"));
         get("/api/task/" + t.id).withPreemptiveAuthentication("foo", "qux").should().respond(200).
-            contain(format("{\"id\":\"%s\",\"name\":\"org.icij.datashare.tasks.MonitorableFutureTask\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}", t.id));
+                contain(format("{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}", t.id, t.name));
     }
 
     @Test
@@ -117,8 +117,8 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         TaskView<String> t2 = taskManager.startTask(new DummyUserTask<>("bar"));
 
         System.out.println(t1.properties);
-        get("/api/task/all").withPreemptiveAuthentication("foo", "qux").should().contain(format("[{\"id\":\"%s\",\"name\":\"org.icij.datashare.tasks.MonitorableFutureTask\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t1.id));
-        get("/api/task/all").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"id\":\"%s\",\"name\":\"org.icij.datashare.tasks.MonitorableFutureTask\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.id));
+        get("/api/task/all").withPreemptiveAuthentication("foo", "qux").should().contain(format("[{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t1.id, t1.name));
+        get("/api/task/all").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.id, t2.name));
     }
 
     @Test
@@ -126,7 +126,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith("bar");
         TaskView<String> t2 = taskManager.startTask(new DummyUserTask<>("bar"));
 
-        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"id\":\"%s\",\"name\":\"org.icij.datashare.tasks.MonitorableFutureTask\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.id));
+        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().contain(format("[{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{}}}]", t2.id, t2.name));
         get("/api/task/all?filter=foo").withPreemptiveAuthentication("bar", "qux").should().contain("[]");
     }
 

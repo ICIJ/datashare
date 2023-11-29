@@ -29,7 +29,7 @@ public interface TaskManager {
     static List<TaskView<?>> getTasks(Stream<TaskView<?>> stream, User user, Pattern pattern) {
         return stream.
                 filter(t -> user.equals(t.getUser())).
-                filter(t -> pattern.matcher(t.id).matches()).
+                filter(t -> pattern.matcher(t.name).matches()).
                 collect(toList());
     }
 }
