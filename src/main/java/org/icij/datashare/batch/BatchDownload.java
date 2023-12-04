@@ -36,7 +36,6 @@ public class BatchDownload {
     public final String uri;
     public final User user;
     public final boolean encrypted;
-    public volatile long zipSize;
 
     @JsonIgnore
     private final JsonNode jsonNode;
@@ -50,11 +49,11 @@ public class BatchDownload {
     }
 
     public BatchDownload(final List<Project> projects, User user, String query, String uri, Path downloadDir, boolean isEncrypted)  {
-        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, uri, user, isEncrypted, 0);
+        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, uri, user, isEncrypted);
     }
 
     public BatchDownload(final List<Project> projects, User user, String query, Path downloadDir, boolean isEncrypted)  {
-        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, null, user, isEncrypted, 0);
+        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, null, user, isEncrypted);
     }
 
     @JsonCreator
@@ -64,8 +63,7 @@ public class BatchDownload {
                           @JsonProperty("query") String query,
                           @JsonProperty("uri") String uri,
                           @JsonProperty("user") User user,
-                          @JsonProperty("encrypted") boolean encrypted,
-                          @JsonProperty("zipSize") long zipSize) {
+                          @JsonProperty("encrypted") boolean encrypted) {
         this.uuid = uuid;
         this.projects = unmodifiableList(ofNullable(projects).orElse(new ArrayList<>()));
         this.user = user;
@@ -73,7 +71,6 @@ public class BatchDownload {
         this.uri = uri;
         this.filename = filename;
         this.encrypted = encrypted;
-        this.zipSize = zipSize;
         if (isJsonQuery()) {
             try {
                 jsonNode = JsonObjectMapper.MAPPER.readTree(query.getBytes(StandardCharsets.UTF_8));
@@ -93,18 +90,7 @@ public class BatchDownload {
     }
 
     public static BatchDownload nullObject() {
-        return new BatchDownload(null, null, Paths.get("/dev/null"), "", null, User.nullUser(),false, 0L);
-    }
-
-    /**
-     * useful because zipSize cannot be known by object constructor method
-     * (before the zip file actually exists on disk)
-     *
-     * see org.icij.datashare.tasks.BatchDownloadRunner
-     * @param zipSize
-     */
-    public void setZipSize(long zipSize) {
-        this.zipSize = zipSize;
+        return new BatchDownload(null, null, Paths.get("/dev/null"), "", null, User.nullUser(),false);
     }
 
     public boolean getExists() {
