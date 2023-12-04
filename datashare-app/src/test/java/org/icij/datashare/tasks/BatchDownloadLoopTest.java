@@ -48,7 +48,7 @@ public class BatchDownloadLoopTest {
 
         Integer nb = app.call();
 
-        assertThat(nb).isEqualTo(2);
+        assertThat(nb).isEqualTo(1);
         verify(batchRunner).call();
         verify(supplier).result(eq(task.id), anyObject());
         verify(batchDownloadCleaner, times(2)).run();
@@ -66,7 +66,7 @@ public class BatchDownloadLoopTest {
         };
         when(supplier.get(anyInt(), any())).thenReturn( TaskView.nullObject());
 
-        assertThat(app.call()).isEqualTo(1);
+        assertThat(app.call()).isEqualTo(0);
     }
 
     @Before
