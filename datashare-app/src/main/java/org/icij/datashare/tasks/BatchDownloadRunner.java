@@ -47,14 +47,13 @@ import java.util.zip.ZipException;
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_MAX_NB_FILES;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_MAX_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
 
-public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTask {
+public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, UserTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
@@ -83,7 +82,7 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
     }
 
     @Override
-    public File call() throws Exception {
+    public FileResult call() throws Exception {
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE).orElse("0"));
         int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
         int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
@@ -120,16 +119,15 @@ public class BatchDownloadRunner implements Callable<File>, Monitorable, UserTas
                     if (addedBytes > 0) {
                         zippedFilesSize += addedBytes;
                         numberOfResults.incrementAndGet();
-                        batchDownload.setZipSize(zippedFilesSize);
                         progressCallback.apply(task.id, getProgressRate());
                     }
                 }
                 docsToProcess = searcher.scroll().collect(toList());
             }
         }
-        logger.info("created batch download file {} ({} bytes/{} entries) for user {}",
-                batchDownload.filename, Files.size(batchDownload.filename), numberOfResults, batchDownload.user.getId());
-        return batchDownload.filename.toFile();
+        FileResult result = new FileResult(batchDownload.filename.toFile(), Files.size(batchDownload.filename));
+        logger.info("created batch download file {} of {} entries for user {}", result, numberOfResults.get(), batchDownload.user.getId());
+        return result;
     }
 
     private Zipper createZipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider, Function<URI, MailSender> mailSenderSupplier) throws URISyntaxException, IOException {
