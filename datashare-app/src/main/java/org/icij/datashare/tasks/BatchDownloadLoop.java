@@ -38,12 +38,12 @@ public class BatchDownloadLoop implements Callable<Integer> {
             try {
                 currentTask = taskSupplier.get(60, TimeUnit.SECONDS);
                 createDownloadCleaner(downloadDir, ttlHour).run();
-                nbTasks++;
 
                 if (currentTask != null && !POISON.equals(currentTask)) {
                     BatchDownloadRunner downloadRunner = factory.createDownloadRunner(currentTask, taskSupplier::progress);
                     File zipResult = downloadRunner.call();
                     taskSupplier.result(currentTask.id, zipResult);
+                    nbTasks++;
                 }
             } catch (Throwable ex) {
                 logger.error(String.format("error in loop for task %s", currentTask), ex);
