@@ -17,6 +17,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -82,9 +83,11 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_task_result_with_file_result__should_relativize_result_with_app_folder() {
+    public void test_get_task_result_with_file_result__should_relativize_result_with_app_folder() throws Exception {
         setupAppWith("foo");
-        TaskView<File> t = taskManager.startTask(new DummyUserTask<>("foo", () -> Paths.get("app", "index.html").toFile()));
+        File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
+        FileResult indexHtml = new FileResult(file, Files.size(file.toPath()));
+        TaskView<FileResult> t = taskManager.startTask(new DummyUserTask<>("foo", () -> indexHtml));
         get("/api/task/" + t.id + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
                 should().haveType("text/html;charset=UTF-8").
@@ -95,8 +98,9 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_task_result_with_file_result_and_absolute_path__should_relativize_result_with_app_folder() throws Exception {
         setupAppWith("foo");
-        File indexHtml = new File(ClassLoader.getSystemResource("app/index.html").toURI());
-        TaskView<File> t = taskManager.startTask(new DummyUserTask<>("foo", () -> indexHtml));
+        File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
+        FileResult indexHtml = new FileResult(file, Files.size(file.toPath()));
+        TaskView<FileResult> t = taskManager.startTask(new DummyUserTask<>("foo", () -> indexHtml));
 
         get("/api/task/" + t.id + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(200);
     }

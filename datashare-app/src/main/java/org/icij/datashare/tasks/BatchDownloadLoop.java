@@ -41,8 +41,8 @@ public class BatchDownloadLoop implements Callable<Integer> {
 
                 if (currentTask != null && !POISON.equals(currentTask)) {
                     BatchDownloadRunner downloadRunner = factory.createDownloadRunner(currentTask, taskSupplier::progress);
-                    File zipResult = downloadRunner.call();
-                    taskSupplier.result(currentTask.id, zipResult);
+                    FileResult result = downloadRunner.call();
+                    taskSupplier.result(currentTask.id, result);
                     nbTasks++;
                 }
             } catch (Throwable ex) {

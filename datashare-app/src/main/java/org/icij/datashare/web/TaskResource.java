@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.errors.ForbiddenException;
@@ -94,11 +93,11 @@ public class TaskResource {
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) {
         TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
         Object result = task.getResult();
-        if (result instanceof File) {
-            final Path appPath = ((File) result).isAbsolute() ?
+        if (result instanceof FileResult) {
+            final Path appPath = ((FileResult) result).file.isAbsolute() ?
                     get(System.getProperty("user.dir")).resolve(context.env().appFolder()) :
                     get(context.env().appFolder());
-            Path resultPath = appPath.relativize(((File) result).toPath());
+            Path resultPath = appPath.relativize(((FileResult) result).file.toPath());
             return new Payload(resultPath).withHeader("Content-Disposition", "attachment;filename=\"" + resultPath.getFileName() + "\"");
         }
         return result == null ? new Payload(204) : new Payload(result);

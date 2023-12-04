@@ -21,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.zip.ZipFile;
 
@@ -49,24 +48,24 @@ public class BatchDownloadRunnerTest {
         Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).build()).toArray(Document[]::new);
         mockSearch.willReturn(2, documents);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("test-datashare")), User.local(), "query");
-        File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+        FileResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
                     put(BATCH_DOWNLOAD_MAX_NB_FILES, "3");
                     put(SCROLL_SIZE, "3");
                 }}), getTaskView(batchDownload), updater::progress).call();
 
-        assertThat(new ZipFile(zip).size()).isEqualTo(3);
+        assertThat(new ZipFile(result.file).size()).isEqualTo(3);
     }
 
     @Test
     public void test_max_zip_size() throws Exception {
         Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).with("hello world " + i).build()).toArray(Document[]::new);
         mockSearch.willReturn(2, documents);
-        File zip = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+        FileResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
             put(BATCH_DOWNLOAD_MAX_SIZE, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
             put(SCROLL_SIZE, "3");
         }}), getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")), updater::progress).call();
 
-        assertThat(new ZipFile(zip).size()).isEqualTo(4);
+        assertThat(new ZipFile(result.file).size()).isEqualTo(4);
     }
 
     @Test(expected = ElasticsearchStatusException.class)
