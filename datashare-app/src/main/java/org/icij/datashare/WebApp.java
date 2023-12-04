@@ -29,7 +29,6 @@ public class WebApp {
     }
 
     static void start(Properties properties) throws Exception {
-        ExecutorService executor = Executors.newFixedThreadPool(2);
         CommonMode mode = CommonMode.create(properties);
 
         Thread webServerThread = new Thread(() ->
@@ -47,6 +46,7 @@ public class WebApp {
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }
         if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
+            ExecutorService executor = Executors.newFixedThreadPool(2);
             executor.submit(mode.get(TaskFactory.class).createBatchDownloadLoop());
             executor.submit(mode.get(TaskFactory.class).createBatchSearchLoop());
         }
