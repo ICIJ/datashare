@@ -6,6 +6,7 @@ import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.com.bus.amqp.AmqpQueue;
 import org.icij.datashare.com.bus.amqp.EventSaver;
 import org.icij.datashare.com.bus.amqp.ProgressEvent;
+import org.icij.datashare.com.bus.amqp.ResultEvent;
 import org.icij.datashare.com.bus.amqp.TaskViewEvent;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,11 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     @Override
     public <V extends Serializable> void result(String taskId, V result) {
-
+        try {
+            amqp.publish(AmqpQueue.TASK_RESULT, new ResultEvent<>(taskId, result));
+        } catch (IOException e) {
+            LoggerFactory.getLogger(getClass()).warn("cannot publish result {} for task {}", result, taskId);
+        }
     }
 
     @Override

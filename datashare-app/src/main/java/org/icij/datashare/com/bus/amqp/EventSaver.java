@@ -8,6 +8,6 @@ import org.slf4j.LoggerFactory;
  * @param <Evt> the events that are going to be treated by the saver.
  */
 @FunctionalInterface
-public interface EventSaver<Evt> {
+public interface EventSaver<Evt extends Event> {
 	void save(Evt event);
 }
