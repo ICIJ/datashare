@@ -36,4 +36,10 @@ public class AmqpServerRule extends ExternalResource {
         }
         throw new TimeoutException("Connection to Qpid failed");
     }
+
+    public void waitCancel(AmqpConsumer<?, ?> consumer) throws InterruptedException {
+        while(!consumer.isCanceled()) {
+            Thread.sleep(100);
+        }
+    }
 }
