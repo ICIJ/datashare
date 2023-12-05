@@ -40,7 +40,7 @@ public class AmqpTest {
         consumer.cancel();
     }
 
-    @Test
+    @Test(timeout = 2000)
     public void test_publish_receive_2_events() throws Exception {
         AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
         consumer.consumeEvents(2);
@@ -50,10 +50,23 @@ public class AmqpTest {
 
         assertThat(eventQueue.take().field).isEqualTo("hello 1");
         assertThat(eventQueue.take().field).isEqualTo("hello 2");
-        for (int i=0; i<30 && !consumer.isCanceled(); i++) {
+        while (!consumer.isCanceled()) {
             Thread.sleep(100);
         }
         Assertions.assertThat(consumer.isCanceled()).isTrue();
+    }
+
+    @Test(timeout = 2000)
+    public void test_publish_fanout_exchange() throws Exception {
+        AmqpConsumer<TestEvent, TestEventSaver> consumer1 = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
+        AmqpConsumer<TestEvent, TestEventSaver> consumer2 = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
+        consumer1.consumeEvents(1);
+        consumer2.consumeEvents(1);
+
+        amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello pubsub"));
+
+        assertThat(eventQueue.take().field).isEqualTo("hello pubsub");
+        assertThat(eventQueue.take().field).isEqualTo("hello pubsub");
     }
 
     @Ignore("throws com.rabbitmq.client.AlreadyClosedException " +
@@ -91,10 +104,10 @@ public class AmqpTest {
         }
     }
 
-    static class TestEventSaver extends EventSaver<TestEvent> {
+    static class TestEventSaver implements EventSaver<TestEvent> {
         @Override
-        public void save(TestEvent evenement) {
-            eventQueue.add(evenement);
+        public void save(TestEvent event) {
+            eventQueue.add(event);
         }
     }
 }

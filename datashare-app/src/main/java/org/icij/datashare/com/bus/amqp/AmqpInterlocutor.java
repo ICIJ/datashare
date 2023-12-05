@@ -1,6 +1,5 @@
 package org.icij.datashare.com.bus.amqp;
 
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.icij.datashare.PropertiesProvider;
@@ -8,10 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * AmpInterlocutor has the responsibility for creating connections and publish channels.
@@ -26,6 +24,7 @@ public class AmqpInterlocutor {
     final Configuration configuration;
     private final ConnectionFactory connectionFactory;
     private final Connection connection;
+    private final AtomicInteger nbQueue = new AtomicInteger(0);
     private final ConcurrentHashMap<AmqpQueue, AmqpChannel> publishChannels = new ConcurrentHashMap<>();
 
     public static AmqpInterlocutor getInstance() throws IOException {
@@ -79,35 +78,19 @@ public class AmqpInterlocutor {
         return channel;
     }
 
-    synchronized Channel createChannel() throws IOException {
-        return connection.createChannel();
-    }
-
     public synchronized AmqpInterlocutor createAmqpChannelForPublish(AmqpQueue queue) throws IOException {
-        createChannelAndDeclareQueue(queue, false);
+        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue);
+        channel.initForPublish();
+        publishChannels.put(queue, channel);
+        logger.info("publish channel " + channel + " has been created for exchange {}", queue.exchange);
         return this;
     }
-    public synchronized AmqpChannel createAmqpChannelForConsume(AmqpQueue queue) throws IOException {
-        return createChannelAndDeclareQueue(queue, true);
-    }
 
-    private AmqpChannel createChannelAndDeclareQueue(AmqpQueue queue, boolean forConsumer) throws IOException {
-        logger.info("create channel and declare queue " + queue);
-        Channel channel = createChannel();
-        boolean durable = true;
-        boolean exclusive = false;
-        boolean autoDelete = false;
-        Map<String, Object> queueParameters = new HashMap<>() {{ if (queue.deadLetterQueue != null) put("x-dead-letter-exchange", queue.deadLetterQueue.exchange);}};
-        channel.exchangeDeclare(queue.exchange, queue.exchangeType, durable);
-        channel.queueDeclare(queue.name(), durable, exclusive, autoDelete, queueParameters);
-        channel.queueBind(queue.name(), queue.exchange, queue.routingKey);
-        channel.basicQos(configuration.nbMaxMessages);
-        AmqpChannel amqpChannel = new AmqpChannel(channel, queue);
-        if (!forConsumer) {
-            publishChannels.put(queue, amqpChannel);
-        }
-        logger.info("channel " + channel + " has been created for queue {}", queue.name());
-        return amqpChannel;
+    public synchronized AmqpChannel createAmqpChannelForConsume(AmqpQueue queue) throws IOException {
+        AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue, nbQueue.incrementAndGet());
+        channel.initForConsume(configuration.deadletter, configuration.nbMaxMessages);
+        logger.info("consume channel " + channel + " has been created for queue {}", channel.queueName());
+        return channel;
     }
 
     private ConnectionFactory createConnectionFactory(Configuration configuration) {
