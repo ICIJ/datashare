@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,7 +10,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
-import net.codestory.http.annotations.*;
+import net.codestory.http.annotations.Delete;
+import net.codestory.http.annotations.Get;
+import net.codestory.http.annotations.Options;
+import net.codestory.http.annotations.Post;
+import net.codestory.http.annotations.Prefix;
+import net.codestory.http.annotations.Put;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.lang3.StringUtils;
@@ -20,7 +24,13 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.tasks.*;
+import org.icij.datashare.tasks.BatchDownloadRunner;
+import org.icij.datashare.tasks.FileResult;
+import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.TaskModifier;
+import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
@@ -29,7 +39,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Pattern;
 
@@ -39,7 +53,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.forbidden;
 import static net.codestory.http.payload.Payload.ok;
@@ -74,7 +87,7 @@ public class TaskResource {
     @Get("/all")
     public List<TaskView<?>> tasks(Context context) {
         Pattern pattern = Pattern.compile(StringUtils.isEmpty(context.get("filter")) ? ".*": String.format(".*%s.*", context.get("filter")));
-        return taskManager.getTasks(context.currentUser(), pattern);
+        return taskManager.getTasks((User) context.currentUser(), pattern);
     }
 
     @Operation(description = "Gets one task with its id.")
@@ -117,7 +130,7 @@ public class TaskResource {
             requestBody = @RequestBody(description = "the json used to wrap the query", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task", useReturnTypeSchema = true)
     @Post("/batchDownload")
-    public TaskView<File> batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws JsonProcessingException {
+    public TaskView<File> batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws Exception {
         Map<String, Object> options = optionsWrapper.getOptions();
         Path downloadDir = get(propertiesProvider.getProperties().getProperty(BATCH_DOWNLOAD_DIR));
         if (!downloadDir.toFile().exists()) downloadDir.toFile().mkdirs();
@@ -126,7 +139,7 @@ public class TaskResource {
         boolean batchDownloadEncrypt = parseBoolean(propertiesProvider.get("batchDownloadEncrypt").orElse("false"));
         List<String> projectIds = (List<String>) options.get("projectIds");
         BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, uri, downloadDir, batchDownloadEncrypt);
-        return taskManager.startTask(BatchDownloadRunner.class.getName(), new HashMap<>() {{
+        return taskManager.startTask(BatchDownloadRunner.class.getName(), (User) context.currentUser(), new HashMap<>() {{
             put("batchDownload", batchDownload);
         }});
     }
@@ -226,7 +239,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the tasks stop result map", useReturnTypeSchema = true)
     @Put("/stopAll")
     public Map<String, Boolean> stopAllTasks(final Context context) {
-        return taskManager.stopAllTasks(context.currentUser());
+        return taskManager.stopAllTasks((User) context.currentUser());
     }
 
     @Operation(description = "Preflight request to stop all tasks.")

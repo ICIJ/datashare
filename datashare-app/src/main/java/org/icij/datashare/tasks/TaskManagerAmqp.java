@@ -1,14 +1,46 @@
 package org.icij.datashare.tasks;
 
-import net.codestory.http.security.User;
+import com.google.inject.Inject;
+import org.icij.datashare.com.bus.amqp.AmqpConsumer;
+import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
+import org.icij.datashare.com.bus.amqp.AmqpQueue;
+import org.icij.datashare.com.bus.amqp.EventSaver;
+import org.icij.datashare.com.bus.amqp.ProgressEvent;
+import org.icij.datashare.com.bus.amqp.TaskViewEvent;
+import org.icij.datashare.user.User;
+import org.redisson.Redisson;
+import org.redisson.RedissonMap;
+import org.redisson.api.RedissonClient;
+import org.redisson.command.CommandSyncService;
+import org.redisson.liveobject.core.RedissonObjectBuilder;
 
+import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import static java.util.stream.Collectors.toList;
+
 public class TaskManagerAmqp implements TaskManager {
+    private final Map<String, TaskView<?>> tasks;
+    private final AmqpInterlocutor amqp;
+    private final AmqpConsumer<ProgressEvent, EventSaver<ProgressEvent>> consumer;
+
+    @Inject
+    public TaskManagerAmqp(AmqpInterlocutor amqp, RedissonClient redissonClient) throws IOException {
+        this.amqp = amqp;
+        CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
+        tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(), commandSyncService, "ds:tasks", redissonClient, null, null);
+        consumer = new AmqpConsumer<>(amqp, event -> {
+            TaskView<?> taskView = tasks.get(event.taskId);
+            taskView.setProgress(event.rate);
+            tasks.put(event.taskId, taskView);
+        }, AmqpQueue.EVENT, ProgressEvent.class);
+        consumer.consumeEvents();
+    }
 
     @Override
     public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) {
@@ -16,8 +48,11 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V> TaskView<V> startTask(String taskName, Map<String, Object> properties) {
-        return null;
+    public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) throws IOException {
+        TaskView<V> taskView = new TaskView<>(taskName, user, properties);
+        save(taskView);
+        amqp.publish(AmqpQueue.TASK, new TaskViewEvent(taskView));
+        return taskView;
     }
 
     @Override
@@ -45,23 +80,27 @@ public class TaskManagerAmqp implements TaskManager {
         return false;
     }
 
+    void save(TaskView<?> task) {
+        tasks.put(task.id, task);
+    }
+
     @Override
     public <V> TaskView<V> getTask(String taskId) {
-        return null;
+        return (TaskView<V>) tasks.get(taskId);
     }
 
     @Override
     public List<TaskView<?>> getTasks() {
-        return null;
+        return new LinkedList<>(tasks.values());
     }
 
     @Override
     public List<TaskView<?>> getTasks(User user, Pattern pattern) {
-        return null;
+        return TaskManager.getTasks(tasks.values().stream(), user, pattern);
     }
 
     @Override
     public List<TaskView<?>> clearDoneTasks() {
-        return null;
+        return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
     }
 }

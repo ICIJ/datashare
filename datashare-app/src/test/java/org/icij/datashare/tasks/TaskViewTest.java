@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import org.fest.assertions.MapAssert;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 import org.junit.Test;
@@ -10,7 +9,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.fest.assertions.MapAssert.entry;
 
 public class TaskViewTest {
     private final Executor executor = Executors.newSingleThreadExecutor();
@@ -48,6 +46,20 @@ public class TaskViewTest {
         assertThat(taskView.getResult()).isNull();
         assertThat(taskView.getState()).isEqualTo(TaskView.State.DONE);
         assertThat(taskView.getProgress()).isEqualTo(1);
+    }
+
+    @Test
+    public void test_progress() {
+        TaskView<Object> taskView = new TaskView<>("name", User.local(), new HashMap<>());
+        assertThat(taskView.getProgress()).isEqualTo(0);
+        assertThat(taskView.getState()).isEqualTo(TaskView.State.INIT);
+
+        taskView.setProgress(0.0);
+        assertThat(taskView.getState()).isEqualTo(TaskView.State.INIT);
+
+        taskView.setProgress(0.3);
+        assertThat(taskView.getProgress()).isEqualTo(0.3);
+        assertThat(taskView.getState()).isEqualTo(TaskView.State.RUNNING);
     }
 
     @Test

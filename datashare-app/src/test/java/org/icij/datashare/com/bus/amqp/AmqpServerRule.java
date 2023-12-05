@@ -3,6 +3,7 @@ package org.icij.datashare.com.bus.amqp;
 import com.rabbitmq.client.ConnectionFactory;
 import org.junit.rules.ExternalResource;
 
+import java.io.IOException;
 import java.net.ConnectException;
 import java.util.concurrent.TimeoutException;
 
