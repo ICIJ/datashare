@@ -19,12 +19,7 @@ public class AmqpConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> i
 	private final AmqpChannel channel;
 	private final AtomicReference<String> consumerTag = new AtomicReference<>();
 	private final Class<Evt> evtClass;
-
-	public AmqpConsumer(EvtSaver eventSaver, AmqpQueue queue, Class<Evt> evtClass) throws IOException {
-		this(AmqpInterlocutor.getInstance(), eventSaver, queue, evtClass);
-	}
-	
-	protected AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
+	public AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
 						   EvtSaver eventSaver, AmqpQueue queue, Class<Evt> evtClass) throws IOException {
 		this.amqpInterlocutor = amqpInterlocutor;
 		this.eventSaver = eventSaver;

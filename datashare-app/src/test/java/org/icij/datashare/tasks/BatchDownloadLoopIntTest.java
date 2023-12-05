@@ -46,7 +46,7 @@ public class BatchDownloadLoopIntTest {
 
         BatchDownloadLoop batchDownloadLoop = new BatchDownloadLoop(propertiesProvider, factory, taskManager);
 
-        taskManager.startTask(BatchDownloadRunner.class.getName(), properties);
+        taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
         batchDownloadLoop.call();

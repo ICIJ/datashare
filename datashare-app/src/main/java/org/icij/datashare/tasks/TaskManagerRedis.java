@@ -1,20 +1,25 @@
 package org.icij.datashare.tasks;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.jsontype.DefaultBaseTypeLimitingValidator;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-import net.codestory.http.security.User;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.jetbrains.annotations.NotNull;
@@ -30,13 +35,11 @@ import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import javax.inject.Inject;
 import javax.xml.datatype.XMLGregorianCalendar;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -46,10 +49,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 
 public class TaskManagerRedis implements TaskManager, TaskSupplier {
-    private final RedissonMap<String, TaskView<?>> tasks;
+    private final Map<String, TaskView<?>> tasks;
     private final BlockingQueue<TaskView<?>> taskQueue;
 
     @Inject
@@ -102,9 +104,8 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     }
 
     @Override public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
-    @Override public <V> TaskView<V> startTask(String taskName, Map<String, Object> properties) {
-        BatchDownload batchDownload = (BatchDownload) properties.get("batchDownload");
-        TaskView<V> taskView = new TaskView<>(taskName, batchDownload.user, properties);
+    @Override public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) {
+        TaskView<V> taskView = new TaskView<>(taskName, user, properties);
         save(taskView);
         taskQueue.add(taskView);
         return taskView;

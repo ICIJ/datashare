@@ -10,10 +10,8 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeoutException;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -21,20 +19,20 @@ public class AmqpTest {
     static BlockingQueue<TestEvent> eventQueue = new ArrayBlockingQueue<>(10);
     @ClassRule
     static public AmqpServerRule qpid = new AmqpServerRule(12345);
-    static private AmqpInterlocutor amqpInterlocutor;
+    static private AmqpInterlocutor amqp;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        amqpInterlocutor = AmqpInterlocutor.initWith(new Configuration("localhost", 12345, "admin", "admin", 10));
-        amqpInterlocutor.createAmqpChannelForPublish(AmqpQueue.EVENT);
+        amqp = new AmqpInterlocutor(new Configuration("localhost", 12345, "admin", "admin", 10));
+        amqp.createAmqpChannelForPublish(AmqpQueue.EVENT);
     }
 
     @Test
     public void test_publish_receive() throws Exception {
-        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
+        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
         consumer.consumeEvents();
 
-        amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello AMQP"));
+        amqp.publish(AmqpQueue.EVENT, new TestEvent("hello AMQP"));
 
         assertThat(eventQueue.take().field).isEqualTo("hello AMQP");
         consumer.cancel();
@@ -42,11 +40,11 @@ public class AmqpTest {
 
     @Test(timeout = 2000)
     public void test_publish_receive_2_events() throws Exception {
-        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
+        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
         consumer.consumeEvents(2);
 
-        amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello 1"));
-        amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello 2"));
+        amqp.publish(AmqpQueue.EVENT, new TestEvent("hello 1"));
+        amqp.publish(AmqpQueue.EVENT, new TestEvent("hello 2"));
 
         assertThat(eventQueue.take().field).isEqualTo("hello 1");
         assertThat(eventQueue.take().field).isEqualTo("hello 2");
@@ -58,12 +56,12 @@ public class AmqpTest {
 
     @Test(timeout = 2000)
     public void test_publish_fanout_exchange() throws Exception {
-        AmqpConsumer<TestEvent, TestEventSaver> consumer1 = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
-        AmqpConsumer<TestEvent, TestEventSaver> consumer2 = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
+        AmqpConsumer<TestEvent, TestEventSaver> consumer1 = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
+        AmqpConsumer<TestEvent, TestEventSaver> consumer2 = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
         consumer1.consumeEvents(1);
         consumer2.consumeEvents(1);
 
-        amqpInterlocutor.publish(AmqpQueue.EVENT, new TestEvent("hello pubsub"));
+        amqp.publish(AmqpQueue.EVENT, new TestEvent("hello pubsub"));
 
         assertThat(eventQueue.take().field).isEqualTo("hello pubsub");
         assertThat(eventQueue.take().field).isEqualTo("hello pubsub");
@@ -74,8 +72,8 @@ public class AmqpTest {
             "We don't know for now how to interrupt the QPid Server")
     @Test
     public void test_publish_with_broker_down() throws Exception {
-        AmqpInterlocutor amqpInterlocutor = AmqpInterlocutor.initWith(new Configuration("localhost", 12345, "admin", "admin", 10));
-        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
+        AmqpInterlocutor amqpInterlocutor = new AmqpInterlocutor(new Configuration("localhost", 12345, "admin", "admin", 10));
+        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
         consumer.consumeEvents();
 
         assertThat(qpid.amqpServer.shutdown());
@@ -92,8 +90,8 @@ public class AmqpTest {
     }
 
     @AfterClass
-    static public void tearDownClass() throws IOException, TimeoutException {
-        amqpInterlocutor.close();
+    public static void afterClass() throws Exception {
+        amqp.closeChannelsAndConnection();
     }
 
     static class TestEvent extends Event {

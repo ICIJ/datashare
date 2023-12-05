@@ -85,7 +85,7 @@ public class TaskManagerRedisTest {
     public void test_start_task() {
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo", null,Paths.get("dir"), false);
 
-        assertThat(taskManager.startTask(BatchDownloadRunner.class.getName(), new HashMap<>() {{
+        assertThat(taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), new HashMap<>() {{
             put("batchDownload", batchDownload);
         }})).isNotNull();
         assertThat(taskManager.getTasks()).hasSize(1);

@@ -1,5 +1,7 @@
 package org.icij.datashare.com.bus.amqp;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.icij.datashare.PropertiesProvider;
@@ -13,36 +15,28 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * AmpInterlocutor has the responsibility for creating connections and publish channels.
+ * There *must* be only one instance of this class in each app.
  * <p>
  * It keeps tracks of the publish channels and closes them when close() is called.
  * </p>
  * Consumer channels are kept inside AbstractConsumer and closed by the
  */
+@Singleton
 public class AmqpInterlocutor {
     private static final Logger logger = LoggerFactory.getLogger(AmqpInterlocutor.class);
-    private static AmqpInterlocutor instance;
     final Configuration configuration;
     private final ConnectionFactory connectionFactory;
     private final Connection connection;
     private final AtomicInteger nbQueue = new AtomicInteger(0);
     private final ConcurrentHashMap<AmqpQueue, AmqpChannel> publishChannels = new ConcurrentHashMap<>();
 
-    public static AmqpInterlocutor getInstance() throws IOException {
-        if (instance == null)
-            synchronized(logger) { instance = new AmqpInterlocutor(new Configuration(new PropertiesProvider().getProperties())); }
-        return instance;
+
+    @Inject
+    public AmqpInterlocutor(PropertiesProvider propertiesProvider) throws IOException {
+        this(new Configuration(propertiesProvider.getProperties()));
     }
 
-    static AmqpInterlocutor initWith(Configuration configuration) throws IOException {
-        if (instance == null) {
-            synchronized (logger) {
-                instance = new AmqpInterlocutor(configuration);
-            }
-        }
-        return instance;
-    }
-
-    private AmqpInterlocutor(Configuration configuration) throws IOException {
+    AmqpInterlocutor(Configuration configuration) throws IOException {
         this.configuration = configuration;
         this.connectionFactory = createConnectionFactory(configuration);
         this.connection = createConnection();
@@ -106,7 +100,7 @@ public class AmqpInterlocutor {
         return factory;
     }
 
-    void closeChannelsAndConnection() throws IOException, TimeoutException {
+    void closeChannelsAndConnection() throws IOException {
         for (AmqpChannel channel : publishChannels.values()) {
             channel.close();
         }

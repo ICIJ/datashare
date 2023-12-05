@@ -1,10 +1,10 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
-import net.codestory.http.security.User;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +17,6 @@ import java.util.concurrent.*;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.parseInt;
-import static java.util.Optional.ofNullable;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -51,9 +50,9 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V> TaskView<V> startTask(String taskName, Map<String, Object> properties) {
+    public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) {
         BatchDownload batchDownload = (BatchDownload) properties.get("batchDownload");
-        TaskView<V> taskView = new TaskView<>(taskName, batchDownload.user, properties);
+        TaskView<V> taskView = new TaskView<>(taskName, user, properties);
         save(taskView);
         taskQueue.offer(taskView);
         return taskView;
