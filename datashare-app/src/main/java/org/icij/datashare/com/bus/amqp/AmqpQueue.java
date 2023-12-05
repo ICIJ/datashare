@@ -9,6 +9,8 @@ import com.rabbitmq.client.BuiltinExchangeType;
 public enum AmqpQueue {
 
 	EVENT  ("exchangeMainEvents",  BuiltinExchangeType.FANOUT, "routingKeyMainEvents"),
+	TASK_RESULT_DLQ  ("exchangeDLQTaskResults", BuiltinExchangeType.DIRECT, "routingKeyDLQTaskResults"),
+	TASK_RESULT  ("exchangeTaskResults",  BuiltinExchangeType.DIRECT,"routingKeyMainTaskResults", TASK_RESULT_DLQ),
 	TASK_DLQ  ("exchangeDLQTasks", BuiltinExchangeType.DIRECT, "routingKeyDLQTasks"),
 	TASK  ("exchangeMainTasks",  BuiltinExchangeType.DIRECT,"routingKeyMainTasks", TASK_DLQ);
 

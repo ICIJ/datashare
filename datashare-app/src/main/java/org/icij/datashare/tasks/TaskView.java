@@ -99,8 +99,8 @@ public class TaskView<V> implements Entity {
         }
     }
 
-    public void setResult(V result) {
-        this.result = result;
+    public void setResult(Serializable result) {
+        this.result = (V) result;
         this.state = State.DONE;
         this.progress = 1;
     }

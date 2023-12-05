@@ -7,6 +7,7 @@ import org.icij.datashare.com.bus.amqp.AmqpQueue;
 import org.icij.datashare.com.bus.amqp.AmqpServerRule;
 import org.icij.datashare.com.bus.amqp.EventSaver;
 import org.icij.datashare.com.bus.amqp.ProgressEvent;
+import org.icij.datashare.com.bus.amqp.ResultEvent;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -54,16 +55,34 @@ public class TaskManagerAmqpTest {
         // in the task runner loop
         TaskView<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
         taskSupplier.progress(taskView.id,0.5);
-        System.out.println(taskSupplier.consumer);
 
         qpid.waitCancel(consumer);
         assertThat(taskManager.getTask(taskView.id).getProgress()).isEqualTo(0.5);
+    }
+
+    @Test
+    public void test_task_result() throws Exception {
+        taskManager.startTask("taskName", User.local(), new HashMap<>() {{
+            put("key", "value");
+        }});
+
+        AmqpConsumer<ResultEvent, EventSaver<ResultEvent>> consumer = new AmqpConsumer<>(AMQP,
+                event -> {}, AmqpQueue.TASK_RESULT, ResultEvent.class);
+        consumer.consumeEvents(1);
+
+        // in the task runner loop
+        TaskView<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
+        taskSupplier.result(taskView.id,"result");
+
+        qpid.waitCancel(consumer);
+        assertThat(taskManager.getTask(taskView.id).getResult()).isEqualTo("result");
     }
 
     @BeforeClass
     public static void beforeClass() throws Exception {
         AMQP = new AmqpInterlocutor(new PropertiesProvider());
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
+        AMQP.createAmqpChannelForPublish(AmqpQueue.TASK_RESULT);
         AMQP.createAmqpChannelForPublish(AmqpQueue.EVENT);
     }
 
@@ -71,7 +90,6 @@ public class TaskManagerAmqpTest {
     public void setUp() throws IOException {
         taskManager = new TaskManagerAmqp(AMQP, new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider().getProperties())).create());
         taskSupplier = new TaskSupplierAmqp(AMQP);
-
     }
 
     @After

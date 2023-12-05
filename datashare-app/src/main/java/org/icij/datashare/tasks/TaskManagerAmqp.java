@@ -6,6 +6,7 @@ import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.com.bus.amqp.AmqpQueue;
 import org.icij.datashare.com.bus.amqp.EventSaver;
 import org.icij.datashare.com.bus.amqp.ProgressEvent;
+import org.icij.datashare.com.bus.amqp.ResultEvent;
 import org.icij.datashare.com.bus.amqp.TaskViewEvent;
 import org.icij.datashare.user.User;
 import org.redisson.Redisson;
@@ -15,6 +16,7 @@ import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -27,19 +29,28 @@ import static java.util.stream.Collectors.toList;
 public class TaskManagerAmqp implements TaskManager {
     private final Map<String, TaskView<?>> tasks;
     private final AmqpInterlocutor amqp;
-    private final AmqpConsumer<ProgressEvent, EventSaver<ProgressEvent>> consumer;
+    private final AmqpConsumer<ProgressEvent, EventSaver<ProgressEvent>> eventConsumer;
+    private final AmqpConsumer<ResultEvent<? extends Serializable>, EventSaver<ResultEvent<? extends Serializable>>> resultConsumer;
 
     @Inject
     public TaskManagerAmqp(AmqpInterlocutor amqp, RedissonClient redissonClient) throws IOException {
         this.amqp = amqp;
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(), commandSyncService, "ds:tasks", redissonClient, null, null);
-        consumer = new AmqpConsumer<>(amqp, event -> {
+
+        eventConsumer = new AmqpConsumer<>(amqp, event -> {
             TaskView<?> taskView = tasks.get(event.taskId);
             taskView.setProgress(event.rate);
             tasks.put(event.taskId, taskView);
         }, AmqpQueue.EVENT, ProgressEvent.class);
-        consumer.consumeEvents();
+        eventConsumer.consumeEvents();
+
+        resultConsumer = new AmqpConsumer<>(amqp, event -> {
+            TaskView<? extends Serializable> taskView = (TaskView<? extends Serializable>) tasks.get(event.taskId);
+            taskView.setResult(event.result);
+            tasks.put(event.taskId, taskView);
+        }, AmqpQueue.TASK_RESULT, (Class<ResultEvent<? extends Serializable>>) (Class<?>) ResultEvent.class);
+        resultConsumer.consumeEvents();
     }
 
     @Override
