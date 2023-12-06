@@ -303,7 +303,7 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList("redisPoolSize"), "Redis pool size used for each redis collection")
                 .withRequiredArg()
-                .ofType(Integer.class).defaultsTo(1);
+                .ofType(Integer.class).defaultsTo(2);
     }
 
     public static void elasticsearchDataPath(OptionParser parser) {
