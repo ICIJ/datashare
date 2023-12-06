@@ -1,6 +1,7 @@
 package org.icij.datashare.text;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.icij.datashare.Entity;
@@ -9,6 +10,7 @@ import org.icij.datashare.text.indexing.IndexType;
 import java.nio.file.Path;
 
 @IndexType("Duplicate")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Duplicate implements Entity {
     private final String id;
     @JsonDeserialize(using = PathDeserializer.class)

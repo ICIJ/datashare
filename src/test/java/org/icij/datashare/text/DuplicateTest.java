@@ -21,7 +21,7 @@ public class DuplicateTest extends TestCase {
 
         Duplicate duplicate = JsonObjectMapper.MAPPER.readValue(
                 (String.format("{\"id\":\"768412320f7b0aa5812fce428dc4706b3cae50e02a64caa16a782249bfe8efc4b7ef1ccb126255d196047dfedf17a0a9\"," +
-                "\"path\":\"%s\",\"documentId\":\"docId\"}", path)).getBytes(), Duplicate.class);
+                "\"path\":\"%s\",\"documentId\":\"docId\",\"type\":\"Duplicate\"}", path)).getBytes(), Duplicate.class);
 
         assertThat(duplicate.path.toString()).isEqualTo(path.toString());
         assertThat(duplicate.documentId).isEqualTo("docId");
