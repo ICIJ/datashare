@@ -6,6 +6,7 @@ import co.elastic.clients.elasticsearch.core.IndexRequest;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.elasticsearch.core.search.SourceConfigParam;
 import com.google.inject.Inject;
+import io.reactivex.rxjava3.internal.operators.observable.BlockingObservableIterable;
 import org.apache.tika.metadata.DublinCore;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
@@ -69,6 +70,10 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     @Override
     protected void writeDocument(TikaDocument doc, TikaDocument parent, TikaDocument root, int level) throws IOException {
+        if (root != null && root.isDuplicate()) {
+            logger.debug("root document {} is duplicate, skipping {}", root.getId(), doc.getId());
+            return;
+        }
         final IndexRequest req = prepareRequest(doc, parent, root, level);
         long before = currentTimeMillis();
         IndexResponse indexResponse = client.index(req);
@@ -96,7 +101,8 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         Map<String, Object> jsonDocument = getDocumentMap(document);
 
         if (parent == null && isDuplicate(document.getId())) {
-            IndexRequest.Builder indexRequest = new IndexRequest.Builder().index(indexName).id(digestAlgorithm.hash(document.getPath()));
+            document.setDuplicate(true);
+            IndexRequest.Builder indexRequest = new IndexRequest.Builder().index(indexName).id(digestAlgorithm.hash(document.getPath().toString()));
             indexRequest.document(getDuplicateMap(document));
             indexRequest.refresh(esCfg.refreshPolicy);
             return indexRequest.build();

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.tika.metadata.DublinCore;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParsingReader;
+import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Channel;
@@ -19,9 +20,11 @@ import org.icij.datashare.com.Message.Field;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
@@ -41,8 +44,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import static java.nio.file.Paths.get;
+import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -85,7 +91,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_write_with_correct_iso1_language() throws Exception {
-        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
+        Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/zho.txt")).getPath());
         DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("language", "zho");
         }}));
@@ -101,7 +107,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_write_with_correct_iso2_language() throws Exception {
-        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/jpn.txt")).getPath());
+        Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/jpn.txt")).getPath());
         DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("language", "jpn");
         }}));
@@ -117,7 +123,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_write_with_correct_language_name() throws Exception {
-        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/maltese.txt")).getPath());
+        Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/maltese.txt")).getPath());
         DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("language", "Maltese");
         }}));
@@ -133,7 +139,7 @@ public class ElasticsearchSpewerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void test_write_with_incorrect_language() throws Exception {
-        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
+        Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
 
         DocumentFactory documentFactory = new DocumentFactory().configure(Options.from(new HashMap<>() {{
             put("language", "foo");
@@ -144,7 +150,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_write_without_language() throws Exception {
-        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
+        Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
         TikaDocument document = new Extractor().extract(path);
 
         spewer.write(document);
@@ -158,7 +164,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_metadata() throws Exception {
-        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
+        Path path = get(requireNonNull(getClass().getResource("/docs/a/b/c/doc.txt")).getPath());
         TikaDocument document = new Extractor().extract(path);
 
         spewer.write(document);
@@ -298,7 +304,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_embedded_document() throws Exception {
-        Path path = get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
+        Path path = get(requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
         final TikaDocument document = new Extractor().extract(path);
 
         spewer.write(document);
@@ -309,9 +315,7 @@ public class ElasticsearchSpewerTest {
         SearchRequest.Builder searchReq = new SearchRequest.Builder().index(TEST_INDEX);
         searchReq.query(Query.of(q -> q.multiMatch(MultiMatchQuery.of(mmq -> mmq.query("simple.tiff").fields("content")))));
         SearchResponse<ObjectNode> response = es.client.search(searchReq.build(), ObjectNode.class);
-        //SearchResponse response = es.client.search(searchRequest, RequestOptions.DEFAULT);
         assertThat(response.hits().total().value()).isGreaterThan(0);
-        //assertThat(response.getHits().getAt(0).getId()).endsWith("embedded.pdf");
 
         verify(publisher, times(2)).publish(eq(Channel.NLP), any(Message.class));
     }
@@ -325,8 +329,8 @@ public class ElasticsearchSpewerTest {
         DocumentFactory tikaFactory = new DocumentFactory().configure(digestAlgorithm);
         Extractor extractor = new Extractor(tikaFactory).configure(digestAlgorithm);
 
-        final TikaDocument extractDocument = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()));
-        Document document = createDoc(Project.project("project"),get(Objects.requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()))
+        final TikaDocument extractDocument = extractor.extract(get(requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()));
+        Document document = createDoc(Project.project("project"),get(requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()))
                 .with("This is a document to be parsed by datashare.")
                 .with(Language.FRENCH)
                 .ofMimeType("text/plain")
@@ -350,19 +354,41 @@ public class ElasticsearchSpewerTest {
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
         Extractor extractor = new Extractor(tikaFactory).configure(from);
 
-        final TikaDocument document = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
-        final TikaDocument document2 = extractor.extract(get(Objects.requireNonNull(getClass().getResource("/docs/doc-duplicate.txt")).getPath()));
+        final TikaDocument document = extractor.extract(get(requireNonNull(getClass().getResource("/docs/doc.txt")).getPath()));
+        final TikaDocument document2 = extractor.extract(get(requireNonNull(getClass().getResource("/docs/doc-duplicate.txt")).getPath()));
 
         spewer256.write(document);
         spewer256.write(document2);
 
-        GetResponse<ObjectNode> actualDocument = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), ObjectNode.class);
-        GetResponse<ObjectNode> actualDocument2 = es.client.get(doc -> doc.index(TEST_INDEX).id(Hasher.SHA_256.hash(document2.getPath())), ObjectNode.class);
+        GetResponse<Document> actualDocument = es.client.get(doc -> doc.index(TEST_INDEX).id(document.getId()), Document.class);
+        GetResponse<Duplicate> actualDocument2 = es.client.get(doc -> doc.index(TEST_INDEX).id(Hasher.SHA_256.hash(document2.getPath().toString())), Duplicate.class);
         assertThat(actualDocument.found()).isTrue();
-        assertThat(nodeToMap(actualDocument.source())).includes(entry("type", "Document"));
         assertThat(actualDocument2.found()).isTrue();
-        assertThat(nodeToMap(actualDocument2.source())).includes(entry("type", "Duplicate"));
         assertThat(actualDocument2.id().length()).isEqualTo(Hasher.SHA_256.digestLength);
+    }
+
+    @Test
+    public void test_duplicate_embedded_documents() throws Exception {
+        Options<String> digestAlgorithm = Options.from(new HashMap<>() {{
+            put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());
+        }});
+        Path path1 = get(requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath());
+        Path path2 = get(requireNonNull(getClass().getResource("/docs/embedded_doc_duplicate.eml")).getPath());
+        Extractor extractor = new Extractor(new DocumentFactory().configure(digestAlgorithm)).configure(digestAlgorithm);
+        final TikaDocument document1 = extractor.extract(path1);
+        final TikaDocument document2 = extractor.extract(path2);
+
+        spewer.write(document1);
+        spewer.write(document2);
+
+        String duplicateId = Document.DEFAULT_DIGESTER.hash(path2.toString());
+        GetResponse<Duplicate> duplicateDoc = es.client.get(doc -> doc.index(TEST_INDEX).id(duplicateId), Duplicate.class);
+        assert duplicateDoc.source() != null;
+        assertThat(duplicateDoc.source().path.toString()).endsWith("embedded_doc_duplicate.eml");
+
+        Stream<? extends Entity> searcher = new ElasticsearchIndexer(es.client, new PropertiesProvider()).search(asList(TEST_INDEX), Document.class).
+                thatMatchesFieldValue("path", path2).execute();
+        assertThat(searcher.count()).isEqualTo(0);
     }
 
     @Test
