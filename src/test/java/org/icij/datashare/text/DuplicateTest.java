@@ -13,14 +13,14 @@ public class DuplicateTest extends TestCase {
     public void test_serialize() throws Exception {
         assertThat(JsonObjectMapper.MAPPER.writeValueAsString(
                 new Duplicate(Paths.get(requireNonNull(getClass().getResource("/sampleFile.txt")).getPath()), "docId"))).
-                contains("\"id\":\"768412320f7b0aa5812fce428dc4706b3cae50e02a64caa16a782249bfe8efc4b7ef1ccb126255d196047dfedf17a0a9\"");
+                contains("\"id\":\"af3e968fd1070c183b301d1dd881fac45aca296455ccdda56686d91f53d00a0d8dd9d43fba1e1a1333b0f29e70189d5e\"");
     }
 
     public void test_deserialize() throws Exception {
         Path path = Paths.get(requireNonNull(getClass().getResource("/sampleFile.txt")).getPath());
 
         Duplicate duplicate = JsonObjectMapper.MAPPER.readValue(
-                (String.format("{\"id\":\"768412320f7b0aa5812fce428dc4706b3cae50e02a64caa16a782249bfe8efc4b7ef1ccb126255d196047dfedf17a0a9\"," +
+                (String.format("{\"id\":\"af3e968fd1070c183b301d1dd881fac45aca296455ccdda56686d91f53d00a0d8dd9d43fba1e1a1333b0f29e70189d5e\"," +
                 "\"path\":\"%s\",\"documentId\":\"docId\",\"type\":\"Duplicate\"}", path)).getBytes(), Duplicate.class);
 
         assertThat(duplicate.path.toString()).isEqualTo(path.toString());

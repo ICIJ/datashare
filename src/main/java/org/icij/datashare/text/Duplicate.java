@@ -22,7 +22,7 @@ public class Duplicate implements Entity {
     }
 
     public Duplicate(final Path path, final String docId, Hasher hasher) {
-        this(hasher.hash(path), path, docId);
+        this(hasher.hash(path.toString()), path, docId);
     }
 
     @JsonCreator
