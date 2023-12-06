@@ -14,18 +14,18 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * AmpInterlocutor has the responsibility for creating connections and publish channels.
- * There *must* be only one instance of this class in each app.
+ * AmpInterlocutor has the responsibility for creating a connection and publish channels.
+ * There *must* be only one instance of this class in each app as one connection per app
+ * is enough: <a href="https://stackoverflow.com/questions/40627474/how-many-connections-to-maintain-in-rabbitmq">see this SO post</a>
  * <p>
  * It keeps tracks of the publish channels and closes them when close() is called.
  * </p>
- * Consumer channels are kept inside AbstractConsumer and closed by the
+ * Consumer channels are kept inside AbstractConsumer and closed by each consumer.
  */
 @Singleton
 public class AmqpInterlocutor {
     private static final Logger logger = LoggerFactory.getLogger(AmqpInterlocutor.class);
     final Configuration configuration;
-    private final ConnectionFactory connectionFactory;
     private final Connection connection;
     private final AtomicInteger nbQueue = new AtomicInteger(0);
     private final ConcurrentHashMap<AmqpQueue, AmqpChannel> publishChannels = new ConcurrentHashMap<>();
@@ -38,11 +38,11 @@ public class AmqpInterlocutor {
 
     AmqpInterlocutor(Configuration configuration) throws IOException {
         this.configuration = configuration;
-        this.connectionFactory = createConnectionFactory(configuration);
-        this.connection = createConnection();
+        ConnectionFactory connectionFactory = createConnectionFactory(configuration);
+        this.connection = createConnection(connectionFactory);
     }
 
-    Connection createConnection() throws IOException {
+    Connection createConnection(ConnectionFactory connectionFactory) throws IOException {
         try {
             logger.info("Trying to connect AMQP on " + configuration.host + ":" + configuration.port + "...");
             Connection connection = connectionFactory.newConnection();
