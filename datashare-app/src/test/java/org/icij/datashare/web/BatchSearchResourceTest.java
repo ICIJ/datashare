@@ -123,7 +123,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 .addField("published",String.valueOf(true))
                 .addField("fileTypes","application/pdf")
                 .addField("fileTypes","image/jpeg")
-                .addField("tags","tag_01")
+                .addField("query_body","{\"test\":42}")
                 .addField("tags","tag_02")
                 .addField("paths","/path/to/document")
                 .addField("paths","/other/path/")
@@ -135,12 +135,13 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         verify(batchSearchRepository).save(argument.capture());
         assertThat(argument.getValue().published).isTrue();
         assertThat(argument.getValue().fileTypes).containsExactly("application/pdf", "image/jpeg");
-        assertThat(argument.getValue().tags).containsExactly("tag_01", "tag_02");
+        assertThat(argument.getValue().queryBody).isEqualTo("{\"test\":42}");
         assertThat(argument.getValue().paths).containsExactly("/path/to/document", "/other/path/");
         assertThat(argument.getValue().fuzziness).isEqualTo(4);
         assertThat(argument.getValue().phraseMatches).isTrue();
         assertThat(argument.getValue().user).isEqualTo(User.local());
         assertThat(argument.getValue().description).isEqualTo("search description");
+        assertThat(argument.getValue().hasQueryBody()).isTrue();
         Iterator<String> iterator = argument.getValue().queries.keySet().iterator();
         assertThat(iterator.next()).isEqualTo("query one");
         assertThat(iterator.next()).isEqualTo("query two");
