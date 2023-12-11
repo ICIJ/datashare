@@ -49,7 +49,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_save_and_get_batch_search() {
         BatchSearch batchSearch = new BatchSearch(asList(proxy("prj1"), proxy("prj2")), "name1", "description1",
-                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), singletonList("tag"),
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), "{\"query\":\"q1\"}",
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true);
 
         repository.save(batchSearch);
@@ -59,7 +59,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(batchSearchFromGet.name).isEqualTo(batchSearch.name);
         assertThat(batchSearchFromGet.published).isEqualTo(batchSearch.published);
         assertThat(batchSearchFromGet.fileTypes).isEqualTo(batchSearch.fileTypes);
-        assertThat(batchSearchFromGet.tags).isEqualTo(batchSearch.tags);
+        assertThat(batchSearchFromGet.queryBody).isEqualTo(batchSearch.queryBody);
         assertThat(batchSearchFromGet.paths).isEqualTo(batchSearch.paths);
         assertThat(batchSearchFromGet.fuzziness).isEqualTo(batchSearch.fuzziness);
         assertThat(batchSearchFromGet.description).isEqualTo(batchSearch.description);
@@ -74,7 +74,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_batch_search_by_user_with_projects_without_queries() {
         BatchSearch batchSearch = new BatchSearch(asList(proxy("prj1"), proxy("prj2")), "name1", "description1",
-                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), singletonList("tag"),
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), null,
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true);
 
         repository.save(batchSearch);
@@ -86,7 +86,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_batch_search_by_user_with_projects_with_queries() {
         BatchSearch batchSearch = new BatchSearch(asList(proxy("prj1"), proxy("prj2")), "name1", "description1",
-                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), singletonList("tag"),
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), null,
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true);
 
         repository.save(batchSearch);
@@ -98,7 +98,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_records_filter_by_project() {
         BatchSearch batchSearch1 = new BatchSearch(singletonList(proxy("prj1")), "name1", "description1",
-                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), singletonList("tag"),
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), null,
                 asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         BatchSearch batchSearch2 = new BatchSearch(singletonList(proxy("prj2")), "name2", "description2",
                 asSet("q3", "q4"), new Date(new Date().getTime() + 1000000000));
@@ -113,7 +113,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_total_filter_by_project() {
         BatchSearch batchSearch1 = new BatchSearch(asList(proxy("prj1"), proxy("prj2")), "name1", "description1",
-                        asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), singletonList("tag"),
+                        asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), null,
                 asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         BatchSearch batchSearch2 = new BatchSearch(singletonList(proxy("prj2")), "name2", "description2",
                 asSet("q3", "q4"), User.local(), true);
@@ -131,7 +131,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_records() {
         BatchSearch batchSearch = new BatchSearch(singletonList(proxy("prj")),"name","description",asSet("q1", "q2"), User.local(),
-                true,asList("application/json", "image/jpeg"), singletonList("tag"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+                true,asList("application/json", "image/jpeg"), null, asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         repository.save(batchSearch);
 
         List<BatchSearchRecord> batchSearchRecords = repository.getRecords(User.local(), singletonList("prj"));
@@ -152,7 +152,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_records_with_multiple_project_intersection() {
         BatchSearch batchSearch = new BatchSearch(asList(proxy("prj1"), proxy("prj2")),"name","description",asSet("q1", "q2"), User.local(),
-                true,asList("application/json", "image/jpeg"), singletonList("tag"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+                true,asList("application/json", "image/jpeg"), null, asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         repository.save(batchSearch);
 
         assertThat(repository.getRecords(User.local(), asList("prj1", "prj2"))).isNotEmpty();
@@ -164,7 +164,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_records_with_query_and_field() {
         BatchSearch batchSearch1 = new BatchSearch(singletonList(proxy("prj")),"foo","baz",asSet("q1", "q2"), User.local(),
-                false,asList("application/json", "image/jpeg"), singletonList("tag"), asList("/path/to/docs", "/path/to/pdfs"),  3,true);
+                false,asList("application/json", "image/jpeg"), null, asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         BatchSearch batchSearch2 = new BatchSearch(singletonList(proxy("anotherPrj")),"bar","baz",asSet("q3", "q2"), User.local(),
                 true,asList("application/json", "image/jpeg"), null, asList("/path/to/docs", "/path/to/pdfs"),  3,true);
         BatchSearch batchSearch3 = new BatchSearch(singletonList(proxy("otherPrj")),"bar","baz",asSet("q4", "q1"), User.local(),
@@ -199,7 +199,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_get_records_with_query() {
         IntStream.range(0, 5).mapToObj(i -> new BatchSearch(singletonList(proxy("prj1")), "name" + i, "description" + i, asSet("q1/" + i, "q2/" + i), User.local(),
-                true, asList("application/json", "image/jpeg"), singletonList("tag"), asList("/path/to/docs", "/path/to/pdfs"), 3, true)).
+                true, asList("application/json", "image/jpeg"), null, asList("/path/to/docs", "/path/to/pdfs"), 3, true)).
                 forEach(bs -> {
                             repository.save(bs);
                             DatashareTime.getInstance().addMilliseconds(1000);
@@ -732,7 +732,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_save_batch_search_nb_queries_is_stored_in_db() {
         BatchSearch batchSearch = new BatchSearch(asList(proxy("prj1"), proxy("prj2")), "name1", "description1",
-                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), singletonList("tag"),
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), null,
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true);
 
         repository.save(batchSearch);
@@ -743,7 +743,7 @@ public class JooqBatchSearchRepositoryTest {
     @Test
     public void test_use_computed_nb_queries_when_nb_queries_attribute_is_equal_to_0() {
         BatchSearch batchSearch = new BatchSearch(asList(proxy("prj1"), proxy("prj2")), "name1", "description1",
-                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), singletonList("tag"),
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), null,
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true);
 
         repository.save(batchSearch);
