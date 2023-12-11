@@ -264,7 +264,7 @@ public class BatchSearchResource {
         String description = fieldValue("description", parts);
         boolean published = "true".equalsIgnoreCase(fieldValue("published", parts)) ? TRUE: FALSE ;
         List<String> fileTypes = fieldValues("fileTypes", parts);
-        List<String> tags = fieldValues("tags", parts);
+        String queryBody = fieldValue("query_body", parts);
         List<String> paths = fieldValues("paths", parts);
         Optional<Part> fuzzinessPart = parts.stream().filter(p -> "fuzziness".equals(p.name())).findAny();
         int fuzziness = fuzzinessPart.isPresent() ? parseInt(fuzzinessPart.get().content()):0;
@@ -275,7 +275,7 @@ public class BatchSearchResource {
         if(queries.size() >= MAX_BATCH_SIZE)
             return new Payload(413);
         BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,
-                (User) context.currentUser(), published, fileTypes, tags, paths, fuzziness,phraseMatches);
+                (User) context.currentUser(), published, fileTypes, queryBody, paths, fuzziness,phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);
         if (isSaved) batchSearchQueue.put(batchSearch.uuid);
         return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
