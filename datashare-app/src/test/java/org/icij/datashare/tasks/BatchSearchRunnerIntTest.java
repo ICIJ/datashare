@@ -26,6 +26,7 @@ import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
+import static org.icij.datashare.text.Tag.tag;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -51,7 +52,7 @@ public class BatchSearchRunnerIntTest {
     public void test_search_with_file_types_ko() throws Exception {
         Document mydoc = createDoc("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
-        BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, singletonList("tag"), singletonList("application/pdf"), null, 0);
+        BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, singletonList("application/pdf"), null,null, 0);
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), searchKo, resultConsumer).call();
 
