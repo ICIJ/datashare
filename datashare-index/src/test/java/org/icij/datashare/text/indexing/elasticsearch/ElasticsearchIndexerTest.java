@@ -20,7 +20,9 @@ import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -92,8 +94,8 @@ public class ElasticsearchIndexerTest {
     public void test_bulk_add_named_entities() throws IOException {
         Document doc = createDoc("id").build();
         indexer.add(TEST_INDEX, doc);
-        NamedEntity ne1 = create(PERSON, "John Doe", asList(12L), "doc.txt", "root", CORENLP, Language.FRENCH);
-        NamedEntity ne2 = create(ORGANIZATION, "AAA", asList(123L), "doc.txt", "root", CORENLP, Language.FRENCH);
+        NamedEntity ne1 = create(PERSON, "John Doe", singletonList(12L), "doc.txt", "root", CORENLP, Language.FRENCH);
+        NamedEntity ne2 = create(ORGANIZATION, "AAA", singletonList(123L), "doc.txt", "root", CORENLP, Language.FRENCH);
 
         assertThat(indexer.bulkAdd(TEST_INDEX, CORENLP, asList(ne1, ne2), doc)).isTrue();
 
@@ -117,8 +119,9 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_bulk_add_for_embedded_doc() throws IOException {
+        Path path = Paths.get("mail.eml");
         Document parent = createDoc("id")
-                .with(Paths.get("mail.eml"))
+                .with(path)
                 .with("content")
                 .with(Language.FRENCH)
                 .ofMimeType("message/rfc822")
@@ -127,7 +130,7 @@ public class ElasticsearchIndexerTest {
                 .withContentLength(321L)
                 .build();
         Document child = createDoc("childId")
-                .with(Paths.get("mail.eml"))
+                .with(path)
                 .with("mail body")
                 .with(Language.FRENCH)
                 .ofMimeType("text/plain")
@@ -141,7 +144,7 @@ public class ElasticsearchIndexerTest {
 
         indexer.add(TEST_INDEX,parent);
         indexer.add(TEST_INDEX,child);
-        NamedEntity ne1 = create(PERSON, "Jane Daffodil", asList(12L), parent.getId(), "root", CORENLP, Language.FRENCH);
+        NamedEntity ne1 = create(PERSON, "Jane Daffodil", singletonList(12L), parent.getId(), "root", CORENLP, Language.FRENCH);
 
         assertThat(indexer.bulkAdd(TEST_INDEX,CORENLP, singletonList(ne1), child)).isTrue();
 
@@ -164,7 +167,7 @@ public class ElasticsearchIndexerTest {
                 .with(DONE)
                 .withContentLength(123L)
                 .build();
-        NamedEntity ne = create(PERSON, "Madeline", asList(8L), parent.getId(), "root", CORENLP, Language.ENGLISH);
+        NamedEntity ne = create(PERSON, "Madeline", singletonList(8L), parent.getId(), "root", CORENLP, Language.ENGLISH);
         indexer.add(TEST_INDEX, parent);
         indexer.add(TEST_INDEX, ne);
 
@@ -211,9 +214,9 @@ public class ElasticsearchIndexerTest {
         Document doc = createDoc("id").build();
         indexer.add(TEST_INDEX, doc);
 
-        String query = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"*\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"*\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
         List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX),Document.class).
-                set(JsonObjectMapper.MAPPER.readTree(query)).execute().collect(toList());
+                set(JsonObjectMapper.MAPPER.readTree(queryBody)).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
     }
 
@@ -279,9 +282,9 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_search_with_field_value() throws Exception {
-        indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", asList(2L), "docId", "root", CORENLP, Language.FRENCH));
-        indexer.add(TEST_INDEX, create(PERSON, "John Doe", asList(12L), "docId", "root", CORENLP, Language.FRENCH));
-        indexer.add(TEST_INDEX, create(PERSON, "John Doe", asList(24L), "doc2Id", "root", CORENLP, Language.FRENCH));
+        indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", singletonList(2L), "docId", "root", CORENLP, Language.FRENCH));
+        indexer.add(TEST_INDEX, create(PERSON, "John Doe", singletonList(12L), "docId", "root", CORENLP, Language.FRENCH));
+        indexer.add(TEST_INDEX, create(PERSON, "John Doe", singletonList(24L), "doc2Id", "root", CORENLP, Language.FRENCH));
 
         assertThat(indexer.search(singletonList(TEST_INDEX), NamedEntity.class).thatMatchesFieldValue("mentionNorm", "john doe").execute().count()).isEqualTo(2);
         assertThat(indexer.search(singletonList(TEST_INDEX), NamedEntity.class).thatMatchesFieldValue("offsets", 24).execute().count()).isEqualTo(1);
@@ -370,8 +373,8 @@ public class ElasticsearchIndexerTest {
     public void test_bulk_update() throws IOException {
         Document doc = createDoc("id").build();
         indexer.add(TEST_INDEX, doc);
-        NamedEntity ne1 = create(PERSON, "John Doe", asList(12L), doc.getId(), "root", CORENLP, Language.FRENCH);
-        NamedEntity ne2 = create(ORGANIZATION, "AAA", asList(123L), doc.getId(), "root", CORENLP, Language.FRENCH);
+        NamedEntity ne1 = create(PERSON, "John Doe", singletonList(12L), doc.getId(), "root", CORENLP, Language.FRENCH);
+        NamedEntity ne2 = create(ORGANIZATION, "AAA", singletonList(123L), doc.getId(), "root", CORENLP, Language.FRENCH);
         indexer.bulkAdd(TEST_INDEX, CORENLP, asList(ne1, ne2), doc);
 
         ne1.hide();
@@ -388,8 +391,8 @@ public class ElasticsearchIndexerTest {
     public void test_delete_by_query() throws Exception {
         Document doc = createDoc("docId").build();
         indexer.add(TEST_INDEX, doc);
-        indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", asList(2L), "docId", "root", CORENLP, Language.FRENCH));
-        indexer.add(TEST_INDEX, create(PERSON, "John Doe", asList(12L), "docId", "root", CORENLP, Language.FRENCH));
+        indexer.add(TEST_INDEX, create(PERSON, "Joe Foo", singletonList(2L), "docId", "root", CORENLP, Language.FRENCH));
+        indexer.add(TEST_INDEX, create(PERSON, "John Doe", singletonList(12L), "docId", "root", CORENLP, Language.FRENCH));
 
         assertThat(indexer.deleteAll(TEST_INDEX)).isTrue();
 
@@ -401,7 +404,7 @@ public class ElasticsearchIndexerTest {
     public void test_query_like_js_front_finds_document_from_its_child_named_entity() throws Exception {
         Document doc = createDoc("id").with("content with john doe").build();
         indexer.add(TEST_INDEX, doc);
-        NamedEntity ne1 = create(PERSON, "John Doe", asList(12L), doc.getId(), "root", CORENLP, Language.FRENCH);
+        NamedEntity ne1 = create(PERSON, "John Doe", singletonList(12L), doc.getId(), "root", CORENLP, Language.FRENCH);
         indexer.bulkAdd(TEST_INDEX, CORENLP, singletonList(ne1), doc);
 
         Object[] documents = indexer.search(singletonList(TEST_INDEX), Document.class).withoutSource("content").with("john").execute().toArray();
@@ -505,19 +508,20 @@ public class ElasticsearchIndexerTest {
     public void test_get_slice_of_document_content_with_oversize() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
         indexer.add(TEST_INDEX, doc);
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 0, 22, null);
+
+        indexer.getExtractedText(TEST_INDEX, "id", null, 0, 22, null);
     }
     @Test(expected = IndexOutOfBoundsException.class)
     public void test_get_slice_of_document_content_with_out_of_range_limit() throws Exception {
         Document doc = createDoc("id").with("content with john doe").withContentLength(34L).build();
         indexer.add(TEST_INDEX, doc);
 
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, null);
+        indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void test_get_slice_of_document_not_found() throws Exception {
-        ExtractedText actual = indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, null);
+        indexer.getExtractedText(TEST_INDEX, "id", null, 10, 18, null);
     }
     @Test(expected = IllegalArgumentException.class)
     public void test_get_slice_of_translated_document_not_found() throws Exception {
@@ -591,5 +595,11 @@ public class ElasticsearchIndexerTest {
         String res= ElasticsearchIndexer.getScriptStringFromFile(filename);
         assertThat(res.length()).isEqualTo(1784);
         assertThat(res).isEqualTo(ElasticsearchIndexer.getMemoizeScript().get(filename));
+    }
+
+    @Test(expected = FileNotFoundException.class)
+    public void test_retrieve_script_from_unknown_resource_file() throws IOException {
+        String filename= "unknown.painless.java";
+        ElasticsearchIndexer.getScriptStringFromFile(filename);
     }
 }
