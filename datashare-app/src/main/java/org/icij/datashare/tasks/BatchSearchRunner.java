@@ -88,7 +88,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                 query = s;
                 Indexer.Searcher searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class);
                 if (batchSearch.hasQueryBody()) {
-                    searcher.setFromTemplate(batchSearch.queryBody, query);
+                    searcher.setFromTemplate(batchSearch.queryBody, query, batchSearch.fuzziness, batchSearch.phraseMatches);
                 } else {
                     searcher.with(query, batchSearch.fuzziness, batchSearch.phraseMatches)
                             .withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{}))
