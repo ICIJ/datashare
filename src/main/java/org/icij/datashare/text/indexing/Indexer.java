@@ -53,7 +53,7 @@ public interface Indexer extends Closeable {
         Stream<? extends Entity> scroll() throws IOException;
         Stream<? extends Entity> scroll(int numSlice, int nbSlices) throws IOException;
         Searcher set(JsonNode jsonQuery);
-        Searcher setFromTemplate(String jsonQueryTemplate, String query);
+        Searcher setFromTemplate(String jsonQueryTemplate, String query, int fuzziness, boolean phraseMatches);
         Searcher withSource(String... fields);
         Searcher withoutSource(String... fields);
         Searcher withSource(boolean source);
