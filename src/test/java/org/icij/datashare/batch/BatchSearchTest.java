@@ -33,7 +33,8 @@ public class BatchSearchTest {
                 asSet("q1", "q2"), User.local(), true, singletonList("application/json"), "{\"query\":3}",
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true).hasQueryBody()).isTrue();
     }
-    public void test_query_as_json_should_throw_exception_when_query_body_is_null() {
+    @Test
+    public void test_has_query_body_false() {
         assertThat(new BatchSearch(singletonList(project("prj")), "name", "desc",
                 asSet("q1", "q2"), User.local(), true, singletonList("application/json"), null,
                 asList("/path/to/docs", "/path/to/pdfs"), 3,true).hasQueryBody()).isFalse();
