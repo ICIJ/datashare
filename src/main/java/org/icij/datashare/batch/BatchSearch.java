@@ -1,14 +1,10 @@
 package org.icij.datashare.batch;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.JsonNode;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static java.util.Collections.unmodifiableList;
