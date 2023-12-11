@@ -4,7 +4,10 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.Time;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch.core.*;
+import co.elastic.clients.elasticsearch.core.ClearScrollRequest;
+import co.elastic.clients.elasticsearch.core.ScrollRequest;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.ResponseBody;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,13 +24,11 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static co.elastic.clients.elasticsearch.core.SearchRequest.*;
+import static co.elastic.clients.elasticsearch.core.SearchRequest.Builder;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
@@ -43,9 +44,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     private String scrollId;
     private SearchRequest scrollSearchRequest;
     private long totalHits;
-    static Pattern queryTemplate = Pattern.compile("<query>(<phrase_match>)?<fuzziness_\\d+>");
-    static Pattern phraseMatchTemplate = Pattern.compile(".*(<phrase_match>).*");
-    static Pattern fuzzinessTemplate = Pattern.compile(".*<fuzziness_(\\d+)>.*");
+    private final static String TEMPLATE_QUERY = "<query>";
 
     ElasticsearchSearcher(ElasticsearchClient client, ElasticsearchConfiguration config, final List<String> indexesNames, final Class<? extends Entity> cls) {
         this.client = client;
@@ -160,19 +159,9 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     }
 
     @Override
-    public Indexer.Searcher setFromTemplate(String jsonQueryTemplate, String query) {
-        boolean phraseMatch = phraseMatchTemplate.matcher(jsonQueryTemplate).matches();
-
-        int fuzziness = 0;
-        Matcher fuzzinessMatcher = fuzzinessTemplate.matcher(jsonQueryTemplate);
-        if (fuzzinessMatcher.matches()) {
-            fuzziness = Integer.parseInt(fuzzinessMatcher.group(1));
-        }
-
-        String queryString = buildQueryString(query, fuzziness, phraseMatch, "\\\\\"");
-        jsonQueryTemplate = queryTemplate.matcher(jsonQueryTemplate).replaceAll(queryString);
-        final String queryBody = jsonQueryTemplate;
-
+    public Indexer.Searcher setFromTemplate(String jsonQueryTemplate, String query, int fuzziness, boolean phraseMatches) {
+        String queryString = buildQueryString(query, fuzziness, phraseMatches, "\\\\\"");
+        final String queryBody = jsonQueryTemplate.replaceAll(TEMPLATE_QUERY,queryString);
         this.boolQueryBuilder.must(m -> m.withJson(new StringReader(queryBody)));
         return this;
     }

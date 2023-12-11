@@ -222,17 +222,16 @@ public class ElasticsearchIndexerTest {
     public void test_search_with_a_template_json_query_phrase_matches() throws IOException {
         Document doc = createDoc("id").with("content with john doe").build();
         indexer.add(TEST_INDEX, doc);
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
         String queryToSearch = "john AND doe";
 
-        String queryBodyWithPhraseMatch = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query><phrase_match><fuzziness_0>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
-        List<? extends Entity> lst1 = indexer.search(singletonList(TEST_INDEX),Document.class).
-                setFromTemplate(queryBodyWithPhraseMatch, queryToSearch).execute().collect(toList());
-        assertThat(lst1.size()).isEqualTo(0);
+        List<? extends Entity> searchWithPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class).
+                setFromTemplate(queryBody, queryToSearch, 0, true).execute().collect(toList());
+        assertThat(searchWithPhraseMatch.size()).isEqualTo(0);
 
-        String queryBodyWithoutPhraseMatch = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query><fuzziness_0>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
-        List<? extends Entity> lst2 = indexer.search(singletonList(TEST_INDEX),Document.class).
-                setFromTemplate(queryBodyWithoutPhraseMatch, queryToSearch).execute().collect(toList());
-        assertThat(lst2.size()).isEqualTo(1);
+        List<? extends Entity> searchWithoutPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class).
+                setFromTemplate(queryBody, queryToSearch, 0, false).execute().collect(toList());
+        assertThat(searchWithoutPhraseMatch.size()).isEqualTo(1);
     }
 
     @Test
@@ -241,17 +240,16 @@ public class ElasticsearchIndexerTest {
         Document doc2 = createDoc("id2").with("baz").build();
         indexer.add(TEST_INDEX, doc1);
         indexer.add(TEST_INDEX, doc2);
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
         String queryToSearch = "bar";
 
-        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query><fuzziness_0>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
-        List<? extends Entity> lst1 = indexer.search(singletonList(TEST_INDEX),Document.class).
-                setFromTemplate(queryBody, queryToSearch).execute().collect(toList());
-        assertThat(lst1.size()).isEqualTo(1);
+        List<? extends Entity> searchWithFuzziness0 = indexer.search(singletonList(TEST_INDEX),Document.class).
+                setFromTemplate(queryBody, queryToSearch, 0, false).execute().collect(toList());
+        assertThat(searchWithFuzziness0.size()).isEqualTo(1);
 
-        String queryBodyWithFuzziness = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query><fuzziness_1>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
-        List<? extends Entity> lst2 = indexer.search(singletonList(TEST_INDEX),Document.class).
-                setFromTemplate(queryBodyWithFuzziness, queryToSearch).execute().collect(toList());
-        assertThat(lst2.size()).isEqualTo(2);
+        List<? extends Entity> searchWithFuzziness1 = indexer.search(singletonList(TEST_INDEX),Document.class).
+                setFromTemplate(queryBody, queryToSearch, 1, false).execute().collect(toList());
+        assertThat(searchWithFuzziness1.size()).isEqualTo(2);
     }
 
     @Test
