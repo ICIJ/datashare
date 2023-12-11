@@ -1,7 +1,10 @@
 package org.icij.datashare.json;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.icij.datashare.Entity;
@@ -13,6 +16,7 @@ import org.icij.datashare.text.indexing.IndexType;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
@@ -81,6 +85,23 @@ public class JsonObjectMapper {
         } catch (IOException e) {
             throw new IllegalArgumentException("cannot deserialize object map " + source, e);
         }
+    }
+
+    /**
+     * Get a type inclusion mapper i.e. a mapper that adds the class value in JSON.
+     * An attribute "@class" is added for each object.
+     * It is used for example to serialize/deserialize exceptions.
+     *
+     * @return ObjectMapper instance
+     */
+    public static ObjectMapper createTypeInclusionMapper() {
+        ObjectMapper copy = MAPPER.copy();
+        copy.writerFor(new TypeReference<List<Throwable>>() {});
+        TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.NON_FINAL, LaissezFaireSubTypeValidator.instance);
+        mapTyper.init(JsonTypeInfo.Id.CLASS, null);
+        mapTyper.inclusion(JsonTypeInfo.As.PROPERTY);
+        copy.setDefaultTyping(mapTyper);
+        return copy;
     }
 
     /**
