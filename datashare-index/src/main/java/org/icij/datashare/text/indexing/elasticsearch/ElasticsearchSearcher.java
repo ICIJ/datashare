@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -41,6 +43,9 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     private String scrollId;
     private SearchRequest scrollSearchRequest;
     private long totalHits;
+    static Pattern queryTemplate = Pattern.compile("<query>(<phrase_match>)?<fuzziness_\\d+>");
+    static Pattern phraseMatchTemplate = Pattern.compile(".*(<phrase_match>).*");
+    static Pattern fuzzinessTemplate = Pattern.compile(".*<fuzziness_(\\d+)>.*");
 
     ElasticsearchSearcher(ElasticsearchClient client, ElasticsearchConfiguration config, final List<String> indexesNames, final Class<? extends Entity> cls) {
         this.client = client;
@@ -155,18 +160,40 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     }
 
     @Override
+    public Indexer.Searcher setFromTemplate(String jsonQueryTemplate, String query) {
+        boolean phraseMatch = phraseMatchTemplate.matcher(jsonQueryTemplate).matches();
+
+        int fuzziness = 0;
+        Matcher fuzzinessMatcher = fuzzinessTemplate.matcher(jsonQueryTemplate);
+        if (fuzzinessMatcher.matches()) {
+            fuzziness = Integer.parseInt(fuzzinessMatcher.group(1));
+        }
+
+        String queryString = buildQueryString(query, fuzziness, phraseMatch, "\\\\\"");
+        jsonQueryTemplate = queryTemplate.matcher(jsonQueryTemplate).replaceAll(queryString);
+        final String queryBody = jsonQueryTemplate;
+
+        this.boolQueryBuilder.must(m -> m.withJson(new StringReader(queryBody)));
+        return this;
+    }
+
+    @Override
     public Indexer.Searcher with(String query, int fuzziness, boolean phraseMatches) {
+        String queryString = buildQueryString(query, fuzziness, phraseMatches, "\"");
+        this.boolQueryBuilder.must(m -> m.matchAll(ma -> ma));
+        this.boolQueryBuilder.must(m -> m.queryString(qs -> qs.query(queryString)));
+        return this;
+    }
+    private static String buildQueryString(String query, int fuzziness, boolean phraseMatches, String phraseMatchDoubleQuotes) {
         String queryString;
         if (phraseMatches) {
-            queryString = "\"" + query + "\"" + (fuzziness == 0 ? "" : "~" + fuzziness);
+            queryString = phraseMatchDoubleQuotes + query + phraseMatchDoubleQuotes + (fuzziness == 0 ? "" : "~" + fuzziness);
         } else if (fuzziness > 0) {
             queryString = Stream.of(query.split(" ")).map(s -> s + "~" + fuzziness).collect(Collectors.joining(" "));
         } else {
             queryString = query;
         }
-        this.boolQueryBuilder.must(m -> m.matchAll(ma -> ma));
-        this.boolQueryBuilder.must(m -> m.queryString(qs -> qs.query(queryString)));
-        return this;
+        return queryString;
     }
 
     @Override
