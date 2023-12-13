@@ -27,17 +27,17 @@ public class BatchSearchTest {
     }
 
     @Test
-    public void test_has_query_body_true() {
+    public void test_has_query_template_true() {
         String query = "{\"query\":3}";
         assertThat(new BatchSearch(singletonList(project("prj")), "name", "desc",
                 asSet("q1", "q2"), User.local(), true, singletonList("application/json"), "{\"query\":3}",
-                asList("/path/to/docs", "/path/to/pdfs"), 3,true).hasQueryBody()).isTrue();
+                asList("/path/to/docs", "/path/to/pdfs"), 3,true).hasQueryTemplate()).isTrue();
     }
     @Test
-    public void test_has_query_body_false() {
+    public void test_has_query_template_false() {
         assertThat(new BatchSearch(singletonList(project("prj")), "name", "desc",
                 asSet("q1", "q2"), User.local(), true, singletonList("application/json"), null,
-                asList("/path/to/docs", "/path/to/pdfs"), 3,true).hasQueryBody()).isFalse();
+                asList("/path/to/docs", "/path/to/pdfs"), 3,true).hasQueryTemplate()).isFalse();
     }
 
     @Test
@@ -62,7 +62,7 @@ public class BatchSearchTest {
         assertThat(copy.name).isEqualTo(batchSearch.name);
         assertThat(copy.description).isEqualTo(batchSearch.description);
         assertThat(copy.fileTypes).isEqualTo(batchSearch.fileTypes);
-        assertThat(copy.queryBody).isEqualTo(batchSearch.queryBody);
+        assertThat(copy.queryTemplate).isEqualTo(batchSearch.queryTemplate);
         assertThat(copy.fuzziness).isEqualTo(batchSearch.fuzziness);
         assertThat(copy.paths).isEqualTo(batchSearch.paths);
         assertThat(copy.published).isEqualTo(batchSearch.published);

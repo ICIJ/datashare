@@ -2,6 +2,7 @@ package org.icij.datashare.batch;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.icij.datashare.text.ProjectProxy;
+import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 
@@ -19,8 +20,7 @@ public class BatchSearch extends BatchSearchRecord {
     public final List<String> paths;
     public final int fuzziness;
     public final boolean phraseMatches;
-
-    public final String queryBody;
+    public final SearchQuery queryTemplate;
     // batch search creation
 
     public BatchSearch(final List<ProjectProxy> projects, final String name, final String description, User user) {
@@ -52,7 +52,7 @@ public class BatchSearch extends BatchSearchRecord {
         this(UUID.randomUUID().toString(), toCopy.projects,
                 ofNullable(overriddenParameters.get("name")).orElse(toCopy.name),
                 ofNullable(overriddenParameters.get("description")).orElse(toCopy.description), toCopy.queries, DatashareTime.getNow(), State.QUEUED,
-                toCopy.user, 0, toCopy.published, toCopy.fileTypes, toCopy.queryBody,toCopy.paths, toCopy.fuzziness, toCopy.phraseMatches, null, null);
+                toCopy.user, 0, toCopy.published, toCopy.fileTypes, toCopy.queryTemplate.toString(),toCopy.paths, toCopy.fuzziness, toCopy.phraseMatches, null, null);
     }
 
     public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, LinkedHashSet<String> queries, Date date, State state, User user) {
@@ -77,7 +77,7 @@ public class BatchSearch extends BatchSearchRecord {
         if (this.nbQueries == 0) throw new IllegalArgumentException("queries cannot be empty");
         this.queries = queries;
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
-        this.queryBody = queryBody;
+        this.queryTemplate = new SearchQuery(queryBody);
         this.paths = unmodifiableList(ofNullable(paths).orElse(new ArrayList<>()));
         this.fuzziness = fuzziness;
         this.phraseMatches=phraseMatches;
@@ -87,19 +87,19 @@ public class BatchSearch extends BatchSearchRecord {
      * Allow creation of batch search without queries
      */
     public BatchSearch(String uuid, List<ProjectProxy> projects, String name, String description, Integer nbQueries, Date date, State state, User user,
-                       int nbResults, boolean published, List<String> fileTypes, String queryBody, List<String> paths, int fuzziness, boolean phraseMatches,
+                       int nbResults, boolean published, List<String> fileTypes, String queryTemplate, List<String> paths, int fuzziness, boolean phraseMatches,
                        String errorMessage, String errorQuery) {
         super(uuid,projects,name,description,nbQueries,date,state,user,nbResults,published,errorMessage, errorQuery);
         this.queries = new LinkedHashMap<>();
         this.fileTypes = unmodifiableList(ofNullable(fileTypes).orElse(new ArrayList<>()));
-        this.queryBody = queryBody;
+        this.queryTemplate = new SearchQuery(queryTemplate);
         this.paths = unmodifiableList(ofNullable(paths).orElse(new ArrayList<>()));
         this.fuzziness = fuzziness;
         this.phraseMatches=phraseMatches;
     }
 
-    public boolean hasQueryBody() {
-        return queryBody != null;
+    public boolean hasQueryTemplate() {
+        return !queryTemplate.isNull();
     }
 
     @JsonIgnore

@@ -1,6 +1,5 @@
 package org.icij.datashare.text.indexing;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
@@ -19,7 +18,8 @@ import java.util.stream.Stream;
 public interface Indexer extends Closeable {
     Logger LOGGER = LoggerFactory.getLogger(Indexer.class);
 
-    Searcher search(List<String> indexesNames, Class<? extends Entity> entityClass);
+    QueryBuilderSearcher search(List<String> indexesNames, Class<? extends Entity> entityClass);
+    Searcher search(List<String> indexesNames, Class<? extends Entity> entityClass, SearchQuery query);
 
     boolean createIndex(String indexName) throws IOException;
     boolean deleteAll(String indexName) throws IOException;
@@ -47,26 +47,30 @@ public interface Indexer extends Closeable {
     ExtractedText getExtractedText(String indexName, String documentId, String rootDocument, int offset, int limit, String targetLanguage) throws IOException;
     SearchedText searchTextOccurrences(String indexName, String documentId, String query, String targetLanguage) throws IOException;
     SearchedText searchTextOccurrences(String indexName, String documentId, String rootDocument, String query, String targetLanguage) throws IOException;
+
     interface Searcher {
-        Searcher ofStatus(Document.Status indexed);
         Stream<? extends Entity> execute() throws IOException;
+        Stream<? extends Entity> execute(String stringQuery) throws IOException;
         Stream<? extends Entity> scroll() throws IOException;
+        Stream<? extends Entity> scroll(String stringQuery) throws IOException;
         Stream<? extends Entity> scroll(int numSlice, int nbSlices) throws IOException;
-        Searcher set(JsonNode jsonQuery);
-        Searcher setFromTemplate(String jsonQueryTemplate, String query, int fuzziness, boolean phraseMatches);
+        Stream<? extends Entity> scroll(int numSlice, int nbSlices, String stringQuery) throws IOException;
         Searcher withSource(String... fields);
         Searcher withoutSource(String... fields);
         Searcher withSource(boolean source);
-        Searcher without(Pipeline.Type... nlpPipelines);
-        Searcher with(Pipeline.Type... nlpPipelines);
         Searcher limit(int maxCount);
         void clearScroll() throws IOException;
         long totalHits();
-        Searcher with(Tag... tags);
-        Searcher with(String query);
-        Searcher with(String query, int fuzziness, boolean phraseMatches);
-        Searcher thatMatchesFieldValue(String key, Object value);
-        Searcher withFieldValues(String key, String... values);
-        Searcher withPrefixQuery(String key, String... values);
+        Searcher with(int fuzziness, boolean phraseMatches);
+    }
+
+    interface QueryBuilderSearcher extends Searcher {
+        QueryBuilderSearcher ofStatus(Document.Status indexed);
+        QueryBuilderSearcher without(Pipeline.Type... nlpPipelines);
+        QueryBuilderSearcher with(Pipeline.Type... nlpPipelines);
+        QueryBuilderSearcher with(Tag... tags);
+        QueryBuilderSearcher thatMatchesFieldValue(String key, Object value);
+        QueryBuilderSearcher withFieldValues(String key, String... values);
+        QueryBuilderSearcher withPrefixQuery(String key, String... values);
     }
 }

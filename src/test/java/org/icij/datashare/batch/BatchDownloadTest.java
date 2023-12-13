@@ -1,6 +1,7 @@
 package org.icij.datashare.batch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.junit.After;
@@ -38,12 +39,12 @@ public class BatchDownloadTest {
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), local(), "foo");
 
         assertThat(batchDownload.projects).isEqualTo(singletonList(project("prj")));
-        assertThat(batchDownload.query).isEqualTo("foo");
+        assertThat(batchDownload.query).isEqualTo(new SearchQuery("foo"));
         assertThat(batchDownload.filename.toString()).isEqualTo("/tmp/archive_local_2021-07-07T14_53_47Z[GMT].zip");
         assertThat(batchDownload.getExists()).isFalse();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = IllegalStateException.class)
     public void test_constructor_with_json() {
         assertThat(new BatchDownload(asList(project("prj1"),project("prj2")), User.local(), "{test}").isJsonQuery()).isTrue();
     }
@@ -52,7 +53,7 @@ public class BatchDownloadTest {
     public void test_batch_download_constructor_with_downloadDir() {
         DatashareTime.getInstance().setMockDate("2021-07-07T14:15:16Z");
 
-        assertThat(new BatchDownload(singletonList(project("prj")), local(), "foo",
+        assertThat(new BatchDownload(singletonList(project("prj")), local(), "foo", null,
                 Paths.get("/bar"), false).filename.toString()).
                 isEqualTo("/bar/archive_local_2021-07-07T14_15_16Z[GMT].zip");
     }
@@ -75,7 +76,7 @@ public class BatchDownloadTest {
         DatashareTime.getInstance().setMockDate("2021-07-07T14:53:47Z");
         ObjectMapper objectMapper = new ObjectMapper();
         BatchDownload bd = new BatchDownload(asList(project("prj1"),
-                project("prj2")),  local(), "query", tmpPath ,false);
+                project("prj2")),  local(), "query", null ,tmpPath ,false);
         String json = objectMapper.writeValueAsString(bd);
         assertThat(json).contains("\"filename\":\"file://"+ tmpPath + "/archive_local_2021-07-07T14_53_47Z%5BGMT%5D.zip\"");
         assertThat(json).contains("\"exists\":true");
@@ -118,14 +119,6 @@ public class BatchDownloadTest {
         assertThat(json).contains("\"filename\":\"file:///tmp/archive_local_2021-07-07T14_53_47Z%5BGMT%5D.zip\"");
         assertThat(json).contains("\"exists\":false");
     }
-
-    @Test
-    public void test_null_object() {
-        BatchDownload nullBatchDownload = BatchDownload.nullObject();
-        assertThat(nullBatchDownload).isEqualTo(BatchDownload.nullObject());
-    }
-
-
 
     @Before public void setUp() { DatashareTime.setMockTime(true); }
     @After public void tearDown() { DatashareTime.setMockTime(false); }}

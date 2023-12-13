@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.Project;
+import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 
@@ -32,13 +33,10 @@ public class BatchDownload {
     public final String uuid;
     public final List<Project> projects;
     public final Path filename;
-    public final String query;
     public final String uri;
     public final User user;
     public final boolean encrypted;
-
-    @JsonIgnore
-    private final JsonNode jsonNode;
+    public final SearchQuery query;
 
     public BatchDownload(final List<Project> projects, User user, String query, String uri) {
         this(projects, user, query,  uri, Paths.get(System.getProperty("java.io.tmpdir")),false);
@@ -49,37 +47,28 @@ public class BatchDownload {
     }
 
     public BatchDownload(final List<Project> projects, User user, String query, String uri, Path downloadDir, boolean isEncrypted)  {
-        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, uri, user, isEncrypted);
-    }
-
-    public BatchDownload(final List<Project> projects, User user, String query, Path downloadDir, boolean isEncrypted)  {
-        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)), query, null, user, isEncrypted);
+        this(UUID.randomUUID().toString(), projects, downloadDir.resolve(createFilename(user)),
+                new SearchQuery(ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null"))), uri, user, isEncrypted);
     }
 
     @JsonCreator
-    private BatchDownload(@JsonProperty("uuid") final String uuid,
-                          @JsonProperty("projects") final List<Project> projects,
-                          @JsonProperty("filename") Path filename,
-                          @JsonProperty("query") String query,
-                          @JsonProperty("uri") String uri,
-                          @JsonProperty("user") User user,
-                          @JsonProperty("encrypted") boolean encrypted) {
+    BatchDownload(@JsonProperty("uuid") final String uuid,
+                  @JsonProperty("projects") final List<Project> projects,
+                  @JsonProperty("filename") Path filename,
+                  @JsonProperty("query") SearchQuery query,
+                  @JsonProperty("uri") String uri,
+                  @JsonProperty("user") User user,
+                  @JsonProperty("encrypted") boolean encrypted) {
+        this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
+        if ( query.isNull() || (query.isJsonQuery() && query.asJson() == null)) {
+            throw new IllegalArgumentException("invalid query: " + query);
+        }
         this.uuid = uuid;
         this.projects = unmodifiableList(ofNullable(projects).orElse(new ArrayList<>()));
         this.user = user;
-        this.query = ofNullable(query).orElseThrow(() -> new IllegalArgumentException("query cannot be null or empty"));
         this.uri = uri;
         this.filename = filename;
         this.encrypted = encrypted;
-        if (isJsonQuery()) {
-            try {
-                jsonNode = JsonObjectMapper.MAPPER.readTree(query.getBytes(StandardCharsets.UTF_8));
-            } catch (IOException e) { // should be a JsonParseException
-                throw new IllegalArgumentException(e);
-            }
-        } else {
-            jsonNode = null;
-        }
     }
 
     public static Path createFilename(User user) {
@@ -89,21 +78,17 @@ public class BatchDownload {
         return Paths.get(format(ZIP_FORMAT, nonNullUser.getId(), strTime));
     }
 
-    public static BatchDownload nullObject() {
-        return new BatchDownload(null, null, Paths.get("/dev/null"), "", null, User.nullUser(),false);
-    }
-
     public boolean getExists() {
         return Files.exists(this.filename);
     }
 
     @JsonIgnore
     public boolean isJsonQuery() {
-        return query.trim().startsWith("{") && query.trim().endsWith("}");
+        return query.isJsonQuery();
     }
 
     public JsonNode queryAsJson() {
-        return ofNullable(jsonNode).orElseThrow(() -> new IllegalStateException("cannot get JSON node from query string"));
+        return query.asJson();
     }
 
     @Override
