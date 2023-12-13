@@ -1,28 +1,16 @@
 package org.icij.datashare.tasks;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
-import org.jetbrains.annotations.NotNull;
 import org.redisson.Redisson;
 import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
@@ -34,7 +22,6 @@ import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import javax.inject.Inject;
-import javax.xml.datatype.XMLGregorianCalendar;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -149,10 +136,7 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
         protected final ObjectMapper mapObjectMapper;
 
         public TaskViewCodec() {
-            this.mapObjectMapper = new ObjectMapper();
-            this.mapObjectMapper.writerFor(new TypeReference<List<Throwable>>() {});
-            init(this.mapObjectMapper);
-            initTypeInclusion(this.mapObjectMapper);
+            this.mapObjectMapper = JsonObjectMapper.createTypeInclusionMapper();
 
             this.keyEncoder = in -> {
                 ByteBuf out = ByteBufAllocator.DEFAULT.buffer();
@@ -164,54 +148,6 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
                 buf.readerIndex(buf.readableBytes());
                 return str;
             };
-        }
-        protected void init(@NotNull ObjectMapper objectMapper) {
-            objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-            objectMapper.setVisibility(objectMapper.getSerializationConfig()
-                    .getDefaultVisibilityChecker()
-                    .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
-                    .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
-                    .withCreatorVisibility(JsonAutoDetect.Visibility.NONE));
-            objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-            objectMapper.enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN);
-            objectMapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-            objectMapper.enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY);
-            objectMapper.addMixIn(Throwable.class, ThrowableMixIn.class);
-        }
-
-        protected void initTypeInclusion(@NotNull ObjectMapper mapObjectMapper) {
-            TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.NON_FINAL) {
-                public boolean useForType(JavaType t) {
-                    switch (_appliesFor) {
-                        case NON_CONCRETE_AND_ARRAYS:
-                            while (t.isArrayType()) {
-                                t = t.getContentType();
-                            }
-                            // fall through
-                        case OBJECT_AND_NON_CONCRETE:
-                            return (t.getRawClass() == Object.class) || !t.isConcrete();
-                        case NON_FINAL:
-                            while (t.isArrayType()) {
-                                t = t.getContentType();
-                            }
-                            // to fix problem with wrong long to int conversion
-                            if (t.getRawClass() == Long.class) {
-                                return true;
-                            }
-                            if (t.getRawClass() == XMLGregorianCalendar.class) {
-                                return false;
-                            }
-                            return !t.isFinal(); // includes Object.class
-                        default:
-                            // case JAVA_LANG_OBJECT:
-                            return t.getRawClass() == Object.class;
-                    }
-                }
-            };
-            mapTyper.init(JsonTypeInfo.Id.CLASS, null);
-            mapTyper.inclusion(JsonTypeInfo.As.PROPERTY);
-            mapObjectMapper.setDefaultTyping(mapTyper);
         }
 
         private final Encoder encoder = new Encoder() {
@@ -231,13 +167,6 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
                 }
             }
         };
-
-        @JsonIdentityInfo(generator= ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
-        @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
-                getterVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
-                setterVisibility = JsonAutoDetect.Visibility.NONE,
-                isGetterVisibility = JsonAutoDetect.Visibility.NONE)
-        public static class ThrowableMixIn {}
 
         private final Decoder<Object> decoder = new Decoder<>() {
             @Override
