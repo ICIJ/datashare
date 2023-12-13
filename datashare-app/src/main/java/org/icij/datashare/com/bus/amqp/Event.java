@@ -2,6 +2,7 @@ package org.icij.datashare.com.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.time.DatashareTime;
 
@@ -14,6 +15,7 @@ import java.util.Date;
  * It provides creation timestamp and ttl that can be used for error handling and republishing/DLQ strategies.
  */
 public class Event implements Serializable {
+	private static final ObjectMapper jsonMapper = JsonObjectMapper.createTypeInclusionMapper();
 	private static final long serialVersionUID = -2295266944323500399L;
 	protected int ttl = 3;
 	public final Date creationDate;
@@ -37,6 +39,6 @@ public class Event implements Serializable {
 	}
 
 	public byte[] serialize() throws IOException {
-		return JsonObjectMapper.MAPPER.writeValueAsString(this).getBytes();
+		return jsonMapper.writeValueAsBytes(this);
 	}
 }

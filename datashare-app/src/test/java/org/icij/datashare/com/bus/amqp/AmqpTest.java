@@ -12,6 +12,9 @@ import org.junit.Test;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -35,6 +38,21 @@ public class AmqpTest {
         amqp.publish(AmqpQueue.EVENT, new TestEvent("hello AMQP"));
 
         assertThat(eventQueue.take().field).isEqualTo("hello AMQP");
+        consumer.cancel();
+    }
+
+    @Test
+    public void test_publish_receive_throwable() throws Exception {
+        BlockingQueue<TestErrorEvent> errorEventQueue = new LinkedBlockingQueue<>();
+        AmqpConsumer<TestErrorEvent, EventSaver<TestErrorEvent>> consumer = new AmqpConsumer<>(amqp, errorEventQueue::add, AmqpQueue.EVENT, TestErrorEvent.class);
+        consumer.consumeEvents();
+
+        amqp.publish(AmqpQueue.EVENT, new TestErrorEvent(new RuntimeException("my error")));
+
+        TestErrorEvent expected = errorEventQueue.poll(2, TimeUnit.SECONDS);
+        assert expected != null;
+        assertThat(expected.error.getMessage()).isEqualTo("my error");
+        assertThat(expected.error.getClass()).isEqualTo(RuntimeException.class);
         consumer.cancel();
     }
 
@@ -99,6 +117,14 @@ public class AmqpTest {
         @JsonCreator
         public TestEvent(@JsonProperty("field") String field) {
             this.field = field;
+        }
+    }
+
+    static class TestErrorEvent extends Event {
+        public final Throwable error;
+        @JsonCreator
+        public TestErrorEvent(@JsonProperty("error") Throwable error) {
+            this.error = error;
         }
     }
 
