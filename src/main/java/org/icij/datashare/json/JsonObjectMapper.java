@@ -16,7 +16,6 @@ import org.icij.datashare.text.indexing.IndexType;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
@@ -96,8 +95,8 @@ public class JsonObjectMapper {
      */
     public static ObjectMapper createTypeInclusionMapper() {
         ObjectMapper copy = MAPPER.copy();
-        copy.writerFor(new TypeReference<List<Throwable>>() {});
-        TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.NON_FINAL, LaissezFaireSubTypeValidator.instance);
+        TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(
+                ObjectMapper.DefaultTyping.NON_FINAL, LaissezFaireSubTypeValidator.instance);
         mapTyper.init(JsonTypeInfo.Id.CLASS, null);
         mapTyper.inclusion(JsonTypeInfo.As.PROPERTY);
         copy.setDefaultTyping(mapTyper);

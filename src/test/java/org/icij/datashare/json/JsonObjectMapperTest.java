@@ -21,6 +21,19 @@ public class JsonObjectMapperTest {
         assertThat(wrapper.throwable.getMessage()).isEqualTo("hello");
     }
 
+    @Test
+    public void test_type_inclusion_mapper_for_suppressed_exceptions() throws Exception {
+        ObjectMapper typeInclusionMapper = JsonObjectMapper.createTypeInclusionMapper();
+
+        RuntimeException hello = new RuntimeException("hello");
+        hello.addSuppressed(new RuntimeException("world"));
+
+        ExceptionWrapper wrapper = typeInclusionMapper.readValue(
+                typeInclusionMapper.writeValueAsString(new ExceptionWrapper(hello)), ExceptionWrapper.class);
+        assertThat(wrapper.throwable.getClass()).isEqualTo(RuntimeException.class);
+        assertThat(wrapper.throwable.getMessage()).isEqualTo("hello");
+    }
+
     static class ExceptionWrapper {
         private final Throwable throwable;
 
