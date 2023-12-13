@@ -13,11 +13,13 @@ import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class MockSearch {
+class MockSearch<S extends Indexer.Searcher> {
     private final Indexer mockIndexer;
+    private final Class<S> searcherInstance;
 
-    public MockSearch(Indexer mockIndexer) {
+    public MockSearch(Indexer mockIndexer, Class<S> searcherInstance) {
         this.mockIndexer = mockIndexer;
+        this.searcherInstance = searcherInstance;
     }
 
     void willThrow(Exception expectedClassException) throws IOException {
@@ -27,7 +29,7 @@ class MockSearch {
     }
 
     void willReturn(int nbOfScrolls, Document... documents) throws IOException {
-        Indexer.Searcher searcher = mock(Indexer.Searcher.class);
+        S searcher = mock(searcherInstance);
         OngoingStubbing<? extends Stream<? extends Entity>> ongoingStubbing = when(searcher.scroll());
         for (int i = 0 ; i<nbOfScrolls; i++) {
             ongoingStubbing = ongoingStubbing.thenAnswer(a -> Stream.of(documents));
@@ -37,12 +39,14 @@ class MockSearch {
     }
 
     private void prepareSearcher(long length, Indexer.Searcher searcher) {
-        when(searcher.with(any(), anyInt(), anyBoolean())).thenReturn(searcher);
+        when(searcher.with(anyInt(), anyBoolean())).thenReturn(searcher);
         when(searcher.withoutSource(any())).thenReturn(searcher);
-        when(searcher.withFieldValues(anyString())).thenReturn(searcher);
-        when(searcher.withPrefixQuery(anyString())).thenReturn(searcher);
+        if (searcher instanceof Indexer.QueryBuilderSearcher) {
+            when(((Indexer.QueryBuilderSearcher)searcher).withFieldValues(anyString())).thenReturn((Indexer.QueryBuilderSearcher) searcher);
+            when(((Indexer.QueryBuilderSearcher)searcher).withPrefixQuery(anyString())).thenReturn((Indexer.QueryBuilderSearcher) searcher);
+        }
         when(searcher.limit(anyInt())).thenReturn(searcher);
         when(searcher.totalHits()).thenReturn(length).thenReturn(0L);
-        when(mockIndexer.search(singletonList("test-datashare"), Document.class)).thenReturn(searcher);
+        when(mockIndexer.search(eq(singletonList("test-datashare")), eq(Document.class), any())).thenReturn(searcher);
     }
 }

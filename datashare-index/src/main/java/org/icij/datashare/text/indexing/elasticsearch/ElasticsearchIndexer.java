@@ -29,6 +29,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.text.indexing.SearchedText;
 import org.icij.datashare.text.nlp.Pipeline;
 
@@ -458,8 +459,15 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
-    public Searcher search(final List<String> indexesNames, Class<? extends Entity> entityClass) {
-        return new ElasticsearchSearcher(client, esCfg, indexesNames, entityClass);
+    public QueryBuilderSearcher search(List<String> indexesNames, Class<? extends Entity> entityClass) {
+        return new ElasticsearchQueryBuilderSearcher(client, indexesNames, entityClass);
+    }
+
+    @Override
+    public Searcher search(final List<String> indexesNames, Class<? extends Entity> entityClass, SearchQuery query) {
+        return query.isJsonQuery() ?
+                new ElasticsearchSearcher(client, indexesNames, entityClass, query.asJson()):
+                new ElasticsearchQueryBuilderSearcher(client, indexesNames, entityClass, query);
     }
 
     @Override

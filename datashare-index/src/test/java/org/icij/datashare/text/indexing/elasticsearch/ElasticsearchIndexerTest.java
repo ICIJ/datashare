@@ -8,13 +8,13 @@ import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.ExtractedText;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.text.indexing.SearchedText;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -49,6 +49,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -213,8 +214,7 @@ public class ElasticsearchIndexerTest {
         indexer.add(TEST_INDEX, doc);
 
         String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"*\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
-        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX),Document.class).
-                set(JsonObjectMapper.MAPPER.readTree(queryBody)).execute().collect(toList());
+        List<? extends Entity> lst = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(1);
     }
 
@@ -225,12 +225,12 @@ public class ElasticsearchIndexerTest {
         String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
         String queryToSearch = "john AND doe";
 
-        List<? extends Entity> searchWithPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class).
-                setFromTemplate(queryBody, queryToSearch, 0, true).execute().collect(toList());
+        List<? extends Entity> searchWithPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
+                with(0, true).execute(queryToSearch).collect(toList());
         assertThat(searchWithPhraseMatch.size()).isEqualTo(0);
 
-        List<? extends Entity> searchWithoutPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class).
-                setFromTemplate(queryBody, queryToSearch, 0, false).execute().collect(toList());
+        List<? extends Entity> searchWithoutPhraseMatch = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
+                with(0, false).execute(queryToSearch).collect(toList());
         assertThat(searchWithoutPhraseMatch.size()).isEqualTo(1);
     }
 
@@ -243,12 +243,12 @@ public class ElasticsearchIndexerTest {
         String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
         String queryToSearch = "bar";
 
-        List<? extends Entity> searchWithFuzziness0 = indexer.search(singletonList(TEST_INDEX),Document.class).
-                setFromTemplate(queryBody, queryToSearch, 0, false).execute().collect(toList());
+        List<? extends Entity> searchWithFuzziness0 = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
+                with(0, false).execute(queryToSearch).collect(toList());
         assertThat(searchWithFuzziness0.size()).isEqualTo(1);
 
-        List<? extends Entity> searchWithFuzziness1 = indexer.search(singletonList(TEST_INDEX),Document.class).
-                setFromTemplate(queryBody, queryToSearch, 1, false).execute().collect(toList());
+        List<? extends Entity> searchWithFuzziness1 = indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery(queryBody)).
+                with(1, false).execute(queryToSearch).collect(toList());
         assertThat(searchWithFuzziness1.size()).isEqualTo(2);
     }
 
@@ -391,6 +391,45 @@ public class ElasticsearchIndexerTest {
         searcher.clearScroll();
     }
 
+    @Test
+    public void test_scroll_with_json_query() throws IOException {
+        for (int i = 0; i < 12; i++) {
+            Document doc = createDoc("id" + i).build();
+            indexer.add(TEST_INDEX, doc);
+        }
+        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class,
+                new SearchQuery("{\"bool\":{\"must\":[{\"match\":{\"type\":\"Document\"}}]}}")).limit(6);
+
+        assertThat(searcher.scroll().count()).isEqualTo(6);
+        assertThat(searcher.totalHits()).isEqualTo(12);
+        assertThat(searcher.scroll().count()).isEqualTo(6);
+        assertThat(searcher.scroll().count()).isEqualTo(0);
+        searcher.clearScroll();
+    }
+    @Test
+    public void test_scroll_with_json_query_template() throws IOException {
+        for (int i = 0; i < 12; i++) {
+            Document doc = createDoc("id" + i).build();
+            indexer.add(TEST_INDEX, doc);
+        }
+        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class,
+                new SearchQuery("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"<query>\"}}, {\"match\":{\"type\":\"Document\"}}]}}"))
+                .limit(12);
+
+        assertThat(searcher.scroll("id*").count()).isEqualTo(12);
+        assertThat(searcher.totalHits()).isEqualTo(12);
+
+        try {
+            searcher.scroll("other query");
+            fail("should throw IllegalStateException");
+        } catch (IllegalStateException ilex) {
+            assertThat(ilex.getMessage()).isEqualTo("cannot change query when scroll is pending");
+        }
+
+        assertThat(searcher.scroll().count()).isEqualTo(0);
+        searcher.clearScroll();
+    }
+
     @Test(expected = IllegalStateException.class)
     public void test_searcher_scroll_is_not_usable_after_clear() throws IOException {
         Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class).limit(5);
@@ -439,7 +478,7 @@ public class ElasticsearchIndexerTest {
         NamedEntity ne1 = create(PERSON, "John Doe", singletonList(12L), doc.getId(), "root", CORENLP, Language.FRENCH);
         indexer.bulkAdd(TEST_INDEX, CORENLP, singletonList(ne1), doc);
 
-        Object[] documents = indexer.search(singletonList(TEST_INDEX), Document.class).withoutSource("content").with("john").execute().toArray();
+        Object[] documents = indexer.search(singletonList(TEST_INDEX), Document.class, new SearchQuery("john")).withoutSource("content").execute().toArray();
 
         assertThat(documents.length).isEqualTo(1);
         assertThat(((Document)documents[0]).getId()).isEqualTo("id");
@@ -483,8 +522,8 @@ public class ElasticsearchIndexerTest {
         Document doc = createDoc("id").with("content with john doe").build();
         indexer.add(TEST_INDEX, doc);
 
-        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).with("john AND doe", 0, true).execute().toArray()).isEmpty();
-        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class).with("john AND doe", 0, false).execute().toArray()).hasSize(1);
+        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery("john AND doe")).with( 0, true).execute().toArray()).isEmpty();
+        assertThat(indexer.search(singletonList(TEST_INDEX),Document.class, new SearchQuery("john AND doe")).with( 0, false).execute().toArray()).hasSize(1);
     }
 
     @Test

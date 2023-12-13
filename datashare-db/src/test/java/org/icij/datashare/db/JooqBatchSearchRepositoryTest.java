@@ -59,7 +59,7 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(batchSearchFromGet.name).isEqualTo(batchSearch.name);
         assertThat(batchSearchFromGet.published).isEqualTo(batchSearch.published);
         assertThat(batchSearchFromGet.fileTypes).isEqualTo(batchSearch.fileTypes);
-        assertThat(batchSearchFromGet.queryBody).isEqualTo(batchSearch.queryBody);
+        assertThat(batchSearchFromGet.queryTemplate).isEqualTo(batchSearch.queryTemplate);
         assertThat(batchSearchFromGet.paths).isEqualTo(batchSearch.paths);
         assertThat(batchSearchFromGet.fuzziness).isEqualTo(batchSearch.fuzziness);
         assertThat(batchSearchFromGet.description).isEqualTo(batchSearch.description);

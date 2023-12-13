@@ -50,11 +50,11 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
             return context.transactionResult(configuration -> {
                 try (DSLContext inner = DSL.using(configuration)) {
                     inner.insertInto(BATCH_SEARCH, BATCH_SEARCH.UUID, BATCH_SEARCH.NAME, BATCH_SEARCH.DESCRIPTION, BATCH_SEARCH.USER_ID,
-                                    BATCH_SEARCH.BATCH_DATE, BATCH_SEARCH.STATE, BATCH_SEARCH.PUBLISHED, BATCH_SEARCH.FILE_TYPES, BATCH_SEARCH.QUERY_BODY,
+                                    BATCH_SEARCH.BATCH_DATE, BATCH_SEARCH.STATE, BATCH_SEARCH.PUBLISHED, BATCH_SEARCH.FILE_TYPES, BATCH_SEARCH.QUERY_TEMPLATE,
                                     BATCH_SEARCH.PATHS, BATCH_SEARCH.FUZZINESS, BATCH_SEARCH.PHRASE_MATCHES, BATCH_SEARCH.NB_QUERIES).
                             values(batchSearch.uuid, batchSearch.name, batchSearch.description, batchSearch.user.id,
                                     new Timestamp(batchSearch.date.getTime()), batchSearch.state.name(), batchSearch.published ? 1 : 0,
-                                    join(LIST_SEPARATOR, batchSearch.fileTypes), join(LIST_SEPARATOR, batchSearch.queryBody),
+                                    join(LIST_SEPARATOR, batchSearch.fileTypes), join(LIST_SEPARATOR, batchSearch.queryTemplate.toString()),
                                     join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness, batchSearch.phraseMatches ? 1 : 0, batchSearch.nbQueries).execute();
 
                     InsertValuesStep4<BatchSearchQueryRecord, String, String, Integer, Integer> insertQuery = inner.insertInto(BATCH_SEARCH_QUERY, BATCH_SEARCH_QUERY.SEARCH_UUID, BATCH_SEARCH_QUERY.QUERY, BATCH_SEARCH_QUERY.QUERY_NUMBER, BATCH_SEARCH_QUERY.QUERY_RESULTS);
@@ -346,7 +346,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                                         LinkedHashMap::new)),
                         batchSearches.get(0).date,
                         batchSearches.get(0).state, batchSearches.get(0).user, batchSearches.get(0).nbResults, batchSearches.get(0).published,
-                        batchSearches.get(0).fileTypes, batchSearches.get(0).queryBody, batchSearches.get(0).paths, batchSearches.get(0).fuzziness,
+                        batchSearches.get(0).fileTypes, batchSearches.get(0).queryTemplate.toString(), batchSearches.get(0).paths, batchSearches.get(0).fuzziness,
                         batchSearches.get(0).phraseMatches, batchSearches.get(0).errorMessage, batchSearches.get(0).errorQuery)).
                 sorted(comparing((BatchSearchRecord bs) -> bs.date).reversed()).collect(toList());
     }
@@ -380,7 +380,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 BATCH_SEARCH.STATE,
                 BATCH_SEARCH.PUBLISHED,
                 BATCH_SEARCH.FILE_TYPES,
-                BATCH_SEARCH.QUERY_BODY,
+                BATCH_SEARCH.QUERY_TEMPLATE,
                 BATCH_SEARCH.PATHS,
                 BATCH_SEARCH.FUZZINESS,
                 BATCH_SEARCH.PHRASE_MATCHES,
@@ -406,7 +406,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                         BATCH_SEARCH.STATE,
                         BATCH_SEARCH.PUBLISHED,
                         BATCH_SEARCH.FILE_TYPES,
-                        BATCH_SEARCH.QUERY_BODY,
+                        BATCH_SEARCH.QUERY_TEMPLATE,
                         BATCH_SEARCH.PATHS,
                         BATCH_SEARCH.FUZZINESS,
                         BATCH_SEARCH.PHRASE_MATCHES,
@@ -455,7 +455,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.get(BATCH_SEARCH.BATCH_RESULTS),
                 record.get(BATCH_SEARCH.PUBLISHED) > 0,
                 getListFromStringOrNull(record.get(BATCH_SEARCH.FILE_TYPES)),
-                record.get(BATCH_SEARCH.QUERY_BODY),
+                record.get(BATCH_SEARCH.QUERY_TEMPLATE),
                 getListFromStringOrNull(record.get(BATCH_SEARCH.PATHS)),
                 record.get(BATCH_SEARCH.FUZZINESS),
                 phraseMatches,
@@ -477,7 +477,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                 record.get(BATCH_SEARCH.BATCH_RESULTS),
                 record.get(BATCH_SEARCH.PUBLISHED) > 0,
                 getListFromStringOrNull(record.get(BATCH_SEARCH.FILE_TYPES)),
-                record.get(BATCH_SEARCH.QUERY_BODY),
+                record.get(BATCH_SEARCH.QUERY_TEMPLATE),
                 getListFromStringOrNull(record.get(BATCH_SEARCH.PATHS)),
                 record.get(BATCH_SEARCH.FUZZINESS),
                 phraseMatches,

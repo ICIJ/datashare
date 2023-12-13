@@ -2,7 +2,6 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
-import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Test;
@@ -18,7 +17,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Project.project;
-import static org.mockito.Mockito.mock;
 
 public class TaskManagerRedisTest {
     private final Jedis redis = new Jedis("redis");
@@ -85,7 +83,7 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_start_task() {
-        BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo", Paths.get("dir"), false);
+        BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo", null,Paths.get("dir"), false);
 
         assertThat(taskManager.startTask(BatchDownloadRunner.class.getName(), new HashMap<>() {{
             put("batchDownload", batchDownload);

@@ -36,7 +36,7 @@ public class BatchDownloadRunnerTest {
     @Rule public TemporaryFolder fs = new TemporaryFolder();
     @Mock TaskModifier updater;
     @Mock Indexer indexer;
-    MockSearch mockSearch;
+    MockSearch<Indexer.QueryBuilderSearcher> mockSearch;
 
     @Test(expected = AssertionError.class)
     public void test_task_with_no_batch_download() {
@@ -93,5 +93,5 @@ public class BatchDownloadRunnerTest {
     }
 
     @Before
-    public void setUp() { initMocks(this); mockSearch = new MockSearch(indexer);}
+    public void setUp() { initMocks(this); mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);}
 }

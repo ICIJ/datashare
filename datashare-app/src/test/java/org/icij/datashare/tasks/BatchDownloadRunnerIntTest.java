@@ -175,7 +175,7 @@ public class BatchDownloadRunnerIntTest {
     }
 
     private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(asList(project(TEST_INDEX)), local(), query, fs.getRoot().toPath(), false);
+        return new BatchDownload(asList(project(TEST_INDEX)), local(), query, null, fs.getRoot().toPath(), false);
     }
     private TaskView<File> createTaskView(BatchDownload bd) {
         return new TaskView<>(BatchDownloadRunner.class.getName(), bd.user, new HashMap<>() {{
@@ -185,7 +185,7 @@ public class BatchDownloadRunnerIntTest {
 
     @NotNull
     private BatchDownload createBatchDownload(List<Project> projectList, String query) {
-        return new BatchDownload(projectList, local(), query, fs.getRoot().toPath(), false);
+        return new BatchDownload(projectList, local(), query, null,fs.getRoot().toPath(), false);
     }
 
     @Before

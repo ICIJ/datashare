@@ -28,11 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -48,10 +44,7 @@ import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_MAX_NB_FILES;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_MAX_SIZE;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, UserTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
@@ -92,12 +85,9 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
 
         logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
                 batchDownload.user.getId(), batchDownload.projects, throttleMs, scrollSize);
-        Indexer.Searcher searcher = indexer.search(batchDownload.projects.stream().map(Project::getId).collect(toList()), Document.class).withoutSource("content").limit(scrollSize);
-        if (batchDownload.isJsonQuery()) {
-            searcher.set(batchDownload.queryAsJson());
-        } else {
-            searcher.with(batchDownload.query);
-        }
+        Indexer.Searcher searcher = indexer.search(batchDownload.projects.stream().map(Project::getId).collect(toList()),
+                Document.class, batchDownload.query).withoutSource("content").limit(scrollSize);
+
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         if (docsToProcess.isEmpty()) {
             logger.warn("no results for batchDownload {}", batchDownload.uuid);

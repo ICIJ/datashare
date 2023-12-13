@@ -135,13 +135,13 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         verify(batchSearchRepository).save(argument.capture());
         assertThat(argument.getValue().published).isTrue();
         assertThat(argument.getValue().fileTypes).containsExactly("application/pdf", "image/jpeg");
-        assertThat(argument.getValue().queryBody).isEqualTo("{\"test\":42}");
+        assertThat(argument.getValue().queryTemplate.toString()).isEqualTo("{\"test\":42}");
         assertThat(argument.getValue().paths).containsExactly("/path/to/document", "/other/path/");
         assertThat(argument.getValue().fuzziness).isEqualTo(4);
         assertThat(argument.getValue().phraseMatches).isTrue();
         assertThat(argument.getValue().user).isEqualTo(User.local());
         assertThat(argument.getValue().description).isEqualTo("search description");
-        assertThat(argument.getValue().hasQueryBody()).isTrue();
+        assertThat(argument.getValue().hasQueryTemplate()).isTrue();
         Iterator<String> iterator = argument.getValue().queries.keySet().iterator();
         assertThat(iterator.next()).isEqualTo("query one");
         assertThat(iterator.next()).isEqualTo("query two");

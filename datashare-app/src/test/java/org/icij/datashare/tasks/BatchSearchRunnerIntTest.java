@@ -26,7 +26,6 @@ import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
-import static org.icij.datashare.text.Tag.tag;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
