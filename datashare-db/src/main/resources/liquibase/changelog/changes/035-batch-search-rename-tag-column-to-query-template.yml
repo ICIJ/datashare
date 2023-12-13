@@ -3,4 +3,4 @@ databaseChangeLog:
       id: 63
       author: mvanza
       sql:
-        - ALTER TABLE batch_search RENAME COLUMN tags TO query_body
+        - ALTER TABLE batch_search RENAME COLUMN tags TO query_template
