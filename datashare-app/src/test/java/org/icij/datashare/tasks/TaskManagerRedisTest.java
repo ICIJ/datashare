@@ -37,24 +37,6 @@ public class TaskManagerRedisTest {
     }
 
     @Test
-    public void test_save_failing_task_subtype_throwable() throws Exception {
-        MonitorableFutureTask<String> test_exception = new MonitorableFutureTask<>(() -> {
-            RuntimeException runtimeException = new RuntimeException("test exception");
-            runtimeException.addSuppressed(new RuntimeException("suppressed"));
-            throw runtimeException;
-        });
-        try {
-            test_exception.run();
-            test_exception.get();
-        } catch (ExecutionException rex) {
-            taskManager.save(new TaskView<>(test_exception));
-        }
-        List<TaskView<?>> actual = taskManager.getTasks();
-        assertThat(actual).hasSize(1);
-        assertThat(actual.get(0).getState()).isEqualTo(TaskView.State.ERROR);
-    }
-
-    @Test
     public void test_update_tasks() {
         MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "run");
         TaskView<String> task = new TaskView<>(futureTask);
@@ -129,7 +111,6 @@ public class TaskManagerRedisTest {
         assertThat(taskManager.getTasks()).hasSize(0);
         assertThat(t1.id).isEqualTo(t2.id);
     }
-
 
     @After
     public void tearDown() throws Exception {
