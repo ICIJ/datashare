@@ -1,7 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.Time;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.ClearScrollRequest;
@@ -14,15 +13,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Tag;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.utils.JsonUtils;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,27 +26,31 @@ import java.util.stream.StreamSupport;
 import static co.elastic.clients.elasticsearch.core.SearchRequest.Builder;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
 
 class ElasticsearchSearcher implements Indexer.Searcher {
     static final Time KEEP_ALIVE = Time.of(t -> t.time("60000ms"));
-    private final BoolQuery.Builder boolQueryBuilder;
-    private final ElasticsearchClient client;
-    private final List<String> indexesNames;
-    private final Class<? extends Entity> cls;
-    private final Builder sourceBuilder;
+
+    protected final List<String> indexesNames;
+    protected final ElasticsearchClient client;
+    protected final Class<? extends Entity> cls;
+
+    final Builder sourceBuilder;
     private String scrollId;
     private SearchRequest scrollSearchRequest;
     private long totalHits;
+    private final JsonNode jsonBoolQuery;
     private final static String TEMPLATE_QUERY = "<query>";
 
-    ElasticsearchSearcher(ElasticsearchClient client, ElasticsearchConfiguration config, final List<String> indexesNames, final Class<? extends Entity> cls) {
+    protected int fuzziness = 0;
+    protected boolean phraseMatches = false;
+
+    ElasticsearchSearcher(ElasticsearchClient client, final List<String> indexesNames, final Class<? extends Entity> cls, JsonNode boolQuery) {
         this.client = client;
         this.indexesNames = indexesNames;
         this.cls = cls;
         sourceBuilder = new Builder().size(DEFAULT_SEARCH_SIZE).timeout("30m");
-        this.boolQueryBuilder = new BoolQuery.Builder().must(must -> must.match(m -> m.field("type").query(JsonObjectMapper.getType(cls))));
+        this.jsonBoolQuery = boolQuery;
     }
 
     static Stream<Hit<ObjectNode>> searchHitStream(Iterable<Hit<ObjectNode>> searchHitIterable) {
@@ -65,19 +64,23 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     static <T extends Entity> T hitToObject(Hit<ObjectNode> searchHit, Class<T> cls) {
         return (T) JsonObjectMapper.getObject(searchHit.id(), searchHit.index(), JsonUtils.nodeToMap(searchHit.source()), cls);
     }
-    
-    @Override
-    public Indexer.Searcher ofStatus(Document.Status status) {
-        this.boolQueryBuilder.must(must -> must.match(mq -> mq.field("status").query(status.toString())));
-        return this;
-    }
 
     @Override
     public Stream<? extends Entity> execute() throws IOException {
-        BoolQuery boolQueryToBuild = boolQueryBuilder.build();
-        sourceBuilder.index(indexesNames).query(q -> q.bool(boolQueryToBuild));
-        SearchRequest searchRequest = sourceBuilder.build();
-        SearchResponse<ObjectNode> search = client.search(searchRequest, ObjectNode.class);
+        return getStream(this.jsonBoolQuery.toString());
+    }
+
+    @Override
+    public Stream<? extends Entity> execute(String stringQuery) throws IOException {
+        String queryString = buildQueryString(stringQuery, fuzziness, phraseMatches, "\\\\\"");
+        final String queryBody = jsonBoolQuery.toString().replaceAll(TEMPLATE_QUERY,queryString);
+        return getStream(queryBody);
+    }
+
+    protected Stream<? extends Entity> getStream(String queryBody) throws IOException {
+        BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder().must(m -> m.withJson(new StringReader(queryBody)));
+        sourceBuilder.index(indexesNames).query(q -> q.bool(boolQueryBuilder.build()));
+        SearchResponse<ObjectNode> search = client.search(sourceBuilder.build(), ObjectNode.class);
         return resultStream(this.cls, () -> search.hits().hits().iterator());
     }
 
@@ -87,9 +90,37 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     }
 
     @Override
+    public Stream<? extends Entity> scroll(String stringQuery) throws IOException {
+        return scroll(0, 0, stringQuery);
+    }
+
+    @Override
     public Stream<? extends Entity> scroll(int numSlice, int nbSlices) throws IOException {
+        return scroll(numSlice, nbSlices, null);
+    }
+
+    protected BoolQuery.Builder getBoolQueryBuilder(String query) {
+        return new BoolQuery.Builder().must(m -> m.withJson(new StringReader(query)));
+    }
+
+    protected String queryAsString(String queryString) {
+        if (isTemplate() && queryString != null) {
+            String replacement = buildQueryString(queryString, fuzziness, phraseMatches, "\\\\\"");
+            return jsonBoolQuery.toString().replaceAll(TEMPLATE_QUERY, replacement);
+        } else {
+            return jsonBoolQuery.toString();
+        }
+    }
+
+    private boolean isTemplate() {
+        return jsonBoolQuery.toString().contains(TEMPLATE_QUERY);
+    }
+
+    @Override
+    public Stream<? extends Entity> scroll(int numSlice, int nbSlices, String stringQuery) throws IOException {
         ResponseBody<ObjectNode> response;
         if (scrollSearchRequest == null) {
+            BoolQuery.Builder boolQueryBuilder = getBoolQueryBuilder(queryAsString(stringQuery));
             sourceBuilder.index(indexesNames).query(q -> q.bool(boolQueryBuilder.build()));
             if (nbSlices > 1) {
                 sourceBuilder.slice(s -> s.id(String.valueOf(numSlice)).max(nbSlices));
@@ -97,18 +128,28 @@ class ElasticsearchSearcher implements Indexer.Searcher {
             scrollSearchRequest = sourceBuilder.scroll(KEEP_ALIVE).build();
             response = client.search(scrollSearchRequest, ObjectNode.class);
             totalHits = response.hits().total().value();
-        } else {
+        } else if (stringQuery == null) {
             response = client.scroll(ScrollRequest.of(s -> s.scroll(KEEP_ALIVE)
-                            .scrollId(ofNullable(scrollId)
-                                    .orElseThrow(() -> new IllegalStateException("ScrollId must have been cleared")))), ObjectNode.class);
+                    .scrollId(ofNullable(scrollId)
+                            .orElseThrow(() -> new IllegalStateException("ScrollId must have been cleared")))), ObjectNode.class);
+        } else {
+            throw new IllegalStateException("cannot change query when scroll is pending");
         }
         scrollId = response.scrollId();
         return resultStream(this.cls, () -> response.hits().hits().iterator());
+
     }
 
     @Override
     public Indexer.Searcher withSource(String... fields) {
         sourceBuilder.source(s -> s.filter(f -> f.includes(stream(fields).collect(Collectors.toList()))));
+        return this;
+    }
+
+    @Override
+    public Indexer.Searcher with(int fuzziness, boolean phraseMatches) {
+        this.fuzziness = fuzziness;
+        this.phraseMatches = phraseMatches;
         return this;
     }
 
@@ -123,57 +164,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         return this;
     }
 
-    @Override
-    public Indexer.Searcher without(Pipeline.Type... nlpPipelines) {
-        this.boolQueryBuilder.mustNot(q -> q.constantScore(cs -> cs.filter(qt -> qt.terms(t -> t.field("nerTags").terms(tqf -> tqf.value(
-                stream(nlpPipelines).map(Pipeline.Type::toString).map(FieldValue::of).collect(toList()))
-        )))));
-        return this;
-    }
-
-    @Override
-    public Indexer.Searcher with(Pipeline.Type... nlpPipelines) {
-        this.boolQueryBuilder.must(q -> q.constantScore(cs -> cs.filter(qt -> qt.terms(t -> t.field("nerTags").terms(tqf -> tqf.value(
-                stream(nlpPipelines).map(Pipeline.Type::toString).map(FieldValue::of).collect(toList()))
-        )))));
-        return this;
-    }
-
-    @Override
-    public Indexer.Searcher with(Tag... tags) {
-        this.boolQueryBuilder.must(q -> q.constantScore(cs -> cs.filter(qt -> qt.terms(t -> t.field("tags").terms(tqf -> tqf.value(
-                stream(tags).map(tag -> FieldValue.of(tag.label)).collect(toList()))
-        )))));
-        return this;
-    }
-
-    @Override
-    public Indexer.Searcher with(String query) {
-        return with(query, 0, false);
-    }
-
-    @Override
-    public Indexer.Searcher set(JsonNode jsonQuery) {
-        this.boolQueryBuilder.must(m -> m.withJson(new StringReader(jsonQuery.toString())));
-        return this;
-    }
-
-    @Override
-    public Indexer.Searcher setFromTemplate(String jsonQueryTemplate, String query, int fuzziness, boolean phraseMatches) {
-        String queryString = buildQueryString(query, fuzziness, phraseMatches, "\\\\\"");
-        final String queryBody = jsonQueryTemplate.replaceAll(TEMPLATE_QUERY,queryString);
-        this.boolQueryBuilder.must(m -> m.withJson(new StringReader(queryBody)));
-        return this;
-    }
-
-    @Override
-    public Indexer.Searcher with(String query, int fuzziness, boolean phraseMatches) {
-        String queryString = buildQueryString(query, fuzziness, phraseMatches, "\"");
-        this.boolQueryBuilder.must(m -> m.matchAll(ma -> ma));
-        this.boolQueryBuilder.must(m -> m.queryString(qs -> qs.query(queryString)));
-        return this;
-    }
-    private static String buildQueryString(String query, int fuzziness, boolean phraseMatches, String phraseMatchDoubleQuotes) {
+     protected static String buildQueryString(String query, int fuzziness, boolean phraseMatches, String phraseMatchDoubleQuotes) {
         String queryString;
         if (phraseMatches) {
             queryString = phraseMatchDoubleQuotes + query + phraseMatchDoubleQuotes + (fuzziness == 0 ? "" : "~" + fuzziness);
@@ -191,37 +182,6 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         return this;
     }
 
-    @Override
-    public Indexer.Searcher withFieldValues(String key, String... values) {
-        if (values.length > 0) {
-            this.boolQueryBuilder.must(m -> m.terms(t -> t.field(key).terms(tqf -> tqf.value(stream(values).map(FieldValue::of).collect(toList())))));
-        }
-        return this;
-    }
-
-    @Override
-    public Indexer.Searcher withPrefixQuery(String key, String... values) {
-        if (values.length == 0) {
-            return this;
-        }
-        if (values.length == 1) {
-            this.boolQueryBuilder.must(m -> m.prefix(p -> p.field(key).value(values[0])));
-            return this;
-        }
-        BoolQuery.Builder innerQuery = new BoolQuery.Builder();
-        Arrays.stream(values).forEach(v -> innerQuery.must(m -> m.prefix(p -> p.field(key).value(v))));
-        this.boolQueryBuilder.must(m -> m.bool(innerQuery.build()));
-        return this;
-    }
-
-    @Override
-    public Indexer.Searcher thatMatchesFieldValue(String name, Object value) {
-        if (value == null) {
-            throw new IllegalArgumentException("[ match ] requires query value");
-        }
-        this.boolQueryBuilder.must(m -> m.match(q -> q.field(name).query(FieldValue.of(value.toString()))));
-        return this;
-    }
 
     @Override
     public void clearScroll() throws IOException {
@@ -237,6 +197,6 @@ class ElasticsearchSearcher implements Indexer.Searcher {
 
     @Override
     public String toString() {
-        return "boolQuery : " + boolQueryBuilder;
+        return "query : " + jsonBoolQuery;
     }
 }

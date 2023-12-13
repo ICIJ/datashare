@@ -52,7 +52,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
 
     @NotNull
     private BatchDownload createBatchDownload(String query) {
-        return new BatchDownload(singletonList(project(TEST_INDEX)), new User("foo", "bar", "foo@bar.com"), query, fs.getRoot().toPath(), true);
+        return new BatchDownload(singletonList(project(TEST_INDEX)), new User("foo", "bar", "foo@bar.com"), query, null, fs.getRoot().toPath(), true);
     }
 
     @Before

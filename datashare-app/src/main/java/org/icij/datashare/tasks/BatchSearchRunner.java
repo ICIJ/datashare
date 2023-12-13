@@ -13,6 +13,7 @@ import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
@@ -86,16 +87,20 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         try {
             for (String s : batchSearch.queries.keySet()) {
                 query = s;
-                Indexer.Searcher searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class);
-                if (batchSearch.hasQueryBody()) {
-                    searcher.setFromTemplate(batchSearch.queryBody, query, batchSearch.fuzziness, batchSearch.phraseMatches);
+                Indexer.Searcher searcher;
+                List<? extends Entity> docsToProcess;
+                if (batchSearch.hasQueryTemplate()) { // for retro-compatibility should be removed at some point to keep only bodyTemplate
+                    searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class, batchSearch.queryTemplate)
+                            .with(batchSearch.fuzziness, batchSearch.phraseMatches).withoutSource("content").limit(scrollSize);
+                    docsToProcess = searcher.scroll(query).collect(toList());
                 } else {
-                    searcher.with(query, batchSearch.fuzziness, batchSearch.phraseMatches)
-                            .withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{}))
+                    searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class, new SearchQuery(query));
+                    ((Indexer.QueryBuilderSearcher)searcher).withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{}))
                             .withPrefixQuery("path", batchSearch.paths.toArray(new String[]{}))
+                            .with(batchSearch.fuzziness, batchSearch.phraseMatches)
                             .withoutSource("content").limit(scrollSize);
+                    docsToProcess = searcher.scroll().collect(toList());
                 }
-                List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
 
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
                 while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {

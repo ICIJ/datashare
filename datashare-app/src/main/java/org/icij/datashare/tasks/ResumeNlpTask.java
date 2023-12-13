@@ -46,7 +46,7 @@ public class ResumeNlpTask implements Callable<Long>, UserTask {
 
     @Override
     public Long call() throws IOException {
-        Indexer.Searcher searcher = indexer.search(singletonList(projectName), Document.class).withSource("rootDocument").without(nlpPipelines.toArray(new Pipeline.Type[] {}));
+        Indexer.Searcher searcher = indexer.search(singletonList(projectName), Document.class).without(nlpPipelines.toArray(new Pipeline.Type[] {})).withSource("rootDocument");
         logger.info("resuming NLP name finding for index {} and {} : {} documents found", projectName, nlpPipelines, searcher.totalHits());
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         long totalHits = searcher.totalHits();

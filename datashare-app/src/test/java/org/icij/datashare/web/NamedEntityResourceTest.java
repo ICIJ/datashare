@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import liquibase.pro.packaged.J;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
@@ -55,7 +54,7 @@ public class NamedEntityResourceTest extends AbstractProdWebServerTest {
     public void test_hide_named_entity_when_success() throws IOException {
         NamedEntity toBeHidden = create(PERSON, "to_update", singletonList(123L), "docId", "root", CORENLP, FRENCH);
         assertThat(toBeHidden.isHidden()).isFalse();
-        Indexer.Searcher searcher = mock(Indexer.Searcher.class);
+        Indexer.QueryBuilderSearcher searcher = mock(Indexer.QueryBuilderSearcher.class);
         doReturn(Stream.of(toBeHidden)).when(searcher).execute();
         doReturn(searcher).when(searcher).thatMatchesFieldValue(any(), any());
         doReturn(searcher).when(indexer).search(singletonList("index"), NamedEntity.class);

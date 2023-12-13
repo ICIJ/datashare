@@ -105,5 +105,5 @@ databaseChangeLog:
       file: changes/034-adds-creation-date-column-to-document-user-recommendation.yml
       relativeToChangelogFile: true
   - include:
-      file: changes/035-batch-search-rename-tag-column-to-query-body.yml
+      file: changes/035-batch-search-rename-tag-column-to-query-template.yml
       relativeToChangelogFile: true

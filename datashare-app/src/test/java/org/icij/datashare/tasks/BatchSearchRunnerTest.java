@@ -41,7 +41,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchRunnerTest {
     @Mock Indexer indexer;
-    MockSearch mockSearch;
+    MockSearch<Indexer.QueryBuilderSearcher> mockSearch;
     @Mock TerFunction<String, String, List<Document>, Boolean> resultConsumer;
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
     private final ExecutorService executor = Executors.newFixedThreadPool(1);
@@ -123,5 +123,5 @@ public class BatchSearchRunnerTest {
     }
 
     @Before
-    public void setUp() { initMocks(this); mockSearch = new MockSearch(indexer);}
+    public void setUp() { initMocks(this); mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);}
 }
