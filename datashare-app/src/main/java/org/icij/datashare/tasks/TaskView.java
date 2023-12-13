@@ -29,7 +29,7 @@ public class TaskView<V> implements Entity {
     public final String id;
     public final String name;
     public final User user;
-    volatile String error;
+    volatile Throwable error;
     private volatile State state;
     private volatile double progress;
     private volatile V result;
@@ -90,7 +90,7 @@ public class TaskView<V> implements Entity {
                 return null;
             } catch (ExecutionException | InterruptedException e) {
                 LoggerFactory.getLogger(getClass()).error(String.format("Task failed for user %s :", getUser()), e);
-                error = e.getCause().toString();
+                error = e;
                 state = State.ERROR;
                 return null;
             }
@@ -106,7 +106,7 @@ public class TaskView<V> implements Entity {
     }
 
     public void setError(Throwable reason) {
-        this.error = reason.toString();
+        this.error = reason;
         this.state = State.ERROR;
         this.progress = 1;
     }

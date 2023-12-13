@@ -60,7 +60,7 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTask(taskView.id).getProgress()).isEqualTo(0.5);
     }
 
-    @Test
+    @Test(timeout = 2000)
     public void test_task_result() throws Exception {
         taskManager.startTask("taskName", User.local(), new HashMap<>() {{
             put("key", "value");
@@ -75,7 +75,28 @@ public class TaskManagerAmqpTest {
         taskSupplier.result(taskView.id,"result");
 
         qpid.waitCancel(consumer);
+        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(TaskView.State.DONE);
         assertThat(taskManager.getTask(taskView.id).getResult()).isEqualTo("result");
+    }
+
+    @Test(timeout = 2000)
+    public void test_task_error() throws Exception {
+        taskManager.startTask("taskName", User.local(), new HashMap<>() {{
+            put("key", "value");
+        }});
+
+        AmqpConsumer<ResultEvent, EventSaver<ResultEvent>> consumer = new AmqpConsumer<>(AMQP,
+                event -> {}, AmqpQueue.TASK_RESULT, ResultEvent.class);
+        consumer.consumeEvents(1);
+
+        // in the task runner loop
+        TaskView<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
+        taskSupplier.error(taskView.id,new RuntimeException("error in runner"));
+
+        qpid.waitCancel(consumer);
+        assertThat(taskManager.getTask(taskView.id).getResult()).isNull();
+        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(TaskView.State.ERROR);
+        assertThat(taskManager.getTask(taskView.id).error.getMessage()).isEqualTo("error in runner");
     }
 
     @BeforeClass

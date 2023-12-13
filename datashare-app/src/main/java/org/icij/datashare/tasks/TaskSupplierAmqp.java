@@ -58,8 +58,12 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
-    public void error(String taskId, Throwable reason) {
-
+    public void error(String taskId, Throwable throwable) {
+        try {
+            amqp.publish(AmqpQueue.TASK_RESULT, new ResultEvent<>(taskId, throwable));
+        } catch (IOException e) {
+            LoggerFactory.getLogger(getClass()).warn("cannot publish error {} for task {}", throwable, taskId);
+        }
     }
 
     static class SupplierBufferingException extends RuntimeException { }

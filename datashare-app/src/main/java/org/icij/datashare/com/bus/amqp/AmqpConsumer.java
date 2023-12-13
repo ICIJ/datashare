@@ -1,5 +1,6 @@
 package org.icij.datashare.com.bus.amqp;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,12 +14,15 @@ import java.util.concurrent.atomic.AtomicReference;
  * @param <EvtSaver> The class for handling the received event class
  */
 public class AmqpConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> implements Deserializer<Evt> {
+	private static final ObjectMapper jsonMapper = JsonObjectMapper.createTypeInclusionMapper();
+
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	protected final AmqpInterlocutor amqpInterlocutor;
 	public final EvtSaver eventSaver;
 	private final AmqpChannel channel;
 	private final AtomicReference<String> consumerTag = new AtomicReference<>();
 	private final Class<Evt> evtClass;
+
 	public AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
 						   EvtSaver eventSaver, AmqpQueue queue, Class<Evt> evtClass) throws IOException {
 		this.amqpInterlocutor = amqpInterlocutor;
@@ -32,7 +36,7 @@ public class AmqpConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> i
 	public void consumeEvents(int nb) {
 		launchConsumer(channel, AmqpConsumer.this::handle, nb);}
 
-	public void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, final int nbEventsToConsume) {
+	void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, final int nbEventsToConsume) {
 		launchConsumer(channel, eventHandler, new ConsumerCriteria() {
 			int nvReceivedEvents=0;
 			public void newEvent() { nvReceivedEvents++; }
@@ -40,7 +44,7 @@ public class AmqpConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> i
 		});
 	}
 
-	public void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler) {
+	void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler) {
 		launchConsumer(channel, eventHandler, new ConsumerCriteria() {
 			public void newEvent() {}
 			public boolean isValid() { return true; }
@@ -84,7 +88,7 @@ public class AmqpConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> i
 
 	public Evt deserialize(byte[] rawJson) {
 		try {
-			return JsonObjectMapper.MAPPER.readValue(rawJson, evtClass);
+			return jsonMapper.readValue(rawJson, evtClass);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

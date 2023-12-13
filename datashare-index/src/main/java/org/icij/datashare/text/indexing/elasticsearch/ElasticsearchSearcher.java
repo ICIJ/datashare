@@ -164,7 +164,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         return this;
     }
 
-     protected static String buildQueryString(String query, int fuzziness, boolean phraseMatches, String phraseMatchDoubleQuotes) {
+    protected static String buildQueryString(String query, int fuzziness, boolean phraseMatches, String phraseMatchDoubleQuotes) {
         String queryString;
         if (phraseMatches) {
             queryString = phraseMatchDoubleQuotes + query + phraseMatchDoubleQuotes + (fuzziness == 0 ? "" : "~" + fuzziness);
