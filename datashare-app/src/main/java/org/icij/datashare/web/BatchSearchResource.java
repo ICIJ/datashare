@@ -199,8 +199,8 @@ public class BatchSearchResource {
         return notFound();
     }
 
-    @Operation(description = "Creates a new batch search. This is a multipart form with 8 fields:<br/>" +
-            "name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches<br>" +
+    @Operation(description = "Creates a new batch search. This is a multipart form with 9 fields:<br/>" +
+            "name, description, csvFile, published, fileTypes, paths, fuzziness, phrase_matches, query_template<br>" +
             "<br/>" +
             "Queries with less than two characters are filtered.<br>" +
             "<br>" +
@@ -264,7 +264,7 @@ public class BatchSearchResource {
         String description = fieldValue("description", parts);
         boolean published = "true".equalsIgnoreCase(fieldValue("published", parts)) ? TRUE: FALSE ;
         List<String> fileTypes = fieldValues("fileTypes", parts);
-        String queryBody = fieldValue("query_body", parts);
+        String queryTemplate = fieldValue("query_template", parts);
         List<String> paths = fieldValues("paths", parts);
         Optional<Part> fuzzinessPart = parts.stream().filter(p -> "fuzziness".equals(p.name())).findAny();
         int fuzziness = fuzzinessPart.isPresent() ? parseInt(fuzzinessPart.get().content()):0;
@@ -275,7 +275,7 @@ public class BatchSearchResource {
         if(queries.size() >= MAX_BATCH_SIZE)
             return new Payload(413);
         BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,
-                (User) context.currentUser(), published, fileTypes, queryBody, paths, fuzziness,phraseMatches);
+                (User) context.currentUser(), published, fileTypes, queryTemplate, paths, fuzziness,phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);
         if (isSaved) batchSearchQueue.put(batchSearch.uuid);
         return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();

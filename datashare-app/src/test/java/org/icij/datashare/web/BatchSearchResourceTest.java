@@ -123,7 +123,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 .addField("published",String.valueOf(true))
                 .addField("fileTypes","application/pdf")
                 .addField("fileTypes","image/jpeg")
-                .addField("query_body","{\"test\":42}")
+                .addField("query_template","{\"test\":42}")
                 .addField("tags","tag_02")
                 .addField("paths","/path/to/document")
                 .addField("paths","/other/path/")
