@@ -2,6 +2,7 @@ package org.icij.datashare.json;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
@@ -46,6 +47,7 @@ public class JsonObjectMapper {
         MAPPER.registerModule(new ParameterNamesModule());
         //  Making domain entities' private fields visible to Jackson
         MAPPER.setVisibility(FIELD, ANY);
+        MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     /**

@@ -36,6 +36,7 @@ public class SearchQuery {
         return !isNull() && query.trim().startsWith("{") && query.trim().endsWith("}");
     }
 
+    @JsonIgnore
     public boolean isNull() {
         return query == null;
     }
