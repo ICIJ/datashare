@@ -9,6 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,8 +35,8 @@ public class AmqpInterlocutor {
 
 
     @Inject
-    public AmqpInterlocutor(PropertiesProvider propertiesProvider) throws IOException {
-        this(new Configuration(propertiesProvider.getProperties()));
+    public AmqpInterlocutor(PropertiesProvider propertiesProvider) throws IOException, URISyntaxException {
+        this(new Configuration(new URI(propertiesProvider.get("amqpAddress").orElse("amqp://localhost:5672"))));
     }
 
     AmqpInterlocutor(Configuration configuration) throws IOException {
@@ -82,7 +85,7 @@ public class AmqpInterlocutor {
 
     public synchronized AmqpChannel createAmqpChannelForConsume(AmqpQueue queue) throws IOException {
         AmqpChannel channel = new AmqpChannel(connection.createChannel(), queue, nbQueue.incrementAndGet());
-        channel.initForConsume(configuration.deadletter, configuration.nbMaxMessages);
+        channel.initForConsume(configuration.deadLetter, configuration.nbMaxMessages);
         logger.info("consume channel " + channel + " has been created for queue {}", channel.queueName());
         return channel;
     }
