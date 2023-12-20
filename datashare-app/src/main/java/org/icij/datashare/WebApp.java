@@ -3,6 +3,8 @@ package org.icij.datashare;
 import net.codestory.http.WebServer;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
+import org.icij.datashare.com.bus.amqp.AmqpQueue;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchDownloadLoop;
 import org.icij.datashare.tasks.BatchSearchLoop;
@@ -20,6 +22,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
+import static org.icij.datashare.ReportExtractor.logger;
 import static org.icij.datashare.cli.DatashareCliOptions.OPEN_LINK;
 
 public class WebApp {
@@ -50,6 +53,7 @@ public class WebApp {
             executor.submit(mode.get(TaskFactory.class).createBatchDownloadLoop());
             executor.submit(mode.get(TaskFactory.class).createBatchSearchLoop());
         }
+        mode.get(AmqpInterlocutor.class).createAllPublishChannels();
         webServerThread.join();
     }
 

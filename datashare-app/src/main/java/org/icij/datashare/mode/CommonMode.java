@@ -15,7 +15,6 @@ import net.codestory.http.routes.Routes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.TesseractOCRParserWrapper;
-import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
@@ -23,6 +22,8 @@ import org.icij.datashare.com.DataBus;
 import org.icij.datashare.com.MemoryDataBus;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.bus.RedisDataBus;
+import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
+import org.icij.datashare.com.bus.amqp.AmqpQueue;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -52,9 +53,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Consumer;
 
@@ -121,24 +124,36 @@ public abstract class CommonMode extends AbstractModule {
         install(new FactoryModuleBuilder().build(TaskFactory.class));
 
         RedissonClient redissonClient = null;
-        if ( hasRedisProperty() ) {
+        if ( hasProperty(QueueType.REDIS) ) {
             redissonClient = new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create();
             bind(RedissonClient.class).toInstance(redissonClient);
         }
+        if ( hasProperty(QueueType.AMQP) ) {
+            bind(AmqpInterlocutor.class).in(Scopes.SINGLETON);
+        }
 
         QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
-        if ( batchQueueType == QueueType.REDIS ) {
-            configureBatchQueuesRedis(redissonClient);
-            bind(TaskManagerRedis.class).in(Scopes.SINGLETON);
-            bind(TaskManager.class).to(TaskManagerRedis.class);
-            bind(TaskModifier.class).to(TaskManagerRedis.class);
-            bind(TaskSupplier.class).to(TaskManagerRedis.class);
-        } else {
-            configureBatchQueuesMemory(propertiesProvider);
-            bind(TaskManagerMemory.class).in(Scopes.SINGLETON);
-            bind(TaskManager.class).to(TaskManagerMemory.class);
-            bind(TaskModifier.class).to(TaskManagerMemory.class);
-            bind(TaskSupplier.class).to(TaskManagerMemory.class);
+        switch ( batchQueueType ) {
+            case REDIS:
+                configureBatchQueuesRedis(redissonClient);
+                bind(TaskManagerRedis.class).in(Scopes.SINGLETON);
+                bind(TaskManager.class).to(TaskManagerRedis.class);
+                bind(TaskModifier.class).to(TaskManagerRedis.class);
+                bind(TaskSupplier.class).to(TaskManagerRedis.class);
+                break;
+            case AMQP:
+                configureBatchQueuesRedis(redissonClient);
+                bind(TaskManagerAmqp.class).in(Scopes.SINGLETON);
+                bind(TaskManager.class).to(TaskManagerAmqp.class);
+                bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
+                bind(TaskModifier.class).to(TaskSupplierAmqp.class);
+                break;
+            default:
+                configureBatchQueuesMemory(propertiesProvider);
+                bind(TaskManagerMemory.class).in(Scopes.SINGLETON);
+                bind(TaskManager.class).to(TaskManagerMemory.class);
+                bind(TaskModifier.class).to(TaskManagerMemory.class);
+                bind(TaskSupplier.class).to(TaskManagerMemory.class);
         }
 
         ElasticsearchClient esClient = createESClient(propertiesProvider);
@@ -259,8 +274,8 @@ public abstract class CommonMode extends AbstractModule {
         return routes;
     }
 
-    protected boolean hasRedisProperty() {
-        return propertiesProvider.getProperties().contains(QueueType.REDIS.name());
+    protected boolean hasProperty(QueueType queueType) {
+        return propertiesProvider.getProperties().contains(queueType.name());
     }
 
     private Routes addCorsFilter(Routes routes, PropertiesProvider provider) {

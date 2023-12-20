@@ -26,8 +26,8 @@ public class CommonModeTest {
             put("queueType", QueueType.MEMORY.name());
         }});
 
-        assertThat(modeWithRedis.hasRedisProperty()).isTrue();
-        assertThat(modeWithoutRedis.hasRedisProperty()).isFalse();
+        assertThat(modeWithRedis.hasProperty(QueueType.REDIS)).isTrue();
+        assertThat(modeWithoutRedis.hasProperty(QueueType.REDIS)).isFalse();
     }
 
     @Test

@@ -130,6 +130,9 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
         tasks.put(taskId, taskView);
     }
 
+    @Override
+    public void close() throws IOException {}
+
     static class TaskViewCodec extends BaseCodec {
         private final Encoder keyEncoder;
         private final Decoder<Object> keyDecoder;
