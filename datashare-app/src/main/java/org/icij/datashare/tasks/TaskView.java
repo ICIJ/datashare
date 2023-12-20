@@ -113,7 +113,7 @@ public class TaskView<V> implements Entity {
 
     public void setProgress(double rate) {
         this.progress = rate;
-        if (rate > 0) {
+        if (rate > 0 && State.INIT.equals(state)) {
             this.state = State.RUNNING;
         }
     }

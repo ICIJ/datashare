@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.icij.datashare.com.bus.amqp.AmqpConsumer;
 import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.com.bus.amqp.AmqpQueue;
@@ -8,6 +9,7 @@ import org.icij.datashare.com.bus.amqp.EventSaver;
 import org.icij.datashare.com.bus.amqp.ProgressEvent;
 import org.icij.datashare.com.bus.amqp.ResultEvent;
 import org.icij.datashare.com.bus.amqp.TaskViewEvent;
+import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.user.User;
 import org.redisson.Redisson;
 import org.redisson.RedissonMap;
@@ -32,6 +34,7 @@ import java.util.regex.Pattern;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
+@Singleton
 public class TaskManagerAmqp implements TaskManager {
     private final Map<String, TaskView<?>> tasks;
     private final AmqpInterlocutor amqp;
@@ -46,7 +49,7 @@ public class TaskManagerAmqp implements TaskManager {
     TaskManagerAmqp(AmqpInterlocutor amqp, RedissonClient redissonClient, Runnable eventCallback) throws IOException {
         this.amqp = amqp;
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
-        tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(), commandSyncService, "ds:tasks", redissonClient, null, null);
+        tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(), commandSyncService, CommonMode.DS_TASK_MANAGER_QUEUE_NAME, redissonClient, null, null);
 
         eventConsumer = new AmqpConsumer<>(amqp, event -> {
             TaskView<?> taskView = tasks.get(event.taskId);

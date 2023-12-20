@@ -70,15 +70,13 @@ public class TaskResource {
     private final TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
     private final PipelineRegistry pipelineRegistry;
-    private final TaskModifier taskModifier;
 
     @Inject
-    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry, TaskModifier taskModifier) {
+    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
         this.pipelineRegistry = pipelineRegistry;
-        this.taskModifier = taskModifier;
     }
     @Operation(description = "Gets all the user tasks.<br>" +
             "A filter can be added with a pattern contained in the task name.",

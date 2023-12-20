@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.icij.datashare.com.bus.amqp.AmqpConsumer;
 import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.com.bus.amqp.AmqpQueue;
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Optional.ofNullable;
 
-
+@Singleton
 public class TaskSupplierAmqp implements TaskSupplier {
     private final BlockingQueue<TaskViewEvent> taskViewEvents = new ArrayBlockingQueue<>(1024);
     final AmqpConsumer<TaskViewEvent, EventSaver<TaskViewEvent>> consumer;

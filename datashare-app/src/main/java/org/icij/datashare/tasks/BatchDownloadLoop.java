@@ -52,6 +52,7 @@ public class BatchDownloadLoop implements Callable<Integer> {
                 }
             }
         }
+        logger.info("Exiting loop after {} tasks", nbTasks);
         return nbTasks;
     }
 

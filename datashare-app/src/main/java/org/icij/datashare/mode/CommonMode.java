@@ -2,8 +2,13 @@ package org.icij.datashare.mode;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.AbstractModule;
+import com.google.inject.CreationException;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import com.google.inject.Module;
-import com.google.inject.*;
+import com.google.inject.Scopes;
+import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
 import net.codestory.http.annotations.Get;
@@ -23,7 +28,6 @@ import org.icij.datashare.com.MemoryDataBus;
 import org.icij.datashare.com.Publisher;
 import org.icij.datashare.com.bus.RedisDataBus;
 import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
-import org.icij.datashare.com.bus.amqp.AmqpQueue;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -33,7 +37,17 @@ import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.extract.RedisUserReportMap;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.tasks.*;
+import org.icij.datashare.tasks.DocumentCollectionFactory;
+import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.TaskManagerAmqp;
+import org.icij.datashare.tasks.TaskManagerMemory;
+import org.icij.datashare.tasks.TaskManagerRedis;
+import org.icij.datashare.tasks.TaskModifier;
+import org.icij.datashare.tasks.TaskSupplier;
+import org.icij.datashare.tasks.TaskSupplierAmqp;
+import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -54,10 +68,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Consumer;
 
@@ -129,28 +143,31 @@ public abstract class CommonMode extends AbstractModule {
             bind(RedissonClient.class).toInstance(redissonClient);
         }
         if ( hasProperty(QueueType.AMQP) ) {
-            bind(AmqpInterlocutor.class).in(Scopes.SINGLETON);
+            try {
+                AmqpInterlocutor amqp = new AmqpInterlocutor(propertiesProvider);
+                amqp.createAllPublishChannels();
+                bind(AmqpInterlocutor.class).toInstance(amqp);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
         switch ( batchQueueType ) {
             case REDIS:
                 configureBatchQueuesRedis(redissonClient);
-                bind(TaskManagerRedis.class).in(Scopes.SINGLETON);
                 bind(TaskManager.class).to(TaskManagerRedis.class);
                 bind(TaskModifier.class).to(TaskManagerRedis.class);
                 bind(TaskSupplier.class).to(TaskManagerRedis.class);
                 break;
             case AMQP:
                 configureBatchQueuesRedis(redissonClient);
-                bind(TaskManagerAmqp.class).in(Scopes.SINGLETON);
                 bind(TaskManager.class).to(TaskManagerAmqp.class);
                 bind(TaskSupplier.class).to(TaskSupplierAmqp.class);
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
                 break;
             default:
                 configureBatchQueuesMemory(propertiesProvider);
-                bind(TaskManagerMemory.class).in(Scopes.SINGLETON);
                 bind(TaskManager.class).to(TaskManagerMemory.class);
                 bind(TaskModifier.class).to(TaskManagerMemory.class);
                 bind(TaskSupplier.class).to(TaskManagerMemory.class);
