@@ -46,7 +46,7 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     @Inject
     public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, BlockingQueue<TaskView<?>> taskQueue) {
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
-        this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
+        this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, CommonMode.DS_TASK_MANAGER_QUEUE_NAME, redissonClient, null, null);
         this.taskQueue = taskQueue;
     }
 
