@@ -22,6 +22,7 @@ import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,6 +38,7 @@ import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
 
+@Singleton
 public class TaskManagerRedis implements TaskManager, TaskSupplier {
     private final Map<String, TaskView<?>> tasks;
     private final BlockingQueue<TaskView<?>> taskQueue;

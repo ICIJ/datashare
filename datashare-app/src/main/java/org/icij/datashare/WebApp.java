@@ -22,6 +22,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
+import static java.util.Optional.ofNullable;
 import static org.icij.datashare.ReportExtractor.logger;
 import static org.icij.datashare.cli.DatashareCliOptions.OPEN_LINK;
 
@@ -53,7 +54,6 @@ public class WebApp {
             executor.submit(mode.get(TaskFactory.class).createBatchDownloadLoop());
             executor.submit(mode.get(TaskFactory.class).createBatchSearchLoop());
         }
-        mode.get(AmqpInterlocutor.class).createAllPublishChannels();
         webServerThread.join();
     }
 

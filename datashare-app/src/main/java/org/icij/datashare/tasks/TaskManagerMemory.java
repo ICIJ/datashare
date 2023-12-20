@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.apache.commons.lang3.NotImplementedException;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
@@ -22,6 +23,7 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
+@Singleton
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executor;
