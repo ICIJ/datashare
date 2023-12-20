@@ -16,6 +16,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Optional.ofNullable;
+
 
 public class TaskSupplierAmqp implements TaskSupplier {
     private final BlockingQueue<TaskViewEvent> taskViewEvents = new ArrayBlockingQueue<>(1024);
@@ -45,7 +47,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     @Override
     public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (TaskView<V>) taskViewEvents.poll(timeOut, timeUnit).taskView;
+        return (TaskView<V>) ofNullable(taskViewEvents.poll(timeOut, timeUnit)).map(te -> te.taskView).orElse(null);
     }
 
     @Override
@@ -59,11 +61,12 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     @Override
     public void error(String taskId, Throwable throwable) {
-        try {
-            amqp.publish(AmqpQueue.TASK_RESULT, new ResultEvent<>(taskId, throwable));
-        } catch (IOException e) {
-            LoggerFactory.getLogger(getClass()).warn("cannot publish error {} for task {}", throwable, taskId);
-        }
+        result(taskId, throwable);
+    }
+
+    @Override
+    public void close() throws IOException {
+        consumer.cancel();
     }
 
     static class SupplierBufferingException extends RuntimeException { }

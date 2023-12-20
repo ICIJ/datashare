@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +35,7 @@ public class AmqpInterlocutor {
 
     @Inject
     public AmqpInterlocutor(PropertiesProvider propertiesProvider) throws IOException, URISyntaxException {
-        this(new Configuration(new URI(propertiesProvider.get("amqpAddress").orElse("amqp://localhost:5672"))));
+        this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://localhost:5672"))));
     }
 
     AmqpInterlocutor(Configuration configuration) throws IOException {
@@ -73,6 +72,17 @@ public class AmqpInterlocutor {
             throw new UnknownChannelException(queue);
         }
         return channel;
+    }
+
+    public AmqpInterlocutor createAllPublishChannels() {
+        for (AmqpQueue queue: AmqpQueue.values()) {
+            try {
+                createAmqpChannelForPublish(queue);
+            } catch (IOException e) {
+                logger.error("cannot create channel for publish for queue {}", queue);
+            }
+        }
+        return this;
     }
 
     public synchronized AmqpInterlocutor createAmqpChannelForPublish(AmqpQueue queue) throws IOException {

@@ -1,6 +1,7 @@
 package org.icij.datashare.com.bus.amqp;
 
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmCallback;
 import com.rabbitmq.client.DefaultConsumer;
@@ -94,11 +95,13 @@ public class AmqpChannel {
 	}
 
 	String queueName() {
-		return String.format("%s-%d", queue.name(), consumerNb);
+		return BuiltinExchangeType.FANOUT.equals(queue.exchangeType) ?
+				String.format("%s-%d", queue.name(), consumerNb) :
+				queue.name();
 	}
 
     @Override public String toString() {
-        return queue.toString();
+        return String.format("%s (%s)", queueName(), queue);
     }
 
 	void initForPublish() throws IOException {

@@ -66,9 +66,7 @@ public class AmqpTest {
 
         assertThat(eventQueue.take().field).isEqualTo("hello 1");
         assertThat(eventQueue.take().field).isEqualTo("hello 2");
-        while (!consumer.isCanceled()) {
-            Thread.sleep(100);
-        }
+        qpid.waitCancel(consumer);
         Assertions.assertThat(consumer.isCanceled()).isTrue();
     }
 

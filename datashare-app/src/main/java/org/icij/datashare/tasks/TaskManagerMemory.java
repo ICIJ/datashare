@@ -8,6 +8,7 @@ import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
@@ -157,5 +158,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     @Override
     public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
         return (TaskView<V>) taskQueue.poll(timeOut, timeUnit);
+    }
+
+    @Override
+    public void close() throws IOException {
+        shutdownNow();
     }
 }

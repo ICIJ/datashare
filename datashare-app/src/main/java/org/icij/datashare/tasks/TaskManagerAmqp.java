@@ -14,6 +14,7 @@ import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -21,9 +22,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class TaskManagerAmqp implements TaskManager {
@@ -34,6 +40,10 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Inject
     public TaskManagerAmqp(AmqpInterlocutor amqp, RedissonClient redissonClient) throws IOException {
+        this(amqp, redissonClient, null);
+    }
+
+    TaskManagerAmqp(AmqpInterlocutor amqp, RedissonClient redissonClient, Runnable eventCallback) throws IOException {
         this.amqp = amqp;
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(), commandSyncService, "ds:tasks", redissonClient, null, null);
@@ -42,6 +52,7 @@ public class TaskManagerAmqp implements TaskManager {
             TaskView<?> taskView = tasks.get(event.taskId);
             taskView.setProgress(event.rate);
             tasks.put(event.taskId, taskView);
+            ofNullable(eventCallback).ifPresent(Runnable::run);
         }, AmqpQueue.EVENT, ProgressEvent.class);
         eventConsumer.consumeEvents();
 
@@ -53,6 +64,7 @@ public class TaskManagerAmqp implements TaskManager {
                 taskView.setResult(event.result);
             }
             tasks.put(event.taskId, taskView);
+            ofNullable(eventCallback).ifPresent(Runnable::run);
         }, AmqpQueue.TASK_RESULT, (Class<ResultEvent<? extends Serializable>>) (Class<?>) ResultEvent.class);
         resultConsumer.consumeEvents();
     }
@@ -117,5 +129,11 @@ public class TaskManagerAmqp implements TaskManager {
     @Override
     public List<TaskView<?>> clearDoneTasks() {
         return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
+    }
+
+    public void close() throws IOException {
+        clearDoneTasks();
+        resultConsumer.cancel();
+        eventConsumer.cancel();
     }
 }

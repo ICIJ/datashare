@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.user.User;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
-public interface TaskManager {
+public interface TaskManager extends Closeable {
     <V> TaskView<V> startTask(Callable<V> task, Runnable callback);
     <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) throws IOException;
     <V> TaskView<V> startTask(Callable<V> task);
