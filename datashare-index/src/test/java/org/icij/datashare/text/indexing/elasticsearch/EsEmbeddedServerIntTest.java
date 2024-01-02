@@ -27,5 +27,5 @@ public class EsEmbeddedServerIntTest {
     }
 
     @AfterClass
-    public static void tearDown() throws IOException { server.stop();}
+    public static void tearDown() throws IOException { server.close();}
 }
