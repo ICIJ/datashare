@@ -35,7 +35,7 @@ public class AmqpInterlocutor {
 
     @Inject
     public AmqpInterlocutor(PropertiesProvider propertiesProvider) throws IOException, URISyntaxException {
-        this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://localhost:5672"))));
+        this(new Configuration(new URI(propertiesProvider.get("messageBusAddress").orElse("amqp://rabbitmq:5672"))));
     }
 
     AmqpInterlocutor(Configuration configuration) throws IOException {
