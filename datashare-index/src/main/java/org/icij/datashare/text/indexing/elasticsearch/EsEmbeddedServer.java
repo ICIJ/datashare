@@ -9,19 +9,23 @@ import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.painless.PainlessPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static java.util.Arrays.asList;
 /**
  * inspired by :
  * https://github.com/elastic/elasticsearch-hadoop/blob/fefcf8b191d287aca93a04144c67b803c6c81db5/mr/src/itest/java/org/elasticsearch/hadoop/EsEmbeddedServer.java
  */
-public class EsEmbeddedServer {
+public class EsEmbeddedServer implements Closeable {
     private final Node node;
 
     public EsEmbeddedServer(String clusterName, String homePath, String dataPath, String httpPort) {
@@ -53,10 +57,6 @@ public class EsEmbeddedServer {
         }
     }
 
-    public void stop() throws IOException {
-        node.close();
-    }
-
     PluginConfigurableNode createNode(Settings settings) {
         return new PluginConfigurableNode(settings, asList(
                 Netty4Plugin.class,
@@ -67,9 +67,27 @@ public class EsEmbeddedServer {
         ));
     }
 
+    @Override
+    public void close() throws IOException {
+        node.close();
+    }
+
+    public boolean isClosed() {
+        return node.isClosed();
+    }
+
     static class PluginConfigurableNode extends Node {
         public PluginConfigurableNode(Settings settings, Collection<Class<? extends Plugin>> classpathPlugins) {
             super(InternalSettingsPreparer.prepareEnvironment(settings, new HashMap<>(), null, () -> "datashare"), classpathPlugins, true);
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        EsEmbeddedServer server = new EsEmbeddedServer("datashare", System.getenv("DS_ELASTICSEARCH_HOME_PATH"),
+                System.getenv("DS_ELASTICSEARCH_DATA_PATH"), "9200");
+        server.start();
+        while (!server.isClosed()) {
+            Thread.sleep(1000);
         }
     }
 }
