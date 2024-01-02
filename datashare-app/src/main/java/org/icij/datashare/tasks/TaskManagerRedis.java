@@ -12,6 +12,7 @@ import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.redisson.Redisson;
+import org.redisson.RedissonBlockingQueue;
 import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.BaseCodec;
@@ -40,11 +41,11 @@ import static java.util.stream.Collectors.toList;
 
 @Singleton
 public class TaskManagerRedis implements TaskManager, TaskSupplier {
-    private final Map<String, TaskView<?>> tasks;
+    private final RedissonMap<String, TaskView<?>> tasks;
     private final BlockingQueue<TaskView<?>> taskQueue;
 
     @Inject
-    public TaskManagerRedis(RedissonClient redissonClient, String taskMapName, BlockingQueue<TaskView<?>> taskQueue) {
+    public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue) {
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, CommonMode.DS_TASK_MANAGER_QUEUE_NAME, redissonClient, null, null);
         this.taskQueue = taskQueue;
@@ -133,7 +134,13 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void close() throws IOException {}
+    public void close() throws IOException {
+        // we cannot close RedissonClient connection pool as it may be used by other keys
+        tasks.delete();
+        if (taskQueue instanceof RedissonBlockingQueue) {
+            ((RedissonBlockingQueue<TaskView<?>>) taskQueue).delete();
+        }
+    }
 
     static class TaskViewCodec extends BaseCodec {
         private final Encoder keyEncoder;
