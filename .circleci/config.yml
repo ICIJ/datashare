@@ -58,7 +58,10 @@ jobs:
       - run: mvn -pl commons-test -am install
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
-      - run: mvn -Dmaven.test.skip=true install > mvn.out
+      - run:
+          name: make install for app and corenlp modules
+          command: mvn -s .circleci/maven-release-settings.xml -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
+      - run: mvn -pl datashare-dist package > mvn.out
       - run:
           name: acceptance test for embedded mode
           command: |
