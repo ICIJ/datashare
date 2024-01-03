@@ -57,7 +57,8 @@ jobs:
       - run: mvn validate
       - run: mvn -pl commons-test -am install
       - run: mvn -pl datashare-db liquibase:update
-      - run: mvn install > mvn.out
+      - run: mvn test
+      - run: mvn -Dmaven.test.skip=true install > mvn.out
       - run:
           name: acceptance test for embedded mode
           command: |
