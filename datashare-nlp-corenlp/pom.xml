@@ -63,6 +63,7 @@
                                     <!--because of collision with elasticsearch/lucene-->
                                     <pattern>org.apache.lucene</pattern>
                                     <shadedPattern>org.apache.lucene410-corenlp</shadedPattern>
+                                    <rawString>true</rawString>
                                 </relocation>
                             </relocations>
                             <transformers>
