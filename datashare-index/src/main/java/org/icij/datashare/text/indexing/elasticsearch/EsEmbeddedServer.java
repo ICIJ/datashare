@@ -82,12 +82,17 @@ public class EsEmbeddedServer implements Closeable {
         }
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
+        int nbIterations = -1;
+        if (args.length > 1) {
+            nbIterations = Integer.parseInt(args[1]);
+        }
         EsEmbeddedServer server = new EsEmbeddedServer("datashare", System.getenv("DS_ELASTICSEARCH_HOME_PATH"),
                 System.getenv("DS_ELASTICSEARCH_DATA_PATH"), "9200");
         server.start();
-        while (!server.isClosed()) {
+        while (!server.isClosed() && nbIterations-- != 0) {
             Thread.sleep(1000);
         }
+        server.close();
     }
 }
