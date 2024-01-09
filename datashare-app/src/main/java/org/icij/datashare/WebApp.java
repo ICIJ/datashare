@@ -3,8 +3,10 @@ package org.icij.datashare;
 import net.codestory.http.WebServer;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
+import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.com.bus.amqp.AmqpQueue;
+import org.icij.datashare.com.bus.amqp.QpidAmqpServer;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchDownloadLoop;
 import org.icij.datashare.tasks.BatchSearchLoop;
@@ -33,6 +35,10 @@ public class WebApp {
     }
 
     static void start(Properties properties) throws Exception {
+        if (shouldStartQpid(properties)) {
+            // before creating mode because AmqpInterlocutor will try to connect the broker
+            new QpidAmqpServer(5672).start();
+        }
         CommonMode mode = CommonMode.create(properties);
 
         Thread webServerThread = new Thread(() ->
@@ -55,6 +61,10 @@ public class WebApp {
             executor.submit(mode.get(TaskFactory.class).createBatchSearchLoop());
         }
         webServerThread.join();
+    }
+
+    private static boolean shouldStartQpid(Properties properties) {
+        return CommonMode.getMode(properties) == Mode.EMBEDDED && properties.containsValue(QueueType.AMQP.name());
     }
 
     private static void waitForServerToBeUp(int tcpListenPort) throws InterruptedException {
