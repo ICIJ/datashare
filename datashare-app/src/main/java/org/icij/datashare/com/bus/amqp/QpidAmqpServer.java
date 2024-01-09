@@ -21,7 +21,7 @@ public class QpidAmqpServer {
         System.setProperty("qpid.amqp_port", String.valueOf(port));
     }
 
-    public void start() throws Exception {
+    public void start() {
         try {
             systemLauncher.startup(createSystemConfig());
         } catch (Exception e) {

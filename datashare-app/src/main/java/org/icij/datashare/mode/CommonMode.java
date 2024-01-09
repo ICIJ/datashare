@@ -304,7 +304,7 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     @NotNull
-    private static Mode getMode(Properties properties) {
+    public static Mode getMode(Properties properties) {
         return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode"));
     }
 }
