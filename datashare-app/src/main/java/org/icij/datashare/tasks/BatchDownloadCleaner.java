@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.compile;
 
 public class BatchDownloadCleaner implements Runnable {
@@ -27,7 +28,7 @@ public class BatchDownloadCleaner implements Runnable {
     @Override
     public void run() {
         logger.debug("deleting temporary zip files from {}", downloadDir);
-        stream(requireNonNull(downloadDir.toFile().listFiles()))
+        stream(ofNullable(downloadDir.toFile().listFiles()).orElse(new File[] {}))
                 .filter(f -> filePattern.matcher(f.getName()).matches())
                 .filter(f -> DatashareTime.getInstance().currentTimeMillis() - f.lastModified() >= ttlHour * 1000L * 60 * 60)
                 .forEach(File::delete);
