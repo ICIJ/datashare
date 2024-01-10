@@ -5,18 +5,24 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.user.User;
+import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.file.Path;
+import java.util.function.Predicate;
 
 /**
  * filters the document queue with extracted docs
  */
-public class DeduplicateTask extends PipelineTask {
+public class DeduplicateTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final DocumentCollectionFactory factory;
 
     @Inject
     public DeduplicateTask(final DocumentCollectionFactory factory, final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
         super(DatashareCli.Stage.DEDUPLICATE, user, queueName, factory, propertiesProvider);
+        this.factory = factory;
     }
 
     @Override
@@ -26,5 +32,23 @@ public class DeduplicateTask extends PipelineTask {
         logger.info("removed {} duplicate paths in queue {}", duplicates, queue.getName());
         queue.close();
         return (long)duplicates;
+    }
+
+    long transferToOutputQueue() throws Exception {
+        return transferToOutputQueue(p -> true);
+    }
+
+    long transferToOutputQueue(Predicate<Path> filter) throws Exception {
+        long originalSize = queue.size();
+        try (DocumentQueue<Path> outputQueue = factory.createQueue(propertiesProvider, getOutputQueueName())) {
+            Path path;
+            while (!(path = queue.take()).equals(POISON)) {
+                if (filter.test(path)) {
+                    outputQueue.add(path);
+                }
+            }
+            outputQueue.add(POISON);
+            return originalSize - outputQueue.size();
+        }
     }
 }

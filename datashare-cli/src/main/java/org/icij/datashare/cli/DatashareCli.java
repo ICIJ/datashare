@@ -103,7 +103,7 @@ public class DatashareCli {
         DatashareCliOptions.enableOcr(parser);
         DatashareCliOptions.language(parser);
         DatashareCliOptions.ocrLanguage(parser);
-        DatashareCliOptions.nlpPipelines(parser);
+        DatashareCliOptions.nlpPipeline(parser);
         DatashareCliOptions.resume(parser);
         DatashareCliOptions.scrollSize(parser);
         DatashareCliOptions.scrollSlices(parser);

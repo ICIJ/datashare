@@ -4,13 +4,13 @@ import net.codestory.http.routes.Routes;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
+import org.fest.assertions.MapAssert;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.nlp.EmailPipeline;
-import org.icij.datashare.nlp.NlpApp;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
@@ -39,7 +39,6 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.session.DatashareUser.local;
-import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -212,27 +211,28 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
         assertThat(taskNames.size()).isEqualTo(2);
-        verify(taskFactory).createResumeNlpTask(eq(local()), eq(singleton(Pipeline.Type.EMAIL)), any());
+        ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
 
-        ArgumentCaptor<Pipeline> pipelineArgumentCaptor = ArgumentCaptor.forClass(Pipeline.class);
+        verify(taskFactory).createResumeNlpTask(eq(local()), eq("extract:queue:nlp"), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
 
         HashMap<String, String> properties = getDefaultProperties();
         properties.put("waitForNlpApp", "false");
-        verify(taskFactory).createNlpTask(eq(local()), pipelineArgumentCaptor.capture(), eq(new PropertiesProvider(properties).getProperties()), any());
-        assertThat(pipelineArgumentCaptor.getValue().getType()).isEqualTo(Pipeline.Type.EMAIL);
+        verify(taskFactory).createNlpTask(eq(local()), eq("extract:queue:nlp"), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
     }
 
     @Test
     public void test_findNames_with_options_should_merge_with_property_provider() {
         RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"waitForNlpApp\": false, \"key\":\"val\",\"foo\":\"loo\"}}");
         response.should().haveType("application/json");
-        verify(taskFactory).createResumeNlpTask(eq(local()), eq(singleton(Pipeline.Type.EMAIL)), any());
+        ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
+        verify(taskFactory).createResumeNlpTask(eq(local()), eq("extract:queue:nlp"), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
 
-        ArgumentCaptor<Pipeline> pipelineCaptor = ArgumentCaptor.forClass(Pipeline.class);
-        ArgumentCaptor<Properties> propertiesCaptor = ArgumentCaptor.forClass(Properties.class);
-        verify(taskFactory).createNlpTask(eq(local()), pipelineCaptor.capture(), propertiesCaptor.capture(), any());
-            assertThat(propertiesCaptor.getValue()).includes(entry("key", "val"), entry("foo", "loo"));
-        assertThat(pipelineCaptor.getValue().getType()).isEqualTo(Pipeline.Type.EMAIL);
+        verify(taskFactory).createNlpTask(eq(local()), eq("extract:queue:nlp"), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("key", "val"), entry("foo", "loo"));
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
     }
 
     @Test
@@ -240,7 +240,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"resume\":\"false\", \"waitForNlpApp\": false}}");
         response.should().haveType("application/json");
 
-        verify(taskFactory, never()).createResumeNlpTask(null, singleton(Pipeline.Type.OPENNLP), new Properties());
+        verify(taskFactory, never()).createResumeNlpTask(eq(null), eq("extract:queue:nlp"), any());
     }
 
     @Test
@@ -391,7 +391,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @NotNull
     private HashMap<String, String> getDefaultProperties() {
-        return new HashMap<String, String>() {{
+        return new HashMap<>() {{
             put("dataDir", "/default/data/dir");
             put("foo", "bar");
             put("batchDownloadDir", "app/tmp");
@@ -412,8 +412,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(mock(DeduplicateTask.class));
         when(taskFactory.createDownloadRunner(any(), any())).thenReturn(mock(BatchDownloadRunner.class));
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));
-        when(taskFactory.createResumeNlpTask(any(), eq(singleton(Pipeline.Type.EMAIL)), any())).thenReturn(mock(ResumeNlpTask.class));
-        when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(NlpApp.class));
-        when(taskFactory.createNlpTask(any(), any(), any(), any())).thenReturn(mock(NlpApp.class));
+        when(taskFactory.createResumeNlpTask(any(), any(), any())).thenReturn(mock(ResumeNlpTask.class));
+        when(taskFactory.createNlpTask(any(), any(), any())).thenReturn(mock(ExtractNlpTask.class));
     }
 }
