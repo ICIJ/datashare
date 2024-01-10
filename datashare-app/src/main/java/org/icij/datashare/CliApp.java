@@ -70,7 +70,7 @@ class CliApp {
         TaskManagerMemory taskManager = mode.get(TaskManagerMemory.class);
         TaskFactory taskFactory = mode.get(TaskFactory.class);
 
-        Set<Pipeline.Type> nlpPipelines = parseAll(properties.getProperty(DatashareCliOptions.NLP_PIPELINES_OPT));
+        Pipeline.Type nlpPipeline = Pipeline.Type.parse(properties.getProperty(DatashareCliOptions.NLP_PIPELINE_OPT));
         Indexer indexer = mode.get(Indexer.class);
 
         if (resume(properties)) {
@@ -78,7 +78,7 @@ class CliApp {
             boolean queueIsEmpty = queue.isEmpty();
             queue.close();
 
-            if (indexer.search(singletonList(properties.getProperty("defaultProject")), Document.class).without(nlpPipelines.toArray(new Pipeline.Type[]{})).withSource(false).execute().findAny().isEmpty() && queueIsEmpty) {
+            if (indexer.search(singletonList(properties.getProperty("defaultProject")), Document.class).without(nlpPipeline).withSource(false).execute().findAny().isEmpty() && queueIsEmpty) {
                 logger.info("nothing to resume, exiting normally");
                 System.exit(0);
             }
@@ -134,13 +134,11 @@ class CliApp {
         }
 
         if (pipeline.has(DatashareCli.Stage.NLP)) {
-            for (Pipeline.Type nlp : nlpPipelines) {
-                Pipeline pipelineClass = mode.get(PipelineRegistry.class).get(nlp);
-                taskManager.startTask(taskFactory.createNlpTask(nullUser(), pipelineClass));
-            }
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), nlpPipelines, properties));
+                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.NLP), properties));
             }
+            taskManager.startTask(taskFactory.createNlpTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.NLP), properties),
+                    () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
         indexer.close();

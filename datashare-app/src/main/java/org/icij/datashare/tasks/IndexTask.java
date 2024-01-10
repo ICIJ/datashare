@@ -21,6 +21,7 @@ import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.Properties;
 
 import static java.lang.Math.max;
@@ -36,7 +37,7 @@ import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 @OptionsClass(DocumentQueueDrainer.class)
 public class IndexTask extends PipelineTask implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final DocumentQueueDrainer drainer;
+    private final DocumentQueueDrainer<Path> drainer;
     private final DocumentConsumer consumer;
     private final Publisher publisher;
     private long totalToProcess;
@@ -62,7 +63,7 @@ public class IndexTask extends PipelineTask implements Monitorable{
             logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(MAP_NAME_OPTION));
             consumer.setReporter(new Reporter(factory.createMap(propertiesProvider, propertiesProvider.getProperties().get(MAP_NAME_OPTION).toString())));
         }
-        drainer = new DocumentQueueDrainer(queue, consumer).configure(allTaskOptions);
+        drainer = new DocumentQueueDrainer<>(queue, consumer).configure(allTaskOptions);
     }
 
     @Override

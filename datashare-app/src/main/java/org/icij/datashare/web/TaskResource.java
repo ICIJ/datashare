@@ -19,8 +19,10 @@ import net.codestory.http.annotations.Put;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.lang3.StringUtils;
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
+import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -60,23 +62,21 @@ import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR;
+import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
 @Singleton
 @Prefix("/api/task")
 public class TaskResource {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final TaskFactory taskFactory;
     private final TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
-    private final PipelineRegistry pipelineRegistry;
 
     @Inject
-    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider, final PipelineRegistry pipelineRegistry) {
+    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;
-        this.pipelineRegistry = pipelineRegistry;
     }
     @Operation(description = "Gets all the user tasks.<br>" +
             "A filter can be added with a pattern contained in the task name.",
@@ -259,30 +259,15 @@ public class TaskResource {
     @Post("/findNames/:pipeline")
     public List<TaskView<?>> extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
-        Pipeline pipeline = pipelineRegistry.get(Pipeline.Type.parse(pipelineName));
-        TaskView<Integer> nlpTask = createNlpApp(context, mergedProps, pipeline);
+        mergedProps.put(NLP_PIPELINE_OPT, pipelineName);
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
+        String queueName = PipelineHelper.getQueueName(new PropertiesProvider(mergedProps), DatashareCli.Stage.NLP);
+        TaskView<Long> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), queueName, mergedProps));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            Set<Pipeline.Type> pipelines = Set.of(Pipeline.Type.parse(pipelineName));
-            TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), pipelines, mergedProps));
+            TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), queueName, mergedProps));
             return asList(resumeNlpTask, nlpTask);
         }
         return singletonList(nlpTask);
-    }
-
-    private TaskView<Integer> createNlpApp(Context context, Properties mergedProps, Pipeline pipeline) {
-        CountDownLatch latch = new CountDownLatch(1);
-        TaskView<Integer> taskView = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), pipeline, mergedProps, latch::countDown));
-        if (parseBoolean(mergedProps.getProperty("waitForNlpApp", "true"))) {
-            try {
-                logger.info("waiting for NlpApp {} to listen...", pipeline);
-                latch.await(10, SECONDS);
-                logger.info("...{} is listening", pipeline);
-            } catch (InterruptedException e) {
-                logger.error("NlpApp has been interrupted", e);
-            }
-        }
-        return taskView;
     }
 
     private static <V> TaskView<V> forbiddenIfNotSameUser(Context context, TaskView<V> task) {

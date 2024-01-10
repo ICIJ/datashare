@@ -12,10 +12,13 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.mockito.Matchers.any;
@@ -29,14 +32,17 @@ public class ResumeNlpTaskTest {
     @After public void tearDown() throws IOException { es.removeAll();}
 
     @Test
-    public void test_bug_size_of_search() throws Exception {
+    public void test_size_of_search() throws Exception {
         for (int i = 0; i < 20; i++) {
             indexer.add(TEST_INDEX, createDoc("doc" + i).with(Pipeline.Type.CORENLP).build());
         }
-        Publisher publisher = mock(Publisher.class);
-        PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("defaultProject", "test-datashare"));
-        ResumeNlpTask resumeNlpTask = new ResumeNlpTask(publisher, indexer, propertiesProvider, new User("test"), Set.of(Pipeline.Type.OPENNLP), new Properties());
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>(){{
+                put("defaultProject", "test-datashare");
+                put(NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
+            }});
+        MemoryDocumentCollectionFactory factory = new MemoryDocumentCollectionFactory();
+        ResumeNlpTask resumeNlpTask = new ResumeNlpTask(factory, indexer, new User("test"), "queue", propertiesProvider.getProperties());
         resumeNlpTask.call();
-        verify(publisher, times(22)).publish(any(), any());
+        assertThat(factory.queues.get("queue")).hasSize(20);
     }
 }

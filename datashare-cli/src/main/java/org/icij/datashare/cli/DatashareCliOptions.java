@@ -22,7 +22,7 @@ public final class DatashareCliOptions {
             Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
     public static final String STAGES_OPT = "stages";
     public static final String DATA_DIR_OPT = "dataDir";
-    public static final String NLP_PIPELINES_OPT = "nlpPipelines";
+    public static final String NLP_PIPELINE_OPT = "nlpPipeline";
     public static final String BATCH_THROTTLE = "batchThrottleMilliseconds";
     public static final String BATCH_SEARCH_MAX_TIME = "batchSearchMaxTimeSeconds";
     public static final String BATCH_DOWNLOAD_ZIP_TTL = "batchDownloadTimeToLive";
@@ -352,10 +352,10 @@ public final class DatashareCliOptions {
                 .ofType(String.class);
     }
 
-    static void nlpPipelines(OptionParser parser) {
+    static void nlpPipeline(OptionParser parser) {
         parser.acceptsAll(
-                asList(NLP_PIPELINES_OPT, "nlpp"),
-                "NLP pipelines to be run.")
+                asList(NLP_PIPELINE_OPT, "nlpp"),
+                "NLP pipeline to be run.")
                 .withRequiredArg()
                 .withValuesSeparatedBy(ARG_VALS_SEP);
     }
