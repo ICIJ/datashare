@@ -80,8 +80,7 @@ public class ElasticsearchConfiguration {
             URL indexUrl = new URL(propertiesProvider.get(INDEX_ADDRESS_PROP).orElse(DEFAULT_ADDRESS));
             HttpHost httpHost = create(format("%s://%s:%d", indexUrl.getProtocol(), indexUrl.getHost(), indexUrl.getPort()));
 
-            RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback = httpClientBuilder -> httpClientBuilder;
-            RestClientBuilder.HttpClientConfigCallback xElasticProductCallback = httpAsyncClientBuilder -> {
+            RestClientBuilder.HttpClientConfigCallback clientConfigCallback = httpAsyncClientBuilder -> {
                 httpAsyncClientBuilder.disableAuthCaching();
                 httpAsyncClientBuilder.setDefaultHeaders(
                         singletonList(new BasicHeader("Content-type", "application/json")));
@@ -90,23 +89,22 @@ public class ElasticsearchConfiguration {
                                 // This header is expected from the client, versions of ES server below 7.14 don't provide it
                                 // i.e : https://www.elastic.co/guide/en/elasticsearch/reference/7.17/release-notes-7.14.0.html
                                 response.addHeader("X-Elastic-Product", "Elasticsearch"));
+                if (indexUrl.getUserInfo() != null) {
+                    String[] userInfo = indexUrl.getUserInfo().split(":");
+                    LOGGER.info("using credentials from url (user={})", userInfo[0]);
+                    final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                    credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userInfo[0], userInfo[1]));
+
+                    httpAsyncClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                }
                 return httpAsyncClientBuilder;
             };
 
-            if (indexUrl.getUserInfo() != null) {
-                String[] userInfo = indexUrl.getUserInfo().split(":");
-                LOGGER.info("using credentials from url (user={})", userInfo[0]);
-                final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userInfo[0], userInfo[1]));
-
-                httpClientConfigCallback = httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-            }
             RestClientTransport transport = new RestClientTransport(RestClient.builder(httpHost)
                     .setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder
                             .setConnectTimeout(5000)
                             .setSocketTimeout(60000))
-                    .setHttpClientConfigCallback(httpClientConfigCallback)
-                    .setHttpClientConfigCallback(xElasticProductCallback).build(), new JacksonJsonpMapper(JsonObjectMapper.MAPPER));
+                    .setHttpClientConfigCallback(clientConfigCallback).build(), new JacksonJsonpMapper(JsonObjectMapper.MAPPER));
             ElasticsearchClient client = new ElasticsearchClient(transport);
             String clusterName = propertiesProvider.get(CLUSTER_PROP).orElse(ES_CLUSTER_NAME);
             return client;
