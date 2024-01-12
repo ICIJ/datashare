@@ -49,9 +49,9 @@
       "id": "datashare-extension-neo4j",
       "name": "neo4j",
       "description": "A Datashare extension to perform graph analysis using neo4j",
-      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/0.3.12/datashare-extension-neo4j-0.3.12-jar-with-dependencies.jar",
+      "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/0.3.13/datashare-extension-neo4j-0.3.13-jar-with-dependencies.jar",
       "homepage": "https://github.com/ICIJ/datashare-extension-neo4j",
-      "version": "0.3.12",
+      "version": "0.3.13",
       "type": "WEB"
     }
   ]
