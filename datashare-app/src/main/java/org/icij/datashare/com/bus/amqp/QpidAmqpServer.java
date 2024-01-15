@@ -16,14 +16,20 @@ public class QpidAmqpServer {
     private static final String INITIAL_CONFIGURATION = "qpid-config.json";
     final SystemLauncher systemLauncher = new SystemLauncher();
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Map<String, Object> config;
 
     public QpidAmqpServer(int port) {
+        this(port, INITIAL_CONFIGURATION);
+    }
+
+    QpidAmqpServer(int port, String qpidConfigurationFileName) {
         System.setProperty("qpid.amqp_port", String.valueOf(port));
+        config = createSystemConfig(qpidConfigurationFileName);
     }
 
     public void start() {
         try {
-            systemLauncher.startup(createSystemConfig());
+            systemLauncher.startup(config);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -34,9 +40,9 @@ public class QpidAmqpServer {
         return true;
     }
 
-    private Map<String, Object> createSystemConfig() {
+    private Map<String, Object> createSystemConfig(final String configFileName) {
         Map<String, Object> attributes = new HashMap<>();
-        URL initialConfig = QpidAmqpServer.class.getClassLoader().getResource(INITIAL_CONFIGURATION);
+        URL initialConfig = QpidAmqpServer.class.getClassLoader().getResource(configFileName);
         logger.info("initial config : {}", Objects.requireNonNull(initialConfig," initialConfig cannot be null").toExternalForm());
         attributes.put("type", "Memory");
         attributes.put("initialConfigurationLocation", initialConfig.toExternalForm());
