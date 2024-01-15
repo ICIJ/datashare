@@ -38,7 +38,7 @@
   }],
   "virtualhostnodes" : [ {
     "name" : "default",
-    "type" : "Memory",
+    "type" : "JSON",
     "defaultVirtualHostNode" : "true",
     "virtualHostInitialConfiguration" : "{\"type\": \"Memory\", \"nodeAutoCreationPolicies\": [{\"pattern\":\".*\",\"createdOnPublish\":\"true\",\"createdOnConsume\":\"true\",\"nodeType\":\"queue\",\"attributes\":{}}] }"
   }]
