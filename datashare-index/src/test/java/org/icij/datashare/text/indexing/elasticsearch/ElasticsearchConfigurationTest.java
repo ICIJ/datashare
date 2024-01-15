@@ -51,4 +51,14 @@ public class ElasticsearchConfigurationTest {
 
         assertThat(EntityUtils.toString(response.getEntity())).contains("settings");
     }
+
+    @Test
+    public void test_create_client_with_x_elastic_post() throws  Exception {
+        ElasticsearchConfiguration.createESClient(new PropertiesProvider());
+
+        RestClient restClient = ((RestClientTransport) es.client._transport()).restClient();
+        Response response = restClient.performRequest(new Request("GET", TEST_INDEX));
+
+        assertThat(response.getHeader("X-Elastic-Product")).isNotNull();
+    }
 }
