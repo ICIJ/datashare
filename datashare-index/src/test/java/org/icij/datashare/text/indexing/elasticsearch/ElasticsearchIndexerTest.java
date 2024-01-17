@@ -10,6 +10,7 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.ExtractedText;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,7 +125,7 @@ public class ElasticsearchIndexerTest {
                 .with(path)
                 .with("content")
                 .with(Language.FRENCH)
-                .ofMimeType("message/rfc822")
+                .ofContentType("message/rfc822")
                 .with(new HashMap<>())
                 .with(INDEXED)
                 .withContentLength(321L)
@@ -132,7 +134,7 @@ public class ElasticsearchIndexerTest {
                 .with(path)
                 .with("mail body")
                 .with(Language.FRENCH)
-                .ofMimeType("text/plain")
+                .ofContentType("text/plain")
                 .with(new HashMap<>())
                 .with(INDEXED)
                 .withContentLength(123L)
@@ -161,7 +163,7 @@ public class ElasticsearchIndexerTest {
                 .with(Paths.get("doc.txt"))
                 .with("content Madeline")
                 .with(Language.FRENCH)
-                .ofMimeType("text/plain")
+                .ofContentType("text/plain")
                 .with(new HashMap<>())
                 .with(DONE)
                 .withContentLength(123L)
@@ -196,6 +198,12 @@ public class ElasticsearchIndexerTest {
 
         List<? extends Entity> lst = indexer.search(asList(TEST_INDEXES[1], TEST_INDEXES[2]), Document.class).execute().collect(toList());
         assertThat(lst.size()).isEqualTo(2);
+    }
+
+    @Test
+    public void test_duplicate() throws IOException {
+        indexer.add(TEST_INDEX, new Duplicate(Paths.get("duplicate"), "docId"));
+        assertThat(indexer.search(singletonList(TEST_INDEX), Duplicate.class)).isNotNull();
     }
 
     @Test
@@ -347,7 +355,7 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_search_source_filtering() throws IOException {
-        Document doc = createDoc("id").ofMimeType("application/pdf").build();
+        Document doc = createDoc("id").ofContentType("application/pdf").build();
         indexer.add(TEST_INDEX,doc);
 
         Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource("contentType").execute().collect(toList()).get(0);
@@ -358,7 +366,7 @@ public class ElasticsearchIndexerTest {
 
     @Test
     public void test_search_source_false() throws IOException {
-        Document doc = createDoc("id").ofMimeType("application/pdf").build();
+        Document doc = createDoc("id").ofContentType("application/pdf").build();
         indexer.add(TEST_INDEX,doc);
 
         Document actualDoc = (Document) indexer.search(singletonList(TEST_INDEX),Document.class).withSource(false).execute().collect(toList()).get(0);

@@ -1,11 +1,32 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.*;
+import co.elastic.clients.elasticsearch._types.Conflicts;
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.InlineScript;
+import co.elastic.clients.elasticsearch._types.Refresh;
+import co.elastic.clients.elasticsearch._types.Result;
+import co.elastic.clients.elasticsearch._types.ScriptField;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.*;
-import co.elastic.clients.elasticsearch.core.bulk.*;
+import co.elastic.clients.elasticsearch.core.BulkRequest;
+import co.elastic.clients.elasticsearch.core.BulkResponse;
+import co.elastic.clients.elasticsearch.core.ExistsRequest;
+import co.elastic.clients.elasticsearch.core.GetRequest;
+import co.elastic.clients.elasticsearch.core.GetResponse;
+import co.elastic.clients.elasticsearch.core.IndexRequest;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.UpdateByQueryRequest;
+import co.elastic.clients.elasticsearch.core.UpdateByQueryResponse;
+import co.elastic.clients.elasticsearch.core.UpdateRequest;
+import co.elastic.clients.elasticsearch.core.UpdateResponse;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
+import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
+import co.elastic.clients.elasticsearch.core.bulk.UpdateAction;
+import co.elastic.clients.elasticsearch.core.bulk.UpdateOperation;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.SourceConfigParam;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -37,7 +58,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import static co.elastic.clients.elasticsearch.core.UpdateRequest.Builder;
@@ -45,7 +70,11 @@ import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.json.JsonObjectMapper.*;
+import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
+import static org.icij.datashare.json.JsonObjectMapper.getJson;
+import static org.icij.datashare.json.JsonObjectMapper.getParent;
+import static org.icij.datashare.json.JsonObjectMapper.getRoot;
+import static org.icij.datashare.json.JsonObjectMapper.getType;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSearcher.searchHitStream;
 import static org.icij.datashare.utils.JsonUtils.mapObjectTomapJsonData;
@@ -172,6 +201,14 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public boolean exists(String indexName, String id) throws IOException {
+        ExistsRequest.Builder getRequest = new ExistsRequest.Builder().index(indexName).id(id);
+        getRequest.source(SourceConfigParam.of(scp -> scp.fetch(false)));
+        getRequest.storedFields("_none_");
+        return client.exists(getRequest.build()).value();
+    }
+
+    @Override
     public String executeRaw(String method, String url, String rawJson) throws IOException {
         Request request = new Request(method, url.startsWith("/") ? url : "/" + url);
         if (rawJson != null && !rawJson.isEmpty()) {
@@ -212,7 +249,7 @@ public class ElasticsearchIndexer implements Indexer {
 
     private void setJoinFields(Map<String, Object> json, String type, String parent) {
         json.put(esCfg.docTypeField, type);
-        if (parent != null && type.equals("NamedEntity")) {
+        if (parent != null && (type.equals("NamedEntity") || type.equals("Duplicate"))) {
             json.put(esCfg.indexJoinField, new HashMap<String, String>() {{
                 put("name", type);
                 put("parent", parent);

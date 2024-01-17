@@ -31,9 +31,9 @@ public class DatashareExtractIntegrationTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
 
-	private ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client, l -> ENGLISH,
-            new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withRefresh(Refresh.True).withIndex("test-datashare");
-	private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider());
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
+    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, l -> ENGLISH,
+            new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withIndex("test-datashare");
 
     public DatashareExtractIntegrationTest() throws IOException {}
 

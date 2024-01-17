@@ -85,7 +85,7 @@
     "join": {
       "type": "join",
       "relations": {
-        "Document": "NamedEntity"
+        "Document": [ "NamedEntity", "Duplicate" ]
       }
     },
     "mention": {
