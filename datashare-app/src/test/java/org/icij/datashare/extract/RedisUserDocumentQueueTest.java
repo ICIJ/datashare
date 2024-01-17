@@ -6,6 +6,7 @@ import org.junit.After;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 
 import static java.nio.file.Paths.get;
@@ -22,7 +23,9 @@ public class RedisUserDocumentQueueTest {
 
     @Test
     public void test_redis_queue_name_with_null_user() {
-        RedisUserDocumentQueue queue = new RedisUserDocumentQueue(nullUser(), new PropertiesProvider(new HashMap<String, String>() {{ put("redisAddress", "redis://redis:6379");}}));
+        RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(nullUser(), new PropertiesProvider(new HashMap<>() {{
+            put("redisAddress", "redis://redis:6379");
+        }}), Path.class);
         queue.offer(get("/path/to/doc"));
 
         assertThat(redis.keys("extract:queue")).hasSize(1);
@@ -30,7 +33,9 @@ public class RedisUserDocumentQueueTest {
     }
     @Test
     public void test_redis_queue_name_with_user_not_null_and_no_parameter_queue_name() {
-        RedisUserDocumentQueue queue = new RedisUserDocumentQueue(new User("foo"), new PropertiesProvider(new HashMap<String, String>() {{ put("redisAddress", "redis://redis:6379");}}));
+        RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(new User("foo"), new PropertiesProvider(new HashMap<>() {{
+            put("redisAddress", "redis://redis:6379");
+        }}), Path.class);
         queue.offer(get("/path/to/doc"));
 
         assertThat(redis.keys("extract:queue_foo")).hasSize(1);
@@ -39,11 +44,11 @@ public class RedisUserDocumentQueueTest {
 
     @Test
     public void test_redis_queue_name_with_user_not_null_and_queue_name__user_queue_is_preferred() {
-        RedisUserDocumentQueue queue = new RedisUserDocumentQueue(new User("foo"),
-                new PropertiesProvider(new HashMap<String, String>() {{
+        RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(new User("foo"),
+                new PropertiesProvider(new HashMap<>() {{
                     put("redisAddress", "redis://redis:6379");
-                    put("queueName", "myqueue");}})
-        );
+                    put("queueName", "myqueue");
+                }}), Path.class);
         queue.offer(get("/path/to/doc"));
 
         assertThat(redis.keys("extract:queue_foo")).hasSize(1);

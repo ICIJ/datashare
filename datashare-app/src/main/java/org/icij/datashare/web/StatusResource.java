@@ -22,23 +22,25 @@ import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
+
 @Singleton
 @Prefix("/api")
 public class StatusResource {
     Logger logger = LoggerFactory.getLogger(getClass());
-    private PropertiesProvider propertiesProvider;
+    private final PropertiesProvider propertiesProvider;
     private final Repository repository;
     private final Indexer indexer;
     private final DataBus dataBus;
-    private DocumentQueue queue;
+    private final DocumentQueue<Path> queue;
 
     @Inject
-    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer, DataBus dataBus, DocumentCollectionFactory documentCollectionFactory) {
+    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer, DataBus dataBus, DocumentCollectionFactory<Path> documentCollectionFactory) {
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
         this.indexer = indexer;
         this.dataBus = dataBus;
-        this.queue = documentCollectionFactory.createQueue(propertiesProvider, propertiesProvider.get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue"));
+        this.queue = documentCollectionFactory.createQueue(propertiesProvider, propertiesProvider.get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue"), Path.class);
     }
 
     @Operation(description = "Retrieve the status of databus connection, database connection, shared queues and index.",

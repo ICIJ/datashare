@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
@@ -74,7 +75,7 @@ class CliApp {
         Indexer indexer = mode.get(Indexer.class);
 
         if (resume(properties)) {
-            RedisUserDocumentQueue queue = new RedisUserDocumentQueue(nullUser(), new PropertiesProvider(properties));
+            RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(nullUser(), new PropertiesProvider(properties), Path.class);
             boolean queueIsEmpty = queue.isEmpty();
             queue.close();
 

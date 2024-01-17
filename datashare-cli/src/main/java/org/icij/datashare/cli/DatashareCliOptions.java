@@ -356,8 +356,7 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 asList(NLP_PIPELINE_OPT, "nlpp"),
                 "NLP pipeline to be run.")
-                .withRequiredArg()
-                .withValuesSeparatedBy(ARG_VALS_SEP);
+                .withRequiredArg().defaultsTo("CORENLP");
     }
 
     static void parallelism(OptionParser parser) {

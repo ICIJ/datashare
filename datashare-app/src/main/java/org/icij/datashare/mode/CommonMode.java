@@ -7,7 +7,6 @@ import com.google.inject.CreationException;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
-import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import net.codestory.http.Configuration;
@@ -67,8 +66,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
@@ -97,6 +95,7 @@ public abstract class CommonMode extends AbstractModule {
             this.injector = Guice.createInjector(this);
         } catch (CreationException e) {
             logger.error("cannot create injector: {}", e.getErrorMessages());
+            logger.error("exception: ", e);
             throw e;
         }
     }
@@ -199,12 +198,17 @@ public abstract class CommonMode extends AbstractModule {
     private void configureIndexingQueues(final PropertiesProvider propertiesProvider) {
         QueueType queueType = QueueType.valueOf(propertiesProvider.get("queueType").orElse(QueueType.MEMORY.name()));
         if ( queueType == QueueType.MEMORY ) {
-            bind(DocumentCollectionFactory.class).to(MemoryDocumentCollectionFactory.class).asEagerSingleton();
+            bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).toInstance(new MemoryDocumentCollectionFactory<>());
+            bind(new TypeLiteral<DocumentCollectionFactory<Path>>() {}).toInstance(new MemoryDocumentCollectionFactory<>());
         } else {
             install(new FactoryModuleBuilder().
-                    implement(DocumentQueue.class, RedisUserDocumentQueue.class).
+                    implement(new TypeLiteral<DocumentQueue<String>>(){}, new TypeLiteral<RedisUserDocumentQueue<String>>(){}).
                     implement(ReportMap.class, RedisUserReportMap.class).
-                    build(DocumentCollectionFactory.class));
+                    build(new TypeLiteral<DocumentCollectionFactory<String>>(){}));
+            install(new FactoryModuleBuilder().
+                    implement(new TypeLiteral<DocumentQueue<Path>>(){}, new TypeLiteral<RedisUserDocumentQueue<Path>>(){}).
+                    implement(ReportMap.class, RedisUserReportMap.class).
+                    build(new TypeLiteral<DocumentCollectionFactory<Path>>(){}));
         }
     }
 

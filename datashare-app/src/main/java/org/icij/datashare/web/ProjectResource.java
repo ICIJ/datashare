@@ -30,6 +30,7 @@
     import org.slf4j.LoggerFactory;
 
     import java.io.IOException;
+    import java.nio.file.Path;
     import java.util.List;
     import java.util.Objects;
 
@@ -45,12 +46,11 @@
         private final Indexer indexer;
         private final DataDirVerifier dataDirVerifier;
         private final ModeVerifier modeVerifier;
-        private final DocumentCollectionFactory documentCollectionFactory;
+        private final DocumentCollectionFactory<Path> documentCollectionFactory;
         private final PropertiesProvider propertiesProvider;
 
-
         @Inject
-        public ProjectResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider, DocumentCollectionFactory documentCollectionFactory) {
+        public ProjectResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider, DocumentCollectionFactory<Path> documentCollectionFactory) {
             this.repository = repository;
             this.indexer = indexer;
             this.propertiesProvider = propertiesProvider;
@@ -58,67 +58,6 @@
             this.modeVerifier = new ModeVerifier(propertiesProvider);
             this.documentCollectionFactory = documentCollectionFactory;
         }
-
-        List<String> getUserProjectIds(DatashareUser user) {
-            return user.getProjectNames();
-        }
-
-        List<Project> getUserProjects(DatashareUser user) {
-            List<String> projectIds = this.getUserProjectIds(user);
-            return repository.getProjects(projectIds);
-        }
-
-        Project getUserProject(DatashareUser user, String id) {
-            return getUserProjects(user)
-                    .stream()
-                    .filter((Project p) -> p.getId().equals(id))
-                    .findAny()
-                    .orElse(null);
-        }
-
-        DocumentQueue getDocumentQueue(String queueName) {
-            return documentCollectionFactory.createQueue(propertiesProvider, queueName);
-        }
-
-        DocumentQueue getDocumentQueue(Project project) {
-            String queueName = "extract:queue:" + project.getName();
-            return getDocumentQueue(queueName);
-        }
-
-        ReportMap getReportMap(String reportMapName) {
-            return documentCollectionFactory.createMap(propertiesProvider, reportMapName);
-        }
-
-        ReportMap getReportMap(Project project) {
-            String reportMapName = "extract:report:" + project.getName();
-            return getReportMap(reportMapName);
-        }
-
-        boolean createIndexOnce(String name) {
-            try {
-                this.indexer.createIndex(IndexAccessVerifier.checkIndices(name));
-                return true;
-            } catch (IllegalArgumentException | IOException e){
-                return false;
-            }
-        }
-
-        boolean projectExists(Project project) {
-            return projectExists(project.getName());
-        }
-
-        boolean projectExists(String name) {
-            return repository.getProject(name) != null;
-        }
-
-        boolean isProjectNameEmpty(Project project) {
-            return isEmpty(project.getName());
-        }
-
-        boolean isProjectSourcePathNull(Project project) {
-            return project.getSourcePath() == null;
-        }
-
 
         @Operation(description = "Preflight option request")
         @ApiResponse(responseCode = "200", description = "returns 200 with OPTIONS, POST, GET and DELETE")
@@ -254,4 +193,63 @@
             return new Payload(204);
         }
 
+        List<String> getUserProjectIds(DatashareUser user) {
+            return user.getProjectNames();
+        }
+
+        List<Project> getUserProjects(DatashareUser user) {
+            List<String> projectIds = this.getUserProjectIds(user);
+            return repository.getProjects(projectIds);
+        }
+
+        Project getUserProject(DatashareUser user, String id) {
+            return getUserProjects(user)
+                    .stream()
+                    .filter((Project p) -> p.getId().equals(id))
+                    .findAny()
+                    .orElse(null);
+        }
+
+        DocumentQueue<Path> getDocumentQueue(String queueName) {
+            return documentCollectionFactory.createQueue(propertiesProvider, queueName, Path.class);
+        }
+
+        DocumentQueue<?> getDocumentQueue(Project project) {
+            String queueName = "extract:queue:" + project.getName();
+            return getDocumentQueue(queueName);
+        }
+
+        ReportMap getReportMap(String reportMapName) {
+            return documentCollectionFactory.createMap(propertiesProvider, reportMapName);
+        }
+
+        ReportMap getReportMap(Project project) {
+            String reportMapName = "extract:report:" + project.getName();
+            return getReportMap(reportMapName);
+        }
+
+        boolean createIndexOnce(String name) {
+            try {
+                this.indexer.createIndex(IndexAccessVerifier.checkIndices(name));
+                return true;
+            } catch (IllegalArgumentException | IOException e){
+                return false;
+            }
+        }
+
+        boolean projectExists(Project project) {
+            return projectExists(project.getName());
+        }
+
+        boolean projectExists(String name) {
+            return repository.getProject(name) != null;
+        }
+
+        boolean isProjectNameEmpty(Project project) {
+            return isEmpty(project.getName());
+        }
+
+        boolean isProjectSourcePathNull(Project project) {
+            return project.getSourcePath() == null;
+        }
     }

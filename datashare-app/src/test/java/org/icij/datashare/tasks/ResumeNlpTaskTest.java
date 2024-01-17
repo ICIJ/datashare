@@ -12,6 +12,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -40,7 +41,7 @@ public class ResumeNlpTaskTest {
                 put("defaultProject", "test-datashare");
                 put(NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
             }});
-        MemoryDocumentCollectionFactory factory = new MemoryDocumentCollectionFactory();
+        MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
         ResumeNlpTask resumeNlpTask = new ResumeNlpTask(factory, indexer, new User("test"), "queue", propertiesProvider.getProperties());
         resumeNlpTask.call();
         assertThat(factory.queues.get("queue")).hasSize(20);
