@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +40,7 @@ public class DocumentBuilderTest {
             .with(CORENLP)
             .extractedAt(extractionDate)
             .with(Charset.defaultCharset())
-            .ofMimeType(mimeType)
+            .ofContentType(mimeType)
             .with(contentTranslated)
             .with(metadata)
             .with(Language.ENGLISH)

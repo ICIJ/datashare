@@ -70,12 +70,16 @@ public class JsonObjectMapper {
     public static <T extends Entity> T getObject(String id, String projectId, Map<String, Object> source, Class<T> type) {
         HashMap<String, Object> map;
         if (source == null) {
-            map = new HashMap<String, Object>() {{
+            map = new HashMap<>() {{
                 put("id", id);
                 put("projectId", projectId);
             }};
         } else {
-            map = new HashMap<String, Object>() {{putAll(source); put("id", id); put("projectId", projectId);}};
+            map = new HashMap<>() {{
+                putAll(source);
+                put("id", id);
+                put("projectId", projectId);
+            }};
         }
         return getObject(map, type);
     }
@@ -126,7 +130,6 @@ public class JsonObjectMapper {
     public static <T extends Entity> String getType(T obj){
         return getType(obj.getClass());
     }
-
 
     /**
      * Get the field value marked with {@link IndexId} from DataShare domain entity object instance

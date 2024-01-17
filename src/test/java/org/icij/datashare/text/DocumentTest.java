@@ -3,20 +3,30 @@ package org.icij.datashare.text;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.text.Document.nerMask;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
-import static org.icij.datashare.text.nlp.Pipeline.Type.*;
+import static org.icij.datashare.text.nlp.DocumentMetadataConstants.DEFAULT_VALUE_UNKNOWN;
+import static org.icij.datashare.text.nlp.Pipeline.Type.CORENLP;
+import static org.icij.datashare.text.nlp.Pipeline.Type.GATENLP;
+import static org.icij.datashare.text.nlp.Pipeline.Type.IXAPIPE;
+import static org.icij.datashare.text.nlp.Pipeline.Type.MITIE;
+import static org.icij.datashare.text.nlp.Pipeline.Type.OPENNLP;
 import static org.icij.datashare.text.nlp.Pipeline.set;
 
 public class DocumentTest {
     @Test
     public void test_json_deserialize() throws Exception {
         assertThat(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build())).contains("\"projectId\":\"prj\"");
+        System.out.println(JsonObjectMapper.MAPPER.writeValueAsString(createDoc("content").build()));
         assertThat(JsonObjectMapper.MAPPER.readValue(("{\"id\":\"45a0a224c2836b4c558f3b56e2a1c69c21fcc8b3f9f4f99f2bc49946acfb28d8\"," +
                         "\"path\":\"file:///home/dev/src/datashare/datashare-api/path\"," +
                         "\"dirname\":\"/home/dev/src/datashare/datashare:api/\"," +
@@ -90,6 +100,50 @@ public class DocumentTest {
     public void test_creation_date_unparseable() {
         assertThat(createDoc("name").with(new HashMap<String, Object>() {{
             put("tika_metadata_dcterms_created", "not a date");}}).build().getCreationDate()).isNull();
+    }
+
+
+    @Test
+    public void test_title_and_title_norm() {
+        assertThat(createDoc("name").with(new HashMap<>() {{
+            put("tika_metadata_resourcename", "Document Title");
+        }}).build().getTitle()).isEqualTo("Document Title");
+
+        assertThat(createDoc("name").with(new HashMap<>() {{
+            put("tika_metadata_resourcename", "Document Title");
+        }}).build().getTitleNorm()).isEqualTo("document title");
+
+        assertThat(createDoc("name").build().getTitle()).isEqualTo(DEFAULT_VALUE_UNKNOWN);
+    }
+
+    @Test
+    public void test_title_for_json_tweet() {
+        Document tweet = createDoc("name").ofContentType("application/json; twint").with(new HashMap<>() {{
+            put("tika_metadata_dc_title", "Tweet Title");
+        }}).build();
+        assertThat(tweet.isJson()).isTrue();
+        assertThat(tweet.getTitle()).isEqualTo("Tweet Title");
+
+        assertThat(createDoc("name").ofContentType("application/json; twint").with(new HashMap<>() {{
+            put("tika_metadata_resourcename", "Tweet Title");
+        }}).build().getTitle()).isEqualTo("Tweet Title");
+    }
+
+    @Test
+    public void test_title_for_email() {
+        Document email = createDoc("name").ofContentType("message/rfc822").with(new HashMap<>() {{
+            put("tika_metadata_dc_title", "Email Title");
+        }}).build();
+        assertThat(email.isEmail()).isTrue();
+        assertThat(email.getTitle()).isEqualTo("Email Title");
+
+        assertThat(createDoc("name").ofContentType("message/rfc822").with(new HashMap<>() {{
+            put("tika_metadata_dc_subject", "Mail Title");
+        }}).build().getTitle()).isEqualTo("Mail Title");
+
+        assertThat(createDoc("name").ofContentType("message/rfc822").with(new HashMap<>() {{
+            put("tika_metadata_resourcename", "Mail Title");
+        }}).build().getTitle()).isEqualTo("Mail Title");
     }
 
     @Test

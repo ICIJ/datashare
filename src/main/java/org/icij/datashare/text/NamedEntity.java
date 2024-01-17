@@ -1,7 +1,10 @@
 package org.icij.datashare.text;
 
-import com.fasterxml.jackson.annotation.*;
-import me.xuender.unidecode.Unidecode;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.icij.datashare.Entity;
 import org.icij.datashare.function.ThrowingFunction;
 import org.icij.datashare.function.ThrowingFunctions;
@@ -14,7 +17,13 @@ import org.icij.datashare.text.nlp.NlpTag;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.min;
@@ -155,7 +164,7 @@ public final class NamedEntity implements Entity {
         if (mention == null || mention.isEmpty()) {
             throw new IllegalArgumentException("Mention is undefined");
         }
-        this.mentionNorm = normalize(mention);
+        this.mentionNorm = StringUtils.normalize(mention);
         this.id = DEFAULT_DIGESTER.hash( String.join("|",
                 documentId,
                 String.valueOf(offsets),
@@ -215,10 +224,5 @@ public final class NamedEntity implements Entity {
     @Override
     public int hashCode() {
         return Objects.hash(id);
-    }
-
-    @JsonIgnore
-    public static String normalize(String unicoded) {
-        return Unidecode.decode(unicoded).trim().replaceAll("(\\s+)", " ").toLowerCase();
     }
 }

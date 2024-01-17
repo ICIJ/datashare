@@ -17,7 +17,7 @@ public class DocumentBuilder {
     private List<Map<String, String>> content_translated;
     private Path path;
     private Map<String, Object> metadata = new HashMap<>();
-    private String mimeType;
+    private String contentType;
     private Set<Pipeline.Type> pipelines;
     private String parentId = null;
     private String rootId = null;
@@ -50,7 +50,7 @@ public class DocumentBuilder {
         this.extractionDate = new Date();
         this.extractionLevel = 0;
         this.path = get("/path/to/").resolve(id);
-        this.mimeType = "text/plain";
+        this.contentType = "text/plain";
         this.pipelines = new HashSet<>();
         this.project = project("prj");
         this.tags = new HashSet<>();
@@ -86,8 +86,8 @@ public class DocumentBuilder {
         return this;
     }
 
-    public DocumentBuilder ofMimeType(String mimeType) {
-        this.mimeType = mimeType;
+    public DocumentBuilder ofContentType(String contentType) {
+        this.contentType = contentType;
         return this;
     }
 
@@ -139,7 +139,7 @@ public class DocumentBuilder {
             throw new NullPointerException("Id, Project, Path or content are missing.");
         }
         return new Document(project, id, path, content, content_translated, language,
-                charset, mimeType, metadata, documentStatus,
+                charset, contentType, metadata, documentStatus,
                 pipelines, extractionDate, parentId, rootId, extractionLevel,
                 contentLength, tags);
     }

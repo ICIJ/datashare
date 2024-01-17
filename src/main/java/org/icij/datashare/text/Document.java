@@ -1,12 +1,18 @@
 package org.icij.datashare.text;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.icij.datashare.Entity;
 import org.icij.datashare.text.indexing.IndexParent;
 import org.icij.datashare.text.indexing.IndexRoot;
 import org.icij.datashare.text.indexing.IndexType;
+import org.icij.datashare.text.nlp.DocumentMetadataConstants;
 import org.icij.datashare.text.nlp.Pipeline;
 
 import java.nio.charset.Charset;
@@ -15,19 +21,26 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import static java.nio.file.Paths.get;
 import static java.time.OffsetDateTime.now;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
-
+import static org.apache.http.util.TextUtils.isEmpty;
 
 
 @IndexType("Document")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Document implements Entity {
+public class Document implements Entity, DocumentMetadataConstants {
     private static final long serialVersionUID = 5913568429773112L;
     public enum Status {
         PARSED((short)0), INDEXED((short)1), DONE((short)2);
@@ -82,11 +95,11 @@ public class Document implements Entity {
     }
 
     Document(Project project, String id, Path filePath, String content, List<Map<String,String>> content_translated, Language language, Charset charset,
-                    String mimetype, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
+                    String contentType, Map<String, Object> metadata, Status status, Set<Pipeline.Type> nerTags,
                     Date extractionDate, String parentDocument, String rootDocument, Short extractionLevel,
                     Long contentLength, Set<Tag> tags) {
         this(project, id, filePath, content, content_translated, language, extractionDate, charset,
-                mimetype, extractionLevel, metadata, status, nerTags,
+                contentType, extractionLevel, metadata, status, nerTags,
                 parentDocument, rootDocument, contentLength,
                 tags);
     }
@@ -165,6 +178,36 @@ public class Document implements Entity {
             instant = LocalDateTime.parse(creationDate).toInstant(now().getOffset());
         } catch (DateTimeParseException ignored) {}
         return instant == null ? null:Date.from(instant);
+    }
+
+    @JsonIgnore
+    public boolean isEmail() {
+        return contentType.startsWith("message/") || contentType.equals("application/vnd.ms-outlook");
+    }
+
+    @JsonIgnore
+    public boolean isJson() {
+        return ofNullable(contentType).orElse(DEFAULT_VALUE_UNKNOWN).contains("application/json");
+    }
+
+    public String getTitle() {
+        if (isEmail()) {
+            if (!isEmpty(metadata.getOrDefault(getField(SUBJECT), "").toString())) {
+                return metadata.get(getField(SUBJECT)).toString();
+            } else if (!isEmpty(metadata.getOrDefault(getField(TITLE), "").toString())) {
+                return metadata.get(getField(TITLE)).toString();
+            }
+        }
+        if (isJson()) {
+            if (!isEmpty(metadata.getOrDefault(getField(TITLE), "").toString())) {
+                return metadata.get(getField(TITLE)).toString();
+            }
+        }
+        return ofNullable(metadata.get(getField(RESOURCE_NAME_KEY))).orElse(DEFAULT_VALUE_UNKNOWN).toString();
+    }
+
+    public String getTitleNorm() {
+        return StringUtils.normalize(getTitle());
     }
 
     @JsonIgnore
