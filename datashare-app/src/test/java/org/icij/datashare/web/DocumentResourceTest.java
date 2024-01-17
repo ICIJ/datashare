@@ -413,7 +413,7 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
         Document document = DocumentBuilder.createDoc(_id)
                 .with(path)
                 .with(new Project(index))
-                .ofMimeType(contentType)
+                .ofContentType(contentType)
                 .withParentId(routing)
                 .withRootId(routing)
                 .withContentLength(10)

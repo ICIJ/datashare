@@ -35,7 +35,7 @@ public class BenchDocument {
                     .with("This is a content with Gael Giraud " + docIdx)
                     .with(Language.FRENCH)
                     .with(Charset.defaultCharset())
-                    .ofMimeType("text/plain")
+                    .ofContentType("text/plain")
                     .with(new HashMap<String, Object>() {{
                         put("key1", "value1");
                         put("key2", "value2");

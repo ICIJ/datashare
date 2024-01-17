@@ -48,7 +48,7 @@ public class DatabaseSpewer extends Spewer {
                 with(content).
                 with(languageGuesser.guess(content)).
                 with(charset).
-                ofMimeType(contentType).
+                ofContentType(contentType).
                 with(getMetadata(tikaDocument)).
                 with(new ArrayList<>()).
                 extractedAt(new Date()).

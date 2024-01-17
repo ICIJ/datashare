@@ -423,13 +423,13 @@ public class JooqBatchSearchRepositoryTest {
     public void test_get_results_filtered_by_content_type() {
         BatchSearch batchSearch = new BatchSearch(singletonList(proxy("prj")), "name", "description", asSet("q1", "q2"), User.local());
         repository.save(batchSearch);
-        repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("doc1").ofMimeType("application/pdf").build(), createDoc("doc2").ofMimeType("content/type").build()));
-        repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("doc3").ofMimeType("application/pdf").build(), createDoc("doc4").build()));
+        repository.saveResults(batchSearch.uuid, "q1", asList(createDoc("doc1").ofContentType("application/pdf").build(), createDoc("doc2").ofContentType("content/type").build()));
+        repository.saveResults(batchSearch.uuid, "q2", asList(createDoc("doc3").ofContentType("application/pdf").build(), createDoc("doc4").build()));
         List<SearchResult> results = repository.getResults(User.local(), batchSearch.uuid, WebQueryBuilder.createWebQuery().queryAll().withContentTypes(List.of("application/pdf")).build());
         assertThat(results).hasSize(2);
         assertThat(results).containsExactly(
-                resultFrom(createDoc("doc1").ofMimeType("application/pdf").build(), 1, "q1"),
-                resultFrom(createDoc("doc3").ofMimeType("application/pdf").build(), 1, "q2")
+                resultFrom(createDoc("doc1").ofContentType("application/pdf").build(), 1, "q1"),
+                resultFrom(createDoc("doc3").ofContentType("application/pdf").build(), 1, "q2")
         );
         //empty list means all and no content types
         List<SearchResult> results2 = repository.getResults(User.local(), batchSearch.uuid, WebQueryBuilder.createWebQuery().queryAll().withContentTypes(List.of()).build());

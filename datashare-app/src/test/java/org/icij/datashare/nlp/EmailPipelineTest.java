@@ -95,7 +95,7 @@ public class EmailPipelineTest {
             .with("hello@world.com")
             .withRootId("root")
             .with(FRENCH)
-            .ofMimeType("message/rfc822")
+            .ofContentType("message/rfc822")
             .with(new HashMap<>() {{
                 put(tikaMsgHeader("To"), "email1@domain.com");
                 put(tikaMsgHeader("Cc"), "email2@domain.com,email3@domain.com");
@@ -127,7 +127,7 @@ public class EmailPipelineTest {
     public void test_filter_headers_that_contains_mail_addresses() {
         Document doc = createDoc("docid")
             .with("mail content")
-            .ofMimeType("message/rfc822")
+            .ofContentType("message/rfc822")
             .with(FRENCH)
             .withRootId("root")
             .with(new HashMap<>() {{
