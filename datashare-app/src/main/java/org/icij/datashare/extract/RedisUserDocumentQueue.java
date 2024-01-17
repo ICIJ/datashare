@@ -9,21 +9,21 @@ import org.redisson.RedissonShutdownException;
 
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
 
-public class RedisUserDocumentQueue extends RedisDocumentQueue {
+public class RedisUserDocumentQueue<T> extends RedisDocumentQueue<T> {
     private final String queueName;
 
     @Inject
-    public RedisUserDocumentQueue(PropertiesProvider propertiesProvider, @Assisted String queueName) {
-        super(queueName, propertiesProvider.get("redisAddress").orElse("redis://redis:6379"));
+    public RedisUserDocumentQueue(PropertiesProvider propertiesProvider, @Assisted String queueName, @Assisted Class<T> clazz) {
+        super(queueName, propertiesProvider.get("redisAddress").orElse("redis://redis:6379"), clazz);
         this.queueName = queueName;
     }
 
-    public RedisUserDocumentQueue(final User user, PropertiesProvider propertiesProvider) {
-        this(propertiesProvider, getQueueName(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue")));
+    public RedisUserDocumentQueue(final User user, PropertiesProvider propertiesProvider, Class<T> clazz) {
+        this(propertiesProvider, getQueueName(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue")), clazz);
     }
 
-    public RedisUserDocumentQueue(PropertiesProvider propertiesProvider) {
-        this(User.nullUser(), propertiesProvider);
+    public RedisUserDocumentQueue(PropertiesProvider propertiesProvider, Class<T> clazz) {
+        this(User.nullUser(), propertiesProvider, clazz);
     }
 
     @Override

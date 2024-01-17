@@ -35,7 +35,7 @@ import static org.icij.datashare.com.Message.Type.INIT_MONITORING;
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentFactory.class)
 @OptionsClass(DocumentQueueDrainer.class)
-public class IndexTask extends PipelineTask implements Monitorable{
+public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer<Path> drainer;
     private final DocumentConsumer consumer;
@@ -44,9 +44,9 @@ public class IndexTask extends PipelineTask implements Monitorable{
     private final Integer parallelism;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final Publisher publisher, final DocumentCollectionFactory factory, @Assisted User user, @Assisted String queueName,
+    public IndexTask(final ElasticsearchSpewer spewer, final Publisher publisher, final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted String queueName,
                      @Assisted final Properties properties) {
-        super(DatashareCli.Stage.INDEX, user, queueName, factory, new PropertiesProvider(properties));
+        super(DatashareCli.Stage.INDEX, user, queueName, factory, new PropertiesProvider(properties), Path.class);
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
         parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         this.publisher = publisher;
@@ -69,7 +69,7 @@ public class IndexTask extends PipelineTask implements Monitorable{
     @Override
     public Long call() throws Exception {
         logger.info("Processing up to {} file(s) in parallel", parallelism);
-        totalToProcess = drainer.drain(POISON).get();
+        totalToProcess = drainer.drain(PATH_POISON).get();
         drainer.shutdown();
         drainer.awaitTermination(10, SECONDS); // drain is finished
         logger.info("drained {} documents. Waiting for consumer to shutdown", totalToProcess);

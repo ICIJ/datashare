@@ -3,7 +3,9 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -16,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +30,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
 
-public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
+public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final int scrollSize;
@@ -37,8 +40,9 @@ public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
     private final int scrollSlices;
 
     @Inject
-    public ScanIndexTask(DocumentCollectionFactory factory, final Indexer indexer, final PropertiesProvider propertiesProvider,
+    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, final PropertiesProvider propertiesProvider,
                          @Assisted User user, @Assisted String reportName) {
+        super(DatashareCli.Stage.SCANIDX, user, PipelineHelper.getQueueName(propertiesProvider, DatashareCli.Stage.SCANIDX), factory, propertiesProvider, Path.class);
         this.user = user;
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000"));
         this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));
@@ -68,7 +72,7 @@ public class ScanIndexTask extends DefaultTask<Long> implements UserTask {
             } catch (IOException e) {
                 logger.error("error in slice {}", sliceNum, e);
             }
-        } while (docsToProcess.size() != 0);
+        } while (!docsToProcess.isEmpty());
         return nbProcessed;
     }
 

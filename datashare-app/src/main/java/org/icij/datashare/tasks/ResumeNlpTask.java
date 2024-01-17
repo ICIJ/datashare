@@ -36,9 +36,9 @@ public class ResumeNlpTask extends PipelineTask<String> {
     private final Indexer indexer;
 
     @Inject
-    public ResumeNlpTask(final DocumentCollectionFactory factory, final Indexer indexer,
+    public ResumeNlpTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
                          @Assisted final User user, @Assisted final String queueName, @Assisted final Properties taskProperties) {
-        super(DatashareCli.Stage.NLP, user, queueName, factory, new PropertiesProvider(taskProperties));
+        super(DatashareCli.Stage.NLP, user, queueName, factory, new PropertiesProvider(taskProperties), String.class);
         this.indexer = indexer;
         this.nlpPipeline = Pipeline.Type.parse(taskProperties.getProperty(NLP_PIPELINE_OPT));
         this.user = user;

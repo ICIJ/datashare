@@ -6,6 +6,7 @@ import org.icij.datashare.text.Language;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.user.User;
+import org.icij.extract.queue.DocumentQueue;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -18,6 +19,7 @@ import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,12 +28,13 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class ExtractNlpTaskTest {
     @Mock private Indexer indexer;
     @Mock private AbstractPipeline pipeline;
+    private final MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
     private ExtractNlpTask nlpTask;
 
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, new MemoryDocumentCollectionFactory(), User.local(), "queueName", new PropertiesProvider(new HashMap<>(){{
+        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, User.local(), "queueName", new PropertiesProvider(new HashMap<>(){{
             put("maxContentLength", "32");
         }}).getProperties());
     }

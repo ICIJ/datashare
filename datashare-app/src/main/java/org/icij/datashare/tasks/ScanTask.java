@@ -14,13 +14,13 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 @OptionsClass(Scanner.class)
-public class ScanTask extends PipelineTask {
+public class ScanTask extends PipelineTask<Path> {
     private final Scanner scanner;
     private final Path path;
 
     @Inject
-    public ScanTask(final DocumentCollectionFactory factory, @Assisted User user, @Assisted String queueName, @Assisted Path path, @Assisted final Properties properties) {
-        super(DatashareCli.Stage.SCAN, user, queueName, factory, new PropertiesProvider(properties));
+    public ScanTask(final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted String queueName, @Assisted Path path, @Assisted final Properties properties) {
+        super(DatashareCli.Stage.SCAN, user, queueName, factory, new PropertiesProvider(properties), Path.class);
         this.path = path;
         Options<String> allOptions = options().createFrom(Options.from(properties));
         scanner = new Scanner(queue).configure(allOptions);
@@ -30,7 +30,7 @@ public class ScanTask extends PipelineTask {
     public Long call() throws Exception {
         ScannerVisitor scannerVisitor = scanner.createScannerVisitor(path);
         Long scanned = scannerVisitor.call();
-        queue.add(POISON);
+        queue.add(PATH_POISON);
         queue.close();
         return scanned;
     }

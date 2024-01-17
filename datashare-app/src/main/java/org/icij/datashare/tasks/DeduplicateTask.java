@@ -17,11 +17,11 @@ import java.util.function.Predicate;
  */
 public class DeduplicateTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final DocumentCollectionFactory factory;
+    private final DocumentCollectionFactory<Path> factory;
 
     @Inject
-    public DeduplicateTask(final DocumentCollectionFactory factory, final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
-        super(DatashareCli.Stage.DEDUPLICATE, user, queueName, factory, propertiesProvider);
+    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
+        super(DatashareCli.Stage.DEDUPLICATE, user, queueName, factory, propertiesProvider, Path.class);
         this.factory = factory;
     }
 
@@ -40,14 +40,14 @@ public class DeduplicateTask extends PipelineTask<Path> {
 
     long transferToOutputQueue(Predicate<Path> filter) throws Exception {
         long originalSize = queue.size();
-        try (DocumentQueue<Path> outputQueue = factory.createQueue(propertiesProvider, getOutputQueueName())) {
+        try (DocumentQueue<Path> outputQueue = factory.createQueue(propertiesProvider, getOutputQueueName(), Path.class)) {
             Path path;
-            while (!(path = queue.take()).equals(POISON)) {
+            while (!(path = queue.take()).equals(PATH_POISON)) {
                 if (filter.test(path)) {
                     outputQueue.add(path);
                 }
             }
-            outputQueue.add(POISON);
+            outputQueue.add(PATH_POISON);
             return originalSize - outputQueue.size();
         }
     }

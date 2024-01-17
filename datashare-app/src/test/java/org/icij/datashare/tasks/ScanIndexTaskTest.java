@@ -14,6 +14,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
@@ -24,11 +25,11 @@ import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 public class ScanIndexTaskTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+    private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
         put("defaultProject", TEST_INDEX);
     }});
-    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
-    private MemoryDocumentCollectionFactory documentCollectionFactory = new MemoryDocumentCollectionFactory();
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
+    private final MemoryDocumentCollectionFactory<Path> documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
 
     @Test
     public void test_empty_index() throws Exception {

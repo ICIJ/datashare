@@ -37,13 +37,13 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Mock Repository repository;
     @Mock JooqRepository jooqRepository;
     @Mock Indexer indexer;
-    MemoryDocumentCollectionFactory documentCollectionFactory;
+    MemoryDocumentCollectionFactory<Path> documentCollectionFactory;
     PropertiesProvider propertiesProvider;
 
     @Before
     public void setUp() {
         initMocks(this);
-        documentCollectionFactory = new MemoryDocumentCollectionFactory();
+        documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {
             propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
@@ -299,7 +299,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_delete_project_and_its_queue() {
         Project foo = new Project("foo");
-        DocumentQueue queue = documentCollectionFactory.createQueue(propertiesProvider, "extract:queue:foo");
+        DocumentQueue<Path> queue = documentCollectionFactory.createQueue(propertiesProvider, "extract:queue:foo", Path.class);
         when(repository.getProjects(any())).thenReturn(List.of(foo));
         when(repository.deleteAll("foo")).thenReturn(true);
         queue.add(Path.of("/"));

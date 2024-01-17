@@ -18,17 +18,18 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     protected final DocumentQueue<T> queue;
     protected final User user;
     protected final PropertiesProvider propertiesProvider;
-    public static Path POISON = Paths.get("POISON");
+    public static Path PATH_POISON = Paths.get("POISON");
+    public static String STRING_POISON = "POISON";
 
-    public PipelineTask(DatashareCli.Stage stage, User user, String queueName, DocumentCollectionFactory factory, final PropertiesProvider propertiesProvider) {
-        this.queue = factory.createQueue(propertiesProvider, queueName);
+    public PipelineTask(DatashareCli.Stage stage, User user, String queueName, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz) {
+        this.queue = factory.createQueue(propertiesProvider, queueName, clazz);
         this.propertiesProvider = propertiesProvider;
         this.stage = stage;
         this.user = user;
     }
 
-    public PipelineTask(DatashareCli.Stage stage, User user, DocumentCollectionFactory factory, final PropertiesProvider propertiesProvider) {
-        this(stage, user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), factory, propertiesProvider);
+    public PipelineTask(DatashareCli.Stage stage, User user, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz) {
+        this(stage, user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue"), factory, propertiesProvider, clazz);
     }
 
     public String getOutputQueueName() {

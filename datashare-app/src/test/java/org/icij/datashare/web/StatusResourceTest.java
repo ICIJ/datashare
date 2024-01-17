@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 
 import static org.mockito.Matchers.any;
@@ -27,14 +28,14 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2020-06-30T15:31:00Z");
     @Mock Repository repository;
     @Mock DataBus dataBus;
-    @Mock DocumentCollectionFactory documentCollectionFactory;
+    @Mock DocumentCollectionFactory<Path> documentCollectionFactory;
     @Mock Indexer indexer;
-    @Mock DocumentQueue queue;
+    @Mock DocumentQueue<Path> queue;
 
     @Before
     public void setUp() {
         initMocks(this);
-        when(documentCollectionFactory.createQueue(any(),eq(new PropertiesProvider().get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue")))).thenReturn(mock(DocumentQueue.class));
+        when(documentCollectionFactory.createQueue(any(),eq(new PropertiesProvider().get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue")), eq(Path.class))).thenReturn(mock(DocumentQueue.class));
         configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,dataBus,documentCollectionFactory)));
     }
 
@@ -121,10 +122,10 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_queue_with_io_exception() {
-        DocumentQueue mockQueue = mock(DocumentQueue.class);
+        DocumentQueue<Path> mockQueue = mock(DocumentQueue.class);
         when(mockQueue.size()).thenThrow(new RuntimeException("test"));
         when(indexer.getHealth()).thenReturn(true);
-        when(documentCollectionFactory.createQueue(any(),eq(new PropertiesProvider().get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue")))).thenReturn(mockQueue);
+        when(documentCollectionFactory.createQueue(any(),eq(new PropertiesProvider().get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue")), eq(Path.class))).thenReturn(mockQueue);
         configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,dataBus,documentCollectionFactory)));
         get("/api/status").should().respond(503).contain("\"document_queue_status\":false");
     }
