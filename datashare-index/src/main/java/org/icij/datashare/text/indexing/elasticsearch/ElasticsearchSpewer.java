@@ -1,54 +1,43 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.Refresh;
-import co.elastic.clients.elasticsearch.core.IndexRequest;
-import co.elastic.clients.elasticsearch.core.IndexResponse;
-import co.elastic.clients.elasticsearch.core.search.SourceConfigParam;
 import com.google.inject.Inject;
-import io.reactivex.rxjava3.internal.operators.observable.BlockingObservableIterable;
-import org.apache.tika.metadata.DublinCore;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.metadata.TikaCoreProperties;
 import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Message;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.text.Document;
+import org.icij.datashare.text.DocumentBuilder;
+import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.TikaDocument;
 import org.icij.spewer.FieldNames;
 import org.icij.spewer.Spewer;
-import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.text.Normalizer;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
-import static co.elastic.clients.elasticsearch.core.ExistsRequest.*;
 import static java.lang.System.currentTimeMillis;
-import static java.nio.file.Paths.get;
 import static java.util.Optional.ofNullable;
-import static org.apache.tika.metadata.HttpHeaders.*;
+import static org.apache.tika.metadata.HttpHeaders.CONTENT_ENCODING;
+import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
+import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
 import static org.icij.datashare.com.Channel.NLP;
 import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
 import static org.icij.datashare.text.Hasher.shorten;
-import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.*;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSpewer.class);
     public static final String DEFAULT_VALUE_UNKNOWN = "unknown";
 
-    private final ElasticsearchClient client;
-    private final ElasticsearchConfiguration esCfg;
+    private final Indexer indexer;
     private final Publisher publisher;
     private final LanguageGuesser languageGuesser;
     private final int maxContentLength;
@@ -56,16 +45,15 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private String indexName;
 
     @Inject
-    public ElasticsearchSpewer(final ElasticsearchClient client, LanguageGuesser languageGuesser, final FieldNames fields,
+    public ElasticsearchSpewer(final Indexer indexer, LanguageGuesser languageGuesser, final FieldNames fields,
                                Publisher publisher, final PropertiesProvider propertiesProvider) {
         super(fields);
-        this.client = client;
+        this.indexer = indexer;
         this.languageGuesser = languageGuesser;
-        this.publisher = publisher;
-        this.esCfg = new ElasticsearchConfiguration(propertiesProvider);
+        this.publisher = publisher; // TODO enqueue documents id instead of publish on DataBus
         this.maxContentLength = getMaxContentLength(propertiesProvider);
         this.digestAlgorithm = getDigestAlgorithm(propertiesProvider);
-        logger.info("spewer defined with {}", esCfg);
+        logger.info("spewer defined with {}", indexer);
     }
 
     @Override
@@ -74,15 +62,20 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             logger.debug("root document {} is duplicate, skipping {}", root.getId(), doc.getId());
             return;
         }
-        final IndexRequest req = prepareRequest(doc, parent, root, level);
         long before = currentTimeMillis();
-        IndexResponse indexResponse = client.index(req);
+        if (parent == null && isDuplicate(doc.getId())) {
+            doc.setDuplicate(true);
+            indexer.add(indexName, new Duplicate(doc.getPath(), doc.getId(), digestAlgorithm));
+        } else {
+            Document document = getDocument(doc, root, parent, (short) level);
+            indexer.add(indexName, document);
+        }
         logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
-                shorten(indexResponse.id(), 4), currentTimeMillis() - before, doc);
+                shorten(doc.getId(), 4), currentTimeMillis() - before, doc);
         synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads
             publisher.publish(NLP, new Message(EXTRACT_NLP)
                     .add(Message.Field.INDEX_NAME, indexName)
-                    .add(Message.Field.DOC_ID, indexResponse.id())
+                    .add(Message.Field.DOC_ID, doc.getId())
                     .add(Message.Field.R_ID, parent == null ? doc.getId() : root.getId()));
         }
     }
@@ -92,59 +85,25 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         return this;
     }
 
-    public void createIndex() {
-        ElasticsearchConfiguration.createIndex(client, indexName);
-    }
-
-    private IndexRequest prepareRequest(final TikaDocument document, final TikaDocument parent, TikaDocument root, final int level) throws IOException {
-        IndexRequest.Builder req = new IndexRequest.Builder().index(indexName).id(document.getId());
-        Map<String, Object> jsonDocument = getDocumentMap(document);
-
-        if (parent == null && isDuplicate(document.getId())) {
-            document.setDuplicate(true);
-            IndexRequest.Builder indexRequest = new IndexRequest.Builder().index(indexName).id(digestAlgorithm.hash(document.getPath().toString()));
-            indexRequest.document(getDuplicateMap(document));
-            indexRequest.refresh(esCfg.refreshPolicy);
-            return indexRequest.build();
-        }
-
-        if (parent != null) {
-            jsonDocument.put(DEFAULT_PARENT_DOC_FIELD, parent.getId());
-            jsonDocument.put("rootDocument", root.getId());
-            req.routing(root.getId());
-        }
-        jsonDocument.put("extractionLevel", level);
-        req = req.document(jsonDocument);
-        req.refresh(esCfg.refreshPolicy);
-        return req.build();
+    public void createIndex() throws IOException {
+        indexer.createIndex(indexName);
     }
 
     private boolean isDuplicate(String docId) throws IOException {
-        Builder getRequest = new Builder().index(indexName).id(docId);
-        getRequest.source(SourceConfigParam.of(scp -> scp.fetch(false)));
-        getRequest.storedFields("_none_");
-        return client.exists(getRequest.build()).value();
+        return indexer.exists(indexName, docId);
     }
 
-    Map<String, Object> getDocumentMap(TikaDocument document) throws IOException {
-        Map<String, Object> jsonDocument = new HashMap<>();
-
-        jsonDocument.put(esCfg.docTypeField, ES_DOCUMENT_TYPE);
-        jsonDocument.put(esCfg.indexJoinField, new HashMap<String, String>() {{
-            put("name", "Document");
-        }});
-        jsonDocument.put("path", document.getPath().toString());
-        jsonDocument.put("dirname", ofNullable(document.getPath().getParent()).orElse(get("")).toString());
-        jsonDocument.put("status", "INDEXED");
-        jsonDocument.put("nerTags", new HashSet<>());
-        jsonDocument.put("tags", new HashSet<>());
-        jsonDocument.put("extractionDate", ISODateTimeFormat.dateTime().print(new Date().getTime()));
-        jsonDocument.put("metadata", getMetadata(document));
-        jsonDocument.put("contentType", ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0]);
-        jsonDocument.put("contentLength", Long.valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")));
-        jsonDocument.put("contentEncoding", ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN));
-        jsonDocument.put("title", ofNullable(getTitle(document.getMetadata())).orElse(DEFAULT_VALUE_UNKNOWN));
-        jsonDocument.put("titleNorm", ofNullable(normalize(getTitle(document.getMetadata()))).orElse(DEFAULT_VALUE_UNKNOWN));
+    Document getDocument(TikaDocument document, TikaDocument root, TikaDocument parent, short level) throws IOException {
+        Charset charset = Charset.isSupported(ofNullable(document.getMetadata().get(CONTENT_ENCODING)).orElse(DEFAULT_VALUE_UNKNOWN)) ?
+                Charset.forName(document.getMetadata().get(CONTENT_ENCODING)) : StandardCharsets.US_ASCII;
+        DocumentBuilder builder = DocumentBuilder.createDoc(document.getId())
+                .with(document.getPath())
+                .with(Document.Status.INDEXED)
+                .with(getMetadata(document))
+                .ofContentType(ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0])
+                .withContentLength(Long.valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
+                .with(charset)
+                .withExtractionLevel(level);
 
         String content = toString(document.getReader()).trim();
         if (maxContentLength != -1 && content.length() > maxContentLength) {
@@ -152,59 +111,17 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             content = content.substring(0, maxContentLength).trim();
         }
         if (document.getLanguage() == null) {
-            jsonDocument.put("language", languageGuesser.guess(content));
+            builder.with(languageGuesser.guess(content));
         } else  {
-            jsonDocument.put("language", Language.parse(document.getLanguage()).toString());
+            builder.with(Language.parse(document.getLanguage()));
         }
-        jsonDocument.put("contentTextLength", content.length());
-        jsonDocument.put(ES_CONTENT_FIELD, content);
-        return jsonDocument;
-    }
+        builder.with(content);
 
-    Map<String, Object> getDuplicateMap(TikaDocument document) {
-        Map<String, Object> jsonDocument = new HashMap<>();
-
-        jsonDocument.put(esCfg.docTypeField, ES_DUPLICATE_TYPE);
-        jsonDocument.put("path", document.getPath().toString());
-        jsonDocument.put("documentId", document.getId());
-
-        return jsonDocument;
-    }
-
-    protected boolean isEmail(Metadata metadata) {
-        String contentType = ofNullable(metadata.get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN);
-        return contentType.startsWith("message/") || contentType.equals("application/vnd.ms-outlook");
-    }
-
-    protected boolean isTweet(Metadata metadata) {
-        return ofNullable(metadata.get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).equals("application/json; twint");
-    }
-
-    protected String getTitle(Metadata metadata) {
-        if (isEmail(metadata)) {
-            if (metadata.get(DublinCore.SUBJECT) != null && !metadata.get(DublinCore.SUBJECT).isEmpty()) {
-                return metadata.get(DublinCore.SUBJECT);
-            } else if (metadata.get(DublinCore.TITLE) != null && !metadata.get(DublinCore.TITLE).isEmpty()) {
-                return metadata.get(DublinCore.TITLE);
-            }
+        if (parent != null) {
+            builder.withParentId(parent.getId());
+            builder.withRootId(root.getId());
         }
-        if (isTweet(metadata)) {
-            if (metadata.get(DublinCore.TITLE) != null && !metadata.get(DublinCore.TITLE).isEmpty()) {
-                return metadata.get(DublinCore.TITLE);
-            }
-        }
-        return metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY);
-    }
-
-    public ElasticsearchSpewer withRefresh(Refresh refreshPolicy) {
-        this.esCfg.withRefresh(refreshPolicy);
-        return this;
-    }
-
-    public static String normalize(String input) {
-        // Normalize special characters to their ASCII equivalents
-        // and convert to lowercase
-        return Normalizer.normalize(input, Normalizer.Form.NFD).toLowerCase();
+        return builder.build();
     }
 
     int getMaxContentLength(PropertiesProvider propertiesProvider) {

@@ -24,7 +24,6 @@ import org.icij.datashare.text.Duplicate;
 import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.text.indexing.Indexer;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
@@ -43,7 +42,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Stream;
 
 import static java.nio.file.Paths.get;
@@ -67,8 +65,8 @@ public class ElasticsearchSpewerTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
     private final Publisher publisher = Mockito.mock(Publisher.class);
 
-    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-            text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider()).withRefresh(Refresh.True).withIndex("test-datashare");
+    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
+            text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider()).withIndex("test-datashare");
 
     @Test
     public void test_simple_write() throws Exception {
@@ -86,7 +84,7 @@ public class ElasticsearchSpewerTest {
         }}, nodeToMap(documentFields.source()).get("join"));
         ArgumentCaptor<Message> argument = ArgumentCaptor.forClass(Message.class);
         verify(publisher).publish(eq(Channel.NLP), argument.capture());
-        assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, document.getId()));
+        assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, documentFields.id()));
     }
 
     @Test
@@ -333,7 +331,7 @@ public class ElasticsearchSpewerTest {
         Document document = createDoc(Project.project("project"),get(requireNonNull(getClass().getResource("/docs/embedded_doc.eml")).getPath()))
                 .with("This is a document to be parsed by datashare.")
                 .with(Language.FRENCH)
-                .ofMimeType("text/plain")
+                .ofContentType("text/plain")
                 .with(convert(extractDocument.getMetadata()))
                 .with(Document.Status.INDEXED)
                 .withContentLength(45L)
@@ -348,8 +346,8 @@ public class ElasticsearchSpewerTest {
             put("digestAlgorithm", "SHA-256");
             put("digestProjectName", "project");
         }};
-        ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(es.client,
-                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(digestProperties)).withRefresh(Refresh.True).withIndex("test-datashare");
+        ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
+                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(digestProperties)).withIndex("test-datashare");
         Options<String> from = Options.from(digestProperties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
         Extractor extractor = new Extractor(tikaFactory).configure(from);
@@ -393,10 +391,10 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_truncated_content() throws Exception {
-        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(es.client,
+        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
                 text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
-        }})).withRefresh(Refresh.True).withIndex("test-datashare");
+        }})).withIndex("test-datashare");
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("fake-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content should be truncated".getBytes()));
         document.setReader(reader);
@@ -409,10 +407,10 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_truncated_content_if_document_is_smaller_than_limit() throws Exception {
-        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(es.client,
+        ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
                 text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
-        }})).withRefresh(Refresh.True).withIndex("test-datashare");
+        }})).withIndex("test-datashare");
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("ok-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content is ok".getBytes()));
         document.setReader(reader);

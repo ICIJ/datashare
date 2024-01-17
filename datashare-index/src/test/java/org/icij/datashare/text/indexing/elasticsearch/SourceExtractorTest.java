@@ -51,7 +51,7 @@ public class SourceExtractorTest {
                 .with("it has been parsed")
                 .with(Language.FRENCH)
                 .with(Charset.defaultCharset())
-                .ofMimeType("message/rfc822")
+                .ofContentType("message/rfc822")
                 .with(new HashMap<>())
                 .with(Document.Status.INDEXED)
                 .withContentLength(45L).build();
@@ -64,7 +64,7 @@ public class SourceExtractorTest {
                 .with("it has been parsed")
                 .with(Language.FRENCH)
                 .with(Charset.defaultCharset())
-                .ofMimeType("message/rfc822")
+                .ofContentType("message/rfc822")
                 .with(new HashMap<>())
                 .with(Document.Status.INDEXED)
                 .withContentLength(45L).build();
@@ -80,7 +80,7 @@ public class SourceExtractorTest {
                 .with((String) null)
                 .with(Language.ENGLISH)
                 .with(Charset.defaultCharset())
-                .ofMimeType("application/msword")
+                .ofContentType("application/msword")
                 .with(new HashMap<>())
                 .with(Document.Status.INDEXED)
                 .withContentLength(0L).build();
@@ -104,11 +104,11 @@ public class SourceExtractorTest {
 
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
-        ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(Refresh.True).withIndex(TEST_INDEX);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(createIndexer(),
+                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withIndex(TEST_INDEX);
         spewer.write(document);
 
-        Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).
+        Document attachedPdf = createIndexer().
                 get(TEST_INDEX, "1bf2b6aa27dd8b45c7db58875004b8cb27a78ced5200b4976b63e351ebbae5ececb86076d90e156a7cdea06cde9573ca",
                         "f4078910c3e73a192e3a82d205f3c0bdb749c4e7b23c1d05a622db0f07d7f0ededb335abdb62aef41ace5d3cdb9298bc");
 
@@ -117,6 +117,10 @@ public class SourceExtractorTest {
         InputStream source = new SourceExtractor().getSource(project(TEST_INDEX), attachedPdf);
         assertThat(source).isNotNull();
         assertThat(getBytes(source)).hasSize(49779);
+    }
+
+    private static ElasticsearchIndexer createIndexer() {
+        return new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     }
 
     @Test
@@ -130,11 +134,11 @@ public class SourceExtractorTest {
 
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
-        ElasticsearchSpewer spewer = new ElasticsearchSpewer(es.client,
-                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withRefresh(Refresh.True).withIndex(TEST_INDEX);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(createIndexer(),
+                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withIndex(TEST_INDEX);
         spewer.write(document);
 
-        Document attachedPdf = new ElasticsearchIndexer(es.client, new PropertiesProvider()).
+        Document attachedPdf = createIndexer().
                 get(TEST_INDEX, "1bf2b6aa27dd8b45c7db58875004b8cb27a78ced5200b4976b63e351ebbae5ececb86076d90e156a7cdea06cde9573ca",
                         "f4078910c3e73a192e3a82d205f3c0bdb749c4e7b23c1d05a622db0f07d7f0ededb335abdb62aef41ace5d3cdb9298bc");
 
