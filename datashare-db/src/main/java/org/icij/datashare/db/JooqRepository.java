@@ -695,7 +695,7 @@ public class JooqRepository implements Repository {
                 .with(documentRecord.getContent())
                 .with(parse(documentRecord.getLanguage()))
                 .with(forName(documentRecord.getCharset()))
-                .ofMimeType(documentRecord.getContentType())
+                .ofContentType(documentRecord.getContentType())
                 .with(metadata)
                 .with(nerTags)
                 .with(fromCode(documentRecord.getStatus()))
