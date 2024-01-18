@@ -20,7 +20,7 @@ public class IndexTaskTest {
     public void test_index_task_uses_users_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), local(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), local(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
             put("redisAddress", "redis://redis:6379");
         }}).getProperties());
 
@@ -30,7 +30,7 @@ public class IndexTaskTest {
     public void test_index_task_with_null_user_and_null_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), local(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), local(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
             put("redisAddress",  "redis://redis:6379");
         }}).getProperties());
 
@@ -40,7 +40,7 @@ public class IndexTaskTest {
     public void test_index_task_null_user_uses_options_for_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
             put("redisAddress", "redis://redis:6379");
             put("defaultProject", "foo");
         }}).getProperties());
@@ -51,7 +51,7 @@ public class IndexTaskTest {
     @Test
     public void test_options_include_ocr() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        IndexTask indexTask = new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("ocr=");
     }
@@ -59,7 +59,7 @@ public class IndexTaskTest {
     @Test
     public void test_options_include_ocr_language() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        IndexTask indexTask = new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("ocrLanguage=");
     }
@@ -67,7 +67,7 @@ public class IndexTaskTest {
     @Test
     public void test_options_include_language() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        IndexTask indexTask = new IndexTask(spewer, mock(Publisher.class), mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider(new HashMap<String, String>() {{
             put("language",  "FRENCH");
         }}).getProperties());
         Options<String> options = indexTask.options();
