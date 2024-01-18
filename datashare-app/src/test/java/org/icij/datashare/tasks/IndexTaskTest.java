@@ -1,10 +1,8 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.com.Publisher;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.task.Options;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
