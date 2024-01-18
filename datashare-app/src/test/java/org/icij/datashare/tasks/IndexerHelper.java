@@ -62,7 +62,7 @@ public class IndexerHelper {
         extractor.setDigester(new UpdatableDigester(project, Entity.DEFAULT_DIGESTER.toString()));
         TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer elasticsearchSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(client, new PropertiesProvider()).withRefresh(Refresh.True), l -> ENGLISH,
-                new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withIndex("test-datashare");
+                new FieldNames(), new PropertiesProvider()).withIndex("test-datashare");
         elasticsearchSpewer.write(document);
         return path.toFile();
     }

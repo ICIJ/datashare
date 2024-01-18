@@ -33,7 +33,7 @@ public class DatashareExtractIntegrationTest {
 
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, l -> ENGLISH,
-            new FieldNames(), mock(Publisher.class), new PropertiesProvider()).withIndex("test-datashare");
+            new FieldNames(), new PropertiesProvider()).withIndex("test-datashare");
 
     public DatashareExtractIntegrationTest() throws IOException {}
 

@@ -4,13 +4,7 @@ import com.google.inject.Inject;
 import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.com.Message;
-import org.icij.datashare.com.Publisher;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.DocumentBuilder;
-import org.icij.datashare.text.Duplicate;
-import org.icij.datashare.text.Hasher;
-import org.icij.datashare.text.Language;
+import org.icij.datashare.text.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.TikaDocument;
@@ -23,14 +17,11 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.Optional.ofNullable;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_ENCODING;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
-import static org.icij.datashare.com.Channel.NLP;
-import static org.icij.datashare.com.Message.Type.EXTRACT_NLP;
+import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.text.Hasher.shorten;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
@@ -38,7 +29,6 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     public static final String DEFAULT_VALUE_UNKNOWN = "unknown";
 
     private final Indexer indexer;
-    private final Publisher publisher;
     private final LanguageGuesser languageGuesser;
     private final int maxContentLength;
     private final Hasher digestAlgorithm;
@@ -46,11 +36,10 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     @Inject
     public ElasticsearchSpewer(final Indexer indexer, LanguageGuesser languageGuesser, final FieldNames fields,
-                               Publisher publisher, final PropertiesProvider propertiesProvider) {
+                               final PropertiesProvider propertiesProvider) {
         super(fields);
         this.indexer = indexer;
         this.languageGuesser = languageGuesser;
-        this.publisher = publisher; // TODO enqueue documents id instead of publish on DataBus
         this.maxContentLength = getMaxContentLength(propertiesProvider);
         this.digestAlgorithm = getDigestAlgorithm(propertiesProvider);
         logger.info("spewer defined with {}", indexer);
@@ -72,12 +61,6 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
         logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
                 shorten(doc.getId(), 4), currentTimeMillis() - before, doc);
-        synchronized (publisher) { // jedis instance is not thread safe and Spewer is shared in DocumentConsumer threads
-            publisher.publish(NLP, new Message(EXTRACT_NLP)
-                    .add(Message.Field.INDEX_NAME, indexName)
-                    .add(Message.Field.DOC_ID, doc.getId())
-                    .add(Message.Field.R_ID, parent == null ? doc.getId() : root.getId()));
-        }
     }
 
     public ElasticsearchSpewer withIndex(final String indexName) {

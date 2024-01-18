@@ -105,7 +105,7 @@ public class SourceExtractorTest {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(createIndexer(),
-                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withIndex(TEST_INDEX);
+                l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex(TEST_INDEX);
         spewer.write(document);
 
         Document attachedPdf = createIndexer().
@@ -135,7 +135,7 @@ public class SourceExtractorTest {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(createIndexer(),
-                l -> Language.ENGLISH, new FieldNames(), Mockito.mock(Publisher.class), new PropertiesProvider()).withIndex(TEST_INDEX);
+                l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex(TEST_INDEX);
         spewer.write(document);
 
         Document attachedPdf = createIndexer().
