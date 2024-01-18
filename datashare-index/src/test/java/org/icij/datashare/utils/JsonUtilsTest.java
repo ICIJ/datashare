@@ -3,7 +3,6 @@ package org.icij.datashare.utils;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.fest.assertions.MapAssert;
 import org.junit.Test;
 
 import static org.fest.assertions.Assertions.assertThat;

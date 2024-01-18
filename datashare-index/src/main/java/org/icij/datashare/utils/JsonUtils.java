@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class JsonUtils {
     public static Map<String, Object> nodeToMap(ObjectNode node) {
-        return new ObjectMapper().convertValue(node, new TypeReference<Map<String, Object>>(){});
+        return new ObjectMapper().convertValue(node, new TypeReference<>() {});
     }
     public static Map<String, JsonData> mapObjectTomapJsonData(Map<String,Object> map) {
         HashMap<String, JsonData> retMap = new HashMap<String, JsonData>();
