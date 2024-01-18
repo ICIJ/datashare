@@ -14,16 +14,8 @@ import org.apache.tika.parser.ParsingReader;
 import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.com.Channel;
-import org.icij.datashare.com.Message;
-import org.icij.datashare.com.Message.Field;
-import org.icij.datashare.com.Publisher;
 import org.icij.datashare.test.ElasticsearchRule;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.Duplicate;
-import org.icij.datashare.text.Hasher;
-import org.icij.datashare.text.Language;
-import org.icij.datashare.text.Project;
+import org.icij.datashare.text.*;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
@@ -33,8 +25,6 @@ import org.icij.task.Options;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -55,18 +45,13 @@ import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.utils.JsonUtils.nodeToMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 public class ElasticsearchSpewerTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private final Publisher publisher = Mockito.mock(Publisher.class);
 
     private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
-            text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider()).withIndex("test-datashare");
+            text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex("test-datashare");
 
     @Test
     public void test_simple_write() throws Exception {
@@ -82,9 +67,6 @@ public class ElasticsearchSpewerTest {
         assertEquals(new HashMap<String, String>() {{
             put("name", "Document");
         }}, nodeToMap(documentFields.source()).get("join"));
-        ArgumentCaptor<Message> argument = ArgumentCaptor.forClass(Message.class);
-        verify(publisher).publish(eq(Channel.NLP), argument.capture());
-        assertThat(argument.getValue().content).includes(entry(Field.DOC_ID, documentFields.id()));
     }
 
     @Test
@@ -314,8 +296,6 @@ public class ElasticsearchSpewerTest {
         searchReq.query(Query.of(q -> q.multiMatch(MultiMatchQuery.of(mmq -> mmq.query("simple.tiff").fields("content")))));
         SearchResponse<ObjectNode> response = es.client.search(searchReq.build(), ObjectNode.class);
         assertThat(response.hits().total().value()).isGreaterThan(0);
-
-        verify(publisher, times(2)).publish(eq(Channel.NLP), any(Message.class));
     }
 
     @Test
@@ -347,7 +327,7 @@ public class ElasticsearchSpewerTest {
             put("digestProjectName", "project");
         }};
         ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(digestProperties)).withIndex("test-datashare");
+                text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(digestProperties)).withIndex("test-datashare");
         Options<String> from = Options.from(digestProperties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
         Extractor extractor = new Extractor(tikaFactory).configure(from);
@@ -392,7 +372,7 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_truncated_content() throws Exception {
         ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<>() {{
+                text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
         }})).withIndex("test-datashare");
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("fake-file.txt"));
@@ -408,7 +388,7 @@ public class ElasticsearchSpewerTest {
     @Test
     public void test_truncated_content_if_document_is_smaller_than_limit() throws Exception {
         ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                text -> Language.ENGLISH, new FieldNames(), publisher, new PropertiesProvider(new HashMap<>() {{
+                text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
         }})).withIndex("test-datashare");
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("ok-file.txt"));
