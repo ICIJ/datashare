@@ -34,7 +34,7 @@ public class ExtractNlpTaskTest {
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, User.local(), "queueName", new PropertiesProvider(new HashMap<>(){{
+        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, User.local(), new PropertiesProvider(new HashMap<>(){{
             put("maxContentLength", "32");
         }}).getProperties());
     }

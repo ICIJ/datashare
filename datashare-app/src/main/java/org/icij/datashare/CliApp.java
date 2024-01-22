@@ -1,10 +1,8 @@
 package org.icij.datashare;
 
 import org.icij.datashare.cli.CliExtensionService;
-import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.spi.CliExtension;
-import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.TaskFactory;
@@ -22,7 +20,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Collections.singletonList;
@@ -30,7 +27,6 @@ import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
-import static org.icij.datashare.text.nlp.Pipeline.Type.parseAll;
 import static org.icij.datashare.user.User.localUser;
 import static org.icij.datashare.user.User.nullUser;
 
@@ -115,30 +111,30 @@ class CliApp {
         }
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
-        if (pipeline.has(DatashareCli.Stage.DEDUPLICATE)) {
-            taskManager.startTask(taskFactory.createDeduplicateTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.DEDUPLICATE)));
+        if (pipeline.has(Stage.DEDUPLICATE)) {
+            taskManager.startTask(taskFactory.createDeduplicateTask(nullUser()));
         }
 
-        if (pipeline.has(DatashareCli.Stage.SCANIDX)) {
+        if (pipeline.has(Stage.SCANIDX)) {
             TaskView<Long> taskView = taskManager.startTask(taskFactory.createScanIndexTask(nullUser(), ofNullable(properties.getProperty(MAP_NAME_OPTION)).orElse("extract:report")));
             logger.info("scanned {}", taskView.getResult(true));
         }
 
-        if (pipeline.has(DatashareCli.Stage.SCAN) && !resume(properties)) {
-            taskManager.startTask(taskFactory.createScanTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.SCAN), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), properties),
+        if (pipeline.has(Stage.SCAN) && !resume(properties)) {
+            taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), properties),
                     () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
         }
 
-        if (pipeline.has(DatashareCli.Stage.INDEX)) {
-            taskManager.startTask(taskFactory.createIndexTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.INDEX), properties),
+        if (pipeline.has(Stage.INDEX)) {
+            taskManager.startTask(taskFactory.createIndexTask(nullUser(), properties),
                     () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
         }
 
-        if (pipeline.has(DatashareCli.Stage.NLP)) {
+        if (pipeline.has(Stage.NLP)) {
             if (resume(properties)) {
-                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.NLP), properties));
+                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), properties));
             }
-            taskManager.startTask(taskFactory.createNlpTask(nullUser(), pipeline.getQueueNameFor(DatashareCli.Stage.NLP), properties),
+            taskManager.startTask(taskFactory.createNlpTask(nullUser(), properties),
                     () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);

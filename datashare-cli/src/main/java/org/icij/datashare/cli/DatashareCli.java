@@ -4,13 +4,16 @@ package org.icij.datashare.cli;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT;
@@ -21,6 +24,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT;
 public class DatashareCli {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatashareCli.class);
     public Properties properties;
+    public static final char SEPARATOR = PipelineHelper.STAGES_SEPARATOR;
 
     public DatashareCli parseArguments(String[] args) {
         OptionParser parser = createParser();
@@ -183,7 +187,11 @@ public class DatashareCli {
     }
 
     private String asPropertyValue(List<?> values) {
-        String stringValue = values.size() > 0 ? String.valueOf(values.get(values.size() - 1)): "";
+        // last value is used for bash script option overriding:
+        // when in datashare shell script we call java ... -m EMBEDDED $@
+        // if the user provided -m SERVER then values will be [EMBEDDED,SERVER] so this function will keep the user option!
+        // it has to be refactored because we can't use lists with separator in jopts simple, we use lists as string
+        String stringValue = !values.isEmpty() ? String.valueOf(values.get(values.size() - 1)): "";
         return stringValue.isEmpty() ? "true": stringValue;
     }
 
@@ -211,25 +219,5 @@ public class DatashareCli {
 
     public boolean isWebServer() {
         return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode")).isWebServer();
-    }
-
-    public enum Stage {
-        SCAN,
-        SCANIDX,
-        DEDUPLICATE,
-        INDEX,
-        NLP;
-
-        public static final Comparator<Stage> comparator = Comparator.comparing(Stage::ordinal);
-
-        public static Optional<Stage> parse(final String stage) {
-            if (stage == null || stage.isEmpty())
-                return Optional.empty();
-            try {
-                return Optional.of(valueOf(stage.toUpperCase(Locale.ROOT)));
-            } catch (IllegalArgumentException e) {
-                return Optional.empty();
-            }
-        }
     }
 }

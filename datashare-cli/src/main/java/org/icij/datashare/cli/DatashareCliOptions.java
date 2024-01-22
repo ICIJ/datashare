@@ -2,6 +2,8 @@ package org.icij.datashare.cli;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
+import org.icij.datashare.PipelineHelper;
+import org.icij.datashare.Stage;
 
 import java.io.File;
 import java.net.URI;
@@ -9,18 +11,17 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static joptsimple.util.RegexMatcher.regex;
 
 
 public final class DatashareCliOptions {
-    public static final char ARG_VALS_SEP = ',';
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
     private static final Integer DEFAULT_PARALLELISM =
             Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
-    public static final String STAGES_OPT = "stages";
     public static final String DATA_DIR_OPT = "dataDir";
     public static final String NLP_PIPELINE_OPT = "nlpPipeline";
     public static final String BATCH_THROTTLE = "batchThrottleMilliseconds";
@@ -60,8 +61,8 @@ public final class DatashareCliOptions {
 
     static void stages(OptionParser parser) {
         parser.acceptsAll(
-                singletonList(STAGES_OPT),
-                "Stages to be run. WARN that DEDUPLICATE stages are not streamable like the others. They should be run alone.")
+                singletonList(PipelineHelper.STAGES_OPT),
+                format("Stages to be run separated by %s %s", PipelineHelper.STAGES_SEPARATOR, Arrays.toString(Stage.values())))
                 .withRequiredArg()
                 .ofType( String.class );
     }

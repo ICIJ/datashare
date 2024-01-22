@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.cli.DatashareCli;
+import org.icij.datashare.Stage;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
@@ -35,12 +35,12 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final int maxContentLengthChars;
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted User user, @Assisted String queueName, @Assisted final Properties properties) {
-        this(indexer, registry.get(Pipeline.Type.parse(properties.getProperty(NLP_PIPELINE_OPT))), factory, user, queueName, properties);
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted User user, @Assisted final Properties properties) {
+        this(indexer, registry.get(Pipeline.Type.parse(properties.getProperty(NLP_PIPELINE_OPT))), factory, user, properties);
     }
 
-    ExtractNlpTask(Indexer indexer, Pipeline nlpPipeline, final DocumentCollectionFactory<String> factory, User user, String queueName, final Properties properties) {
-        super(DatashareCli.Stage.NLP, user, queueName, factory, new PropertiesProvider(properties), String.class);
+    ExtractNlpTask(Indexer indexer, Pipeline nlpPipeline, final DocumentCollectionFactory<String> factory, User user, final Properties properties) {
+        super(Stage.NLP, user, factory, new PropertiesProvider(properties), String.class);
         this.nlpPipeline = nlpPipeline;
         project = Project.project(ofNullable(properties.getProperty("defaultProject")).orElse("local-datashare"));
         maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable(properties.getProperty("maxContentLength")).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));

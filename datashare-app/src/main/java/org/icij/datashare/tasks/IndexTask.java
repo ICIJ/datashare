@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Stage;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
@@ -38,9 +39,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Integer parallelism;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted String queueName,
-                     @Assisted final Properties properties) {
-        super(DatashareCli.Stage.INDEX, user, queueName, factory, new PropertiesProvider(properties), Path.class);
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted final Properties properties) {
+        super(Stage.INDEX, user, factory, new PropertiesProvider(properties), Path.class);
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
         parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
         String indexName = propertiesProvider.get("defaultProject").orElse("local-datashare");
@@ -61,6 +61,11 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             consumer.setReporter(new Reporter(factory.createMap(propertiesProvider, propertiesProvider.getProperties().get(MAP_NAME_OPTION).toString())));
         }
         drainer = new DocumentQueueDrainer<>(queue, consumer).configure(allTaskOptions);
+    }
+
+    IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, User user, String queueName, final Properties properties) {
+        this(spewer, factory, user, properties);
+        queue = factory.createQueue(propertiesProvider, queueName, Path.class );
     }
 
     @Override

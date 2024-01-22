@@ -5,6 +5,7 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Stage;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -42,7 +43,7 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
     @Inject
     public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, final PropertiesProvider propertiesProvider,
                          @Assisted User user, @Assisted String reportName) {
-        super(DatashareCli.Stage.SCANIDX, user, PipelineHelper.getQueueName(propertiesProvider, DatashareCli.Stage.SCANIDX), factory, propertiesProvider, Path.class);
+        super(Stage.SCANIDX, user, new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.SCANIDX), factory, propertiesProvider, Path.class);
         this.user = user;
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000"));
         this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));

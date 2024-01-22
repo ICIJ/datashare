@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.extract.document.DigestIdentifier;
@@ -32,7 +33,7 @@ public class DatashareExtractIntegrationTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
 
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
-    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, l -> ENGLISH,
+    private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, new MemoryDocumentCollectionFactory<>(), l -> ENGLISH,
             new FieldNames(), new PropertiesProvider()).withIndex("test-datashare");
 
     public DatashareExtractIntegrationTest() throws IOException {}

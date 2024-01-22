@@ -3,6 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
@@ -105,7 +106,7 @@ public class SourceExtractorTest {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(createIndexer(),
-                l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex(TEST_INDEX);
+                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex(TEST_INDEX);
         spewer.write(document);
 
         Document attachedPdf = createIndexer().
@@ -135,7 +136,7 @@ public class SourceExtractorTest {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(createIndexer(),
-                l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex(TEST_INDEX);
+                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex(TEST_INDEX);
         spewer.write(document);
 
         Document attachedPdf = createIndexer().

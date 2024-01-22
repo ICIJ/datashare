@@ -34,11 +34,13 @@ public class ResumeNlpTaskTest {
         }
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>(){{
                 put("defaultProject", "test-datashare");
+                put("stages", "ENQUEUEIDX");
+                put("queueName", "test:queue");
                 put(NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
             }});
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        ResumeNlpTask resumeNlpTask = new ResumeNlpTask(factory, indexer, new User("test"), "queue", propertiesProvider.getProperties());
+        EnqueueFromIndexTask resumeNlpTask = new EnqueueFromIndexTask(factory, indexer, new User("test"), propertiesProvider.getProperties());
         resumeNlpTask.call();
-        assertThat(factory.queues.get("queue")).hasSize(20);
+        assertThat(factory.queues.get("test:queue:nlp")).hasSize(20);
     }
 }

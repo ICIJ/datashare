@@ -3,7 +3,7 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.cli.DatashareCli;
+import org.icij.datashare.Stage;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
@@ -21,8 +21,8 @@ public class DeduplicateTask extends PipelineTask<Path> {
     private final DocumentCollectionFactory<Path> factory;
 
     @Inject
-    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, final PropertiesProvider propertiesProvider, @Assisted User user, @Assisted String queueName) {
-        super(DatashareCli.Stage.DEDUPLICATE, user, queueName, factory, propertiesProvider, Path.class);
+    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, final PropertiesProvider propertiesProvider, @Assisted User user) {
+        super(Stage.DEDUPLICATE, user, factory, propertiesProvider, Path.class);
         this.factory = factory;
     }
 

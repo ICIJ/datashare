@@ -41,6 +41,12 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_stages_opt() {
+        cli.parseArguments(new String[] {"--stages=SCAN,INDEX,NLP"});
+        assertThat(cli.properties).includes(entry("stages", "SCAN,INDEX,NLP"));
+    }
+
+    @Test
     public void test_option_not_specified() {
         cli.parseArguments(new String[] {""});
 
