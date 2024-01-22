@@ -1,4 +1,4 @@
-package org.icij.datashare.tasks;
+package org.icij.datashare.extract;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.extract.queue.DocumentQueue;
@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFactory<T> {
-    final Map<String, DocumentQueue<T>> queues = new ConcurrentHashMap<>();
+    public final Map<String, DocumentQueue<T>> queues = new ConcurrentHashMap<>();
     final Map<String, ReportMap> maps = new ConcurrentHashMap<>();
 
     @Override

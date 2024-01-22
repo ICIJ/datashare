@@ -5,14 +5,13 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCli;
-import org.icij.datashare.com.Message;
 import org.icij.datashare.extension.PipelineRegistry;
+import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.DatashareListener;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
@@ -20,16 +19,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 import java.util.Properties;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
-import static org.icij.datashare.com.Message.Field.*;
-import static org.icij.datashare.tasks.BatchDownloadLoop.POISON;
 
 public class ExtractNlpTask extends PipelineTask<String> implements Monitorable {
     private static final int DEFAULT_MAX_CONTENT_LENGTH = 1024 * 1024;

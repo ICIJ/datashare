@@ -5,22 +5,17 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCli;
-import org.icij.datashare.com.Channel;
-import org.icij.datashare.com.Message;
-import org.icij.datashare.com.Publisher;
-import org.icij.datashare.com.ShutdownMessage;
+import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.icij.datashare.user.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 
 import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;

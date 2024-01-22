@@ -1,6 +1,8 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
 import org.junit.Test;

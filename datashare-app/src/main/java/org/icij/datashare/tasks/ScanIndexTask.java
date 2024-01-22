@@ -13,7 +13,6 @@ import org.icij.datashare.user.UserTask;
 import org.icij.extract.extractor.ExtractionStatus;
 import org.icij.extract.report.Report;
 import org.icij.extract.report.ReportMap;
-import org.icij.task.DefaultTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
+import org.icij.datashare.extract.DocumentCollectionFactory;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Collections.singletonList;
