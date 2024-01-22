@@ -20,10 +20,9 @@ import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.PipelineHelper;
+import org.icij.datashare.Stage;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
-import org.icij.datashare.cli.DatashareCli;
-import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
@@ -31,13 +30,9 @@ import org.icij.datashare.tasks.FileResult;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.tasks.TaskModifier;
 import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.text.Project;
-import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -45,15 +40,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.regex.Pattern;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.forbidden;
@@ -149,7 +141,7 @@ public class TaskResource {
     public TaskView<Long> indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) {
         Properties properties = optionsWrapper.asProperties();
         String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
-        IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), queueName, properties);
+        IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), properties);
         return taskManager.startTask(indexTask);
     }
 
@@ -176,7 +168,7 @@ public class TaskResource {
             taskFactory.createScanIndexTask(user, reportName).call();
             properties.put(MAP_NAME_OPTION, reportName);
         }
-        return asList(scanResponse, taskManager.startTask(taskFactory.createIndexTask(user, queueName, properties)));
+        return asList(scanResponse, taskManager.startTask(taskFactory.createIndexTask(user, properties)));
     }
 
     @Operation(description = "Scans recursively a directory with the given path.",
@@ -187,7 +179,7 @@ public class TaskResource {
         Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
         Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
-        return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), queueName, path, properties));
+        return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, properties));
     }
 
     @Operation(description = "Cleans all DONE tasks.")
@@ -261,10 +253,10 @@ public class TaskResource {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         mergedProps.put(NLP_PIPELINE_OPT, pipelineName);
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
-        String queueName = PipelineHelper.getQueueName(new PropertiesProvider(mergedProps), DatashareCli.Stage.NLP);
-        TaskView<Long> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), queueName, mergedProps));
+        String queueName = new PipelineHelper(new PropertiesProvider(mergedProps)).getQueueNameFor(Stage.NLP);
+        TaskView<Long> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), mergedProps));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), queueName, mergedProps));
+            TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), mergedProps));
             return asList(resumeNlpTask, nlpTask);
         }
         return singletonList(nlpTask);

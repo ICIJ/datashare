@@ -6,7 +6,9 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Stage;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
@@ -55,7 +57,8 @@ public class ExtractNlpTaskIntTest {
         Document doc = createDoc("content").build();
         when(indexer.get(anyString(), eq("docId"))).thenReturn(doc);
 
-        DocumentQueue<String> queueName = factory.createQueue(new PropertiesProvider(), "queueName", String.class);
+        DocumentQueue<String> queueName = factory.createQueue(new PropertiesProvider(),
+                new PipelineHelper(new PropertiesProvider()).getQueueNameFor(Stage.NLP), String.class);
         queueName.add("docId");
         queueName.add(PipelineTask.STRING_POISON);
 
@@ -89,7 +92,7 @@ public class ExtractNlpTaskIntTest {
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, User.local(), "queueName", new PropertiesProvider(new HashMap<>(){{
+        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, User.local(), new PropertiesProvider(new HashMap<>(){{
             put("maxContentLength", "32");
         }}).getProperties());
     }

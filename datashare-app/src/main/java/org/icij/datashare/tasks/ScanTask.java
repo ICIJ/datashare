@@ -2,7 +2,9 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.Stage;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.user.User;
@@ -20,8 +22,9 @@ public class ScanTask extends PipelineTask<Path> {
     private final Path path;
 
     @Inject
-    public ScanTask(final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted String queueName, @Assisted Path path, @Assisted final Properties properties) {
-        super(DatashareCli.Stage.SCAN, user, queueName, factory, new PropertiesProvider(properties), Path.class);
+    public ScanTask(final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted Path path, @Assisted final Properties properties) {
+        super(Stage.SCAN, user, new PipelineHelper(new PropertiesProvider()).getOutputQueueNameFor(Stage.SCAN),
+                factory, new PropertiesProvider(properties), Path.class);
         this.path = path;
         Options<String> allOptions = options().createFrom(Options.from(properties));
         scanner = new Scanner(queue).configure(allOptions);

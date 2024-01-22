@@ -4,7 +4,6 @@ import net.codestory.http.routes.Routes;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
-import org.fest.assertions.MapAssert;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.db.JooqRepository;
@@ -16,7 +15,6 @@ import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractModels;
-import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +30,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import static java.lang.String.format;
-import static java.util.Collections.singleton;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -134,7 +131,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
 
-        verify(taskFactory).createIndexTask(eq(local()), eq("extract:queue:foo"), any());
+        verify(taskFactory).createIndexTask(eq(local()), any());
     }
 
     @Test
@@ -155,7 +152,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         properties.put("foo", "bar");
 
         response.should().respond(200).haveType("application/json");
-        verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get("/default/data/dir"), new PropertiesProvider(properties).getProperties());
+        verify(taskFactory).createScanTask(local(), Paths.get("/default/data/dir"), new PropertiesProvider(properties).getProperties());
     }
 
     @Test
@@ -169,8 +166,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         HashMap<String, String> defaultProperties = getDefaultProperties();
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
-        verify(taskFactory).createIndexTask(local(), "extract:queue", new PropertiesProvider(defaultProperties).getProperties());
-        verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
+        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(defaultProperties).getProperties());
+        verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
     }
 
     @Test
@@ -178,11 +175,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/batchUpdate/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(local(), "extract:queue", new PropertiesProvider(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(new HashMap<String, String>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}).getProperties());
-        verify(taskFactory, never()).createScanTask(eq(local()), eq("extract:queue"), any(Path.class), any(Properties.class));
+        verify(taskFactory, never()).createScanTask(eq(local()), any(Path.class), any(Properties.class));
     }
 
     @Test
@@ -199,8 +196,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         HashMap<String, String> defaultProperties = getDefaultProperties();
         defaultProperties.put("key", "val");
         defaultProperties.put("foo", "qux");
-        verify(taskFactory).createScanTask(local(), "extract:queue", Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
-        verify(taskFactory, never()).createIndexTask(any(User.class), anyString(), any(Properties.class));
+        verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
+        verify(taskFactory, never()).createIndexTask(any(User.class), any(Properties.class));
     }
 
     @Test
@@ -213,12 +210,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         assertThat(taskNames.size()).isEqualTo(2);
         ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
 
-        verify(taskFactory).createResumeNlpTask(eq(local()), eq("extract:queue:nlp"), propertiesArgumentCaptor.capture());
+        verify(taskFactory).createResumeNlpTask(eq(local()), propertiesArgumentCaptor.capture());
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
 
         HashMap<String, String> properties = getDefaultProperties();
         properties.put("waitForNlpApp", "false");
-        verify(taskFactory).createNlpTask(eq(local()), eq("extract:queue:nlp"), propertiesArgumentCaptor.capture());
+        verify(taskFactory).createNlpTask(eq(local()), propertiesArgumentCaptor.capture());
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
     }
 
@@ -227,10 +224,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"waitForNlpApp\": false, \"key\":\"val\",\"foo\":\"loo\"}}");
         response.should().haveType("application/json");
         ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
-        verify(taskFactory).createResumeNlpTask(eq(local()), eq("extract:queue:nlp"), propertiesArgumentCaptor.capture());
+        verify(taskFactory).createResumeNlpTask(eq(local()), propertiesArgumentCaptor.capture());
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
 
-        verify(taskFactory).createNlpTask(eq(local()), eq("extract:queue:nlp"), propertiesArgumentCaptor.capture());
+        verify(taskFactory).createNlpTask(eq(local()), propertiesArgumentCaptor.capture());
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("key", "val"), entry("foo", "loo"));
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
     }
@@ -240,7 +237,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/findNames/EMAIL", "{\"options\":{\"resume\":\"false\", \"waitForNlpApp\": false}}");
         response.should().haveType("application/json");
 
-        verify(taskFactory, never()).createResumeNlpTask(eq(null), eq("extract:queue:nlp"), any());
+        verify(taskFactory, never()).createResumeNlpTask(eq(null), any());
     }
 
     @Test
@@ -406,13 +403,13 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     private void init(TaskFactory taskFactory) {
         reset(taskFactory);
-        when(taskFactory.createIndexTask(any(), any(), any())).thenReturn(mock(IndexTask.class));
+        when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
         when(taskFactory.createBatchSearchLoop()).thenReturn(mock(BatchSearchLoop.class));
-        when(taskFactory.createScanTask(any(), any(), any(), any())).thenReturn(mock(ScanTask.class));
-        when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(mock(DeduplicateTask.class));
+        when(taskFactory.createScanTask(any(), any(), any())).thenReturn(mock(ScanTask.class));
+        when(taskFactory.createDeduplicateTask(any())).thenReturn(mock(DeduplicateTask.class));
         when(taskFactory.createDownloadRunner(any(), any())).thenReturn(mock(BatchDownloadRunner.class));
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));
-        when(taskFactory.createResumeNlpTask(any(), any(), any())).thenReturn(mock(ResumeNlpTask.class));
-        when(taskFactory.createNlpTask(any(), any(), any())).thenReturn(mock(ExtractNlpTask.class));
+        when(taskFactory.createResumeNlpTask(any(), any())).thenReturn(mock(EnqueueFromIndexTask.class));
+        when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
     }
 }

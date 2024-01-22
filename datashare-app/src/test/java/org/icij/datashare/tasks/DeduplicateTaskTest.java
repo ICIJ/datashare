@@ -18,27 +18,28 @@ import static org.icij.datashare.user.User.local;
 public class DeduplicateTaskTest {
     private final PropertiesProvider propertyProvider = new PropertiesProvider(new HashMap<>() {{
         put("queueName", "test:queue");
+        put("stages", "DEDUPLICATE");
     }});
     DocumentCollectionFactory<Path> docCollectionFactory = new MemoryDocumentCollectionFactory<>();
-    DeduplicateTask task = new DeduplicateTask(docCollectionFactory, propertyProvider, User.local(), "test:queue");
-    @Test
+    DeduplicateTask task = new DeduplicateTask(docCollectionFactory, propertyProvider, User.local());
+    @Test(timeout = 2000)
     public void test_filter_empty() throws Exception {
-        docCollectionFactory.createQueue(propertyProvider, "test:queue", Path.class).add(PATH_POISON);
-        assertThat(new DeduplicateTask(docCollectionFactory, new PropertiesProvider(), local(), "test:queue").call()).isEqualTo(0);
+        docCollectionFactory.createQueue(propertyProvider, "test:queue:deduplicate", Path.class).add(PATH_POISON);
+        assertThat(new DeduplicateTask(docCollectionFactory, propertyProvider, local()).call()).isEqualTo(0);
     }
 
-    @Test
+    @Test(timeout = 2000)
     public void test_filter_queue_removes_duplicates() throws Exception {
-        docCollectionFactory.createQueue(propertyProvider, "test:queue", Path.class).put(get("/path/to/doc"));
-        docCollectionFactory.createQueue(propertyProvider, "test:queue", Path.class).put(get("/path/to/doc"));
-        docCollectionFactory.createQueue(propertyProvider, "test:queue", Path.class).add(PATH_POISON);
+        docCollectionFactory.createQueue(propertyProvider, "test:queue:deduplicate", Path.class).put(get("/path/to/doc"));
+        docCollectionFactory.createQueue(propertyProvider, "test:queue:deduplicate", Path.class).put(get("/path/to/doc"));
+        docCollectionFactory.createQueue(propertyProvider, "test:queue:deduplicate", Path.class).add(PATH_POISON);
 
-        assertThat(new DeduplicateTask(docCollectionFactory, propertyProvider, local(), "test:queue").call()).isEqualTo(1);
+        assertThat(new DeduplicateTask(docCollectionFactory, propertyProvider, local()).call()).isEqualTo(1);
 
-        assertThat(docCollectionFactory.createQueue(propertyProvider, "test:queue:deduplicate", Path.class).size()).isEqualTo(2); // with POISON
+        assertThat(docCollectionFactory.createQueue(propertyProvider, "test:queue:index", Path.class).size()).isEqualTo(2); // with POISON
     }
 
-    @Test
+    @Test(timeout = 2000)
     public void test_pipeline_task_transfer_to_output_queue() throws Exception {
         task.queue.put(get("/path/to/doc1"));
         task.queue.put(get("/path/to/doc2"));
@@ -54,7 +55,7 @@ public class DeduplicateTaskTest {
         assertThat(outputQueue.poll().toString()).isEqualTo(PATH_POISON.toString());
     }
 
-    @Test
+    @Test(timeout = 2000)
     public void test_pipeline_task_conditional_transfer_to_output_queue() throws Exception {
         task.queue.put(get("/path/to/doc1"));
         task.queue.put(get("/path/to/doc2"));

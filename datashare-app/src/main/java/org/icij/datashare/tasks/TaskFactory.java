@@ -3,7 +3,6 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.function.TerFunction;
 import org.icij.datashare.text.Document;
-import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 
 import java.nio.file.Path;
@@ -21,10 +20,9 @@ public interface TaskFactory {
     GetApiKeyTask createGetApiKey(User user);
 
     ScanIndexTask createScanIndexTask(User user, String reportName);
-    ScanTask createScanTask(final User user, String queueName, final Path path, Properties properties);
-    IndexTask createIndexTask(final User user, String queueName, final Properties properties);
-    ExtractNlpTask createNlpTask(final User user, final String queueName, final Properties properties);
-    ResumeNlpTask createResumeNlpTask(final User user, final String queueName, final Properties properties);
-
-    DeduplicateTask createDeduplicateTask(User user, String queueName);
+    ScanTask createScanTask(final User user, final Path path, Properties properties);
+    IndexTask createIndexTask(final User user, final Properties properties);
+    ExtractNlpTask createNlpTask(final User user, final Properties properties);
+    EnqueueFromIndexTask createResumeNlpTask(final User user, final Properties properties);
+    DeduplicateTask createDeduplicateTask(User user);
 }

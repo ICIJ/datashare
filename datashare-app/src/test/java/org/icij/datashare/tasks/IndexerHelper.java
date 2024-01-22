@@ -6,6 +6,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.Publisher;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.DocumentBuilder;
@@ -61,7 +62,8 @@ public class IndexerHelper {
         Extractor extractor = new Extractor(new DocumentFactory().withIdentifier(new DigestIdentifier("SHA-384", Charset.defaultCharset())));
         extractor.setDigester(new UpdatableDigester(project, Entity.DEFAULT_DIGESTER.toString()));
         TikaDocument document = extractor.extract(path);
-        ElasticsearchSpewer elasticsearchSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(client, new PropertiesProvider()).withRefresh(Refresh.True), l -> ENGLISH,
+        ElasticsearchSpewer elasticsearchSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(client,
+                new PropertiesProvider()).withRefresh(Refresh.True), new MemoryDocumentCollectionFactory<>(), l -> ENGLISH,
                 new FieldNames(), new PropertiesProvider()).withIndex("test-datashare");
         elasticsearchSpewer.write(document);
         return path.toFile();
