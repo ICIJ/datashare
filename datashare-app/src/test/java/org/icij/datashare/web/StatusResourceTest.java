@@ -3,7 +3,7 @@ package org.icij.datashare.web;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.com.DataBus;
-import org.icij.datashare.tasks.DocumentCollectionFactory;
+import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;

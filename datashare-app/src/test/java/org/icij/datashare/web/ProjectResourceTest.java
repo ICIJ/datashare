@@ -9,7 +9,7 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.DatashareUser;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.session.YesBasicAuthFilter;
-import org.icij.datashare.tasks.MemoryDocumentCollectionFactory;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;

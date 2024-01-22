@@ -1,4 +1,4 @@
-package org.icij.datashare.tasks;
+package org.icij.datashare.extract;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.extract.queue.DocumentQueue;

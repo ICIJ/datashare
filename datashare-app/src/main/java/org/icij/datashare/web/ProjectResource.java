@@ -17,7 +17,7 @@
     import org.icij.datashare.Repository;
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.session.DatashareUser;
-    import org.icij.datashare.tasks.DocumentCollectionFactory;
+    import org.icij.datashare.extract.DocumentCollectionFactory;
     import org.icij.datashare.text.Project;
     import org.icij.datashare.text.indexing.Indexer;
     import org.icij.datashare.utils.DataDirVerifier;

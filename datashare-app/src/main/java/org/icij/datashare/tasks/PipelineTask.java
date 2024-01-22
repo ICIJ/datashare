@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCli;
+import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.extract.queue.DocumentQueue;

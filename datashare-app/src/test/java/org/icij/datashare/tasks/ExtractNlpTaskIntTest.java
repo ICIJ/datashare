@@ -7,6 +7,8 @@ import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.extract.RedisUserReportMap;
 import org.icij.datashare.text.Document;
