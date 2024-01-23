@@ -19,8 +19,9 @@ public class IndexTaskTest {
     public void test_index_task_uses_users_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), local(), "queueName", new PropertiesProvider(new HashMap<>() {{
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), local(), new PropertiesProvider(new HashMap<>() {{
             put("redisAddress", "redis://redis:6379");
+            put("queueName", "test:queue");
         }}).getProperties());
 
         Mockito.verify(spewer).withIndex("local-datashare");
@@ -29,8 +30,9 @@ public class IndexTaskTest {
     public void test_index_task_with_null_user_and_null_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), local(), "queueName", new PropertiesProvider(new HashMap<>() {{
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), local(), new PropertiesProvider(new HashMap<>() {{
             put("redisAddress", "redis://redis:6379");
+            put("queueName", "test:queue");
         }}).getProperties());
 
         Mockito.verify(spewer).withIndex("local-datashare");
@@ -39,9 +41,10 @@ public class IndexTaskTest {
     public void test_index_task_null_user_uses_options_for_index_name() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider(new HashMap<>() {{
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), new PropertiesProvider(new HashMap<>() {{
             put("redisAddress", "redis://redis:6379");
             put("defaultProject", "foo");
+            put("queueName", "test:queue");
         }}).getProperties());
 
         Mockito.verify(spewer).withIndex("foo");
@@ -50,7 +53,9 @@ public class IndexTaskTest {
     @Test
     public void test_options_include_ocr() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), new PropertiesProvider(new HashMap<>(){{
+            put("queueName", "test:queue");
+        }}).getProperties());
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("ocr=");
     }
@@ -58,7 +63,9 @@ public class IndexTaskTest {
     @Test
     public void test_options_include_ocr_language() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider().getProperties());
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), new PropertiesProvider(new HashMap<>() {{
+            put("queueName", "test:queue");
+        }}).getProperties());
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("ocrLanguage=");
     }
@@ -66,8 +73,9 @@ public class IndexTaskTest {
     @Test
     public void test_options_include_language() {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
-        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), "queueName", new PropertiesProvider(new HashMap<>() {{
+        IndexTask indexTask = new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), new PropertiesProvider(new HashMap<>() {{
             put("language", "FRENCH");
+            put("queueName", "test:queue");
         }}).getProperties());
         Options<String> options = indexTask.options();
         assertThat(options.toString()).contains("language=");

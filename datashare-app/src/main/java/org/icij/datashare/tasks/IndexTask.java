@@ -63,11 +63,6 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         drainer = new DocumentQueueDrainer<>(queue, consumer).configure(allTaskOptions);
     }
 
-    IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, User user, String queueName, final Properties properties) {
-        this(spewer, factory, user, properties);
-        queue = factory.createQueue(propertiesProvider, queueName, Path.class );
-    }
-
     @Override
     public Long call() throws Exception {
         logger.info("Processing up to {} file(s) in parallel", parallelism);

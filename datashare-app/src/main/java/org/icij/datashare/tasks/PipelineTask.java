@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask {
-    protected DocumentQueue<T> queue;
+    protected final DocumentQueue<T> queue;
     protected final Stage stage;
     protected final User user;
     protected final PropertiesProvider propertiesProvider;
