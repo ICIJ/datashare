@@ -52,7 +52,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         this.languageGuesser = languageGuesser;
         this.maxContentLength = getMaxContentLength(propertiesProvider);
         this.digestAlgorithm = getDigestAlgorithm(propertiesProvider);
-        this.nlpQueue = nlpQueueFactory.createQueue(propertiesProvider, new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.NLP), String.class);
+        this.nlpQueue = nlpQueueFactory.createQueue(propertiesProvider, new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
         logger.info("spewer defined with {}", indexer);
     }
 
