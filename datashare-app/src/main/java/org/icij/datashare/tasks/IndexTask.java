@@ -43,13 +43,6 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         super(Stage.INDEX, user, factory, new PropertiesProvider(properties), Path.class);
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
         parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
-        String indexName = propertiesProvider.get("defaultProject").orElse("local-datashare");
-        spewer.withIndex(indexName); // TODO: remove this
-        try {
-            spewer.createIndex();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
 
         Options<String> allTaskOptions = options().createFrom(Options.from(properties));
         DocumentFactory documentFactory = new DocumentFactory().configure(allTaskOptions);

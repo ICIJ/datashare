@@ -52,7 +52,9 @@ public class ElasticsearchSpewerTest {
     public static ElasticsearchRule es = new ElasticsearchRule();
     private final MemoryDocumentCollectionFactory<String> documentQueueFactory = new MemoryDocumentCollectionFactory<>();
     private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True),
-            documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex("test-datashare");
+            documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
+                put("defaultProject", "test-datashare");
+    }}));
 
     @Test
     public void test_simple_write() throws Exception {
@@ -324,13 +326,15 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_duplicate_file() throws Exception {
-        HashMap<String, String> digestProperties = new HashMap<>() {{
+        HashMap<String, String> properties = new HashMap<>() {{
             put("digestAlgorithm", "SHA-256");
             put("digestProjectName", "project");
+            put("defaultProject", "test-datashare");
+            put("defaultProject", "test-datashare");
         }};
         ElasticsearchSpewer spewer256 = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
-                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(digestProperties)).withIndex("test-datashare");
-        Options<String> from = Options.from(digestProperties);
+                documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(properties));
+        Options<String> from = Options.from(properties);
         DocumentFactory tikaFactory = new DocumentFactory().configure(from);
         Extractor extractor = new Extractor(tikaFactory).configure(from);
 
@@ -376,7 +380,8 @@ public class ElasticsearchSpewerTest {
         ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
-        }})).withIndex("test-datashare");
+            put("defaultProject", "test-datashare");
+        }}));
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("fake-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content should be truncated".getBytes()));
         document.setReader(reader);
@@ -392,7 +397,8 @@ public class ElasticsearchSpewerTest {
         ElasticsearchSpewer limitedContentSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(es.client, new PropertiesProvider()),
                 documentQueueFactory, text -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(new HashMap<>() {{
             put("maxContentLength", "20");
-        }})).withIndex("test-datashare");
+            put("defaultProject", "test-datashare");
+        }}));
         final TikaDocument document = new DocumentFactory().withIdentifier(new PathIdentifier()).create(get("ok-file.txt"));
         final ParsingReader reader = new ParsingReader(new ByteArrayInputStream("this content is ok".getBytes()));
         document.setReader(reader);
