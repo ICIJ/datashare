@@ -106,7 +106,11 @@ public class SourceExtractorTest {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(createIndexer(),
-                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex(TEST_INDEX);
+                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(
+                        new HashMap<>() {{
+                            put("defaultProject", TEST_INDEX);
+                        }}
+        ));
         spewer.write(document);
 
         Document attachedPdf = createIndexer().
@@ -136,7 +140,12 @@ public class SourceExtractorTest {
         Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
         final TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(createIndexer(),
-                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider()).withIndex(TEST_INDEX);
+                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(
+                new HashMap<>() {{
+                    put("defaultProject", TEST_INDEX);
+                }}
+
+        ));
         spewer.write(document);
 
         Document attachedPdf = createIndexer().

@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 
 import static java.nio.file.Paths.get;
 import static org.icij.datashare.text.Language.ENGLISH;
@@ -64,7 +65,9 @@ public class IndexerHelper {
         TikaDocument document = extractor.extract(path);
         ElasticsearchSpewer elasticsearchSpewer = new ElasticsearchSpewer(new ElasticsearchIndexer(client,
                 new PropertiesProvider()).withRefresh(Refresh.True), new MemoryDocumentCollectionFactory<>(), l -> ENGLISH,
-                new FieldNames(), new PropertiesProvider()).withIndex("test-datashare");
+                new FieldNames(), new PropertiesProvider(new HashMap<>() {{
+                    put("defaultProject","test-datashare");
+        }}));
         elasticsearchSpewer.write(document);
         return path.toFile();
     }

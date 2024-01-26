@@ -53,6 +53,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         this.maxContentLength = getMaxContentLength(propertiesProvider);
         this.digestAlgorithm = getDigestAlgorithm(propertiesProvider);
         this.nlpQueue = nlpQueueFactory.createQueue(propertiesProvider, new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
+        this.indexName = propertiesProvider.get("defaultProject").orElse("local-datashare");
         logger.info("spewer defined with {}", indexer);
     }
 
@@ -73,15 +74,6 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         }
         logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
                 shorten(doc.getId(), 4), currentTimeMillis() - before, doc);
-    }
-
-    public ElasticsearchSpewer withIndex(final String indexName) {
-        this.indexName = indexName;
-        return this;
-    }
-
-    public void createIndex() throws IOException {
-        indexer.createIndex(indexName);
     }
 
     private boolean isDuplicate(String docId) throws IOException {

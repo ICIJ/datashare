@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 
 import static java.nio.file.Paths.get;
 import static org.fest.assertions.Assertions.assertThat;
@@ -34,7 +35,9 @@ public class DatashareExtractIntegrationTest {
 
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, new MemoryDocumentCollectionFactory<>(), l -> ENGLISH,
-            new FieldNames(), new PropertiesProvider()).withIndex("test-datashare");
+            new FieldNames(), new PropertiesProvider(new HashMap<>(){{
+                put("defaultProject", "test-datashare");
+    }}));
 
     public DatashareExtractIntegrationTest() throws IOException {}
 
