@@ -20,7 +20,7 @@ import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.mockito.Matchers.any;
 
-public class ResumeNlpTaskTest {
+public class EnqueueFromIndexTaskTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
