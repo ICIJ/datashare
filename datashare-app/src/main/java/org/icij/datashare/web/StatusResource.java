@@ -32,33 +32,23 @@ public class StatusResource {
     private final Repository repository;
     private final Indexer indexer;
     private final DataBus dataBus;
-    private final DocumentQueue<Path> queue;
 
     @Inject
-    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer, DataBus dataBus, DocumentCollectionFactory<Path> documentCollectionFactory) {
+    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer, DataBus dataBus) {
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
         this.indexer = indexer;
         this.dataBus = dataBus;
-        this.queue = documentCollectionFactory.createQueue(propertiesProvider, propertiesProvider.get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue"), Path.class);
     }
 
-    @Operation(description = "Retrieve the status of databus connection, database connection, shared queues and index.",
+    @Operation(description = "Retrieve the status of databus connection, database connection and index.",
             parameters = { @Parameter(name = "format=openmetrics", description = "if provided in the URL it will return the status in openmetrics format", in = ParameterIn.QUERY) })
     @ApiResponse(responseCode = "200", description = "returns the status of datashare elements", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "504", description = "proxy error when elasticsearch is down", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "503", description = "service unavailable when other services are down", useReturnTypeSchema = true)
     @Get("/status")
     public Payload getStatus(Context context) {
-        boolean queueStatus = false;
-        int queueSize = 0;
-        try{
-            queueSize = queue.size();
-            queueStatus = true;
-        } catch (RuntimeException ex){
-            logger.error("Queue Health Error : ",ex);
-        }
-        Status status = new Status(repository.getHealth(), indexer.getHealth(), dataBus.getHealth(), queueStatus, queueSize);
+        Status status = new Status(repository.getHealth(), indexer.getHealth(), dataBus.getHealth());
         if ("openmetrics".equals(context.request().query().get("format"))) {
             return new Payload("text/plain;version=0.0.4",
                     new StatusMapper("datashare", status, propertiesProvider.get("platform").orElse(null)).toString());
@@ -71,15 +61,11 @@ public class StatusResource {
         public final boolean database;
         public final boolean index;
         public final boolean databus;
-        public final boolean document_queue_status;
-        public final int document_queue_size;
 
-        Status(boolean database, boolean index, boolean databus, boolean queue, int queueSize) {
+        Status(boolean database, boolean index, boolean databus) {
             this.database = database;
             this.index = index;
             this.databus = databus;
-            this.document_queue_status = queue;
-            this.document_queue_size = queueSize;
         }
 
         @JsonIgnore
