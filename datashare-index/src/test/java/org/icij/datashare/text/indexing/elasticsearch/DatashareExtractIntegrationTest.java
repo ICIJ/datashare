@@ -3,7 +3,6 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.com.Publisher;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
@@ -27,7 +26,6 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
-import static org.mockito.Mockito.mock;
 
 public class DatashareExtractIntegrationTest {
     @ClassRule

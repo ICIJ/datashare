@@ -3,12 +3,10 @@ package org.icij.datashare;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.spi.CliExtension;
-import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskView;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
@@ -16,13 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 
 import static java.lang.Boolean.parseBoolean;
-import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
@@ -70,17 +66,6 @@ class CliApp {
         Pipeline.Type nlpPipeline = Pipeline.Type.parse(properties.getProperty(DatashareCliOptions.NLP_PIPELINE_OPT));
         Indexer indexer = mode.get(Indexer.class);
 
-        if (resume(properties)) {
-            RedisUserDocumentQueue<Path> queue = new RedisUserDocumentQueue<>(nullUser(), new PropertiesProvider(properties), Path.class);
-            boolean queueIsEmpty = queue.isEmpty();
-            queue.close();
-
-            if (indexer.search(singletonList(properties.getProperty("defaultProject")), Document.class).without(nlpPipeline).withSource(false).execute().findAny().isEmpty() && queueIsEmpty) {
-                logger.info("nothing to resume, exiting normally");
-                System.exit(0);
-            }
-        }
-
         if (properties.getProperty(CREATE_INDEX_OPT) != null) {
             indexer.createIndex(properties.getProperty(CREATE_INDEX_OPT));
             System.exit(0);
@@ -120,7 +105,7 @@ class CliApp {
             logger.info("scanned {}", taskView.getResult(true));
         }
 
-        if (pipeline.has(Stage.SCAN) && !resume(properties)) {
+        if (pipeline.has(Stage.SCAN)) {
             taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), properties),
                     () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
         }
@@ -130,10 +115,12 @@ class CliApp {
                     () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
         }
 
+        if (pipeline.has(Stage.ENQUEUEIDX)) {
+            taskManager.startTask(taskFactory.createEnqueueFromIndexTask(nullUser(), properties),
+                    () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
+        }
+
         if (pipeline.has(Stage.NLP)) {
-            if (resume(properties)) {
-                taskManager.startTask(taskFactory.createResumeNlpTask(nullUser(), properties));
-            }
             taskManager.startTask(taskFactory.createNlpTask(nullUser(), properties),
                     () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
         }
@@ -149,9 +136,5 @@ class CliApp {
                 logger.error("error while closing", e);
             }
         };
-    }
-
-    private static boolean resume(Properties properties) {
-        return parseBoolean(properties.getProperty(DatashareCliOptions.RESUME_OPT, "false"));
     }
 }

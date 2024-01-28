@@ -23,6 +23,6 @@ public interface TaskFactory {
     ScanTask createScanTask(final User user, final Path path, Properties properties);
     IndexTask createIndexTask(final User user, final Properties properties);
     ExtractNlpTask createNlpTask(final User user, final Properties properties);
-    EnqueueFromIndexTask createResumeNlpTask(final User user, final Properties properties);
+    EnqueueFromIndexTask createEnqueueFromIndexTask(final User user, final Properties properties);
     DeduplicateTask createDeduplicateTask(User user);
 }

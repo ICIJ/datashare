@@ -18,7 +18,6 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
-import static org.mockito.Matchers.any;
 
 public class EnqueueFromIndexTaskTest {
     @ClassRule
