@@ -256,7 +256,7 @@ public class TaskResource {
         String queueName = new PipelineHelper(new PropertiesProvider(mergedProps)).getQueueNameFor(Stage.NLP);
         TaskView<Long> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), mergedProps));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createResumeNlpTask((User) context.currentUser(), mergedProps));
+            TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createEnqueueFromIndexTask((User) context.currentUser(), mergedProps));
             return asList(resumeNlpTask, nlpTask);
         }
         return singletonList(nlpTask);

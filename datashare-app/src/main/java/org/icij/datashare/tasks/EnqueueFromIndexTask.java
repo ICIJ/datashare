@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Properties;
 
-import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
