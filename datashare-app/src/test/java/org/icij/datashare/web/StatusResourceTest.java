@@ -17,9 +17,6 @@ import org.mockito.Mock;
 import java.nio.file.Path;
 import java.util.HashMap;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -35,8 +32,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        when(documentCollectionFactory.createQueue(any(),eq(new PropertiesProvider().get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue")), eq(Path.class))).thenReturn(mock(DocumentQueue.class));
-        configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,dataBus,documentCollectionFactory)));
+        configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,dataBus)));
     }
 
     @Test
@@ -92,41 +88,20 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
                 "# TYPE datashare gauge\n" +
                 "datashare{status=\"KO\",resource=\"database\"} 0 1593531060000\n" +
                 "datashare{status=\"KO\",resource=\"index\"} 0 1593531060000\n" +
-                "datashare{status=\"OK\",resource=\"databus\"} 1 1593531060000\n" +
-                "datashare{status=\"OK\",resource=\"document_queue_status\"} 1 1593531060000\n" +
-                "datashare{resource=\"document_queue_size\"} 0 1593531060000");
+                "datashare{status=\"OK\",resource=\"databus\"} 1 1593531060000");
     }
 
     @Test
     public void test_get_status_with_open_metrics_format_with_platform_name() {
         configure(routes -> routes.add(new StatusResource(new PropertiesProvider(new HashMap<String, String>() {{
             put("platform", "platform");
-        }}),repository,indexer,dataBus,documentCollectionFactory)));
+        }}),repository,indexer,dataBus)));
         when(dataBus.getHealth()).thenReturn(true);
         get("/api/status?format=openmetrics").should().respond(200).haveType("text/plain;version=0.0.4").contain("" +
                 "# HELP datashare The datashare resources status\n" +
                 "# TYPE datashare gauge\n" +
                 "datashare{environment=\"platform\",status=\"KO\",resource=\"database\"} 0 1593531060000\n" +
                 "datashare{environment=\"platform\",status=\"KO\",resource=\"index\"} 0 1593531060000\n" +
-                "datashare{environment=\"platform\",status=\"OK\",resource=\"databus\"} 1 1593531060000\n" +
-                "datashare{environment=\"platform\",status=\"OK\",resource=\"document_queue_status\"} 1 1593531060000\n" +
-                "datashare{environment=\"platform\",resource=\"document_queue_size\"} 0 1593531060000");
-    }
-
-    @Test
-    public void test_get_queue_status() {
-        get("/api/status").should().respond(504).
-                contain("\"document_queue_status\":true").
-                contain("\"document_queue_size\":0");
-    }
-
-    @Test
-    public void test_get_queue_with_io_exception() {
-        DocumentQueue<Path> mockQueue = mock(DocumentQueue.class);
-        when(mockQueue.size()).thenThrow(new RuntimeException("test"));
-        when(indexer.getHealth()).thenReturn(true);
-        when(documentCollectionFactory.createQueue(any(),eq(new PropertiesProvider().get(PropertiesProvider.QUEUE_NAME_OPTION).orElse("extract:queue")), eq(Path.class))).thenReturn(mockQueue);
-        configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,dataBus,documentCollectionFactory)));
-        get("/api/status").should().respond(503).contain("\"document_queue_status\":false");
+                "datashare{environment=\"platform\",status=\"OK\",resource=\"databus\"} 1 1593531060000");
     }
 }

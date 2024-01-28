@@ -18,7 +18,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 
-import static java.lang.Boolean.parseBoolean;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
