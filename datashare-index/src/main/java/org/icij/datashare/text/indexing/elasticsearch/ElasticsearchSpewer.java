@@ -1,23 +1,16 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
 import com.google.inject.Inject;
-import org.icij.datashare.Entity;
-import org.icij.datashare.HumanReadableSize;
-import org.icij.datashare.PipelineHelper;
-import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.Stage;
+import org.icij.datashare.*;
 import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.text.Document;
-import org.icij.datashare.text.DocumentBuilder;
-import org.icij.datashare.text.Duplicate;
-import org.icij.datashare.text.Hasher;
-import org.icij.datashare.text.Language;
+import org.icij.datashare.text.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.TikaDocument;
 import org.icij.extract.queue.DocumentQueue;
 import org.icij.spewer.FieldNames;
 import org.icij.spewer.Spewer;
+import org.icij.task.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,9 +21,7 @@ import java.nio.charset.StandardCharsets;
 
 import static java.lang.System.currentTimeMillis;
 import static java.util.Optional.ofNullable;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_ENCODING;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_LENGTH;
-import static org.apache.tika.metadata.HttpHeaders.CONTENT_TYPE;
+import static org.apache.tika.metadata.HttpHeaders.*;
 import static org.icij.datashare.text.Hasher.shorten;
 
 public class ElasticsearchSpewer extends Spewer implements Serializable {
@@ -42,7 +33,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final int maxContentLength;
     private final Hasher digestAlgorithm;
     private final DocumentQueue<String> nlpQueue;
-    private String indexName;
+    String indexName;
 
     @Inject
     public ElasticsearchSpewer(final Indexer indexer, DocumentCollectionFactory<String> nlpQueueFactory, LanguageGuesser languageGuesser, final FieldNames fields,
@@ -121,7 +112,23 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     }
 
     @Override
+    public Spewer configure(Options<String> options) {
+        super.configure(options);
+        options.valueIfPresent("projectName").ifPresent(this::setIndex);
+        return this;
+    }
+
+    public Spewer createIndexIfNotExists() throws IOException {
+        indexer.createIndex(indexName);
+        return this;
+    }
+
+    @Override
     public void close() throws Exception {
         nlpQueue.close();
+    }
+
+    private void setIndex(String indexName) {
+        this.indexName = indexName;
     }
 }

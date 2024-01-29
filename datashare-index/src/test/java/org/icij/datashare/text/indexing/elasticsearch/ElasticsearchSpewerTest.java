@@ -14,9 +14,12 @@ import org.apache.tika.parser.ParsingReader;
 import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.*;
+import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.document.PathIdentifier;
 import org.icij.extract.document.TikaDocument;
@@ -26,9 +29,11 @@ import org.icij.task.Options;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -416,7 +421,28 @@ public class ElasticsearchSpewerTest {
         assertThat((long)spewer.getMaxContentLength(new PropertiesProvider(new HashMap<>() {{put("maxContentLength", "2G");}})))
                 .isEqualTo(HumanReadableSize.parse("2G")-1); // Integer.MAX_VALUE
     }
-    
+
+    @Test
+    public void test_configure() {
+        spewer.configure(Options.from(new HashMap<>() {{
+            put("charset", "UTF-16");
+            put("projectName", "test-index");
+        }}));
+        assertThat(spewer.getOutputEncoding()).isEqualTo(StandardCharsets.UTF_16);
+        assertThat(spewer.indexName).isEqualTo("test-index");
+    }
+
+    @Test
+    public void test_configure_is_creating_index() throws Exception {
+        Indexer indexer = Mockito.mock(Indexer.class);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class), new FieldNames(), new PropertiesProvider());
+        spewer.configure(Options.from(new HashMap<>() {{
+            put("projectName", "foo");
+        }}));
+        spewer.createIndexIfNotExists();
+        Mockito.verify(indexer).createIndex("foo");
+    }
+
     @After
     public void after() {
         try {
