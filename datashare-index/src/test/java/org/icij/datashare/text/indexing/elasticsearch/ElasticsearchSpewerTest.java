@@ -75,7 +75,7 @@ public class ElasticsearchSpewerTest {
         assertEquals(new HashMap<String, String>() {{
             put("name", "Document");
         }}, nodeToMap(documentFields.source()).get("join"));
-        assertThat(documentQueueFactory.createQueue(new PropertiesProvider(), "extract:queue:nlp", String.class).size()).isEqualTo(1);
+        assertThat(documentQueueFactory.createQueue("extract:queue:nlp", String.class).size()).isEqualTo(1);
     }
 
     @Test

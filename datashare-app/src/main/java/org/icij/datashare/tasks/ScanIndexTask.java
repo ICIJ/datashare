@@ -6,7 +6,6 @@ import org.icij.datashare.Entity;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
-import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
@@ -48,7 +47,7 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000"));
         this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));
         this.projectName = propertiesProvider.get("defaultProject").orElse("local-datashare");
-        this.reportMap = factory.createMap(propertiesProvider, reportName);
+        this.reportMap = factory.createMap(reportName);
         this.indexer = indexer;
     }
 

@@ -211,7 +211,7 @@
         }
 
         DocumentQueue<Path> getDocumentQueue(String queueName) {
-            return documentCollectionFactory.createQueue(propertiesProvider, queueName, Path.class);
+            return documentCollectionFactory.createQueue(queueName, Path.class);
         }
 
         DocumentQueue<?> getDocumentQueue(Project project) {
@@ -220,7 +220,7 @@
         }
 
         ReportMap getReportMap(String reportMapName) {
-            return documentCollectionFactory.createMap(propertiesProvider, reportMapName);
+            return documentCollectionFactory.createMap(reportMapName);
         }
 
         ReportMap getReportMap(Project project) {
