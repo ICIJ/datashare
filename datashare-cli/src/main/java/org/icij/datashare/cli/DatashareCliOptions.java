@@ -7,6 +7,8 @@ import org.icij.datashare.Stage;
 
 import java.io.File;
 import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -74,6 +76,15 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType( Mode.class )
                 .defaultsTo(Mode.LOCAL);
+    }
+
+    static void charset(OptionParser parser) {
+        parser.acceptsAll(
+                asList("charset"),
+                "Datashare default charset. Example: " +
+                        Arrays.toString(new Charset[]{StandardCharsets.UTF_8, StandardCharsets.ISO_8859_1}))
+                .withRequiredArg()
+                .defaultsTo(Charset.defaultCharset().toString());
     }
 
     static void defaultUser(OptionParser parser) {
@@ -302,9 +313,9 @@ public final class DatashareCliOptions {
 
      public static void redisPoolSize(OptionParser parser) {
         parser.acceptsAll(
-                singletonList("redisPoolSize"), "Redis pool size used for each redis collection")
+                singletonList("redisPoolSize"), "Pool size for main Redis client")
                 .withRequiredArg()
-                .ofType(Integer.class).defaultsTo(2);
+                .ofType(Integer.class).defaultsTo(5);
     }
 
     public static void elasticsearchDataPath(OptionParser parser) {

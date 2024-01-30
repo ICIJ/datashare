@@ -19,13 +19,17 @@ import org.icij.datashare.text.nlp.AbstractPipeline;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
+import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.extract.report.ReportMap;
+import org.icij.task.Options;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mock;
+import org.redisson.api.RedissonClient;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 
@@ -74,6 +78,9 @@ public class ExtractNlpTaskIntTest {
                 {Guice.createInjector(new AbstractModule() {
                     @Override
                     protected void configure() {
+                        bind(RedissonClient.class).toInstance(new RedissonClientFactory().withOptions(Options.from(new HashMap<>() {{
+                            put("redisAddress", "redis://redis:6379");
+                                }})).create());
                         install(new FactoryModuleBuilder().
                                 implement(new TypeLiteral<DocumentQueue<String>>(){}, new TypeLiteral<RedisUserDocumentQueue<String>>(){}).
                                 implement(ReportMap.class, RedisUserReportMap.class).

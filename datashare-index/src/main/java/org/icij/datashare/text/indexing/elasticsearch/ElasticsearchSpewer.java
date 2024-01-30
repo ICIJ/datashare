@@ -3,6 +3,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 import com.google.inject.Inject;
 import org.icij.datashare.*;
 import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
@@ -55,15 +56,19 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
             return;
         }
         long before = currentTimeMillis();
+        String docType = parent == null ? "Document" : "Child";
         if (parent == null && isDuplicate(doc.getId())) {
             doc.setDuplicate(true);
             indexer.add(indexName, new Duplicate(doc.getPath(), doc.getId(), digestAlgorithm));
+            docType = "Duplicate";
         } else {
             Document document = getDocument(doc, root, parent, (short) level);
             indexer.add(indexName, document);
-            nlpQueue.add(document.getId());
+            if (!nlpQueue.offer(document.getId())) {
+                logger.warn("cannot offer {} to queue {}", document.getId(), nlpQueue.getName());
+            }
         }
-        logger.info("{} {} added to elasticsearch in {}ms: {}", parent == null ? "Document" : "Child",
+        logger.info("{} {} added to elasticsearch in {}ms: {}", docType,
                 shorten(doc.getId(), 4), currentTimeMillis() - before, doc);
     }
 
@@ -126,7 +131,6 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     @Override
     public void close() throws Exception {
         nlpQueue.put("POISON");
-        nlpQueue.close();
     }
 
     private void setIndex(String indexName) {

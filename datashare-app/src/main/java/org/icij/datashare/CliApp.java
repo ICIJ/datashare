@@ -125,7 +125,10 @@ class CliApp {
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
         indexer.close();
-        ofNullable(redissonClient).ifPresent(RedissonClient::shutdown);
+        ofNullable(redissonClient).ifPresent(r -> {
+            logger.info("shutting down RedissonClient");
+            r.shutdown();
+        });
     }
 
     private static Runnable closeAndLogException(AutoCloseable closeable) {

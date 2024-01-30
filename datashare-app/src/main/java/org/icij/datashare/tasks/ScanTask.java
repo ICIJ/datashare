@@ -35,7 +35,6 @@ public class ScanTask extends PipelineTask<Path> {
         ScannerVisitor scannerVisitor = scanner.createScannerVisitor(path);
         Long scanned = scannerVisitor.call();
         queue.add(PATH_POISON);
-        queue.close();
         return scanned;
     }
 }
