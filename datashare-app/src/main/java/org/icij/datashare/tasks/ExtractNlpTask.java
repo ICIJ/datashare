@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
+import static org.icij.extract.document.Identifier.shorten;
 
 public class ExtractNlpTask extends PipelineTask<String> implements Monitorable {
     private static final int DEFAULT_MAX_CONTENT_LENGTH = 1024 * 1024;
@@ -48,7 +49,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     }
 
     @Override
-    public Long call() throws InterruptedException {
+    public Long call() throws Exception {
         logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, queue.getName());
         String docId;
         long nbMessages = 0;
@@ -62,7 +63,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                 logger.warn("error in ExtractNlpTask loop", e);
             }
         }
-        logger.info("exiting ExtractNlpTask loop after {} messages", nbMessages);
+        logger.info("exiting ExtractNlpTask loop after {} messages. Closing queue {}", nbMessages, queue.getName());
+        queue.close();
         return nbMessages;
     }
 
@@ -70,7 +72,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         try {
             Document doc = indexer.get(project.getName(), id);
             if (doc != null) {
-                logger.info("extracting {} entities for document {}", nlpPipeline.getType(), doc.getId());
+                logger.info("extracting {} entities for document {}", nlpPipeline.getType(), shorten(doc.getId(), 4));
                 if (nlpPipeline.initialize(doc.getLanguage())) {
                     int nbEntities = 0;
                     if (doc.getContent().length() < this.maxContentLengthChars) {
@@ -90,7 +92,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
                             nbEntities += namedEntities.size();
                         }
                     }
-                    logger.info("added {} named entities to document {}", nbEntities, doc.getId());
+                    logger.info("added {} named entities to document {}", nbEntities, shorten(doc.getId(), 4));
                     nlpPipeline.terminate(doc.getLanguage());
                 }
             } else {

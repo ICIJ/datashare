@@ -56,6 +56,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
             logger.info("enqueued into {} {} files without {} pipeline tags", queue.getName(), totalHits, nlpPipeline);
             searcher.clearScroll();
         }
+        queue.close();
 
         return totalHits;
     }
