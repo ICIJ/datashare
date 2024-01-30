@@ -12,6 +12,7 @@ import edu.stanford.nlp.util.Triple;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.function.ThrowingFunctions;
 import org.icij.datashare.text.Document;
+import org.icij.datashare.text.Hasher;
 import org.icij.datashare.text.Language;
 import org.icij.datashare.text.NamedEntitiesBuilder;
 import org.icij.datashare.text.NamedEntity;
@@ -192,7 +193,7 @@ public final class CorenlpPipeline extends AbstractPipeline {
     private List<NamedEntity> processNerClassifier(Document doc, int contentLength, int contentOffset) throws InterruptedException {
         Annotations annotations = new Annotations(doc.getId(), doc.getRootDocument(), getType(), doc.getLanguage());
         NamedEntitiesBuilder namedEntitiesBuilder = new NamedEntitiesBuilder(getType(), doc.getId(), doc.getLanguage()).withRoot(doc.getRootDocument());
-        LOGGER.info("name-finding for {} in document {} (offset {})", doc.getLanguage(), doc.getId(), contentOffset);
+        LOGGER.info("name-finding for {} in document {} (offset {})", doc.getLanguage(), Hasher.shorten(doc.getId(), 4), contentOffset);
         // Recognize named entities from input
         final CoreNlpAnnotator<AbstractSequenceClassifier<CoreLabel>> abstractSequenceClassifierCoreNlpAnnotator;
         abstractSequenceClassifierCoreNlpAnnotator = CoreNlpNerModels.getInstance().get(doc.getLanguage());

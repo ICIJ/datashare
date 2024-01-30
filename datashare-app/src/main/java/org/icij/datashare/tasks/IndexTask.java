@@ -75,7 +75,6 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         }
 
         if (consumer.getReporter() != null) consumer.getReporter().close();
-        queue.close();
         logger.info("exiting");
         return totalToProcess;
     }

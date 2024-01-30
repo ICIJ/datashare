@@ -36,7 +36,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final int maxContentLengthChars;
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted User user, @Assisted final Properties properties) {
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory,
+                          @Assisted User user, @Assisted final Properties properties) {
         this(indexer, registry.get(Pipeline.Type.parse(properties.getProperty(NLP_PIPELINE_OPT))), factory, user, properties);
     }
 
@@ -55,16 +56,15 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         long nbMessages = 0;
         while (!(STRING_POISON.equals(docId = queue.poll(60, TimeUnit.SECONDS)))) {
             try {
-                if (docId !=  null) {
+                if (docId != null) {
                     findNamedEntities(project, docId);
                     nbMessages++;
                 }
             } catch (Throwable e) {
-                logger.warn("error in ExtractNlpTask loop", e);
+                logger.error("error in ExtractNlpTask loop", e);
             }
         }
-        logger.info("exiting ExtractNlpTask loop after {} messages. Closing queue {}", nbMessages, queue.getName());
-        queue.close();
+        logger.info("exiting ExtractNlpTask loop after {} messages.", nbMessages);
         return nbMessages;
     }
 

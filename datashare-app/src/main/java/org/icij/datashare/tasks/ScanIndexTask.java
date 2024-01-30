@@ -56,8 +56,6 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
         logger.info("scanning index {} with scroll size {} and {} slices", projectName, scrollSize, scrollSlices);
         Optional<Long> nb = IntStream.range(0, scrollSlices).parallel().mapToObj(this::slicedScroll).reduce(Long::sum);
         logger.info("imported {} paths into {}", nb.get(), reportMap);
-        reportMap.close();
-        queue.close();
         return nb.get();
     }
 

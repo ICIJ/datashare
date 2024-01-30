@@ -1,6 +1,8 @@
 package org.icij.datashare;
 
 import org.icij.datashare.extract.RedisUserReportMap;
+import org.icij.extract.redis.RedissonClientFactory;
+import org.icij.task.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +19,11 @@ public class ReportExtractor {
             System.exit(1);
         }
 
-        try (RedisUserReportMap reportMap = new RedisUserReportMap(new PropertiesProvider(new HashMap<>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("redisAddress", args[0]);
-        }}), args[1])) {
+        }});
+        try (RedisUserReportMap reportMap = new RedisUserReportMap(propertiesProvider,
+                new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), args[1])) {
             reportMap.forEach((path, report) -> {
                 if (report.getException().isPresent()) {
                     StringWriter sw = new StringWriter();

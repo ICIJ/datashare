@@ -6,6 +6,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedisReportMap;
 import org.icij.task.Options;
+import org.redisson.api.RedissonClient;
 
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -15,13 +16,9 @@ import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 public class RedisUserReportMap extends RedisReportMap {
 
     @Inject
-    public RedisUserReportMap(PropertiesProvider provider, @Assisted String mapName) {
-        super(Options.from(provider.createOverriddenWith(new HashMap<String, String>() {{put("reportName", mapName);put("charset", String.valueOf(Charset.defaultCharset()));}})));
+    public RedisUserReportMap(PropertiesProvider propertiesProvider, RedissonClient redissonClient, @Assisted String mapName) {
+        super(redissonClient, mapName, Charset.forName(propertiesProvider.get("charset").orElse(Charset.defaultCharset().name())));
     }
-
-    public RedisUserReportMap(final User user, PropertiesProvider propertiesProvider) {
-         this(propertiesProvider, getMapName(user, propertiesProvider.get(MAP_NAME_OPTION).orElse("extract:report")));
-     }
 
     private static String getMapName(User user, String baseName) {
         return user.isNull() ? baseName : baseName + "_" + user.id;

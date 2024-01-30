@@ -5,7 +5,12 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedisDocumentQueue;
+import org.icij.extract.redis.RedissonClientFactory;
+import org.icij.task.Options;
 import org.redisson.RedissonShutdownException;
+import org.redisson.api.RedissonClient;
+
+import java.nio.charset.Charset;
 
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
 
@@ -13,17 +18,14 @@ public class RedisUserDocumentQueue<T> extends RedisDocumentQueue<T> {
     private final String queueName;
 
     @Inject
-    public RedisUserDocumentQueue(PropertiesProvider propertiesProvider, @Assisted String queueName, @Assisted Class<T> clazz) {
-        super(queueName, propertiesProvider.get("redisAddress").orElse("redis://redis:6379"), clazz);
+    public RedisUserDocumentQueue(PropertiesProvider propertiesProvider, RedissonClient redissonClient, @Assisted String queueName, @Assisted Class<T> clazz) {
+        super(redissonClient, queueName, Charset.forName(propertiesProvider.get("charset").orElse(Charset.defaultCharset().toString())), clazz);
         this.queueName = queueName;
     }
 
     public RedisUserDocumentQueue(final User user, PropertiesProvider propertiesProvider, Class<T> clazz) {
-        this(propertiesProvider, getQueueName(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue")), clazz);
-    }
-
-    public RedisUserDocumentQueue(PropertiesProvider propertiesProvider, Class<T> clazz) {
-        this(User.nullUser(), propertiesProvider, clazz);
+        this(propertiesProvider, new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(),
+                getQueueName(user, propertiesProvider.get(QUEUE_NAME_OPTION).orElse("extract:queue")), clazz);
     }
 
     @Override
