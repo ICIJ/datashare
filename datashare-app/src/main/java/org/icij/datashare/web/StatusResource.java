@@ -14,7 +14,6 @@ import net.codestory.http.constants.HttpStatus;
 import net.codestory.http.payload.Payload;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-import org.icij.datashare.com.DataBus;
 import org.icij.datashare.openmetrics.StatusMapper;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
@@ -31,14 +30,12 @@ public class StatusResource {
     private final PropertiesProvider propertiesProvider;
     private final Repository repository;
     private final Indexer indexer;
-    private final DataBus dataBus;
 
     @Inject
-    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer, DataBus dataBus) {
+    public StatusResource(PropertiesProvider propertiesProvider, Repository repository, Indexer indexer) {
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
         this.indexer = indexer;
-        this.dataBus = dataBus;
     }
 
     @Operation(description = "Retrieve the status of databus connection, database connection and index.",
@@ -48,7 +45,7 @@ public class StatusResource {
     @ApiResponse(responseCode = "503", description = "service unavailable when other services are down", useReturnTypeSchema = true)
     @Get("/status")
     public Payload getStatus(Context context) {
-        Status status = new Status(repository.getHealth(), indexer.getHealth(), dataBus.getHealth());
+        Status status = new Status(repository.getHealth(), indexer.getHealth());
         if ("openmetrics".equals(context.request().query().get("format"))) {
             return new Payload("text/plain;version=0.0.4",
                     new StatusMapper("datashare", status, propertiesProvider.get("platform").orElse(null)).toString());
@@ -60,19 +57,17 @@ public class StatusResource {
     public static class Status {
         public final boolean database;
         public final boolean index;
-        public final boolean databus;
 
-        Status(boolean database, boolean index, boolean databus) {
+        Status(boolean database, boolean index) {
             this.database = database;
             this.index = index;
-            this.databus = databus;
         }
 
         @JsonIgnore
         int getHttpStatus() {
             if (!index) {
                 return HttpStatus.GATEWAY_TIMEOUT;
-            } else if (!databus || !database) {
+            } else if (!database) {
                 return HttpStatus.SERVICE_UNAVAILABLE;
             }
             return HttpStatus.OK;

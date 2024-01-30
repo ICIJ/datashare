@@ -5,7 +5,6 @@ import co.elastic.clients.elasticsearch._types.Refresh;
 import org.apache.commons.io.FilenameUtils;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.com.Publisher;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
@@ -31,7 +30,6 @@ import java.util.HashMap;
 
 import static java.nio.file.Paths.get;
 import static org.icij.datashare.text.Language.ENGLISH;
-import static org.mockito.Mockito.mock;
 
 public class IndexerHelper {
     private final ElasticsearchClient client;

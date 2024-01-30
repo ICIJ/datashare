@@ -2,19 +2,15 @@ package org.icij.datashare.web;
 
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
-import org.icij.datashare.com.DataBus;
-import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
-import org.icij.extract.queue.DocumentQueue;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
-import java.nio.file.Path;
 import java.util.HashMap;
 
 import static org.mockito.Mockito.when;
@@ -24,22 +20,18 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     @Rule public TemporaryFolder folder = new TemporaryFolder();
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2020-06-30T15:31:00Z");
     @Mock Repository repository;
-    @Mock DataBus dataBus;
-    @Mock DocumentCollectionFactory<Path> documentCollectionFactory;
     @Mock Indexer indexer;
-    @Mock DocumentQueue<Path> queue;
 
     @Before
     public void setUp() {
         initMocks(this);
-        configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer,dataBus)));
+        configure(routes -> routes.add(new StatusResource(new PropertiesProvider(),repository,indexer)));
     }
 
     @Test
     public void test_get_status_ok() {
         when(repository.getHealth()).thenReturn(true);
         when(indexer.getHealth()).thenReturn(true);
-        when(dataBus.getHealth()).thenReturn(true);
         get("/api/status").should().respond(200).
                 contain("\"database\":true").
                 contain("\"index\":true").
@@ -61,7 +53,6 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_index_status_when_down() {
-        when(dataBus.getHealth()).thenReturn(true);
         when(indexer.getHealth()).thenReturn(false);
         when(repository.getHealth()).thenReturn(true);
         get("/api/status").should().respond(504).contain("\"index\":false").haveType("application/json");
@@ -74,34 +65,23 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_dataBus_status_when_down() {
-        when(dataBus.getHealth()).thenReturn(false);
-        when(indexer.getHealth()).thenReturn(true);
-        get("/api/status").should().respond(503).contain("\"databus\":false").haveType("application/json");
-    }
-
-    @Test
     public void test_get_status_with_open_metrics_format() {
-        when(dataBus.getHealth()).thenReturn(true);
         get("/api/status?format=openmetrics").should().respond(200).haveType("text/plain;version=0.0.4").contain("" +
                 "# HELP datashare The datashare resources status\n" +
                 "# TYPE datashare gauge\n" +
                 "datashare{status=\"KO\",resource=\"database\"} 0 1593531060000\n" +
-                "datashare{status=\"KO\",resource=\"index\"} 0 1593531060000\n" +
-                "datashare{status=\"OK\",resource=\"databus\"} 1 1593531060000");
+                "datashare{status=\"KO\",resource=\"index\"} 0 1593531060000");
     }
 
     @Test
     public void test_get_status_with_open_metrics_format_with_platform_name() {
         configure(routes -> routes.add(new StatusResource(new PropertiesProvider(new HashMap<String, String>() {{
             put("platform", "platform");
-        }}),repository,indexer,dataBus)));
-        when(dataBus.getHealth()).thenReturn(true);
+        }}),repository,indexer)));
         get("/api/status?format=openmetrics").should().respond(200).haveType("text/plain;version=0.0.4").contain("" +
                 "# HELP datashare The datashare resources status\n" +
                 "# TYPE datashare gauge\n" +
                 "datashare{environment=\"platform\",status=\"KO\",resource=\"database\"} 0 1593531060000\n" +
-                "datashare{environment=\"platform\",status=\"KO\",resource=\"index\"} 0 1593531060000\n" +
-                "datashare{environment=\"platform\",status=\"OK\",resource=\"databus\"} 1 1593531060000");
+                "datashare{environment=\"platform\",status=\"KO\",resource=\"index\"} 0 1593531060000");
     }
 }
