@@ -51,13 +51,13 @@ public class ExtractNlpTaskIntTest {
     }
 
     @Test(timeout = 2000)
-    public void test_loop_consume_two_documents() throws InterruptedException {
+    public void test_loop_consume_two_documents() throws Exception {
         when(pipeline.getType()).thenReturn(Pipeline.Type.CORENLP);
         when(pipeline.initialize(any())).thenReturn(true);
         Document doc = createDoc("content").build();
         when(indexer.get(anyString(), eq("docId"))).thenReturn(doc);
 
-        DocumentQueue<String> queueName = factory.createQueue(new PropertiesProvider(),
+        DocumentQueue<String> queueName = factory.createQueue(
                 new PipelineHelper(new PropertiesProvider()).getQueueNameFor(Stage.NLP), String.class);
         queueName.add("docId");
         queueName.add(PipelineTask.STRING_POISON);

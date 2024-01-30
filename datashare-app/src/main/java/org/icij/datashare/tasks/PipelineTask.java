@@ -21,7 +21,7 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     public static String STRING_POISON = "POISON";
 
     public PipelineTask(Stage stage, User user, String queueName, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz) {
-        this.queue = factory.createQueue(propertiesProvider, queueName, clazz);
+        this.queue = factory.createQueue(queueName, clazz);
         this.propertiesProvider = propertiesProvider;
         this.stage = stage;
         this.user = user;

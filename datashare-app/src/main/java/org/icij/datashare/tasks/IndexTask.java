@@ -51,7 +51,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
         if (propertiesProvider.getProperties().get(MAP_NAME_OPTION) != null) {
             logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(MAP_NAME_OPTION));
-            consumer.setReporter(new Reporter(factory.createMap(propertiesProvider, propertiesProvider.getProperties().get(MAP_NAME_OPTION).toString())));
+            consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(MAP_NAME_OPTION).toString())));
         }
         drainer = new DocumentQueueDrainer<>(queue, consumer).configure(allTaskOptions);
     }

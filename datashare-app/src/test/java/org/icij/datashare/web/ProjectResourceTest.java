@@ -299,7 +299,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_delete_project_and_its_queue() {
         Project foo = new Project("foo");
-        DocumentQueue<Path> queue = documentCollectionFactory.createQueue(propertiesProvider, "extract:queue:foo", Path.class);
+        DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:foo", Path.class);
         when(repository.getProjects(any())).thenReturn(List.of(foo));
         when(repository.deleteAll("foo")).thenReturn(true);
         queue.add(Path.of("/"));
@@ -311,7 +311,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_delete_project_and_its_report_map() {
         Project foo = new Project("foo");
-        ReportMap reportMap = documentCollectionFactory.createMap(propertiesProvider, "extract:report:foo");
+        ReportMap reportMap = documentCollectionFactory.createMap("extract:report:foo");
         when(repository.getProjects(any())).thenReturn(List.of(foo));
         when(repository.deleteAll("foo")).thenReturn(true);
         reportMap.put(Path.of("/"), new Report(ExtractionStatus.SUCCESS));

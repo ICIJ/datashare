@@ -45,7 +45,7 @@ public class ScanIndexTaskTest {
 
         assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser(), "test:report").call()).isEqualTo(2);
 
-        ReportMap actualReportMap = documentCollectionFactory.createMap(propertiesProvider, "test:report");
+        ReportMap actualReportMap = documentCollectionFactory.createMap("test:report");
         assertThat(actualReportMap).includes(
                 entry(Paths.get("/path/to/id1"), new Report(ExtractionStatus.SUCCESS)),
                 entry(Paths.get("/path/to/id2"), new Report(ExtractionStatus.SUCCESS))

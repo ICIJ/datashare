@@ -48,7 +48,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         long totalHits = searcher.totalHits();
 
-        try (DocumentQueue<String> outputQueue = factory.createQueue(propertiesProvider, getOutputQueueName(), String.class)) {
+        try (DocumentQueue<String> outputQueue = factory.createQueue(getOutputQueueName(), String.class)) {
             do {
                 docsToProcess.forEach(doc -> outputQueue.add(doc.getId()));
                 docsToProcess = searcher.scroll().collect(toList());

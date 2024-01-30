@@ -36,13 +36,13 @@ public class IndexTaskIntTest {
 
     @Test
     public void index_task_should_enqueue_poison_pill() throws Exception {
-        DocumentQueue<Path> queue = inputQueueFactory.createQueue(propertiesProvider, new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
+        DocumentQueue<Path> queue = inputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.INDEX), Path.class);
         queue.add(Paths.get(ClassLoader.getSystemResource("docs/doc.txt").getPath()));
 
         Long nbDocs = new IndexTask(spewer, inputQueueFactory, User.local(), propertiesProvider.getProperties()).call();
 
         assertThat(nbDocs).isEqualTo(1);
-        DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(propertiesProvider, new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
+        DocumentQueue<String> outputQueue = outputQueueFactory.createQueue(new PipelineHelper(propertiesProvider).getOutputQueueNameFor(Stage.INDEX), String.class);
         assertThat(outputQueue).hasSize(2);
         assertThat(outputQueue.poll()).isEqualTo("bc6852541ef5200206a7a9740f3d2d62178a1f53b1aa5417ab426c6ec1f7cbc7");
         assertThat(outputQueue.poll()).isEqualTo(STRING_POISON);
