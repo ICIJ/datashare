@@ -125,6 +125,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
 
     @Override
     public void close() throws Exception {
+        nlpQueue.put("POISON");
         nlpQueue.close();
     }
 

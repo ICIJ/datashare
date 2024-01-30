@@ -10,6 +10,7 @@ import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,9 +62,8 @@ class CliApp {
     private static void runTaskRunner(CommonMode mode, Properties properties) throws Exception {
         TaskManagerMemory taskManager = mode.get(TaskManagerMemory.class);
         TaskFactory taskFactory = mode.get(TaskFactory.class);
-
-        Pipeline.Type nlpPipeline = Pipeline.Type.parse(properties.getProperty(DatashareCliOptions.NLP_PIPELINE_OPT));
         Indexer indexer = mode.get(Indexer.class);
+        RedissonClient redissonClient = mode.get(RedissonClient.class);
 
         if (properties.getProperty(CREATE_INDEX_OPT) != null) {
             indexer.createIndex(properties.getProperty(CREATE_INDEX_OPT));
@@ -125,6 +125,7 @@ class CliApp {
         }
         taskManager.shutdownAndAwaitTermination(Integer.MAX_VALUE, SECONDS);
         indexer.close();
+        ofNullable(redissonClient).ifPresent(RedissonClient::shutdown);
     }
 
     private static Runnable closeAndLogException(AutoCloseable closeable) {
