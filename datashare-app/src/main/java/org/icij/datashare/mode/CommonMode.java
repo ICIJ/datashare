@@ -22,22 +22,18 @@ import org.icij.datashare.TesseractOCRParserWrapper;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
-import org.icij.datashare.com.DataBus;
-import org.icij.datashare.com.MemoryDataBus;
-import org.icij.datashare.com.Publisher;
-import org.icij.datashare.com.bus.RedisDataBus;
 import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
+import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.extract.MemoryBlockingQueue;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.extract.RedisBlockingQueue;
 import org.icij.datashare.extract.RedisUserDocumentQueue;
 import org.icij.datashare.extract.RedisUserReportMap;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.tasks.TaskManagerAmqp;
@@ -179,20 +175,7 @@ public abstract class CommonMode extends AbstractModule {
         bind(TesseractOCRParserWrapper.class).toInstance(new TesseractOCRParserWrapper());
 
         configureIndexingQueues(propertiesProvider);
-        configureDataBus(propertiesProvider);
         feedPipelineRegistry(propertiesProvider);
-    }
-
-    private void configureDataBus(final PropertiesProvider propertiesProvider) {
-        QueueType busType = QueueType.valueOf(propertiesProvider.get("busType").orElse(QueueType.MEMORY.name()));
-        if ( busType == QueueType.MEMORY) {
-            MemoryDataBus memoryDataBus = new MemoryDataBus();
-            bind(DataBus.class).toInstance(memoryDataBus);
-            bind(Publisher.class).toInstance(memoryDataBus);
-        } else {
-            bind(DataBus.class).to(RedisDataBus.class).asEagerSingleton();
-            bind(Publisher.class).to(RedisDataBus.class).asEagerSingleton();
-        }
     }
 
     private void configureIndexingQueues(final PropertiesProvider propertiesProvider) {

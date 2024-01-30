@@ -2,7 +2,6 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.com.Publisher;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
@@ -17,7 +16,6 @@ import org.icij.task.Options;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
