@@ -2,10 +2,18 @@ package org.icij.datashare.io;
 
 import com.adobe.testing.s3mock.S3MockRule;
 import com.amazonaws.services.s3.AmazonS3;
-import org.junit.*;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -101,5 +109,16 @@ public class RemoteFilesTest {
         assertThat(remoteFiles.objectExists("prefix/virtualdir")).isTrue();
 
         assertThat(remoteFiles.isSync("prefix", folder.getRoot())).isTrue();
+    }
+
+    @Ignore("test for checking locally why a model is not synchronized")
+    @Test
+    public void test_integration() throws IOException {
+        RemoteFiles remoteFiles = RemoteFiles.getDefault();
+        try (FileInputStream fis = new FileInputStream("/home/dev/src/datashare/dist/models/corenlp/4-5-5/fr/stanford-corenlp-4.5.5-models-fr.jar")) {
+            System.out.println(DigestUtils.md5Hex(fis));
+        }
+        assertThat(remoteFiles.isSync("dist/models/corenlp/4-5-5/fr",
+                new File("/home/dev/src/datashare/"))).isTrue();
     }
 }
