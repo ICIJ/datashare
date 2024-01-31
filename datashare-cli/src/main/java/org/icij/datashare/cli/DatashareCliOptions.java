@@ -598,7 +598,7 @@ public final class DatashareCliOptions {
     static void logLevel(OptionParser parser) {
         parser.acceptsAll(
                         singletonList("logLevel"),
-                        format("sets the log level of datashare (%s)", Arrays.toString(Level.values())))
+                        format("Sets the log level of Datashare (%s)", Arrays.toString(Level.values())))
                 .withRequiredArg()
                 .ofType( String.class ).defaultsTo(Level.INFO.toString());
     }
