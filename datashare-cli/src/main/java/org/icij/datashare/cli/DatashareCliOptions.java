@@ -4,6 +4,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.Stage;
+import org.slf4j.event.Level;
 
 import java.io.File;
 import java.net.URI;
@@ -592,5 +593,13 @@ public final class DatashareCliOptions {
     public static OptionSpec<String> extOption(OptionParser parser) {
         return parser.acceptsAll(
                 singletonList("ext"), "Run CLI extension").withRequiredArg().ofType(String.class);
+    }
+
+    static void logLevel(OptionParser parser) {
+        parser.acceptsAll(
+                        singletonList("logLevel"),
+                        format("sets the log level of datashare (%s)", Arrays.toString(Level.values())))
+                .withRequiredArg()
+                .ofType( String.class ).defaultsTo(Level.INFO.toString());
     }
 }
