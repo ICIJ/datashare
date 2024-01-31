@@ -16,7 +16,7 @@ public class Main {
         LOGGER.info("JVM version {}", System.getProperty("java.version"));
         LOGGER.info("JVM charset encoding {}", Charset.defaultCharset());
         Level logLevel = Level.toLevel(cli.properties.getProperty("logLevel"));
-        LOGGER.info("log level set to {}", logLevel);
+        LOGGER.info("Log level set to {}", logLevel);
 
         ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         root.setLevel(logLevel);
