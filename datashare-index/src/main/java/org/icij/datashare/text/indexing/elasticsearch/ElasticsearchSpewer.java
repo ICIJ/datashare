@@ -84,7 +84,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
                 .with(Document.Status.INDEXED)
                 .with(getMetadata(document))
                 .ofContentType(ofNullable(document.getMetadata().get(CONTENT_TYPE)).orElse(DEFAULT_VALUE_UNKNOWN).split(";")[0])
-                .withContentLength(Long.valueOf(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
+                .withContentLength(Long.parseLong(ofNullable(document.getMetadata().get(CONTENT_LENGTH)).orElse("-1")))
                 .with(charset)
                 .withExtractionLevel(level);
 
