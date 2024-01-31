@@ -1,5 +1,6 @@
 package org.icij.datashare;
 
+import com.google.inject.ConfigurationException;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.spi.CliExtension;
@@ -63,7 +64,13 @@ class CliApp {
         TaskManagerMemory taskManager = mode.get(TaskManagerMemory.class);
         TaskFactory taskFactory = mode.get(TaskFactory.class);
         Indexer indexer = mode.get(Indexer.class);
-        RedissonClient redissonClient = mode.get(RedissonClient.class);
+        RedissonClient redissonClient;
+        try {
+            redissonClient = mode.get(RedissonClient.class);
+        } catch (ConfigurationException ce) {
+            logger.debug("no redisson client found, set up to null");
+            redissonClient = null;
+        }
 
         if (properties.getProperty(CREATE_INDEX_OPT) != null) {
             indexer.createIndex(properties.getProperty(CREATE_INDEX_OPT));
