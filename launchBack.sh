@@ -36,5 +36,6 @@ $JAVA -agentlib:jdwp=transport=dt_socket,server=y,address=$JDWP_TRANSPORT_PORT,s
  -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
  -DDS_SYNC_NLP_MODELS=$DS_SYNC_NLP_MODELS \
  -Djavax.net.ssl.trustStorePassword=changeit \
+ -Djava.net.preferIPv4Stack=true \
  -Ddatashare.loghost=udp:localhost -Dlogback.configurationFile=logback.xml \
  -Xmx4g -DPROD_MODE=true -cp "$DIR/dist/:${CLASSPATH}" org.icij.datashare.Main $OAUTH_LOCAL_OPTIONS "$@"
