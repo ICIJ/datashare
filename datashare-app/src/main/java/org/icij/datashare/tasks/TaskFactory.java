@@ -12,9 +12,10 @@ import java.util.function.BiFunction;
 
 public interface TaskFactory {
     BatchSearchLoop createBatchSearchLoop();
-    BatchDownloadLoop createBatchDownloadLoop();
+    TaskRunnerLoop createBatchDownloadLoop();
+    BatchDownloadCleaner createBatchDownloadCleaner();
     BatchSearchRunner createBatchSearchRunner(BatchSearch batchSearch, TerFunction<String, String, List<Document>, Boolean> resultConsumer);
-    BatchDownloadRunner createDownloadRunner(TaskView<?> batchDownload, BiFunction<String, Double, Void> updateCallback);
+    BatchDownloadRunner createBatchDownloadRunner(TaskView<?> batchDownload, BiFunction<String, Double, Void> updateCallback);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);

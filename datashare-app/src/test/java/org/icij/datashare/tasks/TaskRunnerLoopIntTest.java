@@ -14,16 +14,12 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_DIR;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_ZIP_TTL;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BatchDownloadLoopIntTest {
+public class TaskRunnerLoopIntTest {
     private final LinkedBlockingQueue<TaskView<?>> batchDownloadQueue = new LinkedBlockingQueue<>();
     private final TaskManagerRedis taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", batchDownloadQueue);
 
@@ -37,19 +33,14 @@ public class BatchDownloadLoopIntTest {
         }};
         TaskView<File> taskView = new TaskView<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
         BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskManager::progress);
-        when(factory.createDownloadRunner(any(), any())).thenReturn(runner);
+        when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-            put(BATCH_DOWNLOAD_ZIP_TTL, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
-            put(BATCH_DOWNLOAD_DIR, DEFAULT_BATCH_DOWNLOAD_DIR);
-        }});
-
-        BatchDownloadLoop batchDownloadLoop = new BatchDownloadLoop(propertiesProvider, factory, taskManager);
+        TaskRunnerLoop taskRunnerLoop = new TaskRunnerLoop(factory, taskManager);
 
         taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), properties);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
-        batchDownloadLoop.call();
+        taskRunnerLoop.call();
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).error).isNotNull();
