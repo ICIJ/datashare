@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -94,12 +95,21 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     }
 
     @Override public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
-    @Override public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) {
-        TaskView<V> taskView = new TaskView<>(taskName, user, properties);
+    @Override public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) throws IOException  {
+        return startTask(new TaskView<>(taskName, user, properties));
+    }
+
+    @Override
+    public <V> TaskView<V> startTask(String id, String taskName, User user) throws IOException {
+        return startTask(new TaskView<>(id, taskName, user, new HashMap<>()));
+    }
+
+    private  <V> TaskView<V> startTask(TaskView<V> taskView) throws IOException {
         save(taskView);
         taskQueue.add(taskView);
         return taskView;
     }
+
     @Override public <V> TaskView<V> startTask(Callable<V> task) { throw new IllegalStateException("not implemented"); }
     @Override public boolean stopTask(String taskName) { throw new IllegalStateException("not implemented"); }
 

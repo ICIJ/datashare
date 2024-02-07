@@ -8,6 +8,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -24,7 +25,7 @@ public class TaskRunnerLoopIntTest {
     private final TaskManagerRedis taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", batchDownloadQueue);
 
     @Test(timeout = 1000)
-    public void test_batch_download_task_view_properties() {
+    public void test_batch_download_task_view_properties() throws IOException {
         TaskFactory factory = mock(TaskFactory.class);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
 

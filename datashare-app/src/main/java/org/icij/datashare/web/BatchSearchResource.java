@@ -22,6 +22,8 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.*;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.session.DatashareUser;
+import org.icij.datashare.tasks.BatchSearchRunner;
+import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.user.User;
@@ -47,15 +49,15 @@ import static org.icij.datashare.function.ThrowingFunctions.parseBoolean;
 @Singleton
 @Prefix("/api/batch")
 public class BatchSearchResource {
+    private final TaskManager taskManager;
     private final BatchSearchRepository batchSearchRepository;
-    private final BlockingQueue<String> batchSearchQueue;
     private final PropertiesProvider propertiesProvider;
     private final int MAX_BATCH_SIZE = 60000;
 
     @Inject
-    public BatchSearchResource(final BatchSearchRepository batchSearchRepository, BlockingQueue<String> batchSearchQueue, PropertiesProvider propertiesProvider) {
+    public BatchSearchResource(PropertiesProvider propertiesProvider, TaskManager taskManager, final BatchSearchRepository batchSearchRepository) {
+        this.taskManager = taskManager;
         this.batchSearchRepository = batchSearchRepository;
-        this.batchSearchQueue = batchSearchQueue;
         this.propertiesProvider = propertiesProvider;
     }
 
@@ -277,7 +279,9 @@ public class BatchSearchResource {
         BatchSearch batchSearch = new BatchSearch(stream(comaSeparatedProjects.split(",")).map(Project::project).collect(Collectors.toList()), name, description, queries,
                 (User) context.currentUser(), published, fileTypes, queryTemplate, paths, fuzziness,phraseMatches);
         boolean isSaved = batchSearchRepository.save(batchSearch);
-        if (isSaved) batchSearchQueue.put(batchSearch.uuid);
+        if (isSaved) {
+            taskManager.startTask(batchSearch.uuid, BatchSearchRunner.class.getName(), (User) context.currentUser());
+        }
         return isSaved ? new Payload("application/json", batchSearch.uuid, 200) : badRequest();
     }
 
@@ -305,7 +309,7 @@ public class BatchSearchResource {
         }
         BatchSearch copy = new BatchSearch(sourceBatchSearch, context.extract(HashMap.class));
         boolean isSaved = batchSearchRepository.save(copy);
-        if (isSaved) batchSearchQueue.put(copy.uuid);
+        if (isSaved) taskManager.startTask(copy.uuid, BatchSearchRunner.class.getName(), (User) context.currentUser());
         return copy.uuid;
     }
 

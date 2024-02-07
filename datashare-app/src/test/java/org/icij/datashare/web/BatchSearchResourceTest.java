@@ -7,6 +7,7 @@ import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -19,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -39,7 +41,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
     @Mock JooqRepository jooqRepository;
-    BlockingQueue<String> batchSearchQueue = new ArrayBlockingQueue<>(5);
+    TaskManagerMemory taskManager = new TaskManagerMemory(new PropertiesProvider(), new ArrayBlockingQueue<>(5));
 
     @Test
     public void test_upload_batch_search_csv_without_name_should_send_bad_request() {
@@ -81,7 +83,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 singletonList(project("prj")), "nameValue", null,
                 asSet("query", "éèàç"), new Date(), BatchSearch.State.QUEUED, User.local());
         verify(batchSearchRepository).save(eq(expected));
-        assertThat(batchSearchQueue.take()).isEqualTo(expected.uuid);
+        assertThat(taskManager.get(1, TimeUnit.SECONDS).id).isEqualTo(expected.uuid);
     }
 
     @Test
@@ -173,7 +175,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
 
         assertThat(argument.getValue().state).isEqualTo(BatchSearchRecord.State.QUEUED);
-        assertThat(batchSearchQueue.take()).isEqualTo(argument.getValue().uuid);
+        assertThat(taskManager.get(1, TimeUnit.SECONDS).id).isEqualTo(argument.getValue().uuid);
     }
 
     @Test
@@ -333,7 +335,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
             PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
                 put("rootHost", "http://foo.com:12345");
             }});
-            routes.add(new BatchSearchResource(batchSearchRepository, batchSearchQueue, propertiesProvider)).
+            routes.add(new BatchSearchResource(propertiesProvider, taskManager, batchSearchRepository)).
                     filter(new LocalUserFilter(propertiesProvider, jooqRepository));
         });
         when(batchSearchRepository.get(User.local(), "batchSearchId")).thenReturn(new BatchSearch(singletonList(project("prj")), "name", "desc", asSet("q"), User.local()));
@@ -473,7 +475,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
-        configure(routes -> routes.add(new BatchSearchResource(batchSearchRepository, batchSearchQueue, new PropertiesProvider())).
+        configure(routes -> routes.add(new BatchSearchResource(new PropertiesProvider(), taskManager, batchSearchRepository)).
                 filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }
 

@@ -7,6 +7,7 @@ import org.junit.After;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
@@ -64,7 +65,7 @@ public class TaskManagerRedisTest {
     }
 
     @Test
-    public void test_start_task() {
+    public void test_start_task() throws IOException {
         BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo", null,Paths.get("dir"), false);
 
         assertThat(taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), new HashMap<>() {{

@@ -53,7 +53,13 @@ public class TaskView<V> implements Entity {
     }
 
     public TaskView(String name, User user, Map<String, Object> properties) {
-        this(randomUUID().toString(), name, State.INIT, 0, user, null, properties);
+        this(randomUUID().toString(), name, user, properties);
+    }
+    public TaskView(String id, String name, User user) {
+        this(id, name, user, new HashMap<>());
+    }
+    public TaskView(String id, String name, User user, Map<String, Object> properties) {
+        this(id, name, State.INIT, 0, user, null, properties);
     }
 
     @JsonCreator

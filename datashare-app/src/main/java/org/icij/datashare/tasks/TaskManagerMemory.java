@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +55,15 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
 
     @Override
     public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) {
-        BatchDownload batchDownload = (BatchDownload) properties.get("batchDownload");
-        TaskView<V> taskView = new TaskView<>(taskName, user, properties);
+        return startTask(new TaskView<>(taskName, user, properties));
+    }
+
+    @Override
+    public <V> TaskView<V> startTask(String id, String taskName, User user) throws IOException {
+        return startTask(new TaskView<>(id, taskName, user, new HashMap<>()));
+    }
+
+    private <V> TaskView<V> startTask(TaskView<V> taskView) {
         save(taskView);
         taskQueue.offer(taskView);
         return taskView;
@@ -119,6 +127,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException {
+        taskQueue.offer(TaskView.nullObject());
         executor.shutdown();
         return executor.awaitTermination(timeout, timeUnit);
     }
