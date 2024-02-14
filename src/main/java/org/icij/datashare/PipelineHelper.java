@@ -32,7 +32,9 @@ public class PipelineHelper {
     }
 
     private Stage getNextStage(Stage stage) {
-        return stage == stages.get(stages.size() - 1) ? stage.getDefaultNextStage():stages.get(stages.indexOf(stage) + 1);
+        if (stage == stages.get(stages.size() - 1)) return stage.getDefaultNextStage();
+        if (!stages.contains(stage)) return stage.getDefaultNextStage();
+        return stages.get(stages.indexOf(stage) + 1);
     }
 
     static String getQueueName(PropertiesProvider propertiesProvider, Stage stage) {

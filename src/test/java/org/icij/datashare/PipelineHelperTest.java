@@ -28,6 +28,12 @@ public class PipelineHelperTest {
     }
 
     @Test
+    public void test_get_queue_name_for_enqueue_from_index() {
+        assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+        }})).getOutputQueueNameFor(Stage.ENQUEUEIDX)).isEqualTo("extract:queue:nlp");
+    }
+
+    @Test
     public void test_get_output_queue_name_for_last_pipeline_step() {
         String name = new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
             put("stages", "SCAN,INDEX");
