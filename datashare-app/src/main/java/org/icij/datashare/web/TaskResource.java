@@ -19,8 +19,6 @@ import net.codestory.http.annotations.Put;
 import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.lang3.StringUtils;
-import org.icij.datashare.PipelineHelper;
-import org.icij.datashare.Stage;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extract.OptionsWrapper;
@@ -37,6 +35,7 @@ import org.icij.datashare.user.User;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -45,7 +44,6 @@ import java.util.regex.Pattern;
 import static java.lang.Boolean.parseBoolean;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.forbidden;
@@ -167,6 +165,8 @@ public class TaskResource {
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
             taskFactory.createScanIndexTask(user, reportName).call();
             properties.put(MAP_NAME_OPTION, reportName);
+        } else {
+            properties.remove("reportName"); // avoid use of reportMap to override ES docs
         }
         return asList(scanResponse, taskManager.startTask(taskFactory.createIndexTask(user, properties)));
     }
@@ -252,12 +252,12 @@ public class TaskResource {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         mergedProps.put(NLP_PIPELINE_OPT, pipelineName);
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
-        TaskView<Long> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), mergedProps));
+        List<TaskView<?>> tasks = new LinkedList<>();
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createEnqueueFromIndexTask((User) context.currentUser(), mergedProps));
-            return asList(resumeNlpTask, nlpTask);
+            tasks.add(taskManager.startTask(taskFactory.createEnqueueFromIndexTask((User) context.currentUser(), mergedProps)));
         }
-        return singletonList(nlpTask);
+        tasks.add(taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), mergedProps)));
+        return tasks;
     }
 
     private static <V> TaskView<V> forbiddenIfNotSameUser(Context context, TaskView<V> task) {

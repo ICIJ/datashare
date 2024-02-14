@@ -90,6 +90,20 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
+
+        ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
+        verify(taskFactory).createIndexTask(eq(local()), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).excludes(entry("reportMap", "extract:report:map"));
+    }
+
+    @Test
+    public void test_index_file_without_filter_should_not_pass_report_map_to_task() {
+        String body = "{\"options\":{\"reportName\": \"foo\"}}";
+        post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body).should().haveType("application/json");
+
+        ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
+        verify(taskFactory).createIndexTask(eq(local()), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).excludes(entry("reportName", "foo"));
     }
 
     @Test

@@ -53,7 +53,8 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
                 docsToProcess.forEach(doc -> outputQueue.add(doc.getId()));
                 docsToProcess = searcher.scroll().collect(toList());
             } while (!docsToProcess.isEmpty());
-            logger.info("enqueued into {} {} files without {} pipeline tags", queue.getName(), totalHits, nlpPipeline);
+            outputQueue.add(STRING_POISON);
+            logger.info("enqueued into {} {} files without {} pipeline tags", outputQueue.getName(), totalHits, nlpPipeline);
             searcher.clearScroll();
         }
 
