@@ -10,20 +10,21 @@ import static org.fest.assertions.Assertions.assertThat;
 public class PipelineHelperTest {
     @Test
     public void test_default_args_for_webapp() {
-        assertThat(new PipelineHelper(new PropertiesProvider()).stages).isEqualTo(asList(Stage.SCAN, Stage.SCANIDX, Stage.INDEX, Stage.NLP));
-    }
-    @Test(expected = IllegalArgumentException.class)
-    public void test_get_queue_name_unknown_stage() {
-        new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
-            put("stages", "SCAN,INDEX");
-        }})).getQueueNameFor(Stage.NLP);
+        assertThat(new PipelineHelper(new PropertiesProvider()).stages).isEqualTo(asList(Stage.SCAN, Stage.INDEX, Stage.NLP));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void test_get_queue_name_unknown_stage_for_output() {
-        new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+    @Test
+    public void test_get_queue_name_unknown_stage() {
+        assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
             put("stages", "SCAN,INDEX");
-        }})).getOutputQueueNameFor(Stage.NLP);
+        }})).getQueueNameFor(Stage.NLP)).isEqualTo("extract:queue:nlp");
+    }
+
+    @Test
+    public void test_get_queue_name_for_scanidx_output() {
+        assertThat(new PipelineHelper(new PropertiesProvider(new HashMap<>() {{
+            put("stages", "SCANIDX,INDEX");
+        }})).getOutputQueueNameFor(Stage.SCANIDX)).isEqualTo("extract:queue:index");
     }
 
     @Test

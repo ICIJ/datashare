@@ -14,7 +14,7 @@ public class PipelineHelper {
 
     public PipelineHelper(PropertiesProvider propertiesProvider) {
         this.propertiesProvider = propertiesProvider;
-        stages = stream(propertiesProvider.get(STAGES_OPT).orElse("SCAN,SCANIDX,INDEX,NLP"). // defaults existing stages for web mode
+        stages = stream(propertiesProvider.get(STAGES_OPT).orElse("SCAN,INDEX,NLP"). // defaults existing stages for web mode
                 split(String.valueOf(STAGES_SEPARATOR))).map(Stage::valueOf).collect(toList());
         stages.sort(Stage.comparator);
     }
@@ -24,13 +24,10 @@ public class PipelineHelper {
     }
 
     public String getQueueNameFor(Stage stage) {
-        if (! has(stage)) throw new IllegalArgumentException("undefined stage " + stage);
         return stage.isFirstEnum() ? null: getQueueName(propertiesProvider, stage);
     }
 
     public String getOutputQueueNameFor(Stage stage) {
-        // get queue for next stage
-        if (! has(stage)) throw new IllegalArgumentException("undefined stage " + stage);
         return stage.isLastEnum() ? null: getQueueName(propertiesProvider, getNextStage(stage));
     }
 
