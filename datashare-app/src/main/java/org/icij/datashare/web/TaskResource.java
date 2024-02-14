@@ -178,7 +178,6 @@ public class TaskResource {
     public TaskView<Long> scanFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
         Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
         Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
-        String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
         return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, properties));
     }
 
@@ -253,7 +252,6 @@ public class TaskResource {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         mergedProps.put(NLP_PIPELINE_OPT, pipelineName);
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
-        String queueName = new PipelineHelper(new PropertiesProvider(mergedProps)).getQueueNameFor(Stage.NLP);
         TaskView<Long> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), mergedProps));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
             TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createEnqueueFromIndexTask((User) context.currentUser(), mergedProps));
