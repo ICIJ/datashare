@@ -4,9 +4,14 @@ import org.junit.Test;
 
 import java.util.HashMap;
 
+import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class PipelineHelperTest {
+    @Test
+    public void test_default_args_for_webapp() {
+        assertThat(new PipelineHelper(new PropertiesProvider()).stages).isEqualTo(asList(Stage.SCAN, Stage.SCANIDX, Stage.INDEX, Stage.NLP));
+    }
     @Test(expected = IllegalArgumentException.class)
     public void test_get_queue_name_unknown_stage() {
         new PipelineHelper(new PropertiesProvider(new HashMap<>() {{

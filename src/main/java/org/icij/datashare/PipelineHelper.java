@@ -14,7 +14,7 @@ public class PipelineHelper {
 
     public PipelineHelper(PropertiesProvider propertiesProvider) {
         this.propertiesProvider = propertiesProvider;
-        stages = stream(propertiesProvider.get(STAGES_OPT).orElse("SCAN,INDEX,NLP"). // defaults for web mode
+        stages = stream(propertiesProvider.get(STAGES_OPT).orElse("SCAN,SCANIDX,INDEX,NLP"). // defaults existing stages for web mode
                 split(String.valueOf(STAGES_SEPARATOR))).map(Stage::valueOf).collect(toList());
         stages.sort(Stage.comparator);
     }
