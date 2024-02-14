@@ -23,7 +23,7 @@ public class ScanTask extends PipelineTask<Path> {
 
     @Inject
     public ScanTask(final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted Path path, @Assisted final Properties properties) {
-        super(Stage.SCAN, user, new PipelineHelper(new PropertiesProvider()).getOutputQueueNameFor(Stage.SCAN),
+        super(Stage.SCAN, user, new PipelineHelper(new PropertiesProvider(properties)).getOutputQueueNameFor(Stage.SCAN),
                 factory, new PropertiesProvider(properties), Path.class);
         this.path = path;
         Options<String> allOptions = options().createFrom(Options.from(properties));

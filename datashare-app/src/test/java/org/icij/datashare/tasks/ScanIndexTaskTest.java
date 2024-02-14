@@ -26,7 +26,7 @@ import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 public class ScanIndexTaskTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+    private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("defaultProject", TEST_INDEX);
         put("stages", "SCANIDX");
     }});
