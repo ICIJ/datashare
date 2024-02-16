@@ -156,7 +156,7 @@ public class Document implements Entity, DocumentMetadataConstants {
     public Date getExtractionDate() { return extractionDate;}
     public Charset getContentEncoding() { return contentEncoding; }
     public Long getContentLength() { return contentLength; }
-    public String getContentType() { return contentType; }
+    public String getContentType() { return ofNullable(contentType).orElse(DEFAULT_VALUE_UNKNOWN); }
     public Language getLanguage() { return language; }
     public short getExtractionLevel() { return extractionLevel;}
     public String getRootDocument() {return ofNullable(rootDocument).orElse(getId());}
@@ -182,28 +182,36 @@ public class Document implements Entity, DocumentMetadataConstants {
 
     @JsonIgnore
     public boolean isEmail() {
-        return contentType.startsWith("message/") || contentType.equals("application/vnd.ms-outlook");
+        final String contentType = getContentType();
+        return "application/vnd.ms-outlook".equals(contentType) || contentType.startsWith("message/");
     }
 
     @JsonIgnore
     public boolean isJson() {
-        return ofNullable(contentType).orElse(DEFAULT_VALUE_UNKNOWN).contains("application/json");
+        return getContentType().contains("application/json");
     }
 
     public String getTitle() {
         if (isEmail()) {
-            if (!isEmpty(metadata.getOrDefault(getField(SUBJECT), "").toString())) {
-                return metadata.get(getField(SUBJECT)).toString();
-            } else if (!isEmpty(metadata.getOrDefault(getField(TITLE), "").toString())) {
-                return metadata.get(getField(TITLE)).toString();
+            String emailSubject = getMetadataTitle(SUBJECT);
+            if (!isEmpty(emailSubject)) {
+                return emailSubject;
+            }
+
+            String emailTitle = getMetadataTitle(TITLE);
+            if (!isEmpty(emailTitle )) {
+                return emailTitle;
             }
         }
+
         if (isJson()) {
-            if (!isEmpty(metadata.getOrDefault(getField(TITLE), "").toString())) {
-                return metadata.get(getField(TITLE)).toString();
+            String jsonTitle = getMetadataTitle(TITLE);
+            if (!isEmpty(jsonTitle)) {
+                return jsonTitle;
             }
         }
-        return ofNullable(metadata.get(getField(RESOURCE_NAME_KEY))).orElse(DEFAULT_VALUE_UNKNOWN).toString();
+
+        return getMetadataTitle(RESOURCE_NAME_KEY, DEFAULT_VALUE_UNKNOWN);
     }
 
     public String getTitleNorm() {
@@ -244,5 +252,12 @@ public class Document implements Entity, DocumentMetadataConstants {
                 stream(Pipeline.Type.values()).filter(t -> (mask & t.mask) == t.mask ).collect(toSet());
     }
 
+    private String getMetadataTitle(String key) {
+        return getMetadataTitle(key, null);
+    }
 
+    private String getMetadataTitle(String key, String defaultValue) {
+        String nonNullDefaultValue = Objects.requireNonNullElse(defaultValue, "");
+        return ofNullable(metadata.get(getField(key))).orElse(nonNullDefaultValue).toString();
+    }
 }
