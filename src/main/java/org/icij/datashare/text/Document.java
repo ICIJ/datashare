@@ -156,7 +156,8 @@ public class Document implements Entity, DocumentMetadataConstants {
     public Date getExtractionDate() { return extractionDate;}
     public Charset getContentEncoding() { return contentEncoding; }
     public Long getContentLength() { return contentLength; }
-    public String getContentType() { return ofNullable(contentType).orElse(DEFAULT_VALUE_UNKNOWN); }
+    public String getContentType() { return contentType; }
+    public String getContentTypeOrDefault() { return ofNullable(getContentType()).orElse(DEFAULT_VALUE_UNKNOWN); }
     public Language getLanguage() { return language; }
     public short getExtractionLevel() { return extractionLevel;}
     public String getRootDocument() {return ofNullable(rootDocument).orElse(getId());}
@@ -182,13 +183,13 @@ public class Document implements Entity, DocumentMetadataConstants {
 
     @JsonIgnore
     public boolean isEmail() {
-        final String contentType = getContentType();
+        final String contentType = getContentTypeOrDefault();
         return "application/vnd.ms-outlook".equals(contentType) || contentType.startsWith("message/");
     }
 
     @JsonIgnore
     public boolean isJson() {
-        return getContentType().contains("application/json");
+        return getContentTypeOrDefault().contains("application/json");
     }
 
     public String getTitle() {
