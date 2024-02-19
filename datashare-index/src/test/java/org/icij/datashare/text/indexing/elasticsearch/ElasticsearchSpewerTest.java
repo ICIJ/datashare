@@ -443,6 +443,29 @@ public class ElasticsearchSpewerTest {
         Mockito.verify(indexer).createIndex("foo");
     }
 
+    @Test
+    public void test_configure_is_creating_index_with_legacy_property() throws Exception {
+        Indexer indexer = Mockito.mock(Indexer.class);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class), new FieldNames(), new PropertiesProvider());
+        spewer.configure(Options.from(new HashMap<>() {{
+            put("defaultProject", "foo");
+        }}));
+        spewer.createIndexIfNotExists();
+        Mockito.verify(indexer).createIndex("foo");
+    }
+
+    @Test
+    public void test_configure_is_creating_index_with_legacy_and_new_property() throws Exception {
+        Indexer indexer = Mockito.mock(Indexer.class);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class), new FieldNames(), new PropertiesProvider());
+        spewer.configure(Options.from(new HashMap<>() {{
+            put("projectName", "bar");
+            put("defaultProject", "foo");
+        }}));
+        spewer.createIndexIfNotExists();
+        Mockito.verify(indexer).createIndex("bar");
+    }
+
     @After
     public void after() {
         try {

@@ -34,7 +34,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     private final int maxContentLength;
     private final Hasher digestAlgorithm;
     private final DocumentQueue<String> nlpQueue;
-    String indexName;
+    public String indexName;
 
     @Inject
     public ElasticsearchSpewer(final Indexer indexer, DocumentCollectionFactory<String> nlpQueueFactory, LanguageGuesser languageGuesser, final FieldNames fields,
@@ -119,12 +119,19 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     @Override
     public Spewer configure(Options<String> options) {
         super.configure(options);
+        options.valueIfPresent("defaultProject").ifPresent(this::setIndex);
         options.valueIfPresent("projectName").ifPresent(this::setIndex);
         return this;
     }
 
     public Spewer createIndexIfNotExists() throws IOException {
         indexer.createIndex(indexName);
+        return this;
+    }
+
+    public Spewer createIndexIfNotExists(String indexName) throws IOException {
+        setIndex(indexName);
+        createIndexIfNotExists();
         return this;
     }
 

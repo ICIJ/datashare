@@ -36,15 +36,17 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final DocumentConsumer consumer;
     private long totalToProcess;
     private final Integer parallelism;
+    private final String indexName;
 
     @Inject
     public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted final Properties properties) throws IOException {
         super(Stage.INDEX, user, factory, new PropertiesProvider(properties), Path.class);
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
         parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
+        indexName = propertiesProvider.get("defaultProject").orElse("local-datashare");
 
         Options<String> allTaskOptions = options().createFrom(Options.from(properties));
-        ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
+        ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists(indexName);
         DocumentFactory documentFactory = new DocumentFactory().configure(allTaskOptions);
         Extractor extractor = new Extractor(documentFactory).configure(allTaskOptions);
 
@@ -58,7 +60,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
     @Override
     public Long call() throws Exception {
-        logger.info("Processing up to {} file(s) in parallel", parallelism);
+        logger.info("Processing up to {} file(s) in parallel into {}", parallelism, indexName);
         totalToProcess = drainer.drain(PATH_POISON).get();
         drainer.shutdown();
         drainer.awaitTermination(10, SECONDS); // drain is finished
