@@ -171,6 +171,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         assertThat(argument.getValue().projects).isEqualTo(sourceSearch.projects);
         assertThat(argument.getValue().queries).isEqualTo(sourceSearch.queries);
         assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
+        assertThat(argument.getValue().queryTemplate).isEqualTo(sourceSearch.queryTemplate);
 
         assertThat(argument.getValue().state).isEqualTo(BatchSearchRecord.State.QUEUED);
         assertThat(batchSearchQueue.take()).isEqualTo(argument.getValue().uuid);
