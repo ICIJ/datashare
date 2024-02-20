@@ -16,9 +16,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT;
-import static org.icij.datashare.cli.DatashareCliOptions.DIGEST_PROJECT_NAME;
-import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DIGEST_PROJECT_NAME_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
 
 
 public class DatashareCli {
@@ -67,9 +67,9 @@ public class DatashareCli {
                 System.exit(0);
             }
             properties = asProperties(options, null);
-            if (!Boolean.parseBoolean(properties.getProperty(NO_DIGEST_PROJECT))
-                    && properties.getProperty(DIGEST_PROJECT_NAME) == null) {
-                properties.setProperty(DIGEST_PROJECT_NAME, properties.getProperty(DEFAULT_PROJECT));
+            if (!Boolean.parseBoolean(properties.getProperty(NO_DIGEST_PROJECT_OPT))
+                    && properties.getProperty(DIGEST_PROJECT_NAME_OPT) == null) {
+                properties.setProperty(DIGEST_PROJECT_NAME_OPT, properties.getProperty(DEFAULT_PROJECT_OPT));
             }
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);
@@ -100,7 +100,7 @@ public class DatashareCli {
         DatashareCliOptions.extensionList(parser);
         DatashareCliOptions.extensionInstall(parser);
         DatashareCliOptions.extensionDelete(parser);
-        DatashareCliOptions.tcpListenPort(parser);
+        DatashareCliOptions.port(parser);
         DatashareCliOptions.mode(parser);
         DatashareCliOptions.charset(parser);
         DatashareCliOptions.stages(parser);

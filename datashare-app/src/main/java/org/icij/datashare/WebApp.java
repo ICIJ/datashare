@@ -4,14 +4,9 @@ import net.codestory.http.WebServer;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
-import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
-import org.icij.datashare.com.bus.amqp.AmqpQueue;
 import org.icij.datashare.com.bus.amqp.QpidAmqpServer;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.tasks.BatchDownloadLoop;
-import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
 
 import java.awt.*;
 import java.io.IOException;
@@ -20,13 +15,10 @@ import java.net.URI;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
-import static java.util.Optional.ofNullable;
-import static org.icij.datashare.ReportExtractor.logger;
-import static org.icij.datashare.cli.DatashareCliOptions.OPEN_LINK;
+import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 public class WebApp {
 
@@ -51,7 +43,7 @@ public class WebApp {
         );
         webServerThread.start();
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE) &&
-                parseBoolean(properties.getProperty(OPEN_LINK))) {
+                parseBoolean(properties.getProperty(BROWSER_OPEN_LINK_OPT))) {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }

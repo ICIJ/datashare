@@ -5,7 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 
-import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
 
 /**
  * This class is responsible for verifying properties and conditions of documents.
@@ -49,7 +49,7 @@ public class DocumentVerifier {
      * @return The max size in bytes.
      */
     private long getEmbeddedDocumentDownloadMaxSizeBytes() {
-        String maxSize = propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE).orElse(DEFAULT_MAX_SIZE);
+        String maxSize = propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT).orElse(DEFAULT_MAX_SIZE);
         return HumanReadableSize.parse(maxSize);
     }
 }

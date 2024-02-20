@@ -28,7 +28,7 @@ import static java.lang.Integer.parseInt;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 
 public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -44,7 +44,7 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
                          @Assisted User user, @Assisted String reportName) {
         super(Stage.SCANIDX, user, new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.SCANIDX), factory, propertiesProvider, Path.class);
         this.user = user;
-        this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000"));
+        this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse("1000"));
         this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));
         this.projectName = propertiesProvider.get("defaultProject").orElse("local-datashare");
         this.reportMap = factory.createMap(reportName);
