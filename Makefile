@@ -43,3 +43,6 @@ docker: $(DIST_TARGET)
 
 unit:
 		mvn test
+
+run:
+		./launchBack.sh
