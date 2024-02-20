@@ -44,8 +44,8 @@ public class CliModeTest {
             put("dataDir", dataDir.getRoot().toString());
             put("mode", "BATCH_DOWNLOAD");
             put("batchQueueType", QueueType.REDIS.name());
-            put(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
-            put(DatashareCliOptions.BATCH_DOWNLOAD_DIR, DEFAULT_BATCH_DOWNLOAD_DIR);
+            put(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
+            put(DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT, DEFAULT_BATCH_DOWNLOAD_DIR);
         }}));
 
         BatchDownloadLoop batchDownloadLoop = mode.get(TaskFactory.class).createBatchDownloadLoop();

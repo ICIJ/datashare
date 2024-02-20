@@ -26,8 +26,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE_OPT;
 import static org.icij.datashare.tasks.BatchSearchRunner.MAX_BATCH_RESULT_SIZE;
 import static org.icij.datashare.tasks.BatchSearchRunner.MAX_SCROLL_SIZE;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
@@ -84,7 +84,7 @@ public class BatchSearchRunnerTest {
         Date beforeBatch  = timeRule.now;
 
         new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
-            put(BATCH_THROTTLE, "1000");
+            put(BATCH_THROTTLE_OPT, "1000");
         }}), batchSearch, resultConsumer).call();
 
         assertThat(timeRule.now().getTime() - beforeBatch.getTime()).isEqualTo(1000);
@@ -98,8 +98,8 @@ public class BatchSearchRunnerTest {
         Date beforeBatch  = timeRule.now;
 
         SearchException searchException = assertThrows(SearchException.class, () -> new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
-            put(BATCH_THROTTLE, "1000");
-            put(BATCH_SEARCH_MAX_TIME, "1");
+            put(BATCH_THROTTLE_OPT, "1000");
+            put(BATCH_SEARCH_MAX_TIME_OPT, "1");
         }}), batchSearch, resultConsumer).call());
 
         assertThat(searchException.toString()).contains("Batch timed out after 1s");

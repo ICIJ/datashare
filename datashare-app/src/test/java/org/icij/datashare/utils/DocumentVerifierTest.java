@@ -11,7 +11,7 @@ import org.mockito.Mock;
 
 import java.util.Optional;
 
-import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -41,7 +41,7 @@ public class DocumentVerifierTest {
         Document doc = DocumentBuilder.createDoc("foo").with(project).withParentId("bar").withRootId("bar").build();
 
         when(indexer.get(project.getId(), "bar")).thenReturn(rootDoc);
-        when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE)).thenReturn(Optional.of("200G"));
+        when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT)).thenReturn(Optional.of("200G"));
 
         assertTrue(documentVerifier.isRootDocumentSizeAllowed(doc));
     }
@@ -53,7 +53,7 @@ public class DocumentVerifierTest {
         Document doc = DocumentBuilder.createDoc("foo").with(project).withParentId("bar").withRootId("bar").build();
 
         when(indexer.get(project.getId(), "bar")).thenReturn(rootDoc);
-        when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE)).thenReturn(Optional.of("200"));
+        when(propertiesProvider.get(EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE_OPT)).thenReturn(Optional.of("200"));
 
         assertFalse(documentVerifier.isRootDocumentSizeAllowed(doc));
     }

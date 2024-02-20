@@ -1,22 +1,15 @@
 package org.icij.datashare.tasks;
 
-import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 
-import java.io.File;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -77,8 +70,8 @@ public class BatchDownloadLoopTest {
 
     private PropertiesProvider createProvider() {
         return new PropertiesProvider(new HashMap<>() {{
-            put(BATCH_DOWNLOAD_ZIP_TTL, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
-            put(BATCH_DOWNLOAD_DIR, DEFAULT_BATCH_DOWNLOAD_DIR);
+            put(BATCH_DOWNLOAD_ZIP_TTL_OPT, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
+            put(BATCH_DOWNLOAD_DIR_OPT, DEFAULT_BATCH_DOWNLOAD_DIR);
         }});
     }
 }

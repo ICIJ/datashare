@@ -26,8 +26,8 @@ public class BatchDownloadLoop implements Callable<Integer> {
     public BatchDownloadLoop(PropertiesProvider propertiesProvider, TaskFactory factory, TaskSupplier taskSupplier) {
         this.factory = factory;
         this.taskSupplier = taskSupplier;
-        downloadDir = Paths.get(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_DIR));
-        ttlHour = Integer.parseInt(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL));
+        downloadDir = Paths.get(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT));
+        ttlHour = Integer.parseInt(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT));
     }
 
     public Integer call() {

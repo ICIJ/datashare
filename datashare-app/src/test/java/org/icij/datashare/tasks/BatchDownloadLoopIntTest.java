@@ -14,8 +14,8 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_DIR;
 import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_DOWNLOAD_ZIP_TTL;
 import static org.icij.datashare.text.Project.project;
@@ -40,8 +40,8 @@ public class BatchDownloadLoopIntTest {
         when(factory.createDownloadRunner(any(), any())).thenReturn(runner);
 
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-            put(BATCH_DOWNLOAD_ZIP_TTL, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
-            put(BATCH_DOWNLOAD_DIR, DEFAULT_BATCH_DOWNLOAD_DIR);
+            put(BATCH_DOWNLOAD_ZIP_TTL_OPT, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
+            put(BATCH_DOWNLOAD_DIR_OPT, DEFAULT_BATCH_DOWNLOAD_DIR);
         }});
 
         BatchDownloadLoop batchDownloadLoop = new BatchDownloadLoop(propertiesProvider, factory, taskManager);

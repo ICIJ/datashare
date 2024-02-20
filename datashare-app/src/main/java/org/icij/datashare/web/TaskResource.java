@@ -51,7 +51,7 @@ import static net.codestory.http.payload.Payload.ok;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
@@ -120,7 +120,7 @@ public class TaskResource {
     @Post("/batchDownload")
     public TaskView<File> batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws Exception {
         Map<String, Object> options = optionsWrapper.getOptions();
-        Path downloadDir = get(propertiesProvider.getProperties().getProperty(BATCH_DOWNLOAD_DIR));
+        Path downloadDir = get(propertiesProvider.getProperties().getProperty(BATCH_DOWNLOAD_DIR_OPT));
         if (!downloadDir.toFile().exists()) downloadDir.toFile().mkdirs();
         String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
         String uri = (String) options.get("uri");
