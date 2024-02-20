@@ -21,15 +21,6 @@ import static joptsimple.util.RegexMatcher.regex;
 
 
 public final class DatashareCliOptions {
-    private static final Integer DEFAULT_NLP_PARALLELISM = 1;
-    private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
-    private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
-    public static final String DEFAULT_BATCH_DOWNLOAD_DIR = Paths.get(System.getProperty("user.dir")).resolve("app/tmp").toString();
-    public static final String DEFAULT_BATCH_DOWNLOAD_MAX_SIZE = "100M";
-    public static final String DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE = "1G";
-    public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
-    public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
-
     public static final String AUTH_FILTER_OPT = "authFilter";
     public static final String AUTH_USERS_PROVIDER_OPT = "authUsersProvider";
     public static final String BATCH_DOWNLOAD_DIR_OPT = "batchDownloadDir";
@@ -121,12 +112,51 @@ public final class DatashareCliOptions {
     public static final String VERSION_ABBR_OPT = "v";
     public static final String VERSION_OPT = "version";
 
+    private static final Integer DEFAULT_NLP_PARALLELISM = 1;
+    private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
+    private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
+    public static final DigestAlgorithm DEFAULT_DIGEST_METHOD = DigestAlgorithm.SHA_384;
+    public static final File DEFAULT_DATA_DIR = new File("/home/datashare/data");
+    public static final Mode DEFAULT_MODE = Mode.LOCAL;
+    public static final QueueType DEFAULT_BATCH_QUEUE_TYPE = QueueType.MEMORY;
+    public static final QueueType DEFAULT_BUS_TYPE = QueueType.MEMORY;
+    public static final QueueType DEFAULT_QUEUE_TYPE = QueueType.MEMORY;
+    public static final QueueType DEFAULT_SESSION_STORE_TYPE = QueueType.MEMORY;
+    public static final String DEFAULT_BATCH_DOWNLOAD_DIR = Paths.get(System.getProperty("user.dir")).resolve("app/tmp").toString();
+    public static final String DEFAULT_BATCH_DOWNLOAD_MAX_SIZE = "100M";
+    public static final String DEFAULT_CHARSET = Charset.defaultCharset().toString();
+    public static final String DEFAULT_CLUSTER_NAME = "datashare";
+    public static final String DEFAULT_CORS = "no-cors";
+    public static final String DEFAULT_DATA_SOURCE_URL = "jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared";
+    public static final String DEFAULT_DEFAULT_PROJECT = "local-datashare";
+    public static final String DEFAULT_ELASTICSEARCH_ADDRESS = "http://elasticsearch:9200";
+    public static final String DEFAULT_ELASTICSEARCH_DATA_PATH = "/home/datashare/es";
+    public static final String DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE = "1G";
+    public static final String DEFAULT_LOG_LEVEL = Level.INFO.toString();
+    public static final String DEFAULT_MESSAGE_BUS_ADDRESS = "redis://redis:6379";
+    public static final String DEFAULT_NLP_PIPELINE = "CORENLP";
+    public static final String DEFAULT_PROTECTED_URI_PREFIX = "/api/";
+    public static final String DEFAULT_QUEUE_NAME = "extract:queue";
+    public static final String DEFAULT_REDIS_ADDRESS = "redis://redis:6379";
+    public static final String DEFAULT_USER = "local";
+    public static final boolean DEFAULT_BROWSER_OPEN_LINK = false;
+    public static final boolean DEFAULT_NO_DIGEST_PROJECT = false;
+    public static final boolean DEFAULT_OCR = true;
+    public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
+    public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
+    public static final int DEFAULT_PORT = 8080;
+    public static final int DEFAULT_REDIS_POOL_SIZE = 5;
+    public static final int DEFAULT_SCROLL_SIZE = 1000;
+    public static final int DEFAULT_SCROLL_SLICES = 1;
+    public static final int DEFAULT_SESSION_TTL_SECONDS = 43200;
+
+
     static void stages(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(PipelineHelper.STAGES_OPT),
                 format("Stages to be run separated by %s %s", PipelineHelper.STAGES_SEPARATOR, Arrays.toString(Stage.values())))
                 .withRequiredArg()
-                .ofType( String.class );
+                .ofType(String.class);
     }
 
     static void mode(OptionParser parser) {
@@ -134,17 +164,17 @@ public final class DatashareCliOptions {
                 asList(MODE_ABBR_OPT, MODE_OPT),
                 "Datashare run mode " + Arrays.toString(Mode.values()))
                 .withRequiredArg()
-                .ofType( Mode.class )
-                .defaultsTo(Mode.LOCAL);
+                .ofType(Mode.class)
+                .defaultsTo(DEFAULT_MODE);
     }
 
     static void charset(OptionParser parser) {
         parser.acceptsAll(
-                asList(CHARSET_OPT),
+                singletonList(CHARSET_OPT),
                 "Datashare default charset. Example: " +
                         Arrays.toString(new Charset[]{StandardCharsets.UTF_8, StandardCharsets.ISO_8859_1}))
                 .withRequiredArg()
-                .defaultsTo(Charset.defaultCharset().toString());
+                .defaultsTo(DEFAULT_CHARSET);
     }
 
     static void defaultUser(OptionParser parser) {
@@ -153,7 +183,7 @@ public final class DatashareCliOptions {
                 "Default local user name")
                 .withRequiredArg()
                 .ofType( String.class )
-                .defaultsTo("local");
+                .defaultsTo(DEFAULT_USER);
     }
 
     static void followSymlinks(OptionParser parser) {
@@ -165,7 +195,7 @@ public final class DatashareCliOptions {
                 singletonList(CORS_OPT), "CORS headers (needs the web option)")
                         .withRequiredArg()
                         .ofType(String.class)
-                        .defaultsTo("no-cors");
+                        .defaultsTo(DEFAULT_CORS);
     }
 
     static void settings (OptionParser parser) {
@@ -219,10 +249,9 @@ public final class DatashareCliOptions {
     }
 
     public static void extensionsDir(OptionParser parser) {
-        parser.acceptsAll(
-                singletonList(EXTENSIONS_DIR_OPT), "Extensions directory (backend)")
-                                .withRequiredArg()
-                                .ofType(String.class);
+        parser.acceptsAll(singletonList(EXTENSIONS_DIR_OPT), "Extensions directory (backend)")
+                .withRequiredArg()
+                .ofType(String.class);
     }
 
     static void port(OptionParser parser) {
@@ -230,7 +259,7 @@ public final class DatashareCliOptions {
                 List.of(PORT_OPT, TCP_LISTEN_PORT_OPT), "Port used by the HTTP server")
                         .withRequiredArg()
                         .ofType(Integer.class)
-                        .defaultsTo(8080);
+                        .defaultsTo(DEFAULT_PORT);
     }
 
     static void sessionTtlSeconds(OptionParser parser) {
@@ -238,7 +267,7 @@ public final class DatashareCliOptions {
                 singletonList(SESSION_TTL_SECONDS_OPT), "Time to live for a HTTP session in seconds")
                         .withRequiredArg()
                         .ofType(Integer.class)
-                        .defaultsTo(43200);
+                        .defaultsTo(DEFAULT_SESSION_TTL_SECONDS);
     }
 
     static void protectedUriPrefix(OptionParser parser) {
@@ -246,7 +275,7 @@ public final class DatashareCliOptions {
                 singletonList(PROTECTED_URI_PREFIX_OPT), "Protected URI prefix")
                         .withRequiredArg()
                         .ofType(String.class)
-                        .defaultsTo("/api/");
+                        .defaultsTo(DEFAULT_PROTECTED_URI_PREFIX);
     }
 
     static void resume(OptionParser parser) {
@@ -282,8 +311,8 @@ public final class DatashareCliOptions {
                 asList(DATA_DIR_ABBR_OPT, DATA_DIR_OPT),
                 "Document source files directory" )
                 .withRequiredArg()
-                .ofType( File.class )
-                .defaultsTo(new File("/home/datashare/data"));
+                .ofType(File.class)
+                .defaultsTo(DEFAULT_DATA_DIR);
     }
 
     static void rootHost(OptionParser parser) {
@@ -298,7 +327,7 @@ public final class DatashareCliOptions {
                 singletonList(MESSAGE_BUS_OPT),
                 "Message bus address")
                 .withRequiredArg()
-                .defaultsTo("redis://redis:6379");
+                .defaultsTo(DEFAULT_MESSAGE_BUS_ADDRESS);
     }
 
     public static void busType(OptionParser parser) {
@@ -306,7 +335,7 @@ public final class DatashareCliOptions {
                 singletonList(BUS_TYPE_OPT),
                 "Backend data bus type.")
                 .withRequiredArg().ofType( QueueType.class )
-                .defaultsTo(QueueType.MEMORY);
+                .defaultsTo(DEFAULT_BUS_TYPE);
     }
 
     static void redisAddress(OptionParser parser) {
@@ -314,7 +343,7 @@ public final class DatashareCliOptions {
                     singletonList(REDIS_ADDRESS_OPT),
                     "Redis queue address")
                     .withRequiredArg()
-                    .defaultsTo("redis://redis:6379");
+                    .defaultsTo(DEFAULT_REDIS_ADDRESS);
         }
 
     static void queueType(OptionParser parser) {
@@ -322,7 +351,7 @@ public final class DatashareCliOptions {
                     singletonList(QUEUE_TYPE_OPT),
                     "Backend queues and sets type.")
                     .withRequiredArg().ofType(QueueType.class)
-                    .defaultsTo(QueueType.MEMORY);
+                    .defaultsTo(DEFAULT_QUEUE_TYPE);
         }
 
     static void fileParserParallelism(OptionParser parser) {
@@ -361,28 +390,32 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList(SCROLL_SIZE_OPT), "Scroll size used for elasticsearch scrolls (SCANIDX task)")
                 .withRequiredArg()
-                .ofType(Integer.class).defaultsTo(1000);
+                .ofType(Integer.class)
+                .defaultsTo(DEFAULT_SCROLL_SIZE);
     }
 
      public static void scrollSlices(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(SCROLL_SLICES_OPT), "Scroll slice max number used for elasticsearch scrolls (SCANIDX task)")
                 .withRequiredArg()
-                .ofType(Integer.class).defaultsTo(1);
+                .ofType(Integer.class)
+                .defaultsTo(DEFAULT_SCROLL_SLICES);
     }
 
      public static void redisPoolSize(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(REDIS_POOL_SIZE_OPT), "Pool size for main Redis client")
                 .withRequiredArg()
-                .ofType(Integer.class).defaultsTo(5);
+                .ofType(Integer.class)
+                .defaultsTo(DEFAULT_REDIS_POOL_SIZE);
     }
 
     public static void elasticsearchDataPath(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(ELASTICSEARCH_DATA_PATH_OPT), "Data path used for embedded Elasticsearch")
                 .withRequiredArg()
-                .ofType(String.class).defaultsTo("/home/datashare/es");
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_ELASTICSEARCH_DATA_PATH);
     }
 
     public static void reportName(OptionParser parser) {
@@ -397,7 +430,9 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList(BROWSER_OPEN_LINK_OPT),
                 "try to open link in the default browser").
-                withRequiredArg().ofType(Boolean.class).defaultsTo(false);
+                withRequiredArg()
+                .ofType(Boolean.class)
+                .defaultsTo(DEFAULT_BROWSER_OPEN_LINK);
     }
 
     static void enableOcr(OptionParser parser) {
@@ -405,7 +440,9 @@ public final class DatashareCliOptions {
                 asList(OCR_ABBR_OPT, OCR_OPT),
                 "Run optical character recognition at file parsing time. " +
                         "(Tesseract must be installed beforehand).").
-                withRequiredArg().ofType(Boolean.class).defaultsTo(true);
+                withRequiredArg()
+                .ofType(Boolean.class)
+                .defaultsTo(DEFAULT_OCR);
     }
 
     static void language(OptionParser parser) {
@@ -428,7 +465,8 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 asList(NLP_PIPELINE_ABBR_OPT, NLP_PIPELINE_OPT),
                 "NLP pipeline to be run.")
-                .withRequiredArg().defaultsTo("CORENLP");
+                .withRequiredArg()
+                .defaultsTo(DEFAULT_NLP_PIPELINE);
     }
 
     static void parallelism(OptionParser parser) {
@@ -445,7 +483,7 @@ public final class DatashareCliOptions {
                 singletonList(ELASTICSEARCH_ADDRESS_OPT), "Elasticsearch host address")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("http://elasticsearch:9200");
+                .defaultsTo(DEFAULT_ELASTICSEARCH_ADDRESS);
     }
 
     static void dataSourceUrl(OptionParser parser) {
@@ -453,7 +491,7 @@ public final class DatashareCliOptions {
                 singletonList(DATA_SOURCE_URL_OPT), "Datasource URL")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared");
+                .defaultsTo(DEFAULT_DATA_SOURCE_URL);
     }
 
     static void defaultProject(OptionParser parser) {
@@ -461,7 +499,7 @@ public final class DatashareCliOptions {
                 asList(DEFAULT_PROJECT_ABBR_OPT, DEFAULT_PROJECT_OPT), "Default project name")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("local-datashare");
+                .defaultsTo(DEFAULT_DEFAULT_PROJECT);
     }
 
     static void clusterName(OptionParser parser) {
@@ -469,7 +507,7 @@ public final class DatashareCliOptions {
                 singletonList(CLUSTER_NAME_OPT), "Cluster name")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("datashare");
+                .defaultsTo(DEFAULT_CLUSTER_NAME);
     }
 
     static void queueName(OptionParser parser) {
@@ -477,7 +515,7 @@ public final class DatashareCliOptions {
                 singletonList(QUEUE_NAME_OPT), "Extract queue name")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("extract:queue");
+                .defaultsTo(DEFAULT_QUEUE_NAME);
     }
 
     static OptionSpec<Void> help(OptionParser parser) {
@@ -554,8 +592,9 @@ public final class DatashareCliOptions {
     public static void batchQueueType(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(BATCH_QUEUE_TYPE_OPT), "")
-                .withRequiredArg().ofType( QueueType.class )
-                .defaultsTo(QueueType.MEMORY);
+                .withRequiredArg()
+                .ofType( QueueType.class )
+                .defaultsTo(DEFAULT_BATCH_QUEUE_TYPE);
     }
 
     public static void batchDownloadTimeToLive(OptionParser parser) {
@@ -594,7 +633,6 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .withValuesConvertedBy(regex("[0-9]+[KMG]?"))
                 .defaultsTo(DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE);
-
     }
 
     public static void batchDownloadMaxSize(OptionParser parser) {
@@ -603,7 +641,6 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .withValuesConvertedBy(regex("[0-9]+[KMG]?"))
                 .defaultsTo(DEFAULT_BATCH_DOWNLOAD_MAX_SIZE);
-
     }
 
     public static void batchDownloadDir(OptionParser parser) {
@@ -627,7 +664,7 @@ public final class DatashareCliOptions {
                 singletonList(SESSION_STORE_TYPE_OPT), "Type of session store")
                 .withRequiredArg()
                 .ofType(QueueType.class)
-                .defaultsTo(QueueType.MEMORY);
+                .defaultsTo(DEFAULT_SESSION_STORE_TYPE);
     }
 
     public static void digestMethod(OptionParser parser) {
@@ -635,7 +672,7 @@ public final class DatashareCliOptions {
                 singletonList(DIGEST_ALGORITHM_OPT))
                 .withRequiredArg()
                 .ofType(DigestAlgorithm.class)
-                .defaultsTo(DigestAlgorithm.SHA_384)
+                .defaultsTo(DEFAULT_DIGEST_METHOD)
                 .withValuesConvertedBy(new DigestAlgorithm.DigestAlgorithmConverter());
     }
 
@@ -652,7 +689,7 @@ public final class DatashareCliOptions {
                 singletonList(NO_DIGEST_PROJECT_OPT), "Disable the project name in document hash processing (only using binary contents).")
                 .withRequiredArg()
                 .ofType(Boolean.class)
-                .defaultsTo(false);
+                .defaultsTo(DEFAULT_NO_DIGEST_PROJECT);
     }
 
     public static OptionSpec<String> extOption(OptionParser parser) {
@@ -668,6 +705,6 @@ public final class DatashareCliOptions {
                         format("Sets the log level of Datashare (%s)", Arrays.toString(Level.values())))
                 .withRequiredArg()
                 .ofType( String.class )
-                .defaultsTo(Level.INFO.toString());
+                .defaultsTo(DEFAULT_LOG_LEVEL);
     }
 }
