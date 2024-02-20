@@ -44,6 +44,19 @@ public class DatashareCliTest {
     }
 
     @Test
+    public void test_port_opt() {
+        cli.parseArguments(new String[] {"--port=7777"});
+        assertThat(cli.properties).includes(entry("tcpListenPort", "7777"));
+        assertThat(cli.properties).excludes(entry("port", "7777"));
+    }
+
+    @Test
+    public void test_tcp_listen_port_opt() {
+        cli.parseArguments(new String[] {"--tcpListenPort=7777"});
+        assertThat(cli.properties).includes(entry("tcpListenPort", "7777"));
+    }
+
+    @Test
     public void test_mode_opt() {
         cli.parseArguments(new String[] {""});
         assertThat(cli.properties).includes(entry("mode", "LOCAL"));

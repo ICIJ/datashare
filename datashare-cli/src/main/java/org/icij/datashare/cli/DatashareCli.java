@@ -16,9 +16,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.DIGEST_PROJECT_NAME_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.NO_DIGEST_PROJECT_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 
 public class DatashareCli {
@@ -70,6 +68,11 @@ public class DatashareCli {
             if (!Boolean.parseBoolean(properties.getProperty(NO_DIGEST_PROJECT_OPT))
                     && properties.getProperty(DIGEST_PROJECT_NAME_OPT) == null) {
                 properties.setProperty(DIGEST_PROJECT_NAME_OPT, properties.getProperty(DEFAULT_PROJECT_OPT));
+            }
+            // Retro-compatibility so the "--port" option is mapped to the "tcpListenPort" property
+            if (options.has(PORT_OPT)) {
+                properties.setProperty(TCP_LISTEN_PORT_OPT, properties.getProperty(PORT_OPT));
+                properties.remove(PORT_OPT);
             }
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);
