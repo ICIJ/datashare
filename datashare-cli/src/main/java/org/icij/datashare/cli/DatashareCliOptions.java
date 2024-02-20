@@ -136,6 +136,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_ELASTICSEARCH_DATA_PATH = DEFAULT_DATASHARE_HOME.resolve("es").toString();
     public static final String DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE = "1G";
     public static final String DEFAULT_EXTENSIONS_DIR = DEFAULT_DATASHARE_HOME.resolve("extensions").toString();
+    public static final boolean DEFAULT_FOLLOW_SYMLINKS = true;
     public static final String DEFAULT_LOG_LEVEL = Level.INFO.toString();
     public static final String DEFAULT_MESSAGE_BUS_ADDRESS = "redis://redis:6379";
     public static final String DEFAULT_NLP_PIPELINE = "CORENLP";
@@ -190,20 +191,24 @@ public final class DatashareCliOptions {
                 asList(DEFAULT_USER_NAME_ABBR_OPT, DEFAULT_USER_NAME_OPT),
                 "Default local user name")
                 .withRequiredArg()
-                .ofType( String.class )
+                .ofType(String.class)
                 .defaultsTo(DEFAULT_USER);
     }
 
     static void followSymlinks(OptionParser parser) {
-        parser.acceptsAll(singletonList(FOLLOW_SYMLINKS_OPT), "Follow symlinks (default false)");
+        parser.acceptsAll(
+                singletonList(FOLLOW_SYMLINKS_OPT), "Follow symlinks while scanning documents")
+                .withRequiredArg()
+                .ofType(Boolean.class)
+                .defaultsTo(DEFAULT_FOLLOW_SYMLINKS);;
     }
 
     static void cors(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(CORS_OPT), "CORS headers (needs the web option)")
-                        .withRequiredArg()
-                        .ofType(String.class)
-                        .defaultsTo(DEFAULT_CORS);
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_CORS);
     }
 
     static void settings (OptionParser parser) {
