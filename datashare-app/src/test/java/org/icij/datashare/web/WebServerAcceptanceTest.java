@@ -13,7 +13,7 @@ public class WebServerAcceptanceTest extends AbstractProdWebServerTest {
         String[] args = {
             "--cors=*",
             "--mode=SERVER",
-            "---dataSourceUrl=jdbc:sqlite:file:memory.db?mode=memory&cache=shared"
+            "--dataSourceUrl=jdbc:sqlite:file:/tmp/datashare.db"
         };
         configure(CommonMode.create(new DatashareCli().parseArguments(args).properties).createWebConfiguration());
         waitForDatashare();
