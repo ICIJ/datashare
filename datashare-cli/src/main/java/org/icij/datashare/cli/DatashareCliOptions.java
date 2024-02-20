@@ -262,7 +262,7 @@ public final class DatashareCliOptions {
 
     static void tcpListenPort(OptionParser parser) {
         parser.acceptsAll(
-                List.of(TCP_LISTEN_PORT_OPT, PORT_OPT), "Port used by the HTTP server")
+                List.of(PORT_OPT, TCP_LISTEN_PORT_OPT), "Port used by the HTTP server")
                         .withRequiredArg()
                         .ofType(Integer.class)
                         .defaultsTo(DEFAULT_TCP_LISTEN_PORT);
