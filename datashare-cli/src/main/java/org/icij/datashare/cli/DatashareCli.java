@@ -64,15 +64,18 @@ public class DatashareCli {
                 System.out.println(getVersion());
                 System.exit(0);
             }
+
             properties = asProperties(options, null);
             if (!Boolean.parseBoolean(properties.getProperty(NO_DIGEST_PROJECT_OPT))
                     && properties.getProperty(DIGEST_PROJECT_NAME_OPT) == null) {
                 properties.setProperty(DIGEST_PROJECT_NAME_OPT, properties.getProperty(DEFAULT_PROJECT_OPT));
             }
-            // Retro-compatibility so the "--port" option is mapped to the "tcpListenPort" property
-            if (options.has(PORT_OPT)) {
-                properties.setProperty(TCP_LISTEN_PORT_OPT, properties.getProperty(PORT_OPT));
-                properties.remove(PORT_OPT);
+            // Retro-compatibility so the alias options is are mapped to the right property
+            for (String alias : OPT_ALIASES.keySet()) {
+                if (properties.containsKey(alias)) {
+                    properties.setProperty(OPT_ALIASES.get(alias), properties.getProperty(alias));
+                    properties.remove(alias);
+                }
             }
         } catch (Exception e) {
             LOGGER.error("Failed to parse arguments.", e);

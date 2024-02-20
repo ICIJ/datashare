@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -153,7 +154,10 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_SCROLL_SLICES = 1;
     public static final int DEFAULT_TCP_LISTEN_PORT = 8080;
     public static final int DEFAULT_SESSION_TTL_SECONDS = 43200;
-
+    // A list of aliases for retro-compatibility when an option changed
+    public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
+            Map.entry(PORT_OPT, TCP_LISTEN_PORT_OPT)
+    );
 
     static void stages(OptionParser parser) {
         parser.acceptsAll(
