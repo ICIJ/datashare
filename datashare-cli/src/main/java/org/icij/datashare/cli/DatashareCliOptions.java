@@ -10,6 +10,7 @@ import java.io.File;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -112,26 +113,28 @@ public final class DatashareCliOptions {
     public static final String VERSION_ABBR_OPT = "v";
     public static final String VERSION_OPT = "version";
 
+    private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.dir"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
     private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     public static final DigestAlgorithm DEFAULT_DIGEST_METHOD = DigestAlgorithm.SHA_384;
-    public static final File DEFAULT_DATA_DIR = new File("/home/datashare/data");
+    public static final String DEFAULT_DATA_DIR = Paths.get(System.getProperty("user.dir")).resolve("Datashare").toString();
     public static final Mode DEFAULT_MODE = Mode.LOCAL;
     public static final QueueType DEFAULT_BATCH_QUEUE_TYPE = QueueType.MEMORY;
     public static final QueueType DEFAULT_BUS_TYPE = QueueType.MEMORY;
     public static final QueueType DEFAULT_QUEUE_TYPE = QueueType.MEMORY;
     public static final QueueType DEFAULT_SESSION_STORE_TYPE = QueueType.MEMORY;
-    public static final String DEFAULT_BATCH_DOWNLOAD_DIR = Paths.get(System.getProperty("user.dir")).resolve("app/tmp").toString();
+    public static final String DEFAULT_BATCH_DOWNLOAD_DIR = DEFAULT_DATASHARE_HOME.resolve("tmp").toString();
     public static final String DEFAULT_BATCH_DOWNLOAD_MAX_SIZE = "100M";
     public static final String DEFAULT_CHARSET = Charset.defaultCharset().toString();
     public static final String DEFAULT_CLUSTER_NAME = "datashare";
     public static final String DEFAULT_CORS = "no-cors";
-    public static final String DEFAULT_DATA_SOURCE_URL = "jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared";
+    public static final String DEFAULT_DATA_SOURCE_URL = "jdbc:sqlite:file:" + DEFAULT_DATASHARE_HOME.resolve("dist/datashare.db").toString();
     public static final String DEFAULT_DEFAULT_PROJECT = "local-datashare";
     public static final String DEFAULT_ELASTICSEARCH_ADDRESS = "http://elasticsearch:9200";
-    public static final String DEFAULT_ELASTICSEARCH_DATA_PATH = "/home/datashare/es";
+    public static final String DEFAULT_ELASTICSEARCH_DATA_PATH = DEFAULT_DATASHARE_HOME.resolve("es").toString();
     public static final String DEFAULT_EMBEDDED_DOCUMENT_DOWNLOAD_MAX_SIZE = "1G";
+    public static final String DEFAULT_EXTENSIONS_DIR = DEFAULT_DATASHARE_HOME.resolve("extensions").toString();
     public static final String DEFAULT_LOG_LEVEL = Level.INFO.toString();
     public static final String DEFAULT_MESSAGE_BUS_ADDRESS = "redis://redis:6379";
     public static final String DEFAULT_NLP_PIPELINE = "CORENLP";
@@ -144,10 +147,11 @@ public final class DatashareCliOptions {
     public static final boolean DEFAULT_OCR = true;
     public static final int DEFAULT_BATCH_DOWNLOAD_MAX_NB_FILES = 10000;
     public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
-    public static final int DEFAULT_PORT = 8080;
+    public static final String DEFAULT_PLUGIN_DIR = DEFAULT_DATASHARE_HOME.resolve("plugins").toString();
     public static final int DEFAULT_REDIS_POOL_SIZE = 5;
     public static final int DEFAULT_SCROLL_SIZE = 1000;
     public static final int DEFAULT_SCROLL_SLICES = 1;
+    public static final int DEFAULT_TCP_LISTEN_PORT = 8080;
     public static final int DEFAULT_SESSION_TTL_SECONDS = 43200;
 
 
@@ -209,7 +213,8 @@ public final class DatashareCliOptions {
         parser.acceptsAll(
                 singletonList(PLUGINS_DIR_OPT), "Plugins directory")
                         .withRequiredArg()
-                        .ofType(String.class);
+                        .ofType(String.class)
+                        .defaultsTo(DEFAULT_PLUGIN_DIR);
     }
 
     static void pluginList(OptionParser parser) {
@@ -251,15 +256,16 @@ public final class DatashareCliOptions {
     public static void extensionsDir(OptionParser parser) {
         parser.acceptsAll(singletonList(EXTENSIONS_DIR_OPT), "Extensions directory (backend)")
                 .withRequiredArg()
-                .ofType(String.class);
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_EXTENSIONS_DIR);
     }
 
-    static void port(OptionParser parser) {
+    static void tcpListenPort(OptionParser parser) {
         parser.acceptsAll(
-                List.of(PORT_OPT, TCP_LISTEN_PORT_OPT), "Port used by the HTTP server")
+                List.of(TCP_LISTEN_PORT_OPT, PORT_OPT), "Port used by the HTTP server")
                         .withRequiredArg()
                         .ofType(Integer.class)
-                        .defaultsTo(DEFAULT_PORT);
+                        .defaultsTo(DEFAULT_TCP_LISTEN_PORT);
     }
 
     static void sessionTtlSeconds(OptionParser parser) {
@@ -312,7 +318,7 @@ public final class DatashareCliOptions {
                 "Document source files directory" )
                 .withRequiredArg()
                 .ofType(File.class)
-                .defaultsTo(DEFAULT_DATA_DIR);
+                .defaultsTo(new File(DEFAULT_DATA_DIR));
     }
 
     static void rootHost(OptionParser parser) {
