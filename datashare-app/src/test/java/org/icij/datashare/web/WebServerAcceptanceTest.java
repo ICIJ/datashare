@@ -10,7 +10,12 @@ import org.junit.Test;
 public class WebServerAcceptanceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() throws Exception {
-        configure(CommonMode.create(new DatashareCli().parseArguments(new String[]{"--cors=*", "--mode=SERVER"}).properties).createWebConfiguration());
+        String[] args = {
+            "--cors=*",
+            "--mode=SERVER",
+            "---dataSourceUrl=jdbc:sqlite:file:memory.db?mode=memory&cache=shared"
+        };
+        configure(CommonMode.create(new DatashareCli().parseArguments(args).properties).createWebConfiguration());
         waitForDatashare();
     }
 
