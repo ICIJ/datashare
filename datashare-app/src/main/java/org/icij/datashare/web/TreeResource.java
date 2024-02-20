@@ -18,9 +18,12 @@ import org.icij.datashare.file.FileReportVisitor;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.EnumSet;
+import java.util.Set;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Optional.ofNullable;
@@ -53,7 +56,9 @@ public class TreeResource {
 
     private DirectoryReport tree(Path dir, int depth) throws IOException {
         DirectoryReport rootReport = new DirectoryReport(dir.toFile());
-        Files.walkFileTree(dir, new FileReportVisitor(rootReport, depth));
+        FileReportVisitor visitor = new FileReportVisitor(rootReport, depth);
+        Set<FileVisitOption> options = EnumSet.of(FileVisitOption.FOLLOW_LINKS);
+        Files.walkFileTree(dir, options, Integer.MAX_VALUE, visitor);
         return rootReport;
     }
 
