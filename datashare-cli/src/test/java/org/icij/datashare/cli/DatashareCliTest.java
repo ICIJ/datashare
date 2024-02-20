@@ -2,6 +2,8 @@ package org.icij.datashare.cli;
 
 import joptsimple.OptionException;
 import org.junit.Rule;
+import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
@@ -14,6 +16,16 @@ public class DatashareCliTest {
     private DatashareCli cli = new DatashareCli();
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
+
+    @Before
+    public void setUp() {
+        System.setProperty("user.dir", "/home/datashare");
+    }
+
+    @After
+    public void tearDown() {
+        System.clearProperty("user.dir");
+    }
 
     @Test
     public void test_web_opt() {
@@ -150,5 +162,29 @@ public class DatashareCliTest {
         exit.expectSystemExitWithStatus(3);
         cli.parseArguments(new String[] {"--ext", "bar"});
         assertThat(cli.properties).excludes(entry("defaultProject", "local-datashare"));
+    }
+
+    @Test
+    public void test_data_dir_is_based_on_current_user_dir() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("dataDir", "/home/datashare/Datashare"));
+    }
+
+    @Test
+    public void test_elasticsearch_data_path_is_based_on_current_user_dir() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("elasticsearchDataPath", "/home/datashare/.local/share/datashare/es"));
+    }
+
+    @Test
+    public void test_extensions_dir_is_based_on_current_user_dir() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("extensionsDir", "/home/datashare/.local/share/datashare/extensions"));
+    }
+
+    @Test
+    public void test_plugins_dir_is_based_on_current_user_dir() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("pluginsDir", "/home/datashare/.local/share/datashare/plugins"));
     }
 }

@@ -100,7 +100,7 @@ public class DatashareCli {
         DatashareCliOptions.extensionList(parser);
         DatashareCliOptions.extensionInstall(parser);
         DatashareCliOptions.extensionDelete(parser);
-        DatashareCliOptions.port(parser);
+        DatashareCliOptions.tcpListenPort(parser);
         DatashareCliOptions.mode(parser);
         DatashareCliOptions.charset(parser);
         DatashareCliOptions.stages(parser);
