@@ -68,6 +68,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
+import java.util.function.Consumer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.util.Optional.ofNullable;
@@ -306,7 +307,7 @@ public abstract class CommonMode extends AbstractModule {
         try {
             Path extensionsPath = Paths.get(extensionsDir);
             ExtensionLoader loader = new ExtensionLoader(extensionsPath);
-            loader.load(routes::add, this::isEligibleForLoading);
+            loader.load((Consumer<Class<?>>) routes::add, this::isEligibleForLoading);
         } catch (FileNotFoundException e) {
             logger.warn("Extensions directory not found: " + extensionsDir);
         }
