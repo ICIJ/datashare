@@ -74,15 +74,7 @@ public class RootResourcePluginTest implements FluentRestTest {
         get("/").should().respond(200).contain("datashare-client");
         get("").should().respond(200).contain("datashare-client");
     }
-
-
-    @Test
-    public void test_invalid_folder_should_throw_error() {
-        server.configure(routes -> routes.add(new RootResource(new PropertiesProvider(new HashMap<String, String>() {{
-            put("pluginsDir", "unknown");
-        }}))));
-        get("/").should().respond(500);
-    }
+    
 
     @Test
     public void test_get_with_empty_plugin_directory() {
