@@ -61,13 +61,13 @@ import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
-import java.util.function.Consumer;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.util.Optional.ofNullable;
@@ -257,24 +257,8 @@ public abstract class CommonMode extends AbstractModule {
                     }
                 });
         addModeConfiguration(routes);
-        addExtensionConfiguration(routes);
-
-        if (provider.get(PropertiesProvider.PLUGINS_DIR).orElse(null) != null) {
-            routes.bind(PLUGINS_BASE_URL, Paths.get(provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR)).toFile());
-        }
-        return routes;
-    }
-
-    Routes addExtensionConfiguration(Routes routes) {
-        String extensionsDir = propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
-        if (extensionsDir != null) {
-            try {
-                new ExtensionLoader(Paths.get(extensionsDir)).load((Consumer<Class<?>>)routes::add,
-                        c -> c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class));
-            } catch (FileNotFoundException e) {
-                logger.warn("Extensions directory not found: " + extensionsDir);
-            }
-        }
+        addExtensionsConfiguration(routes);
+        addPluginsConfiguration(routes);
         return routes;
     }
 
@@ -288,6 +272,48 @@ public abstract class CommonMode extends AbstractModule {
             routes.filter(new CorsFilter(cors));
         }
         return routes;
+    }
+
+    private Routes addPluginsConfiguration(Routes routes) {
+        String pluginsDir = getPluginsDir();
+        if (pluginsDir == null) {
+            return routes;
+        }
+        if (!new File(pluginsDir).isDirectory()) {
+            logger.warn("Plugins directory not found: " + pluginsDir);
+            return routes;
+        }
+        return routes.bind(PLUGINS_BASE_URL, Paths.get(pluginsDir).toFile());
+    }
+
+     private Routes addExtensionsConfiguration(Routes routes) {
+        String extensionsDir = getExtensionsDir();
+        if (extensionsDir != null) {
+            loadExtensions(routes, extensionsDir);
+        }
+        return routes;
+    }
+
+    private String getExtensionsDir() {
+        return propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
+    }
+
+    private String getPluginsDir() {
+        return propertiesProvider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR);
+    }
+
+    private void loadExtensions(Routes routes, String extensionsDir) {
+        try {
+            Path extensionsPath = Paths.get(extensionsDir);
+            ExtensionLoader loader = new ExtensionLoader(extensionsPath);
+            loader.load(routes::add, this::isEligibleForLoading);
+        } catch (FileNotFoundException e) {
+            logger.warn("Extensions directory not found: " + extensionsDir);
+        }
+    }
+
+    private boolean isEligibleForLoading(Class<?> c) {
+        return c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class);
     }
 
     @NotNull
