@@ -51,7 +51,7 @@ public class CommonModeWebExtensionTest extends AbstractProdWebServerTest {
                 "    }\n" +
                 "}", method, method, method);
         createJar(pluginFolder.getRoot().toPath(), "extension", source);
-        configure(routes -> mode.addExtensionConfiguration(routes));
+        configure(routes -> mode.addExtensionsConfiguration(routes));
 
         Method restAssertMethod = FluentRestTest.class.getMethod(method.toLowerCase(), String.class);
         return (RestAssert) restAssertMethod.invoke(this, ofNullable(prefix).orElse("") + "/url");
