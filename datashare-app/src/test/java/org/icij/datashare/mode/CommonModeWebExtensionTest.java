@@ -3,7 +3,6 @@ package org.icij.datashare.mode;
 import net.codestory.rest.FluentRestTest;
 import net.codestory.rest.RestAssert;
 import org.icij.datashare.cli.Mode;
-import org.icij.datashare.cli.QueueType;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Rule;
@@ -25,7 +24,8 @@ import static org.icij.datashare.test.JarUtil.createJar;
 @RunWith(Parameterized.class)
 public class CommonModeWebExtensionTest extends AbstractProdWebServerTest {
     private final String method;
-    @Rule public TemporaryFolder pluginFolder = new TemporaryFolder();
+    @Rule public TemporaryFolder pluginsDir = new TemporaryFolder();
+    @Rule public TemporaryFolder extensionsDir = new TemporaryFolder();
     CommonMode mode;
     @Parameterized.Parameters
     public static Collection<Object[]> methods() {
@@ -50,7 +50,7 @@ public class CommonModeWebExtensionTest extends AbstractProdWebServerTest {
                 "        return \"hello from foo extension with %s\";\n" +
                 "    }\n" +
                 "}", method, method, method);
-        createJar(pluginFolder.getRoot().toPath(), "extension", source);
+        createJar(extensionsDir.getRoot().toPath(), "extension", source);
         configure(routes -> mode.addExtensionsConfiguration(routes));
 
         Method restAssertMethod = FluentRestTest.class.getMethod(method.toLowerCase(), String.class);
@@ -63,7 +63,8 @@ public class CommonModeWebExtensionTest extends AbstractProdWebServerTest {
     public void setUp() {
         mode = CommonMode.create(new HashMap<>() {{
             put("mode", Mode.LOCAL.name());
-            put("extensionsDir", pluginFolder.getRoot().toString());
+            put("pluginsDir", pluginsDir.getRoot().toString());
+            put("extensionsDir", extensionsDir.getRoot().toString());
         }});
     }
 }
