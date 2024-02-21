@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
-import static org.mockito.Matchers.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
