@@ -52,7 +52,7 @@ public class RootResource {
             content = new String(Files.readAllBytes(index), Charset.defaultCharset());
         }
         List<String> projectNames = context.currentUser() == null ? new LinkedList<>() : ((DatashareUser)context.currentUser()).getProjectNames();
-        if (propertiesProvider.get(PLUGINS_DIR).isPresent()) {
+        if (this.hasPluginsDir()) {
             ExtensionService extensionService = propertiesProvider.get(EXTENSIONS_DIR).isPresent() ? new ExtensionService(propertiesProvider): null;
             return new PluginService(propertiesProvider, extensionService)
                 .addPlugins(content, projectNames);
@@ -89,5 +89,10 @@ public class RootResource {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private boolean hasPluginsDir() {
+        String pluginsDir = propertiesProvider.get(PLUGINS_DIR).orElse(null);
+        return pluginsDir != null && new File(pluginsDir).isDirectory();
     }
 }

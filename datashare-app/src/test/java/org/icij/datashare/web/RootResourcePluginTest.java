@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import static java.nio.file.Files.copy;
 import static java.util.Arrays.asList;
@@ -65,6 +66,15 @@ public class RootResourcePluginTest implements FluentRestTest {
         get("/").should().respond(200).contain("datashare-client");
         get("").should().respond(200).contain("datashare-client");
     }
+
+    @Test
+    public void test_get_with_missing_plugin_directory() {
+        propertiesProvider = new PropertiesProvider(Map.of("pluginsDir", "/something/missing/"));
+        server.configure(routes -> routes.add(new RootResource(propertiesProvider)));
+        get("/").should().respond(200).contain("datashare-client");
+        get("").should().respond(200).contain("datashare-client");
+    }
+
 
     @Test
     public void test_invalid_folder_should_throw_error() {
