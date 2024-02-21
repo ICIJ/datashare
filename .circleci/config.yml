@@ -9,7 +9,7 @@ jobs:
 
   build_back:
     docker:
-      - image: cimg/openjdk:18.0
+      - image: cimg/openjdk:17.0
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
@@ -74,7 +74,7 @@ jobs:
 
   publish_doc:
     docker:
-      - image: cimg/openjdk:18.0
+      - image: cimg/openjdk:17.0
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
            - "discovery.type=single-node"
@@ -165,7 +165,7 @@ jobs:
 
   package_back:
     docker:
-      - image: cimg/openjdk:18.0
+      - image: cimg/openjdk:17.0
     working_directory: /tmp/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
@@ -197,7 +197,7 @@ jobs:
 
   deploy_back:
     docker:
-      - image: cimg/openjdk:18.0
+      - image: cimg/openjdk:17.0
     working_directory: /tmp
     steps:
       - attach_workspace:
