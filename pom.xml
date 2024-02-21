@@ -82,7 +82,7 @@
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
-        <guice.version>4.1.0</guice.version>
+        <guice.version>5.0.1</guice.version>
         <amazon.version>1.11.327</amazon.version>
 
         <extract.version>6.6.0</extract.version>
@@ -93,7 +93,7 @@
         <joda-time.version>2.9.5</joda-time.version>
         <httpclient.version>4.5.13</httpclient.version>
         <httpcore.version>4.4.13</httpcore.version>
-        <guava.version>32.0.0-jre</guava.version>
+        <guava.version>33.0.0-jre</guava.version>
         <xalan.version>2.7.2</xalan.version>
         <xerces.version>2.12.2</xerces.version>
         <commons-beanutils.version>1.7.0</commons-beanutils.version>
@@ -105,7 +105,7 @@
         <logback.version>1.4.12</logback.version>
         <log4jtoslf4j.version>2.17.2</log4jtoslf4j.version>
         <log4-over-slf4j.version>2.17.2</log4-over-slf4j.version>
-        <junit.version>4.13.1</junit.version>
+        <junit.version>4.13.2</junit.version>
 
         <!-- Maven Plugins -->
         <maven-compiler.version>3.5.1</maven-compiler.version>
