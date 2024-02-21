@@ -3,7 +3,7 @@ set -e
 
 java_bin=${JAVA_HOME:-/usr}/bin/java
 java_opts=${DS_JAVA_OPTS:-''}
-datashare_jar=$(find /home/datashare/lib/ -name '*.jar' | xargs | sed 's/ /:/g')
+datashare_jars=$(find /home/datashare/lib/ -name '*.jar' | xargs | sed 's/ /:/g')
 datashare_home=${DATASHARE_HOME:-$HOME/.local/share/datashare}
 datashare_jna_tmpdir=${DATASHARE_JNA_TMPDIR:-$datashare_home/index/tmp}
 datashare_sync_nlp_models=${DATASHARE_SYNC_NLP_MODELS:-true}
@@ -20,6 +20,6 @@ else
       -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
       -Djna.tmpdir=$datashare_jna_tmpdir \
       -DDS_SYNC_NLP_MODELS=$datashare_sync_nlp_models \
-      -cp ./dist:$datashare_jar org.icij.datashare.Main \
+      -cp $datashare_home/dist:$datashare_jars org.icij.datashare.Main \
         "$@"
 fi
