@@ -3,8 +3,8 @@ set -e
 
 java_bin=${JAVA_HOME:-/usr}/bin/java
 java_opts=${DS_JAVA_OPTS:-''}
-datashare_jars=$(find /home/datashare/lib/ -name '*.jar' | xargs | sed 's/ /:/g')
 datashare_home=${DATASHARE_HOME:-$HOME/.local/share/datashare}
+datashare_jars=$(find $datashare_home/lib/ -name '*.jar' | xargs | sed 's/ /:/g')
 datashare_jna_tmpdir=${DATASHARE_JNA_TMPDIR:-$datashare_home/index/tmp}
 datashare_sync_nlp_models=${DATASHARE_SYNC_NLP_MODELS:-true}
 
