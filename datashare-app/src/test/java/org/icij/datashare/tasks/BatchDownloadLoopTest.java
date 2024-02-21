@@ -15,7 +15,7 @@ import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.Project.project;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -43,7 +43,7 @@ public class BatchDownloadLoopTest {
 
         assertThat(nb).isEqualTo(1);
         verify(batchRunner).call();
-        verify(supplier).result(eq(task.id), anyObject());
+        verify(supplier).result(eq(task.id), any());
         verify(batchDownloadCleaner, times(2)).run();
     }
 
