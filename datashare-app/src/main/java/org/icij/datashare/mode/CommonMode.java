@@ -205,7 +205,7 @@ public abstract class CommonMode extends AbstractModule {
         bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
-    void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {
+   public  void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);
         pipelineRegistry.register(Pipeline.Type.CORENLP);
@@ -231,6 +231,34 @@ public abstract class CommonMode extends AbstractModule {
                             propertiesProvider
                 )
         );
+    }
+
+    public Routes addCorsFilter(Routes routes, PropertiesProvider provider) {
+        String cors = provider.get("cors").orElse("no-cors");
+        if (!cors.equals("no-cors")) {
+            routes.filter(new CorsFilter(cors));
+        }
+        return routes;
+    }
+
+    public Routes addPluginsConfiguration(Routes routes) {
+        String pluginsDir = getPluginsDir();
+        if (pluginsDir == null) {
+            return routes;
+        }
+        if (!new File(pluginsDir).isDirectory()) {
+            logger.warn("Plugins directory not found: " + pluginsDir);
+            return routes;
+        }
+        return routes.bind(PLUGINS_BASE_URL, Paths.get(pluginsDir).toFile());
+    }
+
+     public Routes addExtensionsConfiguration(Routes routes) {
+        String extensionsDir = getExtensionsDir();
+        if (extensionsDir != null) {
+            loadExtensions(routes, extensionsDir);
+        }
+        return routes;
     }
 
     protected abstract Routes addModeConfiguration(final Routes routes);
@@ -264,34 +292,6 @@ public abstract class CommonMode extends AbstractModule {
 
     protected boolean hasProperty(QueueType queueType) {
         return propertiesProvider.getProperties().contains(queueType.name());
-    }
-
-    private Routes addCorsFilter(Routes routes, PropertiesProvider provider) {
-        String cors = provider.get("cors").orElse("no-cors");
-        if (!cors.equals("no-cors")) {
-            routes.filter(new CorsFilter(cors));
-        }
-        return routes;
-    }
-
-    private Routes addPluginsConfiguration(Routes routes) {
-        String pluginsDir = getPluginsDir();
-        if (pluginsDir == null) {
-            return routes;
-        }
-        if (!new File(pluginsDir).isDirectory()) {
-            logger.warn("Plugins directory not found: " + pluginsDir);
-            return routes;
-        }
-        return routes.bind(PLUGINS_BASE_URL, Paths.get(pluginsDir).toFile());
-    }
-
-     private Routes addExtensionsConfiguration(Routes routes) {
-        String extensionsDir = getExtensionsDir();
-        if (extensionsDir != null) {
-            loadExtensions(routes, extensionsDir);
-        }
-        return routes;
     }
 
     private String getExtensionsDir() {
