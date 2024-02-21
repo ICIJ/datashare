@@ -272,7 +272,7 @@ public abstract class CommonMode extends AbstractModule {
                 new ExtensionLoader(Paths.get(extensionsDir)).load((Consumer<Class<?>>)routes::add,
                         c -> c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class));
             } catch (FileNotFoundException e) {
-                logger.info("extensions dir not found", e);
+                logger.warn("Extensions directory not found: " + extensionsDir);
             }
         }
         return routes;
