@@ -54,7 +54,7 @@ public class JooqBatchSearchRepository implements BatchSearchRepository {
                                     BATCH_SEARCH.PATHS, BATCH_SEARCH.FUZZINESS, BATCH_SEARCH.PHRASE_MATCHES, BATCH_SEARCH.NB_QUERIES).
                             values(batchSearch.uuid, batchSearch.name, batchSearch.description, batchSearch.user.id,
                                     new Timestamp(batchSearch.date.getTime()), batchSearch.state.name(), batchSearch.published ? 1 : 0,
-                                    join(LIST_SEPARATOR, batchSearch.fileTypes), join(LIST_SEPARATOR, batchSearch.queryTemplate.toString()),
+                                    join(LIST_SEPARATOR, batchSearch.fileTypes), batchSearch.queryTemplate.toString(),
                                     join(LIST_SEPARATOR, batchSearch.paths), batchSearch.fuzziness, batchSearch.phraseMatches ? 1 : 0, batchSearch.nbQueries).execute();
 
                     InsertValuesStep4<BatchSearchQueryRecord, String, String, Integer, Integer> insertQuery = inner.insertInto(BATCH_SEARCH_QUERY, BATCH_SEARCH_QUERY.SEARCH_UUID, BATCH_SEARCH_QUERY.QUERY, BATCH_SEARCH_QUERY.QUERY_NUMBER, BATCH_SEARCH_QUERY.QUERY_RESULTS);

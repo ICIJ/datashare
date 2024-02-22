@@ -5,6 +5,7 @@ import org.icij.datashare.batch.BatchSearchRecord.State;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.ProjectProxy;
+import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
 import org.jooq.exception.DataAccessException;
@@ -70,6 +71,32 @@ public class JooqBatchSearchRepositoryTest {
         assertThat(batchSearchFromGet.projects).isEqualTo(batchSearch.projects);
         assertThat(batchSearchFromGet.user).isEqualTo(User.local());
     }
+
+    @Test
+    public void test_save_and_get_batch_search_null_query_template() {
+        BatchSearch batchSearch = new BatchSearch(asList(proxy("prj1"), proxy("prj2")), "name1", "description1",
+                asSet("q1", "q2"), User.local(), true, asList("application/json", "image/jpeg"), null,
+                asList("/path/to/docs", "/path/to/pdfs"), 3,true);
+
+        repository.save(batchSearch);
+
+        BatchSearch batchSearchFromGet = repository.get(batchSearch.uuid);
+
+        assertThat(batchSearchFromGet.name).isEqualTo(batchSearch.name);
+        assertThat(batchSearchFromGet.published).isEqualTo(batchSearch.published);
+        assertThat(batchSearchFromGet.fileTypes).isEqualTo(batchSearch.fileTypes);
+        assertThat(batchSearchFromGet.queryTemplate).isEqualTo(new SearchQuery(null));
+        assertThat(batchSearchFromGet.paths).isEqualTo(batchSearch.paths);
+        assertThat(batchSearchFromGet.fuzziness).isEqualTo(batchSearch.fuzziness);
+        assertThat(batchSearchFromGet.description).isEqualTo(batchSearch.description);
+        assertThat(batchSearchFromGet.nbResults).isEqualTo(batchSearch.nbResults);
+        assertThat(batchSearchFromGet.phraseMatches).isEqualTo(batchSearch.phraseMatches);
+        assertThat(batchSearchFromGet.queries).isEqualTo(batchSearch.queries);
+        assertThat(batchSearchFromGet.nbQueries).isEqualTo(batchSearch.nbQueries);
+        assertThat(batchSearchFromGet.projects).isEqualTo(batchSearch.projects);
+        assertThat(batchSearchFromGet.user).isEqualTo(User.local());
+    }
+
 
     @Test
     public void test_get_batch_search_by_user_with_projects_without_queries() {
