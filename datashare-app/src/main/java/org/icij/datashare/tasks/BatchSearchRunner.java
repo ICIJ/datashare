@@ -99,7 +99,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                             .withPrefixQuery("path", batchSearch.paths.toArray(new String[]{}))
                             .with(batchSearch.fuzziness, batchSearch.phraseMatches)
                             .withoutSource("content").limit(scrollSize);
-                    docsToProcess = searcher.scroll(query).collect(toList());
+                    docsToProcess = searcher.scroll().collect(toList());
                 }
 
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
