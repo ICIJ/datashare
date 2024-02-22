@@ -120,11 +120,12 @@ public class TaskResource {
     @Post("/batchDownload")
     public TaskView<File> batchDownload(final OptionsWrapper<Object> optionsWrapper, Context context) throws Exception {
         Map<String, Object> options = optionsWrapper.getOptions();
-        Path downloadDir = get(propertiesProvider.getProperties().getProperty(BATCH_DOWNLOAD_DIR_OPT));
+        Properties properties = applyProjectProperties(optionsWrapper);
+        Path downloadDir = get(properties.getProperty(BATCH_DOWNLOAD_DIR_OPT));
         if (!downloadDir.toFile().exists()) downloadDir.toFile().mkdirs();
         String query = options.get("query") instanceof Map ? JsonObjectMapper.MAPPER.writeValueAsString(options.get("query")): (String)options.get("query");
         String uri = (String) options.get("uri");
-        boolean batchDownloadEncrypt = parseBoolean(propertiesProvider.get("batchDownloadEncrypt").orElse("false"));
+        boolean batchDownloadEncrypt = parseBoolean(properties.getOrDefault("batchDownloadEncrypt", "false").toString());
         List<String> projectIds = (List<String>) options.get("projectIds");
         BatchDownload batchDownload = new BatchDownload(projectIds.stream().map(Project::project).collect(toList()), (User) context.currentUser(), query, uri, downloadDir, batchDownloadEncrypt);
         return taskManager.startTask(BatchDownloadRunner.class.getName(), (User) context.currentUser(), new HashMap<>() {{
@@ -137,8 +138,7 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task", useReturnTypeSchema = true)
     @Post("/batchUpdate/index")
     public TaskView<Long> indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) {
-        Properties properties = optionsWrapper.asProperties();
-        String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
+        Properties properties = applyProjectProperties(optionsWrapper);
         IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), properties);
         return taskManager.startTask(indexTask);
     }
@@ -157,16 +157,15 @@ public class TaskResource {
     @Post("/batchUpdate/index/:filePath:")
     public List<TaskView<Long>> indexFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
         TaskView<Long> scanResponse = scanFile(filePath, optionsWrapper, context);
-        Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
-        String reportName = properties.getOrDefault(MAP_NAME_OPTION, "extract:report").toString();
-        String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
+        Properties properties = applyProjectProperties(optionsWrapper);
+        String reportName = properties.get(MAP_NAME_OPTION).toString();
         User user = (User) context.currentUser();
         // Use a report map only if the request's body contains a "filter" attribute
-        if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
+        if (properties.get("filter") != null && parseBoolean(properties.getProperty("filter"))) {
             taskFactory.createScanIndexTask(user, reportName).call();
             properties.put(MAP_NAME_OPTION, reportName);
         } else {
-            properties.remove("reportName"); // avoid use of reportMap to override ES docs
+            properties.remove(MAP_NAME_OPTION); // avoid use of reportMap to override ES docs
         }
         return asList(scanResponse, taskManager.startTask(taskFactory.createIndexTask(user, properties)));
     }
@@ -177,7 +176,7 @@ public class TaskResource {
     @Post("/batchUpdate/scan/:filePath:")
     public TaskView<Long> scanFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
         Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
-        Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
+        Properties properties = applyProjectProperties(optionsWrapper);
         return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, properties));
     }
 
@@ -249,15 +248,37 @@ public class TaskResource {
     @ApiResponse(responseCode = "200", description = "returns 200 and the created task", useReturnTypeSchema = true)
     @Post("/findNames/:pipeline")
     public List<TaskView<?>> extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
-        Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
-        mergedProps.put(NLP_PIPELINE_OPT, pipelineName);
-        syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
+        Properties properties = applyProjectProperties(optionsWrapper);
+        properties.put(NLP_PIPELINE_OPT, pipelineName);
+        syncModels(parseBoolean(properties.getProperty("syncModels", "true")));
         List<TaskView<?>> tasks = new LinkedList<>();
-        if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            tasks.add(taskManager.startTask(taskFactory.createEnqueueFromIndexTask((User) context.currentUser(), mergedProps)));
+        if (parseBoolean(properties.getProperty("resume", "true"))) {
+            tasks.add(taskManager.startTask(taskFactory.createEnqueueFromIndexTask((User) context.currentUser(), properties)));
         }
-        tasks.add(taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), mergedProps)));
+        tasks.add(taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), properties)));
         return tasks;
+    }
+
+    public Properties applyProjectProperties(OptionsWrapper optionsWrapper) {
+        Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
+        return TaskResource.applyProjectTo(properties);
+    }
+
+    public static Properties applyProjectTo(Properties properties) {
+        Properties clone = (Properties) properties.clone();
+        clone.setProperty(QUEUE_NAME_OPTION, getQueueNameFor(properties));
+        clone.setProperty(MAP_NAME_OPTION, getReportMapNameFor(properties));
+        return clone;
+    }
+
+    public static String getQueueNameFor(Properties properties) {
+        String projectName = properties.getOrDefault("defaultProject","local-datashare").toString();
+        return "extract:queue:" + projectName;
+    }
+
+    public static String getReportMapNameFor(Properties properties) {
+        String projectName = properties.getOrDefault("defaultProject","local-datashare").toString();
+        return "extract:report:" + projectName;
     }
 
     private static <V> TaskView<V> forbiddenIfNotSameUser(Context context, TaskView<V> task) {
