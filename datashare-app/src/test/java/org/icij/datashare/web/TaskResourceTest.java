@@ -8,6 +8,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
+import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
@@ -46,6 +47,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     private static final TaskFactory taskFactory = mock(TaskFactory.class);
     private static final BlockingQueue<TaskView<?>> taskQueue = new ArrayBlockingQueue<>(3);
     private static final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider(), taskQueue);
+    private static final MemoryDocumentCollectionFactory<Path> documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
 
     @Before
     public void setUp() {
@@ -117,12 +119,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
 
-        verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report"));
+        verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report:local-datashare"));
     }
 
     @Test
     public void test_index_file_and_filter_with_custom_report_map() {
-        String body = "{\"options\":{\"filter\": true, \"reportName\": \"extract:report:foo\"}}";
+        String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
         ShouldChain responseBody = response.should().haveType("application/json");
@@ -136,7 +138,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_index_file_and_filter_with_custom_queue() {
-        String body = "{\"options\":{\"filter\": true, \"queueName\": \"extract:queue:foo\"}}";
+        String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + getClass().getResource("/docs/doc.txt").getPath().substring(1), body);
 
         ShouldChain responseBody = response.should().haveType("application/json");
@@ -172,27 +174,26 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_index_and_scan_directory_with_options() {
         String path = getClass().getResource("/docs/").getPath();
-
-        RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1),
-                "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}");
-
+        String body = "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}";
+        RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1), body);
         response.should().haveType("application/json");
         HashMap<String, String> defaultProperties = getDefaultProperties();
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
-        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(defaultProperties).getProperties());
         verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
+        defaultProperties.remove("reportName");
+        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(defaultProperties).getProperties());
     }
 
     @Test
     public void test_index_queue_with_options() {
-        RestAssert response = post("/api/task/batchUpdate/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
-
+        String body = "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}";
+        RestAssert response = post("/api/task/batchUpdate/index", body);
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(new HashMap<String, String>() {{
-            put("key1", "val1");
-            put("key2", "val2");
-        }}).getProperties());
+        HashMap<String, String> defaultProperties = getDefaultProperties();
+        defaultProperties.put("key1", "val1");
+        defaultProperties.put("key2", "val2");
+        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(defaultProperties).getProperties());
         verify(taskFactory, never()).createScanTask(eq(local()), any(Path.class), any(Properties.class));
     }
 
@@ -212,6 +213,30 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("foo", "qux");
         verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
         verify(taskFactory, never()).createIndexTask(any(User.class), any(Properties.class));
+    }
+
+    @Test
+    public void test_scan_queue_is_created_correctly() {
+        ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
+        String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
+        String path = getClass().getResource("/docs/").getPath();
+        RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
+        response.should().haveType("application/json");
+        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        verify(taskFactory).createScanTask(eq(local()), any(), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("queueName", "extract:queue:foo"));
+    }
+
+    @Test
+    public void test_scan_queue_is_created_correctly_and_options_ignored() {
+        ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
+        String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\", \"queueName\": \"bar\"}}";
+        String path = getClass().getResource("/docs/").getPath();
+        RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
+        response.should().haveType("application/json");
+        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        verify(taskFactory).createScanTask(eq(local()), any(), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("queueName", "extract:queue:foo"));
     }
 
     @Test
@@ -406,6 +431,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
             put("dataDir", "/default/data/dir");
             put("foo", "bar");
             put("batchDownloadDir", "app/tmp");
+            put("queueName", "extract:queue:local-datashare");
+            put("reportName", "extract:report:local-datashare");
         }};
     }
 
