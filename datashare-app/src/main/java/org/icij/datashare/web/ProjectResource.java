@@ -13,8 +13,10 @@
     import net.codestory.http.annotations.*;
     import net.codestory.http.constants.HttpStatus;
     import net.codestory.http.payload.Payload;
+    import org.icij.datashare.PipelineHelper;
     import org.icij.datashare.PropertiesProvider;
     import org.icij.datashare.Repository;
+    import org.icij.datashare.Stage;
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.session.DatashareUser;
     import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -27,17 +29,23 @@
     import org.icij.extract.queue.DocumentQueue;
     import org.icij.extract.report.ReportMap;
     import org.jetbrains.annotations.NotNull;
+    import org.slf4j.Logger;
     import org.slf4j.LoggerFactory;
 
     import java.io.IOException;
     import java.nio.file.Path;
     import java.util.List;
+    import java.util.Map;
     import java.util.Objects;
+    import java.util.Properties;
+    import java.util.stream.Collectors;
 
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
     import static org.apache.tika.utils.StringUtils.isEmpty;
+    import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
     import static org.icij.datashare.text.Project.isAllowed;
+    import static org.icij.datashare.web.TaskResource.applyProjectTo;
 
     @Singleton
     @Prefix("/api/project")
@@ -168,12 +176,11 @@
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             DatashareUser user = (DatashareUser) context.currentUser();
             Project project = getUserProject(user, id);
-            boolean isDeleted = repository.deleteAll(id);
-            boolean indexDeleted = indexer.deleteAll(id);
-            boolean queueDeleted = getDocumentQueue(project).delete();
-            boolean reportMapDeleted = getReportMap(project).delete();
-            LoggerFactory.getLogger(getClass()).info("deleted project {} index ({}), db ({}), queue ({}) and report map ({})",
-                    id, indexDeleted, isDeleted, queueDeleted, reportMapDeleted);
+            Logger logger = LoggerFactory.getLogger(getClass());
+            logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
+            logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
+            logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
+            logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
             return new Payload(204);
         }
 
@@ -210,13 +217,28 @@
                     .orElse(null);
         }
 
-        DocumentQueue<Path> getDocumentQueue(String queueName) {
+        boolean deleteQueues(Project project) {
+            return getQueues(project).stream().allMatch(DocumentQueue::delete);
+        }
+
+        boolean deleteReportMap(Project project) {
+            return getReportMap(project).delete();
+        }
+
+        DocumentQueue<Path> getQueue(String queueName) {
             return documentCollectionFactory.createQueue(queueName, Path.class);
         }
 
-        DocumentQueue<?> getDocumentQueue(Project project) {
-            String queueName = "extract:queue:" + project.getName();
-            return getDocumentQueue(queueName);
+        List<DocumentQueue<?>> getQueues(Project project) {
+            String name = project.getName();
+            Properties properties = applyProjectTo(propertiesProvider.createOverriddenWith(Map.of("defaultProject", name)));
+            PipelineHelper pipelineHelper = new PipelineHelper(new PropertiesProvider(properties));
+            List<String> queueNames = List.of(
+                     properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString(),
+                     pipelineHelper.getOutputQueueNameFor(Stage.SCAN),
+                     pipelineHelper.getOutputQueueNameFor(Stage.INDEX),
+                     pipelineHelper.getOutputQueueNameFor(Stage.NLP));
+            return queueNames.stream().map(this::getQueue).collect(Collectors.toList());
         }
 
         ReportMap getReportMap(String reportMapName) {
