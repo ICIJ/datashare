@@ -163,6 +163,32 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Test
+    public void test_search_with_query_template() throws Exception {
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
+        Document mydoc = createDoc("docId").with("mydoc to find").build();
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch searchOk = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(),false, null, queryBody,
+                null, 0);
+
+        new BatchSearchRunner(indexer, new PropertiesProvider(), searchOk, resultConsumer).call();
+
+        verify(resultConsumer).apply(searchOk.uuid, "mydoc", singletonList(mydoc));
+    }
+
+
+    @Test
+    public void test_search_without_query_template() throws Exception {
+        Document mydoc = createDoc("docId").with("mydoc to find").build();
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch searchOk = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(),false, null, null,
+                null, 0);
+
+        new BatchSearchRunner(indexer, new PropertiesProvider(), searchOk, resultConsumer).call();
+
+        verify(resultConsumer).apply(searchOk.uuid, "mydoc", singletonList(mydoc));
+    }
+
+    @Test
     public void test_search_with_error() throws Exception {
         Document mydoc = createDoc("docId1").with("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
