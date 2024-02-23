@@ -266,18 +266,17 @@ public class TaskResource {
 
     public static Properties applyProjectTo(Properties properties) {
         Properties clone = (Properties) properties.clone();
-        clone.setProperty(QUEUE_NAME_OPTION, getQueueNameFor(properties));
+        clone.setProperty(QUEUE_NAME_OPTION, "extract:queue"); // Override any given queue name value
         clone.setProperty(MAP_NAME_OPTION, getReportMapNameFor(properties));
-        return clone;
+        return new PropertiesProvider(clone).overrideQueueNameWithHash().getProperties();
     }
 
-    public static String getQueueNameFor(Properties properties) {
-        String projectName = properties.getOrDefault("defaultProject","local-datashare").toString();
-        return "extract:queue:" + projectName;
+    public static Properties applyProjectTo(PropertiesProvider propertiesProvider) {
+        return applyProjectTo(propertiesProvider.getProperties());
     }
 
     public static String getReportMapNameFor(Properties properties) {
-        String projectName = properties.getOrDefault("defaultProject","local-datashare").toString();
+        String projectName = properties.getOrDefault("defaultProject", "local-datashare").toString();
         return "extract:report:" + projectName;
     }
 

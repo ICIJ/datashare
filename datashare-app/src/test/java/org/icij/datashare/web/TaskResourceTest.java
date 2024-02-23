@@ -224,7 +224,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         response.should().haveType("application/json");
         taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
         verify(taskFactory).createScanTask(eq(local()), any(), propertiesArgumentCaptor.capture());
-        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("queueName", "extract:queue:foo"));
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("queueName", "extract:queue:foo:1725215461"));
     }
 
     @Test
@@ -236,7 +236,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         response.should().haveType("application/json");
         taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
         verify(taskFactory).createScanTask(eq(local()), any(), propertiesArgumentCaptor.capture());
-        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("queueName", "extract:queue:foo"));
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("queueName", "extract:queue:foo:1725215461"));
     }
 
     @Test
@@ -427,13 +427,17 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @NotNull
     private HashMap<String, String> getDefaultProperties() {
-        return new HashMap<>() {{
+        HashMap<String, String> map = new HashMap<>() {{
             put("dataDir", "/default/data/dir");
             put("foo", "bar");
             put("batchDownloadDir", "app/tmp");
-            put("queueName", "extract:queue:local-datashare");
+            put("defaultProject", "local-datashare");
+            put("queueName", "extract:queue");
             put("reportName", "extract:report:local-datashare");
         }};
+        // Override the queueName with
+        map.put("queueName", new PropertiesProvider(PropertiesProvider.fromMap(map)).queueNameWithHash());
+        return map;
     }
 
     private TaskView<?> taskView(BatchDownload batchDownload) {
