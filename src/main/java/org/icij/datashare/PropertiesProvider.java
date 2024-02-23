@@ -105,6 +105,10 @@ public class PropertiesProvider {
         return this;
     }
 
+    public PropertiesProvider overrideWith(final PropertiesProvider propertiesProvider) {
+        return this.overrideWith(propertiesProvider.getProperties());
+    }
+
     public Properties createOverriddenWith(Map<String, String> map) {
         Properties overriddenProperties = (Properties) getProperties().clone();
         overriddenProperties.putAll(map);
@@ -144,6 +148,10 @@ public class PropertiesProvider {
         for (Map.Entry entry: propertiesToMerge.entrySet()) {
             dest.putIfAbsent(entry.getKey(), entry.getValue());
         }
+    }
+
+    public Object setProperty(String key, String value) {
+        return getProperties().setProperty(key, value);
     }
 
     private Path getFilePath(String fileName) {

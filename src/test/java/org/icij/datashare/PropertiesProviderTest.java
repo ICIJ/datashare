@@ -72,6 +72,16 @@ public class PropertiesProviderTest {
     }
 
     @Test
+    public void test_override_properties_in_properties_provider() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider();
+        propertiesProvider.setProperty("foo", "baz");
+        propertiesProvider.setProperty("bar", "qux");
+
+        Properties merged = new PropertiesProvider().overrideWith(propertiesProvider).getProperties();
+        assertThat(merged).includes(entry("foo", "baz"), entry("messageBusAddress", "redis"), entry("bar", "qux"));
+    }
+
+    @Test
     public void test_create_overridden_with() {
         Properties properties = new Properties();
         properties.setProperty("foo", "baz");
