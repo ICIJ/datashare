@@ -144,14 +144,14 @@ public class PropertiesProvider {
         return properties;
     }
 
+    public Object setProperty(String key, String value) {
+        return getProperties().setProperty(key, value);
+    }
+
     private void putAllIfIsAbsent(Properties dest, Properties propertiesToMerge) {
         for (Map.Entry entry: propertiesToMerge.entrySet()) {
             dest.putIfAbsent(entry.getKey(), entry.getValue());
         }
-    }
-
-    public Object setProperty(String key, String value) {
-        return getProperties().setProperty(key, value);
     }
 
     private Path getFilePath(String fileName) {
