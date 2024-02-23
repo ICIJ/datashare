@@ -13,10 +13,8 @@
     import net.codestory.http.annotations.*;
     import net.codestory.http.constants.HttpStatus;
     import net.codestory.http.payload.Payload;
-    import org.icij.datashare.PipelineHelper;
     import org.icij.datashare.PropertiesProvider;
     import org.icij.datashare.Repository;
-    import org.icij.datashare.Stage;
     import org.icij.datashare.cli.Mode;
     import org.icij.datashare.session.DatashareUser;
     import org.icij.datashare.extract.DocumentCollectionFactory;
@@ -38,14 +36,12 @@
     import java.util.Map;
     import java.util.Objects;
     import java.util.Properties;
-    import java.util.stream.Collectors;
 
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
     import static org.apache.tika.utils.StringUtils.isEmpty;
     import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
     import static org.icij.datashare.text.Project.isAllowed;
-    import static org.icij.datashare.web.TaskResource.applyProjectTo;
 
     @Singleton
     @Prefix("/api/project")
@@ -231,14 +227,10 @@
 
         List<DocumentQueue<?>> getQueues(Project project) {
             String name = project.getName();
-            Properties properties = applyProjectTo(propertiesProvider.createOverriddenWith(Map.of("defaultProject", name)));
-            PipelineHelper pipelineHelper = new PipelineHelper(new PropertiesProvider(properties));
-            List<String> queueNames = List.of(
-                     properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString(),
-                     pipelineHelper.getOutputQueueNameFor(Stage.SCAN),
-                     pipelineHelper.getOutputQueueNameFor(Stage.INDEX),
-                     pipelineHelper.getOutputQueueNameFor(Stage.NLP));
-            return queueNames.stream().map(this::getQueue).collect(Collectors.toList());
+            Properties properties = propertiesProvider.createOverriddenWith(Map.of("defaultProject", name));
+            String defaultQueueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
+            String queueName = defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
+            return List.of(documentCollectionFactory.createQueue(queueName, Path.class));
         }
 
         ReportMap getReportMap(String reportMapName) {
