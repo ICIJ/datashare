@@ -200,15 +200,6 @@ public class PropertiesProviderTest {
         assertThat(new PropertiesProvider(settings.getAbsolutePath()).isFileReadable(settings.toPath())).isTrue();
         assertThat(settings).exists();
     }
-
-    @Test
-    public void test_unique_hash_code_by_queue_name() {
-        PropertiesProvider foo = new PropertiesProvider(Map.of("queueName", "foo"));
-        PropertiesProvider bar = new PropertiesProvider(Map.of("queueName", "bar"));
-
-        assertThat(foo.queueHash()).isNotEqualTo(bar.queueHash());
-    }
-
     @Test
     public void test_unique_hash_code_by_data_dir() {
         PropertiesProvider foo = new PropertiesProvider(Map.of("dataDir", "/foo"));
@@ -224,6 +215,29 @@ public class PropertiesProviderTest {
 
         assertThat(foo.queueHash()).startsWith("foo:");
         assertThat(bar.queueHash()).startsWith("bar:");
+    }
+
+    @Test
+    public void test_unique_queue_name_with_hash_code_starting_with_default_project() {
+        PropertiesProvider foo = new PropertiesProvider(Map.of("defaultProject", "foo"));
+        PropertiesProvider bar = new PropertiesProvider(Map.of("defaultProject", "bar"));
+
+        assertThat(foo.queueNameWithHash()).startsWith("extract:queue:foo:");
+        assertThat(bar.queueNameWithHash()).startsWith("extract:queue:bar:");
+    }
+
+    @Test
+    public void test_override_queue_name_with_hash_code_starting_with_default_project() {
+        PropertiesProvider props = new PropertiesProvider(Map.of("defaultProject", "foo"));
+        assertThat(props.queueName()).isEqualTo("extract:queue");
+        assertThat(props.overrideQueueNameWithHash().queueName()).isEqualTo(props.queueNameWithHash());
+    }
+
+    @Test
+    public void test_override_queue_name_with_hash_code_starting_with_new_project() {
+        PropertiesProvider props = new PropertiesProvider();
+        assertThat(props.queueName()).isEqualTo("extract:queue");
+        assertThat(props.overrideQueueNameWithHash("bar").queueName()).startsWith("extract:queue:bar:");
     }
 
 

@@ -36,7 +36,8 @@ public class PropertiesProvider {
     public static final String MAP_NAME_OPTION = "reportName";
     public static final String DATA_DIR_OPTION = "dataDir";
     public static final String DEFAULT_PROJECT_OPTION = "defaultProject";
-    public static final List<String> QUEUE_HASH_PROPERTIES = List.of(QUEUE_NAME_OPTION, DATA_DIR_OPTION);
+    public static final List<String> QUEUE_HASH_PROPERTIES = List.of(DATA_DIR_OPTION);
+    public static final String QUEUE_SEPARATOR = ":";
 
 
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -115,6 +116,17 @@ public class PropertiesProvider {
         return this.overrideWith(propertiesProvider.getProperties());
     }
 
+    public PropertiesProvider overrideQueueNameWithHash() {
+        Map<String, String> map = Map.of(QUEUE_NAME_OPTION, queueNameWithHash());
+        return new PropertiesProvider(createOverriddenWith(map));
+    }
+
+    public PropertiesProvider overrideQueueNameWithHash(String defaultProject) {
+        Properties properties = createOverriddenWith(Map.of(DEFAULT_PROJECT_OPTION, defaultProject));
+        PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
+        return propertiesProvider.overrideQueueNameWithHash();
+    }
+
     public Properties createOverriddenWith(Map<String, String> map) {
         Properties overriddenProperties = (Properties) getProperties().clone();
         overriddenProperties.putAll(map);
@@ -165,8 +177,17 @@ public class PropertiesProvider {
     public String queueHash() {
         String defaultProject = get(DEFAULT_PROJECT_OPTION).orElse("-");
         return Stream.concat(Stream.of(defaultProject), queueHashProperties().stream())
-                .collect(Collectors.joining(":"));
+                .collect(Collectors.joining(QUEUE_SEPARATOR));
     }
+
+    public String queueNameWithHash() {
+        return queueName() + QUEUE_SEPARATOR + queueHash();
+    }
+
+    public String queueName() {
+        return get(QUEUE_NAME_OPTION).orElse("extract:queue");
+    }
+
 
     private void putAllIfIsAbsent(Properties dest, Properties propertiesToMerge) {
         for (Map.Entry entry: propertiesToMerge.entrySet()) {
