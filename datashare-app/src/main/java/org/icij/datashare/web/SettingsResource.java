@@ -113,13 +113,17 @@ public class SettingsResource {
         for (String languageString : languageStrings) {
             try {
                 Language language = Language.parse(languageString);
-                Map<String, String> lang = new HashMap<String, String>() {{
+                languages.add(new HashMap<String, String>() {{
                     put("iso6392", language.iso6392Code());
                     put("name", language.name());
-                }};
-                languages.add(lang);
+                }});
             // Ignore unknown languages
-            } catch (IllegalArgumentException ignore) { }
+            } catch (IllegalArgumentException ignore) {
+                languages.add(new HashMap<String, String>() {{
+                    put("iso6392", null);
+                    put("name", languageString);
+                }});
+            }
         }
         return languages;
     }
