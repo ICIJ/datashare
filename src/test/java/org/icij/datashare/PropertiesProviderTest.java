@@ -201,6 +201,32 @@ public class PropertiesProviderTest {
         assertThat(settings).exists();
     }
 
+    @Test
+    public void test_unique_hash_code_by_queue_name() {
+        PropertiesProvider foo = new PropertiesProvider(Map.of("queueName", "foo"));
+        PropertiesProvider bar = new PropertiesProvider(Map.of("queueName", "bar"));
+
+        assertThat(foo.queueHash()).isNotEqualTo(bar.queueHash());
+    }
+
+    @Test
+    public void test_unique_hash_code_by_data_dir() {
+        PropertiesProvider foo = new PropertiesProvider(Map.of("dataDir", "/foo"));
+        PropertiesProvider bar = new PropertiesProvider(Map.of("dataDir", "/bar"));
+
+        assertThat(foo.queueHash()).isNotEqualTo(bar.queueHash());
+    }
+
+    @Test
+    public void test_unique_hash_code_starting_with_default_project() {
+        PropertiesProvider foo = new PropertiesProvider(Map.of("defaultProject", "foo"));
+        PropertiesProvider bar = new PropertiesProvider(Map.of("defaultProject", "bar"));
+
+        assertThat(foo.queueHash()).startsWith("foo:");
+        assertThat(bar.queueHash()).startsWith("bar:");
+    }
+
+
     /**
      * see https://stackoverflow.com/questions/318239/how-do-i-set-environment-variables-from-java
      */

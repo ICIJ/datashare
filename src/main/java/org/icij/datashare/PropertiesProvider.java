@@ -11,9 +11,12 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.Character.toUpperCase;
 import static java.lang.System.getenv;
@@ -31,6 +34,9 @@ public class PropertiesProvider {
     public static final String QUEUE_NAME_OPTION = "queueName";
     public static final String SET_NAME_OPTION = "filterSet";
     public static final String MAP_NAME_OPTION = "reportName";
+    public static final String DATA_DIR_OPTION = "dataDir";
+    public static final String DEFAULT_PROJECT_OPTION = "defaultProject";
+    public static final List<String> QUEUE_HASH_PROPERTIES = List.of(QUEUE_NAME_OPTION, DATA_DIR_OPTION);
 
 
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -146,6 +152,20 @@ public class PropertiesProvider {
 
     public Object setProperty(String key, String value) {
         return getProperties().setProperty(key, value);
+    }
+
+    public List<String> queueHashProperties() {
+        return QUEUE_HASH_PROPERTIES.stream()
+                .map(p -> get(p).orElse("-"))
+                .map(String::hashCode)
+                .map(String::valueOf)
+                .collect(Collectors.toList());
+    }
+
+    public String queueHash() {
+        String defaultProject = get(DEFAULT_PROJECT_OPTION).orElse("-");
+        return Stream.concat(Stream.of(defaultProject), queueHashProperties().stream())
+                .collect(Collectors.joining(":"));
     }
 
     private void putAllIfIsAbsent(Properties dest, Properties propertiesToMerge) {
