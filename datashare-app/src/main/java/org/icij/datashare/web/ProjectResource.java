@@ -230,7 +230,7 @@
             String queuePrefix =  defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
             String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
             return Stream.concat(
-                    // TODO remove legacy queue name 
+                    // TODO remove legacy queue name 26/02/2024
                     documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
                     documentCollectionFactory.getQueues(queuePattern, Path.class).stream()
             ).collect(Collectors.toList());
