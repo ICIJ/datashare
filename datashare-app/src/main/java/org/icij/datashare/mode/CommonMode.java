@@ -26,12 +26,7 @@ import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
-import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.extract.MemoryBlockingQueue;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
-import org.icij.datashare.extract.RedisBlockingQueue;
-import org.icij.datashare.extract.RedisUserDocumentQueue;
-import org.icij.datashare.extract.RedisUserReportMap;
+import org.icij.datashare.extract.*;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.TaskFactory;
@@ -52,9 +47,7 @@ import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
 import org.icij.datashare.web.StatusResource;
-import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.redis.RedissonClientFactory;
-import org.icij.extract.report.ReportMap;
 import org.icij.task.Options;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RedissonClient;
@@ -185,14 +178,8 @@ public abstract class CommonMode extends AbstractModule {
             bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).toInstance(new MemoryDocumentCollectionFactory<>());
             bind(new TypeLiteral<DocumentCollectionFactory<Path>>() {}).toInstance(new MemoryDocumentCollectionFactory<>());
         } else {
-            install(new FactoryModuleBuilder().
-                    implement(new TypeLiteral<DocumentQueue<String>>(){}, new TypeLiteral<RedisUserDocumentQueue<String>>(){}).
-                    implement(ReportMap.class, RedisUserReportMap.class).
-                    build(new TypeLiteral<DocumentCollectionFactory<String>>(){}));
-            install(new FactoryModuleBuilder().
-                    implement(new TypeLiteral<DocumentQueue<Path>>(){}, new TypeLiteral<RedisUserDocumentQueue<Path>>(){}).
-                    implement(ReportMap.class, RedisUserReportMap.class).
-                    build(new TypeLiteral<DocumentCollectionFactory<Path>>(){}));
+            bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).to(new TypeLiteral<RedisDocumentCollectionFactory<String>>(){});
+            bind(new TypeLiteral<DocumentCollectionFactory<Path>>(){}).to(new TypeLiteral<RedisDocumentCollectionFactory<Path>>(){});
         }
     }
 
