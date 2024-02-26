@@ -6,6 +6,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.CreationException;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
@@ -124,6 +125,7 @@ public abstract class CommonMode extends AbstractModule {
 
     public Mode getMode() {return mode;}
     public <T> T get(Class<T> type) {return injector.getInstance(type);}
+    public <T> T get(Key<T> key) {return injector.getInstance(key);}
     public Injector createChildInjector(Module... modules) {
         return injector.createChildInjector(modules);
     }

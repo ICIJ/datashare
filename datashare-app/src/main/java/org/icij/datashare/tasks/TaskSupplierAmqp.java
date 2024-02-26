@@ -61,6 +61,11 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
+    public <V extends Serializable> void cancel(TaskView<V> task) {
+
+    }
+
+    @Override
     public void error(String taskId, Throwable throwable) {
         result(taskId, throwable);
     }

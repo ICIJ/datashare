@@ -1,45 +1,39 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
-import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearchRecord;
-import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
 
-import java.io.Closeable;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 
 public class BatchSearchLoop implements Callable<Integer> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    final BlockingQueue<String> batchSearchQueue;
+    final TaskSupplier taskSupplier;
     private final TaskFactory factory;
     final AtomicReference<BatchSearchRunner> currentBatchSearchRunner = new AtomicReference<>();
-    private static final String POISON = "poison";
-    private final BatchSearchRepository repository;
     private final CountDownLatch waitForMainLoopCalled; // for tests only
     private volatile boolean exitAsked = false;
     private volatile Thread loopThread;
 
     @Inject
-    public BatchSearchLoop(BatchSearchRepository batchSearchRepository, BlockingQueue<String> batchSearchQueue, TaskFactory factory) {
-        this(batchSearchRepository, batchSearchQueue, factory, new CountDownLatch(1));
+    public BatchSearchLoop(TaskSupplier taskSupplier, TaskFactory factory) {
+        this(taskSupplier, factory, new CountDownLatch(1));
     }
 
-    BatchSearchLoop(BatchSearchRepository repository, BlockingQueue<String> batchSearchQueue, TaskFactory factory, CountDownLatch countDownLatch) {
-        this.repository = repository;
-        this.batchSearchQueue = batchSearchQueue;
+    BatchSearchLoop(TaskSupplier taskSupplier, TaskFactory factory, CountDownLatch countDownLatch) {
+        this.taskSupplier = taskSupplier;
         this.factory = factory;
         this.waitForMainLoopCalled = countDownLatch;
         Signal.handle(new Signal("TERM"), signal -> {
@@ -50,61 +44,39 @@ public class BatchSearchLoop implements Callable<Integer> {
     }
 
     public Integer call() {
-        logger.info("Waiting batch searches from supplier ({}) ds:batchsearch:queue", batchSearchQueue.getClass());
+        logger.info("Waiting batch searches from supplier ({}) ds:batchsearch:queue", taskSupplier.getClass());
         waitForMainLoopCalled.countDown();
         loopThread = Thread.currentThread();
-        String currentBatchId = null;
+        TaskView<Serializable> currentTask = null;
         int nbBatchSearch = 0;
         do {
             try {
-                currentBatchId = batchSearchQueue.poll(60, TimeUnit.SECONDS);
-                if (currentBatchId != null && !POISON.equals(currentBatchId)) {
-                    BatchSearch batchSearch = repository.get(currentBatchId);
-                    if (batchSearch.state == BatchSearchRecord.State.QUEUED) {
-                        repository.setState(batchSearch.uuid, BatchSearchRecord.State.RUNNING);
-                        currentBatchSearchRunner.set(factory.createBatchSearchRunner(batchSearch, repository::saveResults));
-                        currentBatchSearchRunner.get().call();
-                        currentBatchSearchRunner.set(null);
-                        repository.setState(batchSearch.uuid, BatchSearchRecord.State.SUCCESS);
-                        nbBatchSearch++;
-                    } else {
-                        logger.warn("batch search {} not ran because in state {}", batchSearch.uuid, batchSearch.state);
-                    }
+                currentTask = taskSupplier.get(60, TimeUnit.SECONDS);
+                if (currentTask != null && !TaskView.nullObject().equals(currentTask)) {
+                    currentBatchSearchRunner.set(factory.createBatchSearchRunner(currentTask, taskSupplier::progress));
+                    currentBatchSearchRunner.get().call();
+                    currentBatchSearchRunner.set(null);
+                    nbBatchSearch++;
                 }
-            } catch (JooqBatchSearchRepository.BatchNotFoundException notFound) {
-                logger.warn("batch was not executed : {}", notFound.toString());
-            } catch (BatchSearchRunner.CancelException cancelEx) {
-                logger.info("cancelling batch search {}", cancelEx.batchSearchId);
-                batchSearchQueue.offer(cancelEx.batchSearchId);
-                repository.reset(cancelEx.batchSearchId);
-            } catch (SearchException sex) {
-                logger.error("exception while running batch " + currentBatchId, sex);
-                repository.setState(currentBatchId, sex);
-            } catch (InterruptedException e) {
-                logger.warn("main loop interrupted");
+            } catch (BatchSearchRunner.CancelException cex) {
+                taskSupplier.cancel(currentTask);
+            } catch (Throwable ex) {
+                logger.error(format("error in loop for task %s", currentTask), ex);
+                if (currentTask != null && !currentTask.isNull()) {
+                    taskSupplier.error(currentTask.id, ex);
+                }
             }
-        } while (!POISON.equals(currentBatchId) && !exitAsked);
+        } while (!TaskView.nullObject().equals(currentTask) && !exitAsked);
         logger.info("exiting main loop");
         return nbBatchSearch;
     }
 
-    public Integer requeueDatabaseBatches() {
-        List<String> batchSearchIds = repository.getQueued();
-        logger.info("found {} queued batch searches in database", batchSearchIds.size());
-        batchSearchQueue.addAll(batchSearchIds);
-        return batchSearchIds.size();
-    }
-
     public void enqueuePoison() {
-        batchSearchQueue.add(POISON);
+        // TODO: who is adding POISON? taskSupplier.add(POISON);
     }
 
     public void close() throws IOException {
-        logger.info("{}", batchSearchQueue.getClass());
-        if (batchSearchQueue instanceof Closeable) {
-            logger.info("closing batch search queue");
-            ((Closeable) batchSearchQueue).close();
-        }
-        repository.close();
+        logger.info("closing {}", taskSupplier.getClass());
+        taskSupplier.close();
     }
 }

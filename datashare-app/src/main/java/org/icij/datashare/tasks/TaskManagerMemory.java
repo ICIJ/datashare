@@ -114,8 +114,13 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
+    public <V extends Serializable> void cancel(TaskView<V> task) {
+        taskQueue.offer(task);
+    }
+
+    @Override
     public void error(String taskId, Throwable reason) {
-        throw new NotImplementedException("TODO");
+
     }
 
     private void save(TaskView<?> taskView) {

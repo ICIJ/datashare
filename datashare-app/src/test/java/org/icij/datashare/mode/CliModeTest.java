@@ -3,16 +3,15 @@ package org.icij.datashare.mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.QueueType;
-import org.icij.datashare.tasks.TaskRunnerLoop;
 import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.TaskRunnerLoop;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -24,7 +23,7 @@ public class CliModeTest {
     @Rule public TemporaryFolder dataDir = new TemporaryFolder();
 
     @Test
-    public void test_batch_search() throws IOException {
+    public void test_batch_search() throws Exception {
         CommonMode mode = CommonMode.create(PropertiesProvider.fromMap(new HashMap<>() {{
             put("dataDir", dataDir.getRoot().toString());
             put("mode", "BATCH_SEARCH");
@@ -32,7 +31,7 @@ public class CliModeTest {
         }}));
 
         BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
-        batchSearchLoop.enqueuePoison();
+        mode.get(TaskManager.class).shutdownAndAwaitTermination(1, TimeUnit.SECONDS); // to enqueue poison
         batchSearchLoop.call();
         batchSearchLoop.close();
         mode.get(Indexer.class).close();

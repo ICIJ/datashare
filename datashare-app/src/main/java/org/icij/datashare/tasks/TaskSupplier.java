@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 public interface TaskSupplier extends TaskModifier, Closeable {
     <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException;
     <V extends Serializable> void result(String taskId, V result);
+    <V extends Serializable> void cancel(TaskView<V> taskView);
     void error(String taskId, Throwable reason);
     // is there a need for another recoverable error method?
 }

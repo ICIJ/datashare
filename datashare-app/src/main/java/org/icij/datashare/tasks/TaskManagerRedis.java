@@ -137,6 +137,11 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     }
 
     @Override
+    public <V extends Serializable> void cancel(TaskView<V> currentTask) {
+        taskQueue.offer(currentTask);
+    }
+
+    @Override
     public void error(String taskId, Throwable reason) {
         TaskView taskView = tasks.get(taskId);
         taskView.setError(reason);

@@ -1,12 +1,8 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.function.TerFunction;
-import org.icij.datashare.text.Document;
 import org.icij.datashare.user.User;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Properties;
 import java.util.function.BiFunction;
 
@@ -14,8 +10,8 @@ public interface TaskFactory {
     BatchSearchLoop createBatchSearchLoop();
     TaskRunnerLoop createBatchDownloadLoop();
     BatchDownloadCleaner createBatchDownloadCleaner();
-    BatchSearchRunner createBatchSearchRunner(BatchSearch batchSearch, TerFunction<String, String, List<Document>, Boolean> resultConsumer);
-    BatchDownloadRunner createBatchDownloadRunner(TaskView<?> batchDownload, BiFunction<String, Double, Void> updateCallback);
+    BatchSearchRunner createBatchSearchRunner(TaskView<?> taskView, BiFunction<String, Double, Void> updateCallback);
+    BatchDownloadRunner createBatchDownloadRunner(TaskView<?> taskView, BiFunction<String, Double, Void> updateCallback);
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);
