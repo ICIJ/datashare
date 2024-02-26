@@ -297,7 +297,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_delete_project_and_it_legacy_queue() {
+    public void test_delete_project_and_its_legacy_queue() {
         Project foo = new Project("foo");
         DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:foo", Path.class);
         when(repository.getProjects(any())).thenReturn(List.of(foo));
@@ -309,7 +309,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_delete_project_and_it_index_queue() {
+    public void test_delete_project_and_its_index_queue() {
         Project foo = new Project("foo");
         DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:foo:index", Path.class);
         when(repository.getProjects(any())).thenReturn(List.of(foo));
