@@ -36,6 +36,8 @@
     import java.util.Map;
     import java.util.Objects;
     import java.util.Properties;
+    import java.util.stream.Collectors;
+    import java.util.stream.Stream;
 
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
@@ -221,16 +223,17 @@
             return getReportMap(project).delete();
         }
 
-        DocumentQueue<Path> getQueue(String queueName) {
-            return documentCollectionFactory.createQueue(queueName, Path.class);
-        }
-
-        List<DocumentQueue<?>> getQueues(Project project) {
+        List<DocumentQueue<Path>> getQueues(Project project) {
             String name = project.getName();
             Properties properties = propertiesProvider.createOverriddenWith(Map.of("defaultProject", name));
             String defaultQueueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
-            String queueName = defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
-            return List.of(documentCollectionFactory.createQueue(queueName, Path.class));
+            String queuePrefix =  defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
+            String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
+            return Stream.concat(
+                    // TODO remove legacy queue name 
+                    documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
+                    documentCollectionFactory.getQueues(queuePattern, Path.class).stream()
+            ).collect(Collectors.toList());
         }
 
         ReportMap getReportMap(String reportMapName) {
