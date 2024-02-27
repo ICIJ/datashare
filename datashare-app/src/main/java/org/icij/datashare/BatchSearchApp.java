@@ -3,7 +3,6 @@ package org.icij.datashare;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
