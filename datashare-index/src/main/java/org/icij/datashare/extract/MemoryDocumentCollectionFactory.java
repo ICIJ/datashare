@@ -17,12 +17,14 @@ import static org.apache.commons.io.FilenameUtils.wildcardMatch;
 public class MemoryDocumentCollectionFactory<T> implements DocumentCollectionFactory<T> {
     public final Map<String, DocumentQueue<T>> queues = new ConcurrentHashMap<>();
     final Map<String, ReportMap> maps = new ConcurrentHashMap<>();
+    // The size of the internal file path buffer used by the queue
+    final int QUEUE_CAPACITY = (int) 1e6;
 
     @Override
     public DocumentQueue<T> createQueue(String queueName, Class<T> clazz) {
         if (!queues.containsKey(queueName)) {
             synchronized (queues) {
-                queues.putIfAbsent(queueName, new MemoryDocumentQueue<>(queueName, 1024));
+                queues.put(queueName, new MemoryDocumentQueue<>(queueName, QUEUE_CAPACITY));
             }
         }
         return queues.get(queueName);
