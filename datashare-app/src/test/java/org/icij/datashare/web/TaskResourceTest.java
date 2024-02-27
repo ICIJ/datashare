@@ -69,7 +69,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                         bind(TaskModifier.class).toInstance(taskManager);
                         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
                         bind(LocalUserFilter.class).toInstance(localUserFilter);
-                        bind(PropertiesProvider.class).toInstance(new PropertiesProvider(getDefaultProperties()));
+                        bind(PropertiesProvider.class).toInstance(getDefaultPropertiesProvider());
                     }
             @Override protected Routes addModeConfiguration(Routes routes) {
                         return routes.add(TaskResource.class).filter(LocalUserFilter.class);}
@@ -119,7 +119,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
 
-        verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report:local-datashare"));
+        ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
+        verify(taskFactory).createScanIndexTask(eq(local()), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("reportName", "extract:report:local-datashare"));
     }
 
     @Test
@@ -133,7 +135,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
 
-        verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report:foo"));
+        ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
+        verify(taskFactory).createScanIndexTask(eq(local()), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("reportName", "extract:report:foo"));
     }
 
     @Test
@@ -438,6 +442,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         // Override the queueName with
         map.put("queueName", new PropertiesProvider(PropertiesProvider.fromMap(map)).queueNameWithHash());
         return map;
+    }
+
+    @NotNull
+    private PropertiesProvider getDefaultPropertiesProvider() {
+        return new PropertiesProvider(getDefaultProperties());
     }
 
     private TaskView<?> taskView(BatchDownload batchDownload) {
