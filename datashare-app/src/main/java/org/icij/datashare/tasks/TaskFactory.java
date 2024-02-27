@@ -1,5 +1,7 @@
 package org.icij.datashare.tasks;
 
+import com.fasterxml.jackson.databind.annotation.JsonAppend;
+import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.function.TerFunction;
 import org.icij.datashare.text.Document;
@@ -19,7 +21,7 @@ public interface TaskFactory {
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);
 
-    ScanIndexTask createScanIndexTask(final User user, Properties properties);
+    ScanIndexTask createScanIndexTask(final User user, final Properties properties);
     ScanTask createScanTask(final User user, final Path path, Properties properties);
     IndexTask createIndexTask(final User user, final Properties properties);
     ExtractNlpTask createNlpTask(final User user, final Properties properties);

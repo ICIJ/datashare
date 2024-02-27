@@ -51,10 +51,10 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
 
     @Override
     public Long call() throws Exception {
-        logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, queue.getName());
+        logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
         String docId;
         long nbMessages = 0;
-        while (!(STRING_POISON.equals(docId = queue.poll(60, TimeUnit.SECONDS)))) {
+        while (!(STRING_POISON.equals(docId = inputQueue.poll(60, TimeUnit.SECONDS)))) {
             try {
                 if (docId != null) {
                     findNamedEntities(project, docId);

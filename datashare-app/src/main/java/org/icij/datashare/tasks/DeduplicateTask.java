@@ -28,9 +28,9 @@ public class DeduplicateTask extends PipelineTask<Path> {
 
     @Override
     public Long call() throws Exception {
-        int duplicates = queue.removeDuplicates();
+        int duplicates = inputQueue.removeDuplicates();
         transferToOutputQueue();
-        logger.info("removed {} duplicate paths in queue {}", duplicates, queue.getName());
+        logger.info("removed {} duplicate paths in inputQueue {}", duplicates, inputQueue.getName());
         return (long)duplicates;
     }
 
@@ -39,10 +39,10 @@ public class DeduplicateTask extends PipelineTask<Path> {
     }
 
     long transferToOutputQueue(Predicate<Path> filter) throws Exception {
-        long originalSize = queue.size();
+        long originalSize = inputQueue.size();
         try (DocumentQueue<Path> outputQueue = factory.createQueue(getOutputQueueName(), Path.class)) {
             Path path;
-            while (!(path = queue.take()).equals(PATH_POISON)) {
+            while (!(path = inputQueue.take()).equals(PATH_POISON)) {
                 if (filter.test(path)) {
                     outputQueue.add(path);
                 }
