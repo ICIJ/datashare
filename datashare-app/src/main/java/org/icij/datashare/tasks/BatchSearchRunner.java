@@ -37,7 +37,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
-public class BatchSearchRunner implements Callable<Integer>, UserTask {
+public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**

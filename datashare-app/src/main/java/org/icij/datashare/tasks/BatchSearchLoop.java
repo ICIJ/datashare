@@ -1,15 +1,12 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
-import org.icij.datashare.batch.SearchException;
-import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;

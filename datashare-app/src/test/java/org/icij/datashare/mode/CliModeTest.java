@@ -3,7 +3,6 @@ package org.icij.datashare.mode;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.QueueType;
-import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.tasks.TaskRunnerLoop;
@@ -30,10 +29,10 @@ public class CliModeTest {
             put("batchQueueType", QueueType.REDIS.name());
         }}));
 
-        BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
+        TaskRunnerLoop taskRunnerLoop = mode.get(TaskFactory.class).createTaskRunnerLoop();
         mode.get(TaskManager.class).shutdownAndAwaitTermination(1, TimeUnit.SECONDS); // to enqueue poison
-        batchSearchLoop.call();
-        batchSearchLoop.close();
+        taskRunnerLoop.call();
+        taskRunnerLoop.close();
         mode.get(Indexer.class).close();
     }
 
@@ -47,8 +46,9 @@ public class CliModeTest {
             put(DatashareCliOptions.BATCH_DOWNLOAD_DIR, DEFAULT_BATCH_DOWNLOAD_DIR);
         }}));
 
-        TaskRunnerLoop taskRunnerLoop = mode.get(TaskFactory.class).createBatchDownloadLoop();
+        TaskRunnerLoop taskRunnerLoop = mode.get(TaskFactory.class).createTaskRunnerLoop();
         mode.get(TaskManager.class).shutdownAndAwaitTermination(1, TimeUnit.SECONDS); // to enqueue poison
         taskRunnerLoop.call();
+        taskRunnerLoop.close();
     }
 }

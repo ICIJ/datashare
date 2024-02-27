@@ -49,8 +49,7 @@ public class WebApp {
         }
         if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
             ExecutorService executor = Executors.newFixedThreadPool(3);
-            executor.submit(mode.get(TaskFactory.class).createBatchDownloadLoop());
-            executor.submit(mode.get(TaskFactory.class).createBatchSearchLoop());
+            executor.submit(mode.get(TaskFactory.class).createTaskRunnerLoop());
             executor.submit(mode.get(TaskFactory.class).createBatchDownloadCleaner());
         }
         webServerThread.join();

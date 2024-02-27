@@ -7,6 +7,7 @@ import org.icij.datashare.tasks.BatchSearchLoop;
 import org.icij.datashare.tasks.BatchSearchRunner;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.TaskRunnerLoop;
 import org.icij.datashare.text.indexing.Indexer;
 import org.redisson.api.RedissonClient;
 
@@ -17,7 +18,7 @@ import java.util.Properties;
 public class BatchSearchApp {
     public static void start(Properties properties) throws Exception {
         CommonMode mode = CommonMode.create(properties);
-        BatchSearchLoop batchSearchLoop = mode.get(TaskFactory.class).createBatchSearchLoop();
+        TaskRunnerLoop batchSearchLoop = mode.get(TaskFactory.class).createTaskRunnerLoop();
         requeueDatabaseBatches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
         batchSearchLoop.call();
         batchSearchLoop.close();

@@ -8,7 +8,7 @@ import java.util.function.BiFunction;
 
 public interface TaskFactory {
     BatchSearchLoop createBatchSearchLoop();
-    TaskRunnerLoop createBatchDownloadLoop();
+    TaskRunnerLoop createTaskRunnerLoop();
     BatchDownloadCleaner createBatchDownloadCleaner();
     BatchSearchRunner createBatchSearchRunner(TaskView<?> taskView, BiFunction<String, Double, Void> updateCallback);
     BatchDownloadRunner createBatchDownloadRunner(TaskView<?> taskView, BiFunction<String, Double, Void> updateCallback);

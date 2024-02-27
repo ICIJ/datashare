@@ -14,7 +14,6 @@ import org.mockito.Mock;
 import sun.misc.Signal;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.concurrent.BlockingQueue;
@@ -24,7 +23,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.tasks.TaskRunnerLoop.POISON;
@@ -35,13 +33,12 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 
-public class BatchSearchLoopIntTest {
+public class TaskRunnerLoopForBatchSearchTest {
     MockSearch<Indexer.QueryBuilderSearcher> mockSearch;
     BlockingQueue<TaskView<?>> batchSearchQueue = new LinkedBlockingQueue<>();
     TaskManagerMemory supplier = new TaskManagerMemory(new PropertiesProvider(), batchSearchQueue);
@@ -54,7 +51,7 @@ public class BatchSearchLoopIntTest {
 
     @Test
     public void test_main_loop() throws IOException {
-        BatchSearchLoop app = new BatchSearchLoop(supplier, factory);
+        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
         supplier.startTask(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
         batchSearchQueue.add(TaskView.nullObject());
         mockSearch.willReturn(1, createDoc("doc1").build(), createDoc("doc2").build());
@@ -68,7 +65,7 @@ public class BatchSearchLoopIntTest {
     @Test(timeout = 2000)
     public void test_main_loop_exit_with_sigterm_when_empty_batch_queue() throws InterruptedException {
         CountDownLatch countDownLatch = new CountDownLatch(1);
-        BatchSearchLoop app = new BatchSearchLoop(supplier, factory, countDownLatch);
+        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier, countDownLatch);
 
         executor.submit(app);
         countDownLatch.await();
@@ -87,7 +84,7 @@ public class BatchSearchLoopIntTest {
         SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100, countDownLatch, testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         batchSearchQueue.add(new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
-        BatchSearchLoop app = new BatchSearchLoop(supplier, factory);
+        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
 
         executor.submit(app);
         countDownLatch.await();
@@ -104,7 +101,7 @@ public class BatchSearchLoopIntTest {
     public void test_run_batch_search_failure() throws IOException {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         mockSearch.willThrow(new IOException("io exception"));
-        BatchSearchLoop app = new BatchSearchLoop(supplier, factory);
+        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
         batchSearchQueue.add(new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
         batchSearchQueue.add(POISON);
 
@@ -121,7 +118,7 @@ public class BatchSearchLoopIntTest {
         SleepingBatchSearchRunner bsr1 = new SleepingBatchSearchRunner(100, bs1);
         SleepingBatchSearchRunner bsr2 = new SleepingBatchSearchRunner(100, bs2);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(bsr1, bsr2);
-        BatchSearchLoop app = new BatchSearchLoop(supplier, factory);
+        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
         TaskView<Object> taskView1 = new TaskView<>(bs1.uuid, BatchSearchRunner.class.getName(), local());
         batchSearchQueue.add(taskView1);
         TaskView<Object> taskView2 = new TaskView<>(bs2.uuid, BatchSearchRunner.class.getName(), local());
@@ -143,7 +140,7 @@ public class BatchSearchLoopIntTest {
     public void test_main_loop_exit_with_sigterm_when_running_batch() throws InterruptedException {
         SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100,testBatchSearch );
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
-        BatchSearchLoop app = new BatchSearchLoop(supplier, factory);
+        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
         batchSearchQueue.add(new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
         executor.submit(app);
         waitQueueToBeEmpty();
