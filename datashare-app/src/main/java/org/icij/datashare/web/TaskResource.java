@@ -158,12 +158,10 @@ public class TaskResource {
     public List<TaskView<Long>> indexFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws Exception {
         TaskView<Long> scanResponse = scanFile(filePath, optionsWrapper, context);
         Properties properties = applyProjectProperties(optionsWrapper);
-        String reportName = properties.get(MAP_NAME_OPTION).toString();
         User user = (User) context.currentUser();
         // Use a report map only if the request's body contains a "filter" attribute
         if (properties.get("filter") != null && parseBoolean(properties.getProperty("filter"))) {
-            taskFactory.createScanIndexTask(user, reportName).call();
-            properties.put(MAP_NAME_OPTION, reportName);
+            taskFactory.createScanIndexTask(user, properties).call();
         } else {
             properties.remove(MAP_NAME_OPTION); // avoid use of reportMap to override ES docs
         }
@@ -269,10 +267,6 @@ public class TaskResource {
         clone.setProperty(QUEUE_NAME_OPTION, "extract:queue"); // Override any given queue name value
         clone.setProperty(MAP_NAME_OPTION, getReportMapNameFor(properties));
         return new PropertiesProvider(clone).overrideQueueNameWithHash().getProperties();
-    }
-
-    public static Properties applyProjectTo(PropertiesProvider propertiesProvider) {
-        return applyProjectTo(propertiesProvider.getProperties());
     }
 
     public static String getReportMapNameFor(Properties properties) {

@@ -40,14 +40,13 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
     private final int scrollSlices;
 
     @Inject
-    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, final PropertiesProvider propertiesProvider,
-                         @Assisted User user, @Assisted String reportName) {
+    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, @Assisted User user, @Assisted PropertiesProvider propertiesProvider) {
         super(Stage.SCANIDX, user, new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.SCANIDX), factory, propertiesProvider, Path.class);
         this.user = user;
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse("1000"));
         this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));
-        this.projectName = propertiesProvider.get("defaultProject").orElse("local-datashare");
-        this.reportMap = factory.createMap(reportName);
+        this.projectName = propertiesProvider.get(PropertiesProvider.DEFAULT_PROJECT_OPTION).orElse("local-datashare");
+        this.reportMap = factory.createMap(propertiesProvider.get(PropertiesProvider.MAP_NAME_OPTION).orElse("extract:report"));
         this.indexer = indexer;
     }
 

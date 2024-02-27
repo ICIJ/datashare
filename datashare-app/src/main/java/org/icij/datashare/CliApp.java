@@ -9,7 +9,6 @@ import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.extract.queue.DocumentQueue;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -22,7 +21,6 @@ import java.util.Properties;
 
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.user.User.localUser;
 import static org.icij.datashare.user.User.nullUser;
@@ -107,7 +105,7 @@ class CliApp {
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
-            TaskView<Long> taskView = taskManager.startTask(taskFactory.createScanIndexTask(nullUser(), ofNullable(properties.getProperty(MAP_NAME_OPTION)).orElse("extract:report")));
+            TaskView<Long> taskView = taskManager.startTask(taskFactory.createScanIndexTask(nullUser(), properties));
             logger.info("scanned {}", taskView.getResult(true));
         }
 
