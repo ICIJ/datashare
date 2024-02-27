@@ -55,7 +55,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
             logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(MAP_NAME_OPTION));
             consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(MAP_NAME_OPTION).toString())));
         }
-        drainer = new DocumentQueueDrainer<>(queue, consumer).configure(allTaskOptions);
+        drainer = new DocumentQueueDrainer<>(inputQueue, consumer).configure(allTaskOptions);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
     @Override
     public double getProgressRate() {
-        totalToProcess = max(queue.size(), totalToProcess);
-        return (double)(totalToProcess - queue.size()) / totalToProcess;
+        totalToProcess = max(inputQueue.size(), totalToProcess);
+        return (double)(totalToProcess - inputQueue.size()) / totalToProcess;
     }
 }

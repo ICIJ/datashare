@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.stream.IntStream;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 
@@ -40,8 +41,8 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
     private final int scrollSlices;
 
     @Inject
-    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, @Assisted User user, @Assisted PropertiesProvider propertiesProvider) {
-        super(Stage.SCANIDX, user, new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.SCANIDX), factory, propertiesProvider, Path.class);
+    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, @Assisted User user, @Assisted Properties properties) {
+        super(Stage.SCANIDX, user, factory, new PropertiesProvider(properties), Path.class);
         this.user = user;
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse("1000"));
         this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));

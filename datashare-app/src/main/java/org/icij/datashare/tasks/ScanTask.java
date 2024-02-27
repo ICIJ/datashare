@@ -23,18 +23,17 @@ public class ScanTask extends PipelineTask<Path> {
 
     @Inject
     public ScanTask(final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted Path path, @Assisted final Properties properties) {
-        super(Stage.SCAN, user, new PipelineHelper(new PropertiesProvider(properties)).getOutputQueueNameFor(Stage.SCAN),
-                factory, new PropertiesProvider(properties), Path.class);
+        super(Stage.SCAN, user, factory, new PropertiesProvider(properties), Path.class);
         this.path = path;
         Options<String> allOptions = options().createFrom(Options.from(properties));
-        scanner = new Scanner(queue).configure(allOptions);
+        scanner = new Scanner(outputQueue).configure(allOptions);
     }
 
     @Override
     public Long call() throws Exception {
         ScannerVisitor scannerVisitor = scanner.createScannerVisitor(path);
         Long scanned = scannerVisitor.call();
-        queue.add(PATH_POISON);
+        outputQueue.add(PATH_POISON);
         return scanned;
     }
 }
