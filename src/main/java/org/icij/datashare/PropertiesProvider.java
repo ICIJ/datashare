@@ -54,7 +54,7 @@ public class PropertiesProvider {
         settingsPath = null;
     }
 
-    public PropertiesProvider(final Map<String, String> hashMap) {
+    public PropertiesProvider(final Map<String, Object> hashMap) {
         cachedProperties = fromMap(hashMap);
         settingsPath = null;
     }
@@ -155,7 +155,7 @@ public class PropertiesProvider {
         toSave.store(new FileOutputStream(settingsPath.toFile()), "Datashare properties");
     }
 
-    public static Properties fromMap(Map<String, String> map) {
+    public static Properties fromMap(Map<String, Object> map) {
         if (map == null) return null;
         Properties properties = new Properties();
         properties.putAll(map);

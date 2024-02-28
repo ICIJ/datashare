@@ -87,7 +87,7 @@ public class PropertiesProviderTest {
         properties.setProperty("foo", "baz");
         properties.setProperty("bar", "qux");
 
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("bar", "pre");
         }});
         Properties overridden = propertiesProvider.createOverriddenWith(new HashMap(properties));
@@ -109,7 +109,7 @@ public class PropertiesProviderTest {
 
     @Test
     public void test_filtered_properties() {
-        PropertiesProvider provider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider provider = new PropertiesProvider(new HashMap<>() {{
             put("foo", "fop");
             put("bar", "bap");
             put("baz", "bap");
