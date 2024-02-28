@@ -21,9 +21,11 @@
   "analysis": {
     "analyzer": {
       "path_analyzer": {
+        "type":"custom",
         "tokenizer": "path_tokenizer"
       },
       "folding": {
+        "type":"custom",
         "tokenizer": "standard",
         "filter":  [ "lowercase", "asciifolding" ]
       }
