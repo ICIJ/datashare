@@ -76,10 +76,10 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
 
     @Override
     public FileResult call() throws Exception {
-        int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse("0"));
+        int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
         int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES_OPT).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
-        int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse("1000")), MAX_SCROLL_SIZE);
-        long maxZipSizeBytes = HumanReadableSize.parse(propertiesProvider.get(BATCH_DOWNLOAD_MAX_SIZE_OPT).orElse("100M"));
+        int scrollSize = min(parseInt(propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE))), MAX_SCROLL_SIZE);
+        long maxZipSizeBytes = HumanReadableSize.parse(propertiesProvider.get(BATCH_DOWNLOAD_MAX_SIZE_OPT).orElse(DEFAULT_BATCH_DOWNLOAD_MAX_SIZE));
         long zippedFilesSize = 0;
         BatchDownload batchDownload = getBatchDownload();
 
