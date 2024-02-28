@@ -25,7 +25,7 @@ import java.util.Properties;
 import static java.lang.Math.max;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentFactory.class)
@@ -42,8 +42,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted final Properties properties) throws IOException {
         super(Stage.INDEX, user, factory, new PropertiesProvider(properties), Path.class);
         PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
-        parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
-        indexName = propertiesProvider.get("defaultProject").orElse("local-datashare");
+        parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
+        indexName = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
 
         Options<String> allTaskOptions = options().createFrom(Options.from(properties));
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists(indexName);
@@ -51,9 +51,9 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
         Extractor extractor = new Extractor(documentFactory).configure(allTaskOptions);
 
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
-        if (propertiesProvider.getProperties().get(MAP_NAME_OPTION) != null) {
-            logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(MAP_NAME_OPTION));
-            consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(MAP_NAME_OPTION).toString())));
+        if (propertiesProvider.getProperties().get(REPORT_NAME_OPT) != null) {
+            logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(REPORT_NAME_OPT));
+            consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(REPORT_NAME_OPT).toString())));
         }
         drainer = new DocumentQueueDrainer<>(inputQueue, consumer).configure(allTaskOptions);
     }
