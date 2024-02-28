@@ -5,6 +5,7 @@
     "content",
     "mentionNorm",
     "content_translated.content",
+    "metadata.emailHeaderField",
     "metadata.tika_metadata_author",
     "metadata.tika_metadata_creator",
     "metadata.tika_metadata_dc_creator",
@@ -33,7 +34,11 @@
     "tokenizer": {
       "path_tokenizer": {
         "type": "path_hierarchy",
-        "delimiter": "\\"
+        "delimiter": "\\",
+        "replacement": "\\",
+        "buffer_size": 1024,
+        "reverse": false,
+        "skip": 0
       }
     },
     "normalizer": {
