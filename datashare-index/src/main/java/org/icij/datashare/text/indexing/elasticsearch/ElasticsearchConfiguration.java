@@ -119,12 +119,8 @@ public class ElasticsearchConfiguration {
             if (!client.indices().exists(existsRequest).value()) {
                 LOGGER.info("index {} does not exist, creating one", indexName);
                 CreateIndexRequest.Builder createReq = new CreateIndexRequest.Builder().index(indexName);
-                if (IS_OS_WINDOWS) {
-                    createReq.settings(IndexSettings.of(is -> is.withJson(new StringReader(getResourceContent(SETTINGS_RESOURCE_NAME_WINDOWS)))));
-                } else {
-                    createReq.settings(IndexSettings.of(is -> is.withJson(new StringReader(getResourceContent(SETTINGS_RESOURCE_NAME)))));
-                }
-                createReq.mappings(TypeMapping.of(tm -> tm.withJson(new StringReader(getResourceContent(MAPPING_RESOURCE_NAME)))));
+                createReq.settings(IndexSettings.of(is -> is.withJson(ElasticsearchConfiguration.getSettings())));
+                createReq.mappings(TypeMapping.of(tm -> tm.withJson(ElasticsearchConfiguration.getMapping())));
                 client.indices().create(createReq.build());
                 return true;
             }
@@ -132,6 +128,17 @@ public class ElasticsearchConfiguration {
             throw new ConfigurationException(e);
         }
         return false;
+    }
+
+    public static StringReader getSettings() {
+        if (IS_OS_WINDOWS) {
+            return new StringReader(getResourceContent(SETTINGS_RESOURCE_NAME_WINDOWS));
+        }
+        return new StringReader(getResourceContent(SETTINGS_RESOURCE_NAME));
+    }
+
+    public static StringReader getMapping() {
+        return new StringReader(getResourceContent(MAPPING_RESOURCE_NAME));
     }
 
     ElasticsearchConfiguration withRefresh(Refresh refreshPolicy) {
