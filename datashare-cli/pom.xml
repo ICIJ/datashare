@@ -9,7 +9,7 @@
     <groupId>org.icij.datashare</groupId>
     <version>13.5.0</version>
 
-    <name>ICIJ Datashare CLI</name>
+    <name>datashare-cli</name>
     <url>https://github.com/ICIJ/datashare</url>
     <description>Datashare CLI library to build datashare CLI extensions</description>
 
