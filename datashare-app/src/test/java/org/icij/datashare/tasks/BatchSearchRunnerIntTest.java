@@ -17,12 +17,14 @@ import org.junit.*;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
@@ -197,6 +199,27 @@ public class BatchSearchRunnerIntTest {
         ElasticsearchException eex = assertThrows(ElasticsearchException.class,() -> new BatchSearchRunner(indexer, new PropertiesProvider(), search, resultConsumer).call());
 
         assertThat(eex.error().toString()).contains("Failed to parse query [AND mydoc]");
+    }
+
+    @Test(expected = ElasticsearchException.class)
+    public void test_use_batch_search_scroll_size_value_over_scroll_size_value() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+            put(SCROLL_SIZE_OPT, "100");
+            put(BATCH_SEARCH_SCROLL_SIZE_OPT, "0");
+        }});
+        BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
+
+        new BatchSearchRunner(indexer, propertiesProvider, searchKo, resultConsumer).call();
+    }
+
+    @Test(expected = ElasticsearchException.class)
+    public void test_use_scroll_size_value() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+            put(SCROLL_SIZE_OPT, "0");
+        }});
+        BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
+
+        new BatchSearchRunner(indexer, propertiesProvider, searchKo, resultConsumer).call();
     }
 
     @Before

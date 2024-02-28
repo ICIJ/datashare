@@ -77,7 +77,10 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         int numberOfResults = 0;
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
         int maxTimeSeconds = parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME_OPT).orElse(DEFAULT_BATCH_SEARCH_MAX_TIME));
-        int scrollSize = min(parseInt(propertiesProvider.get(BATCH_SEARCH_SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE))), MAX_SCROLL_SIZE);
+        int scrollSizeFromParams = parseInt(propertiesProvider.get(BATCH_SEARCH_SCROLL_SIZE_OPT)
+                .orElse(propertiesProvider.get(SCROLL_SIZE_OPT)
+                .orElse(valueOf(DEFAULT_SCROLL_SIZE))));
+        int scrollSize = min(scrollSizeFromParams, MAX_SCROLL_SIZE);
         callThread = Thread.currentThread();
         callWaiterLatch.countDown(); // for tests
         logger.info("running {} queries for batch search {} on projects {} with throttle {}ms and scroll size of {}",
