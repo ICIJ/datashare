@@ -29,9 +29,11 @@ public final class DatashareCliOptions {
     public static final String BATCH_DOWNLOAD_ENCRYPT_OPT = "batchDownloadEncrypt";
     public static final String BATCH_DOWNLOAD_MAX_NB_FILES_OPT = "batchDownloadMaxNbFiles";
     public static final String BATCH_DOWNLOAD_MAX_SIZE_OPT = "batchDownloadMaxSize";
+    public static final String BATCH_DOWNLOAD_SCROLL_SIZE_OPT = "batchDownloadScrollSize";
     public static final String BATCH_DOWNLOAD_ZIP_TTL_OPT = "batchDownloadTimeToLive";
     public static final String BATCH_QUEUE_TYPE_OPT = "batchQueueType";
     public static final String BATCH_SEARCH_MAX_TIME_OPT = "batchSearchMaxTimeSeconds";
+    public static final String BATCH_SEARCH_SCROLL_SIZE_OPT = "batchSearchScrollSize";
     public static final String BATCH_THROTTLE_OPT = "batchThrottleMilliseconds";
     public static final String BROWSER_OPEN_LINK_OPT = "browserOpenLink";
     public static final String BUS_TYPE_OPT = "busType";
@@ -125,8 +127,10 @@ public final class DatashareCliOptions {
     public static final QueueType DEFAULT_BUS_TYPE = QueueType.MEMORY;
     public static final QueueType DEFAULT_QUEUE_TYPE = QueueType.MEMORY;
     public static final QueueType DEFAULT_SESSION_STORE_TYPE = QueueType.MEMORY;
+    public static final String DEFAULT_BATCH_THROTTLE = "0";
     public static final String DEFAULT_BATCH_DOWNLOAD_DIR = DEFAULT_DATASHARE_HOME.resolve("tmp").toString();
     public static final String DEFAULT_BATCH_DOWNLOAD_MAX_SIZE = "100M";
+    public static final String DEFAULT_BATCH_SEARCH_MAX_TIME = "100000";
     public static final String DEFAULT_CHARSET = Charset.defaultCharset().toString();
     public static final String DEFAULT_CLUSTER_NAME = "datashare";
     public static final String DEFAULT_CORS = "no-cors";
@@ -415,6 +419,23 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(Integer.class)
                 .defaultsTo(DEFAULT_SCROLL_SLICES);
+    }
+
+
+    public static void batchSearchScrollSize(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(BATCH_SEARCH_SCROLL_SIZE_OPT), "Scroll size used for elasticsearch scrolls (Batch Search)")
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(DEFAULT_SCROLL_SIZE);
+    }
+
+    public static void batchDownloadScrollSize(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(BATCH_DOWNLOAD_SCROLL_SIZE_OPT), "Scroll size used for elasticsearch scrolls (Batch Download)")
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(DEFAULT_SCROLL_SIZE);
     }
 
      public static void redisPoolSize(OptionParser parser) {

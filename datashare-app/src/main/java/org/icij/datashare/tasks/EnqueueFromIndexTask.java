@@ -17,10 +17,11 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Properties;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final DocumentCollectionFactory<String> factory;
@@ -29,6 +30,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final User user;
     private final String projectName;
     private final Indexer indexer;
+    private final int scrollSize;
 
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
@@ -38,12 +40,14 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         this.indexer = indexer;
         this.nlpPipeline = Pipeline.Type.parse(taskProperties.getProperty(NLP_PIPELINE_OPT));
         this.user = user;
-        this.projectName = ofNullable(taskProperties.getProperty("defaultProject")).orElse("local-datashare");
+        this.projectName = ofNullable(taskProperties.getProperty(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT);
+        this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(String.valueOf(DEFAULT_SCROLL_SIZE)));
     }
 
     @Override
     public Long call() throws Exception {
-        Indexer.Searcher searcher = indexer.search(singletonList(projectName), Document.class).without(nlpPipeline).withSource("rootDocument");
+        Indexer.Searcher searcher = indexer.search(singletonList(projectName), Document.class)
+                .without(nlpPipeline).withSource("rootDocument").limit(scrollSize);
         logger.info("resuming NLP name finding for index {} and {} : {} documents found", projectName, nlpPipeline, searcher.totalHits());
         List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
         long totalHits = searcher.totalHits();
