@@ -165,7 +165,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M3</version>
                 <configuration>
-                    <argLine>-Djava.system.class.loader=org.icij.datashare.DynamicClassLoader --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <argLine>-Djava.system.class.loader=org.icij.datashare.DynamicClassLoader</argLine>
                 </configuration>
             </plugin>
             <plugin>
