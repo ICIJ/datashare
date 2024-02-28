@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.extract.document.Identifier.shorten;
 
 public class ExtractNlpTask extends PipelineTask<String> implements Monitorable {
@@ -44,8 +44,8 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     ExtractNlpTask(Indexer indexer, Pipeline nlpPipeline, final DocumentCollectionFactory<String> factory, User user, final Properties properties) {
         super(Stage.NLP, user, factory, new PropertiesProvider(properties), String.class);
         this.nlpPipeline = nlpPipeline;
-        project = Project.project(ofNullable(properties.getProperty("defaultProject")).orElse("local-datashare"));
-        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable(properties.getProperty("maxContentLength")).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
+        project = Project.project(ofNullable(properties.getProperty(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable(properties.getProperty(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
         this.indexer = indexer;
     }
 

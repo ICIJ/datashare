@@ -22,6 +22,7 @@ import static java.lang.Integer.parseInt;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
 
 @Singleton
 public class TaskManagerMemory implements TaskManager, TaskSupplier {
@@ -33,7 +34,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     @Inject
     public TaskManagerMemory(final PropertiesProvider provider, BlockingQueue<TaskView<?>> taskQueue) {
         this.taskQueue = taskQueue;
-        Optional<String> parallelism = provider.get("parallelism");
+        Optional<String> parallelism = provider.get(PARALLELISM_OPT);
         executor = parallelism.map(s -> newFixedThreadPool(parseInt(s))).
                    orElseGet( () -> newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
     }

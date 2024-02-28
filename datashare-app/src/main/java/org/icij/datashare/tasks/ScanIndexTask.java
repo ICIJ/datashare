@@ -26,10 +26,11 @@ import java.util.stream.IntStream;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 
 import static java.lang.Integer.parseInt;
+import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -44,10 +45,10 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
     public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, @Assisted User user, @Assisted Properties properties) {
         super(Stage.SCANIDX, user, factory, new PropertiesProvider(properties), Path.class);
         this.user = user;
-        this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse("1000"));
-        this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));
-        this.projectName = propertiesProvider.get(PropertiesProvider.DEFAULT_PROJECT_OPTION).orElse("local-datashare");
-        this.reportMap = factory.createMap(propertiesProvider.get(PropertiesProvider.MAP_NAME_OPTION).orElse("extract:report"));
+        this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE)));
+        this.scrollSlices = parseInt(propertiesProvider.get(SCROLL_SLICES_OPT).orElse(valueOf(DEFAULT_SCROLL_SLICES)));
+        this.projectName = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
+        this.reportMap = factory.createMap(propertiesProvider.get(REPORT_NAME_OPT).orElse("extract:report"));
         this.indexer = indexer;
     }
 
