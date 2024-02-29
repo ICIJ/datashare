@@ -124,7 +124,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
 
-        verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().properties).includes(entry("reportName", "extract:report"));
     }
 
     @Test
@@ -138,7 +139,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
 
-        verify(taskFactory).createScanIndexTask(eq(local()), eq("extract:report:foo"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().properties).includes(entry("reportName", "extract:report:foo"));
     }
 
     @Test

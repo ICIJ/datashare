@@ -28,6 +28,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
 import org.icij.datashare.tasks.FileResult;
 import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
@@ -166,7 +167,7 @@ public class TaskResource {
         User user = (User) context.currentUser();
         // Use a report map only if the request's body contains a "filter" attribute
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
-            taskFactory.createScanIndexTask(user, reportName).call();
+            taskFactory.createScanIndexTask(new TaskView<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties)), null).call();
             properties.put(MAP_NAME_OPTION, reportName);
         }
         return asList(scanResponse, taskManager.startTask(IndexTask.class.getName(), user, propertiesToMap(properties)));

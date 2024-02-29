@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
-import liquibase.pro.packaged.O;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -19,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -27,16 +27,13 @@ import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 public class ScanIndexTaskTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-        put("defaultProject", TEST_INDEX);
-        put("stages", "SCANIDX");
-    }});
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     private final MemoryDocumentCollectionFactory<Path> documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
 
     @Test
     public void test_empty_index() throws Exception {
-        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser(), "test:report").call()).isEqualTo(0);
+        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, new TaskView<>(
+                ScanIndexTask.class.getName(), User.nullUser(), Map.of("reportName", "test:report", "defaultProject", TEST_INDEX)), null).call()).isEqualTo(0);
     }
 
     @Test
@@ -44,7 +41,8 @@ public class ScanIndexTaskTest {
         indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id1").build());
         indexer.add(TEST_INDEX, DocumentBuilder.createDoc("id2").build());
 
-        assertThat(new ScanIndexTask(documentCollectionFactory, indexer, propertiesProvider, User.nullUser(), "test:report").call()).isEqualTo(2);
+        assertThat(new ScanIndexTask(documentCollectionFactory, indexer,  new TaskView<>(
+                ScanIndexTask.class.getName(), User.nullUser(), Map.of("reportName", "test:report", "defaultProject", TEST_INDEX)), null).call()).isEqualTo(2);
 
         ReportMap actualReportMap = documentCollectionFactory.createMap("test:report");
         assertThat(actualReportMap).includes(

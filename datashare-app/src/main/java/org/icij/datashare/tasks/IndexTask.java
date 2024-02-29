@@ -39,7 +39,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Integer parallelism;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted TaskView<Integer> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) throws IOException {
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted TaskView<Long> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) throws IOException {
         super(Stage.INDEX, taskView.user, factory, new PropertiesProvider(taskView.properties), Path.class);
         PropertiesProvider propertiesProvider = new PropertiesProvider(taskView.properties);
         parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());

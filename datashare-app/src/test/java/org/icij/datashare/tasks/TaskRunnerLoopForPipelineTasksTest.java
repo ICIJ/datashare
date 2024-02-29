@@ -34,7 +34,7 @@ public class TaskRunnerLoopForPipelineTasksTest {
 
     @Test
     public void test_scan_task() throws InterruptedException {
-        TaskView<Integer> task = new TaskView<>(ScanTask.class.getName(), User.local(), Map.of("dataDir", "/path/to/files"));
+        TaskView<Long> task = new TaskView<>(ScanTask.class.getName(), User.local(), Map.of("dataDir", "/path/to/files"));
         ScanTask taskRunner = new ScanTask(mock(DocumentCollectionFactory.class), task, updateCallback);
         when(taskFactory.createScanTask(any(), any())).thenReturn(taskRunner);
 
@@ -43,14 +43,14 @@ public class TaskRunnerLoopForPipelineTasksTest {
 
     @Test
     public void test_index_task() throws Exception {
-        TaskView<Integer> task = new TaskView<>(IndexTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<Long> task = new TaskView<>(IndexTask.class.getName(), User.local(), new HashMap<>());
         IndexTask taskRunner = new IndexTask(spewer, mock(DocumentCollectionFactory.class), task, updateCallback);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
     }
 
-    private void testTaskWithTaskRunner(TaskView<Integer> task) throws InterruptedException {
+    private void testTaskWithTaskRunner(TaskView<Long> task) throws InterruptedException {
         TaskRunnerLoop loop = new TaskRunnerLoop(taskFactory, taskSupplier);
         taskSupplier.startTask(task.name, User.local(), task.properties);
         taskSupplier.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);

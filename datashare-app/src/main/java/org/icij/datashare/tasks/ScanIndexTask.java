@@ -8,8 +8,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.user.User;
-import org.icij.datashare.user.UserTask;
 import org.icij.extract.extractor.ExtractionStatus;
 import org.icij.extract.report.Report;
 import org.icij.extract.report.ReportMap;
@@ -21,6 +19,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 
@@ -28,25 +27,25 @@ import static java.lang.Integer.parseInt;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
 
-public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
+public class ScanIndexTask extends PipelineTask<Path> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
     private final int scrollSize;
     private final String projectName;
     private final ReportMap reportMap;
-    private final User user;
     private final int scrollSlices;
 
     @Inject
-    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, final PropertiesProvider propertiesProvider,
-                         @Assisted User user, @Assisted String reportName) {
-        super(Stage.SCANIDX, user, new PipelineHelper(propertiesProvider).getQueueNameFor(Stage.SCANIDX), factory, propertiesProvider, Path.class);
-        this.user = user;
+    public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer,
+                         @Assisted TaskView<Long> taskView, @Assisted BiFunction<String, Double, Void> updateCallback) {
+        super(Stage.SCANIDX, taskView.user, new PipelineHelper(new PropertiesProvider(taskView.properties)).getQueueNameFor(Stage.SCANIDX), factory, new PropertiesProvider(taskView.properties), Path.class);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000"));
         this.scrollSlices = parseInt(propertiesProvider.get("scrollSlices").orElse("1"));
         this.projectName = propertiesProvider.get("defaultProject").orElse("local-datashare");
+        String reportName = propertiesProvider.get(MAP_NAME_OPTION).orElse("extract:report");
         this.reportMap = factory.createMap(reportName);
         this.indexer = indexer;
     }
@@ -73,10 +72,5 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
             }
         } while (!docsToProcess.isEmpty());
         return nbProcessed;
-    }
-
-    @Override
-    public User getUser() {
-        return user;
     }
 }

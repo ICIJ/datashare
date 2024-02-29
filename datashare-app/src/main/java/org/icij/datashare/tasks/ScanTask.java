@@ -23,7 +23,7 @@ public class ScanTask extends PipelineTask<Path> {
     private final BiFunction<String, Double, Void> updateCallback;
 
     @Inject
-    public ScanTask(DocumentCollectionFactory<Path> factory, @Assisted TaskView<Integer> task, @Assisted BiFunction<String, Double, Void> updateCallback) {
+    public ScanTask(DocumentCollectionFactory<Path> factory, @Assisted TaskView<Long> task, @Assisted BiFunction<String, Double, Void> updateCallback) {
         super(Stage.SCAN, task.user, new PipelineHelper(new PropertiesProvider(task.properties)).getOutputQueueNameFor(Stage.SCAN),
                 factory, new PropertiesProvider(task.properties), Path.class);
         scanner = new Scanner(queue).configure(options().createFrom(Options.from(task.properties)));

@@ -6,6 +6,7 @@ import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManagerMemory;
@@ -113,8 +114,10 @@ class CliApp {
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
-            TaskView<Long> taskView = taskManager.startTask(taskFactory.createScanIndexTask(nullUser(), ofNullable(properties.getProperty(MAP_NAME_OPTION)).orElse("extract:report")));
-            logger.info("scanned {}", taskView.getResult(true));
+            Long result = taskFactory.createScanIndexTask(
+                    new TaskView<>(ScanIndexTask.class.getName(), nullUser(), propertiesToMap(properties)),
+                    (s, percentage) -> {logger.info("percentage: {}% done", percentage);return null;}).call();
+            logger.info("scanned {}", result);
         }
 
         if (pipeline.has(Stage.SCAN)) {
