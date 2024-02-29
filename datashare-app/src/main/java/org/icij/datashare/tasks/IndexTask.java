@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.function.BiFunction;
 
 import static java.lang.Math.max;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -38,12 +39,12 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Integer parallelism;
 
     @Inject
-    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted User user, @Assisted final Properties properties) throws IOException {
-        super(Stage.INDEX, user, factory, new PropertiesProvider(properties), Path.class);
-        PropertiesProvider propertiesProvider = new PropertiesProvider(properties);
+    public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted TaskView<Integer> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) throws IOException {
+        super(Stage.INDEX, taskView.user, factory, new PropertiesProvider(taskView.properties), Path.class);
+        PropertiesProvider propertiesProvider = new PropertiesProvider(taskView.properties);
         parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
 
-        Options<String> allTaskOptions = options().createFrom(Options.from(properties));
+        Options<String> allTaskOptions = options().createFrom(Options.from(taskView.properties));
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
         DocumentFactory documentFactory = new DocumentFactory().configure(allTaskOptions);
         Extractor extractor = new Extractor(documentFactory).configure(allTaskOptions);

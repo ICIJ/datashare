@@ -141,11 +141,9 @@ public class TaskResource {
             requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the json task", useReturnTypeSchema = true)
     @Post("/batchUpdate/index")
-    public TaskView<Long> indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) {
+    public TaskView<Long> indexQueue(final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
         Properties properties = optionsWrapper.asProperties();
-        String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
-        IndexTask indexTask = taskFactory.createIndexTask((User) context.currentUser(), properties);
-        return taskManager.startTask(indexTask);
+        return taskManager.startTask(IndexTask.class.getName(), (User) context.currentUser(), propertiesToMap(properties));
     }
 
     @Operation(description = "Indexes files in a directory (with docker, it is the mounted directory that is scanned).",
@@ -171,7 +169,7 @@ public class TaskResource {
             taskFactory.createScanIndexTask(user, reportName).call();
             properties.put(MAP_NAME_OPTION, reportName);
         }
-        return asList(scanResponse, taskManager.startTask(taskFactory.createIndexTask(user, properties)));
+        return asList(scanResponse, taskManager.startTask(IndexTask.class.getName(), user, propertiesToMap(properties)));
     }
 
     @Operation(description = "Scans recursively a directory with the given path.",

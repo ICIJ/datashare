@@ -12,7 +12,6 @@ import org.icij.extract.ScannerVisitor;
 import org.icij.task.Options;
 import org.icij.task.annotation.OptionsClass;
 
-import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.BiFunction;

@@ -27,7 +27,6 @@ import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractModels;
-import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -152,8 +151,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
-
-        verify(taskFactory).createIndexTask(eq(local()), any());
     }
 
     @Test
@@ -189,8 +186,9 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         HashMap<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
-        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(defaultProperties).getProperties());
         assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().properties).isEqualTo(defaultProperties);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
     }
 
@@ -199,10 +197,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/batchUpdate/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(new HashMap<>() {{
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().properties).isEqualTo((new HashMap<>() {{
             put("key1", "val1");
             put("key2", "val2");
-        }}).getProperties());
+        }}));
         assertThat(taskManager.getTasks()).hasSize(1);
     }
 
@@ -222,7 +221,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("foo", "qux");
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().properties).
                 includes(entry("key", "val"), entry("foo", "qux"));
-        verify(taskFactory, never()).createIndexTask(any(User.class), any(Properties.class));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
     }
 
     @Test

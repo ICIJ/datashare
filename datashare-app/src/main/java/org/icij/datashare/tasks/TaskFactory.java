@@ -12,13 +12,13 @@ public interface TaskFactory {
     BatchDownloadRunner createBatchDownloadRunner(TaskView<?> taskView, BiFunction<String, Double, Void> updateCallback);
 
     ScanTask createScanTask(TaskView<Integer> taskView, BiFunction<String, Double, Void> updateCallback);
+    IndexTask createIndexTask(TaskView<Integer> taskView, BiFunction<String, Double, Void> updateCallback);
 
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
-    GetApiKeyTask createGetApiKey(User user);
 
+    GetApiKeyTask createGetApiKey(User user);
     ScanIndexTask createScanIndexTask(User user, String reportName);
-    IndexTask createIndexTask(final User user, final Properties properties);
     ExtractNlpTask createNlpTask(final User user, final Properties properties);
     EnqueueFromIndexTask createEnqueueFromIndexTask(final User user, final Properties properties);
     DeduplicateTask createDeduplicateTask(User user);
