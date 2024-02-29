@@ -1,7 +1,9 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
+import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.user.User;
@@ -46,6 +48,24 @@ public class TaskRunnerLoopForPipelineTasksTest {
         TaskView<Long> task = new TaskView<>(IndexTask.class.getName(), User.local(), new HashMap<>());
         IndexTask taskRunner = new IndexTask(spewer, mock(DocumentCollectionFactory.class), task, updateCallback);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(taskRunner);
+
+        testTaskWithTaskRunner(task);
+    }
+
+    @Test
+    public void test_extract_nlp_task() throws Exception {
+        TaskView<Long> task = new TaskView<>(ExtractNlpTask.class.getName(), User.local(), Map.of("nlpPipeline", "EMAIL"));
+        ExtractNlpTask taskRunner = new ExtractNlpTask(mock(Indexer.class), new PipelineRegistry(new PropertiesProvider()), mock(DocumentCollectionFactory.class), task, updateCallback);
+        when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(taskRunner);
+
+        testTaskWithTaskRunner(task);
+    }
+
+    @Test
+    public void test_scan_index_task() throws Exception {
+        TaskView<Long> task = new TaskView<>(ScanIndexTask.class.getName(), User.local(), new HashMap<>());
+        ScanIndexTask taskRunner = new ScanIndexTask(mock(DocumentCollectionFactory.class), mock(Indexer.class), task, updateCallback);
+        when(taskFactory.createScanIndexTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
     }
