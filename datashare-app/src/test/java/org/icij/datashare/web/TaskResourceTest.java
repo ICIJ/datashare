@@ -241,8 +241,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
         HashMap<String, Object> properties = getDefaultProperties();
         properties.put("waitForNlpApp", "false");
-        verify(taskFactory).createNlpTask(eq(local()), propertiesArgumentCaptor.capture());
-        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().properties).includes(entry("nlpPipeline", "EMAIL"));
     }
 
     @Test
@@ -253,9 +253,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         verify(taskFactory).createEnqueueFromIndexTask(eq(local()), propertiesArgumentCaptor.capture());
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
 
-        verify(taskFactory).createNlpTask(eq(local()), propertiesArgumentCaptor.capture());
-        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("key", "val"), entry("foo", "loo"));
-        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ExtractNlpTask").get().properties).
+                includes(
+                        entry("nlpPipeline", "EMAIL"),
+                        entry("key", "val"),
+                        entry("foo", "loo"));
     }
 
     @Test
@@ -439,6 +442,6 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createBatchDownloadRunner(any(), any())).thenReturn(mock(BatchDownloadRunner.class));
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));
         when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(mock(EnqueueFromIndexTask.class));
-        when(taskFactory.createNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
+        when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
     }
 }

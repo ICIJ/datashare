@@ -26,6 +26,7 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
+import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.FileResult;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
@@ -251,12 +252,11 @@ public class TaskResource {
             requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the created task", useReturnTypeSchema = true)
     @Post("/findNames/:pipeline")
-    public List<TaskView<?>> extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
+    public List<TaskView<?>> extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
         Properties mergedProps = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         mergedProps.put(NLP_PIPELINE_OPT, pipelineName);
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
-        String queueName = new PipelineHelper(new PropertiesProvider(mergedProps)).getQueueNameFor(Stage.NLP);
-        TaskView<Long> nlpTask = taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), mergedProps));
+        TaskView<Long> nlpTask = taskManager.startTask(ExtractNlpTask.class.getName(), (User) context.currentUser(), propertiesToMap(mergedProps));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
             TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createEnqueueFromIndexTask((User) context.currentUser(), mergedProps));
             return asList(resumeNlpTask, nlpTask);

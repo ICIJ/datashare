@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;
@@ -19,7 +18,6 @@ import static org.icij.datashare.text.Language.ENGLISH;
 import static org.icij.datashare.text.Project.project;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,9 +32,9 @@ public class ExtractNlpTaskTest {
     @Before
     public void setUp() {
         initMocks(this);
-        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, User.local(), new PropertiesProvider(new HashMap<>(){{
+        nlpTask = new ExtractNlpTask(indexer, pipeline, factory, new TaskView<>(ExtractNlpTask.class.getName(), User.local(), new HashMap<>(){{
             put("maxContentLength", "32");
-        }}).getProperties());
+        }}), null);
     }
 
     @Test

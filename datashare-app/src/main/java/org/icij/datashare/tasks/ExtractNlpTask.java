@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
@@ -36,16 +37,15 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final int maxContentLengthChars;
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory,
-                          @Assisted User user, @Assisted final Properties properties) {
-        this(indexer, registry.get(Pipeline.Type.parse(properties.getProperty(NLP_PIPELINE_OPT))), factory, user, properties);
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) {
+        this(indexer, registry.get(Pipeline.Type.parse((String)taskView.properties.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
     }
 
-    ExtractNlpTask(Indexer indexer, Pipeline nlpPipeline, final DocumentCollectionFactory<String> factory, User user, final Properties properties) {
-        super(Stage.NLP, user, factory, new PropertiesProvider(properties), String.class);
-        this.nlpPipeline = nlpPipeline;
-        project = Project.project(ofNullable(properties.getProperty("defaultProject")).orElse("local-datashare"));
-        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable(properties.getProperty("maxContentLength")).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
+    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) {
+        super(Stage.NLP, taskView.user, factory, new PropertiesProvider(taskView.properties), String.class);
+        this.nlpPipeline = pipeline;
+        project = Project.project(ofNullable((String)taskView.properties.get("defaultProject")).orElse("local-datashare"));
+        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.properties.get("maxContentLength")).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
         this.indexer = indexer;
     }
 
