@@ -83,20 +83,20 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_task_result_with_file_result__should_relativize_result_with_app_folder() throws Exception {
+    public void test_get_task_result_with_file_result_should_relativize_result_with_app_folder() throws Exception {
         setupAppWith("foo");
         File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
         FileResult indexHtml = new FileResult(file, Files.size(file.toPath()));
         TaskView<FileResult> t = taskManager.startTask(new DummyUserTask<>("foo", () -> indexHtml));
         get("/api/task/" + t.id + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
-                should().haveType("text/html;charset=UTF-8").
+                should().haveType("application/octet-stream").
                 should().haveHeader("Content-Disposition", "attachment;filename=\"index.html\"").
                 should().contain("datashare-client");
     }
 
     @Test
-    public void test_get_task_result_with_file_result_and_absolute_path__should_relativize_result_with_app_folder() throws Exception {
+    public void test_get_task_result_with_file_result_and_absolute_path_should_relativize_result_with_app_folder() throws Exception {
         setupAppWith("foo");
         File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
         FileResult indexHtml = new FileResult(file, Files.size(file.toPath()));
@@ -106,7 +106,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_task_result_when_task_threw_exception__should_show_error() throws Exception {
+    public void test_get_task_result_when_task_threw_exception_should_show_error() throws Exception {
         setupAppWith("foo");
         TaskView<File> t = taskManager.startTask(new DummyUserTask<>("foo", () -> {throw new RuntimeException("error blah");}));
 
