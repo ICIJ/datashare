@@ -4,16 +4,12 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
 import org.icij.datashare.user.User;
-import org.icij.spewer.Spewer;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -75,6 +71,15 @@ public class TaskRunnerLoopForPipelineTasksTest {
         TaskView<Long> task = new TaskView<>(EnqueueFromIndexTask.class.getName(), User.local(), Map.of("nlpPipeline", "EMAIL"));
         EnqueueFromIndexTask taskRunner = new EnqueueFromIndexTask(mock(DocumentCollectionFactory.class), mock(Indexer.class), task, updateCallback);
         when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(taskRunner);
+
+        testTaskWithTaskRunner(task);
+    }
+
+    @Test
+    public void test_deduplicate_task() throws Exception {
+        TaskView<Long> task = new TaskView<>(DeduplicateTask.class.getName(), User.local(), new HashMap<>());
+        DeduplicateTask taskRunner = new DeduplicateTask(mock(DocumentCollectionFactory.class), task, updateCallback);
+        when(taskFactory.createDeduplicateTask(any(), any())).thenReturn(taskRunner);
 
         testTaskWithTaskRunner(task);
     }

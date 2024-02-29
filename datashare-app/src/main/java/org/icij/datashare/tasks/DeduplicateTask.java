@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 /**
@@ -21,8 +22,8 @@ public class DeduplicateTask extends PipelineTask<Path> {
     private final DocumentCollectionFactory<Path> factory;
 
     @Inject
-    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, final PropertiesProvider propertiesProvider, @Assisted User user) {
-        super(Stage.DEDUPLICATE, user, factory, propertiesProvider, Path.class);
+    public DeduplicateTask(final DocumentCollectionFactory<Path> factory, @Assisted TaskView<Long> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) {
+        super(Stage.DEDUPLICATE, taskView.user, factory, new PropertiesProvider(taskView.properties), Path.class);
         this.factory = factory;
     }
 

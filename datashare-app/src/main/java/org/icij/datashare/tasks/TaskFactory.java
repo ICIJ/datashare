@@ -2,7 +2,6 @@ package org.icij.datashare.tasks;
 
 import org.icij.datashare.user.User;
 
-import java.util.Properties;
 import java.util.function.BiFunction;
 
 public interface TaskFactory {
@@ -17,12 +16,9 @@ public interface TaskFactory {
     ScanIndexTask createScanIndexTask(TaskView<Long> taskView, BiFunction<String, Double, Void> updateCallback);
     ExtractNlpTask createExtractNlpTask(TaskView<Long> taskView, BiFunction<String, Double, Void> updateCallback);
     EnqueueFromIndexTask createEnqueueFromIndexTask(TaskView<Long> taskView, BiFunction<String, Double, Void> updateCallback);
-    DeduplicateTask createDeduplicateTask(User user);
+    DeduplicateTask createDeduplicateTask(TaskView<Long> taskView, BiFunction<String, Double, Void> updateCallback);
 
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);
-
-
-
 }

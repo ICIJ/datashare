@@ -4,6 +4,7 @@ import com.google.inject.ConfigurationException;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.DeduplicateTask;
 import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
@@ -105,7 +106,10 @@ class CliApp {
 
         PipelineHelper pipeline = new PipelineHelper(new PropertiesProvider(properties));
         if (pipeline.has(Stage.DEDUPLICATE)) {
-            taskManager.startTask(taskFactory.createDeduplicateTask(nullUser()));
+            Long result = taskFactory.createDeduplicateTask(
+                    new TaskView<>(DeduplicateTask.class.getName(), nullUser(), propertiesToMap(properties)),
+                    (s, percentage) -> {logger.info("percentage: {}% done", percentage);return null;}).call();
+            logger.info("removed {} duplicates", result);
         }
 
         if (pipeline.has(Stage.SCANIDX)) {
