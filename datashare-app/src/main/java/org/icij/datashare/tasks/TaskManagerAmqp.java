@@ -74,12 +74,6 @@ public class TaskManagerAmqp implements TaskManager {
     }
 
     @Override
-    public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) {
-        return null;
-    }
-
-
-    @Override
     public <V> TaskView<V> startTask(String id, String taskName, User user) throws IOException {
         return startTask(new TaskView<>(id, taskName, user, new HashMap<>()));
     }

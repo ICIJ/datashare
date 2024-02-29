@@ -54,16 +54,6 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
-    public void test_callback() throws Exception {
-        CountDownLatch l = new CountDownLatch(1);
-        TaskView<String> t1 = taskManager.startTask(() -> "task", l::countDown);
-        l.await(1, SECONDS);
-
-        assertThat(l.getCount()).isEqualTo(0);
-        assertThat(taskManager.getTask(t1.id).getResult()).isEqualTo("task");
-    }
-
-    @Test
     public void test_clear_the_only_task() {
         TaskView<String> task = taskManager.startTask(() -> "task 1");
         assertThat(taskManager.getTasks()).hasSize(1);

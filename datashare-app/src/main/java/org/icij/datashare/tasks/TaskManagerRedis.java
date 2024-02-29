@@ -94,7 +94,6 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
         return tasks.remove(taskName);
     }
 
-    @Override public <V> TaskView<V> startTask(Callable<V> task, Runnable callback) { throw new IllegalStateException("not implemented"); }
     @Override public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) throws IOException  {
         return startTask(new TaskView<>(taskName, user, properties));
     }

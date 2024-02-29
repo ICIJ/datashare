@@ -41,20 +41,6 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V> TaskView<V> startTask(final Callable<V> task, final Runnable callback) {
-        MonitorableFutureTask<V> futureTask = new MonitorableFutureTask<>(task) {
-            @Override
-            protected void done() {
-                callback.run();
-            }
-        };
-        TaskView<V> taskView = new TaskView<>(futureTask);
-        executor.submit(futureTask);
-        save(taskView);
-        return taskView;
-    }
-
-    @Override
     public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) {
         return startTask(new TaskView<>(taskName, user, properties));
     }

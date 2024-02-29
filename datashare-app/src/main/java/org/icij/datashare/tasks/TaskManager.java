@@ -15,7 +15,6 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 public interface TaskManager extends Closeable {
-    <V> TaskView<V> startTask(Callable<V> task, Runnable callback);
     <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) throws IOException;
     <V> TaskView<V> startTask(String id, String taskName, User user) throws IOException;
 
