@@ -33,6 +33,9 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -91,15 +94,16 @@ public class TaskResource {
     @ApiResponse(responseCode = "403", description = "returns 403 if the task is not belonging to current user")
     @ApiResponse(responseCode = "404", description = "returns 404 if the task doesn't exist")
     @Get("/:id/result")
-    public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) {
+    public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
         TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
         Object result = task.getResult();
         if (result instanceof FileResult) {
-            final Path appPath = ((FileResult) result).file.isAbsolute() ?
-                    get(System.getProperty("user.dir")).resolve(context.env().appFolder()) :
-                    get(context.env().appFolder());
-            Path resultPath = appPath.relativize(((FileResult) result).file.toPath());
-            return new Payload(resultPath).withHeader("Content-Disposition", "attachment;filename=\"" + resultPath.getFileName() + "\"");
+            FileResult fileResult = (FileResult) result;
+            Path filePath = Path.of(fileResult.file.getPath());
+            String fileName = filePath.getFileName().toString();
+            String contentDisposition = "attachment;filename=\"" + fileName + "\"";
+            InputStream fileInputStream = Files.newInputStream(filePath);
+            return new Payload(fileInputStream).withHeader("Content-Disposition", contentDisposition);
         }
         return result == null ? new Payload(204) : new Payload(result);
     }
