@@ -2,6 +2,7 @@ package org.icij.datashare.cli;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSpec;
+import joptsimple.ValueConverter;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.Stage;
 import org.slf4j.event.Level;
@@ -116,12 +117,12 @@ public final class DatashareCliOptions {
     public static final String VERSION_ABBR_OPT = "v";
     public static final String VERSION_OPT = "version";
 
-    private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.dir"), ".local/share/datashare");
+    private static final Path DEFAULT_DATASHARE_HOME = Paths.get(System.getProperty("user.home"), ".local/share/datashare");
     private static final Integer DEFAULT_NLP_PARALLELISM = 1;
     private static final Integer DEFAULT_PARALLELISM = Runtime.getRuntime().availableProcessors() == 1 ? 2 : Runtime.getRuntime().availableProcessors();
     private static final Integer DEFAULT_PARSER_PARALLELISM = 1;
     public static final DigestAlgorithm DEFAULT_DIGEST_METHOD = DigestAlgorithm.SHA_384;
-    public static final String DEFAULT_DATA_DIR = Paths.get(System.getProperty("user.dir")).resolve("Datashare").toString();
+    public static final String DEFAULT_DATA_DIR = Paths.get(System.getProperty("user.home")).resolve("Datashare").toString();
     public static final Mode DEFAULT_MODE = Mode.LOCAL;
     public static final QueueType DEFAULT_BATCH_QUEUE_TYPE = QueueType.MEMORY;
     public static final QueueType DEFAULT_BUS_TYPE = QueueType.MEMORY;
@@ -681,10 +682,11 @@ public final class DatashareCliOptions {
 
     public static void batchDownloadDir(OptionParser parser) {
         parser.acceptsAll(
-                singletonList(BATCH_DOWNLOAD_DIR_OPT), "Directory where Batch Download archives are downloaded. (Default <currentUserDir>/app/tmp")
+                singletonList(BATCH_DOWNLOAD_DIR_OPT), "Directory where Batch Download archives are downloaded.")
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo(DEFAULT_BATCH_DOWNLOAD_DIR);
+                .defaultsTo(DEFAULT_BATCH_DOWNLOAD_DIR)
+                .withValuesConvertedBy(DatashareCliOptions.toAbsolute());
     }
 
     public static void maxContentLength(OptionParser parser) {
@@ -742,5 +744,26 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType( String.class )
                 .defaultsTo(DEFAULT_LOG_LEVEL);
+    }
+
+    public static ValueConverter<String> toAbsolute() {
+        return new ValueConverter<String>() {
+            @Override
+            public String convert(String value) {
+                Path path = Paths.get(value);
+                Path relativeTo = Path.of(System.getProperty("user.dir"));
+                return path.isAbsolute() ? value : relativeTo.resolve(path).normalize().toAbsolutePath().toString();
+            }
+
+            @Override
+            public Class<? extends String> valueType() {
+                return String.class;
+            }
+
+            @Override
+            public String valuePattern() {
+                return null;
+            }
+        };
     }
 }

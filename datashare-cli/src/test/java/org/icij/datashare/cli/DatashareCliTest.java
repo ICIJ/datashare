@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -19,12 +20,12 @@ public class DatashareCliTest {
 
     @Before
     public void setUp() {
-        System.setProperty("user.dir", "/home/datashare");
+        System.setProperty("user.home", "/home/datashare");
     }
 
     @After
     public void tearDown() {
-        System.clearProperty("user.dir");
+        System.clearProperty("user.home");
     }
 
     @Test
@@ -121,6 +122,18 @@ public class DatashareCliTest {
     @Test(expected = OptionException.class)
     public void test_embedded_document_download_max_size_illegal_value() {
         cli.asProperties(cli.createParser().parse("--batchDownloadMaxSize", "123A"), null);
+    }
+    @Test
+    public void test_relative_batch_download_dir() {
+        cli.parseArguments(new String[] {"--batchDownloadDir", "foo"});
+        Path userDir = Path.of(System.getProperty("user.dir"));
+        assertThat(cli.properties).includes(entry("batchDownloadDir", userDir.resolve("foo").toString()));
+    }
+
+    @Test
+    public void test_absolute_batch_download_dir() {
+        cli.parseArguments(new String[] {"--batchDownloadDir", "/home/foo"});
+        assertThat(cli.properties).includes(entry("batchDownloadDir", "/home/foo"));
     }
 
     @Test
