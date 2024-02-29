@@ -26,6 +26,7 @@ import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
+import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.FileResult;
 import org.icij.datashare.tasks.IndexTask;
@@ -258,7 +259,7 @@ public class TaskResource {
         syncModels(parseBoolean(mergedProps.getProperty("syncModels", "true")));
         TaskView<Long> nlpTask = taskManager.startTask(ExtractNlpTask.class.getName(), (User) context.currentUser(), propertiesToMap(mergedProps));
         if (parseBoolean(mergedProps.getProperty("resume", "true"))) {
-            TaskView<Long> resumeNlpTask = taskManager.startTask(taskFactory.createEnqueueFromIndexTask((User) context.currentUser(), mergedProps));
+            TaskView<Long> resumeNlpTask = taskManager.startTask(EnqueueFromIndexTask.class.getName(), ((User) context.currentUser()), propertiesToMap(mergedProps));
             return asList(resumeNlpTask, nlpTask);
         }
         return singletonList(nlpTask);

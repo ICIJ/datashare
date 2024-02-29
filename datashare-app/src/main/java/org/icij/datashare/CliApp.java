@@ -4,6 +4,7 @@ import com.google.inject.ConfigurationException;
 import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.EnqueueFromIndexTask;
 import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
@@ -127,8 +128,9 @@ class CliApp {
         }
 
         if (pipeline.has(Stage.ENQUEUEIDX)) {
-            taskManager.startTask(taskFactory.createEnqueueFromIndexTask(nullUser(), properties),
-                    () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
+            taskFactory.createEnqueueFromIndexTask(
+                    new TaskView<>(EnqueueFromIndexTask.class.getName(), nullUser(), propertiesToMap(properties)),
+                    (s, percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
         }
 
         if (pipeline.has(Stage.NLP)) {

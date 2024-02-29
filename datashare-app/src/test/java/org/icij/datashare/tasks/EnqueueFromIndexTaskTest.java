@@ -12,7 +12,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
@@ -31,14 +31,13 @@ public class EnqueueFromIndexTaskTest {
         for (int i = 0; i < 20; i++) {
             indexer.add(TEST_INDEX, createDoc("doc" + i).with(Pipeline.Type.CORENLP).build());
         }
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>(){{
-                put("defaultProject", "test-datashare");
-                put("stages", "ENQUEUEIDX");
-                put("queueName", "test:queue");
-                put(NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
-            }});
+        Map<String, Object> properties = Map.of(
+                "defaultProject", "test-datashare",
+                "stages", "ENQUEUEIDX",
+                "queueName", "test:queue",
+                NLP_PIPELINE_OPT, Pipeline.Type.OPENNLP.name());
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
-        EnqueueFromIndexTask resumeNlpTask = new EnqueueFromIndexTask(factory, indexer, new User("test"), propertiesProvider.getProperties());
+        EnqueueFromIndexTask resumeNlpTask = new EnqueueFromIndexTask(factory, indexer, new TaskView<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         resumeNlpTask.call();
         assertThat(factory.queues.get("test:queue:nlp")).hasSize(20);
     }

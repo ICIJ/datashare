@@ -70,6 +70,15 @@ public class TaskRunnerLoopForPipelineTasksTest {
         testTaskWithTaskRunner(task);
     }
 
+    @Test
+    public void test_enqueue_from_index_task() throws Exception {
+        TaskView<Long> task = new TaskView<>(EnqueueFromIndexTask.class.getName(), User.local(), Map.of("nlpPipeline", "EMAIL"));
+        EnqueueFromIndexTask taskRunner = new EnqueueFromIndexTask(mock(DocumentCollectionFactory.class), mock(Indexer.class), task, updateCallback);
+        when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(taskRunner);
+
+        testTaskWithTaskRunner(task);
+    }
+
     private void testTaskWithTaskRunner(TaskView<Long> task) throws InterruptedException {
         TaskRunnerLoop loop = new TaskRunnerLoop(taskFactory, taskSupplier);
         taskSupplier.startTask(task.name, User.local(), task.properties);

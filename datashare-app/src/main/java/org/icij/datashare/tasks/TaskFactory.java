@@ -16,12 +16,13 @@ public interface TaskFactory {
     IndexTask createIndexTask(TaskView<Long> taskView, BiFunction<String, Double, Void> updateCallback);
     ScanIndexTask createScanIndexTask(TaskView<Long> taskView, BiFunction<String, Double, Void> updateCallback);
     ExtractNlpTask createExtractNlpTask(TaskView<Long> taskView, BiFunction<String, Double, Void> updateCallback);
+    EnqueueFromIndexTask createEnqueueFromIndexTask(TaskView<Long> taskView, BiFunction<String, Double, Void> updateCallback);
+    DeduplicateTask createDeduplicateTask(User user);
 
     GenApiKeyTask createGenApiKey(User user);
     DelApiKeyTask createDelApiKey(User user);
     GetApiKeyTask createGetApiKey(User user);
 
 
-    EnqueueFromIndexTask createEnqueueFromIndexTask(final User user, final Properties properties);
-    DeduplicateTask createDeduplicateTask(User user);
+
 }

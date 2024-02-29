@@ -9,13 +9,12 @@ import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
-import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Properties;
+import java.util.function.BiFunction;
 
 import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
@@ -26,19 +25,17 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final DocumentCollectionFactory<String> factory;
     Logger logger = LoggerFactory.getLogger(getClass());
     private final Pipeline.Type nlpPipeline;
-    private final User user;
     private final String projectName;
     private final Indexer indexer;
 
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
-                                @Assisted final User user, @Assisted final Properties taskProperties) {
-        super(Stage.ENQUEUEIDX, user, factory, new PropertiesProvider(taskProperties), String.class);
+                                @Assisted TaskView<Long> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) {
+        super(Stage.ENQUEUEIDX, taskView.user, factory, new PropertiesProvider(taskView.properties), String.class);
         this.factory = factory;
         this.indexer = indexer;
-        this.nlpPipeline = Pipeline.Type.parse(taskProperties.getProperty(NLP_PIPELINE_OPT));
-        this.user = user;
-        this.projectName = ofNullable(taskProperties.getProperty("defaultProject")).orElse("local-datashare");
+        this.nlpPipeline = Pipeline.Type.parse((String)taskView.properties.get(NLP_PIPELINE_OPT));
+        this.projectName = ofNullable((String)taskView.properties.get("defaultProject")).orElse("local-datashare");
     }
 
     @Override
@@ -59,7 +56,4 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
 
         return totalHits;
     }
-
-    @Override
-    public User getUser() { return user;}
 }
