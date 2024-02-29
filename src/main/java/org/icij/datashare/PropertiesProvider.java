@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.Optional;
@@ -57,6 +58,15 @@ public class PropertiesProvider {
     public PropertiesProvider(final Map<String, Object> hashMap) {
         cachedProperties = fromMap(hashMap);
         settingsPath = null;
+    }
+
+    public static Map<String, Object> propertiesToMap(final Properties properties) {
+        return properties.entrySet().stream().collect(
+                Collectors.toMap(
+                        e -> String.valueOf(e.getKey()),
+                        Map.Entry::getValue,
+                        (prev, next) -> next, HashMap::new
+                ));
     }
 
     public Properties getProperties() {

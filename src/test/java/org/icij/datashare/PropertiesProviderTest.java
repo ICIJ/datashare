@@ -227,6 +227,12 @@ public class PropertiesProviderTest {
     }
 
     @Test
+    public void test_properties_to_map() {
+        Map<String, Object> map = Map.of("foo", "bar", "baz", 12);
+        assertThat(PropertiesProvider.propertiesToMap(new PropertiesProvider(map).getProperties())).isEqualTo(map);
+    }
+
+    @Test
     public void test_override_queue_name_with_hash_code_starting_with_default_project() {
         PropertiesProvider props = new PropertiesProvider(Map.of("defaultProject", "foo"));
         assertThat(props.queueName()).isEqualTo("extract:queue");
