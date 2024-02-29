@@ -18,7 +18,7 @@ import java.util.Properties;
 
 public class ServerMode extends CommonMode {
     ServerMode(Properties properties) { super(properties);}
-    ServerMode(Map<String, String> properties) { super(properties);}
+    ServerMode(Map<String, Object> properties) { super(properties);}
 
     @Override
     protected void configure() {

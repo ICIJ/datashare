@@ -5,6 +5,7 @@ import org.icij.datashare.cli.CliExtensionService;
 import org.icij.datashare.cli.DatashareCliOptions;
 import org.icij.datashare.cli.spi.CliExtension;
 import org.icij.datashare.mode.CommonMode;
+import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskView;
@@ -17,12 +18,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.function.BiFunction;
 
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
+import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.user.User.localUser;
 import static org.icij.datashare.user.User.nullUser;
@@ -112,8 +117,9 @@ class CliApp {
         }
 
         if (pipeline.has(Stage.SCAN)) {
-            taskManager.startTask(taskFactory.createScanTask(nullUser(), Paths.get(properties.getProperty(DatashareCliOptions.DATA_DIR_OPT)), properties),
-                    () -> closeAndLogException(mode.get(DocumentQueue.class)).run());
+            taskFactory.createScanTask(
+                    new TaskView<Integer>(ScanTask.class.getName(), nullUser(), propertiesToMap(properties)),
+                    (s, percentage) -> {logger.info("percentage: {}% done", percentage); return null;}).call();
         }
 
         if (pipeline.has(Stage.INDEX)) {

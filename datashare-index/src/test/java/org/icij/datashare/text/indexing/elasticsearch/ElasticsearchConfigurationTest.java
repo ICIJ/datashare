@@ -42,7 +42,7 @@ public class ElasticsearchConfigurationTest {
 
     @Test
     public void test_create_client_with_user_pass() throws Exception {
-        ElasticsearchClient esClient = ElasticsearchConfiguration.createESClient(new PropertiesProvider(new HashMap<String, String>() {{
+        ElasticsearchClient esClient = ElasticsearchConfiguration.createESClient(new PropertiesProvider(new HashMap<>() {{
             put("elasticsearchAddress", "http://user:pass@elasticsearch:9200");
         }}));
 

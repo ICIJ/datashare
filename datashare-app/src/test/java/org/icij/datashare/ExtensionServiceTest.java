@@ -57,7 +57,7 @@ public class ExtensionServiceTest {
 
     @Test
     public void test_extension_service_from_properties() {
-        ExtensionService extensionService = new ExtensionService(new PropertiesProvider(new HashMap<String, String>() {{
+        ExtensionService extensionService = new ExtensionService(new PropertiesProvider(new HashMap<>() {{
             put(EXTENSIONS_DIR, extensionFolder.getRoot().getPath());
         }}));
         assertThat(extensionService.deliverablesDir.toString()).isEqualTo(extensionFolder.getRoot().getPath());
@@ -204,7 +204,7 @@ public class ExtensionServiceTest {
     public void test_delete_extension_by_url() throws IOException {
         extensionFolder.newFile("my-extension-1.0.1.jar");
         ExtensionService extensionService = new ExtensionService(extensionFolder.getRoot().toPath());
-        Properties properties = PropertiesProvider.fromMap(new HashMap<String, String>() {{
+        Properties properties = PropertiesProvider.fromMap(new HashMap<>() {{
             put("extensionDelete", extensionFolder.getRoot().toPath().resolve("my-extension-1.0.1.jar").toString());
         }});
 

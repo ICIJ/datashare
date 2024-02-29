@@ -11,21 +11,38 @@ import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.tasks.*;
+import org.icij.datashare.tasks.BatchDownloadRunner;
+import org.icij.datashare.tasks.DeduplicateTask;
+import org.icij.datashare.tasks.EnqueueFromIndexTask;
+import org.icij.datashare.tasks.ExtractNlpTask;
+import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.ScanIndexTask;
+import org.icij.datashare.tasks.ScanTask;
+import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.TaskManager;
+import org.icij.datashare.tasks.TaskManagerMemory;
+import org.icij.datashare.tasks.TaskModifier;
+import org.icij.datashare.tasks.TaskSupplier;
+import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractModels;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -37,7 +54,12 @@ import static org.fest.assertions.MapAssert.entry;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
 import static org.icij.datashare.session.DatashareUser.local;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskResourceTest extends AbstractProdWebServerTest {
@@ -148,11 +170,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_index_and_scan_default_directory() {
         RestAssert response = post("/api/task/batchUpdate/index/file", "{}");
-        HashMap<String, String> properties = getDefaultProperties();
+        HashMap<String, Object> properties = getDefaultProperties();
         properties.put("foo", "bar");
 
         response.should().respond(200).haveType("application/json");
-        verify(taskFactory).createScanTask(local(), Paths.get("/default/data/dir"), new PropertiesProvider(properties).getProperties());
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().properties).
+                includes(entry("dataDir", "/default/data/dir"));
     }
 
     @Test
@@ -163,11 +186,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}");
 
         response.should().haveType("application/json");
-        HashMap<String, String> defaultProperties = getDefaultProperties();
+        HashMap<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
         verify(taskFactory).createIndexTask(local(), new PropertiesProvider(defaultProperties).getProperties());
-        verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
+        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
     }
 
     @Test
@@ -175,11 +199,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/batchUpdate/index", "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}");
 
         response.should().haveType("application/json");
-        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(new HashMap<String, String>() {{
+        verify(taskFactory).createIndexTask(local(), new PropertiesProvider(new HashMap<>() {{
             put("key1", "val1");
             put("key2", "val2");
         }}).getProperties());
-        verify(taskFactory, never()).createScanTask(eq(local()), any(Path.class), any(Properties.class));
+        assertThat(taskManager.getTasks()).hasSize(1);
     }
 
     @Test
@@ -193,10 +217,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
-        HashMap<String, String> defaultProperties = getDefaultProperties();
+        HashMap<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("key", "val");
         defaultProperties.put("foo", "qux");
-        verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().properties).
+                includes(entry("key", "val"), entry("foo", "qux"));
         verify(taskFactory, never()).createIndexTask(any(User.class), any(Properties.class));
     }
 
@@ -213,7 +238,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         verify(taskFactory).createEnqueueFromIndexTask(eq(local()), propertiesArgumentCaptor.capture());
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
 
-        HashMap<String, String> properties = getDefaultProperties();
+        HashMap<String, Object> properties = getDefaultProperties();
         properties.put("waitForNlpApp", "false");
         verify(taskFactory).createNlpTask(eq(local()), propertiesArgumentCaptor.capture());
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
@@ -387,7 +412,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @NotNull
-    private HashMap<String, String> getDefaultProperties() {
+    private HashMap<String, Object> getDefaultProperties() {
         return new HashMap<>() {{
             put("dataDir", "/default/data/dir");
             put("foo", "bar");
@@ -401,10 +426,14 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         }});
     }
 
+    private Optional<TaskView<?>> findTask(TaskManagerMemory taskManager, String expectedName) {
+        return taskManager.getTasks().stream().filter(t -> expectedName.equals(t.name)).findFirst();
+    }
+
     private void init(TaskFactory taskFactory) {
         reset(taskFactory);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
-        when(taskFactory.createScanTask(any(), any(), any())).thenReturn(mock(ScanTask.class));
+        when(taskFactory.createScanTask(any(), any())).thenReturn(mock(ScanTask.class));
         when(taskFactory.createDeduplicateTask(any())).thenReturn(mock(DeduplicateTask.class));
         when(taskFactory.createBatchDownloadRunner(any(), any())).thenReturn(mock(BatchDownloadRunner.class));
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));

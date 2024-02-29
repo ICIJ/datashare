@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import liquibase.pro.packaged.O;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -26,7 +27,7 @@ import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 public class ScanIndexTaskTest {
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule();
-    private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+    private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("defaultProject", TEST_INDEX);
         put("stages", "SCANIDX");
     }});

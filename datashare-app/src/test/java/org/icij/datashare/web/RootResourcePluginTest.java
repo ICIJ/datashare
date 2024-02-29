@@ -49,7 +49,7 @@ public class RootResourcePluginTest implements FluentRestTest {
     public void setUp() {
         initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("pluginsDir", folder.getRoot().toString());
         }});
         server.configure(routes -> {
@@ -68,7 +68,7 @@ public class RootResourcePluginTest implements FluentRestTest {
 
     @Test
     public void test_invalid_folder_should_throw_error() {
-        server.configure(routes -> routes.add(new RootResource(new PropertiesProvider(new HashMap<String, String>() {{
+        server.configure(routes -> routes.add(new RootResource(new PropertiesProvider(new HashMap<>() {{
             put("pluginsDir", "unknown");
         }}))));
         get("/").should().respond(500);

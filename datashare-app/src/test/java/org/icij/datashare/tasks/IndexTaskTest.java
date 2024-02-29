@@ -58,7 +58,7 @@ public class IndexTaskTest {
     public void test_configure_called_on_spewer() throws Exception {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
-        Map<String, String> options = new HashMap<>() {{
+        Map<String, Object> options = new HashMap<>() {{
             put("charset", "UTF-16");
         }};
         new IndexTask(spewer, mock(DocumentCollectionFactory.class), nullUser(), new PropertiesProvider(options).getProperties());

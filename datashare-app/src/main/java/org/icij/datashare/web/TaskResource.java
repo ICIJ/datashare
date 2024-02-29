@@ -28,6 +28,7 @@ import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.tasks.BatchDownloadRunner;
 import org.icij.datashare.tasks.FileResult;
 import org.icij.datashare.tasks.IndexTask;
+import org.icij.datashare.tasks.ScanTask;
 import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.tasks.TaskView;
@@ -35,6 +36,7 @@ import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +55,7 @@ import static net.codestory.http.payload.Payload.ok;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
+import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
@@ -175,11 +178,11 @@ public class TaskResource {
             requestBody = @RequestBody(description = "wrapper for options json", required = true,  content = @Content(schema = @Schema(implementation = OptionsWrapper.class))))
     @ApiResponse(responseCode = "200", description = "returns 200 and the created task", useReturnTypeSchema = true)
     @Post("/batchUpdate/scan/:filePath:")
-    public TaskView<Long> scanFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) {
+    public TaskView<Long> scanFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
         Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
         Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
-        return taskManager.startTask(taskFactory.createScanTask((User) context.currentUser(), path, properties));
+        return taskManager.startTask(ScanTask.class.getName(), (User) context.currentUser(), propertiesToMap(properties));
     }
 
     @Operation(description = "Cleans all DONE tasks.")

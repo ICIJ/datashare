@@ -200,7 +200,7 @@ public class BatchDownloadRunnerIntTest {
 
     @NotNull
     private PropertiesProvider createProvider() {
-        return new PropertiesProvider(new HashMap<String, String>() {{
+        return new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
         }});
     }

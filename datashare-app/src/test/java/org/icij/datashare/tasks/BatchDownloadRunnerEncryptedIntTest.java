@@ -63,7 +63,7 @@ public class BatchDownloadRunnerEncryptedIntTest {
 
     @NotNull
     private PropertiesProvider createProvider() {
-        return new PropertiesProvider(new HashMap<String, String>() {{
+        return new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
             put("rootHost", "https://datashare-demo.icij.org");
         }});

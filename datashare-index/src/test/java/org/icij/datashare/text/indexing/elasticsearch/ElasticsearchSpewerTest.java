@@ -331,7 +331,7 @@ public class ElasticsearchSpewerTest {
 
     @Test
     public void test_duplicate_file() throws Exception {
-        HashMap<String, String> properties = new HashMap<>() {{
+        HashMap<String, Object> properties = new HashMap<>() {{
             put("digestAlgorithm", "SHA-256");
             put("digestProjectName", "project");
             put("defaultProject", "test-datashare");
