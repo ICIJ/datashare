@@ -9,7 +9,7 @@ jobs:
 
   build_back:
     docker:
-      - image: cimg/openjdk:11.0
+      - image: cimg/openjdk:11.0.16
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
@@ -36,10 +36,10 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v3-dependencies-{{ checksum "pom.xml" }}
+          - v1-dependencies-{{ checksum "pom.xml" }}
 
       - run:
-          name: Create a bootstrap datashare DB for jooq code generation
+          name: create a bootstrap datashare DB for jooq code generation
           command: |
             sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ buster-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
             wget --no-check-certificate --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
@@ -59,22 +59,22 @@ jobs:
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run:
-          name: Make install for app and corenlp modules
+          name: make install for app and corenlp modules
           command: mvn -s .circleci/maven-release-settings.xml -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
-      - run: mvn -pl datashare-dist package
+      - run: mvn -pl datashare-dist package > mvn.out
       - run:
-          name: Acceptance test for embedded mode
+          name: acceptance test for embedded mode
           command: |
             VERSION=$(cat pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
             DS_ELASTICSEARCH_DATA_PATH=$HOME java -cp datashare-dist/target/datashare-dist-${VERSION}-all.jar org.icij.datashare.text.indexing.elasticsearch.EsEmbeddedServer -- 5
       - save_cache:
           paths:
             - ~/.m2
-          key: v3-dependencies-{{ checksum "pom.xml" }}
+          key: v1-dependencies-{{ checksum "pom.xml" }}
 
   publish_doc:
     docker:
-      - image: cimg/openjdk:11.0
+      - image: cimg/openjdk:11.0.16
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
            - "discovery.type=single-node"
@@ -94,7 +94,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v3-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-{{ checksum "pom.xml" }}
       - run:
           name: Prepare SSH directory
           command: |
@@ -118,7 +118,7 @@ jobs:
             git clone git@github.com:ICIJ/datashare-docs.git ~/datashare-docs
       - run:
           name: Make dist without frontend
-          command: make dist
+          command: mvn -pl datashare-dist package > mvn.out
       - run:
           name: Populate apigen index
           command: ./doc/apigen/populate_apigen.sh
@@ -165,7 +165,7 @@ jobs:
 
   package_back:
     docker:
-      - image: cimg/openjdk:11.0
+      - image: cimg/openjdk:11.0.16
     working_directory: /tmp/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
@@ -173,17 +173,19 @@ jobs:
       - attach_workspace:
           at: /tmp/datashare-client
       - checkout
+
       - restore_cache:
           keys:
-            - v3-dependencies-{{ checksum "pom.xml" }}
+            - v1-dependencies-{{ checksum "pom.xml" }}
+
       - run:
-          name: Make app link to front
+          name: make app link to front
           command: ln -s /tmp/datashare-client/dist /tmp/datashare/app
       - run:
-          name: Make dist including frontend
-          command: mvn -pl datashare-dist package
+          name: make dist including frontend
+          command: mvn -pl datashare-dist package > mvn.out
       - run:
-          name: Make tarball for non debian linux
+          name: make tarball for non debian linux
           command: |
             cp /tmp/datashare/datashare-dist/src/main/deb/bin/datashare /tmp/datashare/datashare-dist/target
             cd /tmp/datashare/datashare-dist/target
@@ -195,13 +197,13 @@ jobs:
 
   deploy_back:
     docker:
-      - image: cimg/openjdk:11.0
+      - image: cimg/openjdk:11.0.16
     working_directory: /tmp
     steps:
       - attach_workspace:
           at: /tmp/datashare
       - run:
-          name: Deploy datashare dist jar to github release
+          name: deploy datashare dist jar to github release
           command: |
             upload_url=$(curl -X POST -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare/releases" | jq -r '.upload_url')
             upload_url="${upload_url%\{*}"
@@ -228,7 +230,7 @@ jobs:
       - attach_workspace:
            at: /tmp/datashare
       - run:
-           name: Configure SSH directory
+           name: adds_ssh_dir
            command: |
              mkdir -p ~/.ssh
              chmod 700 ~/.ssh
@@ -236,17 +238,17 @@ jobs:
           fingerprints:
             - "b3:e6:7c:f3:86:9e:e9:88:d1:cf:22:8c:97:3e:93:54"
       - run:
-          name: Clone Datashare Client
+          name: clone
           command: |
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone git@github.com:ICIJ/datashare-client.git
       - run:
-          name: Release Datashare client on GitHub
+          name: release client on GitHub
           command: |
             upload_url=$(curl -X POST -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{ \"tag_name\": \"${CIRCLE_TAG}\", \"target_commitish\": \"master\", \"name\": \"${CIRCLE_TAG}\", \"body\": \"Released by Circle CI\", \"draft\": false, \"prerelease\": false }" "https://api.github.com/repos/ICIJ/datashare-client/releases")
             echo $upload_url > /tmp/datashare-client/datashare-client.url
       - run:
-          name: Checkout repository's tags
+          name: checkout tag
           command: |
             cd datashare-client
             git pull origin master --tags
@@ -256,7 +258,7 @@ jobs:
             - dependency-cache-{{ checksum "/tmp/datashare-client/package.json" }}
             - dependency-cache-
       - run:
-          name: Install Datashare Client
+          name: make install
           command: |
             cd /tmp/datashare-client
             make install
@@ -265,7 +267,7 @@ jobs:
           paths:
             - /tmp/datashare-client/node_modules
       - run:
-          name: Run tests and build dist
+          name: run tests and build dist
           command: |
             cd /tmp/datashare-client
             make unit dist
@@ -283,7 +285,7 @@ jobs:
       - attach_workspace:
           at: /tmp/datashare
       - run:
-          name: Deploy datashare-client dist directory to Github release
+          name: deploy datashare-client dist to github release
           command: |
             cd /tmp/datashare/dist
             tar czf ../datashare-client-${CIRCLE_TAG}.tgz .
