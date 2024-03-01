@@ -71,6 +71,10 @@ jobs:
           paths:
             - ~/.m2
           key: v2-dependencies-{{ checksum "pom.xml" }}
+      - persist_to_workspace:
+          root: /tmp/datashare
+          paths:
+            - datashare-dist
 
   publish_doc:
     docker:
@@ -181,7 +185,7 @@ jobs:
           command: ln -s /tmp/datashare-client/dist /tmp/datashare/app
       - run:
           name: Make dist including frontend
-          command: make dist
+          command: mvn -pl datashare-dist package
       - run:
           name: Make tarball for non debian linux
           command: |
