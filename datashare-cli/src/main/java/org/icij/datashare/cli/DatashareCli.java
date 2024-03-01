@@ -119,9 +119,12 @@ public class DatashareCli {
         DatashareCliOptions.ocrLanguage(parser);
         DatashareCliOptions.nlpPipeline(parser);
         DatashareCliOptions.resume(parser);
+        DatashareCliOptions.scroll(parser);
         DatashareCliOptions.scrollSize(parser);
         DatashareCliOptions.scrollSlices(parser);
+        DatashareCliOptions.batchSearchScroll(parser);
         DatashareCliOptions.batchSearchScrollSize(parser);
+        DatashareCliOptions.batchDownloadScroll(parser);
         DatashareCliOptions.batchDownloadScrollSize(parser);
         DatashareCliOptions.redisPoolSize(parser);
         DatashareCliOptions.elasticsearchDataPath(parser);
