@@ -30,10 +30,12 @@ public final class DatashareCliOptions {
     public static final String BATCH_DOWNLOAD_ENCRYPT_OPT = "batchDownloadEncrypt";
     public static final String BATCH_DOWNLOAD_MAX_NB_FILES_OPT = "batchDownloadMaxNbFiles";
     public static final String BATCH_DOWNLOAD_MAX_SIZE_OPT = "batchDownloadMaxSize";
+    public static final String BATCH_DOWNLOAD_SCROLL_DURATION_OPT = "batchDownloadScroll";
     public static final String BATCH_DOWNLOAD_SCROLL_SIZE_OPT = "batchDownloadScrollSize";
     public static final String BATCH_DOWNLOAD_ZIP_TTL_OPT = "batchDownloadTimeToLive";
     public static final String BATCH_QUEUE_TYPE_OPT = "batchQueueType";
     public static final String BATCH_SEARCH_MAX_TIME_OPT = "batchSearchMaxTimeSeconds";
+    public static final String BATCH_SEARCH_SCROLL_DURATION_OPT = "batchSearchScroll";
     public static final String BATCH_SEARCH_SCROLL_SIZE_OPT = "batchSearchScrollSize";
     public static final String BATCH_THROTTLE_OPT = "batchThrottleMilliseconds";
     public static final String BROWSER_OPEN_LINK_OPT = "browserOpenLink";
@@ -106,6 +108,7 @@ public final class DatashareCliOptions {
     public static final String RESUME_ABBR_OPT = "r";
     public static final String RESUME_OPT = "resume";
     public static final String ROOT_HOST_OPT = "rootHost";
+    public static final String SCROLL_DURATION_OPT = "scroll";
     public static final String SCROLL_SIZE_OPT = "scrollSize";
     public static final String SCROLL_SLICES_OPT = "scrollSlices";
     public static final String SESSION_STORE_TYPE_OPT = "sessionStoreType";
@@ -156,6 +159,7 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_BATCH_DOWNLOAD_ZIP_TTL = 24;
     public static final String DEFAULT_PLUGIN_DIR = DEFAULT_DATASHARE_HOME.resolve("plugins").toString();
     public static final int DEFAULT_REDIS_POOL_SIZE = 5;
+    public static final String DEFAULT_SCROLL_DURATION = "60000ms";
     public static final int DEFAULT_SCROLL_SIZE = 1000;
     public static final int DEFAULT_SCROLL_SLICES = 1;
     public static final int DEFAULT_TCP_LISTEN_PORT = 8080;
@@ -406,6 +410,13 @@ public final class DatashareCliOptions {
                          .ofType(Integer.class);
     }
 
+    public static void scroll(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(SCROLL_DURATION_OPT), "Scroll duration used for elasticsearch scrolls (SCANIDX task)")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_SCROLL_DURATION);
+    }
     public static void scrollSize(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(SCROLL_SIZE_OPT), "Scroll size used for elasticsearch scrolls (SCANIDX task)")
@@ -422,6 +433,13 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_SCROLL_SLICES);
     }
 
+    public static void batchSearchScroll(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(BATCH_SEARCH_SCROLL_DURATION_OPT), "Scroll duration used for elasticsearch scrolls (Batch Search)")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_SCROLL_DURATION);
+    }
 
     public static void batchSearchScrollSize(OptionParser parser) {
         parser.acceptsAll(
@@ -429,6 +447,14 @@ public final class DatashareCliOptions {
                 .withRequiredArg()
                 .ofType(Integer.class)
                 .defaultsTo(DEFAULT_SCROLL_SIZE);
+    }
+
+    public static void batchDownloadScroll(OptionParser parser) {
+        parser.acceptsAll(
+                singletonList(BATCH_DOWNLOAD_SCROLL_DURATION_OPT), "Scroll duration used for elasticsearch scrolls (Batch Download)")
+                .withRequiredArg()
+                .ofType(String.class)
+                .defaultsTo(DEFAULT_SCROLL_DURATION);
     }
 
     public static void batchDownloadScrollSize(OptionParser parser) {
