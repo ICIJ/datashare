@@ -1,8 +1,6 @@
 package org.icij.datashare.batch;
 
 
-import org.icij.datashare.text.ProjectProxy;
-
 import java.util.List;
 
 public class WebQueryBuilder {

@@ -52,10 +52,9 @@ public interface Indexer extends Closeable {
     interface Searcher {
         Stream<? extends Entity> execute() throws IOException;
         Stream<? extends Entity> execute(String stringQuery) throws IOException;
-        Stream<? extends Entity> scroll() throws IOException;
-        Stream<? extends Entity> scroll(String stringQuery) throws IOException;
-        Stream<? extends Entity> scroll(int numSlice, int nbSlices) throws IOException;
-        Stream<? extends Entity> scroll(int numSlice, int nbSlices, String stringQuery) throws IOException;
+        Stream<? extends Entity> scroll(String duration) throws IOException;
+        Stream<? extends Entity> scroll(String duration, String stringQuery) throws IOException;
+        Stream<? extends Entity> scroll(ScrollQuery scrollQuery) throws IOException;
         Searcher withSource(String... fields);
         Searcher withoutSource(String... fields);
         Searcher withSource(boolean source);
@@ -73,5 +72,34 @@ public interface Indexer extends Closeable {
         QueryBuilderSearcher thatMatchesFieldValue(String key, Object value);
         QueryBuilderSearcher withFieldValues(String key, String... values);
         QueryBuilderSearcher withPrefixQuery(String key, String... values);
+    }
+
+    class ScrollQuery {
+        private final String duration;
+        private final int numSlice;
+        private final int nbSlices;
+        private final String stringQuery;
+        public ScrollQuery(String duration, int numSlice, int nbSlices, String stringQuery) {
+            this.duration = duration;
+            this.numSlice = numSlice;
+            this.nbSlices = nbSlices;
+            this.stringQuery = stringQuery;
+        }
+
+        public String getDuration() {
+            return duration;
+        }
+
+        public int getNumSlice() {
+            return numSlice;
+        }
+
+        public int getNbSlices() {
+            return nbSlices;
+        }
+
+        public String getStringQuery() {
+            return stringQuery;
+        }
     }
 }
