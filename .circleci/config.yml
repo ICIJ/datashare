@@ -61,7 +61,7 @@ jobs:
       - run:
           name: Make install for app and corenlp modules
           command: mvn -s .circleci/maven-release-settings.xml -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
-      - run: make dist
+      - run: mvn -pl datashare-dist package
       - run:
           name: Acceptance test for embedded mode
           command: |
@@ -71,10 +71,6 @@ jobs:
           paths:
             - ~/.m2
           key: v2-dependencies-{{ checksum "pom.xml" }}
-      - persist_to_workspace:
-          root: /tmp/datashare
-          paths:
-            - datashare-dist
 
   publish_doc:
     docker:
