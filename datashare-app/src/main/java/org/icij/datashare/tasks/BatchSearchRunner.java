@@ -13,6 +13,7 @@ import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.indexing.Indexer;
+import org.icij.datashare.text.indexing.ScrollQueryBuilder;
 import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -77,6 +78,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         int numberOfResults = 0;
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
         int maxTimeSeconds = parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME_OPT).orElse(DEFAULT_BATCH_SEARCH_MAX_TIME));
+        String scrollDuration = propertiesProvider.get(BATCH_SEARCH_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         int scrollSizeFromParams = parseInt(propertiesProvider.get(BATCH_SEARCH_SCROLL_SIZE_OPT)
                 .orElse(propertiesProvider.get(SCROLL_SIZE_OPT)
                 .orElse(valueOf(DEFAULT_SCROLL_SIZE))));
@@ -96,14 +98,14 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                 if (batchSearch.hasQueryTemplate()) { // for retro-compatibility should be removed at some point to keep only bodyTemplate
                     searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class, batchSearch.queryTemplate)
                             .with(batchSearch.fuzziness, batchSearch.phraseMatches).withoutSource("content").limit(scrollSize);
-                    docsToProcess = searcher.scroll(query).collect(toList());
+                    docsToProcess = searcher.scroll(scrollDuration, query).collect(toList()); //
                 } else {
                     searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class, new SearchQuery(query));
                     ((Indexer.QueryBuilderSearcher)searcher).withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{}))
                             .withPrefixQuery("path", batchSearch.paths.toArray(new String[]{}))
                             .with(batchSearch.fuzziness, batchSearch.phraseMatches)
                             .withoutSource("content").limit(scrollSize);
-                    docsToProcess = searcher.scroll().collect(toList());
+                    docsToProcess = searcher.scroll(scrollDuration).collect(toList());
                 }
 
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
@@ -118,7 +120,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                         throw new SearchException(query, new TimeoutException("Batch timed out after " + maxTimeSeconds + "s"));
                     }
                     numberOfResults += docsToProcess.size();
-                    docsToProcess = searcher.scroll().collect(toList());
+                    docsToProcess = searcher.scroll(scrollDuration).collect(toList());
                 }
                 searcher.clearScroll();
                 totalProcessed += 1;

@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +48,7 @@ import static org.icij.datashare.text.NamedEntity.Category.PERSON;
 import static org.icij.datashare.text.NamedEntity.create;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.Tag.tag;
+import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
 import static org.icij.datashare.text.nlp.Pipeline.Type.*;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
@@ -56,6 +56,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class ElasticsearchIndexerTest {
+    static final String KEEP_ALIVE = "60000ms";
     @ClassRule
     public static ElasticsearchRule es = new ElasticsearchRule(TEST_INDEXES);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
@@ -391,11 +392,11 @@ public class ElasticsearchIndexerTest {
         }
 
         Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class).limit(5);
-        assertThat(searcher.scroll().count()).isEqualTo(5);
+        assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(5);
         assertThat(searcher.totalHits()).isEqualTo(12);
-        assertThat(searcher.scroll().count()).isEqualTo(5);
-        assertThat(searcher.scroll().count()).isEqualTo(2);
-        assertThat(searcher.scroll().count()).isEqualTo(0);
+        assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(5);
+        assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(2);
+        assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(0);
         searcher.clearScroll();
     }
 
@@ -408,10 +409,10 @@ public class ElasticsearchIndexerTest {
         Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class,
                 new SearchQuery("{\"bool\":{\"must\":[{\"match\":{\"type\":\"Document\"}}]}}")).limit(6);
 
-        assertThat(searcher.scroll().count()).isEqualTo(6);
+        assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(6);
         assertThat(searcher.totalHits()).isEqualTo(12);
-        assertThat(searcher.scroll().count()).isEqualTo(6);
-        assertThat(searcher.scroll().count()).isEqualTo(0);
+        assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(6);
+        assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(0);
         searcher.clearScroll();
     }
     @Test
@@ -424,28 +425,28 @@ public class ElasticsearchIndexerTest {
                 new SearchQuery("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"<query>\"}}, {\"match\":{\"type\":\"Document\"}}]}}"))
                 .limit(12);
 
-        assertThat(searcher.scroll("id*").count()).isEqualTo(12);
+        assertThat(searcher.scroll(KEEP_ALIVE, "id*").count()).isEqualTo(12);
         assertThat(searcher.totalHits()).isEqualTo(12);
 
         try {
-            searcher.scroll("other query");
+            searcher.scroll(createScrollQuery().withStringQuery("other query").build());
             fail("should throw IllegalStateException");
         } catch (IllegalStateException ilex) {
             assertThat(ilex.getMessage()).isEqualTo("cannot change query when scroll is pending");
         }
 
-        assertThat(searcher.scroll().count()).isEqualTo(0);
+        assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(0);
         searcher.clearScroll();
     }
 
     @Test(expected = IllegalStateException.class)
     public void test_searcher_scroll_is_not_usable_after_clear() throws IOException {
         Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class).limit(5);
-        assertThat(searcher.scroll().count()).isEqualTo(0);
+        assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(0);
 
         searcher.clearScroll();
 
-        searcher.scroll();
+        searcher.scroll(KEEP_ALIVE);
     }
 
     @Test
