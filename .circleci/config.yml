@@ -9,7 +9,7 @@ jobs:
 
   build_back:
     docker:
-      - image: cimg/openjdk:17.0
+      - image: cimg/openjdk:11.0
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
@@ -36,7 +36,7 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v2-dependencies-{{ checksum "pom.xml" }}
+          - v3-dependencies-{{ checksum "pom.xml" }}
 
       - run:
           name: Create a bootstrap datashare DB for jooq code generation
@@ -70,11 +70,11 @@ jobs:
       - save_cache:
           paths:
             - ~/.m2
-          key: v2-dependencies-{{ checksum "pom.xml" }}
+          key: v3-dependencies-{{ checksum "pom.xml" }}
 
   publish_doc:
     docker:
-      - image: cimg/openjdk:17.0
+      - image: cimg/openjdk:11.0
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
            - "discovery.type=single-node"
@@ -94,7 +94,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v2-dependencies-{{ checksum "pom.xml" }}
+            - v3-dependencies-{{ checksum "pom.xml" }}
       - run:
           name: Prepare SSH directory
           command: |
@@ -165,7 +165,7 @@ jobs:
 
   package_back:
     docker:
-      - image: cimg/openjdk:17.0
+      - image: cimg/openjdk:11.0
     working_directory: /tmp/datashare
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
@@ -175,7 +175,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v2-dependencies-{{ checksum "pom.xml" }}
+            - v3-dependencies-{{ checksum "pom.xml" }}
       - run:
           name: Make app link to front
           command: ln -s /tmp/datashare-client/dist /tmp/datashare/app
@@ -195,7 +195,7 @@ jobs:
 
   deploy_back:
     docker:
-      - image: cimg/openjdk:17.0
+      - image: cimg/openjdk:11.0
     working_directory: /tmp
     steps:
       - attach_workspace:
