@@ -30,6 +30,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     private final User user;
     private final String projectName;
     private final Indexer indexer;
+    private final String scrollDuration;
     private final int scrollSize;
 
     @Inject
@@ -41,6 +42,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         this.nlpPipeline = Pipeline.Type.parse(taskProperties.getProperty(NLP_PIPELINE_OPT));
         this.user = user;
         this.projectName = ofNullable(taskProperties.getProperty(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT);
+        this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(String.valueOf(DEFAULT_SCROLL_SIZE)));
     }
 
@@ -49,13 +51,13 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
         Indexer.Searcher searcher = indexer.search(singletonList(projectName), Document.class)
                 .without(nlpPipeline).withSource("rootDocument").limit(scrollSize);
         logger.info("resuming NLP name finding for index {} and {} : {} documents found", projectName, nlpPipeline, searcher.totalHits());
-        List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
+        List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
         long totalHits = searcher.totalHits();
 
         try (DocumentQueue<String> outputQueue = factory.createQueue(getOutputQueueName(), String.class)) {
             do {
                 docsToProcess.forEach(doc -> outputQueue.add(doc.getId()));
-                docsToProcess = searcher.scroll().collect(toList());
+                docsToProcess = searcher.scroll(scrollDuration).collect(toList());
             } while (!docsToProcess.isEmpty());
             outputQueue.add(STRING_POISON);
             logger.info("enqueued into {} {} files without {} pipeline tags", outputQueue.getName(), totalHits, nlpPipeline);

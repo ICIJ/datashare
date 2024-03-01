@@ -78,6 +78,7 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
     public FileResult call() throws Exception {
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
         int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES_OPT).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
+        String scrollDuration = propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         int scrollSizeFromParams = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_SIZE_OPT)
                 .orElse(propertiesProvider.get(SCROLL_SIZE_OPT)
                 .orElse(valueOf(DEFAULT_SCROLL_SIZE))));
@@ -91,7 +92,7 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
         Indexer.Searcher searcher = indexer.search(batchDownload.projects.stream().map(Project::getId).collect(toList()),
                 Document.class, batchDownload.query).withoutSource("content").limit(scrollSize);
 
-        List<? extends Entity> docsToProcess = searcher.scroll().collect(toList());
+        List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
         if (docsToProcess.isEmpty()) {
             logger.warn("no results for batchDownload {}", batchDownload.uuid);
             return null;
@@ -115,7 +116,7 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
                         progressCallback.apply(task.id, getProgressRate());
                     }
                 }
-                docsToProcess = searcher.scroll().collect(toList());
+                docsToProcess = searcher.scroll(scrollDuration).collect(toList());
             }
         }
         FileResult result = new FileResult(batchDownload.filename.toFile(), Files.size(batchDownload.filename));

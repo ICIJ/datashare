@@ -3,7 +3,6 @@ package org.icij.datashare.tasks;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.Entity;
-import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
 import org.icij.datashare.text.Document;
@@ -31,20 +30,23 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
 
 public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Indexer indexer;
-    private final int scrollSize;
     private final String projectName;
     private final ReportMap reportMap;
     private final User user;
+    private final String scrollDuration;
+    private final int scrollSize;
     private final int scrollSlices;
 
     @Inject
     public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer, @Assisted User user, @Assisted Properties properties) {
         super(Stage.SCANIDX, user, factory, new PropertiesProvider(properties), Path.class);
         this.user = user;
+        this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE)));
         this.scrollSlices = parseInt(propertiesProvider.get(SCROLL_SLICES_OPT).orElse(valueOf(DEFAULT_SCROLL_SLICES)));
         this.projectName = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
@@ -66,7 +68,7 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
         long nbProcessed = 0;
         do {
             try {
-                docsToProcess = search.scroll(sliceNum, scrollSlices).collect(toList());
+                docsToProcess = search.scroll(createScrollQuery().withDuration(scrollDuration).withSlices(sliceNum, scrollSlices).build()).collect(toList());
                 reportMap.putAll(docsToProcess.stream().map(d -> ((Document) d).getPath()).collect(toMap(p -> p, p -> new Report(ExtractionStatus.SUCCESS), (a, b) -> b)));
                 nbProcessed += docsToProcess.size();
             } catch (IOException e) {
