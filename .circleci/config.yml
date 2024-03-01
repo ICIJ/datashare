@@ -61,7 +61,7 @@ jobs:
       - run:
           name: make install for app and corenlp modules
           command: mvn -s .circleci/maven-release-settings.xml -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
-      - run: mvn -pl datashare-dist package > mvn.out
+      - run: mvn -pl datashare-dist package
       - run:
           name: acceptance test for embedded mode
           command: |
