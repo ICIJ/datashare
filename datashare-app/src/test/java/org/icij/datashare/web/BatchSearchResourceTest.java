@@ -331,7 +331,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_search_results_csv_with_url_prefix_parameter() {
         server.configure(routes -> {
-            PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+            PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
                 put("rootHost", "http://foo.com:12345");
             }});
             routes.add(new BatchSearchResource(batchSearchRepository, batchSearchQueue, propertiesProvider)).

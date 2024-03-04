@@ -11,7 +11,7 @@ import java.util.Properties;
 
 public class LocalMode extends CommonMode {
     LocalMode(Properties properties) { super(properties);}
-    LocalMode(Map<String, String> properties) { super(properties);}
+    LocalMode(Map<String, Object> properties) { super(properties);}
 
     @Override
     protected void configure() {

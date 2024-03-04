@@ -28,7 +28,7 @@ public class WebLocalAcceptanceTest extends AbstractProdWebServerTest {
     public void setUp() throws Exception {
         initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        HashMap<String, String> properties = new HashMap<>() {{
+        HashMap<String, Object> properties = new HashMap<>() {{
             put("mode", "LOCAL");
             put("dataDir", WebLocalAcceptanceTest.class.getResource("/data").getPath());
             put("extensionsDir", WebLocalAcceptanceTest.class.getResource("/extensions").getPath());

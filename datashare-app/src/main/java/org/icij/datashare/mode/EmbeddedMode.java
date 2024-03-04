@@ -8,7 +8,7 @@ import java.util.Properties;
 
 public class EmbeddedMode extends LocalMode {
     EmbeddedMode(Properties properties) { super(properties);}
-    public EmbeddedMode(Map<String, String> properties) { super(properties);}
+    public EmbeddedMode(Map<String, Object> properties) { super(properties);}
 
     @Override
     protected void configure() {

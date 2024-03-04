@@ -46,7 +46,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
         documentCollectionFactory = new MemoryDocumentCollectionFactory<>();
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
         configure(routes -> {
-            propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+            propertiesProvider = new PropertiesProvider(new HashMap<>() {{
                 put("dataDir", "/vault");
                 put("mode", "LOCAL");
             }});
@@ -130,7 +130,7 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_ony_user_project_in_server_mode() {
         configure(routes -> {
-            PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+            PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
                 put("mode", Mode.SERVER.name());
             }});
             ProjectResource projectResource = new ProjectResource(repository, indexer, propertiesProvider, documentCollectionFactory);

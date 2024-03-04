@@ -34,7 +34,7 @@ public class LocalUserFilterTest {
 
     @Test
     public void test_matches() {
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("protectedUrPrefix", "test");
         }});
         LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);
@@ -60,7 +60,7 @@ public class LocalUserFilterTest {
 
     @Test
     public void test_adds_custom_user_to_context() throws Exception {
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("defaultUserName", "foo");
         }});
         LocalUserFilter localUserFilter = new LocalUserFilter(propertiesProvider, jooqRepository);

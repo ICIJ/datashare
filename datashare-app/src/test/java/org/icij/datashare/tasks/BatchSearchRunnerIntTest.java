@@ -203,7 +203,7 @@ public class BatchSearchRunnerIntTest {
 
     @Test(expected = ElasticsearchException.class)
     public void test_use_batch_search_scroll_size_value_over_scroll_size_value() {
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "100");
             put(BATCH_SEARCH_SCROLL_SIZE_OPT, "0");
         }});
@@ -214,7 +214,7 @@ public class BatchSearchRunnerIntTest {
 
     @Test(expected = ElasticsearchException.class)
     public void test_use_scroll_size_value() {
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "0");
         }});
         BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);

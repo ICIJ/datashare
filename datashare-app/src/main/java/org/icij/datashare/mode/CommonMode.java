@@ -90,11 +90,11 @@ public abstract class CommonMode extends AbstractModule {
         }
     }
 
-    CommonMode(final Map<String, String> map) {
+    CommonMode(final Map<String, Object> map) {
         this(PropertiesProvider.fromMap(map));
     }
 
-    public static CommonMode create(final Map<String, String> map) {
+    public static CommonMode create(final Map<String, Object> map) {
         return create(PropertiesProvider.fromMap(map));
     }
     public static CommonMode create(final Properties properties) {

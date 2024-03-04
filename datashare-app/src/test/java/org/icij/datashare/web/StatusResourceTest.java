@@ -75,7 +75,7 @@ public class StatusResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_get_status_with_open_metrics_format_with_platform_name() {
-        configure(routes -> routes.add(new StatusResource(new PropertiesProvider(new HashMap<String, String>() {{
+        configure(routes -> routes.add(new StatusResource(new PropertiesProvider(new HashMap<>() {{
             put("platform", "platform");
         }}),repository,indexer)));
         get("/api/status?format=openmetrics").should().respond(200).haveType("text/plain;version=0.0.4").contain("" +
