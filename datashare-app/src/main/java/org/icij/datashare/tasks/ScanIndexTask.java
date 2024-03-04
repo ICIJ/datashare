@@ -56,7 +56,7 @@ public class ScanIndexTask extends PipelineTask<Path> implements UserTask {
 
     @Override
     public Long call() throws Exception {
-        logger.info("scanning index {} with {} scroll, scroll size {} and {} slices", projectName, scrollDuration,scrollSize, scrollSlices);
+        logger.info("scanning index {} with {} scroll, scroll size {} and {} slices", projectName, scrollDuration, scrollSize, scrollSlices);
         Optional<Long> nb = IntStream.range(0, scrollSlices).parallel().mapToObj(this::slicedScroll).reduce(Long::sum);
         logger.info("imported {} paths into {}", nb.get(), reportMap);
         return nb.get();

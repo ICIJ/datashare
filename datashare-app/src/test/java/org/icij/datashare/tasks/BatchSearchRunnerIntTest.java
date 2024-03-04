@@ -222,6 +222,16 @@ public class BatchSearchRunnerIntTest {
         new BatchSearchRunner(indexer, propertiesProvider, searchKo, resultConsumer).call();
     }
 
+    @Test(expected = ElasticsearchException.class)
+    public void test_use_scroll_duration_value() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put(BATCH_SEARCH_SCROLL_DURATION_OPT, "foo");
+        }});
+        BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
+
+        new BatchSearchRunner(indexer, propertiesProvider, searchKo, resultConsumer).call();
+    }
+
     @Before
     public void setUp() { initMocks(this);}
 }
