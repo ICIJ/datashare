@@ -21,8 +21,7 @@ import java.util.zip.ZipFile;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_SCROLL_SIZE_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Project.project;
@@ -197,6 +196,17 @@ public class BatchDownloadRunnerIntTest {
         }});
         new BatchDownloadRunner(indexer, propertiesProvider, createTaskView(bd), taskModifier::progress).call();
     }
+
+    @Test(expected = ElasticsearchException.class)
+    public void test_use_scroll_duration_value() throws Exception {
+        BatchDownload bd = createBatchDownload("*");
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("downloadFolder", fs.getRoot().toString());
+            put(BATCH_DOWNLOAD_SCROLL_DURATION_OPT, "10foo");
+        }});
+        new BatchDownloadRunner(indexer, propertiesProvider, createTaskView(bd), taskModifier::progress).call();
+    }
+
 
     private BatchDownload createBatchDownload(String query) {
         return new BatchDownload(asList(project(TEST_INDEX)), local(), query, null, fs.getRoot().toPath(), false);
