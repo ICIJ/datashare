@@ -85,9 +85,9 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         int scrollSize = min(scrollSizeFromParams, MAX_SCROLL_SIZE);
         callThread = Thread.currentThread();
         callWaiterLatch.countDown(); // for tests
-        logger.info("running {} queries for batch search {} on projects {} with throttle {}ms and scroll size of {}",
+        logger.info("running {} queries for batch search {} on projects {} with {} scroll, {}ms throttle and scroll size of {}",
                 batchSearch.queries.size(), batchSearch.uuid,  asCommaConcatNames(batchSearch.projects)
-                , throttleMs, scrollSize);
+                , scrollDuration, throttleMs, scrollSize);
 
         String query = null;
         try {

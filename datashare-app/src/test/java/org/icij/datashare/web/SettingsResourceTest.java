@@ -49,7 +49,7 @@ public class SettingsResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_patch_configuration_should_answer_403_in_server_mode() {
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("mode", "SERVER");
         }});
         configure(routes -> routes.add(new SettingsResource(propertiesProvider, new TesseractOCRParserWrapper())).filter(new BasicAuthFilter("/", "icij", singleUser(local()))));

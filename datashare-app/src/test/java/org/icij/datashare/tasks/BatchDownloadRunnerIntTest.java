@@ -180,7 +180,7 @@ public class BatchDownloadRunnerIntTest {
     @Test(expected = ElasticsearchException.class)
     public void test_use_batch_download_scroll_size_value_over_scroll_size_value() throws Exception {
         BatchDownload bd = createBatchDownload("*");
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
             put(SCROLL_SIZE_OPT, "100");
             put(BATCH_DOWNLOAD_SCROLL_SIZE_OPT, "0");
@@ -191,7 +191,7 @@ public class BatchDownloadRunnerIntTest {
     @Test(expected = ElasticsearchException.class)
     public void test_use_scroll_size_value() throws Exception {
         BatchDownload bd = createBatchDownload("*");
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
             put(SCROLL_SIZE_OPT, "0");
         }});
@@ -224,7 +224,7 @@ public class BatchDownloadRunnerIntTest {
 
     @NotNull
     private PropertiesProvider createProvider() {
-        return new PropertiesProvider(new HashMap<String, String>() {{
+        return new PropertiesProvider(new HashMap<>() {{
             put("downloadFolder", fs.getRoot().toString());
         }});
     }

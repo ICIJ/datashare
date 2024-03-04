@@ -83,7 +83,7 @@ public class BatchSearchRunnerTest {
         BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         Date beforeBatch  = timeRule.now;
 
-        new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
+        new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<>() {{
             put(BATCH_THROTTLE_OPT, "1000");
         }}), batchSearch, resultConsumer).call();
 
@@ -97,7 +97,7 @@ public class BatchSearchRunnerTest {
                 asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         Date beforeBatch  = timeRule.now;
 
-        SearchException searchException = assertThrows(SearchException.class, () -> new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<String, String>() {{
+        SearchException searchException = assertThrows(SearchException.class, () -> new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<>() {{
             put(BATCH_THROTTLE_OPT, "1000");
             put(BATCH_SEARCH_MAX_TIME_OPT, "1");
         }}), batchSearch, resultConsumer).call());

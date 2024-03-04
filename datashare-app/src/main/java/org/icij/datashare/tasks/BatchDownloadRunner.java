@@ -87,8 +87,8 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
         long zippedFilesSize = 0;
         BatchDownload batchDownload = getBatchDownload();
 
-        logger.info("running batch download for user {} on project {} with throttle {}ms and scroll size of {}",
-                batchDownload.user.getId(), batchDownload.projects, throttleMs, scrollSize);
+        logger.info("running batch download for user {} on project {} with {} scroll with throttle {}ms and scroll size of {}",
+                batchDownload.user.getId(), batchDownload.projects, scrollDuration, throttleMs, scrollSize);
         Indexer.Searcher searcher = indexer.search(batchDownload.projects.stream().map(Project::getId).collect(toList()),
                 Document.class, batchDownload.query).withoutSource("content").limit(scrollSize);
 

@@ -168,7 +168,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_index_and_scan_default_directory() {
         RestAssert response = post("/api/task/batchUpdate/index/file", "{}");
-        HashMap<String, String> properties = getDefaultProperties();
+        HashMap<String, Object> properties = getDefaultProperties();
         properties.put("foo", "bar");
 
         response.should().respond(200).haveType("application/json");
@@ -181,7 +181,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String body = "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}";
         RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1), body);
         response.should().haveType("application/json");
-        HashMap<String, String> defaultProperties = getDefaultProperties();
+        HashMap<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
         verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
@@ -194,7 +194,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         String body = "{\"options\":{\"key1\":\"val1\",\"key2\":\"val2\"}}";
         RestAssert response = post("/api/task/batchUpdate/index", body);
         response.should().haveType("application/json");
-        HashMap<String, String> defaultProperties = getDefaultProperties();
+        HashMap<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("key1", "val1");
         defaultProperties.put("key2", "val2");
         verify(taskFactory).createIndexTask(local(), new PropertiesProvider(defaultProperties).getProperties());
@@ -212,7 +212,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
-        HashMap<String, String> defaultProperties = getDefaultProperties();
+        HashMap<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("key", "val");
         defaultProperties.put("foo", "qux");
         verify(taskFactory).createScanTask(local(), Paths.get(path), new PropertiesProvider(defaultProperties).getProperties());
@@ -256,7 +256,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         verify(taskFactory).createEnqueueFromIndexTask(eq(local()), propertiesArgumentCaptor.capture());
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
 
-        HashMap<String, String> properties = getDefaultProperties();
+        HashMap<String, Object> properties = getDefaultProperties();
         properties.put("waitForNlpApp", "false");
         verify(taskFactory).createNlpTask(eq(local()), propertiesArgumentCaptor.capture());
         assertThat(propertiesArgumentCaptor.getValue()).includes(entry("nlpPipeline", "EMAIL"));
@@ -430,8 +430,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @NotNull
-    private HashMap<String, String> getDefaultProperties() {
-        HashMap<String, String> map = new HashMap<>() {{
+    private HashMap<String, Object> getDefaultProperties() {
+        HashMap<String, Object> map = new HashMap<>() {{
             put("dataDir", "/default/data/dir");
             put("foo", "bar");
             put("batchDownloadDir", "app/tmp");

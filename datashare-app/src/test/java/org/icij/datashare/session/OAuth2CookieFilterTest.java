@@ -21,7 +21,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         @Override
         protected Env createEnv() { return Env.prod();}
     }.startOnRandomPort();
-    static PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+    static PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("messageBusAddress", "redis");
         put("oauthTokenUrl", "http://localhost:" + xemx.port() + "/oauth/token");
         put("oauthAuthorizeUrl", "http://localhost:" + xemx.port() + "/oauth/authorize");
@@ -36,7 +36,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
 
     @Test(expected = IllegalStateException.class)
     public void test_callback_url_should_not_start_with_login_url() {
-        oAuth2Filter = new OAuth2CookieFilter(new PropertiesProvider(new HashMap<String, String>() {{
+        oAuth2Filter = new OAuth2CookieFilter(new PropertiesProvider(new HashMap<>() {{
             put("oauthSigninPath", "/auth/login/");
             put("oauthCallbackPath", "/auth/login/callback");
         }}), new UsersInRedis(propertiesProvider), new RedisSessionIdStore(propertiesProvider));

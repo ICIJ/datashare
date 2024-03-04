@@ -31,7 +31,7 @@ public class IndexResourceTest extends AbstractProdWebServerTest {
     @Mock JooqRepository jooqRepository;
     @ClassRule public static ElasticsearchRule esRule = new ElasticsearchRule(TEST_INDEXES);
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(esRule.client, new PropertiesProvider()).withRefresh(Refresh.True);
-    private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+    private final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("defaultUserName", "test");
     }});
 

@@ -50,7 +50,7 @@ public class RootResourcePluginTest implements FluentRestTest {
     public void setUp() {
         initMocks(this);
         when(jooqRepository.getProjects()).thenReturn(new ArrayList<>());
-        propertiesProvider = new PropertiesProvider(new HashMap<String, String>() {{
+        propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("pluginsDir", folder.getRoot().toString());
         }});
         server.configure(routes -> {
