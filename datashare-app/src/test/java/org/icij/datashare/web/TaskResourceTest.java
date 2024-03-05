@@ -232,6 +232,18 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
+    public void test_digest_project_name_is_created_correctly() {
+        ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
+        String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\"}}";
+        String path = getClass().getResource("/docs/").getPath();
+        RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1), body);
+        response.should().haveType("application/json");
+        taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
+        verify(taskFactory).createScanTask(eq(local()), any(), propertiesArgumentCaptor.capture());
+        assertThat(propertiesArgumentCaptor.getValue()).includes(entry("digestProjectName", "foo"));
+    }
+
+    @Test
     public void test_scan_queue_is_created_correctly_and_options_ignored() {
         ArgumentCaptor<Properties> propertiesArgumentCaptor = ArgumentCaptor.forClass(Properties.class);
         String body = "{\"options\":{\"filter\": true, \"defaultProject\": \"foo\", \"queueName\": \"bar\"}}";
@@ -438,6 +450,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
             put("defaultProject", "local-datashare");
             put("queueName", "extract:queue");
             put("reportName", "extract:report:local-datashare");
+            put("digestProjectName", "local-datashare");
         }};
         // Override the queueName with
         map.put("queueName", new PropertiesProvider(PropertiesProvider.fromMap(map)).queueNameWithHash());

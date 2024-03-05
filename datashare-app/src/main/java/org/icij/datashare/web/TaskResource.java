@@ -52,8 +52,7 @@ import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.forbidden;
 import static net.codestory.http.payload.Payload.ok;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
-import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
-import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
+import static org.icij.datashare.PropertiesProvider.*;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
@@ -252,9 +251,9 @@ public class TaskResource {
     public List<TaskView<?>> extractNlp(@Parameter(name = "pipeline", description = "name of the NLP pipeline to use", in = ParameterIn.PATH) final String pipelineName, final OptionsWrapper<String> optionsWrapper, Context context) {
         Properties properties = applyProjectProperties(optionsWrapper);
         properties.put(NLP_PIPELINE_OPT, pipelineName);
-        syncModels(parseBoolean(properties.getProperty("syncModels", "true")));
+        syncModels(parseBoolean(properties.getProperty(SYNC_MODELS_OPTION, "true")));
         List<TaskView<?>> tasks = new LinkedList<>();
-        if (parseBoolean(properties.getProperty("resume", "true"))) {
+        if (parseBoolean(properties.getProperty(RESUME_OPTION, "true"))) {
             tasks.add(taskManager.startTask(taskFactory.createEnqueueFromIndexTask((User) context.currentUser(), properties)));
         }
         tasks.add(taskManager.startTask(taskFactory.createNlpTask((User) context.currentUser(), properties)));
@@ -270,11 +269,12 @@ public class TaskResource {
         Properties clone = (Properties) properties.clone();
         clone.setProperty(QUEUE_NAME_OPTION, "extract:queue"); // Override any given queue name value
         clone.setProperty(MAP_NAME_OPTION, getReportMapNameFor(properties));
+        clone.setProperty(DIGEST_PROJECT_NAME_OPTION, clone.getProperty(DEFAULT_PROJECT_OPTION, "local-datashare"));
         return new PropertiesProvider(clone).overrideQueueNameWithHash().getProperties();
     }
 
     public static String getReportMapNameFor(Properties properties) {
-        String projectName = properties.getOrDefault("defaultProject", "local-datashare").toString();
+        String projectName = properties.getOrDefault(DEFAULT_PROJECT_OPTION, "local-datashare").toString();
         return "extract:report:" + projectName;
     }
 
