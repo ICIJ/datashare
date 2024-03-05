@@ -155,6 +155,35 @@ public class SourceExtractorTest {
         assertThat(getBytes(source).length).isNotEqualTo(49779);
     }
 
+    @Test
+    public void test_get_source_for_embedded_doc_without_digest_project_name() throws Exception {
+        Options<String> options = Options.from(new HashMap<>() {{
+            put("digestAlgorithm", Document.DEFAULT_DIGESTER.toString());
+            put("digestProjectName", "");
+        }});
+        DocumentFactory tikaFactory = new DocumentFactory().configure(options);
+        Extractor extractor = new Extractor(tikaFactory).configure(options);
+
+        Path path = get(getClass().getResource("/docs/embedded_doc.eml").getPath());
+        final TikaDocument document = extractor.extract(path);
+        ElasticsearchSpewer spewer = new ElasticsearchSpewer(createIndexer(),
+                new MemoryDocumentCollectionFactory<>(), l -> Language.ENGLISH, new FieldNames(), new PropertiesProvider(
+                new HashMap<>() {{
+                    put("defaultProject", TEST_INDEX);
+                }}
+
+        ));
+        spewer.write(document);
+
+        Document attachedPdf = createIndexer().
+                get(TEST_INDEX, "754ea07d66c2ec23d2849b4d44f276a7ebe719e586c20d15c7b772dcd4a620b0117e7396b76496ed5c10a066bf19d907",
+                        "c78925fb478426ccc4c5a7cb975bc0f35d4079cd8a55d7a340bdccb3a46379e4940daa198c0be0dfd247cde338194105");
+
+        InputStream source = new SourceExtractor().getSource(project(TEST_INDEX), attachedPdf);
+        assertThat(source).isNotNull();
+        assertThat(getBytes(source)).hasSize(49779);
+    }
+
     private byte[] getBytes(InputStream source) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int nbTmpBytesRead;

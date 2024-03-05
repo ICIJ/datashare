@@ -1,5 +1,6 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.parser.DigestingParser;
 import org.apache.tika.parser.digestutils.CommonsDigester;
@@ -20,7 +21,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.icij.datashare.text.Hasher.SHA_384;
 
 public class SourceExtractor {
     Logger LOGGER = LoggerFactory.getLogger(SourceExtractor.class);
@@ -60,7 +60,7 @@ public class SourceExtractor {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         String algorithm = hasher.toString();
         List<DigestingParser.Digester> digesters = new ArrayList<>(List.of());
-        digesters.add(new CommonsDigester(20 * 1024 * 1024, algorithm.replace("-", "")));
+        digesters.add(new CommonsDigester(20 * 1024 * 1024,  algorithm.replace("-", "")));
         digesters.add(new UpdatableDigester(project.getId(), algorithm));
 
         // Try each digester to find embedded doc and ensure we 
@@ -77,11 +77,12 @@ public class SourceExtractor {
                     return new ByteArrayInputStream(metadataCleaner.clean(inputStream).getContent());
                 }
                 return inputStream;
-            } catch (ContentNotFoundException _e) {
-                // will throw it later
-            } catch (SAXException | TikaException | IOException exception) {
-                String message = String.format("extract error for embedded document in project %s / id : %s / routing_id : %s", document.getProject().getName(), document.getId(), document.getRootDocument());
-                throw new ExtractException(message, exception);
+            } catch (ContentNotFoundException | SAXException | TikaException | IOException ex) {
+                LOGGER.info("Extract error for embedded document:");
+                LOGGER.info(String.format("\tid: %s", document.getId()));
+                LOGGER.info(String.format("\trouting: %s",  document.getRootDocument()));
+                LOGGER.info(String.format("\tproject: %s",  document.getProject().getName()));
+                LOGGER.info(String.format("\talgorithm: %s",  algorithm));
             }
         }
 
