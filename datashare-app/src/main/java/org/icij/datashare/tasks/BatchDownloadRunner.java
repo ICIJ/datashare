@@ -129,9 +129,9 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
             String rootHost = propertiesProvider.get("rootHost").orElse(null);
             URI mailSenderUri = new URI(propertiesProvider.get("smtpUrl").orElse("smtp://localhost:25"));
             MailSender mailSender = mailSenderSupplier.apply(mailSenderUri);
-            return new ZipperWithPassword(batchDownload, mailSender, rootHost);
+            return new ZipperWithPassword(batchDownload, propertiesProvider, mailSender, rootHost);
         }
-        return new Zipper(batchDownload);
+        return new Zipper(batchDownload, propertiesProvider);
     }
 
     @Override
@@ -156,18 +156,20 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
 
         protected final BatchDownload batchDownload;
         protected final ZipOutputStream zipOutputStream;
+        private final PropertiesProvider propertiesProvider;
 
-        protected Zipper(BatchDownload batchDownload) throws IOException {
-            this(batchDownload, new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile())));
+        protected Zipper(BatchDownload batchDownload, PropertiesProvider propertiesProvider) throws IOException {
+            this(batchDownload, propertiesProvider, new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile())));
         }
 
-        protected Zipper(BatchDownload batchDownload, ZipOutputStream zipOutputStream) {
+        protected Zipper(BatchDownload batchDownload,  PropertiesProvider propertiesProvider, ZipOutputStream zipOutputStream) {
             this.batchDownload = batchDownload;
             this.zipOutputStream = zipOutputStream;
+            this.propertiesProvider = propertiesProvider;
         }
 
         public int add(Document doc) throws IOException {
-            try (InputStream from = new SourceExtractor().getSource(doc.getProject(), doc)) {
+            try (InputStream from = new SourceExtractor(propertiesProvider).getSource(doc.getProject(), doc)) {
                 int zippedSize = 0;
                 zipOutputStream.putNextEntry(createEntry(getEntryName(doc)));
                 byte[] buffer = new byte[4096];
@@ -206,12 +208,12 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
         private final MailSender passwordSender;
         private final String rootHost;
 
-        public ZipperWithPassword(BatchDownload batchDownload, MailSender mailSender, String rootHost) throws IOException {
-            this(batchDownload, mailSender, RandomStringUtils.randomAlphanumeric(16), rootHost);
+        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider, MailSender mailSender, String rootHost) throws IOException {
+            this(batchDownload, propertiesProvider, mailSender, RandomStringUtils.randomAlphanumeric(16), rootHost);
         }
 
-        public ZipperWithPassword(BatchDownload batchDownload, MailSender mailSender, String password, String rootHost) throws IOException {
-            super(batchDownload, new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()), password.toCharArray()));
+        public ZipperWithPassword(BatchDownload batchDownload, PropertiesProvider propertiesProvider, MailSender mailSender, String password, String rootHost) throws IOException {
+            super(batchDownload, propertiesProvider, new ZipOutputStream(new FileOutputStream(batchDownload.filename.toFile()), password.toCharArray()));
             this.password = password;
             this.passwordSender = mailSender;
             this.rootHost = rootHost;
