@@ -37,6 +37,9 @@ public class PropertiesProvider {
     public static final String MAP_NAME_OPTION = "reportName";
     public static final String DATA_DIR_OPTION = "dataDir";
     public static final String DEFAULT_PROJECT_OPTION = "defaultProject";
+    public static final String DIGEST_PROJECT_NAME_OPTION = "digestProjectName";
+    public static final String RESUME_OPTION = "resume";
+    public static final String SYNC_MODELS_OPTION = "syncModels";
     public static final List<String> QUEUE_HASH_PROPERTIES = List.of(DATA_DIR_OPTION);
     public static final String QUEUE_SEPARATOR = ":";
 
