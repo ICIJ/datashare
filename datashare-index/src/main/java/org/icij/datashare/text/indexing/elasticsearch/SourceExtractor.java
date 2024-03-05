@@ -60,8 +60,8 @@ public class SourceExtractor {
         Hasher hasher = Hasher.valueOf(document.getId().length());
         String algorithm = hasher.toString();
         List<DigestingParser.Digester> digesters = new ArrayList<>(List.of());
-        digesters.add(new CommonsDigester(20 * 1024 * 1024,  algorithm.replace("-", "")));
         digesters.add(new UpdatableDigester(project.getId(), algorithm));
+        digesters.add(new CommonsDigester(20 * 1024 * 1024,  algorithm.replace("-", "")));
 
         // Try each digester to find embedded doc and ensure we 
         // used every available digesters to find it.
@@ -78,11 +78,13 @@ public class SourceExtractor {
                 }
                 return inputStream;
             } catch (ContentNotFoundException | SAXException | TikaException | IOException ex) {
-                LOGGER.info("Extract error for embedded document:");
-                LOGGER.info(String.format("\tid: %s", document.getId()));
-                LOGGER.info(String.format("\trouting: %s",  document.getRootDocument()));
-                LOGGER.info(String.format("\tproject: %s",  document.getProject().getName()));
-                LOGGER.info(String.format("\talgorithm: %s",  algorithm));
+                LOGGER.info("Extract attempt for embedded document failed:");
+                LOGGER.info(String.format("\t├── exception: %s",  ex.getClass().getSimpleName()));
+                LOGGER.info(String.format("\t├── algorithm: %s",  algorithm));
+                LOGGER.info(String.format("\t├── digester: %s",  digester.getClass().getSimpleName()));
+                LOGGER.info(String.format("\t├── id: %s", document.getId()));
+                LOGGER.info(String.format("\t├── routing: %s",  document.getRootDocument()));
+                LOGGER.info(String.format("\t└── project: %s",  document.getProject().getName()));
             }
         }
 
