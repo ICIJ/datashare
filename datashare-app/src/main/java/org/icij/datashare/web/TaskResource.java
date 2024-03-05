@@ -60,6 +60,7 @@ import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
 import static org.icij.datashare.PropertiesProvider.propertiesToMap;
 import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_DIR;
+import static org.icij.datashare.cli.DatashareCliOptions.DATA_DIR_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 
@@ -165,10 +166,12 @@ public class TaskResource {
         TaskView<Long> scanResponse = scanFile(filePath, optionsWrapper, context);
         Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
         String reportName = properties.getOrDefault(MAP_NAME_OPTION, "extract:report").toString();
-        String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
         User user = (User) context.currentUser();
         // Use a report map only if the request's body contains a "filter" attribute
         if (properties.get("filter") != null && Boolean.parseBoolean(properties.getProperty("filter"))) {
+            // TODO remove taskFactory.createScanIndexTask would allow to get rid of taskfactory dependency in taskresource
+            // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
+            // the task will be run as a background task that will have race conditions with indexTask report loading
             taskFactory.createScanIndexTask(new TaskView<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties)), null).call();
             properties.put(MAP_NAME_OPTION, reportName);
         }
@@ -182,7 +185,7 @@ public class TaskResource {
     public TaskView<Long> scanFile(@Parameter(name = "filePath", description = "path of the directory", in = ParameterIn.PATH) final String filePath, final OptionsWrapper<String> optionsWrapper, Context context) throws IOException {
         Path path = IS_OS_WINDOWS ?  get(filePath) : get(File.separator, filePath);
         Properties properties = propertiesProvider.createOverriddenWith(optionsWrapper.getOptions());
-        String queueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
+        properties.setProperty(DATA_DIR_OPT, path.toString());
         return taskManager.startTask(ScanTask.class.getName(), (User) context.currentUser(), propertiesToMap(properties));
     }
 

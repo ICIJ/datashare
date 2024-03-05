@@ -33,7 +33,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.io.File;
@@ -41,7 +40,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -50,8 +48,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
+import static org.icij.datashare.cli.DatashareCliOptions.DATA_DIR_OPT;
 import static org.icij.datashare.json.JsonObjectMapper.MAPPER;
-import static org.icij.datashare.session.DatashareUser.local;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -179,7 +177,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_index_and_scan_directory_with_options() {
-        String path = getClass().getResource("/docs/").getPath();
+        String path = getClass().getResource("/docs").getPath();
 
         RestAssert response = post("/api/task/batchUpdate/index/" + path.substring(1),
                 "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}");
@@ -192,6 +190,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask").get().properties).isEqualTo(defaultProperties);
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask")).isNotNull();
+        assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().properties.get(DATA_DIR_OPT)).isEqualTo(path);
     }
 
     @Test
@@ -209,7 +208,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_scan_with_options() {
-        String path = getClass().getResource("/docs/").getPath();
+        String path = getClass().getResource("/docs").getPath();
         RestAssert response = post("/api/task/batchUpdate/scan/" + path.substring(1),
                 "{\"options\":{\"key\":\"val\",\"foo\":\"qux\"}}");
 
@@ -222,7 +221,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         defaultProperties.put("key", "val");
         defaultProperties.put("foo", "qux");
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().properties).
-                includes(entry("key", "val"), entry("foo", "qux"));
+                includes(entry("key", "val"), entry("foo", "qux"), entry(DATA_DIR_OPT, path));
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.IndexTask")).isNotNull();
     }
 
