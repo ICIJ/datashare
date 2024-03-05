@@ -166,6 +166,11 @@
             <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-cli</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>
