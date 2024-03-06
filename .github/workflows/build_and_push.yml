@@ -1,0 +1,97 @@
+name: Build and Push Datashare Image
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: datashare
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.9.3
+        env:
+          discovery.type: "single-node"
+          discovery.seed_hosts: "elasticsearch:9200"
+          ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+        ports:
+          - 9200:9200
+          - 9300:9300
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Extract version from pom.xml
+        id: get_version
+        run: |
+          VERSION=$(cat pom.xml | grep '<version>[0-9.]\+' | sed 's/<version>\([0-9.]\+\)<\/version>/\1/g' | tr -d '[:space:]')
+          echo "::set-output name=VERSION::$VERSION"
+
+      - name: Print version
+        run: echo "The version is ${{ steps.get_version.outputs.VERSION }}"
+
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until PGPASSWORD=test psql -h localhost -U test -d datashare -c '\q'; do
+            >&2 echo "Postgres is still unavailable - sleeping"
+            sleep 1
+          done
+          >&2 echo "Postgres is up - executing command"
+
+      - name: Run init script on PostgreSQL
+        run: PGPASSWORD=test psql -h localhost -U test -d datashare -a -f ./databashe-db/scr/init.sql
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v4
+        with:
+          maven-version: 3.6.3
+
+      - name: Validate project
+        run: mvn validate
+
+      - name: Install commons-test
+        run: mvn -pl commons-test -am install
+
+      - name: Update database
+        run: mvn -pl datashare-db liquibase:update
+
+      - name: Run tests
+        run: mvn test
+
+      - name: Package
+        run: mvn validate package -Dmaven.test.skip=true
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./datashare-dist/target/datashare-dist-${{ steps.get_version.outputs.VERSION }}-docker
+          push: true
+          tags: ghcr.io/neoReuters/datashare:${{ github.ref_name }}
+          file: Dockerfile
+

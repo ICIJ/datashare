@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: datashare
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./datashare-db/scr/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Elasticsearch instance
+  elasticsearch:
+    image: elasticsearch:7.9.1
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      DISCOVERY_TYPE: single-node
+      discovery.seed_hosts: "elasticsearch:9200"
+
+  # Redis server
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata: {}

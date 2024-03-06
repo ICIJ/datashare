@@ -61,6 +61,12 @@
             <artifactId>HikariCP</artifactId>
             <version>3.3.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>1.19.7</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- test deps -->
         <dependency>
@@ -130,8 +136,8 @@
                 <configuration>
                     <changeLogFile>src/main/resources/liquibase/changelog/db.changelog.yml</changeLogFile>
                     <driver>org.postgresql.Driver</driver>
-                    <url>jdbc:postgresql://postgres/datashare_liquibase</url>
-                    <username>dstest</username>
+                    <url>jdbc:postgresql://localhost/datashare</url>
+                    <username>test</username>
                     <password>test</password>
                     <promptOnNonLocalDatabase>false</promptOnNonLocalDatabase>
                 </configuration>
@@ -163,8 +169,8 @@
                             </generator>
                             <jdbc>
                                 <driver>org.postgresql.Driver</driver>
-                                <url>jdbc:postgresql://postgres/datashare_liquibase</url>
-                                <user>dstest</user>
+                                <url>jdbc:postgresql://localhost/datashare</url>
+                                <user>test</user>
                                 <password>test</password>
                             </jdbc>
                         </configuration>
