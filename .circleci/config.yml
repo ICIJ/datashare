@@ -215,7 +215,7 @@ jobs:
   build_front:
     resource_class: large
     docker:
-      - image: cimg/node:16.16.0
+      - image: cimg/node:18.19
       - image: docker.elastic.co/elasticsearch/elasticsearch:7.9.1
         environment:
           - "discovery.type=single-node"
@@ -267,10 +267,15 @@ jobs:
           paths:
             - /tmp/datashare-client/node_modules
       - run:
-          name: run tests and build dist
+          name: run tests
           command: |
             cd /tmp/datashare-client
-            make unit dist
+            yarn test:unit --silent --minWorkers 1 --maxWorkers 2  
+      - run:
+          name: build the from for distribution
+          command: |
+            cd /tmp/datashare-client
+            make dist
       - persist_to_workspace:
           root: /tmp/datashare-client
           paths:
@@ -279,7 +284,7 @@ jobs:
 
   deploy_front:
     docker:
-      - image: cimg/node:16.16.0
+      - image: cimg/node:18.19
     working_directory: /tmp
     steps:
       - attach_workspace:
