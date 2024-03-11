@@ -1,8 +1,8 @@
 package org.icij.datashare.tasks;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
@@ -13,7 +13,6 @@ import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.ProjectProxy;
 import org.icij.datashare.text.indexing.Indexer;
-import org.icij.datashare.text.indexing.ScrollQueryBuilder;
 import org.icij.datashare.text.indexing.SearchQuery;
 import org.icij.datashare.time.DatashareTime;
 import org.icij.datashare.user.User;
@@ -98,7 +97,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                 if (batchSearch.hasQueryTemplate()) { // for retro-compatibility should be removed at some point to keep only bodyTemplate
                     searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class, batchSearch.queryTemplate)
                             .with(batchSearch.fuzziness, batchSearch.phraseMatches).withoutSource("content").limit(scrollSize);
-                    docsToProcess = searcher.scroll(scrollDuration, query).collect(toList()); //
+                    docsToProcess = searcher.scroll(scrollDuration, query).collect(toList());
                 } else {
                     searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class, new SearchQuery(query));
                     ((Indexer.QueryBuilderSearcher)searcher).withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{}))
@@ -125,7 +124,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
                 searcher.clearScroll();
                 totalProcessed += 1;
             }
-        } catch (ElasticsearchStatusException esEx) {
+        } catch (ElasticsearchException esEx) {
             throw new SearchException(query,
                     stream(esEx.getSuppressed()).filter(t -> t instanceof ResponseException).findFirst().orElse(esEx));
         } catch (IOException|InterruptedException ex) {

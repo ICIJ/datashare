@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.function.TerFunction;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
@@ -201,7 +202,7 @@ public class BatchSearchRunnerIntTest {
         assertThat(eex.error().toString()).contains("Failed to parse query [AND mydoc]");
     }
 
-    @Test(expected = ElasticsearchException.class)
+    @Test(expected = SearchException.class)
     public void test_use_batch_search_scroll_size_value_over_scroll_size_value() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "100");
@@ -212,7 +213,7 @@ public class BatchSearchRunnerIntTest {
         new BatchSearchRunner(indexer, propertiesProvider, searchKo, resultConsumer).call();
     }
 
-    @Test(expected = ElasticsearchException.class)
+    @Test(expected = SearchException.class)
     public void test_use_scroll_size_value() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "0");
@@ -222,7 +223,7 @@ public class BatchSearchRunnerIntTest {
         new BatchSearchRunner(indexer, propertiesProvider, searchKo, resultConsumer).call();
     }
 
-    @Test(expected = ElasticsearchException.class)
+    @Test(expected = SearchException.class)
     public void test_use_scroll_duration_value() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(BATCH_SEARCH_SCROLL_DURATION_OPT, "foo");
