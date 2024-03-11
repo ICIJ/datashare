@@ -1,6 +1,6 @@
 package org.icij.datashare.tasks;
 
-import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
@@ -68,9 +68,9 @@ public class BatchDownloadRunnerTest {
         assertThat(new ZipFile(result.file).size()).isEqualTo(4);
     }
 
-    @Test(expected = ElasticsearchStatusException.class)
+    @Test(expected = ElasticsearchException.class)
     public void test_elasticsearch_status_exception__should_be_sent() throws Exception {
-        mockSearch.willThrow(new ElasticsearchStatusException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
+        mockSearch.willThrow(new ElasticsearchException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
         new BatchDownloadRunner(indexer, new PropertiesProvider(), getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")), updater::progress).call();
     }
 

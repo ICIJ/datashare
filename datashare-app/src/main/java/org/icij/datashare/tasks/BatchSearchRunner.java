@@ -126,7 +126,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
             }
         } catch (ElasticsearchException esEx) {
             throw new SearchException(query,
-                    stream(esEx.getSuppressed()).filter(t -> t instanceof ResponseException).findFirst().orElse(esEx));
+                    esEx);
         } catch (IOException|InterruptedException ex) {
             throw new SearchException(query, ex);
         }

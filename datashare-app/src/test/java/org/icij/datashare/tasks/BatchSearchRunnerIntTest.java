@@ -197,9 +197,9 @@ public class BatchSearchRunnerIntTest {
         indexer.add(TEST_INDEX, mydoc);
         BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("AND mydoc"), User.local());
 
-        ElasticsearchException eex = assertThrows(ElasticsearchException.class,() -> new BatchSearchRunner(indexer, new PropertiesProvider(), search, resultConsumer).call());
+        SearchException sex = assertThrows(SearchException.class,() -> new BatchSearchRunner(indexer, new PropertiesProvider(), search, resultConsumer).call());
 
-        assertThat(eex.error().toString()).contains("Failed to parse query [AND mydoc]");
+        assertThat(sex.toString()).contains("[search_phase_execution_exception] all shards failed");
     }
 
     @Test(expected = SearchException.class)
