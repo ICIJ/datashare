@@ -5,28 +5,16 @@ import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
-import org.icij.datashare.tasks.BatchDownloadRunner;
-import org.icij.datashare.tasks.DeduplicateTask;
-import org.icij.datashare.tasks.EnqueueFromIndexTask;
-import org.icij.datashare.tasks.ExtractNlpTask;
-import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.ScanIndexTask;
-import org.icij.datashare.tasks.ScanTask;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.tasks.TaskManagerMemory;
-import org.icij.datashare.tasks.TaskModifier;
-import org.icij.datashare.tasks.TaskSupplier;
-import org.icij.datashare.tasks.TaskView;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.AbstractModels;
+import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -35,15 +23,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.function.BiFunction;
 
 import static java.lang.String.format;
+import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -62,9 +52,9 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     @Mock JooqRepository jooqRepository;
-    private static final TaskFactory taskFactory = mock(TaskFactory.class);
+    private static final TaskFactoryForTest taskFactory = mock(TaskFactoryForTest.class);
     private static final BlockingQueue<TaskView<?>> taskQueue = new ArrayBlockingQueue<>(3);
-    private static final TaskManagerMemory taskManager= new TaskManagerMemory(new PropertiesProvider(), taskQueue);
+    private static final TaskManagerMemory taskManager= new TaskManagerMemory(taskQueue, taskFactory);
 
     @Before
     public void setUp() {
@@ -96,8 +86,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @After
     public void tearDown() {
-        taskManager.waitTasksToBeDone(1, SECONDS);
-        taskManager.clearDoneTasks();
+        taskManager.clear();
     }
 
     @Test
@@ -164,7 +153,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(1)));
     }
 
-    @Test
+    @Test(timeout = 2000)
     public void test_index_and_scan_default_directory() {
         RestAssert response = post("/api/task/batchUpdate/index/file", "{}");
         HashMap<String, Object> properties = getDefaultProperties();
@@ -321,11 +310,13 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_clean_one_done_task() {
-        TaskView<String> dummyTask = taskManager.startTask(() ->  "ok");
+        TaskView<String> dummyTask = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTask(dummyTask.id).getState()).isEqualTo(TaskView.State.DONE);
+
         delete("/api/task/clean/" + dummyTask.id).should().respond(200);
+
         assertThat(taskManager.getTasks()).hasSize(0);
     }
     @Test
@@ -335,18 +326,15 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_clean_task_preflight() {
-        TaskView<String> dummyTask = taskManager.startTask(() ->  "ok");
+        TaskView<String> dummyTask = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
         options("/api/task/clean/" + dummyTask.id).should().respond(200);
     }
 
     @Test
     public void test_cannot_clean_running_task() {
-        TaskView<String> dummyTask = taskManager.startTask(() -> {
-            Thread.sleep(10000);
-            return "ok";
-        });
-        assertThat(taskManager.getTask(dummyTask.id).getState()).isEqualTo(TaskView.State.RUNNING);
+        TaskView<String> dummyTask = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
+        assertThat(taskManager.getTask(dummyTask.id).getState()).isEqualTo(TaskView.State.QUEUED);
         delete("/api/task/clean/" + dummyTask.id).should().respond(403);
         assertThat(taskManager.getTasks()).hasSize(1);
         // Cancel the all tasks to avoid side-effects with other tests
@@ -355,10 +343,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_task() {
-        TaskView<String> dummyTask = taskManager.startTask(() -> {
-            Thread.sleep(10000);
-            return "ok";
-        });
+        TaskView<String> dummyTask = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
         put("/api/task/stop/" + dummyTask.id).should().respond(200).contain("true");
 
         assertThat(taskManager.getTask(dummyTask.id).getState()).isEqualTo(TaskView.State.CANCELLED);
@@ -372,14 +357,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_all() {
-        TaskView<String> t1 = taskManager.startTask(() -> {
-            Thread.sleep(10000);
-            return "ok";
-        });
-        TaskView<String> t2 = taskManager.startTask(() -> {
-            Thread.sleep(10000);
-            return "ok";
-        });
+        TaskView<String> t1 = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<String> t2 = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
         put("/api/task/stopAll").should().respond(200).
                 contain(t1.id + "\":true").
                 contain(t2.id + "\":true");
@@ -390,7 +369,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_all_filters_running_tasks() {
-        taskManager.startTask(() -> "ok");
+        TaskView<String> dummyTask = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
         put("/api/task/stopAll").should().respond(200).contain("{}");
@@ -398,7 +377,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_clear_done_tasks() {
-        taskManager.startTask(() -> "ok");
+        TaskView<String> dummyTask = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
         put("/api/task/stopAll").should().respond(200).contain("{}");
@@ -416,17 +395,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         }};
     }
 
-    private TaskView<?> taskView(BatchDownload batchDownload) {
-        return new TaskView<File>(batchDownload.uuid, batchDownload.user, new HashMap<>() {{
-            put("batchDownload", batchDownload);
-        }});
-    }
-
     private Optional<TaskView<?>> findTask(TaskManagerMemory taskManager, String expectedName) {
         return taskManager.getTasks().stream().filter(t -> expectedName.equals(t.name)).findFirst();
     }
 
-    private void init(TaskFactory taskFactory) {
+    private void init(TaskFactoryForTest taskFactory) {
         reset(taskFactory);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
         when(taskFactory.createScanTask(any(), any())).thenReturn(mock(ScanTask.class));
@@ -435,5 +408,42 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));
         when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(mock(EnqueueFromIndexTask.class));
         when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
+        when(taskFactory.createTestTask(any(), any())).thenReturn(new TestTask(10));
+        when(taskFactory.createSleepingTask(any(), any())).thenReturn(new SleepingTask(10000));
+    }
+
+    public static class TestTask implements Callable<Integer> {
+        protected final int duration;
+        public TestTask(int duration) {this.duration = duration;}
+
+        @Override
+        public Integer call() throws Exception {
+            return duration;
+        }
+    }
+    public static class SleepingTask extends TestTask implements CancellableCallable<Integer> {
+        private Thread callThread;
+        public SleepingTask(int duration) {
+            super(duration);
+        }
+        @Override
+        public Integer call() throws Exception {
+            callThread = Thread.currentThread();
+            try {
+                Thread.sleep(duration);
+            } catch (InterruptedException iex) {
+                throw new CancelException(null);
+            }
+            return duration;
+        }
+        @Override
+        public void cancel(String taskId, boolean requeue) {
+            ofNullable(callThread).ifPresent(Thread::interrupt);
+        }
+    }
+
+    public interface TaskFactoryForTest extends TaskFactory {
+        SleepingTask createSleepingTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
+        TestTask createTestTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import liquibase.pro.packaged.S;
 import org.icij.datashare.Entity;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
@@ -17,13 +18,19 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
+import static org.icij.datashare.tasks.TaskView.State.CANCELLED;
+import static org.icij.datashare.tasks.TaskView.State.DONE;
+import static org.icij.datashare.tasks.TaskView.State.ERROR;
+import static org.icij.datashare.tasks.TaskView.State.RUNNING;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> implements Entity {
-    public enum State {INIT, RUNNING, ERROR, DONE, CANCELLED}
+
+    public enum State {INIT, QUEUED, RUNNING, ERROR, DONE, CANCELLED}
     public final Map<String, Object> properties;
 
     public final String id;
@@ -34,23 +41,7 @@ public class TaskView<V> implements Entity {
     private volatile double progress;
     private volatile V result;
     @JsonIgnore
-    final MonitorableFutureTask<V> task;
-
-    @Deprecated(since = "13.6.0")
-    public TaskView(MonitorableFutureTask<V> task) {
-        this.id = task.toString();
-        this.name = task.toString();
-        this.user = task.getUser();
-        this.properties = task.properties.isEmpty() ? null: task.properties;
-        this.task = task;
-        if (task.isDone()) {
-            this.result = getResult();
-        } else {
-            result = null;
-            state = State.RUNNING;
-            progress = task.getProgressRate();
-        }
-    }
+    private final Object lock = new Object();
 
     public TaskView(String name, User user, Map<String, Object> properties) {
         this(randomUUID().toString(), name, user, properties);
@@ -78,67 +69,71 @@ public class TaskView<V> implements Entity {
         this.result = result;
         // avoids "no default constructor found" for anonymous inline maps
         this.properties = Collections.unmodifiableMap(ofNullable(properties).orElse(new HashMap<>()));
-        this.task = null;
     }
 
     public V getResult() {
-        return getResult(false);
+        return result;
     }
 
-    public V getResult(boolean sync) {
-        if (task != null && (task.isDone() || sync)) {
-            try {
-                progress = 1;
-                state = State.DONE;
-                return task.get();
-            } catch (CancellationException cex) {
-                state = State.CANCELLED;
-                return null;
-            } catch (ExecutionException | InterruptedException e) {
-                LoggerFactory.getLogger(getClass()).error(String.format("Task failed for user %s :", getUser()), e);
-                error = e;
-                state = State.ERROR;
-                return null;
+    public V getResult(int timeout, TimeUnit unit) throws InterruptedException {
+        synchronized (lock) {
+            while (!isFinished()) {
+                lock.wait(unit.toMillis(timeout));
             }
-        } else {
             return result;
         }
     }
 
     public void setResult(Serializable result) {
-        this.result = (V) result;
-        this.state = State.DONE;
-        this.progress = 1;
+        synchronized (lock) {
+            this.result = (V) result;
+            this.state = State.DONE;
+            this.progress = 1;
+            lock.notify();
+        }
     }
 
     public void setError(Throwable reason) {
-        this.error = reason;
-        this.state = State.ERROR;
-        this.progress = 1;
+        synchronized (lock) {
+            this.error = reason;
+            this.state = State.ERROR;
+            this.progress = 1;
+            lock.notify();
+        }
     }
 
     public void setProgress(double rate) {
-        this.progress = rate;
-        if (rate > 0 && State.INIT.equals(state)) {
-            this.state = State.RUNNING;
+        synchronized (lock) {
+            this.progress = rate;
+            if (! RUNNING.equals(state)) {
+                this.state = RUNNING;
+            }
+        }
+    }
+
+    public void cancel() {
+        synchronized (lock) {
+            state = State.CANCELLED;
+        }
+    }
+
+    public void queue() {
+        synchronized (lock) {
+            state = State.QUEUED;
         }
     }
 
     public double getProgress() {
-        if (task != null) {
-            return task.isDone() ? 1 : task.getProgressRate();
-        }
         return progress;
     }
 
     public State getState() {
-        if (task != null) {
-            if (!task.isDone()) {
-                return State.RUNNING;
-            }
-            getResult();
-        }
         return state;
+    }
+
+    @JsonIgnore
+    public boolean isFinished() {
+        return DONE.equals(state) || CANCELLED.equals(state) || ERROR.equals(state);
     }
 
     @Override
@@ -151,7 +146,7 @@ public class TaskView<V> implements Entity {
     @Override
     public int hashCode() {return Objects.hash(id);}
     @Override
-    public String toString() {return getClass().getSimpleName() + "@" + id;}
+    public String toString() {return name + "@" + id;}
     @JsonIgnore
     public boolean isNull() { return id == null;}
     public User getUser() { return user;}

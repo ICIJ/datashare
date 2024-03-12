@@ -28,7 +28,7 @@ public class TaskRunnerLoopForPipelineTasksTest {
     @Mock BiFunction<String, Double, Void> updateCallback;
     @Mock ElasticsearchSpewer spewer;
     private final BlockingQueue<TaskView<?>> taskQueue = new LinkedBlockingQueue<>();
-    private final TaskManagerMemory taskSupplier = new TaskManagerMemory(new PropertiesProvider(), taskQueue);
+    private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskQueue, taskFactory);
 
     @Test
     public void test_scan_task() throws InterruptedException {
@@ -85,11 +85,8 @@ public class TaskRunnerLoopForPipelineTasksTest {
     }
 
     private void testTaskWithTaskRunner(TaskView<Long> task) throws InterruptedException {
-        TaskRunnerLoop loop = new TaskRunnerLoop(taskFactory, taskSupplier);
         taskSupplier.startTask(task.name, User.local(), task.properties);
         taskSupplier.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
-
-        loop.call();
 
         assertThat(taskSupplier.getTasks()).hasSize(1);
         assertThat(taskSupplier.getTasks().get(0).name).isEqualTo(task.name);

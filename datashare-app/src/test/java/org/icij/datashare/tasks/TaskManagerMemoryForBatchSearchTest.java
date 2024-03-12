@@ -18,14 +18,11 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.tasks.TaskRunnerLoop.POISON;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
@@ -38,25 +35,23 @@ import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 
-public class TaskRunnerLoopForBatchSearchTest {
-    MockSearch<Indexer.QueryBuilderSearcher> mockSearch;
-    BlockingQueue<TaskView<?>> batchSearchQueue = new LinkedBlockingQueue<>();
-    TaskManagerMemory supplier = new TaskManagerMemory(new PropertiesProvider(), batchSearchQueue);
-    BatchSearch testBatchSearch = new BatchSearch(singletonList(project("test-datashare")), "name", "desc", CollectionUtils.asSet("query") , local(), true, new LinkedList<>(), "queryBody", null, 0);
+public class TaskManagerMemoryForBatchSearchTest {
     @Mock BatchSearchRunner batchSearchRunner;
     @Mock Indexer indexer;
     @Mock TaskFactory factory;
     @Mock BatchSearchRepository repository;
-    private final ExecutorService executor = Executors.newFixedThreadPool(1);
+
+    CountDownLatch startLoop = new CountDownLatch(1);
+    MockSearch<Indexer.QueryBuilderSearcher> mockSearch;
+    BlockingQueue<TaskView<?>> batchSearchQueue = new LinkedBlockingQueue<>();
+    TaskManagerMemory taskManager;
+    BatchSearch testBatchSearch = new BatchSearch(singletonList(project("test-datashare")), "name", "desc", CollectionUtils.asSet("query") , local(), true, new LinkedList<>(), "queryBody", null, 0);
 
     @Test
-    public void test_main_loop() throws IOException {
-        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
-        supplier.startTask(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
-        batchSearchQueue.add(TaskView.nullObject());
+    public void test_main_loop() throws Exception {
         mockSearch.willReturn(1, createDoc("doc1").build(), createDoc("doc2").build());
-
-        app.call();
+        taskManager.startTask(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
+        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.SUCCESS);
@@ -64,73 +59,60 @@ public class TaskRunnerLoopForBatchSearchTest {
 
     @Test(timeout = 2000)
     public void test_main_loop_exit_with_sigterm_when_empty_batch_queue() throws InterruptedException {
-        CountDownLatch countDownLatch = new CountDownLatch(1);
-        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier, countDownLatch);
+        startLoop.await();
 
-        executor.submit(app);
-        countDownLatch.await();
         Signal term = new Signal("TERM");
         Signal.raise(term);
-        executor.shutdown();
 
-        assertThat(executor.awaitTermination(1,TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS)).isTrue();
     }
 
     @Test(timeout = 2000)
-    public void test_main_loop_exit_with_sigterm_and_wait_for_cancellation_to_terminate() throws InterruptedException {
+    public void test_main_loop_exit_with_sigterm_and_wait_for_cancellation_to_terminate() throws Exception {
         DatashareTime.setMockTime(true);
         Date beforeTest = DatashareTime.getInstance().now();
         CountDownLatch countDownLatch = new CountDownLatch(1);
         SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100, countDownLatch, testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
-        batchSearchQueue.add(new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
-        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
+        taskManager.startTask(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
 
-        executor.submit(app);
         countDownLatch.await();
         Signal.raise(new Signal("TERM"));
-        executor.shutdown();
+        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
-        assertThat(executor.awaitTermination(1,TimeUnit.SECONDS)).isTrue();
         assertThat(DatashareTime.getInstance().now().getTime() - beforeTest.getTime()).isEqualTo(100);
-        assertThat(batchSearchQueue).hasSize(1);
+        assertThat(batchSearchQueue).hasSize(2); // with poison from shutdown
+        batchSearchQueue.take(); // poison
         assertThat(batchSearchQueue.take().id).isEqualTo(testBatchSearch.uuid);
     }
 
-    @Test(timeout = 200000)
-    public void test_run_batch_search_failure() throws IOException {
+    @Test(timeout = 2000)
+    public void test_run_batch_search_failure() throws Exception {
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
         mockSearch.willThrow(new IOException("io exception"));
-        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
         batchSearchQueue.add(new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
-        batchSearchQueue.add(POISON);
 
-        app.call();
+        taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 
         verify(repository).setState(testBatchSearch.uuid, BatchSearch.State.RUNNING);
         verify(repository).setState(eq(testBatchSearch.uuid), any(SearchException.class));
     }
 
     @Test(timeout = 2000)
-    public void test_main_loop_exit_with_sigterm_and_queued_batches() throws InterruptedException {
+    public void test_main_loop_exit_with_sigterm_and_queued_batches() throws Exception {
         BatchSearch bs1 = new BatchSearch(singletonList(project("prj")), "name1", "desc", CollectionUtils.asSet("query1") , local());
         BatchSearch bs2 = new BatchSearch(singletonList(project("prj")), "name2", "desc", CollectionUtils.asSet("query2") , local());
         SleepingBatchSearchRunner bsr1 = new SleepingBatchSearchRunner(100, bs1);
         SleepingBatchSearchRunner bsr2 = new SleepingBatchSearchRunner(100, bs2);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(bsr1, bsr2);
-        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
-        TaskView<Object> taskView1 = new TaskView<>(bs1.uuid, BatchSearchRunner.class.getName(), local());
-        batchSearchQueue.add(taskView1);
-        TaskView<Object> taskView2 = new TaskView<>(bs2.uuid, BatchSearchRunner.class.getName(), local());
-        batchSearchQueue.add(taskView2);
         when(repository.get(bs1.uuid)).thenReturn(bs1);
         when(repository.get(bs2.uuid)).thenReturn(bs2);
+        TaskView<Object> taskView1 = taskManager.startTask(bs1.uuid, BatchSearchRunner.class.getName(), bs1.user);
+        TaskView<Object> taskView2 = taskManager.startTask(bs2.uuid, BatchSearchRunner.class.getName(), bs2.user);
 
-        executor.submit(app);
         waitQueueToHaveSize(1);
         Signal.raise(new Signal("TERM"));
-        executor.shutdown();
-        assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+        Thread.sleep(1000);
 
         assertThat(batchSearchQueue).excludes("poison");
         assertThat(batchSearchQueue).containsOnly(taskView1, taskView2);
@@ -140,34 +122,30 @@ public class TaskRunnerLoopForBatchSearchTest {
     public void test_main_loop_exit_with_sigterm_when_running_batch() throws InterruptedException {
         SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100,testBatchSearch );
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
-        TaskRunnerLoop app = new TaskRunnerLoop(factory, supplier);
         batchSearchQueue.add(new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
-        executor.submit(app);
         waitQueueToBeEmpty();
 
         Signal term = new Signal("TERM");
         Signal.raise(term);
-        executor.shutdown();
 
-        assertThat(executor.awaitTermination(2,TimeUnit.SECONDS)).isTrue();
+        assertThat(taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS)).isTrue();
         assertThat(batchSearchRunner.cancelAsked).isTrue();
     }
 
     @Before
     public void setUp() throws IOException {
         initMocks(this);
+        taskManager = new TaskManagerMemory(batchSearchQueue, factory, startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
         batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository,
-                new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()), supplier::progress );
+                new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()), taskManager::progress );
         when(repository.get(eq(local()), anyString())).thenReturn(testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
     }
 
     @After
     public void tearDown() throws InterruptedException {
-        executor.shutdownNow();
-        executor.awaitTermination(2, TimeUnit.SECONDS);
         DatashareTime.setMockTime(false);
     }
 
@@ -190,7 +168,7 @@ public class TaskRunnerLoopForBatchSearchTest {
         }
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch, BatchSearch bs) {
-            super(mock(Indexer.class), new PropertiesProvider(), repository, new TaskView<Object>(bs.uuid, BatchSearchRunner.class.getName(), local()), (a, b) -> null);
+            super(mock(Indexer.class), new PropertiesProvider(), repository, new TaskView<>(bs.uuid, BatchSearchRunner.class.getName(), local()), (a, b) -> null);
             this.sleepingMilliseconds = sleepingMilliseconds;
             this.countDownLatch = countDownLatch;
         }
@@ -207,7 +185,7 @@ public class TaskRunnerLoopForBatchSearchTest {
                     // nothing we throw a cancel later
                 }
             }
-            throw new BatchSearchRunner.CancelException(taskView.id);
+            throw new CancelException(taskView.id, requeueCancel);
         }
     }
 }

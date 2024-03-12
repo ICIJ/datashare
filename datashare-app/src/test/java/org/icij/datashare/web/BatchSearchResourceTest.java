@@ -2,11 +2,17 @@ package org.icij.datashare.web;
 
 import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
-import org.icij.datashare.batch.*;
+import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRecord;
+import org.icij.datashare.batch.BatchSearchRepository;
+import org.icij.datashare.batch.SearchResult;
+import org.icij.datashare.batch.WebQueryBuilder;
 import org.icij.datashare.db.JooqBatchSearchRepository;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.session.LocalUserFilter;
+import org.icij.datashare.tasks.BatchSearchRunner;
+import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -17,10 +23,12 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -34,6 +42,7 @@ import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.ProjectProxy.proxy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -41,7 +50,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
     @Mock JooqRepository jooqRepository;
-    TaskManagerMemory taskManager = new TaskManagerMemory(new PropertiesProvider(), new ArrayBlockingQueue<>(5));
+    @Mock TaskFactory factory;
+    TaskManagerMemory taskManager;
 
     @Test
     public void test_upload_batch_search_csv_without_name_should_send_bad_request() {
@@ -83,7 +93,8 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
                 singletonList(project("prj")), "nameValue", null,
                 asSet("query", "éèàç"), new Date(), BatchSearch.State.QUEUED, User.local());
         verify(batchSearchRepository).save(eq(expected));
-        assertThat(taskManager.get(1, TimeUnit.SECONDS).id).isEqualTo(expected.uuid);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().get(0).name).isEqualTo(BatchSearchRunner.class.getName());
     }
 
     @Test
@@ -175,7 +186,8 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
 
         assertThat(argument.getValue().state).isEqualTo(BatchSearchRecord.State.QUEUED);
-        assertThat(taskManager.get(1, TimeUnit.SECONDS).id).isEqualTo(argument.getValue().uuid);
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().get(0).name).isEqualTo(BatchSearchRunner.class.getName());
     }
 
     @Test
@@ -385,7 +397,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_queries_json() {
         when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 0,null,null, -1)).
-                thenReturn(new HashMap<String, Integer>() {{
+                thenReturn(new HashMap<>() {{
                     put("q1", 1);
                     put("q2", 2);
                 }});
@@ -398,7 +410,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_queries_csv() {
         when(batchSearchRepository.getQueries(User.local(), "batchSearchId",0,0,null,null, -1)).
-                thenReturn(new HashMap<String, Integer>() {{
+                thenReturn(new HashMap<>() {{
                     put("q1", 1);
                     put("q2", 2);
                 }});
@@ -411,7 +423,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_queries_filtered_to_max_results() {
         when(batchSearchRepository.getQueries(User.local(), "batchSearchId", 0, 0,null,null, 200)).
-                thenReturn(new HashMap<String, Integer>() {{
+                thenReturn(new HashMap<>() {{
                     put("q1", 100);
                     put("q2", 200);
                 }});
@@ -475,6 +487,8 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() {
         initMocks(this);
+        taskManager = new TaskManagerMemory(new ArrayBlockingQueue<>(5), factory);
+        when(factory.createBatchSearchRunner(any(), any())).thenReturn(mock(BatchSearchRunner.class));
         configure(routes -> routes.add(new BatchSearchResource(new PropertiesProvider(), taskManager, batchSearchRepository)).
                 filter(new LocalUserFilter(new PropertiesProvider(), jooqRepository)));
     }

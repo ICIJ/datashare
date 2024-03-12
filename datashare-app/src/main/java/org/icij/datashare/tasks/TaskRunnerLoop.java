@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
+import jodd.util.concurrent.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
@@ -28,6 +29,7 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
     private final CountDownLatch waitForMainLoopCalled; // for tests only
     private volatile boolean exitAsked = false;
     private volatile Thread loopThread;
+    private volatile TaskView<?> currentTask = null;
 
     @Inject
     public TaskRunnerLoop(TaskFactory factory, TaskSupplier taskSupplier) {
@@ -40,11 +42,7 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
         this.waitForMainLoopCalled = countDownLatch;
         Signal.handle(new Signal("TERM"), signal -> {
             exitAsked = true;
-            ofNullable(currentTaskReference.get()).ifPresent(t -> {
-                    if (CancellableCallable.class.isAssignableFrom(t.getClass())) {
-                        ((CancellableCallable<?>) t).cancel();
-                    }
-            });
+            cancel(null, true);
             ofNullable(loopThread).ifPresent(Thread::interrupt); // for interrupting poll
         });
     }
@@ -57,7 +55,6 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
     private <R extends Serializable> Integer mainLoop() {
         waitForMainLoopCalled.countDown();
         loopThread = Thread.currentThread();
-        TaskView<R> currentTask = null;
         int nbTasks = 0;
         logger.info("Waiting tasks from supplier ({})", taskSupplier.getClass());
         while (!POISON.equals(currentTask) && !exitAsked) {
@@ -65,15 +62,18 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
                 currentTask = taskSupplier.get(60, TimeUnit.SECONDS);
 
                 if (currentTask != null && !POISON.equals(currentTask)) {
+                    taskSupplier.progress(currentTask.id, 0);
                     Class<? extends Callable<R>> taskClass = (Class<? extends Callable<R>>) Class.forName(currentTask.name);
                     Method method = factory.getClass().getMethod(format("create%s", taskClass.getSimpleName()), currentTask.getClass(), BiFunction.class);
-                    currentTaskReference.set((Callable<R>) method.invoke(factory, currentTask, (BiFunction<String, Double, Void>) taskSupplier::progress));
+                    Callable<R> callable = (Callable<R>) method.invoke(factory, currentTask, (BiFunction<String, Double, Void>) taskSupplier::progress);
+                    logger.info("running task {}", currentTask);
+                    currentTaskReference.set(callable);
                     taskSupplier.result(currentTask.id, ((Callable<R>)currentTaskReference.get()).call());
                     currentTaskReference.set(null);
                     nbTasks++;
                 }
-            } catch (BatchSearchRunner.CancelException cex) {
-                taskSupplier.cancel(currentTask);
+            } catch (CancelException cex) {
+                taskSupplier.cancel(currentTask, cex.requeue);
             } catch (Throwable ex) {
                 logger.error(format("error in loop for task %s", currentTask), ex);
                 if (currentTask != null && !currentTask.isNull()) {
@@ -89,5 +89,15 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
     public void close() throws IOException {
         logger.info("closing {}", taskSupplier.getClass());
         taskSupplier.close();
+    }
+
+    public void cancel(String taskId, boolean requeue) {
+        ofNullable(currentTaskReference.get()).ifPresent(t -> {
+            if (CancellableCallable.class.isAssignableFrom(t.getClass()) &&
+                    (taskId == null || (currentTask != null && taskId.equals(currentTask.id)))) {
+                logger.info("cancelling callable for task {} requeue={}", taskId, requeue);
+                ((CancellableCallable<?>) t).cancel(taskId, requeue);
+            }
+        });
     }
 }

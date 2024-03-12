@@ -34,7 +34,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -87,7 +86,7 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
 
     @Override
     public List<TaskView<?>> clearDoneTasks() {
-        return tasks.values().stream().filter(f -> f.getState() != TaskView.State.RUNNING).map(t -> tasks.remove(t.id)).collect(toList());
+        return tasks.values().stream().filter(TaskView::isFinished).map(t -> tasks.remove(t.id)).collect(toList());
     }
     @Override
     public TaskView<?> clearTask(String taskName) {
@@ -109,7 +108,6 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
         return taskView;
     }
 
-    @Override public <V> TaskView<V> startTask(Callable<V> task) { throw new IllegalStateException("not implemented"); }
     @Override public boolean stopTask(String taskName) { throw new IllegalStateException("not implemented"); }
 
     @Override
@@ -136,8 +134,10 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public <V extends Serializable> void cancel(TaskView<V> currentTask) {
-        taskQueue.offer(currentTask);
+    public void cancel(TaskView<?> task, boolean requeue) {
+        TaskView<?> taskView = tasks.get(task.id);
+        taskView.cancel();
+        tasks.put(task.id, taskView);
     }
 
     @Override

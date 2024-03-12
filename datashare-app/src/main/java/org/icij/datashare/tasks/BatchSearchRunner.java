@@ -59,6 +59,7 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
     protected final TaskView<String> taskView;
     protected volatile boolean cancelAsked = false;
     protected volatile Thread callThread;
+    protected volatile boolean requeueCancel;
 
     @Inject
     public BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
@@ -113,9 +114,9 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
                 while (docsToProcess.size() != 0 && numberOfResults < MAX_BATCH_RESULT_SIZE - MAX_SCROLL_SIZE) {
                     if (cancelAsked) {
-                        logger.info("cancelling batch search {}", batchSearch.uuid);
+                        logger.info("cancelling batch search {} requeue={}", batchSearch.uuid, requeueCancel);
                         repository.reset(batchSearch.uuid);
-                        throw new CancelException(batchSearch.uuid);
+                        throw new CancelException(batchSearch.uuid, requeueCancel);
                     }
                     repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
                     if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds * 1000L) {
@@ -151,21 +152,13 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
      * cancel current batch search.
      * this method is blocking until batchsearch has exited
      */
-    public void cancel() {
+    public void cancel(String taskId, boolean requeue) {
+        requeueCancel = requeue;
         cancelAsked = true;
         try {
             if (callThread != null) callThread.join();
         } catch (InterruptedException e) {
             logger.warn("batch search interrupted during cancel check status for {}", taskView.id);
-        }
-    }
-
-    public static class CancelException extends RuntimeException {
-        final String batchSearchId;
-
-        public CancelException(String batchSearchId) {
-            super(format("cancel %s", batchSearchId));
-            this.batchSearchId = batchSearchId;
         }
     }
 }

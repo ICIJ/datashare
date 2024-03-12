@@ -29,7 +29,7 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_save_task() {
-        TaskView<String> task = new TaskView<>(new MonitorableFutureTask<>(() -> "run"));
+        TaskView<String> task = new TaskView<>("name", User.local(), new HashMap<>());
 
         taskManager.save(task);
 
@@ -38,28 +38,13 @@ public class TaskManagerRedisTest {
     }
 
     @Test
-    public void test_update_tasks() {
-        MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "run");
-        TaskView<String> task = new TaskView<>(futureTask);
-        taskManager.save(task);
-
-        futureTask.run();
-
-        taskManager.save(new TaskView<>(futureTask));
-        assertThat(taskManager.getTask(task.id).getState()).isEqualTo(TaskView.State.DONE);
-    }
-
-    @Test
-    public void test_clear_done_tasks() {
-        MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "run");
-        TaskView<String> task = new TaskView<>(futureTask);
-        taskManager.save(task);
+    public void test_clear_done_tasks() throws Exception {
+        TaskView<Integer> taskView = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
 
         assertThat(taskManager.clearDoneTasks()).hasSize(0);
         assertThat(taskManager.getTasks()).hasSize(1);
 
-        futureTask.run();
-        taskManager.save(new TaskView<>(futureTask));
+        taskManager.result(taskView.id, 12);
 
         assertThat(taskManager.clearDoneTasks()).hasSize(1);
     }
@@ -78,43 +63,29 @@ public class TaskManagerRedisTest {
     }
 
     @Test
-    public void test_clear_the_only_task() {
-        MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "task");
-        TaskView<String> task = new TaskView<>(futureTask);
-        taskManager.save(task);
-        assertThat(taskManager.getTasks()).hasSize(1);
-        taskManager.clearTask(task.id);
-        assertThat(taskManager.getTasks()).hasSize(0);
-    }
+    public void test_clear_task_among_two_tasks() throws IOException {
+        TaskView<Integer> taskView1 = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<Integer> taskView2 = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
 
-    @Test
-    public void test_clear_task_among_two_tasks() {
-        MonitorableFutureTask<String> futureTask1 = new MonitorableFutureTask<>(() -> "task 1");
-        TaskView<String> t1 = new TaskView<>(futureTask1);
-        taskManager.save(t1);
-        MonitorableFutureTask<String> futureTask2 = new MonitorableFutureTask<>(() -> "task 1");
-        TaskView<String> t2 = new TaskView<>(futureTask2);
-        taskManager.save(t2);
+        taskManager.result(taskView1.id, 123);
+
         assertThat(taskManager.getTasks()).hasSize(2);
-        taskManager.clearTask(t1.id);
+        TaskView<?> clearedTask = taskManager.clearTask(taskView1.id);
         assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTask(t1.id)).isNull();
-        assertThat(taskManager.getTask(t2.id)).isNotNull();
-    }
-
-    @Test
-    public void test_clear_and_return_the_same_task() {
-        MonitorableFutureTask<String> futureTask = new MonitorableFutureTask<>(() -> "task");
-        TaskView<String> t1 = new TaskView<>(futureTask);
-        taskManager.save(t1);
-        assertThat(taskManager.getTasks()).hasSize(1);
-        TaskView<?> t2 = taskManager.clearTask(t1.id);
-        assertThat(taskManager.getTasks()).hasSize(0);
-        assertThat(t1.id).isEqualTo(t2.id);
+        assertThat(taskManager.getTask(taskView1.id)).isNull();
+        assertThat(taskManager.getTask(taskView2.id)).isNotNull();
+        assertThat(taskView1.id).isEqualTo(clearedTask.id);
     }
 
     @After
     public void tearDown() throws Exception {
         redis.del("test:task:manager");
+    }
+
+    static class TestTask implements CancellableCallable<Integer> {
+        @Override
+        public void cancel(String taskId, boolean requeue) {}
+        @Override
+        public Integer call() throws Exception {return 0;}
     }
 }

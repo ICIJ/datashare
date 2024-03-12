@@ -126,7 +126,7 @@ public class BatchSearchRunnerTest {
         executor.submit(batchSearchRunner);
         executor.shutdown();
         countDownLatch.await();
-        batchSearchRunner.cancel();
+        batchSearchRunner.cancel(null, false);
 
         assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
     }

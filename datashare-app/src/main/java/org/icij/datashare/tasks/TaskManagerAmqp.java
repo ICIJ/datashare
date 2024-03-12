@@ -83,15 +83,10 @@ public class TaskManagerAmqp implements TaskManager {
         return startTask(new TaskView<>(taskName, user, properties));
     }
 
-    private <V> TaskView<V> startTask(TaskView<V> taskView) throws IOException {
+    <V> TaskView<V> startTask(TaskView<V> taskView) throws IOException {
         save(taskView);
         amqp.publish(AmqpQueue.TASK, new TaskViewEvent(taskView));
         return taskView;
-    }
-
-    @Override
-    public <V> TaskView<V> startTask(Callable<V> task) {
-        return null;
     }
 
     @Override

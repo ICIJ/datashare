@@ -6,37 +6,31 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.fest.assertions.Assertions.assertThat;
 
 public class TaskViewTest {
-    private final Executor executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Test
-    public void test_get_result_sync_when_task_is_done() {
-        MonitorableFutureTask<String> task = new MonitorableFutureTask<>(() -> "run");
-        task.run();
-        TaskView<String> taskView = new TaskView<>(task);
-
-        assertThat(taskView.getResult()).isEqualTo("run");
-        assertThat(taskView.getProgress()).isEqualTo(1);
-        assertThat(taskView.getState()).isEqualTo(TaskView.State.DONE);
-    }
-
-    @Test
-    public void test_get_result_sync_when_task_is_running() {
-        MonitorableFutureTask<String> task = new MonitorableFutureTask<>(() -> {
-            Thread.sleep(100);
-            return "run";
+    public void test_get_result_sync_when_task_is_running() throws InterruptedException {
+        TaskView<String> taskView = new TaskView<>("name", User.local(), new HashMap<>());
+        executor.execute(() -> {
+            try {
+                taskView.getResult(1, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         });
-        executor.execute(task);
-        TaskView<String> taskView = new TaskView<>(task);
 
-        assertThat(taskView.getProgress()).isEqualTo(-2);
-        assertThat(taskView.getState()).isEqualTo(TaskView.State.RUNNING);
-        assertThat(taskView.getResult(false)).isNull();
-        assertThat(taskView.getResult(true)).isEqualTo("run");
+        taskView.setResult("foo");
+        executor.shutdownNow();
+        assertThat(executor.awaitTermination(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskView.getProgress()).isEqualTo(1);
+        assertThat(taskView.getResult()).isEqualTo("foo");
         assertThat(taskView.getState()).isEqualTo(TaskView.State.DONE);
     }
 
@@ -55,7 +49,7 @@ public class TaskViewTest {
         assertThat(taskView.getState()).isEqualTo(TaskView.State.INIT);
 
         taskView.setProgress(0.0);
-        assertThat(taskView.getState()).isEqualTo(TaskView.State.INIT);
+        assertThat(taskView.getState()).isEqualTo(TaskView.State.RUNNING);
 
         taskView.setProgress(0.3);
         assertThat(taskView.getProgress()).isEqualTo(0.3);
