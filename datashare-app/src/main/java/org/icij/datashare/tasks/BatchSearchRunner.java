@@ -1,14 +1,15 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import org.elasticsearch.client.ResponseException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.function.TerFunction;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.ProjectProxy;
@@ -126,7 +127,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
             }
         } catch (ElasticsearchException esEx) {
             throw new SearchException(query,
-                    esEx);
+                    new ElasticSearchAdapterException(esEx.response().error().rootCause().stream().findFirst().orElse(esEx.error()).reason()));
         } catch (IOException|InterruptedException ex) {
             throw new SearchException(query, ex);
         }
@@ -161,6 +162,11 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         public CancelException(String batchSearchId) {
             super(format("cancel %s", batchSearchId));
             this.batchSearchId = batchSearchId;
+        }
+    }
+    private static class ElasticSearchAdapterException extends RuntimeException {
+        public ElasticSearchAdapterException(String jsonCause) {
+            super(jsonCause);
         }
     }
 }

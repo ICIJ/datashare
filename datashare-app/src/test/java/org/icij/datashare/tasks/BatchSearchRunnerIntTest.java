@@ -199,7 +199,7 @@ public class BatchSearchRunnerIntTest {
 
         SearchException sex = assertThrows(SearchException.class,() -> new BatchSearchRunner(indexer, new PropertiesProvider(), search, resultConsumer).call());
 
-        assertThat(sex.toString()).contains("[search_phase_execution_exception] all shards failed");
+        assertThat(sex.toString()).contains("Failed to parse query [AND mydoc]");
     }
 
     @Test(expected = SearchException.class)
