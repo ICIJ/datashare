@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import org.icij.datashare.com.bus.amqp.Event;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static java.lang.Integer.parseInt;
@@ -117,6 +119,11 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         } else {
             logger.warn("unknown task id <{}> for error={} call", taskId, reason.toString());
         }
+    }
+
+    @Override
+    public void addEventListener(Consumer<Event> callback) {
+        // no need for this we use task runner reference for stopping tasks
     }
 
     private void save(TaskView<?> taskView) {

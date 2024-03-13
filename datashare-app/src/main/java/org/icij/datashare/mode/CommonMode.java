@@ -80,6 +80,7 @@ public abstract class CommonMode extends AbstractModule {
     public static final String DS_BATCHSEARCH_QUEUE_NAME = "ds:batchsearch:queue";
     public static final String DS_BATCHDOWNLOAD_QUEUE_NAME = "ds:batchdownload:queue";
     public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
+    public static final String DS_TASK_MANAGER_MAP_NAME = "ds:task:manager:tasks";
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
     private final Injector injector;

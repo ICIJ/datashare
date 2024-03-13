@@ -77,7 +77,7 @@ public class TaskView<V> implements Entity {
 
     public V getResult(int timeout, TimeUnit unit) throws InterruptedException {
         synchronized (lock) {
-            while (!isFinished()) {
+            if (!isFinished()) {
                 lock.wait(unit.toMillis(timeout));
             }
             return result;
@@ -102,18 +102,19 @@ public class TaskView<V> implements Entity {
         }
     }
 
+    public void cancel() {
+        synchronized (lock) {
+            state = State.CANCELLED;
+            lock.notify();
+        }
+    }
+
     public void setProgress(double rate) {
         synchronized (lock) {
             this.progress = rate;
             if (! RUNNING.equals(state)) {
                 this.state = RUNNING;
             }
-        }
-    }
-
-    public void cancel() {
-        synchronized (lock) {
-            state = State.CANCELLED;
         }
     }
 

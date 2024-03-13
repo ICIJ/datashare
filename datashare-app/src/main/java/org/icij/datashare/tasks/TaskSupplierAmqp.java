@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import org.icij.datashare.com.bus.amqp.AmqpConsumer;
 import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.com.bus.amqp.AmqpQueue;
+import org.icij.datashare.com.bus.amqp.Event;
 import org.icij.datashare.com.bus.amqp.EventSaver;
 import org.icij.datashare.com.bus.amqp.ProgressEvent;
 import org.icij.datashare.com.bus.amqp.ResultEvent;
@@ -16,6 +17,7 @@ import java.io.Serializable;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static java.util.Optional.ofNullable;
 
@@ -67,6 +69,11 @@ public class TaskSupplierAmqp implements TaskSupplier {
     @Override
     public void error(String taskId, Throwable throwable) {
         result(taskId, throwable);
+    }
+
+    @Override
+    public void addEventListener(Consumer<Event> callback) {
+        // TODO
     }
 
     @Override
