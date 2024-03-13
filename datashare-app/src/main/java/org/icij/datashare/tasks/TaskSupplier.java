@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 public interface TaskSupplier extends TaskModifier, Closeable {
     <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException;
     <V extends Serializable> void result(String taskId, V result);
-    void cancel(TaskView<?> taskView, boolean requeue);
+    void canceled(TaskView<?> taskView, boolean requeue);
     void error(String taskId, Throwable reason);
     void addEventListener(Consumer<Event> callback);
 }

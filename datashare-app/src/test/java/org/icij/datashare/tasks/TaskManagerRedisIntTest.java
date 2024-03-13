@@ -6,6 +6,7 @@ import org.icij.datashare.extract.RedisBlockingQueue;
 import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -25,11 +26,11 @@ public class TaskManagerRedisIntTest {
     TaskFactoryForTest factory = mock(TaskFactoryForTest.class);
     PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379", "redisPoolSize", "3"));
     RedisBlockingQueue<TaskView<?>> taskQueue = new RedisBlockingQueue<>(propertiesProvider, "tasks:queue:test");
-    TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, taskQueue);
+    TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, taskQueue, true);
 
     // building a task runner loop with another instance for taskProvider and taskQueue to avoid shared reference tricks
     CountDownLatch latch = new CountDownLatch(1);
-    TaskRunnerLoop taskRunner = new TaskRunnerLoop(factory, new TaskManagerRedis(propertiesProvider, new RedisBlockingQueue<>(new PropertiesProvider(), "tasks:queue:test")), latch, 100);
+    TaskRunnerLoop taskRunner = new TaskRunnerLoop(factory, new TaskManagerRedis(propertiesProvider, taskQueue, false), latch, 100);
     ExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     @Before
@@ -64,6 +65,23 @@ public class TaskManagerRedisIntTest {
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);
+    }
+
+    @Test(timeout = 10000)
+    @Ignore
+    public void test_stop_queued_task() throws Exception {
+        CountDownLatch taskWaiter = new CountDownLatch(1);
+        when(factory.createSleepingTask(any(), any())).thenReturn(new SleepingTask(5000, taskWaiter));
+        TaskView<Integer> tv1 = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<Integer> tv2 = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
+
+        taskWaiter.await();
+        taskManager.stopTask(tv2.id);
+        taskManager.stopTask(tv1.id);
+
+        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.getTasks().get(1).getState()).isEqualTo(TaskView.State.CANCELLED);
     }
 
     @After

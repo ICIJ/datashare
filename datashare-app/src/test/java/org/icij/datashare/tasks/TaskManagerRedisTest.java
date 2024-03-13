@@ -25,7 +25,7 @@ public class TaskManagerRedisTest {
         put("redisAddress", "redis://redis:6379");
     }});
     private final BlockingQueue<TaskView<?>> batchDownloadQueue = new LinkedBlockingQueue<>();
-    private final TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, "test:task:manager", batchDownloadQueue);
+    private final TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, "test:task:manager", batchDownloadQueue, true);
 
     @Test
     public void test_save_task() {

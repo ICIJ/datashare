@@ -63,7 +63,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
-    public void cancel(TaskView<?> task, boolean requeue) {
+    public void canceled(TaskView<?> task, boolean requeue) {
     }
 
     @Override

@@ -82,13 +82,14 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
                         currentTaskReference.set(callable);
                         taskSupplier.result(currentTask.id, ((Callable<R>) currentTaskReference.get()).call());
                         currentTaskReference.set(null);
+                        currentTask = null;
                         nbTasks++;
                     } else {
                         logger.error("cannot run null callable for task {}", currentTask);
                     }
                 }
             } catch (CancelException cex) {
-                taskSupplier.cancel(currentTask, cex.requeue);
+                taskSupplier.canceled(currentTask, cex.requeue);
             } catch (Throwable ex) {
                 logger.error(format("error in loop for task %s", currentTask), ex);
                 if (currentTask != null && !currentTask.isNull()) {

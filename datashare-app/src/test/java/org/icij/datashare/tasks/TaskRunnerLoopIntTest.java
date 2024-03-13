@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 public class TaskRunnerLoopIntTest {
     private final LinkedBlockingQueue<TaskView<?>> batchDownloadQueue = new LinkedBlockingQueue<>();
-    private final TaskManagerRedis taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", batchDownloadQueue);
+    private final TaskManagerRedis taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", batchDownloadQueue, true);
 
     @Test(timeout = 1000)
     public void test_batch_download_task_view_properties() throws IOException {

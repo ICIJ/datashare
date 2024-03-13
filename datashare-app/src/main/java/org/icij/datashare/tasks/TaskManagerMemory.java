@@ -100,7 +100,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void cancel(TaskView<?> task, boolean requeue) {
+    public void canceled(TaskView<?> task, boolean requeue) {
         TaskView<?> taskView = tasks.get(task.id);
         if (taskView != null) {
             taskView.cancel();
@@ -162,7 +162,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
             switch (taskView.getState()) {
                 case QUEUED:
                     boolean removed = taskQueue.remove(taskView);
-                    cancel(taskView, false);
+                    canceled(taskView, false);
                     return removed;
                 case RUNNING:
                     loop.cancel(taskId, false);
