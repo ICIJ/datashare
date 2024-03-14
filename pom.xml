@@ -98,7 +98,7 @@
         <xerces.version>2.12.2</xerces.version>
         <commons-beanutils.version>1.7.0</commons-beanutils.version>
         <jna.version>4.2.2</jna.version>
-        <bouncycastle.version>1.66</bouncycastle.version>
+        <bouncycastle.version>1.70</bouncycastle.version>
         <httpcomponents.version>4.5.13</httpcomponents.version>
         <joptsimple.version>6.0-alpha-3</joptsimple.version>
         <slf4j.version>2.0.7</slf4j.version>
