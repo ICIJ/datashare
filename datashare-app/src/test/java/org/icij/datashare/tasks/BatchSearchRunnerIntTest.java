@@ -202,35 +202,54 @@ public class BatchSearchRunnerIntTest {
         assertThat(sex.toString()).contains("Failed to parse query [AND mydoc]");
     }
 
-    @Test(expected = SearchException.class)
+    @Test
+    public void test_search_with_error_in_queries() throws Exception {
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
+        Document mydoc = createDoc("docId1").with("mydoc").build();
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("\"mydoc"), User.local(),false, null, queryBody,
+                null, 0);
+
+
+        SearchException sex = assertThrows(SearchException.class,() -> new BatchSearchRunner(indexer, new PropertiesProvider(), search, resultConsumer).call());
+
+        assertThat(sex.toString()).contains("Unexpected char");
+    }
+    @Test
     public void test_use_batch_search_scroll_size_value_over_scroll_size_value() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "100");
             put(BATCH_SEARCH_SCROLL_SIZE_OPT, "0");
         }});
-        BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
+        BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
 
-        new BatchSearchRunner(indexer, propertiesProvider, searchKo, resultConsumer).call();
+        SearchException sex = assertThrows(SearchException.class,() -> new BatchSearchRunner(indexer, propertiesProvider, search, resultConsumer).call());
+
+        assertThat(sex.toString()).contains("[size] cannot be [0] in a scroll context");
     }
 
-    @Test(expected = SearchException.class)
+    @Test
     public void test_use_scroll_size_value() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "0");
         }});
-        BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
+        BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
 
-        new BatchSearchRunner(indexer, propertiesProvider, searchKo, resultConsumer).call();
+        SearchException sex = assertThrows(SearchException.class,() -> new BatchSearchRunner(indexer, propertiesProvider, search, resultConsumer).call());
+
+        assertThat(sex.toString()).contains("[size] cannot be [0] in a scroll context");
     }
 
-    @Test(expected = SearchException.class)
+    @Test
     public void test_use_scroll_duration_value() {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(BATCH_SEARCH_SCROLL_DURATION_OPT, "foo");
         }});
-        BatchSearch searchKo = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
+        BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
 
-        new BatchSearchRunner(indexer, propertiesProvider, searchKo, resultConsumer).call();
+        SearchException sex = assertThrows(SearchException.class,() -> new BatchSearchRunner(indexer, propertiesProvider, search, resultConsumer).call());
+
+        assertThat(sex.toString()).contains("failed to parse setting [scroll] with value [foo] as a time value: unit is missing or unrecognized");
     }
 
     @Before

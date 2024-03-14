@@ -2,6 +2,7 @@ package org.icij.datashare.text.indexing.elasticsearch;
 
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
+import jakarta.json.JsonException;
 import org.apache.http.ConnectionClosedException;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.script.Script;
@@ -436,6 +437,19 @@ public class ElasticsearchIndexerTest {
         }
 
         assertThat(searcher.scroll(KEEP_ALIVE).count()).isEqualTo(0);
+        searcher.clearScroll();
+    }
+
+    @Test(expected = JsonException.class)
+    public void test_scroll_with_json_query_template_and_wrong_query() throws IOException {
+        Document doc = createDoc("id").build();
+        indexer.add(TEST_INDEX, doc);
+
+        Indexer.Searcher searcher = indexer.search(singletonList(TEST_INDEX), Document.class,
+                        new SearchQuery("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"<query>\"}}, {\"match\":{\"type\":\"Document\"}}]}}"));
+
+        searcher.scroll(KEEP_ALIVE, "\"id*");
+
         searcher.clearScroll();
     }
 

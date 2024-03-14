@@ -1,9 +1,11 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.json.JsonpMappingException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import jakarta.json.JsonException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
@@ -128,7 +130,7 @@ public class BatchSearchRunner implements Callable<Integer>, Monitorable, UserTa
         } catch (ElasticsearchException esEx) {
             throw new SearchException(query,
                     new ElasticSearchAdapterException(esEx.response().error().rootCause().stream().findFirst().orElse(esEx.error()).reason()));
-        } catch (IOException|InterruptedException ex) {
+        } catch (IOException | InterruptedException | JsonException ex) {
             throw new SearchException(query, ex);
         }
         logger.info("done batch search {} with success", batchSearch.uuid);

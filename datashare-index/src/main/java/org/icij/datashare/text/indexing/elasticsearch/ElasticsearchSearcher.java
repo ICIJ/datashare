@@ -9,8 +9,10 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.ResponseBody;
+import co.elastic.clients.json.JsonpMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.json.JsonException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
@@ -93,7 +95,7 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         return scroll(createScrollQuery().withDuration(duration).withStringQuery(stringQuery).withSlices(0,0).build());
     }
 
-    protected BoolQuery.Builder getBoolQueryBuilder(String query) {
+    protected BoolQuery.Builder getBoolQueryBuilder(String query) throws JsonException {
         return new BoolQuery.Builder().must(m -> m.withJson(new StringReader(query)));
     }
 
@@ -131,7 +133,6 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         }
         scrollId = response.scrollId();
         return resultStream(this.cls, () -> response.hits().hits().iterator());
-
     }
 
     @Override
