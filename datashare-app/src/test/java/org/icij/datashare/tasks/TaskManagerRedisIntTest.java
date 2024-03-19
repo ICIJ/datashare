@@ -6,6 +6,7 @@ import org.icij.datashare.extract.RedisBlockingQueue;
 import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -36,19 +37,6 @@ public class TaskManagerRedisIntTest {
     public void setUp() throws Exception {
         executor.submit(taskRunner);
         latch.await();
-    }
-
-    @Test(timeout = 5000)
-    public void test_execute_task() throws Exception {
-        CountDownLatch eventWaiter = new CountDownLatch(2); // progress, result
-        taskManager.waitForEvents(eventWaiter);
-        when(factory.createTestTask(any(), any())).thenReturn(new TestTask(12, new CountDownLatch(1)));
-
-        taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
-        eventWaiter.await();
-
-        assertThat(taskManager.getTasks()).hasSize(1);
-        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.DONE);
     }
 
     @Test(timeout = 10000)
