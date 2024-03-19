@@ -139,11 +139,6 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public Map<String, Boolean> stopAllTasks(User user) {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
     public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) {
         taskQueue.add(TaskView.nullObject());
         return true;

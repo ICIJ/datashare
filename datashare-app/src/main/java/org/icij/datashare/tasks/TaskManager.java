@@ -13,12 +13,14 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static org.icij.datashare.tasks.TaskView.State.QUEUED;
+import static org.icij.datashare.tasks.TaskView.State.RUNNING;
 
 public interface TaskManager extends Closeable {
     <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) throws IOException;
     <V> TaskView<V> startTask(String id, String taskName, User user) throws IOException;
     boolean stopTask(String taskId);
-    Map<String, Boolean> stopAllTasks(User user);
     <V> TaskView<V> clearTask(String taskId);
     boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException;
     <V> TaskView<V> getTask(String taskId);
@@ -35,4 +37,10 @@ public interface TaskManager extends Closeable {
                 collect(toList());
     }
 
+    default Map<String, Boolean> stopAllTasks(User user) {
+        return getTasks().stream().
+                filter(t -> user.equals(t.getUser())).
+                filter(t -> t.getState() == RUNNING || t.getState() == QUEUED).collect(
+                        toMap(t -> t.id, t -> stopTask(t.id)));
+    }
 }

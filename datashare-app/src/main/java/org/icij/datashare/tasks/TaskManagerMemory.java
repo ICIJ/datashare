@@ -175,14 +175,6 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public Map<String, Boolean> stopAllTasks(User user) {
-        return getTasks().stream().
-                filter(t -> user.equals(t.getUser())).
-                filter(t -> t.getState() == RUNNING || t.getState() == QUEUED).collect(
-                        toMap(t -> t.id, t -> stopTask(t.id)));
-    }
-
-    @Override
     public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
         return (TaskView<V>) taskQueue.poll(timeOut, timeUnit);
     }

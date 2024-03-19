@@ -16,7 +16,6 @@ import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -24,12 +23,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Phaser;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static java.util.Optional.ofNullable;
@@ -92,11 +86,6 @@ public class TaskManagerAmqp implements TaskManager {
     @Override
     public boolean stopTask(String taskId) {
         return false;
-    }
-
-    @Override
-    public Map<String, Boolean> stopAllTasks(User user) {
-        return null;
     }
 
     @Override
