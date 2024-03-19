@@ -40,7 +40,7 @@ public class TaskManagerRedisIntTest {
 
     @Test(timeout = 5000)
     public void test_execute_task() throws Exception {
-        CountDownLatch eventWaiter = new CountDownLatch(1);
+        CountDownLatch eventWaiter = new CountDownLatch(2); // progress, result
         taskManager.waitForEvents(eventWaiter);
         when(factory.createTestTask(any(), any())).thenReturn(new TestTask(12, new CountDownLatch(1)));
 
