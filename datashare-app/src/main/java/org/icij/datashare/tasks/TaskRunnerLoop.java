@@ -2,6 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import org.icij.datashare.com.bus.amqp.CancelEvent;
+import org.icij.datashare.com.bus.amqp.CanceledEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
@@ -11,6 +12,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,6 +31,7 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
     public static final TaskView<Serializable> POISON = TaskView.nullObject();
     private final CountDownLatch waitForMainLoopCalled; // for tests only
     private final int pollTimeMillis;
+    private final ConcurrentHashMap<String, Boolean> cancelledTasks;
     private volatile boolean exitAsked = false;
     private volatile Thread loopThread;
     private volatile TaskView<?> currentTask = null;
@@ -46,14 +50,19 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
         this.taskSupplier = taskSupplier;
         this.waitForMainLoopCalled = countDownLatch;
         this.pollTimeMillis = pollTimeMillis;
+        this.cancelledTasks = new ConcurrentHashMap<>();
         Signal.handle(new Signal("TERM"), signal -> {
             exitAsked = true;
             cancel(null, true);
             ofNullable(loopThread).ifPresent(Thread::interrupt); // for interrupting poll
         });
         taskSupplier.addEventListener((event -> {
-            if (event instanceof CancelEvent) {
-                cancel(((CancelEvent)event).taskId, ((CancelEvent)event).requeue );
+            if (event instanceof CanceledEvent) {
+                cancelledTasks.remove(((CanceledEvent) event).taskId);
+            } else if (event instanceof CancelEvent) {
+                CancelEvent cancelEvent = (CancelEvent) event;
+                cancel(cancelEvent.taskId, cancelEvent.requeue );
+                cancelledTasks.put(cancelEvent.taskId, cancelEvent.requeue);
             }
         }));
     }
@@ -73,6 +82,11 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
                 currentTask = taskSupplier.get(pollTimeMillis, TimeUnit.MILLISECONDS);
 
                 if (currentTask != null && !POISON.equals(currentTask)) {
+                    if (cancelledTasks.get(currentTask.id) != null) {
+                        logger.info("not executing cancelled task {}", currentTask.id);
+                        taskSupplier.canceled(currentTask, cancelledTasks.remove(currentTask.id));
+                        continue;
+                    }
                     taskSupplier.progress(currentTask.id, 0);
                     Class<? extends Callable<R>> taskClass = (Class<? extends Callable<R>>) Class.forName(currentTask.name);
                     Method method = factory.getClass().getMethod(format("create%s", taskClass.getSimpleName()), currentTask.getClass(), BiFunction.class);
@@ -81,12 +95,11 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
                         logger.info("running task {}", currentTask);
                         currentTaskReference.set(callable);
                         taskSupplier.result(currentTask.id, ((Callable<R>) currentTaskReference.get()).call());
-                        currentTaskReference.set(null);
-                        currentTask = null;
                         nbTasks++;
                     } else {
                         logger.error("cannot run null callable for task {}", currentTask);
                     }
+                    currentTask = null;
                 }
             } catch (CancelException cex) {
                 taskSupplier.canceled(currentTask, cex.requeue);
@@ -95,6 +108,8 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
                 if (currentTask != null && !currentTask.isNull()) {
                     taskSupplier.error(currentTask.id, ex);
                 }
+            } finally {
+                currentTaskReference.set(null);
             }
         }
         logger.info("Exiting loop after {} tasks", nbTasks);

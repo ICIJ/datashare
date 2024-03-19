@@ -42,14 +42,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 @Singleton
-public class TaskManagerRedis implements TaskManager, TaskSupplier {
+public class TaskManagerRedis implements TaskManager {
+    private CountDownLatch eventLatch; // for test synchronization
     private Logger logger = LoggerFactory.getLogger(getClass());
     public static final String EVENT_CHANNEL_NAME = "EVENT";
     private final RedissonMap<String, TaskView<?>> tasks;
@@ -58,23 +61,24 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
 
     @Inject
     public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue) {
-        this(redissonClient, taskQueue, CommonMode.DS_TASK_MANAGER_MAP_NAME, true);
+        this(redissonClient, taskQueue, CommonMode.DS_TASK_MANAGER_MAP_NAME);
     }
 
-    public TaskManagerRedis(PropertiesProvider propertiesProvider, BlockingQueue<TaskView<?>> taskQueue, boolean master) {
-        this(propertiesProvider, CommonMode.DS_TASK_MANAGER_MAP_NAME, taskQueue, master);
+    public TaskManagerRedis(PropertiesProvider propertiesProvider, BlockingQueue<TaskView<?>> taskQueue) {
+        this(propertiesProvider, CommonMode.DS_TASK_MANAGER_MAP_NAME, taskQueue);
     }
 
-    TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<TaskView<?>> taskQueue, boolean master) {
-        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskQueue, taskMapName, master);
+    TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<TaskView<?>> taskQueue) {
+        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskQueue, taskMapName);
     }
 
-    TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue, String taskMapName, boolean master) {
+    TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue, String taskMapName) {
+        this.eventLatch = eventLatch;
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
         this.taskQueue = taskQueue;
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
-        if (master) addEventListener(this::handleAck);
+        addEventListener(this::handleAck);
     }
 
     @Override
@@ -123,19 +127,15 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
     public boolean stopTask(String taskId) {
         TaskView<?> taskView = tasks.get(taskId);
         if (taskView != null) {
-            switch (taskView.getState()) {
-                case QUEUED:
-                    System.out.println("remove from queue !!!" + taskId);
-                    boolean removed = taskQueue.remove(taskView);
-                    setCanceled(new CanceledEvent(taskView.id, false));
-                    return removed;
-                case RUNNING:
-                    return eventTopic.publish(new CancelEvent(taskId, false)) > 0;
-            }
+            return eventTopic.publish(new CancelEvent(taskId, false)) > 0;
         } else {
             logger.warn("unknown task id <{}> for cancel call", taskId);
         }
         return false;
+    }
+
+    public void addEventListener(Consumer<Event> callback) {
+        eventTopic.addListener(Event.class, (channelString, message) -> callback.accept(message));
     }
 
     @Override
@@ -149,39 +149,6 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
         return true;
     }
 
-    // TaskSupplier methods, should not use tasks hashmap
-    @Override
-    public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (TaskView<V>) taskQueue.poll(timeOut, timeUnit);
-    }
-
-    @Override
-    public Void progress(String taskId, double rate) {
-        eventTopic.publish(new ProgressEvent(taskId, rate));
-        return null;
-    }
-
-    @Override
-    public <V extends Serializable> void result(String taskId, V result) {
-        eventTopic.publish(new ResultEvent<>(taskId, result));
-    }
-
-    @Override
-    public void canceled(TaskView<?> task, boolean requeue) {
-        eventTopic.publish(new CanceledEvent(task.id, requeue));
-    }
-
-    @Override
-    public void error(String taskId, Throwable reason) {
-        eventTopic.publish(new ResultEvent<>(taskId, reason));
-    }
-
-    @Override
-    public void addEventListener(Consumer<Event> callback) {
-        eventTopic.addListener(Event.class, (channelString, message) -> callback.accept(message));
-    }
-    // end TaskSupplier methods. They could be extracted in a TaskSupplierRedis
-
     @Override
     public void close() throws IOException {
         logger.info("closing");
@@ -191,6 +158,10 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
         if (taskQueue instanceof RedissonBlockingQueue) {
             ((RedissonBlockingQueue<TaskView<?>>) taskQueue).delete();
         }
+    }
+
+    void waitForEvents(CountDownLatch waitForEvents) {
+        this.eventLatch = waitForEvents;
     }
 
     public void clear() {
@@ -210,13 +181,18 @@ public class TaskManagerRedis implements TaskManager, TaskSupplier {
         } else if (e instanceof ProgressEvent) {
             setProgress((ProgressEvent)e);
         }
+        ofNullable(eventLatch).ifPresent(el -> eventLatch.countDown()); // for tests
     }
 
     private <V extends Serializable> void setResult(ResultEvent<V> e) {
         logger.info("result event for {}", e.taskId);
         TaskView<?> taskView = tasks.get(e.taskId);
         if (taskView != null) {
-            taskView.setResult(e.result);
+            if (e.result instanceof Throwable) {
+                taskView.setError((Throwable) e.result);
+            } else {
+                taskView.setResult(e.result);
+            }
             save(taskView);
         }
     }

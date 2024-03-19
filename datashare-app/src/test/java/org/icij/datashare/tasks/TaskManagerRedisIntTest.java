@@ -6,7 +6,6 @@ import org.icij.datashare.extract.RedisBlockingQueue;
 import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -26,11 +25,11 @@ public class TaskManagerRedisIntTest {
     TaskFactoryForTest factory = mock(TaskFactoryForTest.class);
     PropertiesProvider propertiesProvider = new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379", "redisPoolSize", "3"));
     RedisBlockingQueue<TaskView<?>> taskQueue = new RedisBlockingQueue<>(propertiesProvider, "tasks:queue:test");
-    TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, taskQueue, true);
+    TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, taskQueue);
 
     // building a task runner loop with another instance for taskProvider and taskQueue to avoid shared reference tricks
     CountDownLatch latch = new CountDownLatch(1);
-    TaskRunnerLoop taskRunner = new TaskRunnerLoop(factory, new TaskManagerRedis(propertiesProvider, taskQueue, false), latch, 100);
+    TaskRunnerLoop taskRunner = new TaskRunnerLoop(factory, new TaskSupplierRedis(propertiesProvider, taskQueue), latch, 100);
     ExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     @Before
@@ -41,36 +40,39 @@ public class TaskManagerRedisIntTest {
 
     @Test(timeout = 5000)
     public void test_execute_task() throws Exception {
-        CountDownLatch taskWaiter = new CountDownLatch(1);
-        when(factory.createTestTask(any(), any())).thenReturn(new TestTask(12, taskWaiter));
+        CountDownLatch eventWaiter = new CountDownLatch(1);
+        taskManager.waitForEvents(eventWaiter);
+        when(factory.createTestTask(any(), any())).thenReturn(new TestTask(12, new CountDownLatch(1)));
 
         taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
-        taskWaiter.await();
+        eventWaiter.await();
 
         assertThat(taskManager.getTasks()).hasSize(1);
-        // WARN this could lead to flaky test results.
-        // How could we wait for the redis server state to be read from java taskManager instance ?
-        Thread.sleep(100);
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.DONE);
     }
 
     @Test(timeout = 10000)
     public void test_stop_running_task() throws Exception {
         CountDownLatch taskWaiter = new CountDownLatch(1);
+        CountDownLatch eventWaiter = new CountDownLatch(3); // progress, cancel, cancelled
+        taskManager.waitForEvents(eventWaiter);
         when(factory.createSleepingTask(any(), any())).thenReturn(new SleepingTask(5000, taskWaiter));
         TaskView<Integer> taskView = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
 
         taskWaiter.await();
         taskManager.stopTask(taskView.id);
+        eventWaiter.await();
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);
     }
 
     @Test(timeout = 10000)
-    @Ignore
     public void test_stop_queued_task() throws Exception {
         CountDownLatch taskWaiter = new CountDownLatch(1);
+        CountDownLatch eventWaiter = new CountDownLatch(5); // 1 progress, 2 cancel, 2 cancelled
+        taskManager.waitForEvents(eventWaiter);
+
         when(factory.createSleepingTask(any(), any())).thenReturn(new SleepingTask(5000, taskWaiter));
         TaskView<Integer> tv1 = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
         TaskView<Integer> tv2 = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
@@ -78,6 +80,7 @@ public class TaskManagerRedisIntTest {
         taskWaiter.await();
         taskManager.stopTask(tv2.id);
         taskManager.stopTask(tv1.id);
+        eventWaiter.await();
 
         assertThat(taskManager.getTasks()).hasSize(2);
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);
@@ -86,6 +89,7 @@ public class TaskManagerRedisIntTest {
 
     @After
     public void tearDown() throws Exception {
+        taskManager.clear();
         taskManager.close();
         taskRunner.close();
         executor.shutdownNow();

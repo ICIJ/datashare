@@ -43,6 +43,7 @@ import org.icij.datashare.tasks.TaskManagerRedis;
 import org.icij.datashare.tasks.TaskModifier;
 import org.icij.datashare.tasks.TaskSupplier;
 import org.icij.datashare.tasks.TaskSupplierAmqp;
+import org.icij.datashare.tasks.TaskSupplierRedis;
 import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
@@ -155,8 +156,8 @@ public abstract class CommonMode extends AbstractModule {
             case REDIS:
                 configureBatchQueuesRedis(redissonClient);
                 bind(TaskManager.class).to(TaskManagerRedis.class);
-                bind(TaskModifier.class).to(TaskManagerRedis.class);
-                bind(TaskSupplier.class).to(TaskManagerRedis.class);
+                bind(TaskModifier.class).to(TaskSupplierRedis.class);
+                bind(TaskSupplier.class).to(TaskSupplierRedis.class);
                 break;
             case AMQP:
                 configureBatchQueuesRedis(redissonClient);
