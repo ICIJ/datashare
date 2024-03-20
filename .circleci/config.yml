@@ -24,6 +24,12 @@ jobs:
           POSTGRES_USER: dstest
           POSTGRES_PASSWORD: test
           POSTGRES_DB: dstest
+      - image: rabbitmq:3
+        name: rabbitmq
+        environment:
+          RABBITMQ_DEFAULT_USER: admin
+          RABBITMQ_DEFAULT_PASS: admin
+
 
     working_directory: /tmp/datashare
 
