@@ -64,8 +64,7 @@ public class TaskManagerAmqp implements TaskManager {
                 ofNullable(eventCallback).ifPresent(Runnable::run);
             }
 
-        }, AmqpQueue.EVENT, TaskEvent.class);
-        eventConsumer.consumeEvents();
+        }, AmqpQueue.EVENT, TaskEvent.class).consumeEvents();
 
         resultConsumer = new AmqpConsumer<>(amqp, event -> {
             TaskView<? extends Serializable> taskView = (TaskView<? extends Serializable>) tasks.get(event.taskId);
@@ -78,8 +77,7 @@ public class TaskManagerAmqp implements TaskManager {
                 tasks.put(event.taskId, taskView);
             }
             ofNullable(eventCallback).ifPresent(Runnable::run);
-        }, AmqpQueue.TASK_RESULT, (Class<ResultEvent<? extends Serializable>>) (Class<?>) ResultEvent.class);
-        resultConsumer.consumeEvents();
+        }, AmqpQueue.TASK_RESULT, (Class<ResultEvent<? extends Serializable>>) (Class<?>) ResultEvent.class).consumeEvents();
     }
 
     @Override

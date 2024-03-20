@@ -38,11 +38,8 @@ public class TaskSupplierAmqp implements TaskSupplier {
             if (!taskViewEvents.offer(event)) {
                 throw new SupplierBufferingException();
             }
-        }, AmqpQueue.TASK, TaskViewEvent.class);
-        consumer.consumeEvents();
-
-        eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.EVENT, TaskEvent.class);
-        eventConsumer.consumeEvents();
+        }, AmqpQueue.TASK, TaskViewEvent.class).consumeEvents();
+        eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.EVENT, TaskEvent.class).consumeEvents();
     }
 
     @Override
