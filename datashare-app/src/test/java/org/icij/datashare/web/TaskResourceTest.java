@@ -407,11 +407,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(mock(EnqueueFromIndexTask.class));
         when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
         when(taskFactory.createTestTask(any(), any())).thenReturn(new TestTask(10));
-        when(taskFactory.createSleepingTask(any(), any())).thenReturn(new TestSleepingTask(10000));
+        when(taskFactory.createTestSleepingTask(any(), any())).thenReturn(new TestSleepingTask(10000));
     }
 
     public interface TaskFactoryForTest extends TaskFactory {
-        TestSleepingTask createSleepingTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
+        TestSleepingTask createTestSleepingTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
         TestTask createTestTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
     }
 }
