@@ -13,16 +13,19 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import static java.lang.Integer.parseInt;
-import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static org.icij.datashare.tasks.TaskView.State.RUNNING;
 
 @Singleton
@@ -192,6 +195,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         return executedTasks.get();
     }
 
+    @Override
     public void clear() {
         executedTasks.set(0);
         taskQueue.clear();

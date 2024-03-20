@@ -154,7 +154,8 @@ public class TaskManagerAmqp implements TaskManager {
         eventConsumer.cancel();
     }
 
-    void clear() {
+    @Override
+    public void clear() {
         tasks.clear();
     }
 }

@@ -155,6 +155,7 @@ public class TaskManagerRedis implements TaskManager {
         }
     }
 
+    @Override
     public void clear() {
         tasks.clear();
         taskQueue.clear();

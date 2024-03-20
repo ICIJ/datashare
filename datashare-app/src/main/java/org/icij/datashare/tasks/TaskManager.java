@@ -29,6 +29,7 @@ public interface TaskManager extends Closeable {
     // do we need getResult(taskId) getError(taskId) ?
     // to avoid serializing/deserializing heavy results objects
     List<TaskView<?>> clearDoneTasks();
+    void clear();
 
     static List<TaskView<?>> getTasks(Stream<TaskView<?>> stream, User user, Pattern pattern) {
         return stream.
