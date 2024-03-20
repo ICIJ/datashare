@@ -5,7 +5,6 @@ import org.icij.datashare.user.User;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +45,7 @@ public class TaskViewTest {
     public void test_progress() {
         TaskView<Object> taskView = new TaskView<>("name", User.local(), new HashMap<>());
         assertThat(taskView.getProgress()).isEqualTo(0);
-        assertThat(taskView.getState()).isEqualTo(TaskView.State.INIT);
+        assertThat(taskView.getState()).isEqualTo(TaskView.State.CREATED);
 
         taskView.setProgress(0.0);
         assertThat(taskView.getState()).isEqualTo(TaskView.State.RUNNING);
@@ -65,7 +64,7 @@ public class TaskViewTest {
     @Test
     public void test_json_deserialize() throws Exception {
         String json = "{\"id\":\"d605de70-dc8d-429f-8b22-1cc3e9157756\"," +
-                "\"name\":\"org.icij.datashare.tasks.BatchDownloadRunner\",\"state\":\"INIT\"," +
+                "\"name\":\"org.icij.datashare.tasks.BatchDownloadRunner\",\"state\":\"CREATED\"," +
                 "\"progress\":0.0,\"user\":{\"id\":\"local\",\"name\":null,\"email\":null," +
                 "\"provider\":\"local\"},\"properties\":" +
                 "{\"batchDownload\":{\"uuid\":\"6dead06a-96bd-441b-aa86-76ba0532e71f\"," +

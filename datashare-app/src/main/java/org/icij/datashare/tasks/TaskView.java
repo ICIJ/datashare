@@ -4,11 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import liquibase.pro.packaged.S;
 import org.icij.datashare.Entity;
 import org.icij.datashare.user.User;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -16,8 +14,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Optional.ofNullable;
@@ -30,7 +26,7 @@ import static org.icij.datashare.tasks.TaskView.State.RUNNING;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> implements Entity {
 
-    public enum State {INIT, QUEUED, RUNNING, ERROR, DONE, CANCELLED}
+    public enum State {CREATED, QUEUED, RUNNING, ERROR, DONE, CANCELLED}
     public final Map<String, Object> properties;
 
     public final String id;
@@ -50,7 +46,7 @@ public class TaskView<V> implements Entity {
         this(id, name, user, new HashMap<>());
     }
     public TaskView(String id, String name, User user, Map<String, Object> properties) {
-        this(id, name, State.INIT, 0, user, null, properties);
+        this(id, name, State.CREATED, 0, user, null, properties);
     }
 
     @JsonCreator
@@ -155,6 +151,6 @@ public class TaskView<V> implements Entity {
     @Override
     public String getId() {return id;}
     public static TaskView<Serializable> nullObject() {
-        return new TaskView<>(null, null, State.INIT, 0, User.nullUser(), null, new HashMap<>());
+        return new TaskView<>(null, null, State.CREATED, 0, User.nullUser(), null, new HashMap<>());
     }
 }
