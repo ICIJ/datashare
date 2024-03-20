@@ -29,11 +29,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.function.BiFunction;
 
 import static java.lang.String.format;
-import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -333,7 +331,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_cannot_clean_running_task() {
-        TaskView<String> dummyTask = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<String> dummyTask = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
         assertThat(taskManager.getTask(dummyTask.id).getState()).isEqualTo(TaskView.State.QUEUED);
         delete("/api/task/clean/" + dummyTask.id).should().respond(403);
         assertThat(taskManager.getTasks()).hasSize(1);
@@ -343,7 +341,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_task() {
-        TaskView<String> dummyTask = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<String> dummyTask = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
         put("/api/task/stop/" + dummyTask.id).should().respond(200).contain("true");
 
         assertThat(taskManager.getTask(dummyTask.id).getState()).isEqualTo(TaskView.State.CANCELLED);
@@ -357,8 +355,8 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
 
     @Test
     public void test_stop_all() {
-        TaskView<String> t1 = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
-        TaskView<String> t2 = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<String> t1 = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<String> t2 = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
         put("/api/task/stopAll").should().respond(200).
                 contain(t1.id + "\":true").
                 contain(t2.id + "\":true");
@@ -409,41 +407,11 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(mock(EnqueueFromIndexTask.class));
         when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
         when(taskFactory.createTestTask(any(), any())).thenReturn(new TestTask(10));
-        when(taskFactory.createSleepingTask(any(), any())).thenReturn(new SleepingTask(10000));
-    }
-
-    public static class TestTask implements Callable<Integer> {
-        protected final int duration;
-        public TestTask(int duration) {this.duration = duration;}
-
-        @Override
-        public Integer call() throws Exception {
-            return duration;
-        }
-    }
-    public static class SleepingTask extends TestTask implements CancellableCallable<Integer> {
-        private Thread callThread;
-        public SleepingTask(int duration) {
-            super(duration);
-        }
-        @Override
-        public Integer call() throws Exception {
-            callThread = Thread.currentThread();
-            try {
-                Thread.sleep(duration);
-            } catch (InterruptedException iex) {
-                throw new CancelException(null);
-            }
-            return duration;
-        }
-        @Override
-        public void cancel(String taskId, boolean requeue) {
-            ofNullable(callThread).ifPresent(Thread::interrupt);
-        }
+        when(taskFactory.createSleepingTask(any(), any())).thenReturn(new TestSleepingTask(10000));
     }
 
     public interface TaskFactoryForTest extends TaskFactory {
-        SleepingTask createSleepingTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
+        TestSleepingTask createSleepingTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
         TestTask createTestTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
     }
 }

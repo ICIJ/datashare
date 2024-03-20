@@ -52,8 +52,8 @@ import static java.util.stream.Collectors.toList;
 
 @Singleton
 public class TaskManagerRedis implements TaskManager {
-    private CountDownLatch eventLatch; // for test synchronization
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Runnable eventCallback; // for test
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String EVENT_CHANNEL_NAME = "EVENT";
     private final RedissonMap<String, TaskView<?>> tasks;
     private final BlockingQueue<TaskView<?>> taskQueue;
@@ -61,24 +61,24 @@ public class TaskManagerRedis implements TaskManager {
 
     @Inject
     public TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue) {
-        this(redissonClient, taskQueue, CommonMode.DS_TASK_MANAGER_MAP_NAME);
+        this(redissonClient, taskQueue, CommonMode.DS_TASK_MANAGER_MAP_NAME, null);
     }
 
     public TaskManagerRedis(PropertiesProvider propertiesProvider, BlockingQueue<TaskView<?>> taskQueue) {
-        this(propertiesProvider, CommonMode.DS_TASK_MANAGER_MAP_NAME, taskQueue);
+        this(propertiesProvider, CommonMode.DS_TASK_MANAGER_MAP_NAME, taskQueue, null);
     }
 
-    TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<TaskView<?>> taskQueue) {
-        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskQueue, taskMapName);
+    TaskManagerRedis(PropertiesProvider propertiesProvider, String taskMapName, BlockingQueue<TaskView<?>> taskQueue, Runnable eventCallback) {
+        this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), taskQueue, taskMapName, eventCallback);
     }
 
-    TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue, String taskMapName) {
-        this.eventLatch = eventLatch;
+    TaskManagerRedis(RedissonClient redissonClient, BlockingQueue<TaskView<?>> taskQueue, String taskMapName, Runnable eventCallback) {
         CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
         this.taskQueue = taskQueue;
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
         addEventListener(this::handleAck);
+        this.eventCallback = eventCallback;
     }
 
     @Override
@@ -155,10 +155,6 @@ public class TaskManagerRedis implements TaskManager {
         }
     }
 
-    void waitForEvents(CountDownLatch waitForEvents) {
-        this.eventLatch = waitForEvents;
-    }
-
     public void clear() {
         tasks.clear();
         taskQueue.clear();
@@ -176,7 +172,7 @@ public class TaskManagerRedis implements TaskManager {
         } else if (e instanceof ProgressEvent) {
             setProgress((ProgressEvent)e);
         }
-        ofNullable(eventLatch).ifPresent(el -> eventLatch.countDown()); // for tests
+        ofNullable(eventCallback).ifPresent(Runnable::run);
     }
 
     private <V extends Serializable> void setResult(ResultEvent<V> e) {

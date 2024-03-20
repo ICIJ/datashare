@@ -23,7 +23,9 @@ public class TaskManagerRedisTest {
         put("redisAddress", "redis://redis:6379");
     }});
     private final BlockingQueue<TaskView<?>> batchDownloadQueue = new LinkedBlockingQueue<>();
-    private final TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, "test:task:manager", batchDownloadQueue);
+    private final TaskManagerRedis taskManager = new TaskManagerRedis(propertiesProvider, "test:task:manager", batchDownloadQueue, this::callback);
+    private final CountDownLatch waitForEvent = new CountDownLatch(1); // result event
+
     private final TaskSupplierRedis taskSupplier = new TaskSupplierRedis(propertiesProvider, batchDownloadQueue);
 
     @Test
@@ -50,14 +52,12 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_done_tasks() throws Exception {
-        CountDownLatch waitForEvents = new CountDownLatch(1); // result
-        taskManager.waitForEvents(waitForEvents);
         TaskView<Integer> taskView = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
 
         assertThat(taskManager.getTasks()).hasSize(1);
 
         taskSupplier.result(taskView.id, 12);
-        assertThat(waitForEvents.await(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.DONE);
         assertThat(taskManager.clearDoneTasks()).hasSize(1);
@@ -66,13 +66,11 @@ public class TaskManagerRedisTest {
 
     @Test
     public void test_clear_task_among_two_tasks() throws Exception {
-        CountDownLatch waitForEvents = new CountDownLatch(1);
-        taskManager.waitForEvents(waitForEvents);
         TaskView<Integer> taskView1 = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
         TaskView<Integer> taskView2 = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
 
         taskSupplier.result(taskView1.id, 123);
-        assertThat(waitForEvents.await(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(waitForEvent.await(1, TimeUnit.SECONDS)).isTrue();
 
         assertThat(taskManager.getTasks()).hasSize(2);
         TaskView<?> clearedTask = taskManager.clearTask(taskView1.id);
@@ -82,15 +80,12 @@ public class TaskManagerRedisTest {
         assertThat(taskView1.id).isEqualTo(clearedTask.id);
     }
 
+    private void callback() {
+        waitForEvent.countDown();
+    }
+
     @After
     public void tearDown() throws Exception {
         taskManager.clear();
-    }
-
-    static class TestTask implements CancellableCallable<Integer> {
-        @Override
-        public void cancel(String taskId, boolean requeue) {}
-        @Override
-        public Integer call() throws Exception {return 0;}
     }
 }

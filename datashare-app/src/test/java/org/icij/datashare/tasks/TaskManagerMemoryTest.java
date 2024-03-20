@@ -22,7 +22,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
-import static java.util.Optional.ofNullable;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -59,7 +58,7 @@ public class TaskManagerMemoryTest {
     @Test
     public void test_run_task() throws InterruptedException {
         TaskView<Integer> task = new TaskView<>(TestTask.class.getName(), User.local(), Map.of("intParameter", 12));
-        when(factory.createTestTask(eq(task), any())).thenReturn(new TestTask(task));
+        when(factory.createTestTask(eq(task), any())).thenReturn(new TestTask(12));
 
         TaskView<Integer> t = taskManager.startTask(task);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
@@ -71,9 +70,9 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_stop_current_task() throws InterruptedException {
-        TaskView<Integer> task = new TaskView<>(SleepingTestTask.class.getName(), User.local(), Map.of("intParameter", 2000));
-        SleepingTestTask c = new SleepingTestTask(task);
-        when(factory.createSleepingTestTask(eq(task), any())).thenReturn(c);
+        TaskView<Integer> task = new TaskView<>(TestSleepingTask.class.getName(), User.local(), Map.of("intParameter", 2000));
+        TestSleepingTask c = new TestSleepingTask(2000);
+        when(factory.createTestSleepingTask(eq(task), any())).thenReturn(c);
 
         TaskView<Integer> t = taskManager.startTask(task);
         c.awaitToBeStarted();
@@ -86,11 +85,11 @@ public class TaskManagerMemoryTest {
 
     @Test
     public void test_stop_queued_task() throws InterruptedException {
-        TaskView<Integer> t1 = new TaskView<>(SleepingTestTask.class.getName(), User.local(), Map.of("intParameter", 2000));
-        TaskView<Integer> t2 = new TaskView<>(SleepingTestTask.class.getName(), User.local(), Map.of("intParameter", 2000));
-        SleepingTestTask c1 = new SleepingTestTask(t1);
-        when(factory.createSleepingTestTask(eq(t1), any())).thenReturn(c1);
-        when(factory.createSleepingTestTask(eq(t2), any())).thenReturn(new SleepingTestTask(t2));
+        TaskView<Integer> t1 = new TaskView<>(TestSleepingTask.class.getName(), User.local(), Map.of("intParameter", 2000));
+        TaskView<Integer> t2 = new TaskView<>(TestSleepingTask.class.getName(), User.local(), Map.of("intParameter", 2000));
+        TestSleepingTask c1 = new TestSleepingTask(2000);
+        when(factory.createTestSleepingTask(eq(t1), any())).thenReturn(c1);
+        when(factory.createTestSleepingTask(eq(t2), any())).thenReturn(new TestSleepingTask(2000));
         taskManager.startTask(t1);
         taskManager.startTask(t2);
 
@@ -107,7 +106,7 @@ public class TaskManagerMemoryTest {
     @Test
     public void test_clear_the_only_task() throws InterruptedException {
         TaskView<Integer> task = new TaskView<>(TestTask.class.getName(), User.local(), Map.of("intParameter", 12));
-        when(factory.createTestTask(eq(task), any())).thenReturn(new TestTask(task));
+        when(factory.createTestTask(eq(task), any())).thenReturn(new TestTask(12));
         taskManager.startTask(task);
         taskManager.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
         assertThat(taskManager.getTasks()).hasSize(1);
@@ -139,53 +138,6 @@ public class TaskManagerMemoryTest {
 
     public interface TestFactory extends TaskFactory {
         TestTask createTestTask(TaskView<Integer> taskView, BiFunction<String, Double, Void> updateFunction);
-        SleepingTestTask createSleepingTestTask(TaskView<Integer> taskView, BiFunction<String, Double, Void> updateFunction);
-    }
-
-    public static class TestTask implements CancellableCallable<Integer> {
-        protected final int intParameter;
-        protected volatile String cancelTaskId = null;
-        protected volatile Thread taskThread;
-        private final CountDownLatch waitForTask = new CountDownLatch(1);
-
-        public TestTask(TaskView<Integer> tv) {
-            this.intParameter = (int) tv.properties.get("intParameter");
-        }
-
-        @Override
-        public Integer call() throws Exception {
-            waitForTask.countDown();
-            taskThread = Thread.currentThread();
-            ofNullable(cancelTaskId).ifPresent(CancelException::new);
-            return intParameter;
-        }
-
-        @Override
-        public void cancel(String taskId, boolean requeue) {
-            cancelTaskId = taskId;
-            taskThread.interrupt();
-        }
-
-        public void awaitToBeStarted() throws InterruptedException {
-            waitForTask.await();
-        }
-    }
-
-    public static class SleepingTestTask extends TestTask {
-
-        public SleepingTestTask(TaskView<Integer> tv) {
-            super(tv);
-        }
-
-        @Override
-        public Integer call() throws Exception {
-            Integer result = super.call();
-            try {
-                Thread.sleep(intParameter);
-            } catch (InterruptedException iex) {
-                throw new CancelException(cancelTaskId);
-            }
-            return result;
-        }
+        TestSleepingTask createTestSleepingTask(TaskView<Integer> taskView, BiFunction<String, Double, Void> updateFunction);
     }
 }

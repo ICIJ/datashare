@@ -4,6 +4,7 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.com.bus.amqp.AmqpQueue;
+import org.icij.datashare.com.bus.amqp.AmqpServerRule;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -11,6 +12,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -27,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TaskManagerAmqpIntTest {
+    @ClassRule static public AmqpServerRule qpid = new AmqpServerRule(5672);
     private static AmqpInterlocutor AMQP;
     TaskFactoryForTest factory = mock(TaskFactoryForTest.class);
     TaskManagerAmqp taskManager;
@@ -44,11 +47,11 @@ public class TaskManagerAmqpIntTest {
                 new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider().getProperties())).create(),
                 eventWaiter::countDown);
 
-        CountDownLatch taskWaiter = new CountDownLatch(1);
-        when(factory.createSleepingTask(any(), any())).thenReturn(new SleepingTask(5000, taskWaiter));
-        TaskView<Integer> taskView = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
+        TestSleepingTask sleepingTask = new TestSleepingTask(5000);
+        when(factory.createTestSleepingTask(any(), any())).thenReturn(sleepingTask);
+        TaskView<Integer> taskView = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
 
-        taskWaiter.await();
+        sleepingTask.awaitToBeStarted();
         taskManager.stopTask(taskView.id);
         eventWaiter.await();
 
@@ -63,12 +66,12 @@ public class TaskManagerAmqpIntTest {
                 new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider().getProperties())).create(),
                 eventWaiter::countDown);
 
-        CountDownLatch taskWaiter = new CountDownLatch(1);
-        when(factory.createSleepingTask(any(), any())).thenReturn(new SleepingTask(5000, taskWaiter));
-        TaskView<Integer> tv1 = taskManager.startTask(TaskManagerRedisIntTest.SleepingTask.class.getName(), User.local(), new HashMap<>());
-        TaskView<Integer> tv2 = taskManager.startTask(TaskManagerRedisIntTest.SleepingTask.class.getName(), User.local(), new HashMap<>());
+        TestSleepingTask sleepingTask = new TestSleepingTask(5000);
+        when(factory.createTestSleepingTask(any(), any())).thenReturn(sleepingTask);
+        TaskView<Integer> tv1 = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<Integer> tv2 = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
 
-        taskWaiter.await();
+        sleepingTask.awaitToBeStarted();
         taskManager.stopTask(tv2.id);
         taskManager.stopTask(tv1.id);
         eventWaiter.await();
@@ -95,14 +98,13 @@ public class TaskManagerAmqpIntTest {
     }
 
     public interface TaskFactoryForTest extends TaskFactory {
-        TestTask createTestTask(TaskView<Integer> taskView, BiFunction<String, Double, Void> updateCallback);
-        SleepingTask createSleepingTask(TaskView<Integer> taskView, BiFunction<String, Double, Void> updateCallback);
+        TestSleepingTask createTestSleepingTask(TaskView<Integer> taskView, BiFunction<String, Double, Void> updateCallback);
     }
 
     @BeforeClass
     public static void beforeClass() throws Exception {
         AMQP = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
-            put("messageBusAddress", "amqp://admin:admin@rabbitmq");
+            put("messageBusAddress", "amqp://admin:admin@localhost?deadLetter=false");
         }}));
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK_RESULT);
@@ -112,45 +114,5 @@ public class TaskManagerAmqpIntTest {
     @AfterClass
     public static void afterClass() throws Exception {
         AMQP.close();
-    }
-
-    public static class TestTask implements CancellableCallable<Integer> {
-        private final int value;
-        private final CountDownLatch waiter;
-        private Thread callThread;
-
-        public TestTask(int value, CountDownLatch waiter) {
-            this.value = value;
-            this.waiter = waiter;
-        }
-
-        @Override
-        public Integer call() throws Exception {
-            callThread = Thread.currentThread();
-            waiter.countDown();
-            return value;
-        }
-
-        @Override
-        public void cancel(String taskId, boolean requeue) {
-            callThread.interrupt();
-        }
-    }
-
-    public static class SleepingTask extends TestTask {
-        public SleepingTask(int value, CountDownLatch waiter) {
-            super(value, waiter);
-        }
-
-        @Override
-        public Integer call() throws Exception {
-            int ret = super.call();
-            try {
-                Thread.sleep(ret);
-                return ret;
-            } catch (InterruptedException iex) {
-                throw new CancelException(null);
-            }
-        }
     }
 }

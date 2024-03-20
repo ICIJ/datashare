@@ -130,6 +130,7 @@ public class TaskManagerAmqpTest {
 
     @After
     public void tearDown() throws Exception {
+        taskManager.clear();
         taskManager.stopAllTasks(User.local());
         taskSupplier.close();
         taskManager.close();
