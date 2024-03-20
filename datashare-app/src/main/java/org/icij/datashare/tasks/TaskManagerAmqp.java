@@ -5,9 +5,11 @@ import com.google.inject.Singleton;
 import org.icij.datashare.com.bus.amqp.AmqpConsumer;
 import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.com.bus.amqp.AmqpQueue;
-import org.icij.datashare.com.bus.amqp.EventSaver;
+import org.icij.datashare.com.bus.amqp.CancelEvent;
+import org.icij.datashare.com.bus.amqp.CanceledEvent;
 import org.icij.datashare.com.bus.amqp.ProgressEvent;
 import org.icij.datashare.com.bus.amqp.ResultEvent;
+import org.icij.datashare.com.bus.amqp.TaskEvent;
 import org.icij.datashare.com.bus.amqp.TaskViewEvent;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.user.User;
@@ -16,6 +18,8 @@ import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -24,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static java.util.Optional.ofNullable;
@@ -31,10 +36,11 @@ import static java.util.stream.Collectors.toList;
 
 @Singleton
 public class TaskManagerAmqp implements TaskManager {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Map<String, TaskView<?>> tasks;
     private final AmqpInterlocutor amqp;
-    private final AmqpConsumer<ProgressEvent, EventSaver<ProgressEvent>> eventConsumer;
-    private final AmqpConsumer<ResultEvent<? extends Serializable>, EventSaver<ResultEvent<? extends Serializable>>> resultConsumer;
+    private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
+    private final AmqpConsumer<ResultEvent<? extends Serializable>, Consumer<ResultEvent<? extends Serializable>>> resultConsumer;
 
     @Inject
     public TaskManagerAmqp(AmqpInterlocutor amqp, RedissonClient redissonClient) throws IOException {
@@ -48,10 +54,16 @@ public class TaskManagerAmqp implements TaskManager {
 
         eventConsumer = new AmqpConsumer<>(amqp, event -> {
             TaskView<?> taskView = tasks.get(event.taskId);
-            taskView.setProgress(event.rate);
-            tasks.put(event.taskId, taskView);
+            if (taskView != null) {
+                if (event instanceof ProgressEvent) {
+                    taskView.setProgress(((ProgressEvent) event).rate);
+                } else if (event instanceof CanceledEvent) {
+                    taskView.cancel();
+                }
+                tasks.put(event.taskId, taskView);
+            }
             ofNullable(eventCallback).ifPresent(Runnable::run);
-        }, AmqpQueue.EVENT, ProgressEvent.class);
+        }, AmqpQueue.EVENT, TaskEvent.class);
         eventConsumer.consumeEvents();
 
         resultConsumer = new AmqpConsumer<>(amqp, event -> {
@@ -85,7 +97,18 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public boolean stopTask(String taskId) {
-        return false;
+        TaskView<?> taskView = tasks.get(taskId);
+        if (taskView != null) {
+            try {
+                amqp.publish(AmqpQueue.EVENT, new CancelEvent(taskId, false));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return true;
+        } else {
+            logger.warn("unknown task id <{}> for cancel call", taskId);
+            return false;
+        }
     }
 
     @Override
@@ -126,5 +149,9 @@ public class TaskManagerAmqp implements TaskManager {
         clearDoneTasks();
         resultConsumer.cancel();
         eventConsumer.cancel();
+    }
+
+    void clear() {
+        tasks.clear();
     }
 }

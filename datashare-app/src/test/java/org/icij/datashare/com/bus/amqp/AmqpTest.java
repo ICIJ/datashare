@@ -14,7 +14,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -32,7 +32,7 @@ public class AmqpTest {
 
     @Test
     public void test_publish_receive() throws Exception {
-        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
+        AmqpConsumer<TestEvent, TestEventConsumer> consumer = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class);
         consumer.consumeEvents();
 
         amqp.publish(AmqpQueue.EVENT, new TestEvent("hello AMQP"));
@@ -44,7 +44,7 @@ public class AmqpTest {
     @Test
     public void test_publish_receive_throwable() throws Exception {
         BlockingQueue<TestErrorEvent> errorEventQueue = new LinkedBlockingQueue<>();
-        AmqpConsumer<TestErrorEvent, EventSaver<TestErrorEvent>> consumer = new AmqpConsumer<>(amqp, errorEventQueue::add, AmqpQueue.EVENT, TestErrorEvent.class);
+        AmqpConsumer<TestErrorEvent, Consumer<TestErrorEvent>> consumer = new AmqpConsumer<>(amqp, errorEventQueue::add, AmqpQueue.EVENT, TestErrorEvent.class);
         consumer.consumeEvents();
 
         amqp.publish(AmqpQueue.EVENT, new TestErrorEvent(new RuntimeException("my error")));
@@ -58,7 +58,7 @@ public class AmqpTest {
 
     @Test(timeout = 2000)
     public void test_publish_receive_2_events() throws Exception {
-        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
+        AmqpConsumer<TestEvent, TestEventConsumer> consumer = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class );
         consumer.consumeEvents(2);
 
         amqp.publish(AmqpQueue.EVENT, new TestEvent("hello 1"));
@@ -72,8 +72,8 @@ public class AmqpTest {
 
     @Test(timeout = 2000)
     public void test_publish_fanout_exchange() throws Exception {
-        AmqpConsumer<TestEvent, TestEventSaver> consumer1 = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
-        AmqpConsumer<TestEvent, TestEventSaver> consumer2 = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class );
+        AmqpConsumer<TestEvent, TestEventConsumer> consumer1 = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class );
+        AmqpConsumer<TestEvent, TestEventConsumer> consumer2 = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class );
         consumer1.consumeEvents(1);
         consumer2.consumeEvents(1);
 
@@ -89,7 +89,7 @@ public class AmqpTest {
     @Test
     public void test_publish_with_broker_down() throws Exception {
         AmqpInterlocutor amqpInterlocutor = new AmqpInterlocutor(new Configuration("localhost", 12345, "admin", "admin", 10));
-        AmqpConsumer<TestEvent, TestEventSaver> consumer = new AmqpConsumer<>(amqp, new TestEventSaver(), AmqpQueue.EVENT, TestEvent.class);
+        AmqpConsumer<TestEvent, TestEventConsumer> consumer = new AmqpConsumer<>(amqp, new TestEventConsumer(), AmqpQueue.EVENT, TestEvent.class);
         consumer.consumeEvents();
 
         assertThat(qpid.amqpServer.shutdown());
@@ -126,9 +126,9 @@ public class AmqpTest {
         }
     }
 
-    static class TestEventSaver implements EventSaver<TestEvent> {
+    static class TestEventConsumer implements Consumer<TestEvent> {
         @Override
-        public void save(TestEvent event) {
+        public void accept(TestEvent event) {
             eventQueue.add(event);
         }
     }

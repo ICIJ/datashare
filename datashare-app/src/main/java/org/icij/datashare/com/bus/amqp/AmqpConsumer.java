@@ -7,26 +7,27 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * Class for consumer implementation. Is orchestrates the received events handling : deserialize and save.
  * @param <Evt> The event class that are going to be consumed by the consumer
- * @param <EvtSaver> The class for handling the received event class
+ * @param <EvtConsumer> The class for handling the received event class
  */
-public class AmqpConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> implements Deserializer<Evt> {
+public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> implements Deserializer<Evt> {
 	private static final ObjectMapper jsonMapper = JsonObjectMapper.createTypeInclusionMapper();
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	protected final AmqpInterlocutor amqpInterlocutor;
-	public final EvtSaver eventSaver;
+	public final EvtConsumer eventConsumer;
 	private final AmqpChannel channel;
 	private final AtomicReference<String> consumerTag = new AtomicReference<>();
 	private final Class<Evt> evtClass;
 
 	public AmqpConsumer(AmqpInterlocutor amqpInterlocutor,
-						   EvtSaver eventSaver, AmqpQueue queue, Class<Evt> evtClass) throws IOException {
+						EvtConsumer eventConsumer, AmqpQueue queue, Class<Evt> evtClass) throws IOException {
 		this.amqpInterlocutor = amqpInterlocutor;
-		this.eventSaver = eventSaver;
+		this.eventConsumer = eventConsumer;
 		this.channel = amqpInterlocutor.createAmqpChannelForConsume(queue);
 		this.evtClass = evtClass;
 	}
@@ -36,7 +37,7 @@ public class AmqpConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> i
 	public void consumeEvents(int nb) {
 		launchConsumer(channel, AmqpConsumer.this::handle, nb);}
 
-	void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, final int nbEventsToConsume) {
+	void launchConsumer(AmqpChannel channel, Consumer<Evt> eventHandler, final int nbEventsToConsume) {
 		launchConsumer(channel, eventHandler, new ConsumerCriteria() {
 			int nvReceivedEvents=0;
 			public void newEvent() { nvReceivedEvents++; }
@@ -44,17 +45,17 @@ public class AmqpConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> i
 		});
 	}
 
-	void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler) {
+	void launchConsumer(AmqpChannel channel, Consumer<Evt> eventHandler) {
 		launchConsumer(channel, eventHandler, new ConsumerCriteria() {
 			public void newEvent() {}
 			public boolean isValid() { return true; }
 		});
 	}
 
-	private void launchConsumer(AmqpChannel channel, EventHandler<Evt> eventHandler, ConsumerCriteria criteria) {
+	private void launchConsumer(AmqpChannel channel, Consumer<Evt> eventHandler, ConsumerCriteria criteria) {
 		try {
 			logger.info("starting consuming events for {}", channel);
-			consumerTag.set(channel.consume((body) -> eventHandler.handle(this.deserialize(body)), criteria, this::cancel));
+			consumerTag.set(channel.consume((body) -> eventHandler.accept(this.deserialize(body)), criteria, this::cancel));
 		} catch (IOException ioe) {
 			logger.error("exception during basicConsume", ioe);
 		}
@@ -68,13 +69,9 @@ public class AmqpConsumer<Evt extends Event, EvtSaver extends EventSaver<Evt>> i
 		return consumerTag.get() == null;
 	}
 
-	interface EventHandler<Evt extends Event> {
-		void handle(Evt receivedEvent);
-	}
-
 	void handle(Evt receivedEvent) {
 		if (receivedEvent != null) {
-			eventSaver.save(receivedEvent);
+			eventConsumer.accept(receivedEvent);
 		}
 	}
 

@@ -2,7 +2,7 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.icij.datashare.com.bus.amqp.Event;
+import org.icij.datashare.com.bus.amqp.TaskEvent;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,6 @@ import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.icij.datashare.tasks.TaskView.State.QUEUED;
 import static org.icij.datashare.tasks.TaskView.State.RUNNING;
 
 @Singleton
@@ -122,7 +121,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void addEventListener(Consumer<Event> callback) {
+    public void addEventListener(Consumer<TaskEvent> callback) {
         // no need for this we use task runner reference for stopping tasks
     }
 

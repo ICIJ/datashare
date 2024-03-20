@@ -5,6 +5,7 @@ import org.icij.datashare.com.bus.amqp.CanceledEvent;
 import org.icij.datashare.com.bus.amqp.Event;
 import org.icij.datashare.com.bus.amqp.ProgressEvent;
 import org.icij.datashare.com.bus.amqp.ResultEvent;
+import org.icij.datashare.com.bus.amqp.TaskEvent;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.redisson.api.RTopic;
@@ -60,8 +61,8 @@ public class TaskSupplierRedis implements TaskSupplier {
     }
 
     @Override
-    public void addEventListener(Consumer<Event> callback) {
-        eventTopic.addListener(Event.class, (channelString, message) -> callback.accept(message));
+    public void addEventListener(Consumer<TaskEvent> callback) {
+        eventTopic.addListener(TaskEvent.class, (channelString, message) -> callback.accept(message));
     }
     @Override
     public void close() throws IOException {

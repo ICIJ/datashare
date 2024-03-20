@@ -13,7 +13,6 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -58,7 +57,7 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
         });
         taskSupplier.addEventListener((event -> {
             if (event instanceof CanceledEvent) {
-                cancelledTasks.remove(((CanceledEvent) event).taskId);
+                cancelledTasks.remove(event.taskId);
             } else if (event instanceof CancelEvent) {
                 CancelEvent cancelEvent = (CancelEvent) event;
                 cancel(cancelEvent.taskId, cancelEvent.requeue );

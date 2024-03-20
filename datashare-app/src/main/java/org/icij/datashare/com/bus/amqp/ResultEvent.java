@@ -5,13 +5,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.Serializable;
 
-public class ResultEvent<V extends Serializable> extends Event {
+public class ResultEvent<V extends Serializable> extends TaskEvent {
     public final V result;
-    public final String taskId;
 
     @JsonCreator
     public ResultEvent(@JsonProperty("taskId") String taskId, @JsonProperty("result") V result) {
-        this.taskId = taskId;
+        super(taskId);
         this.result = result;
     }
 }

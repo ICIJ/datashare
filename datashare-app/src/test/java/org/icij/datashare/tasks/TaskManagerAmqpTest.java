@@ -8,6 +8,7 @@ import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -95,6 +96,19 @@ public class TaskManagerAmqpTest {
         assertThat(taskManager.getTask(taskView.id).error.getMessage()).isEqualTo("error in runner");
     }
 
+    @Test(timeout = 2000)
+    public void test_task_canceled() throws Exception {
+        taskManager.startTask("taskName", User.local(), new HashMap<>());
+
+        // in the task runner loop
+        TaskView<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
+        taskSupplier.canceled(taskView,false);
+
+        nextMessage.await();
+        assertThat(taskManager.getTask(taskView.id).getProgress()).isEqualTo(0.0);
+        assertThat(taskManager.getTask(taskView.id).getState()).isEqualTo(TaskView.State.CANCELLED);
+    }
+
     @BeforeClass
     public static void beforeClass() throws Exception {
         AMQP = new AmqpInterlocutor(new PropertiesProvider(new HashMap<>() {{
@@ -119,5 +133,10 @@ public class TaskManagerAmqpTest {
         taskManager.stopAllTasks(User.local());
         taskSupplier.close();
         taskManager.close();
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        AMQP.close();
     }
 }

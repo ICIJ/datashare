@@ -1,6 +1,6 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.com.bus.amqp.Event;
+import org.icij.datashare.com.bus.amqp.TaskEvent;
 
 import java.io.Closeable;
 import java.io.Serializable;
@@ -12,5 +12,5 @@ public interface TaskSupplier extends TaskModifier, Closeable {
     <V extends Serializable> void result(String taskId, V result);
     void canceled(TaskView<?> taskView, boolean requeue);
     void error(String taskId, Throwable reason);
-    void addEventListener(Consumer<Event> callback);
+    void addEventListener(Consumer<TaskEvent> callback);
 }
