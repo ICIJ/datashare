@@ -31,7 +31,6 @@ public class TaskManagerAmqpIntTest {
     TaskFactoryForTest factory = mock(TaskFactoryForTest.class);
     TaskManagerAmqp taskManager;
     TaskSupplierAmqp taskSupplier;
-    CountDownLatch eventWaiter;
 
     // building a task runner loop with another instance for taskProvider and taskQueue to avoid shared reference tricks
     CountDownLatch latch = new CountDownLatch(1);
@@ -40,6 +39,11 @@ public class TaskManagerAmqpIntTest {
 
     @Test(timeout = 10000)
     public void test_stop_running_task() throws Exception {
+        CountDownLatch eventWaiter = new CountDownLatch(3); // progress, cancel, cancelled
+        taskManager = new TaskManagerAmqp(AMQP,
+                new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider().getProperties())).create(),
+                eventWaiter::countDown);
+
         CountDownLatch taskWaiter = new CountDownLatch(1);
         when(factory.createSleepingTask(any(), any())).thenReturn(new SleepingTask(5000, taskWaiter));
         TaskView<Integer> taskView = taskManager.startTask(SleepingTask.class.getName(), User.local(), new HashMap<>());
@@ -52,12 +56,30 @@ public class TaskManagerAmqpIntTest {
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);
     }
 
-    @Before
-    public void setUp() throws IOException {
-        eventWaiter = new CountDownLatch(3); // progress, cancel, cancelled
+    @Test(timeout = 10000)
+    public void test_stop_queued_task() throws Exception {
+        CountDownLatch eventWaiter = new CountDownLatch(5); // 1 progress, 2 cancel, 2 cancelled
         taskManager = new TaskManagerAmqp(AMQP,
                 new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider().getProperties())).create(),
-                () -> eventWaiter.countDown());
+                eventWaiter::countDown);
+
+        CountDownLatch taskWaiter = new CountDownLatch(1);
+        when(factory.createSleepingTask(any(), any())).thenReturn(new SleepingTask(5000, taskWaiter));
+        TaskView<Integer> tv1 = taskManager.startTask(TaskManagerRedisIntTest.SleepingTask.class.getName(), User.local(), new HashMap<>());
+        TaskView<Integer> tv2 = taskManager.startTask(TaskManagerRedisIntTest.SleepingTask.class.getName(), User.local(), new HashMap<>());
+
+        taskWaiter.await();
+        taskManager.stopTask(tv2.id);
+        taskManager.stopTask(tv1.id);
+        eventWaiter.await();
+
+        assertThat(taskManager.getTasks()).hasSize(2);
+        assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);
+        assertThat(taskManager.getTasks().get(1).getState()).isEqualTo(TaskView.State.CANCELLED);
+    }
+
+    @Before
+    public void setUp() throws IOException {
         taskSupplier = new TaskSupplierAmqp(AMQP);
         taskRunner = new TaskRunnerLoop(factory, taskSupplier, latch, 100);
         executor.submit(taskRunner);
