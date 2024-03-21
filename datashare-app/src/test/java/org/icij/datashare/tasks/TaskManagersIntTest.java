@@ -36,7 +36,6 @@ public class TaskManagersIntTest {
     private static AmqpInterlocutor AMQP;
     private final TaskFactoryForTest factory;
     private final EventWaiter eventWaiter;
-    private final CountDownLatch taskRunnerWaiter;
     private final Creator<TaskManager> taskManagerCreator;
     private final Creator<TaskSupplier> taskSupplierCreator;
 
@@ -65,24 +64,21 @@ public class TaskManagersIntTest {
                         new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider().getProperties())).create(),
                         amqpWaiter::countDown),
                 (Creator<TaskSupplier>) () -> new TaskSupplierAmqp(AMQP),
-                new CountDownLatch(1),
                 amqpWaiter
             },
             {
                 (Creator<TaskManager>) () -> new TaskManagerRedis(propertiesProvider, "tasks:map:test", taskQueue, redisWaiter::countDown),
                 (Creator<TaskSupplier>) () -> new TaskSupplierRedis(propertiesProvider, taskQueue),
-                new CountDownLatch(1),
                 redisWaiter
             }
         });
     }
 
-    public TaskManagersIntTest(Creator<TaskManager> managerCreator, Creator<TaskSupplier> taskSupplierCreator, CountDownLatch taskRunnerWaiter, EventWaiter eventWaiter) {
+    public TaskManagersIntTest(Creator<TaskManager> managerCreator, Creator<TaskSupplier> taskSupplierCreator, EventWaiter eventWaiter) {
         this.factory = mock(TaskFactoryForTest.class);
         this.taskManagerCreator = managerCreator;
         this.taskSupplierCreator = taskSupplierCreator;
         this.eventWaiter = eventWaiter;
-        this.taskRunnerWaiter = taskRunnerWaiter;
     }
 
     @Test(timeout = 10000)
@@ -122,6 +118,7 @@ public class TaskManagersIntTest {
     @Before
     public void setUp() throws Exception {
         this.taskManager = taskManagerCreator.create();
+        CountDownLatch taskRunnerWaiter = new CountDownLatch(1);
         this.taskRunner = new TaskRunnerLoop(factory, taskSupplierCreator.create(), taskRunnerWaiter, 100);
         executor.submit(taskRunner);
         taskRunnerWaiter.await();
