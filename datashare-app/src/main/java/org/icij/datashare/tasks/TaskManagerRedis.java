@@ -11,6 +11,7 @@ import org.icij.datashare.com.bus.amqp.CanceledEvent;
 import org.icij.datashare.com.bus.amqp.Event;
 import org.icij.datashare.com.bus.amqp.ProgressEvent;
 import org.icij.datashare.com.bus.amqp.ResultEvent;
+import org.icij.datashare.com.bus.amqp.TaskEvent;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.user.User;
@@ -27,8 +28,6 @@ import org.redisson.client.protocol.Decoder;
 import org.redisson.client.protocol.Encoder;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -42,7 +41,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -53,7 +51,6 @@ import static java.util.stream.Collectors.toList;
 @Singleton
 public class TaskManagerRedis implements TaskManager {
     private final Runnable eventCallback; // for test
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     public static final String EVENT_CHANNEL_NAME = "EVENT";
     private final RedissonMap<String, TaskView<?>> tasks;
     private final BlockingQueue<TaskView<?>> taskQueue;
@@ -77,8 +74,8 @@ public class TaskManagerRedis implements TaskManager {
         this.tasks = new RedissonMap<>(new TaskViewCodec(), commandSyncService, taskMapName, redissonClient, null, null);
         this.taskQueue = taskQueue;
         this.eventTopic = redissonClient.getTopic(EVENT_CHANNEL_NAME);
-        addEventListener(this::handleAck);
         this.eventCallback = eventCallback;
+        addEventListener(this::handleEvent);
     }
 
     @Override
@@ -107,25 +104,8 @@ public class TaskManagerRedis implements TaskManager {
     }
 
     @Override
-    public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) throws IOException {
-        return startTask(new TaskView<>(taskName, user, properties));
-    }
-
-    @Override
-    public <V> TaskView<V> startTask(String id, String taskName, User user) throws IOException {
-        return startTask(new TaskView<>(id, taskName, user, new HashMap<>()));
-    }
-
-    private <V> TaskView<V> startTask(TaskView<V> taskView) throws IOException {
-        taskView.queue();
-        save(taskView);
-        taskQueue.add(taskView);
-        return taskView;
-    }
-
-    @Override
     public boolean stopTask(String taskId) {
-        TaskView<?> taskView = tasks.get(taskId);
+        TaskView<?> taskView = getTask(taskId);
         if (taskView != null) {
             return eventTopic.publish(new CancelEvent(taskId, false)) > 0;
         } else {
@@ -134,8 +114,12 @@ public class TaskManagerRedis implements TaskManager {
         return false;
     }
 
-    public void addEventListener(Consumer<Event> callback) {
-        eventTopic.addListener(Event.class, (channelString, message) -> callback.accept(message));
+    public void handleEvent(TaskEvent e) {
+        ofNullable(TaskManager.super.handleAck(e)).ifPresent(t -> ofNullable(eventCallback).ifPresent(Runnable::run));
+    }
+
+    public void addEventListener(Consumer<TaskEvent> callback) {
+        eventTopic.addListener(TaskEvent.class, (channelString, message) -> callback.accept(message));
     }
 
     @Override
@@ -161,53 +145,13 @@ public class TaskManagerRedis implements TaskManager {
         taskQueue.clear();
     }
 
-    void save(TaskView<?> task) {
+    public void save(TaskView<?> task) {
         tasks.put(task.id, task);
     }
 
-    private <V extends Serializable> void handleAck(Event e) {
-        if (e instanceof CanceledEvent) {
-            setCanceled(((CanceledEvent) e));
-        } else if (e instanceof ResultEvent) {
-            setResult(((ResultEvent<V>) e));
-        } else if (e instanceof ProgressEvent) {
-            setProgress((ProgressEvent)e);
-        }
-        ofNullable(eventCallback).ifPresent(Runnable::run);
-    }
-
-    private <V extends Serializable> void setResult(ResultEvent<V> e) {
-        logger.info("result event for {}", e.taskId);
-        TaskView<?> taskView = tasks.get(e.taskId);
-        if (taskView != null) {
-            if (e.result instanceof Throwable) {
-                taskView.setError((Throwable) e.result);
-            } else {
-                taskView.setResult(e.result);
-            }
-            save(taskView);
-        }
-    }
-
-    private void setCanceled(CanceledEvent e) {
-        logger.info("canceled event for {}", e.taskId);
-        TaskView<?> taskView = tasks.get(e.taskId);
-        if (taskView != null) {
-            taskView.cancel();
-            save(taskView);
-            if (e.requeue) {
-                taskQueue.offer(taskView);
-            }
-        }
-    }
-
-    private void setProgress(ProgressEvent e) {
-        logger.debug("progress event for {}", e.taskId);
-        TaskView<?> taskView = tasks.get(e.taskId);
-        if (taskView != null) {
-            taskView.setProgress(e.rate);
-            save(taskView);
-        }
+    @Override
+    public void enqueue(TaskView<?> task) {
+        taskQueue.add(task);
     }
 
     static class TaskViewCodec extends BaseCodec {

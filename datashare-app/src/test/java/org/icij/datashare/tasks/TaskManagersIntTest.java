@@ -56,8 +56,8 @@ public class TaskManagersIntTest {
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK_RESULT);
         AMQP.createAmqpChannelForPublish(AmqpQueue.EVENT);
         RedisBlockingQueue<TaskView<?>> taskQueue = new RedisBlockingQueue<>(propertiesProvider, "tasks:queue:test");
-        EventWaiter amqpWaiter = new EventWaiter(3); // progress, cancel, cancelled
-        EventWaiter redisWaiter = new EventWaiter(3); // progress, cancel, cancelled
+        EventWaiter amqpWaiter = new EventWaiter(2); // default: progress, result
+        EventWaiter redisWaiter = new EventWaiter(2); // default: progress, result
 
         return asList(new Object[][]{
             {
@@ -74,7 +74,6 @@ public class TaskManagersIntTest {
                 new CountDownLatch(1),
                 redisWaiter
             }
-
         });
     }
 
@@ -88,7 +87,7 @@ public class TaskManagersIntTest {
 
     @Test(timeout = 10000)
     public void test_stop_running_task() throws Exception {
-        eventWaiter.setWaiter(new CountDownLatch(3)); // 1 progress, 1 cancel, 1 cancelled
+        eventWaiter.setWaiter(new CountDownLatch(2)); // 1 progress, 1 cancelled
         TestSleepingTask sleepingTask = new TestSleepingTask(5000);
         when(factory.createTestSleepingTask(any(), any())).thenReturn(sleepingTask);
         TaskView<Integer> taskView = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
@@ -103,7 +102,7 @@ public class TaskManagersIntTest {
 
     @Test(timeout = 10000)
     public void test_stop_queued_task() throws Exception {
-        eventWaiter.setWaiter(new CountDownLatch(5)); // 1 progress, 2 cancel, 2 cancelled
+        eventWaiter.setWaiter(new CountDownLatch(3)); // 1 progress, 2 cancelled
 
         TestSleepingTask sleepingTask = new TestSleepingTask(5000);
         when(factory.createTestSleepingTask(any(), any())).thenReturn(sleepingTask);

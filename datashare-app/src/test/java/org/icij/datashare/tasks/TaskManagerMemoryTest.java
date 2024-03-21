@@ -56,7 +56,7 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
-    public void test_run_task() throws InterruptedException {
+    public void test_run_task() throws Exception {
         TaskView<Integer> task = new TaskView<>(TestTask.class.getName(), User.local(), Map.of("intParameter", 12));
         when(factory.createTestTask(eq(task), any())).thenReturn(new TestTask(12));
 
@@ -69,7 +69,7 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
-    public void test_stop_current_task() throws InterruptedException {
+    public void test_stop_current_task() throws Exception {
         TaskView<Integer> task = new TaskView<>(TestSleepingTask.class.getName(), User.local(), Map.of("intParameter", 2000));
         TestSleepingTask c = new TestSleepingTask(2000);
         when(factory.createTestSleepingTask(eq(task), any())).thenReturn(c);
@@ -84,7 +84,7 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
-    public void test_stop_queued_task() throws InterruptedException {
+    public void test_stop_queued_task() throws Exception {
         TaskView<Integer> t1 = new TaskView<>(TestSleepingTask.class.getName(), User.local(), Map.of("intParameter", 2000));
         TaskView<Integer> t2 = new TaskView<>(TestSleepingTask.class.getName(), User.local(), Map.of("intParameter", 2000));
         TestSleepingTask c1 = new TestSleepingTask(2000);
@@ -104,7 +104,7 @@ public class TaskManagerMemoryTest {
     }
 
     @Test
-    public void test_clear_the_only_task() throws InterruptedException {
+    public void test_clear_the_only_task() throws Exception {
         TaskView<Integer> task = new TaskView<>(TestTask.class.getName(), User.local(), Map.of("intParameter", 12));
         when(factory.createTestTask(eq(task), any())).thenReturn(new TestTask(12));
         taskManager.startTask(task);

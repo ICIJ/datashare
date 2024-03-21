@@ -31,7 +31,7 @@ public class TaskRunnerLoopForPipelineTasksTest {
     private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskQueue, taskFactory);
 
     @Test
-    public void test_scan_task() throws InterruptedException {
+    public void test_scan_task() throws Exception {
         TaskView<Long> task = new TaskView<>(ScanTask.class.getName(), User.local(), Map.of("dataDir", "/path/to/files"));
         ScanTask taskRunner = new ScanTask(mock(DocumentCollectionFactory.class), task, updateCallback);
         when(taskFactory.createScanTask(any(), any())).thenReturn(taskRunner);
@@ -84,7 +84,7 @@ public class TaskRunnerLoopForPipelineTasksTest {
         testTaskWithTaskRunner(task);
     }
 
-    private void testTaskWithTaskRunner(TaskView<Long> task) throws InterruptedException {
+    private void testTaskWithTaskRunner(TaskView<Long> task) throws Exception {
         taskSupplier.startTask(task.name, User.local(), task.properties);
         taskSupplier.shutdownAndAwaitTermination(1, TimeUnit.SECONDS);
 

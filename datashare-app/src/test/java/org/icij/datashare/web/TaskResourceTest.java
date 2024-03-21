@@ -23,6 +23,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -307,7 +308,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_clean_one_done_task() {
+    public void test_clean_one_done_task() throws IOException {
         TaskView<String> dummyTask = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
         assertThat(taskManager.getTasks()).hasSize(1);
@@ -323,14 +324,14 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_clean_task_preflight() {
+    public void test_clean_task_preflight() throws IOException {
         TaskView<String> dummyTask = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
         options("/api/task/clean/" + dummyTask.id).should().respond(200);
     }
 
     @Test
-    public void test_cannot_clean_running_task() {
+    public void test_cannot_clean_running_task() throws IOException {
         TaskView<String> dummyTask = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
         assertThat(taskManager.getTask(dummyTask.id).getState()).isEqualTo(TaskView.State.QUEUED);
         delete("/api/task/clean/" + dummyTask.id).should().respond(403);
@@ -340,7 +341,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_stop_task() {
+    public void test_stop_task() throws IOException {
         TaskView<String> dummyTask = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
         put("/api/task/stop/" + dummyTask.id).should().respond(200).contain("true");
 
@@ -354,7 +355,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_stop_all() {
+    public void test_stop_all() throws IOException {
         TaskView<String> t1 = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
         TaskView<String> t2 = taskManager.startTask(TestSleepingTask.class.getName(), User.local(), new HashMap<>());
         put("/api/task/stopAll").should().respond(200).
@@ -366,7 +367,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_stop_all_filters_running_tasks() {
+    public void test_stop_all_filters_running_tasks() throws IOException {
         TaskView<String> dummyTask = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 
@@ -374,7 +375,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_clear_done_tasks() {
+    public void test_clear_done_tasks() throws IOException {
         TaskView<String> dummyTask = taskManager.startTask(TestTask.class.getName(), User.local(), new HashMap<>());
         taskManager.waitTasksToBeDone(1, SECONDS);
 

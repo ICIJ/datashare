@@ -23,6 +23,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -62,28 +63,28 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_task_result_forbidden() {
+    public void test_get_task_result_forbidden() throws IOException {
         setupAppWith(new DummyUserTask<>("bar"), "bar", "foo");
         TaskView<String> t = taskManager.startTask(DummyUserTask.class.getName(),localUser("bar"), new HashMap<>());
         get("/api/task/" + t.id + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(403);
     }
 
     @Test
-    public void test_get_task_result_unknown_task() {
+    public void test_get_task_result_unknown_task() throws IOException {
         setupAppWith(new DummyUserTask<>("bar"), "foo");
         TaskView<String> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("bar"), new HashMap<>());
         get("/api/task/unknown/result").withPreemptiveAuthentication("foo", "qux").should().respond(404);
     }
 
     @Test
-    public void test_get_task_result_with_no_result() {
+    public void test_get_task_result_with_no_result() throws IOException {
         setupAppWith(new DummyUserTask<>("foo"), "foo");
         TaskView<String> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
         get("/api/task/" + t.id + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(204);
     }
 
     @Test
-    public void test_get_task_result_with_int_result() {
+    public void test_get_task_result_with_int_result() throws IOException {
         setupAppWith(new DummyUserTask<>("foo", () -> 42), "foo");
         TaskView<Integer> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
         get("/api/task/" + t.id + "/result").withPreemptiveAuthentication("foo", "qux").
@@ -116,7 +117,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_task_result_when_task_threw_exception__should_show_error() {
+    public void test_get_task_result_when_task_threw_exception__should_show_error() throws IOException {
         setupAppWith(new DummyUserTask<>("foo", () -> {throw new RuntimeException("error blah");}), "foo");
         TaskView<File> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
 
@@ -125,7 +126,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_task_list_with_filter() {
+    public void test_task_list_with_filter() throws IOException {
         setupAppWith(new DummyUserTask<>("bar"), "bar");
         TaskView<String> t2 = taskManager.startTask(DummyUserTask.class.getName(), localUser("bar"), new HashMap<>());
 
@@ -134,7 +135,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_stop_all_in_server_mode() throws InterruptedException {
+    public void test_stop_all_in_server_mode() throws InterruptedException, IOException {
         setupAppWith(new SleepingUserTask("foo"), new SleepingUserTask("bar"), "foo", "bar");
         TaskView<String> t1 = taskManager.startTask(SleepingUserTask.class.getName(), localUser("foo"), new HashMap<>());
         TaskView<String> t2 = taskManager.startTask(SleepingUserTask.class.getName(), localUser("bar"), new HashMap<>());

@@ -9,10 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,23 +44,6 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         this.taskQueue = taskQueue;
         loop = new TaskRunnerLoop(taskFactory, this, latch);
         executor.submit(loop);
-    }
-
-    @Override
-    public <V> TaskView<V> startTask(String taskName, User user, Map<String, Object> properties) {
-        return startTask(new TaskView<>(taskName, user, properties));
-    }
-
-    @Override
-    public <V> TaskView<V> startTask(String id, String taskName, User user) throws IOException {
-        return startTask(new TaskView<>(id, taskName, user, new HashMap<>()));
-    }
-
-    <V> TaskView<V> startTask(TaskView<V> taskView) {
-        save(taskView);
-        taskQueue.add(taskView);
-        taskView.queue();
-        return taskView;
     }
 
     public <V> TaskView<V> getTask(final String taskId) {
@@ -123,13 +104,13 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         }
     }
 
-    @Override
-    public void addEventListener(Consumer<TaskEvent> callback) {
-        // no need for this we use task runner reference for stopping tasks
+    public void save(TaskView<?> taskView) {
+        tasks.put(taskView.id, taskView);
     }
 
-    private void save(TaskView<?> taskView) {
-        tasks.put(taskView.id, taskView);
+    @Override
+    public void enqueue(TaskView<?> task) {
+        taskQueue.add(task);
     }
 
     public boolean shutdownAndAwaitTermination(int timeout, TimeUnit timeUnit) throws InterruptedException {
@@ -200,5 +181,10 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
         executedTasks.set(0);
         taskQueue.clear();
         tasks.clear();
+    }
+
+    @Override
+    public void addEventListener(Consumer<TaskEvent> callback) {
+        // no need for this we use task runner reference for stopping tasks
     }
 }
