@@ -56,12 +56,14 @@ public class DocumentResource {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private final Repository repository;
     private final Indexer indexer;
+    private final PropertiesProvider propertiesProvider;
     private final DocumentVerifier documentVerifier;
 
     @Inject
     public DocumentResource(Repository repository, Indexer indexer, PropertiesProvider propertiesProvider) {
         this.repository = repository;
         this.indexer = indexer;
+        this.propertiesProvider = propertiesProvider;
         this.documentVerifier = new DocumentVerifier(indexer, propertiesProvider);
     }
 
@@ -402,7 +404,7 @@ public class DocumentResource {
 
     private Payload getPayload(Document doc, String index, boolean inline, boolean filterMetadata) {
         try {
-            InputStream from = new SourceExtractor(filterMetadata).getSource(project(index), doc);
+            InputStream from = new SourceExtractor(propertiesProvider, filterMetadata).getSource(project(index), doc);
             String contentType = ofNullable(doc.getContentType()).orElse(ContentTypes.get(doc.getPath().toFile().getName()));
             Payload payload = new Payload(contentType, from);
             String fileName = doc.isRootDocument() ? doc.getName(): doc.getId().substring(0, 10) + "." + FileExtension.get(contentType);

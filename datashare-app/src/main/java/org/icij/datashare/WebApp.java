@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
-import static org.icij.datashare.cli.DatashareCliOptions.OPEN_LINK;
+import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 public class WebApp {
 
@@ -43,7 +43,7 @@ public class WebApp {
         );
         webServerThread.start();
         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE) &&
-                parseBoolean(properties.getProperty(OPEN_LINK))) {
+                parseBoolean(properties.getProperty(BROWSER_OPEN_LINK_OPT))) {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }

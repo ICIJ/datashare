@@ -7,7 +7,6 @@ import org.icij.datashare.Stage;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchSpewer;
-import org.icij.datashare.user.User;
 import org.icij.extract.document.DocumentFactory;
 import org.icij.extract.extractor.DocumentConsumer;
 import org.icij.extract.extractor.Extractor;
@@ -20,13 +19,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Properties;
 import java.util.function.BiFunction;
 
 import static java.lang.Math.max;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
+import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.REPORT_NAME_OPT;
 
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentFactory.class)
@@ -42,19 +41,20 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
     public IndexTask(final ElasticsearchSpewer spewer, final DocumentCollectionFactory<Path> factory, @Assisted TaskView<Long> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) throws IOException {
         super(Stage.INDEX, taskView.user, factory, new PropertiesProvider(taskView.properties), Path.class);
         PropertiesProvider propertiesProvider = new PropertiesProvider(taskView.properties);
-        parallelism = propertiesProvider.get("parallelism").map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
+        parallelism = propertiesProvider.get(PARALLELISM_OPT).map(Integer::parseInt).orElse(Runtime.getRuntime().availableProcessors());
 
         Options<String> allTaskOptions = options().createFrom(Options.from(taskView.properties));
         ((ElasticsearchSpewer) spewer.configure(allTaskOptions)).createIndexIfNotExists();
+
         DocumentFactory documentFactory = new DocumentFactory().configure(allTaskOptions);
         Extractor extractor = new Extractor(documentFactory).configure(allTaskOptions);
 
         consumer = new DocumentConsumer(spewer, extractor, this.parallelism);
-        if (propertiesProvider.getProperties().get(MAP_NAME_OPTION) != null) {
-            logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(MAP_NAME_OPTION));
-            consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(MAP_NAME_OPTION).toString())));
+        if (propertiesProvider.getProperties().get(REPORT_NAME_OPT) != null) {
+            logger.info("report map enabled with name set to {}", propertiesProvider.getProperties().get(REPORT_NAME_OPT));
+            consumer.setReporter(new Reporter(factory.createMap(propertiesProvider.getProperties().get(REPORT_NAME_OPT).toString())));
         }
-        drainer = new DocumentQueueDrainer<>(queue, consumer).configure(allTaskOptions);
+        drainer = new DocumentQueueDrainer<>(inputQueue, consumer).configure(allTaskOptions);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
     @Override
     public double getProgressRate() {
-        totalToProcess = max(queue.size(), totalToProcess);
-        return (double)(totalToProcess - queue.size()) / totalToProcess;
+        totalToProcess = max(inputQueue.size(), totalToProcess);
+        return (double)(totalToProcess - inputQueue.size()) / totalToProcess;
     }
 }

@@ -9,7 +9,12 @@ import org.apache.commons.io.FileUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.session.LocalUserFilter;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
@@ -19,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import static java.nio.file.Files.copy;
 import static java.util.Arrays.asList;
@@ -67,11 +73,12 @@ public class RootResourcePluginTest implements FluentRestTest {
     }
 
     @Test
-    public void test_invalid_folder_should_throw_error() {
-        server.configure(routes -> routes.add(new RootResource(new PropertiesProvider(new HashMap<>() {{
-            put("pluginsDir", "unknown");
-        }}))));
-        get("/").should().respond(500);
+    public void test_get_with_missing_plugin_directory() {
+        propertiesProvider = new PropertiesProvider(Map.of("pluginsDir", "/something/missing/"));
+        server.configure(routes -> routes.add(new RootResource(propertiesProvider)));
+        get("/").should().respond(200).contain("datashare-client");
+        get("").should().respond(200).contain("datashare-client");
+
     }
 
     @Test

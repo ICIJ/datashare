@@ -22,20 +22,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE_OPT;
 import static org.icij.datashare.tasks.BatchSearchRunner.MAX_BATCH_RESULT_SIZE;
 import static org.icij.datashare.tasks.BatchSearchRunner.MAX_SCROLL_SIZE;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 
@@ -92,7 +94,7 @@ public class BatchSearchRunnerTest {
         Date beforeBatch  = timeRule.now;
 
         new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<>() {{
-            put(BATCH_THROTTLE, "1000");
+            put(BATCH_THROTTLE_OPT, "1000");
         }}), repository, taskView(batchSearch), progressCb).call();
 
         assertThat(timeRule.now().getTime() - beforeBatch.getTime()).isEqualTo(1000);
@@ -107,8 +109,8 @@ public class BatchSearchRunnerTest {
         Date beforeBatch  = timeRule.now;
 
         SearchException searchException = assertThrows(SearchException.class, () -> new BatchSearchRunner(indexer, new PropertiesProvider(new HashMap<>() {{
-            put(BATCH_THROTTLE, "1000");
-            put(BATCH_SEARCH_MAX_TIME, "1");
+            put(BATCH_THROTTLE_OPT, "1000");
+            put(BATCH_SEARCH_MAX_TIME_OPT, "1");
         }}), repository, taskView(batchSearch), progressCb).call());
 
         assertThat(searchException.toString()).contains("Batch timed out after 1s");

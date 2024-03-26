@@ -13,18 +13,19 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.nlp.Pipeline;
-import org.icij.datashare.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_DEFAULT_PROJECT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_PROJECT_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.MAX_CONTENT_LENGTH_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.NLP_PIPELINE_OPT;
 import static org.icij.extract.document.Identifier.shorten;
 
@@ -41,20 +42,21 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
         this(indexer, registry.get(Pipeline.Type.parse((String)taskView.properties.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
     }
 
+
     ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) {
         super(Stage.NLP, taskView.user, factory, new PropertiesProvider(taskView.properties), String.class);
         this.nlpPipeline = pipeline;
-        project = Project.project(ofNullable((String)taskView.properties.get("defaultProject")).orElse("local-datashare"));
-        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.properties.get("maxContentLength")).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
+        project = Project.project(ofNullable((String)taskView.properties.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
+        maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.properties.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));
         this.indexer = indexer;
     }
 
     @Override
     public Long call() throws Exception {
-        logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, queue.getName());
+        logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
         String docId;
         long nbMessages = 0;
-        while (!(STRING_POISON.equals(docId = queue.poll(60, TimeUnit.SECONDS)))) {
+        while (!(STRING_POISON.equals(docId = inputQueue.poll(60, TimeUnit.SECONDS)))) {
             try {
                 if (docId != null) {
                     findNamedEntities(project, docId);

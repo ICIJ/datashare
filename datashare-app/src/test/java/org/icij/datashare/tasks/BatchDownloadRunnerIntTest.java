@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
@@ -20,11 +21,12 @@ import java.util.zip.ZipFile;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -173,6 +175,38 @@ public class BatchDownloadRunnerIntTest {
         assertThat(batchDownloadRunner.toString()).startsWith("BatchDownloadRunner@");
         assertThat(batchDownloadRunner.toString()).contains(bd.uuid);
     }
+
+    @Test(expected = ElasticsearchException.class)
+    public void test_use_batch_download_scroll_size_value_over_scroll_size_value() throws Exception {
+        BatchDownload bd = createBatchDownload("*");
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("downloadFolder", fs.getRoot().toString());
+            put(SCROLL_SIZE_OPT, "100");
+            put(BATCH_DOWNLOAD_SCROLL_SIZE_OPT, "0");
+        }});
+        new BatchDownloadRunner(indexer, propertiesProvider, createTaskView(bd), taskModifier::progress).call();
+    }
+
+    @Test(expected = ElasticsearchException.class)
+    public void test_use_scroll_size_value() throws Exception {
+        BatchDownload bd = createBatchDownload("*");
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("downloadFolder", fs.getRoot().toString());
+            put(SCROLL_SIZE_OPT, "0");
+        }});
+        new BatchDownloadRunner(indexer, propertiesProvider, createTaskView(bd), taskModifier::progress).call();
+    }
+
+    @Test(expected = ElasticsearchException.class)
+    public void test_use_scroll_duration_value() throws Exception {
+        BatchDownload bd = createBatchDownload("*");
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put("downloadFolder", fs.getRoot().toString());
+            put(BATCH_DOWNLOAD_SCROLL_DURATION_OPT, "10foo");
+        }});
+        new BatchDownloadRunner(indexer, propertiesProvider, createTaskView(bd), taskModifier::progress).call();
+    }
+
 
     private BatchDownload createBatchDownload(String query) {
         return new BatchDownload(asList(project(TEST_INDEX)), local(), query, null, fs.getRoot().toPath(), false);

@@ -40,9 +40,11 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.text.ProjectProxy.proxy;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -184,6 +186,7 @@ public class BatchSearchResourceTest extends AbstractProdWebServerTest {
         assertThat(argument.getValue().projects).isEqualTo(sourceSearch.projects);
         assertThat(argument.getValue().queries).isEqualTo(sourceSearch.queries);
         assertThat(argument.getValue().user).isEqualTo(sourceSearch.user);
+        assertThat(argument.getValue().queryTemplate).isEqualTo(sourceSearch.queryTemplate);
 
         assertThat(argument.getValue().state).isEqualTo(BatchSearchRecord.State.QUEUED);
         assertThat(taskManager.getTasks()).hasSize(1);

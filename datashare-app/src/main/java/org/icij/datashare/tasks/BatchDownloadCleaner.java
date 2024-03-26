@@ -14,7 +14,6 @@ import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
 import static java.util.Arrays.stream;
-import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.regex.Pattern.compile;
 
@@ -26,8 +25,8 @@ public class BatchDownloadCleaner implements Runnable {
 
     @Inject
     public BatchDownloadCleaner(final PropertiesProvider propertiesProvider) {
-        downloadDir = Paths.get(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_DIR));
-        ttlHour = Integer.parseInt(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL));
+        downloadDir = Paths.get(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT));
+        ttlHour = Integer.parseInt(propertiesProvider.getProperties().getProperty(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT));
     }
 
     @Override

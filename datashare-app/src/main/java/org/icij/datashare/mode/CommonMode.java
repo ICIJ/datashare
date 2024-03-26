@@ -27,12 +27,7 @@ import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
-import org.icij.datashare.extract.DocumentCollectionFactory;
-import org.icij.datashare.extract.MemoryBlockingQueue;
-import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
-import org.icij.datashare.extract.RedisBlockingQueue;
-import org.icij.datashare.extract.RedisUserDocumentQueue;
-import org.icij.datashare.extract.RedisUserReportMap;
+import org.icij.datashare.extract.*;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.TaskFactory;
@@ -54,15 +49,14 @@ import org.icij.datashare.web.OpenApiResource;
 import org.icij.datashare.web.RootResource;
 import org.icij.datashare.web.SettingsResource;
 import org.icij.datashare.web.StatusResource;
-import org.icij.extract.queue.DocumentQueue;
 import org.icij.extract.redis.RedissonClientFactory;
-import org.icij.extract.report.ReportMap;
 import org.icij.task.Options;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -188,14 +182,8 @@ public abstract class CommonMode extends AbstractModule {
             bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).toInstance(new MemoryDocumentCollectionFactory<>());
             bind(new TypeLiteral<DocumentCollectionFactory<Path>>() {}).toInstance(new MemoryDocumentCollectionFactory<>());
         } else {
-            install(new FactoryModuleBuilder().
-                    implement(new TypeLiteral<DocumentQueue<String>>(){}, new TypeLiteral<RedisUserDocumentQueue<String>>(){}).
-                    implement(ReportMap.class, RedisUserReportMap.class).
-                    build(new TypeLiteral<DocumentCollectionFactory<String>>(){}));
-            install(new FactoryModuleBuilder().
-                    implement(new TypeLiteral<DocumentQueue<Path>>(){}, new TypeLiteral<RedisUserDocumentQueue<Path>>(){}).
-                    implement(ReportMap.class, RedisUserReportMap.class).
-                    build(new TypeLiteral<DocumentCollectionFactory<Path>>(){}));
+            bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).to(new TypeLiteral<RedisDocumentCollectionFactory<String>>(){});
+            bind(new TypeLiteral<DocumentCollectionFactory<Path>>(){}).to(new TypeLiteral<RedisDocumentCollectionFactory<Path>>(){});
         }
     }
 
@@ -209,7 +197,7 @@ public abstract class CommonMode extends AbstractModule {
         bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
-    void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {
+   public  void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);
         pipelineRegistry.register(Pipeline.Type.CORENLP);
@@ -237,6 +225,34 @@ public abstract class CommonMode extends AbstractModule {
         );
     }
 
+    public Routes addCorsFilter(Routes routes, PropertiesProvider provider) {
+        String cors = provider.get("cors").orElse("no-cors");
+        if (!cors.equals("no-cors")) {
+            routes.filter(new CorsFilter(cors));
+        }
+        return routes;
+    }
+
+    public Routes addPluginsConfiguration(Routes routes) {
+        String pluginsDir = getPluginsDir();
+        if (pluginsDir == null) {
+            return routes;
+        }
+        if (!new File(pluginsDir).isDirectory()) {
+            logger.warn("Plugins directory not found: " + pluginsDir);
+            return routes;
+        }
+        return routes.bind(PLUGINS_BASE_URL, Paths.get(pluginsDir).toFile());
+    }
+
+     public Routes addExtensionsConfiguration(Routes routes) {
+        String extensionsDir = getExtensionsDir();
+        if (extensionsDir != null) {
+            loadExtensions(routes, extensionsDir);
+        }
+        return routes;
+    }
+
     protected abstract Routes addModeConfiguration(final Routes routes);
 
     void configurePersistence() {
@@ -261,24 +277,8 @@ public abstract class CommonMode extends AbstractModule {
                     }
                 });
         addModeConfiguration(routes);
-        addExtensionConfiguration(routes);
-
-        if (provider.get(PropertiesProvider.PLUGINS_DIR).orElse(null) != null) {
-            routes.bind(PLUGINS_BASE_URL, Paths.get(provider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR)).toFile());
-        }
-        return routes;
-    }
-
-    Routes addExtensionConfiguration(Routes routes) {
-        String extensionsDir = propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
-        if (extensionsDir != null) {
-            try {
-                new ExtensionLoader(Paths.get(extensionsDir)).load((Consumer<Class<?>>)routes::add,
-                        c -> c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class));
-            } catch (FileNotFoundException e) {
-                logger.info("extensions dir not found", e);
-            }
-        }
+        addExtensionsConfiguration(routes);
+        addPluginsConfiguration(routes);
         return routes;
     }
 
@@ -286,12 +286,26 @@ public abstract class CommonMode extends AbstractModule {
         return propertiesProvider.getProperties().contains(queueType.name());
     }
 
-    private Routes addCorsFilter(Routes routes, PropertiesProvider provider) {
-        String cors = provider.get("cors").orElse("no-cors");
-        if (!cors.equals("no-cors")) {
-            routes.filter(new CorsFilter(cors));
+    private String getExtensionsDir() {
+        return propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
+    }
+
+    private String getPluginsDir() {
+        return propertiesProvider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR);
+    }
+
+    private void loadExtensions(Routes routes, String extensionsDir) {
+        try {
+            Path extensionsPath = Paths.get(extensionsDir);
+            ExtensionLoader loader = new ExtensionLoader(extensionsPath);
+            loader.load((Consumer<Class<?>>) routes::add, this::isEligibleForLoading);
+        } catch (FileNotFoundException e) {
+            logger.warn("Extensions directory not found: " + extensionsDir);
         }
-        return routes;
+    }
+
+    private boolean isEligibleForLoading(Class<?> c) {
+        return c.isAnnotationPresent(Prefix.class) || c.isAnnotationPresent(Get.class);
     }
 
     @NotNull

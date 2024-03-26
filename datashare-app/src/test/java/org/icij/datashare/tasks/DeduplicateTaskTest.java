@@ -37,13 +37,13 @@ public class DeduplicateTaskTest {
 
     @Test(timeout = 2000)
     public void test_pipeline_task_transfer_to_output_queue() throws Exception {
-        task.queue.put(get("/path/to/doc1"));
-        task.queue.put(get("/path/to/doc2"));
-        task.queue.put(PATH_POISON);
+        task.inputQueue.put(get("/path/to/doc1"));
+        task.inputQueue.put(get("/path/to/doc2"));
+        task.inputQueue.put(PATH_POISON);
 
         task.transferToOutputQueue();
 
-        assertThat(task.queue.isEmpty()).isTrue();
+        assertThat(task.inputQueue.isEmpty()).isTrue();
         DocumentQueue<Path> outputQueue = docCollectionFactory.createQueue(task.getOutputQueueName(), Path.class);
         assertThat(outputQueue.size()).isEqualTo(3);
         assertThat(outputQueue.poll().toString()).isEqualTo("/path/to/doc1");
@@ -53,13 +53,13 @@ public class DeduplicateTaskTest {
 
     @Test(timeout = 2000)
     public void test_pipeline_task_conditional_transfer_to_output_queue() throws Exception {
-        task.queue.put(get("/path/to/doc1"));
-        task.queue.put(get("/path/to/doc2"));
-        task.queue.put(PATH_POISON);
+        task.inputQueue.put(get("/path/to/doc1"));
+        task.inputQueue.put(get("/path/to/doc2"));
+        task.inputQueue.put(PATH_POISON);
 
         task.transferToOutputQueue(p -> p.toString().contains("1"));
 
-        assertThat(task.queue.isEmpty()).isTrue();
+        assertThat(task.inputQueue.isEmpty()).isTrue();
         DocumentQueue<Path> outputQueue = docCollectionFactory.createQueue(task.getOutputQueueName(), Path.class);
         assertThat(outputQueue.size()).isEqualTo(2);
         assertThat(outputQueue.poll().toString()).isEqualTo("/path/to/doc1");

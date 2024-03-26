@@ -27,16 +27,22 @@
     import org.icij.extract.queue.DocumentQueue;
     import org.icij.extract.report.ReportMap;
     import org.jetbrains.annotations.NotNull;
+    import org.slf4j.Logger;
     import org.slf4j.LoggerFactory;
 
     import java.io.IOException;
     import java.nio.file.Path;
     import java.util.List;
+    import java.util.Map;
     import java.util.Objects;
+    import java.util.Properties;
+    import java.util.stream.Collectors;
+    import java.util.stream.Stream;
 
     import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
     import static net.codestory.http.payload.Payload.ok;
     import static org.apache.tika.utils.StringUtils.isEmpty;
+    import static org.icij.datashare.PropertiesProvider.QUEUE_NAME_OPTION;
     import static org.icij.datashare.text.Project.isAllowed;
 
     @Singleton
@@ -168,12 +174,11 @@
             modeVerifier.checkAllowedMode(Mode.LOCAL, Mode.EMBEDDED);
             DatashareUser user = (DatashareUser) context.currentUser();
             Project project = getUserProject(user, id);
-            boolean isDeleted = repository.deleteAll(id);
-            boolean indexDeleted = indexer.deleteAll(id);
-            boolean queueDeleted = getDocumentQueue(project).delete();
-            boolean reportMapDeleted = getReportMap(project).delete();
-            LoggerFactory.getLogger(getClass()).info("deleted project {} index ({}), db ({}), queue ({}) and report map ({})",
-                    id, indexDeleted, isDeleted, queueDeleted, reportMapDeleted);
+            Logger logger = LoggerFactory.getLogger(getClass());
+            logger.info("Deleted {}'s record: {}", id, repository.deleteAll(id));
+            logger.info("Deleted {}'s index: {}", id, indexer.deleteAll(id));
+            logger.info("Deleted {}'s queues: {}", id, deleteQueues(project));
+            logger.info("Deleted {}'s report map: {}", id, deleteReportMap(project));
             return new Payload(204);
         }
 
@@ -210,13 +215,25 @@
                     .orElse(null);
         }
 
-        DocumentQueue<Path> getDocumentQueue(String queueName) {
-            return documentCollectionFactory.createQueue(queueName, Path.class);
+        boolean deleteQueues(Project project) {
+            return getQueues(project).stream().allMatch(DocumentQueue::delete);
         }
 
-        DocumentQueue<?> getDocumentQueue(Project project) {
-            String queueName = "extract:queue:" + project.getName();
-            return getDocumentQueue(queueName);
+        boolean deleteReportMap(Project project) {
+            return getReportMap(project).delete();
+        }
+
+        List<DocumentQueue<Path>> getQueues(Project project) {
+            String name = project.getName();
+            Properties properties = propertiesProvider.createOverriddenWith(Map.of("defaultProject", name));
+            String defaultQueueName = properties.getOrDefault(QUEUE_NAME_OPTION, "extract:queue").toString();
+            String queuePrefix =  defaultQueueName + PropertiesProvider.QUEUE_SEPARATOR + name;
+            String queuePattern = queuePrefix + PropertiesProvider.QUEUE_SEPARATOR + "*";
+            return Stream.concat(
+                    // TODO remove legacy queue name 26/02/2024
+                    documentCollectionFactory.getQueues(queuePrefix, Path.class).stream(),
+                    documentCollectionFactory.getQueues(queuePattern, Path.class).stream()
+            ).collect(Collectors.toList());
         }
 
         ReportMap getReportMap(String reportMapName) {

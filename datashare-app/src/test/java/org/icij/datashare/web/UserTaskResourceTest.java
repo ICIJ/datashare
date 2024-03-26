@@ -35,7 +35,7 @@ import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.user.User.localUser;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -94,20 +94,21 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_get_task_result_with_file_result__should_relativize_result_with_app_folder() throws Exception {
+    public void test_get_task_result_with_file_result_should_relativize_result_with_app_folder() throws Exception {
         File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
         FileResult indexHtml = new FileResult(file, Files.size(file.toPath()));
         setupAppWith(new DummyUserTask<>("foo", () -> indexHtml), "foo");
+
         TaskView<FileResult> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
         get("/api/task/" + t.id + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
-                should().haveType("text/html;charset=UTF-8").
+                should().haveType("application/octet-stream").
                 should().haveHeader("Content-Disposition", "attachment;filename=\"index.html\"").
                 should().contain("datashare-client");
     }
 
     @Test
-    public void test_get_task_result_with_file_result_and_absolute_path__should_relativize_result_with_app_folder() throws Exception {
+    public void test_get_task_result_with_file_result_and_absolute_path_should_relativize_result_with_app_folder() throws Exception {
         File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
         FileResult indexHtml = new FileResult(file, Files.size(file.toPath()));
         setupAppWith(new DummyUserTask<>("foo", () -> indexHtml), "foo");

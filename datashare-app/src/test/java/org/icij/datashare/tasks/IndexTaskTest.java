@@ -10,6 +10,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.user.User.nullUser;
@@ -58,9 +59,8 @@ public class IndexTaskTest {
         ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
         Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
 
-        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new TaskView<>(IndexTask.class.getName(), nullUser(), new HashMap<>(){{
-            put("charset", "UTF-16");
-        }}), null);
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new TaskView<>(IndexTask.class.getName(), nullUser(), Map.of("charset", "UTF-16")), null);
+
         ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
         verify(spewer).configure(captor.capture());
         Option<String> option  = new Option<>("charset", StringOptionParser::new).update("UTF-16");

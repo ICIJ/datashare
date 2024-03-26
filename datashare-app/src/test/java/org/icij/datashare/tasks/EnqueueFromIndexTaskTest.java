@@ -39,6 +39,6 @@ public class EnqueueFromIndexTaskTest {
         MemoryDocumentCollectionFactory<String> factory = new MemoryDocumentCollectionFactory<>();
         EnqueueFromIndexTask resumeNlpTask = new EnqueueFromIndexTask(factory, indexer, new TaskView<>(EnqueueFromIndexTask.class.getName(), new User("test"), properties), null);
         resumeNlpTask.call();
-        assertThat(factory.queues.get("test:queue:nlp")).hasSize(20);
+        assertThat(factory.queues.get("test:queue:nlp")).hasSize(21); // with poison
     }
 }

@@ -1,6 +1,6 @@
 package org.icij.datashare.tasks;
 
-import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.rest.RestStatus;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
@@ -49,8 +49,8 @@ public class BatchDownloadRunnerTest {
         mockSearch.willReturn(2, documents);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("test-datashare")), User.local(), "query");
         FileResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
-                    put(BATCH_DOWNLOAD_MAX_NB_FILES, "3");
-                    put(SCROLL_SIZE, "3");
+                    put(BATCH_DOWNLOAD_MAX_NB_FILES_OPT, "3");
+                    put(SCROLL_SIZE_OPT, "3");
                 }}), getTaskView(batchDownload), updater::progress).call();
 
         assertThat(new ZipFile(result.file).size()).isEqualTo(3);
@@ -61,16 +61,16 @@ public class BatchDownloadRunnerTest {
         Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).with("hello world " + i).build()).toArray(Document[]::new);
         mockSearch.willReturn(2, documents);
         FileResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
-            put(BATCH_DOWNLOAD_MAX_SIZE, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
-            put(SCROLL_SIZE, "3");
+            put(BATCH_DOWNLOAD_MAX_SIZE_OPT, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
+            put(SCROLL_SIZE_OPT, "3");
         }}), getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")), updater::progress).call();
 
         assertThat(new ZipFile(result.file).size()).isEqualTo(4);
     }
 
-    @Test(expected = ElasticsearchStatusException.class)
+    @Test(expected = ElasticsearchException.class)
     public void test_elasticsearch_status_exception__should_be_sent() throws Exception {
-        mockSearch.willThrow(new ElasticsearchStatusException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
+        mockSearch.willThrow(new ElasticsearchException("error", RestStatus.BAD_REQUEST, new RuntimeException()));
         new BatchDownloadRunner(indexer, new PropertiesProvider(), getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")), updater::progress).call();
     }
 

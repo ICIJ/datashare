@@ -1,9 +1,9 @@
 package org.icij.datashare.tasks;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.client.ResponseException;
+import jakarta.json.JsonException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
@@ -22,19 +22,22 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
-import static java.lang.String.format;
-import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE;
-import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_MAX_TIME_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_SCROLL_DURATION_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_SCROLL_SIZE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_THROTTLE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_SEARCH_MAX_TIME;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_BATCH_THROTTLE;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_DURATION;
+import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SIZE;
+import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
 public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask {
@@ -81,9 +84,14 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
     public Integer call() throws SearchException {
         int numberOfResults = 0;
         int totalProcessed = 0;
-        int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE).orElse("0"));
-        int maxTimeSeconds = parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME).orElse("100000"));
-        int scrollSize = min(parseInt(propertiesProvider.get(SCROLL_SIZE).orElse("1000")), MAX_SCROLL_SIZE);
+
+        int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
+        int maxTimeSeconds = parseInt(propertiesProvider.get(BATCH_SEARCH_MAX_TIME_OPT).orElse(DEFAULT_BATCH_SEARCH_MAX_TIME));
+        String scrollDuration = propertiesProvider.get(BATCH_SEARCH_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
+        int scrollSizeFromParams = parseInt(propertiesProvider.get(BATCH_SEARCH_SCROLL_SIZE_OPT)
+                .orElse(propertiesProvider.get(SCROLL_SIZE_OPT)
+                .orElse(String.valueOf(DEFAULT_SCROLL_SIZE))));
+        int scrollSize = min(scrollSizeFromParams, MAX_SCROLL_SIZE);
         callThread = Thread.currentThread();
         callWaiterLatch.countDown(); // for tests
         BatchSearch batchSearch = repository.get(taskView.getUser(), taskView.id);
@@ -101,14 +109,14 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
                 if (batchSearch.hasQueryTemplate()) { // for retro-compatibility should be removed at some point to keep only bodyTemplate
                     searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class, batchSearch.queryTemplate)
                             .with(batchSearch.fuzziness, batchSearch.phraseMatches).withoutSource("content").limit(scrollSize);
-                    docsToProcess = searcher.scroll(query).collect(toList());
+                    docsToProcess = searcher.scroll(scrollDuration, query).collect(toList());
                 } else {
                     searcher = indexer.search(batchSearch.projects.stream().map(ProjectProxy::getId).collect(toList()), Document.class, new SearchQuery(query));
                     ((Indexer.QueryBuilderSearcher) searcher).withFieldValues("contentType", batchSearch.fileTypes.toArray(new String[]{}))
                             .withPrefixQuery("path", batchSearch.paths.toArray(new String[]{}))
                             .with(batchSearch.fuzziness, batchSearch.phraseMatches)
                             .withoutSource("content").limit(scrollSize);
-                    docsToProcess = searcher.scroll().collect(toList());
+                    docsToProcess = searcher.scroll(scrollDuration).collect(toList());
                 }
 
                 long beforeScrollLoop = DatashareTime.getInstance().currentTimeMillis();
@@ -125,7 +133,7 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
                         throw new SearchException(query, new TimeoutException("Batch timed out after " + maxTimeSeconds + "s"));
                     }
                     numberOfResults += docsToProcess.size();
-                    docsToProcess = searcher.scroll().collect(toList());
+                    docsToProcess = searcher.scroll(scrollDuration).collect(toList());
                 }
                 searcher.clearScroll();
                 totalProcessed += 1;
@@ -133,10 +141,11 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
             }
             repository.setState(batchSearch.uuid, BatchSearchRecord.State.SUCCESS);
             logger.info("done batch search {} with success", batchSearch.uuid);
-        } catch (ElasticsearchStatusException esEx) {
+        } catch (ElasticsearchException esEx) {
             logger.error("ES exception while running batch " + taskView.id, esEx);
-            repository.setState(taskView.id, new SearchException(query, stream(esEx.getSuppressed()).filter(t -> t instanceof ResponseException).findFirst().orElse(esEx)));
-        } catch (IOException | InterruptedException ex) {
+            repository.setState(taskView.id, new SearchException(query,
+                    new ElasticSearchAdapterException(esEx.response().error().rootCause().stream().findFirst().orElse(esEx.error()).reason())));
+        } catch (IOException | InterruptedException | JsonException ex) {
             logger.error("exception while running batch " + taskView.id, ex);
             repository.setState(taskView.id, new SearchException(query, ex));
         }
@@ -159,6 +168,11 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
             if (callThread != null) callThread.join();
         } catch (InterruptedException e) {
             logger.warn("batch search interrupted during cancel check status for {}", taskView.id);
+        }
+    }
+    private static class ElasticSearchAdapterException extends RuntimeException {
+        public ElasticSearchAdapterException(String jsonCause) {
+            super(jsonCause);
         }
     }
 }

@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.stream.Stream;
 
 import static java.util.Collections.singletonList;
-import static org.mockito.Matchers.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -24,14 +24,14 @@ class MockSearch<S extends Indexer.Searcher> {
 
     void willThrow(Exception expectedClassException) throws IOException {
         Indexer.Searcher searcher = mock(Indexer.Searcher.class);
-        when(searcher.scroll()).thenThrow(expectedClassException);
-        when(searcher.scroll(any())).thenThrow(expectedClassException);
+        when(searcher.scroll(any(String.class))).thenThrow(expectedClassException);
+        when(searcher.scroll(any(String.class), any(String.class))).thenThrow(expectedClassException);
         prepareSearcher(0, searcher);
     }
 
     void willReturn(int nbOfScrolls, Document... documents) throws IOException {
         S searcher = mock(searcherInstance);
-        OngoingStubbing<? extends Stream<? extends Entity>> ongoingStubbing = when(searcher.scroll());
+        OngoingStubbing<? extends Stream<? extends Entity>> ongoingStubbing = when(searcher.scroll(any(String.class)));
         for (int i = 0 ; i<nbOfScrolls; i++) {
             ongoingStubbing = ongoingStubbing.thenAnswer(a -> Stream.of(documents));
         }

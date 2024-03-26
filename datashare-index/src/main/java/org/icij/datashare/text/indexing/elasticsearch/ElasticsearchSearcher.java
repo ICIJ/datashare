@@ -9,8 +9,10 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.ResponseBody;
+import co.elastic.clients.json.JsonpMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.json.JsonException;
 import org.icij.datashare.Entity;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.text.indexing.Indexer;
@@ -26,11 +28,11 @@ import java.util.stream.StreamSupport;
 import static co.elastic.clients.elasticsearch.core.SearchRequest.Builder;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
+import static org.icij.datashare.text.indexing.Indexer.*;
+import static org.icij.datashare.text.indexing.ScrollQueryBuilder.createScrollQuery;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.DEFAULT_SEARCH_SIZE;
 
 class ElasticsearchSearcher implements Indexer.Searcher {
-    static final Time KEEP_ALIVE = Time.of(t -> t.time("60000ms"));
-
     protected final List<String> indexesNames;
     protected final ElasticsearchClient client;
     protected final Class<? extends Entity> cls;
@@ -85,21 +87,15 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     }
 
     @Override
-    public Stream<? extends Entity> scroll() throws IOException {
-        return scroll(0, 0);
+    public Stream<? extends Entity> scroll(String duration) throws IOException {
+        return scroll(createScrollQuery().withDuration(duration).withSlices(0,0).build());
     }
-
     @Override
-    public Stream<? extends Entity> scroll(String stringQuery) throws IOException {
-        return scroll(0, 0, stringQuery);
+    public Stream<? extends Entity> scroll(String duration, String stringQuery) throws IOException {
+        return scroll(createScrollQuery().withDuration(duration).withStringQuery(stringQuery).withSlices(0,0).build());
     }
 
-    @Override
-    public Stream<? extends Entity> scroll(int numSlice, int nbSlices) throws IOException {
-        return scroll(numSlice, nbSlices, null);
-    }
-
-    protected BoolQuery.Builder getBoolQueryBuilder(String query) {
+    protected BoolQuery.Builder getBoolQueryBuilder(String query) throws JsonException {
         return new BoolQuery.Builder().must(m -> m.withJson(new StringReader(query)));
     }
 
@@ -117,19 +113,19 @@ class ElasticsearchSearcher implements Indexer.Searcher {
     }
 
     @Override
-    public Stream<? extends Entity> scroll(int numSlice, int nbSlices, String stringQuery) throws IOException {
+    public Stream<? extends Entity> scroll(ScrollQuery scrollQuery) throws IOException {
         ResponseBody<ObjectNode> response;
         if (scrollSearchRequest == null) {
-            BoolQuery.Builder boolQueryBuilder = getBoolQueryBuilder(queryAsString(stringQuery));
+            BoolQuery.Builder boolQueryBuilder = getBoolQueryBuilder(queryAsString(scrollQuery.getStringQuery()));
             sourceBuilder.index(indexesNames).query(q -> q.bool(boolQueryBuilder.build()));
-            if (nbSlices > 1) {
-                sourceBuilder.slice(s -> s.id(String.valueOf(numSlice)).max(nbSlices));
+            if (scrollQuery.getNbSlices() > 1) {
+                sourceBuilder.slice(s -> s.id(String.valueOf(scrollQuery.getNumSlice())).max(scrollQuery.getNbSlices()));
             }
-            scrollSearchRequest = sourceBuilder.scroll(KEEP_ALIVE).build();
+            scrollSearchRequest = sourceBuilder.scroll(Time.of(t -> t.time(scrollQuery.getDuration()))).build();
             response = client.search(scrollSearchRequest, ObjectNode.class);
             totalHits = response.hits().total().value();
-        } else if (stringQuery == null) {
-            response = client.scroll(ScrollRequest.of(s -> s.scroll(KEEP_ALIVE)
+        } else if (scrollQuery.getStringQuery() == null) {
+            response = client.scroll(ScrollRequest.of(s -> s.scroll(Time.of(t -> t.time(scrollQuery.getDuration())))
                     .scrollId(ofNullable(scrollId)
                             .orElseThrow(() -> new IllegalStateException("ScrollId must have been cleared")))), ObjectNode.class);
         } else {
@@ -137,7 +133,6 @@ class ElasticsearchSearcher implements Indexer.Searcher {
         }
         scrollId = response.scrollId();
         return resultStream(this.cls, () -> response.hits().hits().iterator());
-
     }
 
     @Override

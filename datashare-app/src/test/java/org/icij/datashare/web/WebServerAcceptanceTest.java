@@ -2,15 +2,27 @@ package org.icij.datashare.web;
 
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.mode.CommonMode;
-import org.icij.datashare.mode.ServerMode;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static java.lang.String.format;
+
 public class WebServerAcceptanceTest extends AbstractProdWebServerTest {
     @Before
     public void setUp() throws Exception {
-        configure(CommonMode.create(new DatashareCli().parseArguments(new String[]{"--cors=*", "--mode=SERVER"}).properties).createWebConfiguration());
+        Path datashareHome = Files.createTempDirectory("datashare-");
+        String[] args = {
+            "--cors=*",
+            "--mode=SERVER",
+            format("--dataSourceUrl=jdbc:sqlite:file:%s/db.db", datashareHome),
+            format("--pluginsDir=%s", datashareHome),
+            format("--extensionsDir=%s", datashareHome)
+        };
+        configure(CommonMode.create(new DatashareCli().parseArguments(args).properties).createWebConfiguration());
         waitForDatashare();
     }
 

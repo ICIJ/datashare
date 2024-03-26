@@ -1,11 +1,10 @@
 package org.icij.datashare.tasks;
 
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
-import org.icij.datashare.function.TerFunction;
+import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.test.DatashareTimeRule;
 import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Document;
@@ -14,23 +13,34 @@ import org.icij.datashare.text.NamedEntity;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.icij.datashare.text.nlp.Pipeline;
 import org.icij.datashare.user.User;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.HashMap;
 import java.util.function.BiFunction;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.CollectionUtils.asSet;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_SCROLL_DURATION_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_SEARCH_SCROLL_SIZE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.text.DocumentBuilder.createDoc;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
-import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchSearchRunnerIntTest {
@@ -38,7 +48,7 @@ public class BatchSearchRunnerIntTest {
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
     @Mock BiFunction<String, Double, Void> progressCb;
     @Mock BatchSearchRepository repository;
-    private ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
+    private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     @After public void tearDown() throws IOException { es.removeAll();}
 
     @Test
@@ -184,15 +194,106 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Test
+    public void test_search_with_query_template() throws Exception {
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
+        Document mydoc = createDoc("docId").with("mydoc to find").build();
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch searchOk = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(),false, null, queryBody,
+                null, 0);
+        when(repository.get(local(), searchOk.uuid)).thenReturn(searchOk);
+
+        new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchOk), progressCb).call();
+
+        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc));
+    }
+
+    @Test
+    public void test_search_without_query_template() throws Exception {
+        Document mydoc = createDoc("docId").with("mydoc to find").build();
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch searchOk = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(),false, null, null,
+                null, 0);
+        when(repository.get(local(), searchOk.uuid)).thenReturn(searchOk);
+
+        new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(searchOk), progressCb).call();
+
+        verify(repository).saveResults(searchOk.uuid, "mydoc", singletonList(mydoc));
+    }
+
+    @Test
     public void test_search_with_error() throws Exception {
         Document mydoc = createDoc("docId1").with("mydoc").build();
         indexer.add(TEST_INDEX, mydoc);
         BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("AND mydoc"), User.local());
         when(repository.get(local(), search.uuid)).thenReturn(search);
 
-        ElasticsearchException eex = assertThrows(ElasticsearchException.class,() -> new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call());
+        new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call();
 
-        assertThat(eex.error().toString()).contains("Failed to parse query [AND mydoc]");
+        ArgumentCaptor<SearchException> searchExceptionArgumentCaptor = ArgumentCaptor.forClass(SearchException.class);
+        verify(repository).setState(eq(search.uuid), searchExceptionArgumentCaptor.capture());
+        assertThat(searchExceptionArgumentCaptor.getValue().toString()).contains("Failed to parse query [AND mydoc]");
+    }
+
+    @Test
+    public void test_search_with_error_in_queries() throws Exception {
+        String queryBody = "{\"bool\":{\"must\":[{\"match_all\":{}},{\"bool\":{\"should\":[{\"query_string\":{\"query\":\"<query>\"}}]}},{\"match\":{\"type\":\"Document\"}}]}}";
+        Document mydoc = createDoc("docId1").with("mydoc").build();
+        indexer.add(TEST_INDEX, mydoc);
+        BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("\"mydoc"), User.local(),false, null, queryBody,
+                null, 0);
+        when(repository.get(local(), search.uuid)).thenReturn(search);
+
+        new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call();
+
+        ArgumentCaptor<SearchException> searchExceptionArgumentCaptor = ArgumentCaptor.forClass(SearchException.class);
+        verify(repository).setState(eq(search.uuid), searchExceptionArgumentCaptor.capture());
+        assertThat(searchExceptionArgumentCaptor.getValue().toString()).contains("Unexpected char");
+    }
+
+    @Test
+    public void test_use_batch_search_scroll_size_value_over_scroll_size_value() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put(SCROLL_SIZE_OPT, "100");
+            put(BATCH_SEARCH_SCROLL_SIZE_OPT, "0");
+        }});
+        BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
+        when(repository.get(local(), search.uuid)).thenReturn(search);
+
+        new BatchSearchRunner(indexer, propertiesProvider, repository, taskView(search), progressCb).call();
+
+        ArgumentCaptor<SearchException> searchExceptionArgumentCaptor = ArgumentCaptor.forClass(SearchException.class);
+        verify(repository).setState(eq(search.uuid), searchExceptionArgumentCaptor.capture());
+        assertThat(searchExceptionArgumentCaptor.getValue().toString()).contains("[size] cannot be [0] in a scroll context");
+    }
+
+    @Test
+    public void test_use_scroll_size_value() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put(SCROLL_SIZE_OPT, "0");
+        }});
+        BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
+        when(repository.get(local(), search.uuid)).thenReturn(search);
+
+        new BatchSearchRunner(indexer, propertiesProvider, repository, taskView(search), progressCb).call();
+
+        ArgumentCaptor<SearchException> searchExceptionArgumentCaptor = ArgumentCaptor.forClass(SearchException.class);
+        verify(repository).setState(eq(search.uuid), searchExceptionArgumentCaptor.capture());
+        assertThat(searchExceptionArgumentCaptor.getValue().toString()).contains("[size] cannot be [0] in a scroll context");
+    }
+
+    @Test
+    public void test_use_scroll_duration_value() {
+        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
+            put(BATCH_SEARCH_SCROLL_DURATION_OPT, "foo");
+        }});
+        BatchSearch search = new BatchSearch(singletonList(project(TEST_INDEX)), "name", "desc", asSet("mydoc"), User.local(), false, null, null,null, 0);
+        when(repository.get(local(), search.uuid)).thenReturn(search);
+
+        new BatchSearchRunner(indexer, propertiesProvider, repository, taskView(search), progressCb).call();
+
+        ArgumentCaptor<SearchException> searchExceptionArgumentCaptor = ArgumentCaptor.forClass(SearchException.class);
+        verify(repository).setState(eq(search.uuid), searchExceptionArgumentCaptor.capture());
+        assertThat(searchExceptionArgumentCaptor.getValue().toString()).contains("failed to parse setting [scroll] with value [foo] as a time value: unit is missing or unrecognized");
     }
 
     @Before

@@ -29,7 +29,7 @@ import java.util.*;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -297,9 +297,34 @@ public class ProjectResourceTest extends AbstractProdWebServerTest {
     }
 
     @Test
-    public void test_delete_project_and_its_queue() {
+    public void test_delete_project_and_its_legacy_queue() {
         Project foo = new Project("foo");
         DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:foo", Path.class);
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        queue.add(Path.of("/"));
+        assertThat(queue.size()).isEqualTo(1);
+        delete("/api/project/foo").should().respond(204);
+        assertThat(queue.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_delete_project_and_its_index_queue() {
+        Project foo = new Project("foo");
+        DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:foo:index", Path.class);
+        when(repository.getProjects(any())).thenReturn(List.of(foo));
+        when(repository.deleteAll("foo")).thenReturn(true);
+        queue.add(Path.of("/"));
+        assertThat(queue.size()).isEqualTo(1);
+        delete("/api/project/foo").should().respond(204);
+        assertThat(queue.size()).isEqualTo(0);
+    }
+
+
+    @Test
+    public void test_delete_project_and_it_nlp_queue() {
+        Project foo = new Project("foo");
+        DocumentQueue<Path> queue = documentCollectionFactory.createQueue("extract:queue:foo:index", Path.class);
         when(repository.getProjects(any())).thenReturn(List.of(foo));
         when(repository.deleteAll("foo")).thenReturn(true);
         queue.add(Path.of("/"));

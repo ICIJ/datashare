@@ -2,10 +2,13 @@ package org.icij.datashare.cli;
 
 import joptsimple.OptionException;
 import org.junit.Rule;
+import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.MapAssert.entry;
@@ -14,6 +17,16 @@ public class DatashareCliTest {
     private DatashareCli cli = new DatashareCli();
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
+
+    @Before
+    public void setUp() {
+        System.setProperty("user.home", "/home/datashare");
+    }
+
+    @After
+    public void tearDown() {
+        System.clearProperty("user.home");
+    }
 
     @Test
     public void test_web_opt() {
@@ -29,6 +42,19 @@ public class DatashareCliTest {
     public void test_override_opt_last_option_wins() {
         cli.parseArguments(new String[] {"--mode=SERVER", "--mode=LOCAL"});
         assertThat(cli.properties).includes(entry("mode", "LOCAL"));
+    }
+
+    @Test
+    public void test_port_opt() {
+        cli.parseArguments(new String[] {"--port=7777"});
+        assertThat(cli.properties).includes(entry("tcpListenPort", "7777"));
+        assertThat(cli.properties).excludes(entry("port", "7777"));
+    }
+
+    @Test
+    public void test_tcp_listen_port_opt() {
+        cli.parseArguments(new String[] {"--tcpListenPort=7777"});
+        assertThat(cli.properties).includes(entry("tcpListenPort", "7777"));
     }
 
     @Test
@@ -97,6 +123,18 @@ public class DatashareCliTest {
     public void test_embedded_document_download_max_size_illegal_value() {
         cli.asProperties(cli.createParser().parse("--batchDownloadMaxSize", "123A"), null);
     }
+    @Test
+    public void test_relative_batch_download_dir() {
+        cli.parseArguments(new String[] {"--batchDownloadDir", "foo"});
+        Path userDir = Path.of(System.getProperty("user.dir"));
+        assertThat(cli.properties).includes(entry("batchDownloadDir", userDir.resolve("foo").toString()));
+    }
+
+    @Test
+    public void test_absolute_batch_download_dir() {
+        cli.parseArguments(new String[] {"--batchDownloadDir", "/home/foo"});
+        assertThat(cli.properties).includes(entry("batchDownloadDir", "/home/foo"));
+    }
 
     @Test
     public void test_no_default_indexing_language_value() {
@@ -150,5 +188,29 @@ public class DatashareCliTest {
         exit.expectSystemExitWithStatus(3);
         cli.parseArguments(new String[] {"--ext", "bar"});
         assertThat(cli.properties).excludes(entry("defaultProject", "local-datashare"));
+    }
+
+    @Test
+    public void test_data_dir_is_based_on_current_user_dir() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("dataDir", "/home/datashare/Datashare"));
+    }
+
+    @Test
+    public void test_elasticsearch_data_path_is_based_on_current_user_dir() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("elasticsearchDataPath", "/home/datashare/.local/share/datashare/es"));
+    }
+
+    @Test
+    public void test_extensions_dir_is_based_on_current_user_dir() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("extensionsDir", "/home/datashare/.local/share/datashare/extensions"));
+    }
+
+    @Test
+    public void test_plugins_dir_is_based_on_current_user_dir() {
+        cli.parseArguments(new String[] {});
+        assertThat(cli.properties).includes(entry("pluginsDir", "/home/datashare/.local/share/datashare/plugins"));
     }
 }
