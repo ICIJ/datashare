@@ -82,7 +82,7 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
 
                 if (currentTask != null && !POISON.equals(currentTask)) {
                     if (cancelledTasks.get(currentTask.id) != null) {
-                        logger.info("not executing cancelled task {}", currentTask.id);
+                        logger.info("cancelled task {} not executed", currentTask.id);
                         taskSupplier.canceled(currentTask, cancelledTasks.remove(currentTask.id));
                         continue;
                     }
