@@ -12,4 +12,4 @@ export DATASHARE_VERSION=$(cat $DIR/pom.xml | grep '<version>[0-9.]\+' | sed 's/
 export DATASHARE_JAR=${DATASHARE_JAR:-$DIR/datashare-dist/target/datashare-dist-${DATASHARE_VERSION}-all.jar}
 export DATASHARE_SYNC_NLP_MODELS=${DATASHARE_SYNC_NLP_MODELS:-true}
 
-./datashare-dist/src/main/deb/bin/datashare $@
+./datashare-dist/src/main/deb/bin/datashare "$@"
