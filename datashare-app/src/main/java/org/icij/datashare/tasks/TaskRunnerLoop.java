@@ -102,6 +102,9 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
                 }
             } catch (CancelException cex) {
                 taskSupplier.canceled(currentTask, cex.requeue);
+            } catch (InterruptedException iex) {
+                logger.error(format("task %s interrupted, cancelling it", currentTask), iex);
+                ofNullable(currentTask).ifPresent(t -> taskSupplier.canceled(t, false));
             } catch (Throwable ex) {
                 logger.error(format("error in loop for task %s", currentTask), ex);
                 if (currentTask != null && !currentTask.isNull()) {

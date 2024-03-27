@@ -67,12 +67,8 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
         consumer.shutdown();
         // documents could be currently processed
-        try {
-            while (!consumer.awaitTermination(30, MINUTES)) {
-                logger.info("Consumer has not terminated yet.");
-            }
-        } catch (InterruptedException iex) {
-            logger.info("Got InterruptedException while waiting for the consumer shutdown.");
+        while (!consumer.awaitTermination(30, MINUTES)) {
+            logger.info("Consumer has not terminated yet.");
         }
 
         if (consumer.getReporter() != null) consumer.getReporter().close();
