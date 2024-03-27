@@ -151,14 +151,4 @@ class CliApp {
             r.shutdown();
         });
     }
-
-    private static Runnable closeAndLogException(AutoCloseable closeable) {
-        return () -> {
-            try {
-                closeable.close();
-            } catch (Exception e) {
-                logger.error("error while closing", e);
-            }
-        };
-    }
 }
