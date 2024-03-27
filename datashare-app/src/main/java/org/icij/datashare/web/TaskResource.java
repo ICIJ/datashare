@@ -177,7 +177,7 @@ public class TaskResource {
             // TODO remove taskFactory.createScanIndexTask would allow to get rid of taskfactory dependency in taskresource
             // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
             // the task will be run as a background task that will have race conditions with indexTask report loading
-            taskFactory.createScanIndexTask(new TaskView<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties)), null).call();
+            taskFactory.createScanIndexTask(new TaskView<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties)), (s, p) -> null).call();
         } else {
             properties.remove(MAP_NAME_OPTION); // avoid use of reportMap to override ES docs
         }

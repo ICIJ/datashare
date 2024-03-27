@@ -11,6 +11,7 @@ import org.icij.datashare.text.indexing.Indexer;
 import org.icij.extract.extractor.ExtractionStatus;
 import org.icij.extract.report.Report;
 import org.icij.extract.report.ReportMap;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,15 +56,15 @@ public class ScanIndexTask extends PipelineTask<Path> {
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE)));
         this.scrollSlices = parseInt(propertiesProvider.get(SCROLL_SLICES_OPT).orElse(valueOf(DEFAULT_SCROLL_SLICES)));
         this.projectName = propertiesProvider.get(DEFAULT_PROJECT_OPT).orElse(DEFAULT_DEFAULT_PROJECT);
-        this.reportMap = factory.createMap(propertiesProvider.get(REPORT_NAME_OPT).orElse("extract:report"));
+        this.reportMap = factory.createMap(getMapName());
         this.indexer = indexer;
     }
 
     @Override
     public Long call() throws Exception {
-        logger.info("scanning index {} with {} scroll, scroll size {} and {} slices", projectName, scrollDuration, scrollSize, scrollSlices);
+        logger.info("scanning index {} with {} scroll, scroll size {} and {} slice(s)", projectName, scrollDuration, scrollSize, scrollSlices);
         Optional<Long> nb = IntStream.range(0, scrollSlices).parallel().mapToObj(this::slicedScroll).reduce(Long::sum);
-        logger.info("imported {} paths into {}", nb.get(), reportMap);
+        logger.info("imported {} paths into map {}", nb.get(), getMapName());
         return nb.get();
     }
 
@@ -81,5 +82,10 @@ public class ScanIndexTask extends PipelineTask<Path> {
             }
         } while (!docsToProcess.isEmpty());
         return nbProcessed;
+    }
+
+    @NotNull
+    private String getMapName() {
+        return propertiesProvider.get(REPORT_NAME_OPT).orElse("extract:report");
     }
 }
