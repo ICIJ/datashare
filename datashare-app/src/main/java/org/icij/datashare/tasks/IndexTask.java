@@ -58,6 +58,7 @@ public class IndexTask extends PipelineTask<Path> implements Monitorable{
 
     @Override
     public Long call() throws Exception {
+        super.call();
         logger.info("Processing up to {} file(s) in parallel", parallelism);
         totalToProcess = drainer.drain(PATH_POISON).get();
         drainer.shutdown();

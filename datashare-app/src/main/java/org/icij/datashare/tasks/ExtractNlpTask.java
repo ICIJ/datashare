@@ -53,6 +53,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
 
     @Override
     public Long call() throws Exception {
+        super.call();
         logger.info("extracting Named Entities with pipeline {} for {} from queue {}", nlpPipeline.getType(), project, inputQueue.getName());
         String docId;
         long nbMessages = 0;

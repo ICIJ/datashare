@@ -12,7 +12,9 @@ import org.icij.task.DefaultTask;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask {
+import static java.util.Optional.ofNullable;
+
+public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableCallable<Long> {
     protected final DocumentQueue<T> inputQueue;
     protected final DocumentQueue<T> outputQueue;
     protected final Stage stage;
@@ -21,7 +23,7 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
     private final DocumentCollectionFactory<T> factory;
     public static Path PATH_POISON = Paths.get("POISON");
     public static String STRING_POISON = "POISON";
-
+    private volatile Thread taskThread;
 
     public PipelineTask(Stage stage, User user, DocumentCollectionFactory<T> factory, final PropertiesProvider propertiesProvider, Class<T> clazz) {
         this.propertiesProvider = propertiesProvider;
@@ -30,6 +32,15 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
         this.factory = factory;
         this.inputQueue = getInputQueue(clazz);
         this.outputQueue = getOutputQueue(clazz);
+    }
+
+    public void cancel(String taskId, boolean requeue) {
+        ofNullable(taskThread).ifPresent(Thread::interrupt);
+    }
+
+    public Long call() throws Exception {
+        taskThread = Thread.currentThread();
+        return 0L;
     }
 
     @Override

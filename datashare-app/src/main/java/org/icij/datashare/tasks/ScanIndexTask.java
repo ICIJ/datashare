@@ -62,6 +62,7 @@ public class ScanIndexTask extends PipelineTask<Path> {
 
     @Override
     public Long call() throws Exception {
+        super.call();
         logger.info("scanning index {} with {} scroll, scroll size {} and {} slice(s)", projectName, scrollDuration, scrollSize, scrollSlices);
         Optional<Long> nb = IntStream.range(0, scrollSlices).parallel().mapToObj(this::slicedScroll).reduce(Long::sum);
         logger.info("imported {} paths into map {}", nb.get(), getMapName());

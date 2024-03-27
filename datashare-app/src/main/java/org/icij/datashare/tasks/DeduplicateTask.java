@@ -28,6 +28,7 @@ public class DeduplicateTask extends PipelineTask<Path> {
 
     @Override
     public Long call() throws Exception {
+        super.call();
         int duplicates = inputQueue.removeDuplicates();
         transferToOutputQueue();
         logger.info("removed {} duplicate paths in inputQueue {}", duplicates, inputQueue.getName());
