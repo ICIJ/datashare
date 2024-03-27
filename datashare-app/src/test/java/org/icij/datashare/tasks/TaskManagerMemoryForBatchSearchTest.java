@@ -102,29 +102,32 @@ public class TaskManagerMemoryForBatchSearchTest {
     public void test_main_loop_exit_with_sigterm_and_queued_batches() throws Exception {
         BatchSearch bs1 = new BatchSearch(singletonList(project("prj")), "name1", "desc", CollectionUtils.asSet("query1") , local());
         BatchSearch bs2 = new BatchSearch(singletonList(project("prj")), "name2", "desc", CollectionUtils.asSet("query2") , local());
-        SleepingBatchSearchRunner bsr1 = new SleepingBatchSearchRunner(100, bs1);
-        SleepingBatchSearchRunner bsr2 = new SleepingBatchSearchRunner(100, bs2);
+        CountDownLatch bs1Started = new CountDownLatch(1);
+        CountDownLatch bs2Started = new CountDownLatch(1);
+        SleepingBatchSearchRunner bsr1 = new SleepingBatchSearchRunner(100, bs1Started, bs1);
+        SleepingBatchSearchRunner bsr2 = new SleepingBatchSearchRunner(100, bs2Started, bs2);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(bsr1, bsr2);
         when(repository.get(bs1.uuid)).thenReturn(bs1);
         when(repository.get(bs2.uuid)).thenReturn(bs2);
         TaskView<Object> taskView1 = taskManager.startTask(bs1.uuid, BatchSearchRunner.class.getName(), bs1.user);
         TaskView<Object> taskView2 = taskManager.startTask(bs2.uuid, BatchSearchRunner.class.getName(), bs2.user);
 
-        waitQueueToHaveSize(1);
+        bs1Started.await();
         Signal.raise(new Signal("TERM"));
-        Thread.sleep(1000);
+        taskManager.waitTasksToBeDone(1, TimeUnit.SECONDS);
 
-        assertThat(batchSearchQueue).excludes("poison");
+        assertThat(batchSearchQueue).excludes(TaskView.nullObject());
         assertThat(batchSearchQueue).containsOnly(taskView1, taskView2);
     }
 
     @Test(timeout = 2000)
-    public void test_main_loop_exit_with_sigterm_when_running_batch() throws InterruptedException {
-        SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100,testBatchSearch );
+    public void test_main_loop_exit_with_sigterm_when_running_batch() throws Exception {
+        CountDownLatch bsStarted = new CountDownLatch(1);
+        SleepingBatchSearchRunner batchSearchRunner = new SleepingBatchSearchRunner(100, bsStarted, testBatchSearch );
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
-        batchSearchQueue.add(new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()));
-        waitQueueToBeEmpty();
+        taskManager.startTask(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
 
+        bsStarted.await();
         Signal term = new Signal("TERM");
         Signal.raise(term);
 
@@ -149,23 +152,9 @@ public class TaskManagerMemoryForBatchSearchTest {
         DatashareTime.setMockTime(false);
     }
 
-    public void waitQueueToBeEmpty() throws InterruptedException {
-        waitQueueToHaveSize(0);
-    }
-
-    public void waitQueueToHaveSize(int size) throws InterruptedException {
-        while (batchSearchQueue.size() != size) {
-            Thread.sleep(100);
-        }
-    }
-
     private class SleepingBatchSearchRunner extends BatchSearchRunner {
         private final int sleepingMilliseconds;
         private final CountDownLatch countDownLatch;
-
-        public SleepingBatchSearchRunner(int sleepingMilliseconds, BatchSearch bs) {
-            this(sleepingMilliseconds, new CountDownLatch(1), bs);
-        }
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch, BatchSearch bs) {
             super(mock(Indexer.class), new PropertiesProvider(), repository, new TaskView<>(bs.uuid, BatchSearchRunner.class.getName(), local()), (a, b) -> null);
