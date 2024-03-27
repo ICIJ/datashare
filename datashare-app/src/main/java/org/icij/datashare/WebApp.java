@@ -18,6 +18,7 @@ import java.util.concurrent.Executors;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 public class WebApp {
@@ -46,11 +47,6 @@ public class WebApp {
                 parseBoolean(properties.getProperty(BROWSER_OPEN_LINK_OPT))) {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
-        }
-        if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
-            ExecutorService executor = Executors.newFixedThreadPool(3);
-            executor.submit(mode.get(TaskFactory.class).createTaskRunnerLoop());
-            executor.submit(mode.get(TaskFactory.class).createBatchDownloadCleaner());
         }
         webServerThread.join();
     }

@@ -68,6 +68,7 @@ import java.util.function.Consumer;
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule {
@@ -145,7 +146,7 @@ public abstract class CommonMode extends AbstractModule {
             }
         }
 
-        QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get("batchQueueType").orElse(QueueType.MEMORY.name()));
+        QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get(BATCH_QUEUE_TYPE_OPT).orElse(QueueType.MEMORY.name()));
         switch ( batchQueueType ) {
             case REDIS:
                 configureBatchQueuesRedis(redissonClient);
