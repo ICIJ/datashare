@@ -23,10 +23,8 @@ public class Main {
 
         if (cli.isWebServer()) {
             WebApp.start(cli.properties);
-        } else if (cli.mode() == Mode.BATCH_SEARCH) {
-            BatchSearchApp.start(cli.properties);
-        } else if (cli.mode() == Mode.BATCH_DOWNLOAD) {
-            BatchDownloadApp.start(cli.properties);
+        } else if (cli.mode() == Mode.TASK_RUNNER) {
+            TaskRunnerApp.start(cli.properties);
         } else {
             CliApp.start(cli.properties);
         }
