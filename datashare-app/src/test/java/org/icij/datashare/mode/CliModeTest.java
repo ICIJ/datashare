@@ -22,10 +22,10 @@ public class CliModeTest {
     @Rule public TemporaryFolder dataDir = new TemporaryFolder();
 
     @Test
-    public void test_batch_search() throws Exception {
+    public void test_task_runner() throws Exception {
         CommonMode mode = CommonMode.create(PropertiesProvider.fromMap(new HashMap<>() {{
             put("dataDir", dataDir.getRoot().toString());
-            put("mode", "BATCH_SEARCH");
+            put("mode", "TASK_RUNNER");
             put("batchQueueType", QueueType.REDIS.name());
         }}));
 
@@ -34,21 +34,5 @@ public class CliModeTest {
         taskRunnerLoop.call();
         taskRunnerLoop.close();
         mode.get(Indexer.class).close();
-    }
-
-    @Test(timeout = 5000)
-    public void test_batch_download() throws Exception {
-        CommonMode mode = CommonMode.create(PropertiesProvider.fromMap(new HashMap<>() {{
-            put("dataDir", dataDir.getRoot().toString());
-            put("mode", "BATCH_DOWNLOAD");
-            put("batchQueueType", QueueType.REDIS.name());
-            put(DatashareCliOptions.BATCH_DOWNLOAD_ZIP_TTL_OPT, String.valueOf(DEFAULT_BATCH_DOWNLOAD_ZIP_TTL));
-            put(DatashareCliOptions.BATCH_DOWNLOAD_DIR_OPT, DEFAULT_BATCH_DOWNLOAD_DIR);
-        }}));
-
-        TaskRunnerLoop taskRunnerLoop = mode.get(TaskFactory.class).createTaskRunnerLoop();
-        mode.get(TaskManager.class).shutdownAndAwaitTermination(1, TimeUnit.SECONDS); // to enqueue poison
-        taskRunnerLoop.call();
-        taskRunnerLoop.close();
     }
 }
