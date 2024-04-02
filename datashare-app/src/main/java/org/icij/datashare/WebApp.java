@@ -48,6 +48,10 @@ public class WebApp {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }
+        if (mode.getMode() == Mode.LOCAL || mode.getMode() == Mode.EMBEDDED) {
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+            executor.submit(mode.get(TaskFactory.class).createTaskRunnerLoop());
+        }
         webServerThread.join();
     }
 
