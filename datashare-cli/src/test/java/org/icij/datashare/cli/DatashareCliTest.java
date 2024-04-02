@@ -32,7 +32,7 @@ public class DatashareCliTest {
     public void test_web_opt() {
         assertThat(cli.parseArguments(new String[] {"-o true"})).isNotNull();
         assertThat(cli.isWebServer()).isTrue();
-        assertThat(cli.parseArguments(new String[] {"--mode=BATCH_SEARCH"})).isNotNull();
+        assertThat(cli.parseArguments(new String[] {"--mode=TASK_RUNNER"})).isNotNull();
         assertThat(cli.isWebServer()).isFalse();
         assertThat(cli.parseArguments(new String[] {"--mode=CLI"})).isNotNull();
         assertThat(cli.isWebServer()).isFalse();
