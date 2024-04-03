@@ -92,7 +92,7 @@ public class BatchDownloadRunnerIntTest {
         new IndexerHelper(es.client).indexFile("doc2.txt", "Portez ce vieux whisky au juge blond qui fume", fs);
 
         BatchDownload bd = createBatchDownload("*");
-        FileResult result = new BatchDownloadRunner(indexer, createProvider(), createTaskView(bd), taskModifier::progress).call();
+        UriResult result = new BatchDownloadRunner(indexer, createProvider(), createTaskView(bd), taskModifier::progress).call();
 
         assertThat(result.size).isGreaterThan(0);
     }

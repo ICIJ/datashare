@@ -6,7 +6,9 @@ import org.icij.datashare.user.User;
 import org.junit.After;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
@@ -78,6 +80,20 @@ public class TaskManagerRedisTest {
         assertThat(taskManager.getTask(taskView1.id)).isNull();
         assertThat(taskManager.getTask(taskView2.id)).isNotNull();
         assertThat(taskView1.id).isEqualTo(clearedTask.id);
+    }
+    @Test
+    public void test_done_task_result_for_file() throws Exception {
+        BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo", null,Paths.get("/dir"), false);
+
+        TaskView<UriResult> taskView = taskManager.startTask(BatchDownloadRunner.class.getName(), User.local(), new HashMap<>() {{
+            put("batchDownload", batchDownload);
+        }});
+        UriResult result = new UriResult(new URI("/dir"), 123);
+        taskSupplier.result(taskView.id, result);
+        assertThat(waitForEvent.await(100, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(taskManager.getTasks()).hasSize(1);
+        assertThat(taskManager.getTasks().get(0).getResult()).isEqualTo(result);
     }
 
     private void callback() {

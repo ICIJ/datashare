@@ -46,7 +46,7 @@ import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toList;
 import static org.icij.datashare.cli.DatashareCliOptions.*;
 
-public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, UserTask {
+public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, UserTask {
     private final static Logger logger = LoggerFactory.getLogger(BatchDownloadRunner.class);
     static final int MAX_SCROLL_SIZE = 3500;
     static final int MAX_BATCH_RESULT_SIZE = 10000;
@@ -75,7 +75,7 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
     }
 
     @Override
-    public FileResult call() throws Exception {
+    public UriResult call() throws Exception {
         int throttleMs = parseInt(propertiesProvider.get(BATCH_THROTTLE_OPT).orElse(DEFAULT_BATCH_THROTTLE));
         int maxResultSize = parseInt(propertiesProvider.get(BATCH_DOWNLOAD_MAX_NB_FILES_OPT).orElse(valueOf(MAX_BATCH_RESULT_SIZE)));
         String scrollDuration = propertiesProvider.get(BATCH_DOWNLOAD_SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
@@ -119,7 +119,7 @@ public class BatchDownloadRunner implements Callable<FileResult>, Monitorable, U
                 docsToProcess = searcher.scroll(scrollDuration).collect(toList());
             }
         }
-        FileResult result = new FileResult(batchDownload.filename.toFile(), Files.size(batchDownload.filename));
+        UriResult result = new UriResult(batchDownload.filename.toUri(), Files.size(batchDownload.filename));
         logger.info("created batch download file {} of {} entries for user {}", result, numberOfResults.get(), batchDownload.user.getId());
         return result;
     }

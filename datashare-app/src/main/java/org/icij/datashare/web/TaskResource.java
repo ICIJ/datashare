@@ -23,16 +23,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
-import org.icij.datashare.tasks.BatchDownloadRunner;
-import org.icij.datashare.tasks.EnqueueFromIndexTask;
-import org.icij.datashare.tasks.ExtractNlpTask;
-import org.icij.datashare.tasks.FileResult;
-import org.icij.datashare.tasks.IndexTask;
-import org.icij.datashare.tasks.ScanIndexTask;
-import org.icij.datashare.tasks.ScanTask;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.tasks.TaskView;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.user.User;
 
@@ -107,9 +98,9 @@ public class TaskResource {
     public Payload getTaskResult(@Parameter(name = "id", description = "task id", in = ParameterIn.PATH) String id, Context context) throws IOException {
         TaskView<?> task = forbiddenIfNotSameUser(context, notFoundIfNull(taskManager.getTask(id)));
         Object result = task.getResult();
-        if (result instanceof FileResult) {
-            FileResult fileResult = (FileResult) result;
-            Path filePath = Path.of(fileResult.file.getPath());
+        if (result instanceof UriResult) {
+            UriResult uriResult = (UriResult) result;
+            Path filePath = Path.of(uriResult.uri.getPath());
             String fileName = filePath.getFileName().toString();
             String contentDisposition = "attachment;filename=\"" + fileName + "\"";
             InputStream fileInputStream = Files.newInputStream(filePath);

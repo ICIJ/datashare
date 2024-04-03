@@ -48,24 +48,24 @@ public class BatchDownloadRunnerTest {
         Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).build()).toArray(Document[]::new);
         mockSearch.willReturn(2, documents);
         BatchDownload batchDownload = new BatchDownload(singletonList(project("test-datashare")), User.local(), "query");
-        FileResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+        UriResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
                     put(BATCH_DOWNLOAD_MAX_NB_FILES_OPT, "3");
                     put(SCROLL_SIZE_OPT, "3");
                 }}), getTaskView(batchDownload), updater::progress).call();
 
-        assertThat(new ZipFile(result.file).size()).isEqualTo(3);
+        assertThat(new ZipFile(new File(result.uri)).size()).isEqualTo(3);
     }
 
     @Test
     public void test_max_zip_size() throws Exception {
         Document[] documents = IntStream.range(0, 3).mapToObj(i -> createDoc("doc" + i).with(createFile(i)).with("hello world " + i).build()).toArray(Document[]::new);
         mockSearch.willReturn(2, documents);
-        FileResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
+        UriResult result = new BatchDownloadRunner(indexer, new PropertiesProvider(new HashMap<>() {{
             put(BATCH_DOWNLOAD_MAX_SIZE_OPT, valueOf("hello world 1".getBytes(StandardCharsets.UTF_8).length * 3));
             put(SCROLL_SIZE_OPT, "3");
         }}), getTaskView(new BatchDownload(singletonList(project("test-datashare")), User.local(), "query")), updater::progress).call();
 
-        assertThat(new ZipFile(result.file).size()).isEqualTo(4);
+        assertThat(new ZipFile(new File(result.uri)).size()).isEqualTo(4);
     }
 
     @Test(expected = ElasticsearchException.class)
