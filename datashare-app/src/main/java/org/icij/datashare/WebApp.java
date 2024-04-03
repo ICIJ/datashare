@@ -52,7 +52,7 @@ public class WebApp {
             waitForServerToBeUp(parseInt(mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
             Desktop.getDesktop().browse(URI.create(new URI("http://localhost:")+mode.properties().getProperty(PropertiesProvider.TCP_LISTEN_PORT)));
         }
-        requeueDatabaseBatches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
+        requeueDatabaseBatchSearches(mode.get(BatchSearchRepository.class), mode.get(TaskManager.class));
         webServerThread.join();
     }
 
@@ -70,7 +70,7 @@ public class WebApp {
         }
     }
 
-    private static void requeueDatabaseBatches(BatchSearchRepository repository, TaskManager taskManager) throws IOException {
+    private static void requeueDatabaseBatchSearches(BatchSearchRepository repository, TaskManager taskManager) throws IOException {
         for (String batchSearchUuid: repository.getQueued()) {
             BatchSearch batchSearch = repository.get(batchSearchUuid);
             taskManager.startTask(batchSearchUuid, BatchSearchRunner.class.getName(), batchSearch.user);
