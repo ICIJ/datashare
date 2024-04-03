@@ -8,13 +8,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.DatashareUser;
-import org.icij.datashare.tasks.CancellableCallable;
-import org.icij.datashare.tasks.FileResult;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.tasks.TaskManagerMemory;
-import org.icij.datashare.tasks.TaskModifier;
-import org.icij.datashare.tasks.TaskView;
+import org.icij.datashare.tasks.*;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
@@ -96,10 +90,10 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_task_result_with_file_result_should_relativize_result_with_app_folder() throws Exception {
         File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
-        FileResult indexHtml = new FileResult(file, Files.size(file.toPath()));
+        UriResult indexHtml = new UriResult(file.toURI(), Files.size(file.toPath()));
         setupAppWith(new DummyUserTask<>("foo", () -> indexHtml), "foo");
 
-        TaskView<FileResult> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
+        TaskView<UriResult> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
         get("/api/task/" + t.id + "/result").withPreemptiveAuthentication("foo", "qux").
                 should().respond(200).
                 should().haveType("application/octet-stream").
@@ -110,9 +104,9 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_task_result_with_file_result_and_absolute_path_should_relativize_result_with_app_folder() throws Exception {
         File file = new File(ClassLoader.getSystemResource("app/index.html").toURI());
-        FileResult indexHtml = new FileResult(file, Files.size(file.toPath()));
+        UriResult indexHtml = new UriResult(file.toURI(), Files.size(file.toPath()));
         setupAppWith(new DummyUserTask<>("foo", () -> indexHtml), "foo");
-        TaskView<FileResult> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
+        TaskView<UriResult> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
 
         get("/api/task/" + t.id + "/result").withPreemptiveAuthentication("foo", "qux").should().respond(200);
     }
