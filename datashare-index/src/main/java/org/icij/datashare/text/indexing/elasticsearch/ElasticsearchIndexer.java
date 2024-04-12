@@ -383,7 +383,7 @@ public class ElasticsearchIndexer implements Indexer {
     }
     private SearchedText searchContentOccurrences(String indexName, String id, String routing, final String query, String targetLanguage) throws IOException {
         SearchRequest.Builder sourceBuilder = new SearchRequest.Builder().index(indexName).size(DEFAULT_SEARCH_SIZE).timeout("30m");
-        if (query.length() == 0) {
+        if (query.isEmpty()) {
             throw new IllegalArgumentException();
         }
         sourceBuilder.query(Query.of(q -> q.bool(bq -> bq.must(qt -> qt.term(t -> t.field("_id").value(id))))));
