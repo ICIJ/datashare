@@ -16,20 +16,10 @@ String getTranslationContent(def _source, def targetLanguage) {
     }
 }
 
-String removeDiacritics(String input) {
-    StringBuilder output = new StringBuilder();
-    for (char c : input.toCharArray()) {
-        if (Character.getType(c) != Character.NON_SPACING_MARK) {
-            output.append(c);
-        }
-    }
-    return output.toString();
-}
-
 ArrayList getOffsets(String query, String content) {
     def offsets = new ArrayList();
-    String contentInLower = removeDiacritics(Normalizer.normalize(content.toLowerCase(), Normalizer.Form.NFKD));
-    String queryInLower = removeDiacritics(Normalizer.normalize(query.toLowerCase(), Normalizer.Form.NFKD));
+    String contentInLower = content.toLowerCase();
+    String queryInLower = query.toLowerCase();
     int queryLength = query.length();
     int lastIndex = contentInLower.indexOf(queryInLower);
     while (lastIndex != -1) {
