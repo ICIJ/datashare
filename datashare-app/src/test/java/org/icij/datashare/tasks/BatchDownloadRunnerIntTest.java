@@ -176,7 +176,7 @@ public class BatchDownloadRunnerIntTest {
         assertThat(batchDownloadRunner.toString()).contains(bd.uuid);
     }
 
-    @Test(expected = ElasticsearchException.class)
+    @Test(expected = ElasticSearchAdapterException.class)
     public void test_use_batch_download_scroll_size_value_over_scroll_size_value() throws Exception {
         BatchDownload bd = createBatchDownload("*");
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
@@ -187,7 +187,7 @@ public class BatchDownloadRunnerIntTest {
         new BatchDownloadRunner(indexer, propertiesProvider, createTaskView(bd), taskModifier::progress).call();
     }
 
-    @Test(expected = ElasticsearchException.class)
+    @Test(expected = ElasticSearchAdapterException.class)
     public void test_use_scroll_size_value() throws Exception {
         BatchDownload bd = createBatchDownload("*");
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
@@ -197,7 +197,7 @@ public class BatchDownloadRunnerIntTest {
         new BatchDownloadRunner(indexer, propertiesProvider, createTaskView(bd), taskModifier::progress).call();
     }
 
-    @Test(expected = ElasticsearchException.class)
+    @Test(expected = ElasticSearchAdapterException.class)
     public void test_use_scroll_duration_value() throws Exception {
         BatchDownload bd = createBatchDownload("*");
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{

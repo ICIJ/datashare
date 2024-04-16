@@ -144,7 +144,7 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
         } catch (ElasticsearchException esEx) {
             logger.error("ES exception while running batch " + taskView.id, esEx);
             repository.setState(taskView.id, new SearchException(query,
-                    new ElasticSearchAdapterException(esEx.response().error().rootCause().stream().findFirst().orElse(esEx.error()).reason())));
+                    ElasticSearchAdapterException.createFrom(esEx)));
         } catch (IOException | InterruptedException | JsonException ex) {
             logger.error("exception while running batch " + taskView.id, ex);
             repository.setState(taskView.id, new SearchException(query, ex));
@@ -168,11 +168,6 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
             if (callThread != null) callThread.join();
         } catch (InterruptedException e) {
             logger.warn("batch search interrupted during cancel check status for {}", taskView.id);
-        }
-    }
-    private static class ElasticSearchAdapterException extends RuntimeException {
-        public ElasticSearchAdapterException(String jsonCause) {
-            super(jsonCause);
         }
     }
 }

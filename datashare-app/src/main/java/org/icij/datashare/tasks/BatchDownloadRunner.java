@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import net.lingala.zip4j.io.outputstream.ZipOutputStream;
@@ -92,32 +93,36 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
         Indexer.Searcher searcher = indexer.search(batchDownload.projects.stream().map(Project::getId).collect(toList()),
                 Document.class, batchDownload.query).withoutSource("content").limit(scrollSize);
 
-        List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
-        if (docsToProcess.isEmpty()) {
-            logger.warn("no results for batchDownload {}", batchDownload.uuid);
-            return null;
-        }
-        docsToProcessSize = searcher.totalHits();
-        if (docsToProcessSize > maxResultSize) {
-            logger.warn("number of results for batch download > {} for {}/{} (nb zip entries will be limited)",
-                    maxResultSize, batchDownload.uuid, batchDownload.user);
-        }
-
-        try (Zipper zipper = createZipper(batchDownload, propertiesProvider, mailSenderSupplier)) {
-            HashMap<String, Object> taskProperties = new HashMap<>();
-            taskProperties.put("batchDownload", batchDownload);
-            while (!docsToProcess.isEmpty()) {
-                for (int i = 0; i < docsToProcess.size() && numberOfResults.get() < maxResultSize && zippedFilesSize <= maxZipSizeBytes; i++) {
-                    Document document = (Document) docsToProcess.get(i);
-                    int addedBytes = documentVerifier.isRootDocumentSizeAllowed(document) ? zipper.add(document) : 0;
-                    if (addedBytes > 0) {
-                        zippedFilesSize += addedBytes;
-                        numberOfResults.incrementAndGet();
-                        progressCallback.apply(task.id, getProgressRate());
-                    }
-                }
-                docsToProcess = searcher.scroll(scrollDuration).collect(toList());
+        try {
+            List<? extends Entity> docsToProcess = searcher.scroll(scrollDuration).collect(toList());
+            if (docsToProcess.isEmpty()) {
+                logger.warn("no results for batchDownload {}", batchDownload.uuid);
+                return null;
             }
+            docsToProcessSize = searcher.totalHits();
+            if (docsToProcessSize > maxResultSize) {
+                logger.warn("number of results for batch download > {} for {}/{} (nb zip entries will be limited)",
+                        maxResultSize, batchDownload.uuid, batchDownload.user);
+            }
+
+            try (Zipper zipper = createZipper(batchDownload, propertiesProvider, mailSenderSupplier)) {
+                HashMap<String, Object> taskProperties = new HashMap<>();
+                taskProperties.put("batchDownload", batchDownload);
+                while (!docsToProcess.isEmpty()) {
+                    for (int i = 0; i < docsToProcess.size() && numberOfResults.get() < maxResultSize && zippedFilesSize <= maxZipSizeBytes; i++) {
+                        Document document = (Document) docsToProcess.get(i);
+                        int addedBytes = documentVerifier.isRootDocumentSizeAllowed(document) ? zipper.add(document) : 0;
+                        if (addedBytes > 0) {
+                            zippedFilesSize += addedBytes;
+                            numberOfResults.incrementAndGet();
+                            progressCallback.apply(task.id, getProgressRate());
+                        }
+                    }
+                    docsToProcess = searcher.scroll(scrollDuration).collect(toList());
+                }
+            }
+        } catch (ElasticsearchException esEx) {
+            throw ElasticSearchAdapterException.createFrom(esEx);
         }
         UriResult result = new UriResult(batchDownload.filename.toUri(), Files.size(batchDownload.filename));
         logger.info("created batch download file {} of {} entries for user {}", result, numberOfResults.get(), batchDownload.user.getId());
