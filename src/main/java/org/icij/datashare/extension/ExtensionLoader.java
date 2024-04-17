@@ -28,20 +28,26 @@ public class ExtensionLoader {
     }
 
     public synchronized <T> void load(Consumer<T> registerFunc, Predicate<Class<?>> predicate) throws FileNotFoundException {
-        File[] jars = getJars();
-        LOGGER.info("read directory {} and found jars (executable): {}", extensionsDir, jars);
-        DynamicClassLoader classLoader = (DynamicClassLoader) ClassLoader.getSystemClassLoader();
-        for (File jar : jars) {
-            try {
-                LOGGER.info("loading jar {}", jar);
-                classLoader.add(jar.toURI().toURL());
-                Class<?> expectedClass = findClassesInJar(predicate, jar);
-                if (expectedClass != null) {
-                    registerFunc.accept((T) expectedClass);
+        if (ClassLoader.getSystemClassLoader() instanceof DynamicClassLoader) {
+            File[] jars = getJars();
+            LOGGER.info("read directory {} and found jars (executable): {}", extensionsDir, jars);
+
+            DynamicClassLoader classLoader = (DynamicClassLoader) ClassLoader.getSystemClassLoader();
+            for (File jar : jars) {
+                try {
+                    LOGGER.info("loading jar {}", jar);
+                    classLoader.add(jar.toURI().toURL());
+                    Class<?> expectedClass = findClassesInJar(predicate, jar);
+                    if (expectedClass != null) {
+                        registerFunc.accept((T) expectedClass);
+                    }
+                } catch (IOException e) {
+                    LOGGER.error("Cannot load jar " + jar, e);
                 }
-            } catch (IOException e) {
-                LOGGER.error("Cannot load jar " + jar, e);
             }
+        } else {
+            LOGGER.info("system class loader {} is not an instance of {} extension loading is disabled",
+                    ClassLoader.getSystemClassLoader(), DynamicClassLoader.class);
         }
     }
 
