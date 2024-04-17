@@ -76,6 +76,7 @@
                                 <manifestEntries>
                                     <Build-Time>${maven.build.timestamp}</Build-Time>
                                     <Implementation-Version>${version}</Implementation-Version>
+                                    <Add-Opens>java.base/java.util java.base/java.lang</Add-Opens>
                                     <Multi-Release>true</Multi-Release>
                                 </manifestEntries>
                             </archive>

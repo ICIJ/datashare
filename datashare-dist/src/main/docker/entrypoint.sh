@@ -13,8 +13,6 @@ then
     exec "$@"
 else
     $java_bin $java_opts \
-      --add-opens java.base/java.lang=ALL-UNNAMED \
-      --add-opens java.base/java.util=ALL-UNNAMED \
       -DPROD_MODE=true \
       -Dfile.encoding=UTF-8 \
       -Djava.system.class.loader=org.icij.datashare.DynamicClassLoader \
