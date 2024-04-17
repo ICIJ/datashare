@@ -5,7 +5,6 @@
     "content",
     "mentionNorm",
     "content_translated.content",
-    "metadata.emailHeaderField",
     "metadata.tika_metadata_author",
     "metadata.tika_metadata_creator",
     "metadata.tika_metadata_dc_creator",
@@ -15,6 +14,7 @@
     "metadata.tika_metadata_meta_author",
     "metadata.tika_metadata_subject",
     "metadata.tika_metadata_title",
+    "metadata.tika_metadata_resourcename",
     "name",
     "path",
     "tags"

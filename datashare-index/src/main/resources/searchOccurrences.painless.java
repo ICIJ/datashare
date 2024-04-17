@@ -25,11 +25,23 @@ String removeDiacritics(String input) {
     }
     return output.toString();
 }
+String normalizeLetters(String input) {
+    StringBuilder output = new StringBuilder();
+    for (char c : input.toCharArray()) {
+        if (Character.getType(c) == Character.LOWERCASE_LETTER) {
+            String n = Normalizer.normalize(Character.toString(c) , Normalizer.Form.NFKD);
+            output.append(removeDiacritics(n));
+        }else{
+            output.append(c);
+        }
+    }
+    return output.toString();
+}
 
 ArrayList getOffsets(String query, String content) {
     def offsets = new ArrayList();
-    String contentInLower = removeDiacritics(Normalizer.normalize(content.toLowerCase(), Normalizer.Form.NFKD));
-    String queryInLower = removeDiacritics(Normalizer.normalize(query.toLowerCase(), Normalizer.Form.NFKD));
+    String contentInLower = normalizeLetters(content.toLowerCase());
+    String queryInLower = normalizeLetters(query.toLowerCase());
     int queryLength = query.length();
     int lastIndex = contentInLower.indexOf(queryInLower);
     while (lastIndex != -1) {

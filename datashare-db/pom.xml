@@ -5,7 +5,7 @@
     <parent>
         <artifactId>datashare</artifactId>
         <groupId>org.icij.datashare</groupId>
-        <version>15.1.2</version>
+        <version>15.1.6</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.4.3</version>
+            <version>42.4.4</version>
         </dependency>
         <dependency>
             <groupId>org.xerial</groupId>
@@ -89,7 +89,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>commons-test</artifactId>
-            <version>15.1.2</version>
+            <version>15.1.6</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
