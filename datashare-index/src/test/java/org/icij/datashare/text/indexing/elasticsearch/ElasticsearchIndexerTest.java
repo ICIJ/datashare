@@ -656,6 +656,29 @@ public class ElasticsearchIndexerTest {
         assertArrayEquals(actual.offsets, new int[]{5,13,22,30});
     }
     @Test
+    public void test_search_occurrences_of_query_with_diacritics() throws Exception {
+        Document doc = createDoc("id").with("contigüe et accentué s'est tueTuE").withContentLength(38L).build();
+        indexer.add(TEST_INDEX, doc);
+
+        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "tué",null);
+        assertThat(actual.query).isEqualTo("tué");
+        assertThat(actual.count).isEqualTo(3);
+        assertArrayEquals(new int[]{17,27,30},actual.offsets);
+    }
+
+    @Test
+    public void test_search_occurrences_of_query_with_diacritics_long() throws Exception {
+        String text= "L’en-½tête UDP n’a pas de notion\nMethod...tete de numérotation tête";
+        Document doc = createDoc("id").with(text).withContentLength(86L).build();
+        indexer.add(TEST_INDEX, doc);
+
+        SearchedText actual = indexer.searchTextOccurrences(TEST_INDEX, "id", "tête",null);
+        assertThat(actual.query).isEqualTo("tête");
+        assertThat(actual.count).isEqualTo(3);
+        assertArrayEquals(new int[]{6, 42, 63},actual.offsets);
+    }
+
+    @Test
     public void test_search_occurrences_of_query_in_content_of_existing_document_ignoring_case() throws Exception {
         Document doc = createDoc("id").with("this content contains content containing john doe").withContentLength(49L).build();
         indexer.add(TEST_INDEX, doc);
