@@ -16,6 +16,8 @@ import org.icij.datashare.web.*;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.icij.datashare.cli.DatashareCliOptions.SESSION_STORE_TYPE_OPT;
+
 public class ServerMode extends CommonMode {
     ServerMode(Properties properties) { super(properties);}
     ServerMode(Map<String, Object> properties) { super(properties);}
@@ -32,7 +34,7 @@ public class ServerMode extends CommonMode {
             logger.warn("\"{}\" auth users provider class not found. Setting provider to {}", authUsersProviderClassName, authUsersProviderClass);
         }
         bind(UsersWritable.class).to(authUsersProviderClass);
-        QueueType sessionStoreType = QueueType.valueOf(propertiesProvider.get("sessionStoreType").orElse(QueueType.MEMORY.name()));
+        QueueType sessionStoreType = getQueueType(propertiesProvider, SESSION_STORE_TYPE_OPT, QueueType.MEMORY);
         if (QueueType.MEMORY == sessionStoreType) {
             bind(SessionIdStore.class).toInstance(SessionIdStore.inMemory());
         } else {

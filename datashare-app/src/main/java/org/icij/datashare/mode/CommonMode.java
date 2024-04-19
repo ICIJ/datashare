@@ -68,7 +68,7 @@ import java.util.function.Consumer;
 import static com.fasterxml.jackson.databind.DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.PluginService.PLUGINS_BASE_URL;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 import static org.icij.datashare.text.indexing.elasticsearch.ElasticsearchConfiguration.createESClient;
 
 public abstract class CommonMode extends AbstractModule {
@@ -115,7 +115,7 @@ public abstract class CommonMode extends AbstractModule {
             case CLI:
                 return new CliMode(properties);
             default:
-                throw new IllegalStateException("unknown mode : " + properties.getProperty("mode"));
+                throw new IllegalStateException("unknown mode : " + properties.getProperty(MODE_OPT));
         }
     }
 
@@ -145,7 +145,7 @@ public abstract class CommonMode extends AbstractModule {
             }
         }
 
-        QueueType batchQueueType = QueueType.valueOf(propertiesProvider.get(BATCH_QUEUE_TYPE_OPT).orElse(QueueType.MEMORY.name()));
+        QueueType batchQueueType = getQueueType(propertiesProvider, BATCH_QUEUE_TYPE_OPT, QueueType.MEMORY);
         switch ( batchQueueType ) {
             case REDIS:
                 configureBatchQueuesRedis(redissonClient);
@@ -177,7 +177,7 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     private void configureIndexingQueues(final PropertiesProvider propertiesProvider) {
-        QueueType queueType = QueueType.valueOf(propertiesProvider.get("queueType").orElse(QueueType.MEMORY.name()));
+        QueueType queueType = getQueueType(propertiesProvider, QUEUE_TYPE_OPT, QueueType.MEMORY);
         if ( queueType == QueueType.MEMORY ) {
             bind(new TypeLiteral<DocumentCollectionFactory<String>>(){}).toInstance(new MemoryDocumentCollectionFactory<>());
             bind(new TypeLiteral<DocumentCollectionFactory<Path>>() {}).toInstance(new MemoryDocumentCollectionFactory<>());
@@ -310,6 +310,12 @@ public abstract class CommonMode extends AbstractModule {
 
     @NotNull
     public static Mode getMode(Properties properties) {
-        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty("mode"));
+        return Mode.valueOf(ofNullable(properties).orElse(new Properties()).getProperty(MODE_OPT));
+    }
+
+    public static QueueType getQueueType(PropertiesProvider properties, String propertyName, QueueType defaultQueueType){
+        return QueueType.valueOf(
+            ofNullable(properties).orElse(new PropertiesProvider()).
+                get(propertyName).orElse(defaultQueueType.name()).toUpperCase());
     }
 }
