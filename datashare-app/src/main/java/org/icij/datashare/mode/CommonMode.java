@@ -80,7 +80,7 @@ public abstract class CommonMode extends AbstractModule {
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
     private final Injector injector;
-    protected ExtensionLoader extensionLoader;
+    private PipelineRegistry pipelineRegistry;
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
@@ -174,8 +174,7 @@ public abstract class CommonMode extends AbstractModule {
         bind(TesseractOCRParserWrapper.class).toInstance(new TesseractOCRParserWrapper());
 
         configureIndexingQueues(propertiesProvider);
-        extensionLoader = new ExtensionLoader(Paths.get(getExtensionsDir()));
-        feedPipelineRegistry(propertiesProvider, extensionLoader);
+        pipelineRegistry = bindPipelineRegistry(propertiesProvider);
     }
 
     private void configureIndexingQueues(final PropertiesProvider propertiesProvider) {
@@ -234,8 +233,14 @@ public abstract class CommonMode extends AbstractModule {
     }
 
      public Routes addExtensionsConfiguration(Routes routes) {
-        if (extensionLoader.extensionsDir != null) {
-            loadExtensions(routes, extensionLoader);
+         ExtensionLoader extensionLoader = new ExtensionLoader(Paths.get(ofNullable(getExtensionsDir()).orElse("./extensions")));
+         if (extensionLoader.extensionsDir != null) {
+            try {
+                extensionLoader.load((Consumer<Class<?>>) routes::add, this::isEligibleForLoading);
+                pipelineRegistry.load(extensionLoader);
+            } catch (FileNotFoundException e) {
+                logger.warn("Extensions directory not found: {}", extensionLoader.extensionsDir);
+            }
         }
         return routes;
     }
@@ -254,25 +259,13 @@ public abstract class CommonMode extends AbstractModule {
         return propertiesProvider.getProperties().contains(queueType.name());
     }
 
-    protected void feedPipelineRegistry(final PropertiesProvider propertiesProvider, ExtensionLoader loader) {
+    protected PipelineRegistry bindPipelineRegistry(final PropertiesProvider propertiesProvider) {
         PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
         pipelineRegistry.register(EmailPipeline.class);
         pipelineRegistry.register(Pipeline.Type.CORENLP);
-        try {
-            pipelineRegistry.load(loader);
-        } catch (FileNotFoundException e) {
-            logger.info("extensions dir not found " + e.getMessage());
-        }
         bind(PipelineRegistry.class).toInstance(pipelineRegistry);
         bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
-    }
-
-    private void loadExtensions(Routes routes, ExtensionLoader loader) {
-        try {
-            loader.load((Consumer<Class<?>>) routes::add, this::isEligibleForLoading);
-        } catch (FileNotFoundException e) {
-            logger.warn("Extensions directory not found: " + loader.extensionsDir);
-        }
+        return pipelineRegistry;
     }
 
     private Routes defaultRoutes(final Routes routes) {
