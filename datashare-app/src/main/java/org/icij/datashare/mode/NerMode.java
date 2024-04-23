@@ -11,7 +11,7 @@ public class NerMode extends CommonMode {
 
     @Override
     protected void configure() {
-        feedPipelineRegistry(propertiesProvider);
+        feedPipelineRegistry(propertiesProvider, extensionLoader);
     }
 
     @Override
