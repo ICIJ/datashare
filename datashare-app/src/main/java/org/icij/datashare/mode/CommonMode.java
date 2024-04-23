@@ -80,6 +80,7 @@ public abstract class CommonMode extends AbstractModule {
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
     private final Injector injector;
+    protected ExtensionLoader extensionLoader;
 
     protected CommonMode(Properties properties) {
         propertiesProvider = properties == null ? new PropertiesProvider() :
@@ -173,7 +174,8 @@ public abstract class CommonMode extends AbstractModule {
         bind(TesseractOCRParserWrapper.class).toInstance(new TesseractOCRParserWrapper());
 
         configureIndexingQueues(propertiesProvider);
-        feedPipelineRegistry(propertiesProvider);
+        extensionLoader = new ExtensionLoader(Paths.get(getExtensionsDir()));
+        feedPipelineRegistry(propertiesProvider, extensionLoader);
     }
 
     private void configureIndexingQueues(final PropertiesProvider propertiesProvider) {
@@ -197,19 +199,6 @@ public abstract class CommonMode extends AbstractModule {
         bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new RedisBlockingQueue<>(redissonClient, DS_BATCHDOWNLOAD_QUEUE_NAME));
     }
 
-   public  void feedPipelineRegistry(final PropertiesProvider propertiesProvider) {
-        PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
-        pipelineRegistry.register(EmailPipeline.class);
-        pipelineRegistry.register(Pipeline.Type.CORENLP);
-        try {
-            pipelineRegistry.load();
-        } catch (FileNotFoundException e) {
-            logger.info("extensions dir not found " + e.getMessage());
-        }
-        bind(PipelineRegistry.class).toInstance(pipelineRegistry);
-        bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
-    }
-
     public Properties properties() {
         return propertiesProvider.getProperties();
     }
@@ -219,8 +208,7 @@ public abstract class CommonMode extends AbstractModule {
                 defaultRoutes(
                             addCorsFilter(routes,
                                     propertiesProvider
-                            ),
-                            propertiesProvider
+                            )
                 )
         );
     }
@@ -246,9 +234,8 @@ public abstract class CommonMode extends AbstractModule {
     }
 
      public Routes addExtensionsConfiguration(Routes routes) {
-        String extensionsDir = getExtensionsDir();
-        if (extensionsDir != null) {
-            loadExtensions(routes, extensionsDir);
+        if (extensionLoader.extensionsDir != null) {
+            loadExtensions(routes, extensionLoader);
         }
         return routes;
     }
@@ -263,7 +250,32 @@ public abstract class CommonMode extends AbstractModule {
         repositoryFactory.initDatabase();
     }
 
-    private Routes defaultRoutes(final Routes routes, PropertiesProvider provider) {
+    protected boolean hasProperty(QueueType queueType) {
+        return propertiesProvider.getProperties().contains(queueType.name());
+    }
+
+    protected void feedPipelineRegistry(final PropertiesProvider propertiesProvider, ExtensionLoader loader) {
+        PipelineRegistry pipelineRegistry = new PipelineRegistry(propertiesProvider);
+        pipelineRegistry.register(EmailPipeline.class);
+        pipelineRegistry.register(Pipeline.Type.CORENLP);
+        try {
+            pipelineRegistry.load(loader);
+        } catch (FileNotFoundException e) {
+            logger.info("extensions dir not found " + e.getMessage());
+        }
+        bind(PipelineRegistry.class).toInstance(pipelineRegistry);
+        bind(LanguageGuesser.class).to(OptimaizeLanguageGuesser.class);
+    }
+
+    private void loadExtensions(Routes routes, ExtensionLoader loader) {
+        try {
+            loader.load((Consumer<Class<?>>) routes::add, this::isEligibleForLoading);
+        } catch (FileNotFoundException e) {
+            logger.warn("Extensions directory not found: " + loader.extensionsDir);
+        }
+    }
+
+    private Routes defaultRoutes(final Routes routes) {
         routes.setIocAdapter(new GuiceAdapter(injector))
                 .add(RootResource.class)
                 .add(SettingsResource.class)
@@ -282,26 +294,12 @@ public abstract class CommonMode extends AbstractModule {
         return routes;
     }
 
-    protected boolean hasProperty(QueueType queueType) {
-        return propertiesProvider.getProperties().contains(queueType.name());
-    }
-
     private String getExtensionsDir() {
         return propertiesProvider.getProperties().getProperty(PropertiesProvider.EXTENSIONS_DIR);
     }
 
     private String getPluginsDir() {
         return propertiesProvider.getProperties().getProperty(PropertiesProvider.PLUGINS_DIR);
-    }
-
-    private void loadExtensions(Routes routes, String extensionsDir) {
-        try {
-            Path extensionsPath = Paths.get(extensionsDir);
-            ExtensionLoader loader = new ExtensionLoader(extensionsPath);
-            loader.load((Consumer<Class<?>>) routes::add, this::isEligibleForLoading);
-        } catch (FileNotFoundException e) {
-            logger.warn("Extensions directory not found: " + extensionsDir);
-        }
     }
 
     private boolean isEligibleForLoading(Class<?> c) {
