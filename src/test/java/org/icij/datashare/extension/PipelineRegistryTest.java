@@ -11,6 +11,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -19,17 +20,18 @@ import static org.icij.datashare.test.JarUtil.createJar;
 public class PipelineRegistryTest {
     public @Rule TemporaryFolder folder = new TemporaryFolder();
     PipelineRegistry pipelineRegistry;
+    ExtensionLoader loader;
 
     @Test
     public void test_init_pipeline_registry_no_extension() throws FileNotFoundException {
-        pipelineRegistry.load();
+        pipelineRegistry.load(loader);
         assertThat(pipelineRegistry.getPipelineTypes()).isEmpty();
     }
 
     @Test
     public void test_load_pipeline_registry_one_extension() throws IOException {
         createJar(folder.getRoot().toPath(), "extension", new File("src/test/java/org/icij/datashare/text/nlp/test/TestPipeline.java"));
-        pipelineRegistry.load();
+        pipelineRegistry.load(loader);
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
     }
 
@@ -37,14 +39,14 @@ public class PipelineRegistryTest {
     public void test_load_pipeline_registry_one_extension_with_interface() throws IOException {
         createJar(folder.getRoot().toPath(), "extension", new File("src/test/java/org/icij/datashare/text/nlp/test/TestPipeline.java"),
                 new File("src/main/java/org/icij/datashare/text/nlp/AbstractPipeline.java"));
-        pipelineRegistry.load();
+        pipelineRegistry.load(loader);
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
     }
 
     @Test
     public void test_load_pipeline_registry_one_extension_with_unknown_class_from_classpath() throws IOException {
         createJar(folder.getRoot().toPath(), "extension", EXTENSION_PIPELINE_SOURCE);
-        pipelineRegistry.load();
+        pipelineRegistry.load(loader);
         assertThat(pipelineRegistry.getPipelineTypes()).contains(Pipeline.Type.TEST);
     }
 
@@ -62,14 +64,13 @@ public class PipelineRegistryTest {
 
     @Test(expected = FileNotFoundException.class)
     public void test_extension_dir_not_found() throws Exception {
-        new PipelineRegistry(new PropertiesProvider(new HashMap<>())).load();
+        new PipelineRegistry(new PropertiesProvider(new HashMap<>())).load(new ExtensionLoader(Paths.get("./unknown")));
     }
 
     @Before
     public void setUp() {
-        pipelineRegistry = new PipelineRegistry(new PropertiesProvider(new HashMap<>() {{
-            put(PropertiesProvider.EXTENSIONS_DIR, folder.getRoot().getPath());
-        }}));
+        pipelineRegistry = new PipelineRegistry(new PropertiesProvider());
+        loader = new ExtensionLoader(folder.getRoot().toPath());
     }
 
     String EXTENSION_PIPELINE_SOURCE = "package org.icij.datashare.text.nlp.test;\n" +

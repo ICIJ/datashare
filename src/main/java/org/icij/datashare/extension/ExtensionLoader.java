@@ -21,7 +21,8 @@ import static java.util.Optional.ofNullable;
 
 public class ExtensionLoader {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
-    private final Path extensionsDir;
+    public final Path extensionsDir;
+    private File[] jars = null;
 
     public ExtensionLoader(Path extensionsDir) {
         this.extensionsDir = extensionsDir;
@@ -29,22 +30,15 @@ public class ExtensionLoader {
 
     public synchronized <T> void load(Consumer<T> registerFunc, Predicate<Class<?>> predicate) throws FileNotFoundException {
         if (ClassLoader.getSystemClassLoader() instanceof DynamicClassLoader) {
-            File[] jars = getJars();
-            LOGGER.info("read directory {} and found jars (executable): {}", extensionsDir, jars);
-
             DynamicClassLoader classLoader = (DynamicClassLoader) ClassLoader.getSystemClassLoader();
-            for (File jar : jars) {
-                try {
-                    LOGGER.info("loading jar {}", jar);
-                    classLoader.add(jar.toURI().toURL());
-                    Class<?> expectedClass = findClassesInJar(predicate, jar);
-                    if (expectedClass != null) {
-                        registerFunc.accept((T) expectedClass);
-                    }
-                } catch (IOException e) {
-                    LOGGER.error("Cannot load jar " + jar, e);
+                if (jars == null) {
+                    jars = getJars();
+                    loadJars(classLoader, jars);
                 }
-            }
+                for (File jar : jars) {
+                    registerClassesInJar(registerFunc, predicate, jar);
+                }
+
         } else {
             LOGGER.info("system class loader {} is not an instance of {} extension loading is disabled",
                     ClassLoader.getSystemClassLoader(), DynamicClassLoader.class);
@@ -65,13 +59,33 @@ public class ExtensionLoader {
                                 !myLoadedClass.isInterface() && !Modifier.isAbstract(myLoadedClass.getModifiers())) {
                             return myLoadedClass;
                         }
-                    } catch (ClassNotFoundException|LinkageError e) {
-                        LOGGER.warn("cannot load class {}: {}", classname, e);
+                    } catch (ClassNotFoundException | LinkageError e) {
+                        LOGGER.warn("cannot load class " + classname, e);
                     }
                 }
             }
         }
         return null;
+    }
+
+    private <T> void registerClassesInJar(Consumer<T> registerFunc, Predicate<Class<?>> predicate, File jar) {
+        try {
+            ofNullable(findClassesInJar(predicate, jar)).ifPresent(expectedClass -> registerFunc.accept((T) expectedClass));
+        } catch (IOException e) {
+            LOGGER.error("Cannot find class in jar " + jar, e);
+        }
+    }
+
+    private void loadJars(DynamicClassLoader classLoader, File[] jars) {
+        LOGGER.info("read directory {} and found jars (executable): {}", extensionsDir, this.jars);
+        for (File jar : jars) {
+            try {
+                LOGGER.info("loading jar {}", jar);
+                classLoader.add(jar.toURI().toURL());
+            } catch (IOException e) {
+                LOGGER.error("Cannot load jar " + jar, e);
+            }
+        }
     }
 
     File[] getJars() throws FileNotFoundException {

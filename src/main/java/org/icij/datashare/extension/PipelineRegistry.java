@@ -7,8 +7,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -16,12 +14,10 @@ import java.util.function.Consumer;
 
 public class PipelineRegistry {
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
-    private final Path extensionsDir;
     private final PropertiesProvider propertiesProvider;
     private final Map<Pipeline.Type, Pipeline> pipelines = new HashMap<>();
 
     public PipelineRegistry(PropertiesProvider propertiesProvider) {
-        this.extensionsDir = Paths.get(propertiesProvider.get(PropertiesProvider.EXTENSIONS_DIR).orElse("./extensions"));
         this.propertiesProvider = propertiesProvider;
     }
 
@@ -50,8 +46,8 @@ public class PipelineRegistry {
         }
     }
 
-    public synchronized void load() throws FileNotFoundException {
-        new ExtensionLoader(extensionsDir).load((Consumer<Class<? extends Pipeline>>) this::register, Pipeline.class::isAssignableFrom);
+    public synchronized void load(ExtensionLoader loader) throws FileNotFoundException {
+        loader.load((Consumer<Class<? extends Pipeline>>) this::register, Pipeline.class::isAssignableFrom);
     }
 }
 
