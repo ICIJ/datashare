@@ -1,10 +1,15 @@
 package org.icij.datashare.web;
 
+import java.util.function.Function;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.filters.basic.BasicAuthFilter;
 import net.codestory.http.routes.Routes;
 import net.codestory.http.security.SessionIdStore;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskModifier;
+import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.tasks.TaskFactory;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.DatashareUser;
@@ -22,11 +27,9 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static java.lang.String.format;
-import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.icij.datashare.user.User.localUser;
 import static org.mockito.ArgumentMatchers.any;
@@ -152,21 +155,14 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         @Override public User getUser() { return new User(user);}
     }
 
-    public static class SleepingUserTask implements UserTask, CancellableCallable<String> {
+    public static class SleepingUserTask implements UserTask, Callable<String> {
         private final String user;
-        private Thread callThread;
         public SleepingUserTask(String user) {this.user = user;}
         @Override public String call() throws Exception {
-            callThread = Thread.currentThread();
             Thread.sleep(10000);
             return "run";
         }
         @Override public User getUser() { return new User(user);}
-
-        @Override
-        public void cancel(String taskId, boolean requeue) {
-            ofNullable(callThread).ifPresent(Thread::interrupt);
-        }
     }
 
     private void setupAppWith(DummyUserTask<?> userTask, String... userLogins) {
@@ -183,7 +179,6 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("mode", "LOCAL");
         }});
-
         taskManager = new TaskManagerMemory(new ArrayBlockingQueue<>(3), taskFactory);
         configure(new CommonMode(propertiesProvider.getProperties()) {
             @Override
@@ -202,7 +197,7 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     public interface TaskFactoryForTest extends TaskFactory {
-        <V> DummyUserTask<V> createDummyUserTask(TaskView<V> tv, BiFunction<String, Integer, Void> updateCallback);
-        SleepingUserTask createSleepingUserTask(TaskView<?> tv, BiFunction<String, Integer, Void> updateCallback);
+        <V> DummyUserTask<V> createDummyUserTask(TaskView<V> tv, Function<Double, Void> updateCallback);
+        SleepingUserTask createSleepingUserTask(TaskView<?> tv, Function<Double, Void> updateCallback);
     }
 }

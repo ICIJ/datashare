@@ -1,16 +1,13 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.user.ApiKeyRepository;
-import org.icij.datashare.user.DatashareApiKey;
 import org.icij.datashare.user.User;
-import org.icij.datashare.user.UserTask;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;

@@ -1,6 +1,8 @@
 package org.icij.datashare.tasks;
 
+import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
@@ -19,7 +21,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
 import static java.util.Collections.singletonList;
@@ -44,7 +45,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class BatchSearchRunnerTest {
     @Mock Indexer indexer;
     MockSearch<Indexer.QueryBuilderSearcher> mockSearch;
-    @Mock BiFunction<String, Double, Void> progressCb;
+    @Mock Function<Double, Void> progressCb;
     @Mock BatchSearchRepository repository;
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
     private final ExecutorService executor = Executors.newFixedThreadPool(1);
@@ -58,7 +59,7 @@ public class BatchSearchRunnerTest {
 
         assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call()).isEqualTo(2);
 
-        verify(progressCb).apply("uuid1", 1.0);
+        verify(progressCb).apply( 1.0);
     }
 
     private TaskView<?> taskView(BatchSearch search) {
@@ -128,7 +129,7 @@ public class BatchSearchRunnerTest {
         executor.submit(batchSearchRunner);
         executor.shutdown();
         countDownLatch.await();
-        batchSearchRunner.cancel(null, false);
+        batchSearchRunner.cancel(false);
 
         assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
     }

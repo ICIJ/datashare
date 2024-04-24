@@ -1,6 +1,7 @@
 package org.icij.datashare.extract;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.bus.redis.RedisBlockingQueue;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.junit.After;
@@ -18,6 +19,7 @@ public class RedisBlockingQueueTest {
             "redisAddress", "redis://redis:6379",
             "redisPoolSize", "5"
     )), "test:queue");
+
 
     @Test
     public void test_redisson_connection(){

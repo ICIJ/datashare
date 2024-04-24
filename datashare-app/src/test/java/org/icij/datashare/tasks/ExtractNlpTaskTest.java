@@ -1,5 +1,6 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.Language;

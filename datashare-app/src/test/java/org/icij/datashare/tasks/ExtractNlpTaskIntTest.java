@@ -8,6 +8,7 @@ import com.google.inject.TypeLiteral;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.extract.*;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;

@@ -49,6 +49,14 @@
         </dependency>
         <dependency>
             <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-tasks</artifactId>
+            <version>${datashare-tasks.version}</version>
+            <type>jar</type>
+            <classifier>jar-with-dependencies</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-app</artifactId>
             <version>${project.version}</version>
             <type>jar</type>

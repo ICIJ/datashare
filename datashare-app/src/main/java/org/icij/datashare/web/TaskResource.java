@@ -20,6 +20,8 @@ import net.codestory.http.errors.ForbiddenException;
 import net.codestory.http.payload.Payload;
 import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;
@@ -168,7 +170,7 @@ public class TaskResource {
             // TODO remove taskFactory.createScanIndexTask would allow to get rid of taskfactory dependency in taskresource
             // problem for now is that if we call taskManager.startTask(ScanIndexTask.class.getName(), user, propertiesToMap(properties))
             // the task will be run as a background task that will have race conditions with indexTask report loading
-            taskFactory.createScanIndexTask(new TaskView<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties)), (s, p) -> null).call();
+            taskFactory.createScanIndexTask(new TaskView<>(ScanIndexTask.class.getName(), user, propertiesToMap(properties)), (p) -> null).call();
         } else {
             properties.remove(MAP_NAME_OPTION); // avoid use of reportMap to override ES docs
         }

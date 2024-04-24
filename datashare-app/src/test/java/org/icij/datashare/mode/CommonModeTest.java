@@ -3,11 +3,11 @@ package org.icij.datashare.mode;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskModifier;
+import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
-import org.icij.datashare.tasks.TaskManager;
-import org.icij.datashare.tasks.TaskModifier;
-import org.icij.datashare.tasks.TaskSupplier;
 import org.junit.Test;
 
 import java.util.HashMap;

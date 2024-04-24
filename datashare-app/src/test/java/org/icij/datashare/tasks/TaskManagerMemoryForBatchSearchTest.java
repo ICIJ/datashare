@@ -1,7 +1,10 @@
 package org.icij.datashare.tasks;
 
+import java.util.concurrent.BlockingQueue;
 import org.icij.datashare.CollectionUtils;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.CancelException;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
@@ -16,7 +19,6 @@ import sun.misc.Signal;
 import java.io.IOException;
 import java.util.Date;
 import java.util.LinkedList;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -141,8 +143,8 @@ public class TaskManagerMemoryForBatchSearchTest {
         taskManager = new TaskManagerMemory(batchSearchQueue, factory, startLoop);
         mockSearch = new MockSearch<>(indexer, Indexer.QueryBuilderSearcher.class);
 
-        batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository,
-                new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local()), taskManager::progress );
+        TaskView<Object> taskView = new TaskView<>(testBatchSearch.uuid, BatchSearchRunner.class.getName(), local());
+        batchSearchRunner = new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView, taskView.progress(taskManager::progress));
         when(repository.get(eq(local()), anyString())).thenReturn(testBatchSearch);
         when(factory.createBatchSearchRunner(any(), any())).thenReturn(batchSearchRunner);
     }
@@ -157,7 +159,7 @@ public class TaskManagerMemoryForBatchSearchTest {
         private final CountDownLatch countDownLatch;
 
         public SleepingBatchSearchRunner(int sleepingMilliseconds, CountDownLatch countDownLatch, BatchSearch bs) {
-            super(mock(Indexer.class), new PropertiesProvider(), repository, new TaskView<>(bs.uuid, BatchSearchRunner.class.getName(), local()), (a, b) -> null);
+            super(mock(Indexer.class), new PropertiesProvider(), repository, new TaskView<>(bs.uuid, BatchSearchRunner.class.getName(), local()), (b) -> null);
             this.sleepingMilliseconds = sleepingMilliseconds;
             this.countDownLatch = countDownLatch;
         }
@@ -174,7 +176,7 @@ public class TaskManagerMemoryForBatchSearchTest {
                     // nothing we throw a cancel later
                 }
             }
-            throw new CancelException(taskView.id, requeueCancel);
+            throw new CancelException(requeueCancel);
         }
     }
 }

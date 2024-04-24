@@ -87,6 +87,12 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>org.icij.datashare</groupId>
+            <artifactId>datashare-tasks</artifactId>
+            <version>${datashare-tasks.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
         </dependency>
@@ -94,26 +100,6 @@
             <groupId>org.icij</groupId>
             <artifactId>fluent-swagger-apigen</artifactId>
             <version>0.2.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.qpid</groupId>
-            <artifactId>qpid-broker-core</artifactId>
-            <version>9.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.qpid</groupId>
-            <artifactId>qpid-broker-plugins-amqp-0-8-protocol</artifactId>
-            <version>9.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.qpid</groupId>
-            <artifactId>qpid-broker-plugins-memory-store</artifactId>
-            <version>9.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.rabbitmq</groupId>
-            <artifactId>amqp-client</artifactId>
-            <version>5.18.0</version>
         </dependency>
 
         <!-- Logging -->
@@ -136,17 +122,7 @@
             <artifactId>logstash-gelf</artifactId>
             <version>1.15.0</version>
         </dependency>
-        <!--
-        Redisson is needed for RedisBlockingQueue. Redisson is pulling netty.
-        It overrides netty 4.1.49 from datashare-index and avoid blocking Redis tests
-        :/
-        -->
-        <dependency>
-            <groupId>org.redisson</groupId>
-            <artifactId>redisson</artifactId>
-            <version>3.20.1</version>
-        </dependency>
-        
+
         <!--test dependencies-->
         <dependency>
             <groupId>com.github.voodoodyne</groupId>

@@ -1,10 +1,11 @@
 package org.icij.datashare.tasks;
 
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskRunnerLoop;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.user.User;
-import org.junit.After;
 import org.junit.Test;
 
 import java.io.File;
@@ -36,7 +37,7 @@ public class TaskRunnerLoopIntTest {
                 put("batchDownload", batchDownload);
             }};
             TaskView<File> taskView = new TaskView<>(BatchDownloadRunner.class.getName(), batchDownload.user, properties);
-            BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskSupplier::progress);
+            BatchDownloadRunner runner = new BatchDownloadRunner(mock(Indexer.class), new PropertiesProvider(), taskView, taskView.progress(taskSupplier::progress));
             when(factory.createBatchDownloadRunner(any(), any())).thenReturn(runner);
 
             TaskRunnerLoop taskRunnerLoop = new TaskRunnerLoop(factory, taskSupplier);
@@ -48,7 +49,7 @@ public class TaskRunnerLoopIntTest {
             eventWaiter.await();
 
             assertThat(taskManager.getTasks()).hasSize(1);
-            assertThat(taskManager.getTasks().get(0).error).isNotNull();
+            assertThat(taskManager.getTasks().get(0).getError()).isNotNull();
             assertThat(taskManager.getTasks().get(0).getProgress()).isEqualTo(1);
             assertThat(taskManager.getTasks().get(0).properties).hasSize(1);
         }

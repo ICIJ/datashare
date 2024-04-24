@@ -4,8 +4,13 @@ import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import jakarta.json.JsonException;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.CancelException;
+import org.icij.datashare.asynctasks.CancellableTask;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
@@ -24,7 +29,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
-import java.util.function.BiFunction;
 
 import static java.lang.Integer.min;
 import static java.lang.Integer.parseInt;
@@ -40,7 +44,7 @@ import static org.icij.datashare.cli.DatashareCliOptions.DEFAULT_SCROLL_SIZE;
 import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.text.ProjectProxy.asCommaConcatNames;
 
-public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask {
+public class BatchSearchRunner implements CancellableTask, UserTask, Callable<Integer> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
@@ -55,7 +59,7 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
 
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
-    private final BiFunction<String, Double, Void> updateCallback;
+    private final Function<Double, Void> updateCallback;
 
     private final CountDownLatch callWaiterLatch;
     private final BatchSearchRepository repository;
@@ -66,12 +70,12 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
 
     @Inject
     public BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                             @Assisted TaskView<?> taskView, @Assisted BiFunction<String, Double, Void> updateCallback) {
+                             @Assisted TaskView<?> taskView, @Assisted Function<Double, Void> updateCallback) {
         this(indexer, propertiesProvider, repository, taskView, updateCallback, new CountDownLatch(1));
     }
 
     BatchSearchRunner(Indexer indexer, PropertiesProvider propertiesProvider, BatchSearchRepository repository,
-                      TaskView<?> taskView, BiFunction<String, Double, Void> updateCallback, CountDownLatch latch) {
+                      TaskView<?> taskView, Function<Double, Void> updateCallback, CountDownLatch latch) {
         this.indexer = indexer;
         this.propertiesProvider = propertiesProvider;
         this.repository = repository;
@@ -81,7 +85,7 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
     }
 
     @Override
-    public Integer call() throws SearchException {
+    public Integer call() throws Exception {
         int numberOfResults = 0;
         int totalProcessed = 0;
 
@@ -124,7 +128,7 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
                     if (cancelAsked) {
                         logger.info("cancelling batch search {} requeue={}", batchSearch.uuid, requeueCancel);
                         repository.reset(batchSearch.uuid);
-                        throw new CancelException(batchSearch.uuid, requeueCancel);
+                        throw new CancelException(requeueCancel);
                     }
                     repository.saveResults(batchSearch.uuid, query, (List<Document>) docsToProcess);
                     if (DatashareTime.getInstance().currentTimeMillis() - beforeScrollLoop < maxTimeSeconds * 1000L) {
@@ -137,7 +141,7 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
                 }
                 searcher.clearScroll();
                 totalProcessed += 1;
-                updateCallback.apply(batchSearch.uuid, (double) totalProcessed / batchSearch.queries.size());
+                updateCallback.apply((double) totalProcessed / batchSearch.queries.size());
             }
             repository.setState(batchSearch.uuid, BatchSearchRecord.State.SUCCESS);
             logger.info("done batch search {} with success", batchSearch.uuid);
@@ -161,7 +165,8 @@ public class BatchSearchRunner implements CancellableCallable<Integer>, UserTask
      * cancel current batch search.
      * this method is blocking until batchsearch has exited
      */
-    public void cancel(String taskId, boolean requeue) {
+    @Override
+    public void cancel(boolean requeue) {
         requeueCancel = requeue;
         cancelAsked = true;
         try {

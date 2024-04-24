@@ -1,5 +1,7 @@
 package org.icij.datashare.tasks;
 
+import org.icij.datashare.asynctasks.CancelException;
+
 public class TestSleepingTask extends TestTask {
     public TestSleepingTask(int value) {
         super(value);
@@ -13,7 +15,7 @@ public class TestSleepingTask extends TestTask {
             Thread.sleep(ret);
             return ret;
         } catch (InterruptedException iex) {
-            throw new CancelException(cancelTaskId);
+            throw new CancelException(this.requeue);
         }
     }
 }
