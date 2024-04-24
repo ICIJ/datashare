@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -59,6 +60,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         String docType = parent == null ? "Document" : "Child";
         if (parent == null && isDuplicate(doc.getId())) {
             doc.setDuplicate(true);
+            copy(doc.getReader()., OutputStream.nullOutputStream()); // flush document content reader
             indexer.add(indexName, new Duplicate(doc.getPath(), doc.getId(), digestAlgorithm));
             docType = "Duplicate";
         } else {
