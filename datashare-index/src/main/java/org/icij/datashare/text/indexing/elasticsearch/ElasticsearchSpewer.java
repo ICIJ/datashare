@@ -60,7 +60,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
         String docType = parent == null ? "Document" : "Child";
         if (parent == null && isDuplicate(doc.getId())) {
             doc.setDuplicate(true);
-            copy(doc.getReader()., OutputStream.nullOutputStream()); // flush document content reader
+            copy(doc.getReader(), OutputStream.nullOutputStream()); // flush document content reader
             indexer.add(indexName, new Duplicate(doc.getPath(), doc.getId(), digestAlgorithm));
             docType = "Duplicate";
         } else {
