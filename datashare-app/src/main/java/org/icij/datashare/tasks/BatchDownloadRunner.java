@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.Entity;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
 import org.icij.datashare.com.mail.MailException;
@@ -37,7 +38,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.zip.ZipException;
 
@@ -57,15 +57,15 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
     private final AtomicInteger numberOfResults = new AtomicInteger(0);
     private final Indexer indexer;
     private final PropertiesProvider propertiesProvider;
-    private final BiFunction<String, Double, Void> progressCallback;
+    private final Function<Double, Void> progressCallback;
     private final Function<URI, MailSender> mailSenderSupplier;
 
     @Inject
-    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted TaskView<?> task, @Assisted BiFunction<String, Double, Void> progressCallback) {
+    public BatchDownloadRunner(Indexer indexer, PropertiesProvider propertiesProvider, @Assisted TaskView<?> task, @Assisted Function<Double, Void> progressCallback) {
         this(indexer, propertiesProvider, progressCallback, task, MailSender::new);
     }
 
-    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, BiFunction<String, Double, Void> progressCallback, TaskView<?> task, Function<URI, MailSender> mailSenderSupplier) {
+    BatchDownloadRunner(Indexer indexer, PropertiesProvider provider, Function<Double, Void> progressCallback, TaskView<?> task, Function<URI, MailSender> mailSenderSupplier) {
         assert task.properties.get("batchDownload") != null : "'batchDownload' property in task shouldn't be null";
         this.task = (TaskView<File>) task;
         this.indexer = indexer;
@@ -115,7 +115,7 @@ public class BatchDownloadRunner implements Callable<UriResult>, Monitorable, Us
                         if (addedBytes > 0) {
                             zippedFilesSize += addedBytes;
                             numberOfResults.incrementAndGet();
-                            progressCallback.apply(task.id, getProgressRate());
+                            progressCallback.apply(getProgressRate());
                         }
                     }
                     docsToProcess = searcher.scroll(scrollDuration).collect(toList());

@@ -6,13 +6,10 @@ import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
 import org.icij.task.DefaultTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 
 public class GetApiKeyTask extends DefaultTask<String> implements UserTask  {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ApiKeyRepository apiKeyRepository;
     private final User user;
 

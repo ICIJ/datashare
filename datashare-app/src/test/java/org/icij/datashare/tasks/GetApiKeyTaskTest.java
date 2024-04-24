@@ -1,6 +1,5 @@
 package org.icij.datashare.tasks;
 
-import org.icij.datashare.db.tables.ApiKey;
 import org.icij.datashare.user.ApiKeyRepository;
 import org.icij.datashare.user.DatashareApiKey;
 import org.icij.datashare.user.User;

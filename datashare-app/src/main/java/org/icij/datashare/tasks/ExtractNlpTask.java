@@ -2,9 +2,11 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import java.util.function.Function;
 import org.icij.datashare.HumanReadableSize;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.monitoring.Monitorable;
@@ -19,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 
 import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
@@ -38,12 +39,12 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
     private final int maxContentLengthChars;
 
     @Inject
-    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) {
+    public ExtractNlpTask(Indexer indexer, PipelineRegistry registry, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         this(indexer, registry.get(Pipeline.Type.parse((String)taskView.properties.get(NLP_PIPELINE_OPT))), factory, taskView, updateCallback);
     }
 
 
-    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final BiFunction<String, Double, Void> updateCallback) {
+    ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
         super(Stage.NLP, taskView.user, factory, new PropertiesProvider(taskView.properties), String.class);
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.properties.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));

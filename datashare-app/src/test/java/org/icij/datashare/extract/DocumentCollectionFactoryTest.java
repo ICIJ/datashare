@@ -1,8 +1,6 @@
 package org.icij.datashare.extract;
 
 import org.icij.datashare.PropertiesProvider;
-import org.icij.extract.redis.RedissonClientFactory;
-import org.icij.task.Options;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

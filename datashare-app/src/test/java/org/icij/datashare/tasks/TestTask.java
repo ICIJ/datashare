@@ -1,13 +1,16 @@
 package org.icij.datashare.tasks;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import org.icij.datashare.asynctasks.CancelException;
+import org.icij.datashare.asynctasks.CancellableTask;
 
 import static java.util.Optional.ofNullable;
 
-public class TestTask implements CancellableCallable<Integer> {
+public class TestTask implements CancellableTask, Callable<Integer> {
     private final int value;
     protected volatile Thread callThread = null;
-    protected volatile String cancelTaskId = null;
+    protected volatile Boolean requeue = null;
     private final CountDownLatch waitForTask = new CountDownLatch(1);
 
     public TestTask(int value) {
@@ -17,17 +20,13 @@ public class TestTask implements CancellableCallable<Integer> {
     @Override
     public Integer call() throws Exception {
         waitForTask.countDown();
-        ofNullable(cancelTaskId).ifPresent(CancelException::new);
+        ofNullable(this.requeue).ifPresent(CancelException::new);
         return value;
     }
 
     @Override
-    public void cancel(String taskId, boolean requeue) {
-        cancelTaskId = taskId;
+    public void cancel(boolean requeue) {
+        this.requeue = requeue;
         ofNullable(callThread).ifPresent(Thread::interrupt);
-    }
-
-    public void awaitToBeStarted() throws InterruptedException {
-        waitForTask.await();
     }
 }

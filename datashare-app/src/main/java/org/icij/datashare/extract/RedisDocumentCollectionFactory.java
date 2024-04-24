@@ -1,6 +1,5 @@
 package org.icij.datashare.extract;
 
-import com.google.common.collect.Streams;
 import com.google.inject.Singleton;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.extract.queue.DocumentQueue;

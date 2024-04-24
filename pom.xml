@@ -38,6 +38,7 @@
     <modules>
         <module>commons-test</module>
         <module>datashare-db</module>
+        <module>datashare-tasks</module>
         <module>datashare-cli</module>
         <module>datashare-index</module>
         <module>datashare-nlp-corenlp</module>
@@ -78,6 +79,7 @@
 
         <datashare-api.version>13.8.0</datashare-api.version>
         <datashare-cli.version>13.5.0</datashare-cli.version>
+        <datashare-tasks.version>15.1.6</datashare-tasks.version>
 
         <datashare-mitie.version>${project.version}</datashare-mitie.version>
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
@@ -134,6 +136,12 @@
                 <groupId>org.icij.datashare</groupId>
                 <artifactId>datashare-cli</artifactId>
                 <version>${datashare-cli.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>datashare-tasks</artifactId>
+                <version>${datashare-tasks.version}</version>
                 <scope>runtime</scope>
             </dependency>
             <dependency>

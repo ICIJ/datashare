@@ -1,6 +1,8 @@
 package org.icij.datashare.tasks;
 
+import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.indexing.Indexer;
@@ -10,13 +12,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,7 +26,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskRunnerLoopForPipelineTasksTest {
     @Mock TaskFactory taskFactory;
-    @Mock BiFunction<String, Double, Void> updateCallback;
+    @Mock Function<Double, Void> updateCallback;
     @Mock ElasticsearchSpewer spewer;
     private final BlockingQueue<TaskView<?>> taskQueue = new LinkedBlockingQueue<>();
     private final TaskManagerMemory taskSupplier = new TaskManagerMemory(taskQueue, taskFactory);

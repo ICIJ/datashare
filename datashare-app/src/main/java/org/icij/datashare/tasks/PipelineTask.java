@@ -3,6 +3,7 @@ package org.icij.datashare.tasks;
 import org.icij.datashare.PipelineHelper;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.CancellableTask;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.user.User;
 import org.icij.datashare.user.UserTask;
@@ -14,7 +15,7 @@ import java.nio.file.Paths;
 
 import static java.util.Optional.ofNullable;
 
-public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableCallable<Long> {
+public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserTask, CancellableTask {
     protected final DocumentQueue<T> inputQueue;
     protected final DocumentQueue<T> outputQueue;
     protected final Stage stage;
@@ -34,7 +35,8 @@ public abstract class PipelineTask<T> extends DefaultTask<Long> implements UserT
         this.outputQueue = getOutputQueue(clazz);
     }
 
-    public void cancel(String taskId, boolean requeue) {
+    @Override
+    public void cancel(boolean requeue) {
         ofNullable(taskThread).ifPresent(Thread::interrupt);
     }
 

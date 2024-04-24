@@ -2,9 +2,11 @@ package org.icij.datashare.tasks;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Stage;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.extract.DocumentCollectionFactory;
 import org.icij.datashare.text.Document;
 import org.icij.datashare.text.indexing.Indexer;
@@ -20,7 +22,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
@@ -50,7 +51,7 @@ public class ScanIndexTask extends PipelineTask<Path> {
 
     @Inject
     public ScanIndexTask(DocumentCollectionFactory<Path> factory, final Indexer indexer,
-                         @Assisted TaskView<Long> taskView, @Assisted BiFunction<String, Double, Void> updateCallback) {
+                         @Assisted TaskView<Long> taskView, @Assisted Function<Double, Void> updateCallback) {
         super(Stage.SCANIDX, taskView.user, factory, new PropertiesProvider(taskView.properties), Path.class);
         this.scrollDuration = propertiesProvider.get(SCROLL_DURATION_OPT).orElse(DEFAULT_SCROLL_DURATION);
         this.scrollSize = parseInt(propertiesProvider.get(SCROLL_SIZE_OPT).orElse(valueOf(DEFAULT_SCROLL_SIZE)));

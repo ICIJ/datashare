@@ -1,28 +1,24 @@
 package org.icij.datashare;
 
 import net.codestory.http.WebServer;
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.bus.amqp.QpidAmqpServer;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.DatashareCli;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
-import org.icij.datashare.com.bus.amqp.QpidAmqpServer;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.tasks.BatchSearchRunner;
-import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
 
 import java.awt.*;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.parseInt;
-import static org.icij.datashare.cli.DatashareCliOptions.BATCH_QUEUE_TYPE_OPT;
 import static org.icij.datashare.cli.DatashareCliOptions.BROWSER_OPEN_LINK_OPT;
 
 public class WebApp {

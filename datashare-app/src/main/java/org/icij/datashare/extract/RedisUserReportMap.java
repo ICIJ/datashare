@@ -5,13 +5,9 @@ import com.google.inject.assistedinject.Assisted;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedisReportMap;
-import org.icij.task.Options;
 import org.redisson.api.RedissonClient;
 
 import java.nio.charset.Charset;
-import java.util.HashMap;
-
-import static org.icij.datashare.PropertiesProvider.MAP_NAME_OPTION;
 
 public class RedisUserReportMap extends RedisReportMap {
 

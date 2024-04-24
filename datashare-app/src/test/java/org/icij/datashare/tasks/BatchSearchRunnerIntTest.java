@@ -1,7 +1,9 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
+import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchSearch;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
@@ -23,7 +25,6 @@ import org.mockito.Mock;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.function.BiFunction;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -46,7 +47,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class BatchSearchRunnerIntTest {
     @ClassRule public static ElasticsearchRule es = new ElasticsearchRule();
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
-    @Mock BiFunction<String, Double, Void> progressCb;
+    @Mock Function<Double, Void> progressCb;
     @Mock BatchSearchRepository repository;
     private final ElasticsearchIndexer indexer = new ElasticsearchIndexer(es.client, new PropertiesProvider()).withRefresh(Refresh.True);
     @After public void tearDown() throws IOException { es.removeAll();}
@@ -251,7 +252,7 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Test
-    public void test_use_batch_search_scroll_size_value_over_scroll_size_value() {
+    public void test_use_batch_search_scroll_size_value_over_scroll_size_value() throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "100");
             put(BATCH_SEARCH_SCROLL_SIZE_OPT, "0");
@@ -267,7 +268,7 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Test
-    public void test_use_scroll_size_value() {
+    public void test_use_scroll_size_value() throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(SCROLL_SIZE_OPT, "0");
         }});
@@ -282,7 +283,7 @@ public class BatchSearchRunnerIntTest {
     }
 
     @Test
-    public void test_use_scroll_duration_value() {
+    public void test_use_scroll_duration_value() throws Exception {
         PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put(BATCH_SEARCH_SCROLL_DURATION_OPT, "foo");
         }});

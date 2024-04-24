@@ -2,6 +2,8 @@ package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskSupplier;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.com.mail.Mail;
 import org.icij.datashare.com.mail.MailSender;
@@ -37,9 +39,12 @@ public class BatchDownloadRunnerEncryptedIntTest {
         new IndexerHelper(es.client).indexFile("mydoc.txt", "content", fs);
         BatchDownload batchDownload = createBatchDownload("*");
         MailSender mailSender = mock(MailSender.class);
-        new BatchDownloadRunner(indexer, createProvider(), taskSupplier::progress, new TaskView<>(BatchDownloadRunner.class.getName(), batchDownload.user, new HashMap<>() {{
-            put("batchDownload", batchDownload);
-        }}), (uri) -> mailSender).call();
+        TaskView<Object> taskView =
+            new TaskView<>(BatchDownloadRunner.class.getName(), batchDownload.user,
+                new HashMap<>() {{
+                    put("batchDownload", batchDownload);
+                }});
+        new BatchDownloadRunner(indexer, createProvider(), taskView.progress(taskSupplier::progress), taskView, (uri) -> mailSender).call();
 
         assertThat(new net.lingala.zip4j.ZipFile(batchDownload.filename.toFile()).isEncrypted()).isTrue();
         ArgumentCaptor<Mail> mailCaptor = ArgumentCaptor.forClass(Mail.class);

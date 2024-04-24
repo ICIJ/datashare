@@ -1,10 +1,15 @@
 package org.icij.datashare.web;
 
+import java.util.function.Function;
 import net.codestory.http.routes.Routes;
 import net.codestory.rest.Response;
 import net.codestory.rest.RestAssert;
 import net.codestory.rest.ShouldChain;
 import org.icij.datashare.PropertiesProvider;
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskModifier;
+import org.icij.datashare.asynctasks.TaskSupplier;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
@@ -30,7 +35,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.function.BiFunction;
 
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -474,12 +478,12 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createScanIndexTask(any(), any())).thenReturn(mock(ScanIndexTask.class));
         when(taskFactory.createEnqueueFromIndexTask(any(), any())).thenReturn(mock(EnqueueFromIndexTask.class));
         when(taskFactory.createExtractNlpTask(any(), any())).thenReturn(mock(ExtractNlpTask.class));
-        when(taskFactory.createTestTask(any(), any())).thenReturn(new TestTask(10));
-        when(taskFactory.createTestSleepingTask(any(), any())).thenReturn(new TestSleepingTask(10000));
+        when(taskFactory.createTestTask(any(TaskView.class), any(Function.class))).thenReturn(new TestTask(10));
+        when(taskFactory.createTestSleepingTask(any(TaskView.class), any(Function.class))).thenReturn(new TestSleepingTask(100000));
     }
 
     public interface TaskFactoryForTest extends TaskFactory {
-        TestSleepingTask createTestSleepingTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
-        TestTask createTestTask(TaskView<Integer> taskView, BiFunction<String, Integer, Void> updateCallback);
+        TestSleepingTask createTestSleepingTask(TaskView<Integer> taskView, Function<Double, Void> updateCallback);
+        TestTask createTestTask(TaskView<Integer> taskView, Function<Double, Void> updateCallback);
     }
 }

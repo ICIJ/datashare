@@ -20,10 +20,16 @@ import net.codestory.http.routes.Routes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.TesseractOCRParserWrapper;
+import org.icij.datashare.asynctasks.TaskManager;
+import org.icij.datashare.asynctasks.TaskModifier;
+import org.icij.datashare.asynctasks.TaskSupplier;
+import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
+import org.icij.datashare.asynctasks.bus.memory.MemoryBlockingQueue;
+import org.icij.datashare.asynctasks.bus.redis.RedisBlockingQueue;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.cli.Mode;
 import org.icij.datashare.cli.QueueType;
-import org.icij.datashare.com.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.db.RepositoryFactoryImpl;
 import org.icij.datashare.extension.ExtensionLoader;
 import org.icij.datashare.extension.PipelineRegistry;
@@ -31,15 +37,11 @@ import org.icij.datashare.extract.*;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
 import org.icij.datashare.tasks.TaskFactory;
-import org.icij.datashare.tasks.TaskManager;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskManagerRedis;
-import org.icij.datashare.tasks.TaskModifier;
-import org.icij.datashare.tasks.TaskSupplier;
 import org.icij.datashare.tasks.TaskSupplierAmqp;
 import org.icij.datashare.tasks.TaskSupplierRedis;
-import org.icij.datashare.tasks.TaskView;
 import org.icij.datashare.text.indexing.Indexer;
 import org.icij.datashare.text.indexing.LanguageGuesser;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
@@ -159,7 +161,7 @@ public abstract class CommonMode extends AbstractModule {
                 bind(TaskModifier.class).to(TaskSupplierAmqp.class);
                 break;
             default:
-                configureBatchQueuesMemory(propertiesProvider);
+                configureBatchQueuesMemory();
                 bind(TaskManager.class).to(TaskManagerMemory.class);
                 bind(TaskModifier.class).to(TaskManagerMemory.class);
                 bind(TaskSupplier.class).to(TaskManagerMemory.class);
@@ -187,7 +189,7 @@ public abstract class CommonMode extends AbstractModule {
     }
 
     private void configureBatchQueuesMemory(PropertiesProvider propertiesProvider) {
-        bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new MemoryBlockingQueue<>(propertiesProvider, DS_TASKS_QUEUE_NAME));
+        bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new MemoryBlockingQueue<>(DS_TASKS_QUEUE_NAME));
     }
 
     private void configureBatchQueuesRedis(RedissonClient redissonClient) {

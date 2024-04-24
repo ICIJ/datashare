@@ -3,7 +3,6 @@ package org.icij.datashare.tasks;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.io.File;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.Objects;

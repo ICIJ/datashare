@@ -1,6 +1,7 @@
 package org.icij.datashare.tasks;
 
 import junit.framework.TestCase;
+import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.extract.MemoryDocumentCollectionFactory;
 import org.icij.datashare.user.User;
 import org.icij.extract.queue.DocumentQueue;
