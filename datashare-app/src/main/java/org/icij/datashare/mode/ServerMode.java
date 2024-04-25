@@ -28,8 +28,8 @@ public class ServerMode extends CommonMode {
         String authUsersProviderClassName = propertiesProvider.get("authUsersProvider").orElse("org.icij.datashare.session.UsersInRedis");
         Class<? extends UsersWritable> authUsersProviderClass = UsersInRedis.class;
         try {
+            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName, true, ClassLoader.getSystemClassLoader());
             logger.info("setting auth users provider to {}", authUsersProviderClass);
-            authUsersProviderClass = (Class<? extends UsersWritable>) Class.forName(authUsersProviderClassName);
         } catch (ClassNotFoundException e) {
             logger.warn("\"{}\" auth users provider class not found. Setting provider to {}", authUsersProviderClassName, authUsersProviderClass);
         }
@@ -45,7 +45,7 @@ public class ServerMode extends CommonMode {
         Class<? extends Filter> authFilterClass = OAuth2CookieFilter.class;
         if (!authFilterClassName.isEmpty()) {
             try {
-                authFilterClass = (Class<? extends Filter>) Class.forName(authFilterClassName);
+                authFilterClass = (Class<? extends Filter>) Class.forName(authFilterClassName, true, ClassLoader.getSystemClassLoader());
                 logger.info("setting auth filter to {}", authFilterClass);
             } catch (ClassNotFoundException e) {
                 logger.warn("\"{}\" auth filter class not found. Setting filter to {}", authFilterClassName, authFilterClass);
