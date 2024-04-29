@@ -1,5 +1,7 @@
 package org.icij.datashare.session;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -13,6 +15,7 @@ import com.github.scribejava.core.oauth.OAuth20Service;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import net.codestory.http.Context;
+import net.codestory.http.errors.BadRequestException;
 import net.codestory.http.filters.PayloadSupplier;
 import net.codestory.http.filters.auth.CookieAuthFilter;
 import net.codestory.http.payload.Payload;
@@ -26,6 +29,8 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
@@ -34,14 +39,19 @@ import static java.lang.String.valueOf;
 import static java.util.Optional.ofNullable;
 import static org.icij.datashare.session.DatashareUser.fromJson;
 
+/**
+ * This class is responsible for OAuth2 authentication.
+ * If you need to add custom processing for saved user session
+ * feel free to add a withYourParams() method. see {@link #processOAuthApiResponse(Response oauthApiResponse, Context context) processOAuthApiResponse}
+ */
 @Singleton
-public class OAuth2CookieFilter extends CookieAuthFilter {
-    private final DefaultApi20 defaultOauthApi;
+public final class OAuth2CookieFilter extends CookieAuthFilter {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String REQUEST_CODE_KEY = "code";
     public static final String REQUEST_STATE_KEY = "state";
 
+    private final DefaultApi20 defaultOauthApi;
     private final Integer oauthTtl;
     private final String oauthApiUrl;
     private final String oauthSigninPath;
@@ -52,6 +62,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     private final String oauthClientSecret;
     private final String oauthDefaultProject;
     private final String oauthScope;
+    private final String oauthClaimIdAttribute;
 
     @Inject
     public OAuth2CookieFilter(PropertiesProvider propertiesProvider, UsersWritable users, SessionIdStore sessionIdStore) {
@@ -65,6 +76,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         this.oauthSigninPath = propertiesProvider.get("oauthSigninPath").orElse("/auth/signin");
         this.oauthTtl = Integer.valueOf(ofNullable(propertiesProvider.getProperties().getProperty("sessionTtlSeconds")).orElse("600"));
         this.oauthDefaultProject = propertiesProvider.get("oauthDefaultProject").orElse("");
+        this.oauthClaimIdAttribute = propertiesProvider.get("oauthClaimIdAttribute").orElse("");
         this.oauthScope = propertiesProvider.get("oauthScope").orElse("");
         logger.info("created OAuth filter with redirectUrl={} clientId={} callbackPath={} uriPrefix={} loginPath={}",
                 oauthAuthorizeUrl, oauthClientId, oauthCallbackPath, uriPrefix, oauthSigninPath);
@@ -98,6 +110,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         if (context.currentUser() != null) {
             return nextFilter.get();
         }
+
         String sessionId = readSessionIdInCookie(context);
         if(uri.equals("/") || uri.isEmpty()) {
             if (sessionId != null) {
@@ -112,7 +125,7 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         return super.otherUri(uri, context, nextFilter);
     }
 
-    protected Payload callback(Context context) throws IOException, ExecutionException, InterruptedException {
+    private Payload callback(Context context) throws IOException, ExecutionException, InterruptedException {
         logger.info("callback called with {}={} {}={}", REQUEST_CODE_KEY, context.get(REQUEST_CODE_KEY), REQUEST_STATE_KEY, context.get(REQUEST_STATE_KEY));
         if (context.get(REQUEST_CODE_KEY) == null || context.get(REQUEST_STATE_KEY) == null || !"GET".equals(context.method()) ||
                 sessionIdStore.getLogin(context.get(REQUEST_STATE_KEY)) == null) {
@@ -131,26 +144,57 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         final Response oauthApiResponse = service.execute(request);
 
         logger.info("received response code from user API : {}", oauthApiResponse.getCode());
-        if (oauthDefaultProject != "") {
-            logger.info("received response body from user API : {}", oauthApiResponse.getBody());
-            String jsonBody = oauthApiResponse.getBody();
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = (ObjectNode) mapper.readTree(jsonBody);
-            ArrayNode arrayNode = mapper.createArrayNode();
-            arrayNode.add(oauthDefaultProject);
-            ObjectNode objectNode = mapper.createObjectNode();
-            objectNode.set("datashare",arrayNode);
-            root.put("groups_by_applications",objectNode);
-            logger.info("modified user: {}", root.toString());
-            org.icij.datashare.user.User user = fromJson(mapper.writeValueAsString(root), "icij");
-            DatashareUser datashareUser = new DatashareUser(user.details);
-            writableUsers().saveOrUpdate(datashareUser);
-	    return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
-        } else {
-            DatashareUser datashareUser = new DatashareUser(fromJson(oauthApiResponse.getBody(), "icij").details);
-            writableUsers().saveOrUpdate(datashareUser);
-	    return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
+        DatashareUser datashareUser = processOAuthApiResponse(oauthApiResponse, context);
+        return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
+    }
+
+    private DatashareUser processOAuthApiResponse(Response oauthApiResponse, Context context) throws IOException {
+        Map<String, Object> userMap = new LinkedHashMap<>();
+        if (!oauthClaimIdAttribute.isEmpty()){
+            withOAuthClaimId(userMap, oauthApiResponse);
         }
+        if (!oauthDefaultProject.isEmpty()) {
+            withOauthDefaultProject(userMap, oauthApiResponse);
+        }
+        if (userMap.isEmpty()){
+            userMap.putAll(fromJson(oauthApiResponse.getBody(), "icij").details);
+        }
+        DatashareUser datashareUser = new DatashareUser(userMap);
+        writableUsers().saveOrUpdate(datashareUser);
+        return datashareUser;
+    }
+
+    private void withOauthDefaultProject(Map<String, Object> userMap, Response oauthApiResponse) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode root = (ObjectNode) mapper.readTree(oauthApiResponse.getBody());
+        ArrayNode arrayNode = mapper.createArrayNode();
+        arrayNode.add(oauthDefaultProject);
+        ObjectNode objectNode = mapper.createObjectNode();
+        objectNode.set("datashare",arrayNode);
+        root.put("groups_by_applications",objectNode);
+        logger.info("modified user with 'groups_by_applications': {}", root);
+        org.icij.datashare.user.User user = fromJson(mapper.writeValueAsString(root), "icij");
+        userMap.putAll(user.details);
+    }
+
+    private void withOAuthClaimId(Map<String, Object> userMap, Response oauthApiResponse) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode root = (ObjectNode) mapper.readTree(oauthApiResponse.getBody());
+        if (!root.has(oauthClaimIdAttribute)) {
+            logger.error("The attribute {} does not exist in the response body.", oauthClaimIdAttribute);
+            throw new BadRequestException();
+        }
+        // Put into root the user ID as the 'id' attribute.
+        String id = ofNullable(root.get(oauthClaimIdAttribute)).map(JsonNode::asText).orElse(null);
+        root.put("id", id);
+
+        // Put into root the user ID as the 'uid' attribute as well.
+        // This is to ensure that the user ID is always available in the user details.
+        // See org.icij.datashare.user.User class for more details.
+        root.put("uid", id);
+        logger.info("Modified user with 'id': {}", root.get(oauthClaimIdAttribute).asText());
+        Map<String, Object> user = mapper.convertValue(root, new TypeReference<>() {});
+        userMap.putAll(user);
     }
 
     @Override
@@ -166,11 +210,11 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
         String host = ofNullable(context.request().header("x-forwarded-host")).orElse(context.request().header("Host"));
         String proto = ofNullable(context.request().header("x-forwarded-proto")).orElse(context.request().isSecure() ? "https" : "http");
         String url = proto + "://" + host + this.oauthCallbackPath;
-        logger.info("oauth callback url",url);
+        logger.info("oauth callback url = {}",url);
         return url;
     }
 
-    protected String createState() {
+    private String createState() {
         String hexState = Long.toHexString(RANDOM.nextLong()) + Long.toHexString(RANDOM.nextLong());
         sessionIdStore.put(hexState, valueOf(new Date().getTime()));
         return hexState;
@@ -182,6 +226,5 @@ public class OAuth2CookieFilter extends CookieAuthFilter {
     @Override protected String cookieName() { return "_ds_session_id";}
     @Override protected int expiry() { return oauthTtl;}
     @Override protected boolean redirectToLogin(String uri) { return false;}
-
     private UsersWritable writableUsers() { return (UsersWritable) users;}
 }

@@ -5,6 +5,7 @@ import net.codestory.http.WebServer;
 import net.codestory.http.filters.Filter;
 import net.codestory.http.misc.Env;
 import net.codestory.rest.FluentRestTest;
+import net.codestory.rest.Response;
 import org.icij.datashare.PropertiesProvider;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -17,15 +18,15 @@ import java.util.regex.Pattern;
 import static java.lang.String.format;
 
 public class OAuth2CookieFilterTest implements FluentRestTest {
-    private static WebServer xemx = new WebServer() {
+    private static final WebServer identityProvider = new WebServer() {
         @Override
         protected Env createEnv() { return Env.prod();}
-    }.startOnRandomPort();
+    }.start(12345);
     static PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("messageBusAddress", "redis");
-        put("oauthTokenUrl", "http://localhost:" + xemx.port() + "/oauth/token");
-        put("oauthAuthorizeUrl", "http://localhost:" + xemx.port() + "/oauth/authorize");
-        put("oauthApiUrl", "http://localhost:" + xemx.port() + "/api/v1/me.json");
+        put("oauthTokenUrl", "http://localhost:" + identityProvider.port() + "/oauth/token");
+        put("oauthAuthorizeUrl", "http://localhost:" + identityProvider.port() + "/oauth/authorize");
+        put("oauthApiUrl", "http://localhost:" + identityProvider.port() + "/api/v1/me.json");
         put("oauthSigninPath", "/auth/signin");
         put("oauthClientId", "12345");
         put("oauthClientSecret", "abcdef");
@@ -93,24 +94,26 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
         this.get("/protected").should().respond(200).contain("foo");
     }
 
-    /*
-    #TODO to be fixed
     @Test
     public void test_callback_should_call_api_with_code_and_state() throws Exception {
         Response response = this.get("/auth/signin").response();
-        this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + getState(response.content())).should().respond(200)
-                .contain("hello Nobody")
-                .contain("uid=123");
+        response = this.get("/auth/callback?code=a0b1c2d3e4f5&state=" + getState(response.content())).withFollowRedirect(false).response();
+        String cookie = response.header("set-cookie").get(0);
+        String[] cookieAll = cookie.split("=", 2);
+        String cookieValue  = cookieAll[1].split(";")[0];
+        this.get(response.header("location").get(0)).withHeader("cookie",cookieAll[0]+"="+cookieValue)
+                .should().contain("hello Nobody")
+                .should().contain("uid=123");
     }
-    */
 
     @BeforeClass
     public static void setUpClass() {
-        xemx.configure(routes -> routes
+        identityProvider.configure(routes -> routes
                 .get("/api/v1/me.json", new HashMap<String, String>() {{
                     put("uid", "123");
                     put("country", null);
                     put("name", "Nobody");
+                    put("username", "nobody");
                     put("email", "no@bo.dy");
                 }})
                 .post("/oauth/token", (context -> new HashMap<String, String>() {{
@@ -141,8 +144,8 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     @Override
     public int port() { return datashare.port();}
 
-    private static WebServer datashare = new WebServer() {
+    private static final WebServer datashare = new WebServer() {
         @Override
         protected Env createEnv() { return Env.prod();}
-    }.startOnRandomPort();
+    }.start(12346);
 }
