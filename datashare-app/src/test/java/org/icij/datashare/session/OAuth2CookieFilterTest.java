@@ -21,7 +21,7 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     private static final WebServer identityProvider = new WebServer() {
         @Override
         protected Env createEnv() { return Env.prod();}
-    }.start(12345);
+    }.startOnRandomPort();
     static PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
         put("messageBusAddress", "redis");
         put("oauthTokenUrl", "http://localhost:" + identityProvider.port() + "/oauth/token");
@@ -147,5 +147,5 @@ public class OAuth2CookieFilterTest implements FluentRestTest {
     private static final WebServer datashare = new WebServer() {
         @Override
         protected Env createEnv() { return Env.prod();}
-    }.start(12346);
+    }.startOnRandomPort();
 }
