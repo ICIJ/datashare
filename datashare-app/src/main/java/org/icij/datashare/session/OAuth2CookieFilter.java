@@ -3,7 +3,6 @@ package org.icij.datashare.session;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.scribejava.core.builder.ServiceBuilder;
 import com.github.scribejava.core.builder.api.DefaultApi20;
@@ -29,20 +28,19 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
+import static java.util.Collections.singletonList;
 import static java.util.Optional.ofNullable;
-import static org.icij.datashare.session.DatashareUser.fromJson;
 
 /**
  * This class is responsible for OAuth2 authentication.
  * If you need to add custom processing for saved user session
- * feel free to add a withYourParams() method. see {@link #processOAuthApiResponse(Response oauthApiResponse, Context context) processOAuthApiResponse}
+ * feel free to add a withYourParams() method. see {@link #processOAuthApiResponse(Response) processOAuthApiResponse}
  */
 @Singleton
 public final class OAuth2CookieFilter extends CookieAuthFilter {
@@ -144,57 +142,30 @@ public final class OAuth2CookieFilter extends CookieAuthFilter {
         final Response oauthApiResponse = service.execute(request);
 
         logger.info("received response code from user API : {}", oauthApiResponse.getCode());
-        DatashareUser datashareUser = processOAuthApiResponse(oauthApiResponse, context);
+        DatashareUser datashareUser = processOAuthApiResponse(oauthApiResponse);
         return Payload.seeOther(this.validRedirectUrl(this.readRedirectUrlInCookie(context))).withCookie(this.authCookie(this.buildCookie(datashareUser, "/")));
     }
 
-    private DatashareUser processOAuthApiResponse(Response oauthApiResponse, Context context) throws IOException {
-        Map<String, Object> userMap = new LinkedHashMap<>();
+    private DatashareUser processOAuthApiResponse(Response oauthApiResponse) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode root = (ObjectNode) mapper.readTree(oauthApiResponse.getBody());
+        Map<String, Object> userMap = mapper.convertValue(root, new TypeReference<>() {});
         if (!oauthClaimIdAttribute.isEmpty()){
-            withOAuthClaimId(userMap, oauthApiResponse);
+            if (userMap.get(oauthClaimIdAttribute) == null) {
+                logger.error("The attribute {} does not exist in the response body.", oauthClaimIdAttribute);
+                throw new BadRequestException();
+            }
+            String id = ofNullable(root.get(oauthClaimIdAttribute)).map(JsonNode::asText).orElse(null);
+            userMap.put("id", id);
+            userMap.put("uid", id);
         }
         if (!oauthDefaultProject.isEmpty()) {
-            withOauthDefaultProject(userMap, oauthApiResponse);
-        }
-        if (userMap.isEmpty()){
-            userMap.putAll(fromJson(oauthApiResponse.getBody(), "icij").details);
+            userMap.put("provider", "icij");
+            userMap.put("groups_by_applications", Map.of("datashare", singletonList(oauthDefaultProject)));
         }
         DatashareUser datashareUser = new DatashareUser(userMap);
         writableUsers().saveOrUpdate(datashareUser);
         return datashareUser;
-    }
-
-    private void withOauthDefaultProject(Map<String, Object> userMap, Response oauthApiResponse) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode root = (ObjectNode) mapper.readTree(oauthApiResponse.getBody());
-        ArrayNode arrayNode = mapper.createArrayNode();
-        arrayNode.add(oauthDefaultProject);
-        ObjectNode objectNode = mapper.createObjectNode();
-        objectNode.set("datashare",arrayNode);
-        root.put("groups_by_applications",objectNode);
-        logger.info("modified user with 'groups_by_applications': {}", root);
-        org.icij.datashare.user.User user = fromJson(mapper.writeValueAsString(root), "icij");
-        userMap.putAll(user.details);
-    }
-
-    private void withOAuthClaimId(Map<String, Object> userMap, Response oauthApiResponse) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode root = (ObjectNode) mapper.readTree(oauthApiResponse.getBody());
-        if (!root.has(oauthClaimIdAttribute)) {
-            logger.error("The attribute {} does not exist in the response body.", oauthClaimIdAttribute);
-            throw new BadRequestException();
-        }
-        // Put into root the user ID as the 'id' attribute.
-        String id = ofNullable(root.get(oauthClaimIdAttribute)).map(JsonNode::asText).orElse(null);
-        root.put("id", id);
-
-        // Put into root the user ID as the 'uid' attribute as well.
-        // This is to ensure that the user ID is always available in the user details.
-        // See org.icij.datashare.user.User class for more details.
-        root.put("uid", id);
-        logger.info("Modified user with 'id': {}", root.get(oauthClaimIdAttribute).asText());
-        Map<String, Object> user = mapper.convertValue(root, new TypeReference<>() {});
-        userMap.putAll(user);
     }
 
     @Override
@@ -227,4 +198,8 @@ public final class OAuth2CookieFilter extends CookieAuthFilter {
     @Override protected int expiry() { return oauthTtl;}
     @Override protected boolean redirectToLogin(String uri) { return false;}
     private UsersWritable writableUsers() { return (UsersWritable) users;}
+
+    private static class Datashare {
+
+    }
 }
