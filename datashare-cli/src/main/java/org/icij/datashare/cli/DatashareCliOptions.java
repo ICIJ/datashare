@@ -772,6 +772,12 @@ public final class DatashareCliOptions {
                 .defaultsTo(DEFAULT_LOG_LEVEL);
     }
 
+    public static void oauthClaimIdAttribute(OptionParser parser) {
+        parser.acceptsAll(singletonList("oauthClaimIdAttribute"), "Json field name sent by the Identity Provider that contains user identifier value.")
+                .withRequiredArg()
+                .ofType(String.class);
+    }
+
     public static ValueConverter<String> toAbsolute() {
         return new ValueConverter<String>() {
             @Override

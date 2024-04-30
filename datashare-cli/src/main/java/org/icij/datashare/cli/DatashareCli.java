@@ -150,6 +150,7 @@ public class DatashareCli {
         DatashareCliOptions.createIndex(parser);
         DatashareCliOptions.defaultUser(parser);
         DatashareCliOptions.defaultProject(parser);
+        DatashareCliOptions.oauthClaimIdAttribute(parser);
         DatashareCliOptions.esHost(parser);
         DatashareCliOptions.queueName(parser);
         DatashareCliOptions.cors(parser);
