@@ -24,10 +24,6 @@ public class RedisBlockingQueue<T> extends RedissonBlockingQueue<T> implements C
         this(new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), queueName);
     }
 
-    public RedisBlockingQueue(PropertiesProvider propertiesProvider) {
-        this(propertiesProvider, CommonMode.DS_BATCHSEARCH_QUEUE_NAME);
-    }
-
     public RedisBlockingQueue(RedissonClient redissonClient, String queueName) {
         super(new JsonJacksonCodec(), new CommandSyncService(((Redisson)redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient)), queueName, redissonClient);
         this.redissonClient = redissonClient;
