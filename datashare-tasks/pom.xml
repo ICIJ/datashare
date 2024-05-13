@@ -145,7 +145,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>commons-test</artifactId>
-            <version>15.1.6</version>
+            <version>15.1.9</version>
             <scope>test</scope>
         </dependency>
         <dependency>
