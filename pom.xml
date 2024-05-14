@@ -77,7 +77,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
 
-        <datashare-api.version>13.8.0</datashare-api.version>
+        <datashare-api.version>13.8.1</datashare-api.version>
         <datashare-cli.version>13.5.0</datashare-cli.version>
         <datashare-tasks.version>15.1.6</datashare-tasks.version>
 
