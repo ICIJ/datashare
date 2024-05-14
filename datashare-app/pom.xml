@@ -17,7 +17,7 @@
         <dependency>
        	    <groupId>com.github.CodeStory</groupId>
        	    <artifactId>fluent-http</artifactId>
-       	    <version>5aba37b</version>
+       	    <version>3dd3f2b</version>
             <type>jar</type>
             <exclusions>
                 <exclusion>
@@ -67,6 +67,12 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-index</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-common</artifactId> <!-- conficts with transport-netty4-client -> netty-common.NetUtil -->
+                </exclusion>
+            </exclusions>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -157,7 +163,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>commons-test</artifactId>
-            <version>15.2.2</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

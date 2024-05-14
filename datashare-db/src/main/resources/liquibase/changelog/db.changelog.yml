@@ -80,6 +80,7 @@ databaseChangeLog:
   - include:
       file: changes/026-drop-user-history-column-sqlite.yml
       relativeToChangelogFile: true
+      precondition:
   - include:
       file: changes/027-batch-search-projects.yml
       relativeToChangelogFile: true

@@ -64,7 +64,7 @@ public class TaskManagersIntTest {
 
         return asList(new Object[][]{
             {
-                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider().getProperties())).create(), "tasks:queue:test", amqpWaiter::countDown),
+                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), "tasks:queue:test", amqpWaiter::countDown),
                 (Creator<TaskSupplier>) () -> new TaskSupplierAmqp(AMQP),
                 amqpWaiter
             },
@@ -84,15 +84,13 @@ public class TaskManagersIntTest {
 
     @Test(timeout = 10000)
     public void test_stop_running_task() throws Exception {
-        // TODO: align this, this differs from Python in that, when awaitToBeStarted, then the task
-        //  returns a results and succeeds and the status should be updated to DONE. In Python DONE
-        //  task can't be cancelled
         eventWaiter.setWaiter(new CountDownLatch(2)); // 1 progress, 1 cancelled
-        TaskView<Integer> taskView = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        TaskView<Integer> taskView = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(taskView.id, TaskView.State.RUNNING);
 
         taskManager.stopTask(taskView.id);
+        taskInspector.awaitStatus(taskView.id, TaskView.State.CANCELLED);
         eventWaiter.await();
 
         assertThat(taskManager.getTasks()).hasSize(1);
@@ -103,13 +101,14 @@ public class TaskManagersIntTest {
     public void test_stop_queued_task() throws Exception {
         eventWaiter.setWaiter(new CountDownLatch(3)); // 1 progress, 2 cancelled
 
-        TaskView<Integer> tv1 = taskManager.startTask("sleep", User.local(), new HashMap<>());
-        TaskView<Integer> tv2 = taskManager.startTask("sleep", User.local(), new HashMap<>());
+        TaskView<Integer> tv1 = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
+        TaskView<Integer> tv2 = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
 
         taskInspector.awaitStatus(tv1.id, TaskView.State.RUNNING);
         taskManager.stopTask(tv2.id);
         taskManager.stopTask(tv1.id);
-        eventWaiter.await();
+        taskInspector.awaitStatus(tv1.id, TaskView.State.CANCELLED);
+        taskInspector.awaitStatus(tv2.id, TaskView.State.CANCELLED);
 
         assertThat(taskManager.getTasks()).hasSize(2);
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);

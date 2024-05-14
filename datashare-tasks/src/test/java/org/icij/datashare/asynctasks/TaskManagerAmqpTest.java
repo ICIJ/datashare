@@ -18,6 +18,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -32,10 +33,7 @@ public class TaskManagerAmqpTest {
 
     @Test(timeout = 2000)
     public void test_new_task() throws Exception {
-        TaskView<Serializable>
-            expectedTaskView = taskManager.startTask("taskName", User.local(), new HashMap<>() {{
-            put("key", "value");
-        }});
+        TaskView<Serializable> expectedTaskView = taskManager.startTask("taskName", User.local(), Map.of("key", "value"));
 
         assertThat(taskManager.getTask(expectedTaskView.id)).isNotNull();
         TaskView<Serializable> actualTaskView = taskSupplier.get(10, TimeUnit.SECONDS);
@@ -122,7 +120,7 @@ public class TaskManagerAmqpTest {
     @Before
     public void setUp() throws IOException {
         nextMessage = new CountDownLatch(1);
-        taskManager = new TaskManagerAmqp(AMQP, new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider().getProperties())).create(), "ds:task:manager", () -> nextMessage.countDown());
+        taskManager = new TaskManagerAmqp(AMQP, new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create(), "ds:task:manager", () -> nextMessage.countDown());
         taskSupplier = new TaskSupplierAmqp(AMQP);
     }
 

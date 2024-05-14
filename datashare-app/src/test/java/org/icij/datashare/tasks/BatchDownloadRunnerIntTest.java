@@ -1,7 +1,6 @@
 package org.icij.datashare.tasks;
 
 import co.elastic.clients.elasticsearch._types.Refresh;
-import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskView;
@@ -11,7 +10,11 @@ import org.icij.datashare.test.ElasticsearchRule;
 import org.icij.datashare.text.Project;
 import org.icij.datashare.text.indexing.elasticsearch.ElasticsearchIndexer;
 import org.jetbrains.annotations.NotNull;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
 
@@ -19,17 +22,23 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipFile;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
-import static org.icij.datashare.cli.DatashareCliOptions.*;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_SCROLL_DURATION_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.BATCH_DOWNLOAD_SCROLL_SIZE_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.SCROLL_SIZE_OPT;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEX;
 import static org.icij.datashare.test.ElasticsearchRule.TEST_INDEXES;
 import static org.icij.datashare.text.Project.project;
 import static org.icij.datashare.user.User.local;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyDouble;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class BatchDownloadRunnerIntTest {
@@ -214,14 +223,13 @@ public class BatchDownloadRunnerIntTest {
     }
 
     @Test(expected = ElasticSearchAdapterException.class)
-    public void test_use_scroll_duration_value() throws Exception {
+    public void test_elasticsearch_exception() throws Exception {
         BatchDownload bd = createBatchDownload("*");
-        PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
-            put("downloadFolder", fs.getRoot().toString());
-            put(BATCH_DOWNLOAD_SCROLL_DURATION_OPT, "10foo");
-        }});
+        PropertiesProvider propertiesProvider = new PropertiesProvider(
+                Map.of("downloadFolder", "/unused",
+                BATCH_DOWNLOAD_SCROLL_DURATION_OPT, "10foo"));
         TaskView<File> taskView = createTaskView(bd);
-        new BatchDownloadRunner(indexer, createProvider(), taskView, taskView.progress(taskModifier::progress)).call();
+        new BatchDownloadRunner(indexer, propertiesProvider, taskView, taskView.progress(taskModifier::progress)).call();
     }
 
 
