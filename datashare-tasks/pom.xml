@@ -75,7 +75,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>datashare-api</artifactId>
-            <version>13.7.1</version>
+            <version>13.8.0</version>
             <scope>provided</scope>
         </dependency>
 
@@ -108,13 +108,6 @@
             <groupId>org.redisson</groupId>
             <artifactId>redisson</artifactId>
             <version>3.20.1</version>
-        </dependency>
-        <!-- TODO: remove if not necessary -->
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-resolver-dns-native-macos</artifactId>
-            <version>4.1.76.Final</version>
-            <classifier>osx-aarch_64</classifier>
         </dependency>
 
         <!-- tests dependencies -->

@@ -29,6 +29,10 @@ public class TaskInspector<M extends TaskManager> {
         this.awaitPredicate(taskId, null, (TaskView<?> t) -> (t.getState() == state));
     }
 
+    public void awaitStatus(String taskId, TaskView.State state, Integer timeoutMs) {
+        this.awaitPredicate(taskId, timeoutMs, (TaskView<?> t) -> (t.getState() == state));
+    }
+
     public void awaitPredicate(String taskId, Integer timeoutMs, Function<TaskView<?>, Boolean> taskPredicate) {
         TestUtils.awaitPredicate(timeoutMs, pollIntervalMs, () -> taskPredicate.apply(this.taskManager.getTask(taskId)));
     }

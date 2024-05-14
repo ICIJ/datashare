@@ -11,11 +11,12 @@ databaseChangeLog:
 
   - changeSet:
       id: 43
+      validCheckSum: 9:751514882d74cb42da77db403a61adf9
       author: mvanza
       dbms: sqlite
       changes:
         sql:
-          INSERT INTO user_history_temporary SELECT * FROM user_history;
+          INSERT INTO user_history_temporary SELECT id, creation_date, modification_date, user_id, type, name, uri FROM user_history;
 
   - changeSet:
       id: 44
