@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 
+import java.util.concurrent.BlockingQueue;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
@@ -23,10 +24,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.BlockingQueue;
 
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
+import org.redisson.RedissonMap;
 import org.redisson.api.RedissonClient;
 import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
@@ -59,6 +60,14 @@ public class TaskManagersIntTest {
                 "messageBusAddress", "amqp://admin:admin@rabbitmq"));
         final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
             Options.from(propertiesProvider.getProperties())).create();
+        Map<String, TaskView<?>> amqpTasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
+            new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
+                new RedissonObjectBuilder(redissonClient)),
+            "tasks:queue:test",
+            redissonClient,
+            null,
+            null
+        );
         AMQP = new AmqpInterlocutor(propertiesProvider);
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK_RESULT);
@@ -70,17 +79,18 @@ public class TaskManagersIntTest {
 
         return asList(new Object[][]{
             {
-                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, new RedissonClientFactory().withOptions(Options.from(propertiesProvider.getProperties())).create(), "tasks:queue:test", amqpWaiter::countDown),
+                (Creator<TaskManager>) () -> new TaskManagerAmqp(AMQP, amqpTasks, amqpWaiter::countDown),
                 (Creator<TaskSupplier>) () -> new TaskSupplierAmqp(AMQP),
                 amqpWaiter
             },
             {
-                (Creator<TaskManager>) () -> new TaskManagerRedis(redissonClient, taskQueue, "tasks:map:test", redisWaiter::countDown),
+                (Creator<TaskManager>) () -> new TaskManagerRedis(redissonClient, taskQueue,
+                    "tasks:map:test", redisWaiter::countDown),
                 (Creator<TaskSupplier>) () -> new TaskSupplierRedis(redissonClient, taskQueue),
                 redisWaiter
             }
-        });
-    }
+    });
+}
 
     public TaskManagersIntTest(Creator<TaskManager> managerCreator, Creator<TaskSupplier> taskSupplierCreator, EventWaiter eventWaiter) {
         this.taskManagerCreator = managerCreator;

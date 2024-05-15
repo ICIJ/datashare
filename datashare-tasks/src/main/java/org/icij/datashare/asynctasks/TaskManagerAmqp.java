@@ -17,11 +17,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
-import org.redisson.Redisson;
-import org.redisson.RedissonMap;
-import org.redisson.api.RedissonClient;
-import org.redisson.command.CommandSyncService;
-import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
@@ -32,15 +27,13 @@ public class TaskManagerAmqp implements TaskManager {
     private final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
     private final AmqpConsumer<ResultEvent<? extends Serializable>, Consumer<ResultEvent<? extends Serializable>>> resultConsumer;
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, RedissonClient redissonClient, String taskMapName) throws IOException {
-        this(amqp, redissonClient, taskMapName, null);
+    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskView<?>> tasks) throws IOException {
+        this(amqp, tasks, null);
     }
 
-    public TaskManagerAmqp(AmqpInterlocutor amqp, RedissonClient redissonClient, String taskQueueName, Runnable eventCallback) throws IOException {
+    public TaskManagerAmqp(AmqpInterlocutor amqp, Map<String, TaskView<?>> tasks, Runnable eventCallback) throws IOException {
         this.amqp = amqp;
-        CommandSyncService commandSyncService = new CommandSyncService(((Redisson) redissonClient).getConnectionManager(), new RedissonObjectBuilder(redissonClient));
-        tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(), commandSyncService, taskQueueName, redissonClient, null, null);
-
+        this.tasks = tasks;
         eventConsumer = new AmqpConsumer<>(amqp, event ->
                 ofNullable(TaskManager.super.handleAck(event)).flatMap(t ->
                         ofNullable(eventCallback)).ifPresent(Runnable::run), AmqpQueue.EVENT, TaskEvent.class).consumeEvents();

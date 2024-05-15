@@ -21,6 +21,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import org.redisson.Redisson;
+import org.redisson.RedissonMap;
+import org.redisson.api.RedissonClient;
+import org.redisson.command.CommandSyncService;
+import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -120,7 +125,17 @@ public class TaskManagerAmqpTest {
     @Before
     public void setUp() throws IOException {
         nextMessage = new CountDownLatch(1);
-        taskManager = new TaskManagerAmqp(AMQP, new RedissonClientFactory().withOptions(Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create(), "ds:task:manager", () -> nextMessage.countDown());
+        final RedissonClient redissonClient = new RedissonClientFactory().withOptions(
+            Options.from(new PropertiesProvider(Map.of("redisAddress", "redis://redis:6379")).getProperties())).create();
+        Map<String, TaskView<?>> tasks = new RedissonMap<>(new TaskManagerRedis.TaskViewCodec(),
+            new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
+                new RedissonObjectBuilder(redissonClient)),
+            "tasks:queue:test",
+            redissonClient,
+            null,
+            null
+        );
+        taskManager = new TaskManagerAmqp(AMQP, tasks, () -> nextMessage.countDown());
         taskSupplier = new TaskSupplierAmqp(AMQP);
     }
 

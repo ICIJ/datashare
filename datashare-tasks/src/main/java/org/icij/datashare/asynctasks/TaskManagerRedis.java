@@ -131,7 +131,7 @@ public class TaskManagerRedis implements TaskManager {
         taskQueue.add(task);
     }
 
-    static class TaskViewCodec extends BaseCodec {
+    public static class TaskViewCodec extends BaseCodec {
         private final Encoder keyEncoder;
         private final Decoder<Object> keyDecoder;
         protected final ObjectMapper mapObjectMapper;
