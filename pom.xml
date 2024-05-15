@@ -98,6 +98,7 @@
         <log4-over-slf4j.version>2.17.2</log4-over-slf4j.version>
         <junit.version>4.13.2</junit.version>
         <fest-assert.version>1.4</fest-assert.version>
+        <mockito.version>5.10.0</mockito.version>
 
         <!-- Maven Plugins -->
         <maven-compiler.version>3.5.1</maven-compiler.version>
@@ -320,7 +321,7 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>5.10.0</version>
+                <version>${mockito.version}</version>
                 <scope>test</scope>
             </dependency>
 
