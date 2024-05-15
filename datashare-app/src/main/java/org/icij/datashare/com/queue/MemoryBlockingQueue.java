@@ -1,4 +1,4 @@
-package org.icij.datashare.asynctasks.bus.memory;
+package org.icij.datashare.com.queue;
 
 import java.util.concurrent.LinkedBlockingQueue;
 

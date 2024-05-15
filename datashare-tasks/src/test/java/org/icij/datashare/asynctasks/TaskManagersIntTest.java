@@ -5,7 +5,6 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
-import org.icij.datashare.asynctasks.bus.redis.RedisBlockingQueue;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -24,7 +23,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.BlockingQueue;
+
+import org.redisson.Redisson;
+import org.redisson.RedissonBlockingQueue;
 import org.redisson.api.RedissonClient;
+import org.redisson.command.CommandSyncService;
+import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import static java.util.Arrays.asList;
 import static org.fest.assertions.Assertions.assertThat;
@@ -58,7 +63,8 @@ public class TaskManagersIntTest {
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK);
         AMQP.createAmqpChannelForPublish(AmqpQueue.TASK_RESULT);
         AMQP.createAmqpChannelForPublish(AmqpQueue.EVENT);
-        RedisBlockingQueue<TaskView<?>> taskQueue = new RedisBlockingQueue<>(redissonClient, "tasks:queue:test");
+        BlockingQueue<TaskView<?>> taskQueue = new RedissonBlockingQueue<>(new CommandSyncService(((Redisson) redissonClient).getConnectionManager(),
+                new RedissonObjectBuilder(redissonClient)), "tasks:queue:test", redissonClient);
         EventWaiter amqpWaiter = new EventWaiter(2); // default: progress, result
         EventWaiter redisWaiter = new EventWaiter(2); // default: progress, result
 
