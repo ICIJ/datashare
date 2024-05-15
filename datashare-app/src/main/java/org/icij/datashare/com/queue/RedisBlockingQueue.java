@@ -1,4 +1,4 @@
-package org.icij.datashare.asynctasks.bus.redis;
+package org.icij.datashare.com.queue;
 
 import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
