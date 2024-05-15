@@ -18,19 +18,8 @@
 
     <developers>
         <developer>
-            <name>Bruno Thomas</name>
-            <email>bthomas@icij.org</email>
-            <organization>ICIJ</organization>
-        </developer>
-        <developer>
-            <name>Julien Martin</name>
-            <id>julm</id>
-            <email>julien.pierre.martin@gmail.com</email>
-            <organization>ICIJ</organization>
-        </developer>
-        <developer>
-            <name>Maxime Vanza Lutonda</name>
-            <email>mvanza@icij.org</email>
+            <name>ICIJ</name>
+            <email>datashare@icij.org</email>
             <organization>ICIJ</organization>
         </developer>
     </developers>
@@ -108,6 +97,7 @@
         <log4jtoslf4j.version>2.17.2</log4jtoslf4j.version>
         <log4-over-slf4j.version>2.17.2</log4-over-slf4j.version>
         <junit.version>4.13.2</junit.version>
+        <fest-assert.version>1.4</fest-assert.version>
 
         <!-- Maven Plugins -->
         <maven-compiler.version>3.5.1</maven-compiler.version>
@@ -149,6 +139,12 @@
                 <artifactId>datashare-db</artifactId>
                 <version>${project.version}</version>
                 <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.icij.datashare</groupId>
+                <artifactId>commons-test</artifactId>
+                <version>${project.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>net.sf.jopt-simple</groupId>
@@ -308,11 +304,23 @@
             </dependency>
 
 
-            <!-- JUnit -->
+            <!-- tests -->
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
                 <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.easytesting</groupId>
+                <artifactId>fest-assert</artifactId>
+                <version>${fest-assert.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>5.10.0</version>
                 <scope>test</scope>
             </dependency>
 

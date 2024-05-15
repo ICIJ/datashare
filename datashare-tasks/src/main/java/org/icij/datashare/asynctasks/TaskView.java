@@ -18,7 +18,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.user.User;
-import org.jetbrains.annotations.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> implements Entity {
@@ -168,7 +167,7 @@ public class TaskView<V> implements Entity {
         return user;
     }
 
-    public static <V> String getId(@NotNull Callable<V> task) {
+    public static <V> String getId(Callable<V> task) {
         return task.toString();
     }
 
