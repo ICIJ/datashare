@@ -12,42 +12,42 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.icij.datashare.asynctasks.TaskView.State.CREATED;
 import static org.icij.datashare.asynctasks.TaskView.State.RUNNING;
 
-public class StatusLatchTest  {
+public class StateLatchTest {
     private static final int WAIT_MS = 50;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Test
     public void test_status_latch_await_with_timeout() throws InterruptedException {
-        StatusLatch statusLatch = new StatusLatch(CREATED);
+        StateLatch stateLatch = new StateLatch(CREATED);
         long start = System.currentTimeMillis();
         executor.submit((Callable<Void>) () -> {
             Thread.sleep(WAIT_MS);
-            statusLatch.setTaskState(TaskView.State.RUNNING);
+            stateLatch.setTaskState(TaskView.State.RUNNING);
             return null;
         });
-        assertThat(statusLatch.await(TaskView.State.RUNNING, 1500, TimeUnit.MILLISECONDS)).isTrue();
+        assertThat(stateLatch.await(TaskView.State.RUNNING, 1500, TimeUnit.MILLISECONDS)).isTrue();
         assertThat(System.currentTimeMillis() - start).isGreaterThan(WAIT_MS);
     }
 
     @Test
     public void test_status_latch_await() throws InterruptedException {
-        StatusLatch statusLatch = new StatusLatch(CREATED);
+        StateLatch stateLatch = new StateLatch(CREATED);
         long start = System.currentTimeMillis();
         executor.submit((Callable<Void>) () -> {
             Thread.sleep(WAIT_MS);
-            statusLatch.setTaskState(TaskView.State.RUNNING);
+            stateLatch.setTaskState(TaskView.State.RUNNING);
             return null;
         });
-        statusLatch.await(TaskView.State.RUNNING);
+        stateLatch.await(TaskView.State.RUNNING);
         assertThat(System.currentTimeMillis() - start).isGreaterThan(WAIT_MS);
     }
 
     @Test
     public void test_get_state() {
-        StatusLatch statusLatch = new StatusLatch(CREATED);
-        assertThat(statusLatch.getTaskState()).isEqualTo(CREATED);
-        statusLatch.setTaskState(RUNNING);
-        assertThat(statusLatch.getTaskState()).isEqualTo(RUNNING);
+        StateLatch stateLatch = new StateLatch(CREATED);
+        assertThat(stateLatch.getTaskState()).isEqualTo(CREATED);
+        stateLatch.setTaskState(RUNNING);
+        assertThat(stateLatch.getTaskState()).isEqualTo(RUNNING);
     }
 
     @After

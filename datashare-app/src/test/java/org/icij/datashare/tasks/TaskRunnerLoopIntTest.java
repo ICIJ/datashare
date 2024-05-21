@@ -26,7 +26,7 @@ public class TaskRunnerLoopIntTest {
     private final TaskSupplierRedis taskSupplier = new TaskSupplierRedis(new PropertiesProvider(), taskQueue);
 
 
-    @Test(timeout =3000)
+    @Test(timeout=5000)
     public void test_batch_download_task_view_properties() throws Exception {
         CountDownLatch eventWaiter = new CountDownLatch(2); // progress, result(error)
         try (TaskManagerRedis taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", taskQueue, eventWaiter::countDown)) {

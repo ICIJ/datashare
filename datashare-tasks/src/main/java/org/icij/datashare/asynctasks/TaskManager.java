@@ -127,4 +127,9 @@ public interface TaskManager extends Closeable {
         }
         return null;
     }
+
+    default void foo(String taskId, StateLatch stateLatch) {
+        getTask(taskId).setLatch(stateLatch);
+    }
+
 }

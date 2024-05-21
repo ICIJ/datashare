@@ -3,11 +3,15 @@ package org.icij.datashare.asynctasks;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
-public class StatusLatch {
+public class StateLatch {
     private final Sync sync;
 
-    public StatusLatch(TaskView.State state) {
-        this.sync = new StatusLatch.Sync(state);
+    public StateLatch() {
+        this.sync = new StateLatch.Sync(TaskView.State.CREATED);
+    }
+
+    public StateLatch(TaskView.State state) {
+        this.sync = new StateLatch.Sync(state);
     }
 
     public void await(TaskView.State state) throws InterruptedException {
