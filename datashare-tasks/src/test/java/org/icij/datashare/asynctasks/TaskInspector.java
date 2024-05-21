@@ -2,16 +2,16 @@ package org.icij.datashare.asynctasks;
 
 import java.util.function.Function;
 
-public class TaskInspector<M extends TaskManager> {
+public class TaskInspector {
     private final int pollIntervalMs;
-    private final M taskManager;
+    private final TaskManager taskManager;
 
-    public TaskInspector(M taskManager) {
+    public TaskInspector(TaskManager taskManager) {
         this.taskManager = taskManager;
         this.pollIntervalMs = 10;
     }
 
-    public TaskInspector(M taskManager, int pollIntervalMs) {
+    public TaskInspector(TaskManager taskManager, int pollIntervalMs) {
         this.taskManager = taskManager;
         this.pollIntervalMs = pollIntervalMs;
     }

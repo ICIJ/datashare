@@ -48,7 +48,7 @@ public class TaskManagersIntTest {
 
     private TaskRunnerLoop taskRunner;
     private TaskManager taskManager;
-    private TaskInspector<?> taskInspector;
+    private TaskInspector taskInspector;
 
     ExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
@@ -134,7 +134,7 @@ public class TaskManagersIntTest {
     @Before
     public void setUp() throws Exception {
         this.taskManager = taskManagerCreator.create();
-        this.taskInspector = new TaskInspector<>(this.taskManager);
+        this.taskInspector = new TaskInspector(this.taskManager);
         CountDownLatch taskRunnerWaiter = new CountDownLatch(1);
         this.taskRunner = new TaskRunnerLoop(factory, taskSupplierCreator.create(), taskRunnerWaiter, 100);
         executor.submit(taskRunner);
