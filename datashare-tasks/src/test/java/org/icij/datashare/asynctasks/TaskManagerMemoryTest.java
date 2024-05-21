@@ -29,7 +29,7 @@ public class TaskManagerMemoryTest {
     public void setUp() throws Exception {
         LinkedBlockingQueue<TaskView<?>> taskViews = new LinkedBlockingQueue<>();
         taskManager = new TaskManagerMemory(taskViews, factory, waitForLoop);
-        taskInspector = new TaskInspector<>(taskManager);
+        taskInspector = new TaskInspector(taskManager);
         waitForLoop.await();
     }
 
