@@ -176,7 +176,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire.version}</version>
                 <configuration>
-                    <argLine>-Djava.system.class.loader=org.icij.datashare.DynamicClassLoader -ea --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <argLine>-Djava.system.class.loader=org.icij.datashare.DynamicClassLoader -ea --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
             <plugin>

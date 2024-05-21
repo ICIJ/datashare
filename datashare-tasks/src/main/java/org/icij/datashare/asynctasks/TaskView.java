@@ -21,6 +21,8 @@ import org.icij.datashare.user.User;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> implements Entity {
+    @JsonIgnore private StateLatch stateLatch;
+    @JsonIgnore private final Object lock = new Object();
 
     public enum State {CREATED, QUEUED, RUNNING, CANCELLED, ERROR, DONE}
     public final Map<String, Object> properties;
@@ -32,8 +34,6 @@ public class TaskView<V> implements Entity {
     private volatile State state;
     private volatile double progress;
     private volatile V result;
-    @JsonIgnore
-    private final Object lock = new Object();
 
     public TaskView(String name, User user, Map<String, Object> properties) {
         this(randomUUID().toString(), name, user, properties);
@@ -82,7 +82,7 @@ public class TaskView<V> implements Entity {
     public void setResult(Serializable result) {
         synchronized (lock) {
             this.result = (V) result;
-            this.state = State.DONE;
+            setState(State.DONE);
             this.progress = 1;
             lock.notify();
         }
@@ -91,7 +91,7 @@ public class TaskView<V> implements Entity {
     public void setError(Throwable reason) {
         synchronized (lock) {
             this.error = reason;
-            this.state = State.ERROR;
+            setState(State.ERROR);
             this.progress = 1;
             lock.notify();
         }
@@ -99,7 +99,7 @@ public class TaskView<V> implements Entity {
 
     public void cancel() {
         synchronized (lock) {
-            state = State.CANCELLED;
+            setState(State.CANCELLED);
             lock.notify();
         }
     }
@@ -107,15 +107,15 @@ public class TaskView<V> implements Entity {
     public void setProgress(double rate) {
         synchronized (lock) {
             this.progress = rate;
-            if (!State.RUNNING.equals(state)) {
-                this.state = State.RUNNING;
+            if (!State.RUNNING.equals(getState())) {
+                setState(State.RUNNING);
             }
         }
     }
 
     public void queue() {
         synchronized (lock) {
-            state = State.QUEUED;
+            setState(State.QUEUED);
         }
     }
 
@@ -182,5 +182,14 @@ public class TaskView<V> implements Entity {
 
     public Function<Double, Void> progress(BiFunction<String, Double, Void> taskSupplierProgress) {
         return (p) -> taskSupplierProgress.apply(this.id, p);
+    }
+
+    void setLatch(StateLatch stateLatch) {
+        this.stateLatch = stateLatch;
+    }
+    
+    private void setState(State state) {
+        this.state = state;
+        ofNullable(stateLatch).ifPresent(sl -> sl.setTaskState(state));
     }
 }

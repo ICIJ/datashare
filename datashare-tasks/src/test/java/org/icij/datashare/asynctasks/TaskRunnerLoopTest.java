@@ -1,11 +1,5 @@
 package org.icij.datashare.asynctasks;
 
-import static org.fest.assertions.Assertions.assertThat;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.verify;
-
-import java.io.Serializable;
-import java.util.Map;
 import org.icij.datashare.user.User;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +7,17 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+
+import java.io.Serializable;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import static org.fest.assertions.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class TaskRunnerLoopTest {
     TestFactory registry = new TestFactory();
@@ -28,45 +33,41 @@ public class TaskRunnerLoopTest {
         Integer nb = app.call();
 
         assertThat(nb).isEqualTo(1);
-        Mockito.verify(supplier).result(ArgumentMatchers.eq(taskView.id), ArgumentMatchers.eq("Hello world!"));
+        Mockito.verify(supplier).result(eq(taskView.id), eq("Hello world!"));
     }
 
     @Test
     public void test_cancel_task() throws Exception {
-        // Given
         TaskRunnerLoop app = new TaskRunnerLoop(registry, supplier);
         TaskView<Serializable> taskView = new TaskView<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView, TaskView.nullObject());
         boolean requeue = false;
+        CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
 
-        // When
         Thread appThread = new Thread(app::call);
         appThread.start();
-        TestUtils.awaitPredicate(2000, () -> sleepStarted(taskView));
+        taskStarted.await(1, TimeUnit.SECONDS);
         app.cancel(taskView.id, requeue);
         appThread.join();
 
-        // Then
         verify(supplier).canceled(ArgumentMatchers.eq(taskView), ArgumentMatchers.eq(false));
     }
 
     @Test
     public void test_cancel_task_and_requeue() throws Exception {
-        // Given
         TaskRunnerLoop app = new TaskRunnerLoop(registry, supplier);
         TaskView<Serializable> taskView = new TaskView<>(TestFactory.SleepForever.class.getName(), User.local(), Map.of());
         Mockito.when(supplier.get(ArgumentMatchers.anyInt(), ArgumentMatchers.any())).thenReturn(taskView, TaskView.nullObject());
         boolean requeue = true;
+        CountDownLatch taskStarted = whenTaskHasStarted(taskView.id);
 
-        // When
         Thread appThread = new Thread(app::call);
         appThread.start();
-        TestUtils.awaitPredicate(20000, () -> sleepStarted(taskView));
+        taskStarted.await(1, TimeUnit.SECONDS);
         app.cancel(taskView.id, requeue);
         appThread.join();
 
-        // Then
-        verify(supplier).canceled(ArgumentMatchers.eq(taskView), ArgumentMatchers.eq(true));
+        verify(supplier).canceled(eq(taskView), eq(true));
     }
 
     @Test(timeout = 2000)
@@ -81,7 +82,7 @@ public class TaskRunnerLoopTest {
         appThread.interrupt();
         appThread.join();
 
-        verify(supplier).canceled(ArgumentMatchers.eq(taskView), ArgumentMatchers.eq(false));
+        verify(supplier).canceled(eq(taskView), eq(false));
     }
 
     @Before
@@ -89,12 +90,12 @@ public class TaskRunnerLoopTest {
         MockitoAnnotations.initMocks(this);
     }
 
-    private boolean sleepStarted(TaskView<Serializable> task) {
-        try {
-            verify(supplier, atLeast(2)).progress(ArgumentMatchers.eq(task.id), ArgumentMatchers.any(Double.class));
-            return true;
-        } catch (AssertionError ignored) {
-            return false;
-        }
+    private CountDownLatch whenTaskHasStarted(String id) {
+        CountDownLatch latch = new CountDownLatch(2);
+        when(supplier.progress(eq(id), anyDouble())).thenAnswer(invocationOnMock -> {
+            latch.countDown();
+            return null;
+        });
+        return latch;
     }
 }

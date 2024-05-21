@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import org.redisson.Redisson;
 import org.redisson.RedissonBlockingQueue;
@@ -35,6 +34,7 @@ import org.redisson.command.CommandSyncService;
 import org.redisson.liveobject.core.RedissonObjectBuilder;
 
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.fest.assertions.Assertions.assertThat;
 
 
@@ -106,10 +106,10 @@ public class TaskManagersIntTest {
         eventWaiter.setWaiter(new CountDownLatch(2)); // 1 progress, 1 cancelled
         TaskView<Integer> taskView = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
 
-        taskInspector.awaitStatus(taskView.id, TaskView.State.RUNNING);
+        taskInspector.awaitStatus(taskView.id, TaskView.State.RUNNING, 1, SECONDS);
 
         taskManager.stopTask(taskView.id);
-        taskInspector.awaitStatus(taskView.id, TaskView.State.CANCELLED);
+        taskInspector.awaitStatus(taskView.id, TaskView.State.CANCELLED, 1, SECONDS);
         eventWaiter.await();
 
         assertThat(taskManager.getTasks()).hasSize(1);
@@ -123,11 +123,11 @@ public class TaskManagersIntTest {
         TaskView<Integer> tv1 = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
         TaskView<Integer> tv2 = taskManager.startTask(TestFactory.SleepForever.class.getName(), User.local(), new HashMap<>());
 
-        taskInspector.awaitStatus(tv1.id, TaskView.State.RUNNING);
+        taskInspector.awaitStatus(tv1.id, TaskView.State.RUNNING, 1, SECONDS);
         taskManager.stopTask(tv2.id);
         taskManager.stopTask(tv1.id);
-        taskInspector.awaitStatus(tv1.id, TaskView.State.CANCELLED);
-        taskInspector.awaitStatus(tv2.id, TaskView.State.CANCELLED);
+        taskInspector.awaitStatus(tv1.id, TaskView.State.CANCELLED, 1, SECONDS);
+        taskInspector.awaitStatus(tv2.id, TaskView.State.CANCELLED, 1, SECONDS);
 
         assertThat(taskManager.getTasks()).hasSize(2);
         assertThat(taskManager.getTasks().get(0).getState()).isEqualTo(TaskView.State.CANCELLED);
@@ -150,7 +150,7 @@ public class TaskManagersIntTest {
         taskManager.close();
         taskRunner.close();
         executor.shutdownNow();
-        executor.awaitTermination(1, TimeUnit.SECONDS);
+        executor.awaitTermination(1, SECONDS);
     }
 
     @AfterClass
