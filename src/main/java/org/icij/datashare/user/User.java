@@ -177,7 +177,11 @@ public class User implements Entity {
     @JsonIgnore
     public boolean isLocal() { return LOCAL.equals(this.id);}
     public static User local() { return localUser(LOCAL);}
-    public static User localUser(String id) { return new User(new HashMap<String, Object>() {{ put("uid", id); put(XEMX_APPLICATIONS_KEY, new HashMap<String, Object>() {{ put(XEMX_DATASHARE_KEY, singletonList(id + "-datashare"));}});}});}
+    public static User localUser(String id) {
+        return new User(
+            Map.of("uid", id, XEMX_APPLICATIONS_KEY, Map.of(XEMX_DATASHARE_KEY, singletonList(id + "-datashare")))
+        );
+    }
     public static User nullUser() { return new User((String)null);}
 
     @Override
