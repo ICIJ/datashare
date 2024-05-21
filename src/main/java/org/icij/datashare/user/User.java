@@ -80,7 +80,7 @@ public class User implements Entity {
 
     @JsonIgnore
     public List<String> getApplicationProjectNames() {
-        HashMap<String, Object> applications = (HashMap<String, Object>) ofNullable(details.get(XEMX_APPLICATIONS_KEY)).orElse(new HashMap<>());
+        Map<String, Object> applications = (Map<String, Object>) ofNullable(details.get(XEMX_APPLICATIONS_KEY)).orElse(new HashMap<>());
         return (List<String>) ofNullable(applications.get(XEMX_DATASHARE_KEY)).orElse(new LinkedList<>());
     }
 

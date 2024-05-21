@@ -66,7 +66,7 @@ public class UserTest {
 
     @Test
     public void test_get_indices_for_external_user() {
-        assertThat(new User(new HashMap<String, Object>() {{
+        assertThat(new User(new HashMap<>() {{
             put("uid", "userid");
             put("groups_by_applications", new HashMap<String, Object>() {{
                 put("datashare", Collections.singletonList("external_index"));
