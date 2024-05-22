@@ -7,6 +7,7 @@ import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
 import org.junit.After;
 import org.junit.Test;
+import org.redisson.api.RedissonClient;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -14,7 +15,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.redisson.api.RedissonClient;
 
 import static org.fest.assertions.Assertions.assertThat;
 
