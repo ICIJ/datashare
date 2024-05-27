@@ -1,6 +1,8 @@
 package org.icij.datashare.io;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
@@ -45,17 +47,8 @@ public class RemoteFiles {
         config.setConnectionTimeout(CONNECTION_TIMEOUT_MS);
         config.setSocketTimeout(READ_TIMEOUT_MS);
         return new RemoteFiles(AmazonS3ClientBuilder.standard()
+                .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(S3_DATASHARE_ENDPOINT, S3_REGION))
-                .withClientConfiguration(config).build(), S3_DATASHARE_BUCKET_NAME);
-    }
-
-    public static RemoteFiles getAuthenticated() {
-        ClientConfiguration config = new ClientConfiguration();
-        config.setConnectionTimeout(CONNECTION_TIMEOUT_MS);
-        config.setSocketTimeout(READ_TIMEOUT_MS);
-        return new RemoteFiles(AmazonS3ClientBuilder.standard()
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(S3_DATASHARE_ENDPOINT, S3_REGION))
-                .withCredentials(DefaultAWSCredentialsProviderChain.getInstance())
                 .withClientConfiguration(config).build(), S3_DATASHARE_BUCKET_NAME);
     }
 
