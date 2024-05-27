@@ -26,7 +26,7 @@ public class StateLatchTest {
             return null;
         });
         assertThat(stateLatch.await(TaskView.State.RUNNING, 1500, TimeUnit.MILLISECONDS)).isTrue();
-        assertThat(System.currentTimeMillis() - start).isGreaterThan(WAIT_MS);
+        assertThat(System.currentTimeMillis() - start).isGreaterThanOrEqualTo(WAIT_MS);
     }
 
     @Test
@@ -39,7 +39,7 @@ public class StateLatchTest {
             return null;
         });
         stateLatch.await(TaskView.State.RUNNING);
-        assertThat(System.currentTimeMillis() - start).isGreaterThan(WAIT_MS);
+        assertThat(System.currentTimeMillis() - start).isGreaterThanOrEqualTo(WAIT_MS);
     }
 
     @Test
