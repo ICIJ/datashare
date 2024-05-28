@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.icij.datashare</groupId>
         <artifactId>datashare</artifactId>
-        <version>15.1.9</version>
+        <version>15.2.2</version>
     </parent>
 
     <artifactId>datashare-tasks</artifactId>
@@ -62,7 +62,7 @@
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson</artifactId>
-            <version>${redisson.version}</version>
+            <version>3.20.1</version>
         </dependency>
 
         <!-- tests dependencies -->
@@ -85,7 +85,7 @@
         <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>commons-test</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
             <scope>test</scope>
         </dependency>
 
