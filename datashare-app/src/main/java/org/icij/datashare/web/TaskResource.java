@@ -35,6 +35,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -43,6 +44,7 @@ import java.util.regex.Pattern;
 import static java.lang.Boolean.parseBoolean;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
+import static java.util.Arrays.compareUnsigned;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
@@ -260,12 +262,12 @@ public class TaskResource {
         Properties properties = applyProjectProperties(optionsWrapper);
         properties.put(NLP_PIPELINE_OPT, pipelineName);
         syncModels(parseBoolean(properties.getProperty(SYNC_MODELS_OPTION, "true")));
-        TaskView<Long> nlpTask = taskManager.startTask(ExtractNlpTask.class.getName(), (User) context.currentUser(), propertiesToMap(properties));
+        List<TaskView<?>> tasks = new LinkedList<>();
         if (parseBoolean(properties.getProperty(RESUME_OPTION, "true"))) {
-            TaskView<Long> resumeNlpTask = taskManager.startTask(EnqueueFromIndexTask.class.getName(), ((User) context.currentUser()), propertiesToMap(properties));
-            return asList(resumeNlpTask, nlpTask);
+            tasks.add(taskManager.<Long>startTask(EnqueueFromIndexTask.class.getName(), ((User) context.currentUser()), propertiesToMap(properties)));
         }
-        return singletonList(nlpTask);
+        tasks.add(taskManager.<Long>startTask(ExtractNlpTask.class.getName(), (User) context.currentUser(), propertiesToMap(properties)));
+        return tasks;
     }
 
     public Properties applyProjectProperties(OptionsWrapper optionsWrapper) {
