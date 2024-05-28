@@ -15,11 +15,9 @@ import java.util.concurrent.TimeUnit;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RedisBlockingQueueTest {
-    RedisBlockingQueue<String> queue = new RedisBlockingQueue<>(new PropertiesProvider(Map.of(
-            "redisAddress", "redis://redis:6379",
-            "redisPoolSize", "5"
-    )), "test:queue");
-
+    Map<String, Object> redisConfig = Map.of("redisAddress", "redis://redis:6379", "redisPoolSize", "5");
+    RedissonClient client = new RedissonClientFactory().withOptions(Options.from(redisConfig)).create();
+    RedisBlockingQueue<String> queue = new RedisBlockingQueue<>(client, CommonMode.DS_BATCHSEARCH_QUEUE_NAME);
 
     @Test
     public void test_redisson_connection(){
