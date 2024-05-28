@@ -83,7 +83,7 @@
                                 </manifest>
                                 <manifestEntries>
                                     <Build-Time>${maven.build.timestamp}</Build-Time>
-                                    <Implementation-Version>${version}</Implementation-Version>
+                                    <Implementation-Version>${project.version}</Implementation-Version>
                                     <Add-Opens>java.base/java.util java.base/java.lang java.base/java.net</Add-Opens>
                                     <Multi-Release>true</Multi-Release>
                                 </manifestEntries>

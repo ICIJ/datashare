@@ -77,6 +77,8 @@ public abstract class CommonMode extends AbstractModule {
     protected Logger logger = LoggerFactory.getLogger(getClass());
     public static final String DS_TASKS_QUEUE_NAME = "ds:task:manager:queue";
     public static final String DS_TASK_MANAGER_MAP_NAME = "ds:task:manager:tasks";
+    public static final String DS_TASK_MANAGER_QUEUE_NAME = "ds:task:manager";
+
     protected final PropertiesProvider propertiesProvider;
     protected final Mode mode;
     private final Injector injector;
@@ -188,7 +190,7 @@ public abstract class CommonMode extends AbstractModule {
         }
     }
 
-    private void configureBatchQueuesMemory(PropertiesProvider propertiesProvider) {
+    private void configureBatchQueuesMemory() {
         bind(new TypeLiteral<BlockingQueue<TaskView<?>>>(){}).toInstance(new MemoryBlockingQueue<>(DS_TASKS_QUEUE_NAME));
     }
 
