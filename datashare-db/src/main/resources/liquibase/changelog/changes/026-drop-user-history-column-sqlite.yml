@@ -11,7 +11,7 @@ databaseChangeLog:
 
   - changeSet:
       id: 43
-      validCheckSum: 9:751514882d74cb42da77db403a61adf9
+      validCheckSum: 8:a3b4d18ea2f233931d702b4cf761c4c7
       author: mvanza
       dbms: sqlite
       changes:
