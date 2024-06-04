@@ -132,6 +132,7 @@ public abstract class CommonMode extends AbstractModule {
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
         install(new FactoryModuleBuilder().build(TaskFactory.class));
+        install(new FactoryModuleBuilder().build(org.icij.datashare.asynctasks.TaskFactory.class));
 
         RedissonClient redissonClient = null;
         if ( hasProperty(QueueType.REDIS) ) {
