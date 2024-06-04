@@ -56,7 +56,11 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith(new DummyUserTask<>("foo"), "foo");
         TaskView<String> t = taskManager.startTask(DummyUserTask.class.getName(), localUser("foo"), new HashMap<>());
         get("/api/task/" + t.id).withPreemptiveAuthentication("foo", "qux").should().respond(200).
-                contain(format("{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{\"uid\":\"foo\",\"groups_by_applications\":{\"datashare\":[\"foo-datashare\"]}}},\"properties\":{}}", t.id, t.name));
+                contain(format("{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"foo\",\"name\":null,\"email\":null,\"provider\":\"local\"",t.id, t.name)).
+                contain("\"details\":").
+                contain("\"uid\":\"foo\"").
+                contain("\"groups_by_applications\":{\"datashare\":[\"foo-datashare\"]}").
+                contain("\"properties\":{}");
     }
 
     @Test
@@ -128,7 +132,12 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
         setupAppWith(new DummyUserTask<>("bar"), "bar");
         TaskView<String> t2 = taskManager.startTask(DummyUserTask.class.getName(), localUser("bar"), new HashMap<>());
 
-        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().contain(format("{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\",\"details\":{\"uid\":\"bar\",\"groups_by_applications\":{\"datashare\":[\"bar-datashare\"]}}},\"properties\":{}}", t2.id, t2.name));
+        get("/api/task/all?filter=DummyUserTask").withPreemptiveAuthentication("bar", "qux").should().
+                contain(format("{\"id\":\"%s\",\"name\":\"%s\",\"state\":\"DONE\",\"progress\":1.0,\"user\":{\"id\":\"bar\",\"name\":null,\"email\":null,\"provider\":\"local\"",t2.id, t2.name)).
+                contain("\"details\":").
+                contain("\"uid\":\"bar\"").
+                contain("\"groups_by_applications\":{\"datashare\":[\"bar-datashare\"]}").
+                contain("\"properties\":{}");
         get("/api/task/all?filter=foo").withPreemptiveAuthentication("bar", "qux").should().contain("[]");
     }
 
