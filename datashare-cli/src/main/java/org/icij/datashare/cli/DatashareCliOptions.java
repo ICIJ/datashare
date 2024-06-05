@@ -138,7 +138,7 @@ public final class DatashareCliOptions {
     public static final String DEFAULT_CHARSET = Charset.defaultCharset().toString();
     public static final String DEFAULT_CLUSTER_NAME = "datashare";
     public static final String DEFAULT_CORS = "no-cors";
-    public static final String DEFAULT_DATA_SOURCE_URL = "jdbc:sqlite:file:" + DEFAULT_DATASHARE_HOME.resolve("dist/datashare.db").toString();
+    public static final String DEFAULT_DATA_SOURCE_URL = "jdbc:sqlite:file:" + DEFAULT_DATASHARE_HOME.resolve("dist/datashare.db");
     public static final String DEFAULT_DEFAULT_PROJECT = "local-datashare";
     public static final String DEFAULT_ELASTICSEARCH_ADDRESS = "http://elasticsearch:9200";
     public static final String DEFAULT_ELASTICSEARCH_DATA_PATH = DEFAULT_DATASHARE_HOME.resolve("es").toString();
@@ -551,7 +551,7 @@ public final class DatashareCliOptions {
 
     static void dataSourceUrl(OptionParser parser) {
         parser.acceptsAll(
-                singletonList(DATA_SOURCE_URL_OPT), "Datasource URL")
+                singletonList(DATA_SOURCE_URL_OPT), "Datasource URL. For using memory you can use 'jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared'")
                 .withRequiredArg()
                 .ofType(String.class)
                 .defaultsTo(DEFAULT_DATA_SOURCE_URL);
