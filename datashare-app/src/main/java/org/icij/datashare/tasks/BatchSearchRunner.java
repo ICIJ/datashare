@@ -99,6 +99,10 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
         callThread = Thread.currentThread();
         callWaiterLatch.countDown(); // for tests
         BatchSearch batchSearch = repository.get(taskView.getUser(), taskView.id);
+        if (batchSearch == null) {
+            logger.warn("batch search {} not found in database (check that database url is the same as datashare backend)", taskView.id);
+            return 0;
+        }
 
         String query = null;
         try {
