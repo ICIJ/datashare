@@ -7,7 +7,7 @@ import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.DelApiKeyTask;
 import org.icij.datashare.tasks.GenApiKeyTask;
 import org.icij.datashare.tasks.GetApiKeyTask;
-import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
 import org.junit.Before;
@@ -19,7 +19,7 @@ import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class ApiKeyResourceTest extends AbstractProdWebServerTest {
-    @Mock public TaskFactory taskFactory;
+    @Mock public DatashareTaskFactory taskFactory;
     @Mock JooqRepository jooqRepository;
 
     @Test

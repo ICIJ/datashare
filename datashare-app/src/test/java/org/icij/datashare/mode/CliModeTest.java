@@ -5,7 +5,7 @@ import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskRunnerLoop;
 import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.cli.QueueType;
-import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.text.indexing.Indexer;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,7 +26,7 @@ public class CliModeTest {
             put("batchQueueType", QueueType.REDIS.name());
         }}));
 
-        TaskRunnerLoop taskRunnerLoop = new TaskRunnerLoop(mode.get(TaskFactory.class), mode.get(TaskSupplier.class));
+        TaskRunnerLoop taskRunnerLoop = new TaskRunnerLoop(mode.get(DatashareTaskFactory.class), mode.get(TaskSupplier.class));
         mode.get(TaskManager.class).shutdownAndAwaitTermination(1, TimeUnit.SECONDS); // to enqueue poison
         taskRunnerLoop.call();
         taskRunnerLoop.close();

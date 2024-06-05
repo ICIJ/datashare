@@ -12,7 +12,7 @@ import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.function.Pair;
 import org.icij.datashare.session.LocalUserFilter;
 import org.icij.datashare.tasks.BatchSearchRunner;
-import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.user.User;
 import org.icij.datashare.web.testhelpers.AbstractProdWebServerTest;
@@ -52,7 +52,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class BatchSearchResourceTest extends AbstractProdWebServerTest {
     @Mock BatchSearchRepository batchSearchRepository;
     @Mock JooqRepository jooqRepository;
-    @Mock TaskFactory factory;
+    @Mock
+    DatashareTaskFactory factory;
     TaskManagerMemory taskManager;
 
     @Test

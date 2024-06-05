@@ -30,7 +30,7 @@ public class TaskRunnerLoopIntTest {
     public void test_batch_download_task_view_properties() throws Exception {
         CountDownLatch eventWaiter = new CountDownLatch(2); // progress, result(error)
         try (TaskManagerRedis taskManager = new TaskManagerRedis(new PropertiesProvider(), "test:task:manager", taskQueue, eventWaiter::countDown)) {
-            TaskFactory factory = mock(TaskFactory.class);
+            DatashareTaskFactory factory = mock(DatashareTaskFactory.class);
             BatchDownload batchDownload = new BatchDownload(singletonList(project("prj")), User.local(), "foo");
 
             HashMap<String, Object> properties = new HashMap<>() {{

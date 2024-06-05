@@ -20,6 +20,7 @@ import net.codestory.http.routes.Routes;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.TesseractOCRParserWrapper;
+import org.icij.datashare.asynctasks.TaskFactory;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskSupplier;
@@ -36,7 +37,7 @@ import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.extract.*;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.nlp.OptimaizeLanguageGuesser;
-import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskManagerAmqp;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.tasks.TaskManagerRedis;
@@ -131,8 +132,7 @@ public abstract class CommonMode extends AbstractModule {
     @Override
     protected void configure() {
         bind(PropertiesProvider.class).toInstance(propertiesProvider);
-        install(new FactoryModuleBuilder().build(TaskFactory.class));
-        install(new FactoryModuleBuilder().build(org.icij.datashare.asynctasks.TaskFactory.class));
+        install(new FactoryModuleBuilder().build(DatashareTaskFactory.class));
 
         RedissonClient redissonClient = null;
         if ( hasProperty(QueueType.REDIS) ) {

@@ -56,7 +56,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class TaskResourceTest extends AbstractProdWebServerTest {
     @Rule public DatashareTimeRule time = new DatashareTimeRule("2021-07-07T12:23:34Z");
     @Mock JooqRepository jooqRepository;
-    private static final TaskFactoryForTest taskFactory = mock(TaskFactoryForTest.class);
+    private static final DatashareTaskFactoryForTest taskFactory = mock(DatashareTaskFactoryForTest.class);
     private static final BlockingQueue<TaskView<?>> taskQueue = new ArrayBlockingQueue<>(3);
     private static final TaskManagerMemory taskManager= new TaskManagerMemory(taskQueue, taskFactory);
 
@@ -73,7 +73,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         configure(new CommonMode(propertiesProvider.getProperties()) {
                     @Override
                     protected void configure() {
-                        bind(TaskFactory.class).toInstance(taskFactory);
+                        bind(DatashareTaskFactory.class).toInstance(taskFactory);
                         bind(Indexer.class).toInstance(mock(Indexer.class));
                         bind(TaskManager.class).toInstance(taskManager);
                         bind(TaskSupplier.class).toInstance(taskManager);
@@ -469,7 +469,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         return taskManager.getTasks().stream().filter(t -> expectedName.equals(t.name)).findFirst();
     }
 
-    private void init(TaskFactoryForTest taskFactory) {
+    private void init(DatashareTaskFactoryForTest taskFactory) {
         reset(taskFactory);
         when(taskFactory.createIndexTask(any(), any())).thenReturn(mock(IndexTask.class));
         when(taskFactory.createScanTask(any(), any())).thenReturn(mock(ScanTask.class));
@@ -482,7 +482,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         when(taskFactory.createTestSleepingTask(any(TaskView.class), any(Function.class))).thenReturn(new TestSleepingTask(100000));
     }
 
-    public interface TaskFactoryForTest extends TaskFactory {
+    public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {
         TestSleepingTask createTestSleepingTask(TaskView<Integer> taskView, Function<Double, Void> updateCallback);
         TestTask createTestTask(TaskView<Integer> taskView, Function<Double, Void> updateCallback);
     }

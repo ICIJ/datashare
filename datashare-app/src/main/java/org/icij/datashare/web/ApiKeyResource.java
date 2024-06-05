@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import net.codestory.http.Context;
 import net.codestory.http.annotations.*;
 import net.codestory.http.payload.Payload;
-import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.user.User;
 
 import java.util.HashMap;
@@ -21,10 +21,10 @@ import static net.codestory.http.payload.Payload.ok;
 @Singleton
 @Prefix("/api/key")
 public class ApiKeyResource {
-    private final TaskFactory taskFactory;
+    private final DatashareTaskFactory taskFactory;
 
     @Inject
-    public ApiKeyResource(TaskFactory taskFactory) {
+    public ApiKeyResource(DatashareTaskFactory taskFactory) {
         this.taskFactory = taskFactory;
     }
 

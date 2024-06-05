@@ -5,7 +5,7 @@ import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.user.User;
 
 
-public interface TaskFactory extends org.icij.datashare.asynctasks.TaskFactory {
+public interface DatashareTaskFactory extends org.icij.datashare.asynctasks.TaskFactory {
     BatchSearchRunner createBatchSearchRunner(TaskView<?> taskView, Function<Double, Void> updateCallback);
     BatchDownloadRunner createBatchDownloadRunner(TaskView<?> taskView, Function<Double, Void> updateCallback);
 
