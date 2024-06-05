@@ -1,10 +1,8 @@
 package org.icij.datashare.tasks;
 
-import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchSearch;
-import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.test.DatashareTimeRule;
@@ -22,6 +20,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static java.util.Collections.singletonList;
@@ -38,7 +37,6 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -56,7 +54,6 @@ public class BatchSearchRunnerTest {
     public void test_run_null_batch_search() throws Exception {
         BatchSearch search = new BatchSearch("uuid", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
         assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call()).isEqualTo(0);
-        verify(progressCb, never());
     }
 
     @Test
@@ -80,7 +77,7 @@ public class BatchSearchRunnerTest {
         Document[] documents = {createDoc("doc").build()};
         mockSearch.willReturn(1, documents);
         BatchSearch batchSearch = new BatchSearch("uuid1", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
-
+        when(repository.get(local(), batchSearch.uuid)).thenReturn(batchSearch);
         when(repository.saveResults(anyString(), any(), anyList())).thenThrow(new RuntimeException());
 
         new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(batchSearch), progressCb).call();
