@@ -43,6 +43,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     }
 
     void initDatabase(final DataSource dataSource) {
+        System.setProperty("liquibase.command.showSummaryOutput", "LOG"); // avoid double log
         try (Connection connection = dataSource.getConnection()){
             try (Liquibase liquibase = new Liquibase("liquibase/changelog/db.changelog.yml",
                     new ClassLoaderResourceAccessor(),

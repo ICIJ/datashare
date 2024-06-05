@@ -13,7 +13,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <liquibase.version>4.23.2</liquibase.version>
+        <liquibase.version>4.27.0</liquibase.version>
         <jooq.version>3.12.3</jooq.version>
     </properties>
 
@@ -175,7 +175,7 @@
                 <!--
                     shade is necessary here to avoid java.sql.SQLException: No suitable driver
                     https://stackoverflow.com/questions/12297376/no-suitable-driver-found-when-including-the-needed-drivers-with-maven-assembly-p
-                    because information about drivers are stored in /META-INF thus can be overriden between drivers (sqlite, postgresql)
+                    because information about drivers are stored in /META-INF thus can be overridden between drivers (sqlite, postgresql)
                 -->
                 <artifactId>maven-shade-plugin</artifactId>
                 <configuration>
