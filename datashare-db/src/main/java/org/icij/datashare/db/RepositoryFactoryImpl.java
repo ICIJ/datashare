@@ -2,11 +2,14 @@ package org.icij.datashare.db;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import liquibase.Contexts;
-import liquibase.Liquibase;
+import liquibase.Scope;
+import liquibase.command.CommandScope;
+import liquibase.command.core.UpdateCommandStep;
+import liquibase.command.core.helpers.DbUrlConnectionArgumentsCommandStep;
+import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
-import liquibase.resource.ClassLoaderResourceAccessor;
+import liquibase.ui.LoggerUIService;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.RepositoryFactory;
@@ -15,6 +18,7 @@ import org.jooq.SQLDialect;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.function.BiFunction;
 
 public class RepositoryFactoryImpl implements RepositoryFactory {
@@ -45,10 +49,12 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     void initDatabase(final DataSource dataSource) {
         System.setProperty("liquibase.command.showSummaryOutput", "LOG"); // avoid double log
         try (Connection connection = dataSource.getConnection()){
-            try (Liquibase liquibase = new Liquibase("liquibase/changelog/db.changelog.yml",
-                    new ClassLoaderResourceAccessor(),
-                    DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection)))) {
-                liquibase.update(new Contexts());
+            try (Database db = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(connection))) {
+                CommandScope updateCommand = new CommandScope(UpdateCommandStep.COMMAND_NAME);
+                updateCommand.addArgumentValue(UpdateCommandStep.CHANGELOG_FILE_ARG, "liquibase/changelog/db.changelog.yml");
+                Scope.enter(Map.of(Scope.Attr.ui.name(), new NullUIService()));
+                updateCommand.addArgumentValue(DbUrlConnectionArgumentsCommandStep.DATABASE_ARG, db);
+                updateCommand.execute();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -86,5 +92,10 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
 
     private String getDataSourceUrl() {
         return propertiesProvider.get("dataSourceUrl").orElse("jdbc:sqlite:file:memorydb.db?mode=memory&cache=shared");
+    }
+
+    private static class NullUIService extends LoggerUIService {
+        @Override public void sendMessage(String message) {}
+        @Override public void sendErrorMessage(String message, Throwable exception) {}
     }
 }
