@@ -4,6 +4,7 @@ import java.util.function.Function;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.batch.BatchSearch;
+import org.icij.datashare.batch.BatchSearchRecord;
 import org.icij.datashare.batch.BatchSearchRepository;
 import org.icij.datashare.batch.SearchException;
 import org.icij.datashare.test.DatashareTimeRule;
@@ -37,6 +38,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -49,6 +51,13 @@ public class BatchSearchRunnerTest {
     @Mock BatchSearchRepository repository;
     @Rule public DatashareTimeRule timeRule = new DatashareTimeRule("2020-05-25T10:11:12Z");
     private final ExecutorService executor = Executors.newFixedThreadPool(1);
+
+    @Test
+    public void test_run_null_batch_search() throws Exception {
+        BatchSearch search = new BatchSearch("uuid", singletonList(project("test-datashare")), "name1", "desc1", asSet("query1", "query2"), new Date(), BatchSearch.State.QUEUED, local());
+        assertThat(new BatchSearchRunner(indexer, new PropertiesProvider(), repository, taskView(search), progressCb).call()).isEqualTo(0);
+        verify(progressCb, never());
+    }
 
     @Test
     public void test_run_batch_search() throws Exception {
