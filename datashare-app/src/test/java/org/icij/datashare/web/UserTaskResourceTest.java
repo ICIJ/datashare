@@ -9,7 +9,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskView;
-import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.session.DatashareUser;
@@ -175,16 +175,16 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
     }
 
     private void setupAppWith(DummyUserTask<?> userTask, String... userLogins) {
-        TaskFactoryForTest taskFactory = mock(TaskFactoryForTest.class);
+        DatashareTaskFactoryForTest taskFactory = mock(DatashareTaskFactoryForTest.class);
         when(taskFactory.createDummyUserTask(any(), any())).thenReturn((DummyUserTask<Object>) userTask);
         setupAppWith(taskFactory, userLogins);
     }
     private void setupAppWith(SleepingUserTask c1, SleepingUserTask c2, String... userLogins) {
-        TaskFactoryForTest taskFactory = mock(TaskFactoryForTest.class);
+        DatashareTaskFactoryForTest taskFactory = mock(DatashareTaskFactoryForTest.class);
         when(taskFactory.createSleepingUserTask(any(), any())).thenReturn(c1, c2);
         setupAppWith(taskFactory, userLogins);
     }
-    private void setupAppWith(TaskFactory taskFactory, String... userLogins) {
+    private void setupAppWith(DatashareTaskFactory taskFactory, String... userLogins) {
         final PropertiesProvider propertiesProvider = new PropertiesProvider(new HashMap<>() {{
             put("mode", "LOCAL");
         }});
@@ -198,14 +198,14 @@ public class UserTaskResourceTest extends AbstractProdWebServerTest {
                 bind(TaskManager.class).toInstance(taskManager);
                 bind(TaskModifier.class).toInstance(taskManager);
                 bind(Filter.class).toInstance(new BasicAuthFilter("/", "ds", DatashareUser.users(userLogins)));
-                bind(TaskFactory.class).toInstance(taskFactory);
+                bind(DatashareTaskFactory.class).toInstance(taskFactory);
                 bind(Indexer.class).toInstance(mock(Indexer.class));
             }
             @Override protected Routes addModeConfiguration(Routes routes) { return routes.add(TaskResource.class).filter(Filter.class);}
         }.createWebConfiguration());
     }
 
-    public interface TaskFactoryForTest extends TaskFactory {
+    public interface DatashareTaskFactoryForTest extends DatashareTaskFactory {
         <V> DummyUserTask<V> createDummyUserTask(TaskView<V> tv, Function<Double, Void> updateCallback);
         SleepingUserTask createSleepingUserTask(TaskView<?> tv, Function<Double, Void> updateCallback);
     }

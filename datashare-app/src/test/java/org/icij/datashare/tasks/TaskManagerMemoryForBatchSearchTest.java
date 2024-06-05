@@ -40,7 +40,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class TaskManagerMemoryForBatchSearchTest {
     @Mock BatchSearchRunner batchSearchRunner;
     @Mock Indexer indexer;
-    @Mock TaskFactory factory;
+    @Mock
+    DatashareTaskFactory factory;
     @Mock BatchSearchRepository repository;
 
     CountDownLatch startLoop = new CountDownLatch(1);

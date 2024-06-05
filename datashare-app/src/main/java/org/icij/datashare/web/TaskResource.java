@@ -45,7 +45,6 @@ import static java.lang.Boolean.parseBoolean;
 import static java.nio.file.Paths.get;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.compareUnsigned;
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static net.codestory.http.errors.NotFoundException.notFoundIfNull;
 import static net.codestory.http.payload.Payload.forbidden;
@@ -66,12 +65,12 @@ import static org.icij.datashare.text.nlp.AbstractModels.syncModels;
 @Singleton
 @Prefix("/api/task")
 public class TaskResource {
-    private final TaskFactory taskFactory;
+    private final DatashareTaskFactory taskFactory;
     private final TaskManager taskManager;
     private final PropertiesProvider propertiesProvider;
 
     @Inject
-    public TaskResource(final TaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider) {
+    public TaskResource(final DatashareTaskFactory taskFactory, final TaskManager taskManager, final PropertiesProvider propertiesProvider) {
         this.taskFactory = taskFactory;
         this.taskManager = taskManager;
         this.propertiesProvider = propertiesProvider;

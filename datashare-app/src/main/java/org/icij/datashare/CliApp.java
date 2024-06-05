@@ -11,7 +11,7 @@ import org.icij.datashare.tasks.ExtractNlpTask;
 import org.icij.datashare.tasks.IndexTask;
 import org.icij.datashare.tasks.ScanIndexTask;
 import org.icij.datashare.tasks.ScanTask;
-import org.icij.datashare.tasks.TaskFactory;
+import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.tasks.TaskManagerMemory;
 import org.icij.datashare.text.indexing.Indexer;
 import org.redisson.api.RedissonClient;
@@ -67,7 +67,7 @@ class CliApp {
 
     private static void runTaskRunner(CommonMode mode, Properties properties) throws Exception {
         TaskManagerMemory taskManager = mode.get(TaskManagerMemory.class);
-        TaskFactory taskFactory = mode.get(TaskFactory.class);
+        DatashareTaskFactory taskFactory = mode.get(DatashareTaskFactory.class);
         Indexer indexer = mode.get(Indexer.class);
         RedissonClient redissonClient;
         try {

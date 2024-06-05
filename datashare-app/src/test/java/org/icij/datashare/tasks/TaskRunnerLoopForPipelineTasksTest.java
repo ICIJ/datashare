@@ -25,7 +25,8 @@ import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class TaskRunnerLoopForPipelineTasksTest {
-    @Mock TaskFactory taskFactory;
+    @Mock
+    DatashareTaskFactory taskFactory;
     @Mock Function<Double, Void> updateCallback;
     @Mock ElasticsearchSpewer spewer;
     private final BlockingQueue<TaskView<?>> taskQueue = new LinkedBlockingQueue<>();

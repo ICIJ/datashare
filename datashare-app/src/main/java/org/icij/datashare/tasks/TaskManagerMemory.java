@@ -11,11 +11,11 @@ import org.icij.datashare.asynctasks.TaskView;
 public class TaskManagerMemory extends org.icij.datashare.asynctasks.TaskManagerMemory {
 
     @Inject
-    public TaskManagerMemory(BlockingQueue<TaskView<?>> taskQueue, TaskFactory taskFactory) {
+    public TaskManagerMemory(BlockingQueue<TaskView<?>> taskQueue, DatashareTaskFactory taskFactory) {
         this(taskQueue, taskFactory, new CountDownLatch(1));
     }
 
-    TaskManagerMemory(BlockingQueue<TaskView<?>> taskQueue, TaskFactory taskFactory, CountDownLatch latch) {
+    TaskManagerMemory(BlockingQueue<TaskView<?>> taskQueue, DatashareTaskFactory taskFactory, CountDownLatch latch) {
         super(taskQueue, taskFactory, latch);
     }
 }
