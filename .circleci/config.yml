@@ -509,4 +509,6 @@ workflows:
       - deploy_datashare_tasks:
           filters:
             tags:
-              only: /datashare-tasks\/[0-9]+\..*/
+              only: /^datashare-tasks\/[0-9]+\..*/
+            branches:
+              ignore: /.*/
