@@ -420,6 +420,25 @@ jobs:
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/vnd.debian.binary-package" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.deb" "$upload_url?name=datashare-${CIRCLE_TAG}.deb&label=datashare-${CIRCLE_TAG}.deb"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/gzip" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}.tgz" "$upload_url?name=datashare-${CIRCLE_TAG}.tgz&label=datashare-${CIRCLE_TAG}.tgz"
 
+  deploy_datashare_tasks:
+    docker:
+      - image: cimg/openjdk:11.0.16
+      - image: redis:4.0.1-alpine
+        name: redis
+      - image: rabbitmq:3
+        name: rabbitmq
+        environment:
+          RABBITMQ_DEFAULT_USER: admin
+          RABBITMQ_DEFAULT_PASS: admin
+
+    environment:
+      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+
+    steps:
+      - checkout
+      - run:
+          name: Build and deploy datashare-tasks
+          command: mvn -s .circleci/maven-release-settings.xml -pl datashare-tasks -am deploy
 
 workflows:
   version: 2
@@ -480,3 +499,7 @@ workflows:
                   only: /^[0-9]+\..*/
               branches:
                   ignore: /.*/
+      - deploy_datashare_tasks:
+          filters:
+            tags:
+              only: /datashare-tasks\/[0-9]+\..*/
