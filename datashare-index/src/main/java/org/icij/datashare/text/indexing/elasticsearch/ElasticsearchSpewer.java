@@ -121,8 +121,7 @@ public class ElasticsearchSpewer extends Spewer implements Serializable {
     @Override
     public Spewer configure(Options<String> options) {
         super.configure(options);
-        options.valueIfPresent("defaultProject").ifPresent(this::setIndex);
-        options.valueIfPresent("projectName").ifPresent(this::setIndex);
+        setIndex(options.valueIfPresent("projectName").orElse(options.get("defaultProject").value().get()));
         return this;
     }
 
