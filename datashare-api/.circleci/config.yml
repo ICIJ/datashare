@@ -1,0 +1,69 @@
+version: 2.1
+
+
+jobs:
+  build:
+    docker:
+      - image: cimg/openjdk:11.0.16
+
+    environment:
+        MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: mvn validate
+      - run: mvn test
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+
+  release:
+    docker:
+      - image: cimg/openjdk:11.0.16
+
+    environment:
+        MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+
+    steps:
+      - checkout
+      - run:
+          name: Configure GPG private key for signing project artifacts in OSS Sonatype
+          command: |
+            echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run:
+          name: deploy datashare-api jar to maven central
+          command: mvn -s .circleci/maven-release-settings.xml deploy -Dmaven.test.skip=true
+          no_output_timeout: 30m
+
+workflows:
+  version: 2
+  build_workflow:
+    jobs:
+      - build:
+          filters:
+              tags:
+                  only: /.*/
+      - release:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^[0-9.]*/
+            branches:
+              ignore: /.*/
