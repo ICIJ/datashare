@@ -423,21 +423,11 @@ public class ElasticsearchSpewerTest {
     }
 
     @Test
-    public void test_configure() {
-        spewer.configure(Options.from(new HashMap<>() {{
-            put("charset", "UTF-16");
-            put("projectName", "test-index");
-        }}));
-        assertThat(spewer.getOutputEncoding()).isEqualTo(StandardCharsets.UTF_16);
-        assertThat(spewer.indexName).isEqualTo("test-index");
-    }
-
-    @Test
     public void test_configure_is_creating_index() throws Exception {
         Indexer indexer = Mockito.mock(Indexer.class);
         ElasticsearchSpewer spewer = new ElasticsearchSpewer(indexer, Mockito.mock(DocumentCollectionFactory.class), Mockito.mock(LanguageGuesser.class), new FieldNames(), new PropertiesProvider());
         spewer.configure(Options.from(new HashMap<>() {{
-            put("projectName", "foo");
+            put("defaultProject", "foo");
         }}));
         spewer.createIndexIfNotExists();
         Mockito.verify(indexer).createIndex("foo");

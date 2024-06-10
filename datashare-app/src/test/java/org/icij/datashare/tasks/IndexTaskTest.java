@@ -67,4 +67,18 @@ public class IndexTaskTest {
         Option<String> option  = new Option<>("charset", StringOptionParser::new).update("UTF-16");
         assertThat(captor.getValue()).contains(option);
     }
+
+    @Test
+    public void test_configure_project_on_spewer() throws Exception {
+        ElasticsearchSpewer spewer = mock(ElasticsearchSpewer.class);
+        Mockito.when(spewer.configure(Mockito.any())).thenReturn(spewer);
+
+        new IndexTask(spewer, mock(DocumentCollectionFactory.class), new TaskView<>(IndexTask.class.getName(), nullUser(), Map.of("defaultProject", "foo", "projectName", "bar")), null);
+
+        ArgumentCaptor<Options> captor = ArgumentCaptor.forClass(Options.class);
+        verify(spewer).configure(captor.capture());
+        Option<String> defaultOpt  = new Option<>("defaultProject", StringOptionParser::new).update("foo");
+        Option<String> nameOpt  = new Option<>("projectName", StringOptionParser::new).update("bar");
+        assertThat(captor.getValue()).contains(defaultOpt, nameOpt);
+    }
 }

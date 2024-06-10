@@ -15,6 +15,7 @@ import org.icij.extract.extractor.Extractor;
 import org.icij.extract.queue.DocumentQueueDrainer;
 import org.icij.extract.report.Reporter;
 import org.icij.task.Options;
+import org.icij.task.annotation.Option;
 import org.icij.task.annotation.OptionsClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,12 +26,13 @@ import java.nio.file.Path;
 import static java.lang.Math.max;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.icij.datashare.cli.DatashareCliOptions.PARALLELISM_OPT;
-import static org.icij.datashare.cli.DatashareCliOptions.REPORT_NAME_OPT;
+import static org.icij.datashare.cli.DatashareCliOptions.*;
 
 @OptionsClass(Extractor.class)
 @OptionsClass(DocumentFactory.class)
 @OptionsClass(DocumentQueueDrainer.class)
+@Option(name = DEFAULT_PROJECT_OPT, description = "the default project name")
+@Option(name = "projectName", description = "task project name")
 public class IndexTask extends PipelineTask<Path> implements Monitorable{
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final DocumentQueueDrainer<Path> drainer;
