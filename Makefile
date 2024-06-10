@@ -34,6 +34,7 @@ help-db:
 
 release-%:
 		mvn -pl datashare-$* versions:set -DnewVersion=${NEW_VERSION}
+		sed -i "s|<datashare\-$*.version>\([0-9.]\+\)<\/datashare\-$*.version>|<datashare\-$*.version>${NEW_VERSION}<\/datashare\-$*.version>|g" pom.xml
 		git commit -am "[release] datashare-$*/${NEW_VERSION}"
 		git tag datashare-$*/${NEW_VERSION}
 		echo "If everything is OK, you can push with tags i.e. git push origin master --tags"
