@@ -35,7 +35,7 @@ import static java.time.OffsetDateTime.now;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.http.util.TextUtils.isEmpty;
+import static org.icij.datashare.text.StringUtils.isEmpty;
 
 
 @IndexType("Document")

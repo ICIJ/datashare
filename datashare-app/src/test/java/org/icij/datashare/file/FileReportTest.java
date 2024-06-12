@@ -74,8 +74,8 @@ public class FileReportTest {
 
     @Test
     public void test_get_name() throws IOException {
-        assertThat(new DirectoryReport(getFile("extensions.json")).getName()).endsWith("datashare/datashare-app/target/test-classes/extensions.json");
-        assertThat(new DirectoryReport(getFile("data")).getName()).endsWith("datashare/datashare-app/target/test-classes/data");
+        assertThat(new DirectoryReport(getFile("extensions.json")).getName()).endsWith("datashare-app/target/test-classes/extensions.json");
+        assertThat(new DirectoryReport(getFile("data")).getName()).endsWith("datashare-app/target/test-classes/data");
     }
 
     @NotNull

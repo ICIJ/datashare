@@ -16,8 +16,8 @@ public class NamedEntityTest {
                 Pipeline.Type.CORENLP, Language.ENGLISH))).
                 isEqualTo("{\"category\":\"PERSON\",\"mention\":\"mention\",\"offsets\":[123]," +
                         "\"extractor\":\"CORENLP\",\"extractorLanguage\":\"ENGLISH\",\"isHidden\":false," +
-                    "\"metadata\":null,\"mentionNorm\":\"mention\"," +
-                        "\"partsOfSpeech\":null,\"mentionNormTextLength\":7}");
+                        "\"partsOfSpeech\":null,\"metadata\":null,\"mentionNorm\":\"mention\"," +
+                        "\"mentionNormTextLength\":7}");
     }
 
     @Test
@@ -37,7 +37,7 @@ public class NamedEntityTest {
                 Pipeline.Type.CORENLP, Language.ENGLISH, meta))).
                 isEqualTo("{\"category\":\"PERSON\",\"mention\":\"mention\",\"offsets\":[123]," +
                         "\"extractor\":\"CORENLP\",\"extractorLanguage\":\"ENGLISH\",\"isHidden\":false," +
-                    "\"metadata\":{\"some\":\"metadata\"},\"mentionNorm\":\"mention\"," +
-                        "\"partsOfSpeech\":null,\"mentionNormTextLength\":7}");
+                        "\"partsOfSpeech\":null,\"metadata\":{\"some\":\"metadata\"},\"mentionNorm\":\"mention\"," +
+                        "\"mentionNormTextLength\":7}");
     }
 }

@@ -26,6 +26,7 @@
 
     <modules>
         <module>commons-test</module>
+        <module>datashare-api</module>
         <module>datashare-db</module>
         <module>datashare-tasks</module>
         <module>datashare-cli</module>
@@ -66,7 +67,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
 
-        <datashare-api.version>13.8.2</datashare-api.version>
+        <datashare-api.version>13.8.3</datashare-api.version>
         <datashare-cli.version>13.5.0</datashare-cli.version>
         <datashare-tasks.version>15.1.6</datashare-tasks.version>
 
@@ -74,7 +75,7 @@
         <datashare-elasticsearch.version>${project.version}</datashare-elasticsearch.version>
         <datashare-corenlp.version>${project.version}</datashare-corenlp.version>
         <guice.version>4.2.3</guice.version>
-        <amazon.version>1.11.327</amazon.version>
+        <amazon.version>1.12.411</amazon.version>
 
         <extract.version>6.7.3</extract.version>
         <opennlp.version>1.6.0</opennlp.version>
@@ -84,6 +85,7 @@
         <joda-time.version>2.9.5</joda-time.version>
         <httpclient.version>4.5.13</httpclient.version>
         <redisson.version>3.20.1</redisson.version>
+        <jackson.version>2.15.1</jackson.version>
         <httpcore.version>4.4.13</httpcore.version>
         <guava.version>33.0.0-jre</guava.version>
         <xalan.version>2.7.2</xalan.version>

@@ -4,66 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.icij.datashare</groupId>
+    <parent>
+        <groupId>org.icij.datashare</groupId>
+        <artifactId>datashare</artifactId>
+        <version>16.0.3</version>
+    </parent>
+
     <artifactId>datashare-api</artifactId>
     <version>13.8.3</version>
     <packaging>jar</packaging>
-
-    <name>ICIJ Datashare API</name>
-    <url>https://github.com/ICIJ/datashare-api</url>
-    <inceptionYear>2020</inceptionYear>
-    <description>Datashare API to build datashare extensions</description>
-
-    <organization>
-        <name>ICIJ</name>
-        <url>https://www.icij.org/</url>
-    </organization>
-
-    <developers>
-        <developer>
-            <name>Bruno Thomas</name>
-            <email>bthomas@icij.org</email>
-            <organization>ICIJ</organization>
-        </developer>
-        <developer>
-            <name>Maxime Vanza Lutonda</name>
-            <email>mvanza@icij.org</email>
-            <organization>ICIJ</organization>
-        </developer>
-    </developers>
-
-    <scm>
-         <url>https://github.com/ICIJ/datashare</url>
-         <connection>scm:git:https://github.com/ICIJ/datashare.git</connection>
-         <developerConnection>scm:git:https://github.com/ICIJ/datashare.git</developerConnection>
-     </scm>
-
-    <licenses>
-        <license>
-            <name>GNU Affero General Public License v3.0</name>
-            <url>https://www.gnu.org/licenses/agpl-3.0.en.html</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <distributionManagement>
-         <snapshotRepository>
-             <id>ossrh</id>
-             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-         </snapshotRepository>
-         <repository>
-             <id>ossrh</id>
-	 </repository>
-    </distributionManagement>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>11</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <jackson.version>2.15.1</jackson.version>
-        <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    </properties>
 
     <dependencies>
         <!-- Unidecode -->
@@ -109,7 +58,6 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
-            <version>1.12.411</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
@@ -121,27 +69,29 @@
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-            <version>2.9.5</version>
         </dependency>
 
         <!-- Slf4j -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.25</version>
         </dependency>
 
         <!-- tests dependencies -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.13</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.easytesting</groupId>
             <artifactId>fest-assert</artifactId>
-            <version>1.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -150,6 +100,7 @@
             <version>1.0.4</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>

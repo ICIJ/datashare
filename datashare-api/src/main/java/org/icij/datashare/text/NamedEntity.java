@@ -158,7 +158,7 @@ public final class NamedEntity implements Entity {
                         @JsonProperty("extractor") Pipeline.Type extractor,
                         @JsonProperty("extractorLanguage") Language extractorLanguage,
                         @JsonProperty("isHidden") Boolean hidden,
-                        @JsonProperty("partOfSpeech") String partsOfSpeech,
+                        @JsonProperty("partsOfSpeech") String partsOfSpeech,
                         @JsonProperty("metadata") Map<String, Object> metadata
     ) {
         if (mention == null || mention.isEmpty()) {
