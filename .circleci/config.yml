@@ -61,7 +61,7 @@ jobs:
 
       - run: sudo apt-get install -y tesseract-ocr-eng
       - run: mvn validate
-      - run: mvn -pl commons-test -am install
+      - run: mvn -s .circleci/maven-release-settings.xml -pl commons-test -am install
       - run: mvn -pl datashare-db liquibase:update
       - run: mvn test
       - run:
