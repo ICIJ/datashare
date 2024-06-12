@@ -1,7 +1,6 @@
 package org.icij.datashare.io;
 
-import com.adobe.testing.s3mock.S3MockRule;
-import com.amazonaws.services.s3.AmazonS3;
+//import com.adobe.testing.s3mock.junit4.S3MockRule;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -10,32 +9,35 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import software.amazon.awssdk.crt.Log;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RemoteFilesTest {
     private static final String BUCKET_NAME = "mybucket";
-    @ClassRule
-    public static S3MockRule S3_MOCK_RULE = new S3MockRule();
+    //@ClassRule
+    // public static final S3MockRule S3_MOCK_RULE = S3MockRule.builder().silent().build();
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    private final AmazonS3 s3Client = S3_MOCK_RULE.createS3Client();
-    private RemoteFiles remoteFiles = new RemoteFiles(s3Client, BUCKET_NAME);
+    //private final S3Client s3Client = S3_MOCK_RULE.createS3ClientV2();
+    private final RemoteFiles remoteFiles = RemoteFiles.getWithEndPoint("https://localhost:12345");
 
-    @Before
-    public void setUp() {
-        s3Client.createBucket(BUCKET_NAME);
-    }
+    // @Before
+    //public void setUp() {
+      //  s3Client.createBucket(CreateBucketRequest.builder().bucket(BUCKET_NAME).build());
+    //}
 
-    @After
-    public void tearDown() {
-        s3Client.deleteBucket(BUCKET_NAME);
-    }
+    //@After
+    //public void tearDown() {
+      //  s3Client.deleteBucket(DeleteBucketRequest.builder().bucket(BUCKET_NAME).build());
+    //}
 
     @Test
     public void test_upload_download_file_with_key_at_root_directory() throws Exception {
@@ -113,7 +115,8 @@ public class RemoteFilesTest {
 
     @Ignore("test for checking locally why a model is not synchronized")
     @Test
-    public void test_integration() throws IOException {
+    public void test_integration() throws Exception {
+        Log.initLoggingToFile(Log.LogLevel.Trace, "aws_logs.txt");
         RemoteFiles remoteFiles = RemoteFiles.getDefault();
         try (FileInputStream fis = new FileInputStream("/home/dev/src/datashare/dist/models/corenlp/4-5-5/fr/stanford-corenlp-4.5.5-models-fr.jar")) {
             System.out.println(DigestUtils.md5Hex(fis));

@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 
 import static java.lang.Boolean.parseBoolean;
@@ -97,7 +98,7 @@ public abstract class AbstractModels<T> {
             LOGGER.info("downloading models for language {} under {}", language, remoteKey);
             remoteFiles.download(remoteKey, BASE_DIR.toFile());
             LOGGER.info("models successfully downloaded for language {}", language);
-        } catch (InterruptedException | IOException e) {
+        } catch (InterruptedException | IOException | ExecutionException e) {
             LOGGER.error("failed downloading models for " + language, e);
         } finally {
             remoteFiles.shutdown();

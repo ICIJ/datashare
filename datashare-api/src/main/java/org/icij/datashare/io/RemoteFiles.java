@@ -1,97 +1,123 @@
 package org.icij.datashare.io;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.transfer.MultipleFileUpload;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
-import com.amazonaws.services.s3.transfer.Upload;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.GetObjectAttributesRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectAttributesResponse;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
+import software.amazon.awssdk.transfer.s3.model.CompletedDirectoryDownload;
+import software.amazon.awssdk.transfer.s3.model.CompletedDirectoryUpload;
+import software.amazon.awssdk.transfer.s3.model.DirectoryDownload;
+import software.amazon.awssdk.transfer.s3.model.DirectoryUpload;
+import software.amazon.awssdk.transfer.s3.model.DownloadDirectoryRequest;
+import software.amazon.awssdk.transfer.s3.model.UploadDirectoryRequest;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.FileVisitOption;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 import static java.nio.file.Files.walk;
-import static java.nio.file.Paths.get;
 import static java.util.stream.Collectors.toMap;
 
 public class RemoteFiles {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private static final String S3_DATASHARE_BUCKET_NAME = "datashare-nlp";
-    private static final String S3_DATASHARE_ENDPOINT = "s3-accelerate.amazonaws.com/";
-    private static final String S3_REGION = "us-east-1";
-    private static final int READ_TIMEOUT_MS = 120 * 1000;
+    private static final String S3_DATASHARE_ENDPOINT = "https://s3-accelerate.amazonaws.com/";
+    private static final Region S3_REGION = Region.US_EAST_1;
     private static final int CONNECTION_TIMEOUT_MS = 30 * 1000;
-    private final AmazonS3 s3Client;
+    private final S3AsyncClient s3Client;
     private final String bucket;
 
-    RemoteFiles(final AmazonS3 s3Client, final String bucket) {
+    RemoteFiles(final S3AsyncClient s3Client, final String bucket) {
         this.s3Client = s3Client;
         this.bucket = bucket;
     }
 
     public static RemoteFiles getDefault() {
-        ClientConfiguration config = new ClientConfiguration();
-        config.setConnectionTimeout(CONNECTION_TIMEOUT_MS);
-        config.setSocketTimeout(READ_TIMEOUT_MS);
-        return new RemoteFiles(AmazonS3ClientBuilder.standard()
-                .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(S3_DATASHARE_ENDPOINT, S3_REGION))
-                .withClientConfiguration(config).build(), S3_DATASHARE_BUCKET_NAME);
+        return getWithEndPoint(S3_DATASHARE_ENDPOINT);
+    }
+
+    public static RemoteFiles getWithEndPoint(String endPoint) {
+        S3AsyncClient client = S3AsyncClient.crtBuilder()
+                .region(S3_REGION)
+                .endpointOverride(URI.create(endPoint))
+                .httpConfiguration(c -> c.connectionTimeout(Duration.ofMillis(CONNECTION_TIMEOUT_MS)))
+                .forcePathStyle(true)
+                .credentialsProvider(AnonymousCredentialsProvider.create())
+                .build();
+
+        return new RemoteFiles(client, S3_DATASHARE_BUCKET_NAME);
     }
 
     public void upload(final File localFile, final String remoteKey) throws InterruptedException, FileNotFoundException {
         if (localFile.isDirectory()) {
-            TransferManager transferManager = TransferManagerBuilder.standard().withS3Client(this.s3Client).build();
-            final MultipleFileUpload uploads = transferManager.uploadDirectory(bucket, remoteKey, localFile, true);
+            try (S3TransferManager transferManager = S3TransferManager.builder()
+                    .s3Client(s3Client)
+                    .build()) {
+                DirectoryUpload directoryUpload = transferManager.uploadDirectory(UploadDirectoryRequest.builder()
+                        .source(localFile.toPath())
+                        .bucket(this.bucket)
+                        .build());
 
-            for (Upload upload : uploads.getSubTransfers()) {
-                upload.waitForUploadResult();
+                CompletedDirectoryUpload completedDirectoryUpload = directoryUpload.completionFuture().join();
+                completedDirectoryUpload.failedTransfers()
+                        .forEach(fail -> logger.warn("Object [{}] failed to transfer", fail.toString()));
             }
-            transferManager.shutdownNow(false);
         } else {
-            final ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(localFile.length());
-            s3Client.putObject(new PutObjectRequest(bucket, remoteKey, new FileInputStream(localFile), metadata));
+            PutObjectRequest objectRequest = PutObjectRequest.builder()
+                    .bucket(this.bucket)
+                    .key(remoteKey)
+                    .build();
+            s3Client.putObject(objectRequest, AsyncRequestBody.fromFile(localFile));
         }
     }
 
     public void download(final String remoteKey, final File localFile) throws InterruptedException, IOException {
         if (localFile.isDirectory()) {
-            TransferManager transferManager = TransferManagerBuilder.standard().withS3Client(this.s3Client).build();
-            transferManager.downloadDirectory(bucket, remoteKey, localFile).waitForCompletion();
-            transferManager.shutdownNow(false);
+            try (S3TransferManager transferManager = S3TransferManager.builder()
+                    .s3Client(s3Client)
+                    .build()) {
+                DirectoryDownload directoryDownload = transferManager.downloadDirectory(DownloadDirectoryRequest.builder()
+                        .destination(localFile.toPath())
+                        .bucket(this.bucket)
+                        .build());
+                CompletedDirectoryDownload completedDirectoryDownload = directoryDownload.completionFuture().join();
+
+                completedDirectoryDownload.failedTransfers()
+                        .forEach(fail -> logger.warn("Object [{}] failed to download", fail.toString()));
+            }
         } else {
-            final S3Object s3Object = s3Client.getObject(this.bucket, remoteKey);
-            Files.copy(s3Object.getObjectContent(), get(localFile.getPath()));
+            s3Client.getObject(GetObjectRequest.builder().bucket(this.bucket).key(remoteKey).build(), localFile.toPath());
         }
     }
 
-    public boolean isSync(final String remoteKey, final File localFile) throws IOException {
+    public boolean isSync(final String remoteKey, final File localFile) throws IOException, ExecutionException, InterruptedException {
         if (localFile.isDirectory()) {
             File localDir = localFile.toPath().resolve(remoteKey).toFile();
             if (! localDir.isDirectory()) {
                 return false;
             }
-            ObjectListing remoteS3Objects = s3Client.listObjects(bucket, remoteKey);
-            Map<String, Long> remoteObjectsMap = remoteS3Objects.getObjectSummaries().stream()
-                    .filter(os -> os.getSize() != 0) // because remote dirs are empty keys
-                    .collect(toMap(S3ObjectSummary::getKey, S3ObjectSummary::getSize)); // Etag is 128bits MD5 hashed from file
+            List<S3Object> remoteS3Objects = s3Client.listObjects(ListObjectsRequest.builder().bucket(this.bucket).prefix(remoteKey).build()).get().contents();
+            Map<String, Long> remoteObjectsMap = remoteS3Objects.stream()
+                    .filter(os -> os.size() != 0) // because remote dirs are empty keys
+                    .collect(toMap(S3Object::key, S3Object::size)); // Etag is 128bits MD5 hashed from file
 
             Map<String, Long> localFilesMap = walk(localDir.toPath(), FileVisitOption.FOLLOW_LINKS)
                     .map(Path::toFile)
@@ -105,8 +131,8 @@ public class RemoteFiles {
             }
             return equals;
         } else {
-            ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
-            return objectMetadata.getContentLength() == localFile.length();
+            GetObjectAttributesResponse objectAttributes = s3Client.getObjectAttributes(GetObjectAttributesRequest.builder().bucket(this.bucket).key(remoteKey).build()).get();
+            return objectAttributes.objectSize() == localFile.length();
         }
     }
 
@@ -117,9 +143,9 @@ public class RemoteFiles {
                 replace(File.separator, "/");
     }
 
-    boolean objectExists(final String key) {
-        return s3Client.doesObjectExist(this.bucket, key);
+    boolean objectExists(final String key) throws ExecutionException, InterruptedException {
+        return s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build()).get().hasMetadata();
     }
 
-    public void shutdown() { s3Client.shutdown();}
+    public void shutdown() { s3Client.close();}
 }

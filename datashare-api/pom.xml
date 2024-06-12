@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>datashare-api</artifactId>
-    <version>14.0.0</version>
+    <version>13.8.3</version>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -56,14 +56,24 @@
 
         <!-- for amazon S3 -->
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3-transfer-manager</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk.crt</groupId>
+            <artifactId>aws-crt</artifactId>
+            <version>0.29.19</version>
         </dependency>
 
         <dependency>
@@ -92,12 +102,6 @@
         <dependency>
             <groupId>org.easytesting</groupId>
             <artifactId>fest-assert</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.adobe.testing</groupId>
-            <artifactId>s3mock</artifactId>
-            <version>1.0.4</version>
             <scope>test</scope>
         </dependency>
 
