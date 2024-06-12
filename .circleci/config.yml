@@ -465,6 +465,25 @@ jobs:
           name: Build and deploy datashare-api
           command: mvn -s .circleci/maven-release-settings.xml -pl datashare-api -am deploy
 
+  deploy_datashare_cli:
+    docker:
+      - image: cimg/openjdk:11.0.16
+
+    environment:
+      MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
+
+    steps:
+      - checkout
+      - run:
+          name: Configure GPG private key for signing project artifacts in OSS Sonatype
+          shell: /bin/bash
+          command: |
+            echo ${RELEASES_GPG_PRIV_BASE64} | base64 --decode | gpg --batch --no-tty --import --yes
+
+      - run:
+          name: Build and deploy datashare-cli
+          command: mvn -s .circleci/maven-release-settings.xml -pl datashare-cli -am deploy
+
 workflows:
   version: 2
   build_workflow:
@@ -534,5 +553,11 @@ workflows:
           filters:
             tags:
               only: /^datashare-api\/[0-9]+\..*/
+            branches:
+              ignore: /.*/
+      - deploy_datashare_cli:
+          filters:
+            tags:
+              only: /^datashare-cli\/[0-9]+\..*/
             branches:
               ignore: /.*/
