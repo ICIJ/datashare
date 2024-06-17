@@ -20,6 +20,7 @@ import java.util.jar.JarInputStream;
 import static java.util.Optional.ofNullable;
 
 public class ExtensionLoader {
+    public static final String CLASS_SUFFIX = ".class";
     protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
     public final Path extensionsDir;
     private File[] jars = null;
@@ -49,9 +50,9 @@ public class ExtensionLoader {
         URLClassLoader ucl = new URLClassLoader(new URL[]{jarFile.toURI().toURL()}, getClass().getClassLoader());
         JarInputStream jarInputStream = new JarInputStream(new FileInputStream(jarFile));
         for (JarEntry jarEntry = jarInputStream.getNextJarEntry(); jarEntry != null; jarEntry = jarInputStream.getNextJarEntry()) {
-            if (jarEntry.getName().endsWith(".class")) {
+            if (jarEntry.getName().endsWith(CLASS_SUFFIX)) {
                 String classname = jarEntry.getName().replaceAll("/", "\\.");
-                classname = classname.substring(0, classname.length() - 6); // 6=len(.class)
+                classname = classname.substring(0, classname.length() - CLASS_SUFFIX.length());
                 if (!classname.contains("$") && !classname.startsWith("META-INF")) {
                     try {
                         final Class<?> myLoadedClass = Class.forName(classname, false, ucl);
