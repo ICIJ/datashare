@@ -80,7 +80,7 @@ public class PluginService extends DeliverableService<Plugin> {
         String scriptsString = stream(dirs).
                 map(d -> projectFilter(d.toPath(), userProjects)).filter(Objects::nonNull).
                 map(this::getPluginUrl).filter(Objects::nonNull).
-                map(s -> "<script src=\"" + s + "\"></script>").collect(joining());
+                map(s -> "<script src=\"" + s + "\" defer></script>").collect(joining());
         String cssString = stream(dirs).
                 map(d -> getCssPluginUrl(d.toPath())).filter(Objects::nonNull).
                 map(s -> "<link rel=\"stylesheet\" href=\"" + s + "\">").collect(joining());

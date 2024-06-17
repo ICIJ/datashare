@@ -103,7 +103,7 @@ public class RootResourcePluginTest implements FluentRestTest {
     public void test_get_with_plugin_directory_that_contains_a_folder_with_indexjs() throws Exception {
         folder.newFolder("my_plugin").toPath().resolve("index.js").toFile().createNewFile();
 
-        get("/").should().respond(200).contain("<script src=\"/plugins/my_plugin/index.js\"></script></body>");
+        get("/").should().respond(200).contain("<script src=\"/plugins/my_plugin/index.js\" defer></script></body>");
         get("/plugins/my_plugin/index.js").should().respond(200);
     }
 
@@ -119,7 +119,7 @@ public class RootResourcePluginTest implements FluentRestTest {
         ));
         pluginPath.resolve("app.js").toFile().createNewFile();
 
-        get("/").should().respond(200).contain("<script src=\"/plugins/my_plugin/app.js\"></script></body>");
+        get("/").should().respond(200).contain("<script src=\"/plugins/my_plugin/app.js\" defer></script></body>");
         get("/plugins/my_plugin/app.js").should().respond(200);
     }
 
@@ -139,7 +139,7 @@ public class RootResourcePluginTest implements FluentRestTest {
         ));
         pluginPath.resolve("app.js").toFile().createNewFile();
 
-        get("/").should().respond(200).contain("<script src=\"/plugins/my_plugin/app.js\"></script></body>");
+        get("/").should().respond(200).contain("<script src=\"/plugins/my_plugin/app.js\" defer></script></body>");
         get("/plugins/my_plugin/app.js").should().respond(200);
     }
 
@@ -160,7 +160,7 @@ public class RootResourcePluginTest implements FluentRestTest {
         ));
         pluginPath.resolve("app.js").toFile().createNewFile();
 
-        get("/").should().respond(200).not().contain("<script src=\"/plugins/my_plugin/app.js\"></script></body>");
+        get("/").should().respond(200).not().contain("<script src=\"/plugins/my_plugin/app.js\" defer></script></body>");
         get("/plugins/my_plugin/app.js").should().respond(200);
     }
 
