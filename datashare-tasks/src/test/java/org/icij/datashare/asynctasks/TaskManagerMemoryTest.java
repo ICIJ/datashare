@@ -2,7 +2,6 @@ package org.icij.datashare.asynctasks;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-import ch.qos.logback.classic.Level;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -13,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 
 public class TaskManagerMemoryTest {

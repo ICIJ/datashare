@@ -51,8 +51,8 @@ public class ExtensionLoader {
         for (JarEntry jarEntry = jarInputStream.getNextJarEntry(); jarEntry != null; jarEntry = jarInputStream.getNextJarEntry()) {
             if (jarEntry.getName().endsWith(".class")) {
                 String classname = jarEntry.getName().replaceAll("/", "\\.");
-                classname = classname.substring(0, classname.length() - 6);
-                if (!classname.contains("$") && !"module-info".equals(classname)) {
+                classname = classname.substring(0, classname.length() - 6); // 6=len(.class)
+                if (!classname.contains("$") && !classname.startsWith("META-INF")) {
                     try {
                         final Class<?> myLoadedClass = Class.forName(classname, false, ucl);
                         if (predicate.test(myLoadedClass) &&

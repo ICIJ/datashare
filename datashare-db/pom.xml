@@ -81,15 +81,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>${logback.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.icij.datashare</groupId>
             <artifactId>commons-test</artifactId>
-            <version>16.0.3</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

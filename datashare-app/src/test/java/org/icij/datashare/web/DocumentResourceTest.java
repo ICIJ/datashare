@@ -1,6 +1,5 @@
 package org.icij.datashare.web;
 
-import ch.qos.logback.classic.Level;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.Repository;
 import org.icij.datashare.db.JooqRepository;
@@ -19,6 +18,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mock;
+import org.slf4j.event.Level;
 
 import java.io.File;
 import java.io.IOException;

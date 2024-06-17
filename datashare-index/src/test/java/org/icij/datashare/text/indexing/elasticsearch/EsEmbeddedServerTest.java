@@ -1,10 +1,10 @@
 package org.icij.datashare.text.indexing.elasticsearch;
 
-import ch.qos.logback.classic.Level;
 import org.elasticsearch.common.settings.Settings;
 import org.icij.datashare.test.LogbackCapturingRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.fest.assertions.Fail.fail;
