@@ -29,7 +29,8 @@ jobs:
         environment:
           RABBITMQ_DEFAULT_USER: admin
           RABBITMQ_DEFAULT_PASS: admin
-
+      - image: adobe/s3mock:latest
+        name: s3mock
 
     working_directory: /tmp/datashare
 

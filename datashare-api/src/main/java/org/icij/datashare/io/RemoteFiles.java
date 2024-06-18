@@ -46,13 +46,21 @@ public class RemoteFiles {
     }
 
     public static RemoteFiles getDefault() {
+        return getWith(S3_DATASHARE_BUCKET_NAME, S3_DATASHARE_ENDPOINT, false);
+    }
+
+    public static RemoteFiles getWith(String bucketName, String endPoint, boolean pathStyleAccessEnabled) {
         ClientConfiguration config = new ClientConfiguration();
         config.setConnectionTimeout(CONNECTION_TIMEOUT_MS);
         config.setSocketTimeout(READ_TIMEOUT_MS);
-        return new RemoteFiles(AmazonS3ClientBuilder.standard()
+        AmazonS3ClientBuilder s3ClientBuilder = AmazonS3ClientBuilder.standard()
                 .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(S3_DATASHARE_ENDPOINT, S3_REGION))
-                .withClientConfiguration(config).build(), S3_DATASHARE_BUCKET_NAME);
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endPoint, S3_REGION))
+                .withClientConfiguration(config);
+        if (pathStyleAccessEnabled) {
+            s3ClientBuilder.enablePathStyleAccess();
+        }
+        return new RemoteFiles(s3ClientBuilder.build(), bucketName);
     }
 
     public void upload(final File localFile, final String remoteKey) throws InterruptedException, FileNotFoundException {
@@ -108,6 +116,18 @@ public class RemoteFiles {
             ObjectMetadata objectMetadata = s3Client.getObjectMetadata(bucket, remoteKey);
             return objectMetadata.getContentLength() == localFile.length();
         }
+    }
+
+    void createBucket() {
+        s3Client.listBuckets().stream()
+                .filter(b -> bucket.equals(b.getName()))
+                .findAny()
+                .ifPresentOrElse(b -> {}, () -> s3Client.createBucket(bucket));
+    }
+
+    void deleteBucket() {
+        s3Client.listObjects(bucket, "").getObjectSummaries().forEach(s -> s3Client.deleteObject(bucket, s.getKey()));
+        s3Client.deleteBucket(bucket);
     }
 
     private String getKeyFromFile(File localFile, File f) {

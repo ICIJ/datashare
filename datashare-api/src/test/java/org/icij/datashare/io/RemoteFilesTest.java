@@ -1,11 +1,8 @@
 package org.icij.datashare.io;
 
-import com.adobe.testing.s3mock.S3MockRule;
-import com.amazonaws.services.s3.AmazonS3;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -18,23 +15,21 @@ import java.io.IOException;
 import static org.fest.assertions.Assertions.assertThat;
 
 public class RemoteFilesTest {
-    private static final String BUCKET_NAME = "mybucket";
-    @ClassRule
-    public static S3MockRule S3_MOCK_RULE = new S3MockRule();
+    private static final String BUCKET_NAME = "testbucket";
+    private static final String S3MOCK_ENDPOINT = "http://s3mock:9090";
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    private final AmazonS3 s3Client = S3_MOCK_RULE.createS3Client();
-    private RemoteFiles remoteFiles = new RemoteFiles(s3Client, BUCKET_NAME);
+    private final RemoteFiles remoteFiles = RemoteFiles.getWith(BUCKET_NAME, S3MOCK_ENDPOINT, true);
 
     @Before
     public void setUp() {
-        s3Client.createBucket(BUCKET_NAME);
+        remoteFiles.createBucket();
     }
 
     @After
     public void tearDown() {
-        s3Client.deleteBucket(BUCKET_NAME);
+        remoteFiles.deleteBucket();
     }
 
     @Test
