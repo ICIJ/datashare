@@ -19,15 +19,6 @@
       "type": "PLUGIN"
     },
     {
-      "id": "datashare-plugin-text-paginator",
-      "name": "Text Paginator",
-      "description": "A Datashare plugin to detect pages in text to display them nicely.",
-      "url": "https://github.com/ICIJ/datashare-plugin-text-paginator/releases/download/0.0.14/datashare-plugin-text-paginator-0.0.14.tgz",
-      "homepage": "https://github.com/ICIJ/datashare-plugin-text-paginator",
-      "version": "0.0.14",
-      "type": "PLUGIN"
-    },
-    {
       "id": "datashare-plugin-email-filter",
       "name": "Email filter",
       "description": "A Datashare plugin to add a new filter about emails.",
