@@ -127,7 +127,7 @@
         <maven-release.version>2.5.3</maven-release.version>
         <maven-exec.version>1.5.0</maven-exec.version>
         <maven-javadoc.version>2.10.4</maven-javadoc.version>
-        <git-commit-id.version>2.2.4</git-commit-id.version>
+        <git-commit-id-maven-plugin.version>9.0.0</git-commit-id-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -568,9 +568,9 @@
                 <artifactId>maven-gpg-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <version>${git-commit-id.version}</version>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>${git-commit-id-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>get-the-git-infos</id>
