@@ -450,6 +450,8 @@ jobs:
   deploy_datashare_api:
     docker:
       - image: cimg/openjdk:11.0.16
+      - image: adobe/s3mock:latest
+        name: s3mock
 
     environment:
       MAVEN_OPTS: "-Xms512m -Xmx512m -Xss10M"
