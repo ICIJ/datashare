@@ -406,7 +406,7 @@ jobs:
             git -C /tmp/datashare-installer/ commit -am "build: bump to ${CIRCLE_SHA1}" || true
       - run:
           name: Push changes
-          command: git -C /tmp/datashare-installer/ push origin master
+          command: git -C /tmp/datashare-installer/ push origin main
       - run:
           name: Create git tag
           command: | 
