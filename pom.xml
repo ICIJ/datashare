@@ -8,6 +8,17 @@
     <version>16.0.3</version>
     <packaging>pom</packaging>
 
+    <name>ICIJ Datashare</name>
+    <url>https://datashare.icij.org</url>
+
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.en.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <inceptionYear>2016</inceptionYear>
     <description>ICIJ Datashare - Better analyze information, in all its forms</description>
 
