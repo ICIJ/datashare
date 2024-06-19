@@ -60,7 +60,7 @@
       "description": "A Datashare plugin to create a neo4j graph from Datashare's projects",
       "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/0.4.2/datashare-plugin-neo4j-graph-widget-0.4.2.tgz",
       "homepage": "https://github.com/ICIJ/datashare-extension-neo4j",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "extensions": ["datashare-extension-neo4j"],
       "type": "PLUGIN"
     }
