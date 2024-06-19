@@ -187,7 +187,7 @@ jobs:
 
       - run:
           name: make app link to front
-          command: ln -s /tmp/datashare-client/dist /tmp/datashare/app
+          command: cp -R /tmp/datashare-client/dist /tmp/datashare/app
       - run:
           name: make dist including frontend
           command: mvn -pl datashare-dist package > mvn.out
