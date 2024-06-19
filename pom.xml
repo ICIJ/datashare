@@ -116,9 +116,9 @@
 
         <!-- Maven Plugins -->
         <maven-compiler.version>3.5.1</maven-compiler.version>
-        <maven-surefire.version>3.0.0-M3</maven-surefire.version>
+        <maven-surefire.version>3.3.0</maven-surefire.version>
         <maven-jar.version>3.0.2</maven-jar.version>
-        <maven-assembly.version>2.6</maven-assembly.version>
+        <maven-assembly.version>3.7.1</maven-assembly.version>
         <maven-resources-plugin>3.0.2</maven-resources-plugin>
         <maven-shade.version>3.5.3</maven-shade.version>
         <maven-dependency.version>3.6.1</maven-dependency.version>
@@ -411,6 +411,25 @@
                                     </filter>
                                 </filters>
                             </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>${maven-assembly.version}</version>
+                    <configuration>
+                        <descriptorRefs>
+                            <descriptorRef>jar-with-dependencies</descriptorRef>
+                        </descriptorRefs>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>make-assembly</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>single</goal>
+                            </goals>
                         </execution>
                     </executions>
                 </plugin>
