@@ -6,7 +6,7 @@
       "description": "A plugin to display an alert banner.",
       "url": "https://github.com/ICIJ/datashare-plugin-site-alert/releases/download/1.3.4/datashare-plugin-site-alert-1.3.4.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-site-alert",
-      "version": "1.3.4",
+      "version": "2.0.0",
       "type": "PLUGIN"
     },
     {
@@ -15,7 +15,7 @@
       "description": "A Datashare plugin to add Google Analytics tracking.",
       "url": "https://github.com/ICIJ/datashare-plugin-ga/releases/download/0.0.3/datashare-plugin-ga-0.0.3.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-ga",
-      "version": "0.0.3",
+      "version": "1.0.0",
       "type": "PLUGIN"
     },
     {
@@ -24,7 +24,7 @@
       "description": "A Datashare plugin to add a new filter about emails.",
       "url": "https://github.com/ICIJ/datashare-plugin-email-filter/archive/1.0.1.tar.gz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-email-filter",
-      "version": "1.0.1",
+      "version": "1.1.0",
       "type": "PLUGIN"
     },
     {
@@ -33,7 +33,7 @@
       "description": "A Datashare plugin to add a sentence case button to the extracted text view.",
       "url": "https://github.com/ICIJ/datashare-plugin-sentence-case/releases/download/0.0.8/datashare-plugin-sentence-case-0.0.8.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-sentence-case",
-      "version": "0.0.8",
+      "version": "1.0.1",
       "type": "PLUGIN"
     },
     { 
@@ -42,7 +42,7 @@
       "description": "A Datashare plugin to create Dataconnect, a bridge between Datashare and ICIJ I-Hub.",
       "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/releases/download/1.5.2/datashare-plugin-dataconnect-1.5.2.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-dataconnect",
-      "version": "1.5.2",
+      "version": "2.0.0",
       "type": "PLUGIN"
     },
     {
@@ -51,7 +51,7 @@
       "description": "A Datashare plugin to build a tour guide on it.",
       "url": "https://github.com/ICIJ/datashare-plugin-tour/releases/download/0.0.12/datashare-plugin-tour-0.0.12.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-tour",
-      "version": "0.0.12",
+      "version": "1.0.0",
       "type": "PLUGIN"
     },
     {
