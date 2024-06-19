@@ -351,9 +351,7 @@
 
     <build>
         <pluginManagement>
-
             <plugins>
-
                 <!-- Compile -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -364,6 +362,13 @@
                         <compilerArgument>-parameters</compilerArgument>
                         <showDeprecation>true</showDeprecation>
                     </configuration>
+                </plugin>
+
+                <!-- Tests -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire.version}</version>
                 </plugin>
 
                 <!-- Jar -->
@@ -439,6 +444,43 @@
                     </executions>
                 </plugin>
 
+                <!-- Source plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>2.2.1</version>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <goals>
+                                <goal>jar-no-fork</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <!-- Javadoc plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven-javadoc.version}</version>
+                    <configuration>
+                        <show>private</show>
+                        <nohelp>true</nohelp>
+                        <aggregate>true</aggregate>
+                        <reportOutputDirectory>${project.basedir}</reportOutputDirectory>
+                        <destDir>doc</destDir>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
                 <!-- Install -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -451,20 +493,6 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>${maven-exec.version}</version>
-                </plugin>
-
-                <!-- Javadoc -->
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>${maven-javadoc.version}</version>
-                    <configuration>
-                        <show>private</show>
-                        <nohelp>true</nohelp>
-                        <aggregate>true</aggregate>
-                        <reportOutputDirectory>${project.basedir}</reportOutputDirectory>
-                        <destDir>doc</destDir>
-                    </configuration>
                 </plugin>
 
                 <!-- Release -->
