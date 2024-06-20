@@ -9,7 +9,8 @@ public interface Deliverable extends Entity, Comparable<Deliverable> {
     enum Type {NLP, WEB, PLUGIN, UNKNOWN}
     URL getUrl();
     URL getHomepage();
-    Path getBasePath();
+    Path getCanonicalPath();
+    Path getLocalPath(Path installationDir) throws IOException;
     String getName();
     String getDescription();
     String getVersion();

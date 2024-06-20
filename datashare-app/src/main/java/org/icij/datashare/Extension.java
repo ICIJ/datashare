@@ -25,9 +25,9 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.nio.file.Files.copy;
-import static java.util.Arrays.stream;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.io.FilenameUtils.getBaseName;
@@ -116,12 +116,25 @@ public class Extension implements Deliverable {
     @Override
     public void delete(Path installDir) throws IOException {
         Path extensionPath = installDir.resolve(getUrlFileName());
-        logger.info("removing extension {} jar {}", id, extensionPath);
-        extensionPath.toFile().delete();
+        if (extensionPath.toFile().exists()) {
+            logger.info("removing extension {} jar: {}", id, extensionPath);
+            extensionPath.toFile().delete();
+        } else {
+            logger.info("could not remove extension {} jar: {}", id, extensionPath);
+        }
     }
 
+
     static List<File> getPreviousVersionInstalled(File[] candidateFiles, String baseName) {
-        return stream(candidateFiles).filter(f -> f.getName().startsWith(removePattern(extensionFormat,baseName)) && extensionFormat.matcher(getBaseName(f.getName())).matches()).collect(Collectors.toList());
+        return Stream.of(candidateFiles)
+                .filter(f -> {
+                    String fileName = f.getName();
+                    String baseFileName = removePattern(extensionFormat, baseName);
+                    boolean startsWithBaseName = fileName.startsWith(baseFileName);
+                    boolean matchesPattern = extensionFormat.matcher(getBaseName(fileName)).matches();
+                    return startsWithBaseName && matchesPattern;
+                })
+                .collect(Collectors.toList());
     }
 
     static Entry<String,String> extractIdVersion(URL url){
@@ -156,7 +169,26 @@ public class Extension implements Deliverable {
     @Override public Type getType() { return type; }
 
     @JsonIgnore
-    public Path getBasePath() {return Paths.get(getUrlFileName());}
+    public Path getCanonicalPath() {
+        return Paths.get(getUrlFileName());
+    }
+
+    @JsonIgnore
+    public Path getLocalPath(Path installationDir) {
+        try (Stream<Path> paths = Files.list(installationDir)) {
+            return paths
+                    .filter(entry -> {
+                        String fileName = entry.getFileName().toString();
+                        return fileName.startsWith(id);
+                    })
+                    .findFirst()
+                    .orElse(null);
+        } catch (IOException e) {
+            logger.info("Unable to list directories in {}", installationDir);
+        }
+
+        return null;
+    }
 
     protected String getUrlFileName() { return FilenameUtils.getName(url.getFile().replaceAll("/$",""));}
     protected boolean isTemporaryFile(File extensionFile) { return extensionFile.getName().startsWith(Plugin.TMP_PREFIX);}
