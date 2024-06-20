@@ -33,8 +33,8 @@ public abstract class DeliverableService<T extends Deliverable> {
     abstract String getInstallOpt(Properties cliProperties);
     abstract String getListOpt(Properties cliProperties);
 
-    public DeliverableService(Path extensionsDir, InputStream inputStream) {
-        this.deliverablesDir = extensionsDir;
+    public DeliverableService(Path deliverableDir, InputStream inputStream) {
+        this.deliverablesDir = deliverableDir;
         this.deliverableRegistry = createRegistry(inputStream);
     }
 
@@ -60,7 +60,7 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public Set<DeliverablePackage> list(String patternString) {
-        return merge(deliverableRegistry.search(patternString),listInstalled(patternString));
+        return merge(deliverableRegistry.search(patternString), listInstalled(patternString));
     }
 
     public Set<DeliverablePackage> list() {
@@ -89,21 +89,21 @@ public abstract class DeliverableService<T extends Deliverable> {
         return stream(ofNullable(deliverablesDir.toFile().listFiles()).orElse(new File[]{})).filter(f -> pattern.matcher(f.getName()).find()).collect(Collectors.toSet());
     }
 
-    public void downloadAndInstall(String extensionId) throws IOException {
-        downloadAndInstall(deliverableRegistry.get(extensionId));
+    public void downloadAndInstall(String id) throws IOException {
+        downloadAndInstall(deliverableRegistry.get(id));
     }
 
     public void downloadAndInstall(URL url) throws IOException {
         downloadAndInstall(newDeliverable(url));
     }
 
-    private void downloadAndInstall(T extension) throws IOException {
-        File tmpFile = extension.download();
-        extension.install(tmpFile, deliverablesDir);
+    private void downloadAndInstall(T deliverable) throws IOException {
+        File tmpFile = deliverable.download();
+        deliverable.install(tmpFile, deliverablesDir);
     }
 
-    public void delete(String extensionId) throws IOException {
-        list().stream().filter(d -> d.reference().getId().equals(extensionId)
-                || d.reference().getUrl().getPath().equals(extensionId)).findFirst().get().getInstalledDeliverable().delete(deliverablesDir);
+    public void delete(String id) throws IOException {
+        list().stream().filter(d -> d.reference().getId().equals(id)
+                || d.reference().getUrl().getPath().equals(id)).findFirst().get().getInstalledDeliverable().delete(deliverablesDir);
     }
 }
