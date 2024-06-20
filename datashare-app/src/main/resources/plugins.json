@@ -42,7 +42,7 @@
       "description": "A Datashare plugin to create Dataconnect, a bridge between Datashare and ICIJ I-Hub.",
       "url": "https://github.com/ICIJ/datashare-plugin-dataconnect/releases/download/v2.0.0/datashare-plugin-dataconnect-v2.0.0.tgz",
       "homepage": "https://github.com/ICIJ/datashare-plugin-dataconnect",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "type": "PLUGIN"
     },
     {
@@ -60,7 +60,7 @@
       "description": "A Datashare plugin to create a neo4j graph from Datashare's projects",
       "url": "https://github.com/ICIJ/datashare-extension-neo4j/releases/download/0.4.3/datashare-plugin-neo4j-graph-widget-0.4.3.tgz",
       "homepage": "https://github.com/ICIJ/datashare-extension-neo4j",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "extensions": ["datashare-extension-neo4j"],
       "type": "PLUGIN"
     }
