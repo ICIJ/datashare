@@ -61,7 +61,10 @@ public class Plugin extends Extension {
         List<File> previousVersionInstalled = getPreviousVersionInstalled(candidateFiles, getBaseName(getUrlFileName()));
         if (previousVersionInstalled.size() > 0) {
             logger.info("removing previous versions {}", previousVersionInstalled);
-            for (File file : previousVersionInstalled) FileUtils.deleteDirectory(file); }
+            for (File file : previousVersionInstalled) {
+                FileUtils.deleteDirectory(file);
+            }
+        }
         logger.info("installing plugin from file {} into {}", pluginFile, pluginsDir);
 
         InputStream is = new BufferedInputStream(new FileInputStream(pluginFile));
