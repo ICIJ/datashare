@@ -52,7 +52,9 @@ public class DeliverablePackageTest {
 
     @Test
     public void test_is_installed_deliverable() throws IOException {
-        DeliverablePackage d = new DeliverablePackage(new Extension(deliverableDir.newFile( "my-extension.jar").toURI().toURL()),deliverableDir.getRoot().toPath(),null);
+        URL extensionUrl = deliverableDir.newFile("my-extension.jar").toURI().toURL();
+        Extension installedDeliverable = new Extension(extensionUrl);
+        DeliverablePackage d = new DeliverablePackage(installedDeliverable, deliverableDir.getRoot().toPath(),null);
         assertThat(d.isInstalled()).isTrue();
     }
 }

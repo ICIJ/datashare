@@ -3,8 +3,12 @@ package org.icij.datashare;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
@@ -25,12 +29,37 @@ public class DeliverablePackage implements Comparable<DeliverablePackage>{
     }
 
     public boolean isInstalled() {
-        return installedDeliverable != null && deliverablesDir.resolve(installedDeliverable.getBasePath()).toFile().exists();
+        return isDeliverableInstalled() || isDeliverableFromRegistryInstalled();
     }
 
-    public Deliverable reference() {return ofNullable(installedDeliverable).orElse(deliverableFromRegistry);}
+    public boolean isDeliverableInstalled() {
+        try {
+            return installedDeliverable.getLocalPath(deliverablesDir).toFile().exists();
+        } catch (IOException | NullPointerException e) {
+            return false;
+        }
+    }
 
-    public Deliverable getInstalledDeliverable() {return installedDeliverable;}
+    public boolean isDeliverableFromRegistryInstalled() {
+        try {
+            return deliverableFromRegistry.getLocalPath(deliverablesDir).toFile().exists();
+        } catch (IOException | NullPointerException e) {
+            return false;
+        }
+    }
+
+    public Deliverable reference() {
+        return ofNullable(installedDeliverable).orElse(deliverableFromRegistry);
+    }
+
+    public List<Deliverable> references() {
+        // Use Arrays.asList to allow null elements
+        List<Deliverable> deliverables = Arrays.asList(installedDeliverable, deliverableFromRegistry);
+        // Stream the list, filter out nulls, and collect into a list
+        return deliverables.parallelStream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
 
     public void displayInformation() {
         Deliverable deliverable = ofNullable(deliverableFromRegistry).orElse(installedDeliverable);

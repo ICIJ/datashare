@@ -10,10 +10,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -85,7 +83,7 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public Set<File> listInstalled(String patternString) {
-        Pattern pattern = Pattern.compile(patternString,Pattern.CASE_INSENSITIVE);
+        Pattern pattern = Pattern.compile(patternString, Pattern.CASE_INSENSITIVE);
         return stream(ofNullable(deliverablesDir.toFile().listFiles()).orElse(new File[]{})).filter(f -> pattern.matcher(f.getName()).find()).collect(Collectors.toSet());
     }
 
@@ -103,7 +101,14 @@ public abstract class DeliverableService<T extends Deliverable> {
     }
 
     public void delete(String id) throws IOException {
-        list().stream().filter(d -> d.reference().getId().equals(id)
-                || d.reference().getUrl().getPath().equals(id)).findFirst().get().getInstalledDeliverable().delete(deliverablesDir);
+        Predicate<DeliverablePackage> predicate = d -> d.reference().getId().equals(id) || d.reference().getUrl().getPath().equals(id);
+        List<DeliverablePackage> deliverables = list().stream().filter(predicate).collect(Collectors.toList());
+        for (DeliverablePackage deliverable: deliverables) {
+            // A deliverable can have several references, if it's installed using
+            // the registry or directly from a remote URL.
+            for (Deliverable ref: deliverable.references()) {
+                ref.delete(deliverablesDir);
+            }
+        }
     }
 }

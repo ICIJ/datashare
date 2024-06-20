@@ -30,32 +30,32 @@ public class PluginTest {
     @Test
     public void test_get_base_directory() throws Exception {
         Plugin plugin = new Plugin("id", "name", "1.0.0", "", new URL("https://normal/url/deliverable.tgz"),new URL("https://normal/url"));
-        assertThat(plugin.getBasePath().toString()).isEqualTo("id");
+        assertThat(plugin.getCanonicalPath().toString()).isEqualTo("id");
     }
 
     @Test
     public void test_get_base_directory_with_version() throws Exception {
         Plugin plugin = new Plugin("id", "name", "1.0.0", "", new URL("https://normal/url/deliverable-1.0.0.tgz"),new URL("https://normal/url/"));
-        assertThat(plugin.getBasePath().toString()).isEqualTo("id-1.0.0");
+        assertThat(plugin.getCanonicalPath().toString()).isEqualTo("id-1.0.0");
     }
 
     @Test
     public void test_get_base_directory_with_version_starting_with_v() throws Exception {
         Plugin plugin = new Plugin("id", "name", "v1.0.0", "", new URL("https://normal/url/deliverable-1.0.0.tgz"),new URL("https://normal/url/"));
-        assertThat(plugin.getBasePath().toString()).isEqualTo("id-1.0.0");
+        assertThat(plugin.getCanonicalPath().toString()).isEqualTo("id-1.0.0");
     }
 
     @Test
     public void test_get_base_directory_with_github_version_starting_with_v() throws Exception {
         assertThat(new Plugin("id", "name", "v1.2.3", "", new URL("https://github.com/foo/bar"),new URL("https://github.com/foo"))
-                .getBasePath().toString())
+                .getCanonicalPath().toString())
                 .isEqualTo("id-1.2.3");
     }
 
     @Test
     public void test_get_base_directory_with_github_version() throws Exception {
         assertThat(new Plugin("id", "name", "1.2.3", "", new URL("https://github.com/foo/bar"),new URL("https://github.com/foo"))
-                .getBasePath().toString())
+                .getCanonicalPath().toString())
                 .isEqualTo("id-1.2.3");
     }
 }

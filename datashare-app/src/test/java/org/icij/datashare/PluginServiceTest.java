@@ -127,6 +127,17 @@ public class PluginServiceTest {
         assertThat(pluginIterator.next().isInstalled()).isTrue();
         assertThat(pluginIterator.next().isInstalled()).isTrue();
     }
+    @Test
+    public void test_list_installed_plugins_with_v_prefix() throws IOException {
+        pluginFolder.newFolder("my-plugin-v2.0.0");
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                "{\"id\":\"my-plugin\", \"version\": \"2.0.0\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin-v2.0.0.tgz") + "\"}" +
+                "]}").getBytes()));
+        Set<DeliverablePackage> list = pluginService.list();
+        Iterator<DeliverablePackage> pluginIterator = list.iterator();
+        assertThat(list).hasSize(1);
+        assertThat(pluginIterator.next().isInstalled()).isTrue();
+    }
 
     @Test
     public void test_plugin_properties() throws Exception {
@@ -218,6 +229,17 @@ public class PluginServiceTest {
         pluginService.delete("my-custom-plugin");
         assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin").toFile()).doesNotExist();
         assertThat(pluginFolder.getRoot().toPath().resolve("my-custom-plugin").toFile()).doesNotExist();
+    }
+
+    @Test
+    public void test_delete_plugin_by_id_with_v_preffix() throws Exception {
+        pluginFolder.newFolder("my-plugin-v2.0.0");
+        PluginService pluginService = new PluginService(pluginFolder.getRoot().toPath(), new ByteArrayInputStream(("{\"deliverableList\": [" +
+                "{\"id\":\"my-plugin\", \"version\": \"2.0.0\", \"url\": \"" + ClassLoader.getSystemResource("my-plugin-v2.0.0.tgz") + "\"}" +
+                "]}").getBytes()));
+        pluginService.downloadAndInstall(ClassLoader.getSystemResource("my-plugin-v2.0.0.tgz"));
+        pluginService.delete("my-plugin");
+        assertThat(pluginFolder.getRoot().toPath().resolve("my-plugin-v2.0.0").toFile()).doesNotExist();
     }
 
     @Test
