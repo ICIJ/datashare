@@ -393,6 +393,7 @@ public class JooqRepositoryTest {
         repository.star(project("prj"), user, singletonList("doc_id"));
         repository.tag(project("prj"), "doc_id", tag("tag1"), tag("tag2"));
         repository.recommend(project("prj"), user, List.of("doc_id"));
+        repository.addToUserHistory(singletonList(project("prj")), new UserEvent(user, DOCUMENT, "doc_id", Paths.get("doc_uri").toUri()));
 
         assertThat(repository.deleteAll("prj")).isTrue();
         assertThat(repository.deleteAll("prj")).isFalse();
@@ -400,6 +401,7 @@ public class JooqRepositoryTest {
         assertThat(repository.getDocuments(project("prj"), tag("tag1"), tag("tag2"))).isEmpty();
         assertThat(repository.getStarredDocuments(user)).isEmpty();
         assertThat(repository.getRecommentationsBy(project("prj"), List.of(user))).isEmpty();
+        assertThat(repository.getUserHistory(user, DOCUMENT, 0, 10, "modification_date",true, "prj")).isEmpty();
     }
 
     @Test
