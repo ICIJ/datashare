@@ -11,10 +11,10 @@ import org.icij.datashare.user.User;
 // java.util.Record
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
 
 import javax.sql.DataSource;
 import java.sql.Timestamp;
+import java.time.ZoneOffset;
 import java.util.Date;
 
 import static org.icij.datashare.db.tables.ApiKey.API_KEY;
@@ -31,42 +31,42 @@ public class JooqApiKeyRepository implements ApiKeyRepository {
 
     @Override
     public ApiKey get(String base64Key) {
-        try (DSLContext ctx = using(connectionProvider, dialect)) {
+        DSLContext ctx = using(connectionProvider, dialect);
             return createApiKey(ctx.selectFrom(API_KEY).
                     where(API_KEY.ID.eq(ApiKey.DEFAULT_DIGESTER.hash(base64Key))).fetchOne());
-        }
+
     }
 
     @Override
     public ApiKey get(User user) {
-        try (DSLContext ctx = using(connectionProvider, dialect)) {
+        DSLContext ctx = using(connectionProvider, dialect);
             return createApiKey(ctx.selectFrom(API_KEY).
                     where(API_KEY.USER_ID.eq(user.id)).fetchOne());
-        }
+
     }
 
     @Override
     public boolean delete(User user) {
-        try (DSLContext ctx = using(connectionProvider, dialect)) {
+        DSLContext ctx = using(connectionProvider, dialect);
             return ctx.deleteFrom(API_KEY)
                     .where(API_KEY.USER_ID.eq(user.id)).execute() > 0;
-        }
+
     }
 
     @Override
     public boolean save(ApiKey apiKey) {
-        try (DSLContext ctx = using(connectionProvider, dialect)) {
+        DSLContext ctx = using(connectionProvider, dialect);
             return ctx.insertInto(API_KEY).
                     values(apiKey.getId(), apiKey.getUser().id, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
                     onConflict(API_KEY.USER_ID).doUpdate().
                     set(API_KEY.ID, apiKey.getId()).
-                    set(API_KEY.CREATION_DATE, new Timestamp((DatashareTime.getInstance().currentTimeMillis()))).
+                    set(API_KEY.CREATION_DATE, new Timestamp((DatashareTime.getInstance().currentTimeMillis())).toLocalDateTime()).
                     where(API_KEY.USER_ID.eq(apiKey.getUser().id)).execute() > 0;
-        }
+
     }
 
     // ----------------
     private ApiKey createApiKey(ApiKeyRecord apiKeyRecord) {
-        return apiKeyRecord != null ? new DatashareApiKey(apiKeyRecord.getId(), new User(apiKeyRecord.getUserId()), Date.from(apiKeyRecord.getCreationDate().toInstant())) : null;
+        return apiKeyRecord != null ? new DatashareApiKey(apiKeyRecord.getId(), new User(apiKeyRecord.getUserId()), Date.from(apiKeyRecord.getCreationDate().toInstant(ZoneOffset.UTC))) : null;
     }
 }
