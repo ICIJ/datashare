@@ -432,10 +432,10 @@ public class JooqRepository implements Repository {
             int deleteTagResult = inner.deleteFrom(DOCUMENT_TAG).where(DOCUMENT_TAG.PRJ_ID.eq(projectId)).execute();
             int deleteStarResult = inner.deleteFrom(DOCUMENT_USER_STAR).where(DOCUMENT_USER_STAR.PRJ_ID.eq(projectId)).execute();
             int deleteUserRecommendationResult = inner.deleteFrom(DOCUMENT_USER_RECOMMENDATION).where(DOCUMENT_USER_RECOMMENDATION.PRJ_ID.eq(projectId)).execute();
-            int deleteUserHistoryResult = inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).execute();
+            List<Integer> deletedUserHistoryProjectIds = inner.deleteFrom(USER_HISTORY_PROJECT).where(USER_HISTORY_PROJECT.PRJ_ID.eq(projectId)).returning().fetch().getValues(USER_HISTORY_PROJECT.USER_HISTORY_ID);
+            int deleteUserHistoryResult = inner.deleteFrom(USER_HISTORY).where(USER_HISTORY.ID.in(deletedUserHistoryProjectIds)).execute();
             int deleteProject = inner.deleteFrom(PROJECT).where(PROJECT.ID.eq(projectId)).execute();
-            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult + deleteUserHistoryResult + deleteProject > 0;
-
+            return deleteStarResult + deleteTagResult + deleteUserRecommendationResult + deletedUserHistoryProjectIds.size() + deleteUserHistoryResult + deleteProject > 0;
         });
 
     }
