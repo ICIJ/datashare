@@ -40,7 +40,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoField;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -287,6 +286,12 @@ public class JooqRepository implements Repository {
         }
         return query.fetchOne(0, int.class);
 
+    }
+
+    @Override
+    public List<UserEvent> getUserEvents(User user) {
+        DSLContext ctx = using(connectionProvider, dialect);
+        return ctx.selectFrom(USER_HISTORY).where(USER_HISTORY.USER_ID.eq(user.id)).fetch().map(this::createUserEventFrom);
     }
 
     @Override
