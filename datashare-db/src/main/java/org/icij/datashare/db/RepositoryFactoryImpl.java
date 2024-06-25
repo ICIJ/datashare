@@ -33,6 +33,7 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         this.propertiesProvider = propertiesProvider;
         System.getProperties().setProperty("org.jooq.no-logo", "true");
         System.getProperties().setProperty("org.jooq.no-tips", "true");
+        System.getProperties().setProperty("org.jooq.log.org.jooq.impl.DefaultExecuteContext.logVersionSupport", "ERROR");
         this.dataSource = createDatasource();
     }
 
