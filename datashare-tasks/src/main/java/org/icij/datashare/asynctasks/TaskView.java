@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.icij.datashare.Entity;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.user.User;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -30,7 +31,7 @@ public class TaskView<V> implements Entity {
     public final String id;
     public final String name;
     public final User user;
-    volatile Throwable error;
+    volatile TaskError error;
     private volatile State state;
     private volatile double progress;
     private volatile V result;
@@ -88,7 +89,7 @@ public class TaskView<V> implements Entity {
         }
     }
 
-    public void setError(Throwable reason) {
+    public void setError(TaskError reason) {
         synchronized (lock) {
             this.error = reason;
             setState(State.ERROR);
@@ -123,7 +124,7 @@ public class TaskView<V> implements Entity {
         return progress;
     }
 
-    public Throwable getError() {
+    public TaskError getError() {
         return error;
     }
 

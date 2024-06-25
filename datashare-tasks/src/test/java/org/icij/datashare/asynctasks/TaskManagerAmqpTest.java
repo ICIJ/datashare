@@ -5,6 +5,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpServerRule;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpInterlocutor;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.user.User;
 import org.icij.extract.redis.RedissonClientFactory;
 import org.icij.task.Options;
@@ -91,7 +92,7 @@ public class TaskManagerAmqpTest {
 
         // in the task runner loop
         TaskView<Serializable> taskView = taskSupplier.get(10, TimeUnit.SECONDS);
-        taskSupplier.error(taskView.id,new RuntimeException("error in runner"));
+        taskSupplier.error(taskView.id,new TaskError(new RuntimeException("error in runner")));
 
         nextMessage.await();
         assertThat(taskManager.getTask(taskView.id).getResult()).isNull();
