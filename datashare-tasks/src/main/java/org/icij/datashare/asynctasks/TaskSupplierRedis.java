@@ -3,6 +3,7 @@ package org.icij.datashare.asynctasks;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
@@ -46,7 +47,7 @@ public class TaskSupplierRedis implements TaskSupplier {
     }
 
     @Override
-    public void error(String taskId, Throwable reason) {
+    public void error(String taskId, TaskError reason) {
         eventTopic.publish(new ResultEvent<>(taskId, reason));
     }
 

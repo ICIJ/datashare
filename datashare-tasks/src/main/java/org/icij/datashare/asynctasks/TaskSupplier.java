@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 
 import java.io.Closeable;
@@ -19,6 +20,6 @@ public interface TaskSupplier extends TaskModifier, Closeable {
     //  (manager)->(worker) (to confirm the cancellation to the worker). Instead we have
     //  (worker)->(broker) and then (worker)->(*) (broadcast the cancellation).
     void canceled(TaskView<?> taskView, boolean requeue);
-    void error(String taskId, Throwable reason);
+    void error(String taskId, TaskError reason);
     void addEventListener(Consumer<TaskEvent> callback);
 }

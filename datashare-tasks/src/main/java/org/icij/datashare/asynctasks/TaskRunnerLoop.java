@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
@@ -116,7 +117,7 @@ public class TaskRunnerLoop implements Callable<Integer>, Closeable {
             } catch (Throwable ex) {
                 logger.error("error in loop for task {}", currentTask, ex);
                 if (currentTask != null && !currentTask.isNull()) {
-                    taskSupplier.error(currentTask.id, ex);
+                    taskSupplier.error(currentTask.id, new TaskError(ex));
                 }
             } finally {
                 currentTaskReference.set(null);

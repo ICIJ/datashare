@@ -1,5 +1,6 @@
 package org.icij.datashare.asynctasks;
 
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.user.User;
 import org.slf4j.Logger;
@@ -91,7 +92,7 @@ public class TaskManagerMemory implements TaskManager, TaskSupplier {
     }
 
     @Override
-    public void error(String taskId, Throwable reason) {
+    public void error(String taskId, TaskError reason) {
         TaskView<?> taskView = tasks.get(taskId);
         if (taskView != null) {
             taskView.setError(reason);

@@ -9,6 +9,7 @@ import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskModifier;
 import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.tasks.UriResult;
 import org.icij.datashare.tasks.DatashareTaskFactory;
 import org.icij.datashare.extension.PipelineRegistry;
 import org.icij.datashare.mode.CommonMode;

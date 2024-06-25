@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.icij.datashare.PropertiesProvider;
 import org.icij.datashare.asynctasks.TaskManager;
 import org.icij.datashare.asynctasks.TaskView;
+import org.icij.datashare.tasks.UriResult;
 import org.icij.datashare.batch.BatchDownload;
 import org.icij.datashare.extract.OptionsWrapper;
 import org.icij.datashare.json.JsonObjectMapper;

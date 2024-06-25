@@ -1,6 +1,7 @@
 package org.icij.datashare.asynctasks;
 
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
@@ -69,10 +70,8 @@ public interface TaskManager extends Closeable {
         TaskView<V> taskView = getTask(e.taskId);
         if (taskView != null) {
             logger.info("result event for {}", e.taskId);
-            // TODO: this won't work for other languages than Java unless we manage to deserialize
-            //  Exception from other Languages in Java
-            if (e.result instanceof Throwable) {
-                taskView.setError((Throwable) e.result);
+            if (e.result instanceof TaskError) {
+                taskView.setError((TaskError) e.result);
             } else {
                 taskView.setResult(e.result);
             }

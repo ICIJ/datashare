@@ -6,6 +6,7 @@ import org.icij.datashare.asynctasks.bus.amqp.AmqpQueue;
 import org.icij.datashare.asynctasks.bus.amqp.CancelledEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
+import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskViewEvent;
 import org.slf4j.LoggerFactory;
@@ -77,8 +78,8 @@ public class TaskSupplierAmqp implements TaskSupplier {
     }
 
     @Override
-    public void error(String taskId, Throwable throwable) {
-        result(taskId, throwable);
+    public void error(String taskId, TaskError taskError) {
+        result(taskId, taskError);
     }
 
     private void handleEvent(TaskEvent taskEvent) {
