@@ -68,7 +68,7 @@ jobs:
       - run:
           name: make install for app and corenlp modules
           command: mvn -s .circleci/maven-release-settings.xml -pl datashare-app -pl datashare-nlp-corenlp -am install -Dmaven.test.skip=true
-      - run: mvn -pl datashare-dist package > mvn.out
+      - run: mvn -pl datashare-dist package
       - run:
           name: acceptance test for embedded mode
           command: |
@@ -125,7 +125,7 @@ jobs:
             git clone git@github.com:ICIJ/datashare-docs.git ~/datashare-docs
       - run:
           name: Make dist without frontend
-          command: mvn -pl datashare-dist package > mvn.out
+          command: mvn -pl datashare-dist package
       - run:
           name: Populate apigen index
           command: ./doc/apigen/populate_apigen.sh
@@ -190,7 +190,7 @@ jobs:
           command: cp -R /tmp/datashare-client/dist /tmp/datashare/app
       - run:
           name: make dist including frontend
-          command: mvn -pl datashare-dist package > mvn.out
+          command: mvn -pl datashare-dist package
       - run:
           name: make tarball for non debian linux
           command: |
