@@ -162,7 +162,7 @@ public class BatchSearchRunner implements CancellableTask, UserTask, Callable<In
 
     @Override
     public User getUser() {
-        return taskView.user;
+        return taskView.getUser();
     }
 
     /**

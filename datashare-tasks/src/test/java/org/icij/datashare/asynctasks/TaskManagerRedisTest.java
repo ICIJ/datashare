@@ -52,7 +52,7 @@ public class TaskManagerRedisTest {
         assertThat(taskManager.startTask("HelloWorld", User.local(),
             new HashMap<>() {{ put("greeted", "world"); }})).isNotNull();
         assertThat(taskManager.getTasks()).hasSize(1);
-        Assertions.assertThat(taskManager.getTasks().get(0).user).isEqualTo(User.local());
+        Assertions.assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
         assertThat(batchDownloadQueue).hasSize(1);
     }
 

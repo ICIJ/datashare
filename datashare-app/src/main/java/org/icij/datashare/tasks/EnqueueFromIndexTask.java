@@ -40,7 +40,7 @@ public class EnqueueFromIndexTask extends PipelineTask<String> {
     @Inject
     public EnqueueFromIndexTask(final DocumentCollectionFactory<String> factory, final Indexer indexer,
                                 @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.ENQUEUEIDX, taskView.user, factory, new PropertiesProvider(taskView.properties), String.class);
+        super(Stage.ENQUEUEIDX, taskView.getUser(), factory, new PropertiesProvider(taskView.properties), String.class);
         this.factory = factory;
         this.indexer = indexer;
         this.nlpPipeline = Pipeline.Type.parse((String) taskView.properties.getOrDefault(NLP_PIPELINE_OPT, Pipeline.Type.CORENLP.name()));

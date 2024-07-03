@@ -10,18 +10,22 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.icij.datashare.Entity;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.user.User;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaskView<V> implements Entity {
+    public static final String USER_KEY = "user";
     @JsonIgnore private StateLatch stateLatch;
     @JsonIgnore private final Object lock = new Object();
 
@@ -30,7 +34,6 @@ public class TaskView<V> implements Entity {
 
     public final String id;
     public final String name;
-    public final User user;
     volatile TaskError error;
     private volatile State state;
     private volatile double progress;
@@ -45,7 +48,7 @@ public class TaskView<V> implements Entity {
     }
 
     public TaskView(String id, String name, User user, Map<String, Object> properties) {
-        this(id, name, State.CREATED, 0, user, null, properties);
+        this(id, name, State.CREATED, 0, null, addTo(properties, user));
     }
 
     @JsonCreator
@@ -53,14 +56,12 @@ public class TaskView<V> implements Entity {
              @JsonProperty("name") String name,
              @JsonProperty("state") State state,
              @JsonProperty("progress") double progress,
-             @JsonProperty("user") User user,
              @JsonProperty("result") V result,
              @JsonProperty("properties") Map<String, Object> properties) {
         this.id = id;
         this.name = name;
         this.state = state;
         this.progress = progress;
-        this.user = user;
         this.result = result;
         // avoids "no default constructor found" for anonymous inline maps
         this.properties =
@@ -165,7 +166,7 @@ public class TaskView<V> implements Entity {
     }
 
     public User getUser() {
-        return user;
+        return (User) properties.get(USER_KEY);
     }
 
     public static <V> String getId(Callable<V> task) {
@@ -178,7 +179,7 @@ public class TaskView<V> implements Entity {
     }
 
     public static TaskView<Serializable> nullObject() {
-        return new TaskView<>(null, null, State.CREATED, 0, User.nullUser(), null, new HashMap<>());
+        return new TaskView<>(null, null, State.CREATED, 0, null, new HashMap<>());
     }
 
     public Function<Double, Void> progress(BiFunction<String, Double, Void> taskSupplierProgress) {
@@ -188,9 +189,15 @@ public class TaskView<V> implements Entity {
     void setLatch(StateLatch stateLatch) {
         this.stateLatch = stateLatch;
     }
-    
+
     private void setState(State state) {
         this.state = state;
         ofNullable(stateLatch).ifPresent(sl -> sl.setTaskState(state));
+    }
+
+    private static Map<String, Object> addTo(Map<String, Object> properties, User user) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>(properties);
+        result.put(USER_KEY, user);
+        return result;
     }
 }
