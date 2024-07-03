@@ -49,7 +49,7 @@ public class TaskManagerAmqp implements TaskManager {
         TaskView<?> taskView = tasks.get(taskId);
         if (taskView != null) {
             try {
-                amqp.publish(AmqpQueue.EVENT, new CancelEvent(taskId, false));
+                amqp.publish(AmqpQueue.RUNNER_EVENT, new CancelEvent(taskId, false));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

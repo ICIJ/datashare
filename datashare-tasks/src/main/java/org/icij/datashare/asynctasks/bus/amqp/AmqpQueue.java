@@ -12,7 +12,8 @@ public enum AmqpQueue {
 	TASK_RESULT_DLQ  ("exchangeDLQTaskResults", BuiltinExchangeType.DIRECT, "routingKeyDLQTaskResults"),
 	TASK_RESULT  ("exchangeTaskResults",  BuiltinExchangeType.DIRECT,"routingKeyMainTaskResults", TASK_RESULT_DLQ),
 	TASK_DLQ  ("exchangeDLQTasks", BuiltinExchangeType.DIRECT, "routingKeyDLQTasks"),
-	TASK  ("exchangeMainTasks",  BuiltinExchangeType.DIRECT,"routingKeyMainTasks", TASK_DLQ);
+	TASK  ("exchangeMainTasks",  BuiltinExchangeType.DIRECT,"routingKeyMainTasks", TASK_DLQ),
+	RUNNER_EVENT ("exchangeRunnerEvents", BuiltinExchangeType.FANOUT, "routingKeyRunnerEvents");
 
 	public final String exchange;
 	public final String routingKey;
