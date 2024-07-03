@@ -36,7 +36,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
                 throw new SupplierBufferingException();
             }
         }, AmqpQueue.TASK, TaskViewEvent.class).consumeEvents();
-        eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.EVENT, TaskEvent.class).consumeEvents();
+        eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.RUNNER_EVENT, TaskEvent.class).consumeEvents();
     }
 
     @Override
