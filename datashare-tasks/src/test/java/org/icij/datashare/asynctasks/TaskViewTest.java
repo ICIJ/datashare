@@ -36,7 +36,7 @@ public class TaskViewTest {
 
     @Test
     public void test_get_result_sync_when_task_is_not_local() {
-        TaskView<Object> taskView = new TaskView<>("id", "task", TaskView.State.DONE, 1, User.local(), null, new HashMap<>());
+        TaskView<Object> taskView = new TaskView<>("id", "task", TaskView.State.DONE, 1, null, new HashMap<>());
         assertThat(taskView.getResult()).isNull();
         assertThat(taskView.getState()).isEqualTo(TaskView.State.DONE);
         assertThat(taskView.getProgress()).isEqualTo(1);
@@ -58,7 +58,7 @@ public class TaskViewTest {
 
     @Test
     public void test_get_result_sync_when_task_is_not_local_and_result_is_not_null() {
-        TaskView<Object> taskView = new TaskView<>("id", "task", TaskView.State.DONE, 1, User.local(), "run", new HashMap<>());
+        TaskView<Object> taskView = new TaskView<>("id", "task", TaskView.State.DONE, 1, "run", new HashMap<>());
         assertThat(taskView.getResult()).isEqualTo("run");
     }
 

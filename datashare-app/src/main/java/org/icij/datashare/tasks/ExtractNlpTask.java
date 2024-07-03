@@ -45,7 +45,7 @@ public class ExtractNlpTask extends PipelineTask<String> implements Monitorable 
 
 
     ExtractNlpTask(Indexer indexer, Pipeline pipeline, final DocumentCollectionFactory<String> factory, @Assisted TaskView<Long> taskView, @Assisted final Function<Double, Void> updateCallback) {
-        super(Stage.NLP, taskView.user, factory, new PropertiesProvider(taskView.properties), String.class);
+        super(Stage.NLP, taskView.getUser(), factory, new PropertiesProvider(taskView.properties), String.class);
         this.nlpPipeline = pipeline;
         project = Project.project(ofNullable((String)taskView.properties.get(DEFAULT_PROJECT_OPT)).orElse(DEFAULT_DEFAULT_PROJECT));
         maxContentLengthChars = (int) HumanReadableSize.parse(ofNullable((String)taskView.properties.get(MAX_CONTENT_LENGTH_OPT)).orElse(valueOf(DEFAULT_MAX_CONTENT_LENGTH)));

@@ -97,7 +97,7 @@ public class JsonObjectMapper {
         return getObject(map, type);
     }
 
-    private static <T extends Entity> T getObject(Map<String, Object> source, Class<T> type) {
+    public static <T extends Entity> T getObject(Map<String, Object> source, Class<T> type) {
         try {
             return MAPPER.readValue(MAPPER.writeValueAsString(source), type);
         } catch (IOException e) {

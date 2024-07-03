@@ -1,5 +1,6 @@
 package org.icij.datashare.web;
 
+import java.util.Map;
 import java.util.function.Function;
 import net.codestory.http.routes.Routes;
 import net.codestory.rest.Response;
@@ -12,6 +13,7 @@ import org.icij.datashare.asynctasks.TaskSupplier;
 import org.icij.datashare.asynctasks.TaskView;
 import org.icij.datashare.db.JooqRepository;
 import org.icij.datashare.extension.PipelineRegistry;
+import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.mode.CommonMode;
 import org.icij.datashare.nlp.EmailPipeline;
 import org.icij.datashare.session.LocalUserFilter;
@@ -173,7 +175,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     @Test(timeout = 2000)
     public void test_index_and_scan_default_directory() {
         RestAssert response = post("/api/task/batchUpdate/index/file", "{}");
-        HashMap<String, Object> properties = getDefaultProperties();
+        Map<String, Object> properties = getDefaultProperties();
         properties.put("foo", "bar");
 
         response.should().respond(200).haveType("application/json");
@@ -189,9 +191,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
                 "{\"options\":{\"foo\":\"baz\",\"key\":\"val\"}}");
 
         response.should().haveType("application/json");
-        HashMap<String, Object> defaultProperties = getDefaultProperties();
+        Map<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("foo", "baz");
         defaultProperties.put("key", "val");
+        defaultProperties.put("user", User.local());
         defaultProperties.remove(REPORT_NAME_OPT);
 
         assertThat(taskManager.getTasks()).hasSize(2);
@@ -208,9 +211,10 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         RestAssert response = post("/api/task/batchUpdate/index", body);
         response.should().haveType("application/json");
 
-        HashMap<String, Object> defaultProperties = getDefaultProperties();
+        Map<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("key1", "val1");
         defaultProperties.put("key2", "val2");
+        defaultProperties.put("user", User.local());
 
         assertThat(taskManager.getTasks()).hasSize(1);
         assertThat(taskManager.getTasks().get(0).name).isEqualTo("org.icij.datashare.tasks.IndexTask");
@@ -228,7 +232,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
         List<String> taskNames = taskManager.waitTasksToBeDone(1, SECONDS).stream().map(t -> t.id).collect(toList());
         assertThat(taskNames.size()).isEqualTo(1);
         responseBody.should().contain(format("{\"id\":\"%s\"", taskNames.get(0)));
-        HashMap<String, Object> defaultProperties = getDefaultProperties();
+        Map<String, Object> defaultProperties = getDefaultProperties();
         defaultProperties.put("key", "val");
         defaultProperties.put("foo", "qux");
         assertThat(findTask(taskManager, "org.icij.datashare.tasks.ScanTask").get().properties).
@@ -445,7 +449,7 @@ public class TaskResourceTest extends AbstractProdWebServerTest {
     }
 
     @NotNull
-    private HashMap<String, Object> getDefaultProperties() {
+    private Map<String, Object> getDefaultProperties() {
         HashMap<String, Object> map = new HashMap<>() {{
             put("dataDir", "/default/data/dir");
             put("foo", "bar");

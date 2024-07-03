@@ -51,7 +51,8 @@ public class TaskRunnerLoopIntTest {
             assertThat(taskManager.getTasks()).hasSize(1);
             assertThat(taskManager.getTasks().get(0).getError()).isNotNull();
             assertThat(taskManager.getTasks().get(0).getProgress()).isEqualTo(1);
-            assertThat(taskManager.getTasks().get(0).properties).hasSize(1);
+            assertThat(taskManager.getTasks().get(0).properties).hasSize(2);
+            assertThat(taskManager.getTasks().get(0).getUser()).isEqualTo(User.local());
         }
     }
 }
