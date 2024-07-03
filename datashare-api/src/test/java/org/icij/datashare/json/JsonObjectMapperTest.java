@@ -14,7 +14,7 @@ public class JsonObjectMapperTest {
         ObjectMapper typeInclusionMapper = JsonObjectMapper.createTypeInclusionMapper();
 
         String json = typeInclusionMapper.writeValueAsString(new ExceptionWrapper(new RuntimeException("hello")));
-        assertThat(json).contains("\"@class\":\"java.lang.RuntimeException\"");
+        assertThat(json).contains("\"@type\":\"java.lang.RuntimeException\"");
 
         ExceptionWrapper wrapper = typeInclusionMapper.readValue(json, ExceptionWrapper.class);
         assertThat(wrapper.throwable.getClass()).isEqualTo(RuntimeException.class);
