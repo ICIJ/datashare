@@ -107,19 +107,20 @@ public class JsonObjectMapper {
 
     /**
      * Get a type inclusion mapper i.e. a mapper that adds the class value in JSON.
-     * An attribute "@class" is added for each object.
+     * An attribute "@type" is added for each object.
      * It is used for example to serialize/deserialize exceptions.
      *
      * @return ObjectMapper instance
      */
     public static ObjectMapper createTypeInclusionMapper() {
-        ObjectMapper copy = MAPPER.copy();
+        ObjectMapper defaultMapper = MAPPER.copy();
         TypeResolverBuilder<?> mapTyper = new ObjectMapper.DefaultTypeResolverBuilder(
-                ObjectMapper.DefaultTyping.NON_FINAL, LaissezFaireSubTypeValidator.instance);
-        mapTyper.init(JsonTypeInfo.Id.CLASS, null);
-        mapTyper.inclusion(JsonTypeInfo.As.PROPERTY);
-        copy.setDefaultTyping(mapTyper);
-        return copy;
+                ObjectMapper.DefaultTyping.NON_FINAL, LaissezFaireSubTypeValidator.instance)
+                .init(JsonTypeInfo.Id.CLASS, null)
+                .typeProperty("@type")
+                .inclusion(JsonTypeInfo.As.PROPERTY);
+        defaultMapper.setDefaultTyping(mapTyper);
+        return defaultMapper;
     }
 
     /**
