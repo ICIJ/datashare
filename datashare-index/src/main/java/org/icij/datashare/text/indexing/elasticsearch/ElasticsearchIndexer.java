@@ -269,7 +269,12 @@ public class ElasticsearchIndexer implements Indexer {
     public <T extends Entity> T get(String indexName, String id, String root) {
         String type = null;
         try {
-            final GetRequest req = new GetRequest.Builder().index(indexName).id(id).routing(root).build();
+            final GetRequest req = new GetRequest.Builder()
+                    .sourceExcludes(List.of("content", "content_translated"))
+                    .index(indexName)
+                    .id(id)
+                    .routing(root)
+                    .build();
             GetResponse<ObjectNode> resp = client.get(req, ObjectNode.class);
             if (resp.found()) {
                 Map<String, Object> sourceAsMap = MAPPER.readValue(MAPPER.writeValueAsString(resp.source()), new TypeReference<>() {});
