@@ -36,7 +36,9 @@ public interface Indexer extends Closeable {
     <T extends Entity> boolean exists(String indexName, String id) throws IOException;
 
     <T extends Entity> T get(String indexName, String id);
+    <T extends Entity> T get(String indexName, String id, List<String> sourceExcludes);
     <T extends Entity> T get(String indexName, String id, String root);
+    <T extends Entity> T get(String indexName, String id, String root, List<String> sourceExcludes);
 
     String executeRaw(String method, String url, String body) throws IOException;
 

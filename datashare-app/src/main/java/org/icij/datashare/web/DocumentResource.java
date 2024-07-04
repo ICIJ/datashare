@@ -87,7 +87,8 @@ public class DocumentResource {
         boolean isProjectGranted = ((DatashareUser) context.currentUser()).isGranted(project);
         boolean isDownloadAllowed = isAllowed(repository.getProject(project), context.request().clientAddress());
         if (isProjectGranted && isDownloadAllowed) {
-            Document document = routing == null ? indexer.get(project, id) : indexer.get(project, id, routing);
+            List<String> sourceExcludes = List.of("content", "content_translated");
+            Document document = indexer.get(project, id, routing == null ? id : routing, sourceExcludes);
             if(documentVerifier.isRootDocumentSizeAllowed(document)) {
                 return getPayload(document, project, inline, parseBoolean(filterMetadata));
             }

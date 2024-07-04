@@ -266,11 +266,22 @@ public class ElasticsearchIndexer implements Indexer {
     }
 
     @Override
+    public <T extends Entity> T get(String indexName, String id, List<String> sourceExcludes) {
+        return get(indexName, id, id, sourceExcludes);
+    }
+
+    @Override
     public <T extends Entity> T get(String indexName, String id, String root) {
+        return get(indexName, id, root, List.of());
+    }
+
+
+    @Override
+    public <T extends Entity> T get(String indexName, String id, String root, List<String> sourceExcludes) {
         String type = null;
         try {
             final GetRequest req = new GetRequest.Builder()
-                    .sourceExcludes(List.of("content", "content_translated"))
+                    .sourceExcludes(sourceExcludes)
                     .index(indexName)
                     .id(id)
                     .routing(root)
