@@ -164,7 +164,7 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_SCROLL_SLICES = 1;
     public static final int DEFAULT_TCP_LISTEN_PORT = 8080;
     public static final int DEFAULT_SESSION_TTL_SECONDS = 43200;
-    public static final String DEFAULT_MAX_CONTENT_LENGTH = "20M";
+    public static final String DEFAULT_MAX_CONTENT_LENGTH = "20000000";
 
     // A list of aliases for retro-compatibility when an option changed
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
