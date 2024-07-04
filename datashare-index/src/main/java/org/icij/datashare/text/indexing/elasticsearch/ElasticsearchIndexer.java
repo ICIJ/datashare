@@ -281,10 +281,10 @@ public class ElasticsearchIndexer implements Indexer {
         String type = null;
         try {
             final GetRequest req = new GetRequest.Builder()
-                    .sourceExcludes(sourceExcludes)
                     .index(indexName)
                     .id(id)
                     .routing(root)
+                    .sourceExcludes(sourceExcludes)
                     .build();
             GetResponse<ObjectNode> resp = client.get(req, ObjectNode.class);
             if (resp.found()) {
@@ -297,7 +297,7 @@ public class ElasticsearchIndexer implements Indexer {
         } catch (IOException e) {
             LOGGER.error("Failed to get entity " + id + " in index " + indexName, e);
         } catch (ClassNotFoundException e) {
-            LOGGER.error("no entity for type " + type);
+            LOGGER.error("No entity for type " + type);
         }
         return null;
     }

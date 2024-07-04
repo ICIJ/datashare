@@ -267,8 +267,9 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_document_source_with_good_mask() throws Exception {
         File txtFile = new File(temp.getRoot(), "file.txt");
+        List<String> sourceExcludes = List.of("content", "content_translated");
         write(txtFile, "content");
-        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
+        when(indexer.get("local-datashare", "docId", "root", sourceExcludes)).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
 
         when(jooqRepository.getProject("local-datashare")).thenReturn(new Project("local-datashare", "*.*.*.*"));
         get("/api/local-datashare/documents/src/docId?routing=root").should().respond(200);
@@ -291,8 +292,9 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     @Test
     public void test_get_document_source_with_unknown_project() throws IOException {
         File txtFile = new File(temp.getRoot(), "file.txt");
+        List<String> sourceExcludes = List.of("content", "content_translated");
         write(txtFile, "content");
-        when(indexer.get("local-datashare", "docId", "root")).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
+        when(indexer.get("local-datashare", "docId", "root", sourceExcludes)).thenReturn(createDoc("doc").with(txtFile.toPath()).build());
 
         when(jooqRepository.getProject("local-datashare")).thenReturn(null);
         get("/api/local-datashare/documents/src/docId?routing=root").should().respond(200);
@@ -427,12 +429,16 @@ public class DocumentResourceTest extends AbstractProdWebServerTest {
     }
 
     private void indexFile(String index, Document rootDocument, Document document) {
+        List<String> sourceExcludes = List.of("content", "content_translated");
         when(indexer.get(index, rootDocument.getId())).thenReturn(rootDocument);
         when(indexer.get(index, document.getId(), document.getRootDocument())).thenReturn(document);
+        when(indexer.get(index, document.getId(), document.getRootDocument(), sourceExcludes)).thenReturn(document);
     }
 
     private void indexFile(String index, Document document) {
+        List<String> sourceExcludes = List.of("content", "content_translated");
         when(indexer.get(index, document.getId())).thenReturn(document);
+        when(indexer.get(index, document.getId(), document.getId(), sourceExcludes)).thenReturn(document);
     }
 
     static void write(File file, String content) throws IOException {
