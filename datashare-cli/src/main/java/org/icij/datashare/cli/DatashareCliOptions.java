@@ -164,6 +164,8 @@ public final class DatashareCliOptions {
     public static final int DEFAULT_SCROLL_SLICES = 1;
     public static final int DEFAULT_TCP_LISTEN_PORT = 8080;
     public static final int DEFAULT_SESSION_TTL_SECONDS = 43200;
+    public static final String DEFAULT_MAX_CONTENT_LENGTH = "20M";
+
     // A list of aliases for retro-compatibility when an option changed
     public static final Map<String, String> OPT_ALIASES = Map.ofEntries(
             Map.entry(PORT_OPT, TCP_LISTEN_PORT_OPT)
@@ -718,8 +720,9 @@ public final class DatashareCliOptions {
     public static void maxContentLength(OptionParser parser) {
         parser.acceptsAll(
                 singletonList(MAX_CONTENT_LENGTH_OPT), "Maximum length (in bytes) of extracted text that could be indexed " +
-                        "(-1 means no limit and value should be less or equal than 2G). Human readable suffix K/M/G for KB/MB/GB (Default -1)")
+                        "(-1 means no limit and value should be less or equal than 2G). Human readable suffix K/M/G for KB/MB/GB (Default 20M)")
                 .withRequiredArg()
+                .defaultsTo(DEFAULT_MAX_CONTENT_LENGTH)
                 .withValuesConvertedBy(regex("[0-9]+[KMG]?"));
     }
 
