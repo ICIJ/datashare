@@ -214,12 +214,14 @@ jobs:
           command: |
             upload_url=$(curl -X POST -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -d "{\"tag_name\":\"${CIRCLE_TAG}\", \"name\":\"${CIRCLE_TAG}\",\"body\":\"release ${CIRCLE_TAG}\"}" "https://api.github.com/repos/ICIJ/datashare/releases" | jq -r '.upload_url')
             upload_url="${upload_url%\{*}"
+            echo "extracting es json files from jar"
+            jar xf /tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-back.jar datashare_index_mappings.json datashare_index_settings.json datashare_index_settings_windows.json
             echo "uploading asset to release url: $upload_url"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-all.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}-all.jar&label=datashare-dist-${CIRCLE_TAG}-all.jar"
             curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/java-archive" --data-binary "@/tmp/datashare/datashare-dist/target/datashare-dist-${CIRCLE_TAG}-back.jar" "$upload_url?name=datashare-dist-${CIRCLE_TAG}.jar&label=datashare-dist-${CIRCLE_TAG}.jar"
-            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@/tmp/datashare/datashare-index/src/main/resources/datashare_index_mappings.json" "$upload_url?name=datashare_index_mappings.json&label=datashare_index_mappings.json"
-            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@/tmp/datashare/datashare-index/src/main/resources/datashare_index_settings.json" "$upload_url?name=datashare_index_settings.json&label=datashare_index_settings.json"
-            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@/tmp/datashare/datashare-index/src/main/resources/datashare_index_settings_windows.json" "$upload_url?name=datashare_index_settings_windows.json&label=datashare_index_settings_windows.json"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_mappings.json" "$upload_url?name=datashare_index_mappings.json&label=datashare_index_mappings.json"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_settings.json" "$upload_url?name=datashare_index_settings.json&label=datashare_index_settings.json"
+            curl -X POST -s -m 120 -H "Accept: application/vnd.github.v3+json" -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data-binary "@datashare_index_settings_windows.json" "$upload_url?name=datashare_index_settings_windows.json&label=datashare_index_settings_windows.json"
 
 
   build_front:
