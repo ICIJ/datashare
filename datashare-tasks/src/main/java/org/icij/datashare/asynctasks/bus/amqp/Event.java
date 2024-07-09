@@ -2,30 +2,37 @@ package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonRootName;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
+import com.fasterxml.jackson.databind.jsontype.impl.ClassNameIdResolver;
 import org.icij.datashare.json.JsonObjectMapper;
 import org.icij.datashare.time.DatashareTime;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
 
 /**
- * Base event for AMQP.
+ * Base event.
  * It provides creation timestamp and ttl that can be used for error handling and republishing/DLQ strategies.
+ * For name mapping, subclasses can use the @JsonTypeName annotation.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
 public class Event implements Serializable {
-	private static final ObjectMapper jsonMapper = JsonObjectMapper.createTypeInclusionMapper();
-	private static final long serialVersionUID = -2295266944323500399L;
+	@Serial private static final long serialVersionUID = -2295266944323500399L;
 	protected int ttl = 3;
-	public final Date creationDate;
+	public final Date createdAt;
 
 	public Event() {
 		this(DatashareTime.getNow(), 3);
 	}
 	@JsonCreator
-	public Event(@JsonProperty("creationDate") Date creationDate, @JsonProperty("ttl") int ttl) {
-		this.creationDate = creationDate;
+	public Event(@JsonProperty("createdAt") Date createdAt, @JsonProperty("ttl") int ttl) {
+		this.createdAt = createdAt;
 		this.ttl = ttl;
 	}
 	
@@ -39,6 +46,6 @@ public class Event implements Serializable {
 	}
 
 	public byte[] serialize() throws IOException {
-		return jsonMapper.writeValueAsBytes(this);
+		return JsonObjectMapper.MAPPER.writeValueAsBytes(this);
 	}
 }

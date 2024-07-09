@@ -165,6 +165,7 @@ public class TaskView<V> implements Entity {
         return id == null;
     }
 
+    @JsonIgnore
     public User getUser() {
         return (User) properties.get(USER_KEY);
     }

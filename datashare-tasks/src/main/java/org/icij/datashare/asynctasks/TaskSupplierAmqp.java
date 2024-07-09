@@ -8,7 +8,7 @@ import org.icij.datashare.asynctasks.bus.amqp.ProgressEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskError;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
-import org.icij.datashare.asynctasks.bus.amqp.TaskViewEvent;
+import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -23,8 +23,8 @@ import java.util.function.Consumer;
 import static java.util.Optional.ofNullable;
 
 public class TaskSupplierAmqp implements TaskSupplier {
-    private final BlockingQueue<TaskViewEvent> taskViewEvents = new ArrayBlockingQueue<>(1024);
-    final AmqpConsumer<TaskViewEvent, Consumer<TaskViewEvent>> consumer;
+    private final BlockingQueue<TaskCreation> taskCreations = new ArrayBlockingQueue<>(1024);
+    final AmqpConsumer<TaskCreation, Consumer<TaskCreation>> consumer;
     final AmqpConsumer<TaskEvent, Consumer<TaskEvent>> eventConsumer;
     final List<Consumer<TaskEvent>> eventCallbackList = new LinkedList<>();
     private final AmqpInterlocutor amqp;
@@ -32,10 +32,10 @@ public class TaskSupplierAmqp implements TaskSupplier {
     public TaskSupplierAmqp(AmqpInterlocutor amqp) throws IOException {
         this.amqp = amqp;
         consumer = new AmqpConsumer<>(amqp, event -> {
-            if (!taskViewEvents.offer(event)) {
+            if (!taskCreations.offer(event)) {
                 throw new SupplierBufferingException();
             }
-        }, AmqpQueue.TASK, TaskViewEvent.class).consumeEvents();
+        }, AmqpQueue.TASK, TaskCreation.class).consumeEvents();
         eventConsumer = new AmqpConsumer<>(amqp, this::handleEvent, AmqpQueue.RUNNER_EVENT, TaskEvent.class).consumeEvents();
     }
 
@@ -51,7 +51,7 @@ public class TaskSupplierAmqp implements TaskSupplier {
 
     @Override
     public <V extends Serializable> TaskView<V> get(int timeOut, TimeUnit timeUnit) throws InterruptedException {
-        return (TaskView<V>) ofNullable(taskViewEvents.poll(timeOut, timeUnit)).map(te -> te.taskView).orElse(null);
+        return (TaskView<V>) ofNullable(taskCreations.poll(timeOut, timeUnit)).map(te -> te.taskView).orElse(null);
     }
 
     @Override

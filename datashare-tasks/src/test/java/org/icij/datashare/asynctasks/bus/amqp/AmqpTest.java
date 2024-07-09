@@ -46,12 +46,12 @@ public class AmqpTest {
         AmqpConsumer<TestErrorEvent, Consumer<TestErrorEvent>> consumer = new AmqpConsumer<>(amqp, errorEventQueue::add, AmqpQueue.EVENT, TestErrorEvent.class);
         consumer.consumeEvents();
 
-        amqp.publish(AmqpQueue.EVENT, new TestErrorEvent(new RuntimeException("my error")));
+        amqp.publish(AmqpQueue.EVENT, new TestErrorEvent(new TaskError(new RuntimeException("my error"))));
 
         TestErrorEvent expected = errorEventQueue.poll(2, TimeUnit.SECONDS);
         assert expected != null;
         assertThat(expected.error.getMessage()).isEqualTo("my error");
-        assertThat(expected.error.getClass()).isEqualTo(RuntimeException.class);
+        assertThat(expected.error.getClass()).isEqualTo(TaskError.class);
         consumer.cancel();
     }
 
@@ -118,9 +118,9 @@ public class AmqpTest {
     }
 
     static class TestErrorEvent extends Event {
-        public final Throwable error;
+        public final TaskError error;
         @JsonCreator
-        public TestErrorEvent(@JsonProperty("error") Throwable error) {
+        public TestErrorEvent(@JsonProperty("error") TaskError error) {
             this.error = error;
         }
     }

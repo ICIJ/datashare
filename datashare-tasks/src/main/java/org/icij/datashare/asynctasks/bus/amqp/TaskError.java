@@ -2,6 +2,7 @@ package org.icij.datashare.asynctasks.bus.amqp;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.io.Serializable;
 import java.util.List;
@@ -12,6 +13,7 @@ import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
 public class TaskError implements Serializable {
     final String name;
     final String message;
