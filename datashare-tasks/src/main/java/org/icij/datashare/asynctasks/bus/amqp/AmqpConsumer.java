@@ -16,8 +16,6 @@ import java.util.function.Consumer;
  * @param <EvtConsumer> The class for handling the received event class
  */
 public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> implements Deserializer<Evt> {
-    private static final ObjectMapper jsonMapper = JsonObjectMapper.createTypeInclusionMapper();
-
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     protected final AmqpInterlocutor amqpInterlocutor;
     public final EvtConsumer eventConsumer;
@@ -101,7 +99,7 @@ public class AmqpConsumer<Evt extends Event, EvtConsumer extends Consumer<Evt>> 
 
     public Evt deserialize(byte[] rawJson) {
         try {
-            return jsonMapper.readValue(rawJson, evtClass);
+            return JsonObjectMapper.MAPPER.readValue(rawJson, evtClass);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

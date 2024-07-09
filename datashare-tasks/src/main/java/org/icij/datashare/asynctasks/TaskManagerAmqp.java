@@ -6,7 +6,7 @@ import org.icij.datashare.asynctasks.bus.amqp.CancelEvent;
 import org.icij.datashare.asynctasks.bus.amqp.ResultEvent;
 import org.icij.datashare.asynctasks.bus.amqp.TaskEvent;
 import org.icij.datashare.asynctasks.bus.amqp.AmqpConsumer;
-import org.icij.datashare.asynctasks.bus.amqp.TaskViewEvent;
+import org.icij.datashare.asynctasks.bus.amqp.TaskCreation;
 import org.icij.datashare.user.User;
 
 import java.io.IOException;
@@ -76,7 +76,7 @@ public class TaskManagerAmqp implements TaskManager {
 
     @Override
     public void enqueue(TaskView<?> task) throws IOException {
-        amqp.publish(AmqpQueue.TASK, new TaskViewEvent(task));
+        amqp.publish(AmqpQueue.TASK, new TaskCreation(task));
     }
 
     @Override
